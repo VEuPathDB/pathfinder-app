@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.ai.agents.registry import phase_defaults
+from pathfinder.ai.audit.auditor import audit_compile_time_models
 from pathfinder.assistants.registry import (
     assistant_role_models,
     installed_phase_defaults,
@@ -36,6 +37,8 @@ def test_a_split_tier_answers_the_model_of_each_role() -> None:
         "frame": OPENAI_STANDARD,
         "execution": OPENAI_SMALL,
         "verification": OPENAI_SMALL,
+        "auditor": OPENAI_STANDARD,
+        "audit_review": OPENAI_SMALL,
     }
 
 
@@ -43,7 +46,7 @@ def test_a_uniform_tier_answers_one_model_for_every_role() -> None:
     defaults = installed_phase_defaults("openai", "fast")
 
     assert set(defaults.values()) == {OPENAI_SMALL}
-    assert set(defaults) == set(phase_defaults())
+    assert set(defaults) == set(phase_defaults()) | {"auditor", "audit_review"}
 
 
 def test_another_provider_answers_that_provider_models() -> None:
@@ -57,13 +60,13 @@ def test_a_role_no_tier_names_keeps_its_compile_time_model() -> None:
     """``custom`` means per-role user picks, so no preset resolves it."""
     defaults = installed_phase_defaults("openai", "custom")
 
-    assert defaults == phase_defaults()
+    assert defaults == phase_defaults() | audit_compile_time_models()
 
 
 def test_a_provider_without_presets_keeps_the_compile_time_models() -> None:
     defaults = installed_phase_defaults("ollama", "balanced")
 
-    assert defaults == phase_defaults()
+    assert defaults == phase_defaults() | audit_compile_time_models()
 
 
 def test_one_assistant_runs_each_of_its_roles_on_the_pick_or_the_default(

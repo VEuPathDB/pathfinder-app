@@ -11,10 +11,12 @@ from assistant_core.registry import AssistantRegistry
 from assistant_core.spec import AssistantSpec
 
 from pathfinder.ai.agents.registry import phase_defaults
+from pathfinder.ai.audit.auditor import audit_compile_time_models
+from pathfinder.assistants.audit.spec import build_audit_spec
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.tiers import resolve_phase_tier_config
+from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tiers import AUDITOR_ROLE, tier_model
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,6 +33,11 @@ def installed_assistants() -> dict[str, InstalledAssistant]:
             compile_time_models=phase_defaults,
             prompt_role="lead",
         ),
+        AUDIT_ASSISTANT_ID: InstalledAssistant(
+            build_spec=build_audit_spec,
+            compile_time_models=audit_compile_time_models,
+            prompt_role=AUDITOR_ROLE,
+        ),
     }
 
 
@@ -46,12 +53,11 @@ def get_assistant_registry() -> AssistantRegistry:
 def _defaults_of(
     assistant_id: str, provider: ModelProvider, tier: TierName
 ) -> dict[str, str]:
-    resolved: dict[str, str] = {}
     models = installed_assistants()[assistant_id].compile_time_models()
-    for role, baked_in in models.items():
-        config = resolve_phase_tier_config(assistant_id, provider, tier, role)
-        resolved[role] = baked_in if config is None else config.model_id
-    return resolved
+    return {
+        role: tier_model(assistant_id, provider, tier, role, compile_time=baked_in)
+        for role, baked_in in models.items()
+    }
 
 
 def installed_phase_defaults(provider: ModelProvider, tier: TierName) -> dict[str, str]:

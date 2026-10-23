@@ -17,6 +17,7 @@ from assistant_core.platform.types import ModelProvider, ReasoningEffort, TierNa
 from pydantic import ConfigDict
 
 from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import (
     ModelEntry,
@@ -35,9 +36,12 @@ __all__ = [
     "TIER_PRESETS",
     "PhaseTierConfig",
     "TierPreset",
+    "deployment_role_config",
     "derive_tiers",
     "get_tier_preset",
     "resolve_phase_tier_config",
+    "role_model",
+    "tier_model",
 ]
 
 
@@ -232,3 +236,33 @@ def resolve_phase_tier_config(
     if preset is None:
         return None
     return preset.for_role(role)
+
+
+def tier_model(
+    assistant_id: str,
+    provider: ModelProvider,
+    tier: TierName,
+    role: str,
+    *,
+    compile_time: str,
+) -> str:
+    config = resolve_phase_tier_config(assistant_id, provider, tier, role)
+    return compile_time if config is None else config.model_id
+
+
+def deployment_role_config(assistant_id: str, role: str) -> PhaseTierConfig | None:
+    settings = get_settings()
+    return resolve_phase_tier_config(
+        assistant_id, settings.default_provider, settings.default_tier, role
+    )
+
+
+def role_model(assistant_id: str, role: str, *, compile_time: str) -> str:
+    settings = get_settings()
+    return tier_model(
+        assistant_id,
+        settings.default_provider,
+        settings.default_tier,
+        role,
+        compile_time=compile_time,
+    )

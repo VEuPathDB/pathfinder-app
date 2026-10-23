@@ -2,6 +2,20 @@
 
 ## 2026-10-23
 
+* **The audit assistant is installed beside PathFinder.** `assistants/audit/spec.py` runs one
+  auditor (`ai/audit/auditor.py`) on the runtime's single-agent graph with a typed reply
+  (`ai/audit/reply.py::AuditReply`) and `AUDITOR_LIMITS` (40 requests, 40 tool calls); a thread
+  opens under it with `assistantId: "audit"`. The auditor holds the run tools (the start tool
+  asks on its card through the deferred-call handler), the single-gene checks and
+  `record_gene_model_verdict`. Its reply is held to the Lead's reference contract by the
+  `HoldTheReply` capability (`after_output_validate`), and renders from the turn's facts, the
+  records its reads named (`ReadRecord.source_fact`, promoted from the Lead's facts) and the
+  researcher's message. A served research read adds every reference it returns to the turn's
+  reads, so a verdict may cite it (`ai/audit/retrievals.py`). The auditor runs on the deployment
+  tier's model for its role (`platform/tiers.py::role_model`; `tier_model` is the one rule the
+  registry also applies) and charges that model's payer. `RESEARCH_TOOL_SOURCE` moves to
+  `platform/tool_sources.py`. The OpenAPI pass registers a stream part two installed assistants
+  both emit once, and still refuses another payload under the same kind.
 * **A gene model is investigated and the verdict stored.** `ai/audit/instructions.py` holds the
   judging rules every auditing agent reads (which side of a disagreement is wrong, the five
   traps, `undecided`, what a cite names, a curator question, references) and one paragraph per

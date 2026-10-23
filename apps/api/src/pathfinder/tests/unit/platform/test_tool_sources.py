@@ -15,12 +15,12 @@ from veupathdb_mcp.metadata import RESOURCE_NAME
 from veupathdb_mcp.research import TOOLS
 from veupathdb_mcp.server import CONTROL_TESTS_MAX_CALL_SECONDS
 
-from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import (
     RESEARCH_MCP_CALL_SECONDS,
     RESEARCH_MCP_PART_NAMESPACE,
     RESEARCH_MCP_SOURCE_ID,
+    RESEARCH_TOOL_SOURCE,
     WDK_MCP_PART_NAMESPACE,
     WDK_MCP_SOURCE_ID,
     admitted_tool_sources,

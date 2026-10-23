@@ -36,8 +36,8 @@ from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
-from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.tests._support.database import no_database
 
 PRODUCT_NAMES = {

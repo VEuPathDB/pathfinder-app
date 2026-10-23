@@ -18,6 +18,7 @@ from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.record_facts import OrthologFact, SourceFact
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
@@ -83,6 +84,19 @@ class ReadRecord(CamelModel):
         """Each asked ortholog's gene id and organism."""
         return list(
             zip(self.asked_orthologs[::2], self.asked_orthologs[1::2], strict=True)
+        )
+
+    def source_fact(self) -> SourceFact:
+        return SourceFact(
+            url=self.url,
+            record_id=self.record_id,
+            product=self.product,
+            organism=self.organism,
+            values=self.words(),
+            orthologs=[
+                OrthologFact(gene_id=gene_id, organism=organism)
+                for gene_id, organism in self.ortholog_pairs()
+            ],
         )
 
 

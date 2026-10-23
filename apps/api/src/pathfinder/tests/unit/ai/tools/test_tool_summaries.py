@@ -25,6 +25,8 @@ from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.verification import build_verification_agent
+from pathfinder.ai.audit.auditor import build_auditor_agent
+from pathfinder.ai.audit.investigator import build_investigator_agent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.standalone import (
     eda_compute,
@@ -82,6 +84,16 @@ _DURABLE_BUILDERS: dict[str, Callable[[Any, UUID, str | None], list[BaseChunk]]]
 }
 
 
+_AGENT_BUILDERS: tuple[Callable[[], Agent[Any, Any]], ...] = (
+    build_frame_agent,
+    build_execution_agent,
+    build_verification_agent,
+    build_lead_agent,
+    build_auditor_agent,
+    build_investigator_agent,
+)
+
+
 def _functions(toolset: AbstractToolset[Any]) -> dict[str, Callable[..., Any]]:
     while isinstance(toolset, WrapperToolset):
         toolset = toolset.wrapped
@@ -100,12 +112,7 @@ def _agent_functions(agent: Agent[Any, Any]) -> dict[str, Callable[..., Any]]:
 def _registered() -> dict[str, Callable[..., Any]]:
     """Every tool an agent of this application can call, by name."""
     found: dict[str, Callable[..., Any]] = {}
-    for build in (
-        build_frame_agent,
-        build_execution_agent,
-        build_verification_agent,
-        build_lead_agent,
-    ):
+    for build in _AGENT_BUILDERS:
         found |= _agent_functions(build())
     return found
 
@@ -118,12 +125,7 @@ def _every_implementation() -> list[tuple[str, Callable[..., Any]]]:
     """
     pairs: list[tuple[str, Callable[..., Any]]] = []
     seen: set[tuple[str, str]] = set()
-    for build in (
-        build_frame_agent,
-        build_execution_agent,
-        build_verification_agent,
-        build_lead_agent,
-    ):
+    for build in _AGENT_BUILDERS:
         for name, fn in _agent_functions(build()).items():
             key = (name, f"{fn.__module__}.{fn.__qualname__}")
             if key in seen:
@@ -294,8 +296,9 @@ def test_every_registered_tool_emits_a_summary() -> None:
     for name, fn in every:
         if name in _DURABLE_BUILDERS or fn.__module__ in _SUB_AGENT_DISPATCH_MODULES:
             continue
-        target = _DELEGATES.get(name, name)
-        source = registered[target] if target != name else fn
+        delegate = _DELEGATES.get(name)
+        source = fn if delegate is None else registered[delegate]
+        target = source.__name__
         shared = _SHARED_BODIES.get(name)
         if shared is not None:
             target, source = shared.__name__, shared
