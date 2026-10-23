@@ -12,7 +12,7 @@ from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
-from pathfinder.domain.strategy.readings import AcceptedReading
+from pathfinder.domain.strategy.readings import AcceptedReading, why_no_readings
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
@@ -39,6 +39,7 @@ class OpenSlot(UnboundParameter):
 
     criterion_id: str = ""
     param_kind: ParamKind = "string"
+    pasted: bool = False
 
 
 ValueSource = Literal["stated", "chosen", "default", "card", "held"]
@@ -355,6 +356,26 @@ class Criterion(CamelModel):
         if held is not None and held.display_name:
             return held.display_name
         return self.param_display_names.get(param, param)
+
+    def kind_of(self, param: str) -> ParamKind:
+        held = self.resolved_params.get(param)
+        if held is not None:
+            return held.value.type
+        kinds: dict[str, ParamKind] = {
+            s.param_name: s.param_kind for s in self.open_params
+        }
+        text: ParamKind = "string"
+        return kinds.get(param, text)
+
+    def why_no_readings(self, param: str) -> str:
+        slot = next((s for s in self.open_params if s.param_name == param), None)
+        beside = any(s.param_name != param for s in self.open_params)
+        return why_no_readings(
+            self.kind_of(param),
+            listed=slot is not None and bool(slot.options),
+            pasted=slot is not None and slot.pasted,
+            open_beside=self.id if beside else "",
+        )
 
     def defaulted(self) -> list[str]:
         """The params holding the site default, sorted by name."""

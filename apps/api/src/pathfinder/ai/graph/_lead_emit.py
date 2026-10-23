@@ -86,4 +86,5 @@ def release_the_cards(
     if not hold.holds_a_card():
         return
     facts = show_the_facts(writer, deps, capture)
-    emit_each(writer, hold.release(facts), sub_agent_tool_calls, capture)
+    released = hold.release(facts, deps.state.domain.open_questions)
+    emit_each(writer, released, sub_agent_tool_calls, capture)

@@ -25,10 +25,10 @@ from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_consult import (
-    card_questions,
     consult_user,
     refuse_a_card_that_binds_nothing,
 )
+from pathfinder.ai.lead.recorded_cards import card_questions, the_card_asked
 from pathfinder.ai.lead.sub_agent_dispatch import minted_spec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import _findings
@@ -47,13 +47,8 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.questions import (
-    Keep,
-    OpenQuestion,
-    SlotQuestion,
-    TypedOption,
-    Withdraw,
-)
+from pathfinder.domain.strategy.question_options import Keep, TypedOption, Withdraw
+from pathfinder.domain.strategy.questions import OpenQuestion, SlotQuestion
 from pathfinder.tests._support.recorded_searches import suite_search
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -232,40 +227,30 @@ class TestTheCardOffersWhatFrameRecorded:
 
         assert _refusal(question, [*card_questions([question]), own]) == ""
 
-    def test_a_card_that_leaves_a_recorded_question_out_is_refused(self) -> None:
-        refusal = _refusal(
-            _floor_question(), [CardQuestion(id="q1", prompt="Anything else?")]
-        )
-
-        assert _DETECTED in refusal
-        assert "How strictly must the genes be expressed" in refusal
-
-    def test_a_refused_card_says_the_researcher_never_saw_it(self) -> None:
-        refusal = _refusal(
-            _floor_question(), [CardQuestion(id="q1", prompt="Anything else?")]
-        )
-
-        assert refusal.endswith(CARD_NOT_SHOWN)
-
-    def test_a_card_that_rewrites_the_options_is_refused(self) -> None:
+    def test_a_card_that_leaves_a_recorded_question_out_still_asks_it(self) -> None:
         question = _floor_question()
+        written = [CardQuestion(id="q1", prompt="Anything else?")]
 
-        refusal = _refusal(
-            question,
-            [
-                CardQuestion(
-                    id="q1",
-                    prompt=question.question,
-                    options=[
-                        ConsultOption(label="Detected consistently"),
-                        ConsultOption(label="Detected at all"),
-                    ],
-                )
-            ],
-        )
+        assert _refusal(question, written) == ""
+        assert the_card_asked(written, [question]) == [
+            *card_questions([question]),
+            CardQuestion(id="own-1", prompt="Anything else?"),
+        ]
 
-        assert "Detected consistently" in refusal
-        assert _DEFAULT in refusal
+    def test_a_card_that_rewrites_the_options_asks_the_recorded_ones(self) -> None:
+        question = _floor_question()
+        written = [
+            CardQuestion(
+                id="q1",
+                prompt=question.question,
+                options=[
+                    ConsultOption(label="Detected consistently"),
+                    ConsultOption(label="Detected at all"),
+                ],
+            )
+        ]
+
+        assert the_card_asked(written, [question]) == card_questions([question])
 
     def test_a_free_text_question_offering_a_recorded_value_is_refused(
         self,
@@ -288,6 +273,7 @@ class TestTheCardOffersWhatFrameRecorded:
         )
 
         assert "Which floor, again?" in refusal
+        assert refusal.endswith(CARD_NOT_SHOWN)
 
 
 def test_the_leads_card_is_checked_before_it_reaches_the_researcher() -> None:

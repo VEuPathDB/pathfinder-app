@@ -21,7 +21,8 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import SetValues, SlotQuestion
+from pathfinder.domain.strategy.question_options import SetValues
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.value_source import value_source
 from pathfinder.tests._support.recorded_searches import suite_search
 

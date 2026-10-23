@@ -19,7 +19,8 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_consult
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.lead.lead_consult import card_questions, consult_user
+from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import (
     Constraint,

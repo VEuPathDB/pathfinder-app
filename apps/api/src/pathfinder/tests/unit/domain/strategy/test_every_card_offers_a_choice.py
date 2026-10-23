@@ -8,12 +8,11 @@ from pydantic import ValidationError
 
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.question_options import SetValues, TypedOption
 from pathfinder.domain.strategy.questions import (
     AskedQuestion,
     OpenQuestion,
-    SetValues,
     SlotQuestion,
-    TypedOption,
 )
 
 _TM_PROMPT = (

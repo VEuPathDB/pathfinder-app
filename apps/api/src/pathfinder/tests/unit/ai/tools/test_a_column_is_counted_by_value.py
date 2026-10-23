@@ -71,9 +71,9 @@ class _Ran:
 @pytest.fixture
 def ran(monkeypatch: pytest.MonkeyPatch) -> _Ran:
     async def resolved(
-        _ctx: object, _search: VariantInput, *, record_type: str
+        _ctx: object, _search: VariantInput, *, record_type: str, framing: bool
     ) -> VariantSpec:
-        assert record_type == "dataset"
+        assert (record_type, framing) == ("dataset", True)
         return _SPEC
 
     fake = _Ran()

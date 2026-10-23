@@ -43,6 +43,8 @@ def _binding() -> Binding:
         values={},
         defaulted=[],
         transform=True,
+        pasted=[],
+        left_open=[],
         record_names=["group", "Ortholog Group", "Ortholog Groups"],
     )
 

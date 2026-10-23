@@ -18,7 +18,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import SetValues
+from pathfinder.domain.strategy.question_options import SetValues
 from pathfinder.domain.strategy.readings import AcceptedReading
 from pathfinder.domain.strategy.spec_replay import criterion_restated
 

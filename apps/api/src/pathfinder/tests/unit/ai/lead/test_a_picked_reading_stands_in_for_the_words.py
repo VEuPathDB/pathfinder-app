@@ -22,9 +22,10 @@ from pathfinder.ai.lead import frame_dispatch, lead_consult
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.frame_dispatch import run_frame
-from pathfinder.ai.lead.lead_consult import card_questions, consult_user
+from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.ledger_render import render_frame_full
 from pathfinder.ai.lead.ledger_sections import FrameSection
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.domain.caveats import caveats_for

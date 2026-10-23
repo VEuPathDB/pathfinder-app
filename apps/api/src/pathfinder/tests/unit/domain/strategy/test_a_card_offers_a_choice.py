@@ -20,13 +20,15 @@ from pathfinder.domain.strategy.operational_spec import (
     Measurement,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import (
+from pathfinder.domain.strategy.question_options import (
     Keep,
-    OpenQuestion,
     SetValues,
-    SlotQuestion,
     TypedOption,
     Withdraw,
+)
+from pathfinder.domain.strategy.questions import (
+    OpenQuestion,
+    SlotQuestion,
     unanswered_questions,
     with_withdrawals,
 )

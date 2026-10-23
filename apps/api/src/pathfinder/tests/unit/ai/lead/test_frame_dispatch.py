@@ -20,10 +20,8 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import (
-    SetValues,
-    SlotQuestion,
-)
+from pathfinder.domain.strategy.question_options import SetValues
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.requirement_reports import RecordTypeRole
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,

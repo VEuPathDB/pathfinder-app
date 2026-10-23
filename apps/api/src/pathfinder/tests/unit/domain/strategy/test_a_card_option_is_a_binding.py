@@ -8,14 +8,16 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.domain.strategy.constraints import ConstraintKind
-from pathfinder.domain.strategy.questions import (
-    AskedQuestion,
+from pathfinder.domain.strategy.question_options import (
     Keep,
-    OpenQuestion,
     SetValues,
-    SlotQuestion,
     TypedOption,
     Withdraw,
+)
+from pathfinder.domain.strategy.questions import (
+    AskedQuestion,
+    OpenQuestion,
+    SlotQuestion,
 )
 
 _PERCENTILE = "min_expression_percentile"

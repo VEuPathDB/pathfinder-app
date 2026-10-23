@@ -10,10 +10,8 @@ from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
-from pathfinder.ai.lead.lead_consult import (
-    card_questions,
-    refuse_a_card_that_binds_nothing,
-)
+from pathfinder.ai.lead.lead_consult import refuse_a_card_that_binds_nothing
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,

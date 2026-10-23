@@ -145,7 +145,7 @@ def test_a_cards_reply_is_rendered_from_the_facts_it_is_released_with() -> None:
     )
     facts = TurnFacts(steps=[StepFact(step_id="c_text", display_name="Text", count=2)])
 
-    released = hold.release(facts)
+    released = hold.release(facts, [])
 
     assert [c.delta for c in released if isinstance(c, TextDeltaChunk)] == [
         "The step returns 2 genes. Which field should it search?"

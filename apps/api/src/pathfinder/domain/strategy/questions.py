@@ -4,9 +4,9 @@ recommends, and the options it offers, each typed by what answering it binds."""
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Literal
+from typing import Annotated
 
-from pydantic import ConfigDict, Discriminator, Field, ValidationError, model_validator
+from pydantic import Field, ValidationError, model_validator
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
@@ -23,6 +23,16 @@ from pathfinder.domain.strategy.option_labels import (
     value_readings,
     with_count,
 )
+from pathfinder.domain.strategy.question_options import (
+    Keep,
+    SetValues,
+    TypedOption,
+    Withdraw,
+    binding_key,
+    option_id,
+    options_by_id,
+    refuse_a_single_option,
+)
 from pathfinder.domain.strategy.readings import (
     KeysOnTheReadings,
     Reading,
@@ -33,70 +43,7 @@ from pathfinder.domain.strategy.words import words_of
 _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
 _OPTIONS_LIMIT = 8
-
-
-class SetValues(CamelModel):
-    """An option that binds these wire values on one criterion."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["set_values"] = "set_values"
-    criterion_id: str
-    params: dict[str, str] = Field(min_length=1)
-
-
-class Withdraw(CamelModel):
-    """An option that withdraws one requirement, named by its key."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["withdraw"] = "withdraw"
-    constraint_id: str
-
-
-class Keep(CamelModel):
-    """An option that keeps one requirement as the thread holds it, by its key."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["keep"] = "keep"
-    constraint_id: str
-
-
-OptionBinding = Annotated[
-    SetValues | ReadValues | Withdraw | Keep, Discriminator("kind")
-]
-
-
-class TypedOption(CamelModel):
-    """One option a question card offers, and what answering it binds."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str = Field(min_length=1)
-    label: str = Field(min_length=1)
-    binding: OptionBinding
-
-    def offered_reading(self) -> ReadValues | None:
-        match self.binding:
-            case ReadValues() as read:
-                return read
-            case _:
-                return None
-
-
-def _option_id(label: str) -> str:
-    """The option's id: the words of its label, joined by hyphens."""
-    return "-".join(words_of(label)) or label
-
-
-def _by_id(labels: Sequence[str]) -> dict[str, str]:
-    """Each label under its id; a label whose id an earlier one holds is dropped."""
-    found: dict[str, str] = {}
-    for label in labels:
-        if label:
-            found.setdefault(_option_id(label), label)
-    return found
+_A_CHOICE = 2
 
 
 class _Question(CamelModel):
@@ -142,12 +89,12 @@ class OpenQuestion(_Question):
     @model_validator(mode="after")
     def _offers_a_choice(self) -> OpenQuestion:
         """No option, or at least two, each with its own id and binding."""
-        _refuse_a_single_option(self.question, [o.label for o in self.options])
+        refuse_a_single_option(self.question, [o.label for o in self.options])
         ids = [option.id for option in self.options]
         if len(ids) != len(set(ids)):
             msg = f"the question offers the option ids {ids} more than once"
             raise ValueError(msg)
-        bound = [_binding_key(option) for option in self.options]
+        bound = [binding_key(option) for option in self.options]
         if len(bound) != len(set(bound)):
             labels = [option.label for option in self.options]
             msg = (
@@ -156,34 +103,6 @@ class OpenQuestion(_Question):
             )
             raise ValueError(msg)
         return self
-
-
-def _binding_key(option: TypedOption) -> tuple[str, ...]:
-    """What answering the option binds."""
-    match option.binding:
-        case (
-            SetValues(criterion_id=criterion_id, params=params)
-            | ReadValues(criterion_id=criterion_id, params=params)
-        ):
-            return (
-                "set_values",
-                criterion_id,
-                *sorted(f"{k}={v}" for k, v in params.items()),
-            )
-        case Withdraw(constraint_id=key) | Keep(constraint_id=key):
-            return (option.binding.kind, key)
-
-
-def _refuse_a_single_option(question: str, labels: Sequence[str]) -> None:
-    """A question that offers options offers a choice between two at least."""
-    if len(labels) != 1:
-        return
-    msg = (
-        f"the question {question!r} offers one option, {labels[0]!r}, which is no "
-        f"choice: offer at least two values that each change something, or no "
-        f"options for an answer in the researcher's words"
-    )
-    raise ValueError(msg)
 
 
 class AskedQuestion(_Question):
@@ -199,7 +118,7 @@ class AskedQuestion(_Question):
 
     @model_validator(mode="after")
     def _one_option_is_a_free_text_question(self) -> AskedQuestion:
-        if len(_by_id(self.options)) == 1:
+        if len(options_by_id(self.options)) == 1:
             self.options = []
         return self
 
@@ -258,11 +177,11 @@ class SlotQuestion(AskedQuestion):
     def _by_wire(self, criterion: Criterion | None) -> dict[str, str]:
         """Each wire value an offered value binds, under the first option naming it."""
         by_wire: dict[str, str] = {}
-        for option_id, value in _by_id(self._offered(criterion)).items():
+        for key, value in options_by_id(self._offered(criterion)).items():
             for reading in value_readings(criterion, self.param_name, value):
                 by_wire.setdefault(
                     term_of(criterion, self.param_name, reading),
-                    option_id if reading == value else _option_id(reading),
+                    key if reading == value else option_id(reading),
                 )
         return by_wire
 
@@ -277,6 +196,13 @@ class SlotQuestion(AskedQuestion):
             or not self.names_a_slot
             or len(self._by_wire(criterion)) != 1
         )
+
+    def asks_a_value_in_words(self, criterion: Criterion | None) -> bool:
+        if not self.names_a_slot:
+            return len(self.options) > _A_CHOICE
+        if criterion is None or self.readings:
+            return False
+        return not criterion.why_no_readings(self.param_name)
 
     def typed(
         self,
@@ -311,14 +237,14 @@ class SlotQuestion(AskedQuestion):
             recommended_value=self.recommended_value,
             options=[
                 TypedOption(
-                    id=option_id,
+                    id=key,
                     label=option_label(criterion, self.param_name, wire, noun=noun),
                     binding=SetValues(
                         criterion_id=self.criterion_id,
                         params={self.param_name: wire},
                     ),
                 )
-                for wire, option_id in by_wire.items()
+                for wire, key in by_wire.items()
             ],
         )
 
@@ -333,7 +259,7 @@ class SlotQuestion(AskedQuestion):
     ) -> TypedOption:
         count = count_at(criterion, self.param_name, reading.value)
         return TypedOption(
-            id=_option_id(reading.label),
+            id=option_id(reading.label),
             label=with_count(reading.label, count, noun),
             binding=ReadValues(
                 criterion_id=self.criterion_id,
@@ -349,7 +275,7 @@ class SlotQuestion(AskedQuestion):
 def _withdrawal(requirement: Constraint) -> TypedOption:
     label = f"Drop {requirement.requested_value}"[:_LABEL_LIMIT]
     return TypedOption(
-        id=_option_id(label),
+        id=option_id(label),
         label=label,
         binding=Withdraw(constraint_id=requirement.key),
     )
@@ -358,7 +284,7 @@ def _withdrawal(requirement: Constraint) -> TypedOption:
 def _keeping(requirement: Constraint) -> TypedOption:
     label = f"Keep {requirement.requested_value}"[:_LABEL_LIMIT]
     return TypedOption(
-        id=_option_id(label),
+        id=option_id(label),
         label=label,
         binding=Keep(constraint_id=requirement.key),
     )

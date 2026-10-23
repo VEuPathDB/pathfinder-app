@@ -13,8 +13,10 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
+from pathfinder.domain.strategy.readings import why_no_readings
 from pathfinder.domain.strategy.step_rationale import RationaleBasis, names_the_phrase
 from pathfinder.domain.strategy.value_binding import bind_values, researcher_sees
+from pathfinder.services.strategies.parameter_rules import parameter_class
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,8 @@ class Binding:
     defaulted: Collection[str]
     # A search that runs on an input step maps it to the organism it names.
     transform: bool
+    pasted: Collection[str]
+    left_open: Collection[str]
     # The record type's own name, then each name the site shows it by.
     record_names: Sequence[str]
 
@@ -173,8 +177,9 @@ def _picks(value: ParamValue) -> list[str]:
 
 
 def _checked_parameter(cid: str, term: str, at: Binding, info: ParameterInfo) -> str:
-    """The parameter's display name, once the call sets it and it may decide."""
-    if at.params.get(info.name) is None:
+    """The parameter's display name, once the call sets it, or leaves it open
+    for the researcher with nothing else set, and it may decide."""
+    if at.params.get(info.name) is None and not _left_to_the_researcher(at, info):
         msg = (
             f"{cid}: this call leaves {term} null, so it decides nothing. Name the "
             f"parameter whose value decides the choice."
@@ -183,6 +188,26 @@ def _checked_parameter(cid: str, term: str, at: Binding, info: ParameterInfo) ->
     if info.organism_param:
         _refuse_the_organism_beside_a_set_value(cid, term, at, {info.name})
     return info.display_name
+
+
+def _left_to_the_researcher(at: Binding, info: ParameterInfo) -> bool:
+    others = [i for i in at.shown if i.name != info.name]
+    sets_another = any(
+        at.params.get(i.name) is not None and not i.organism_param for i in others
+    )
+    beside = any(name != info.name for name in at.left_open)
+    unread = why_no_readings(
+        info.param_kind,
+        listed=bool(info.vocabulary()),
+        pasted=info.name in at.pasted,
+        open_beside=at.criterion_id if beside else "",
+    )
+    return (
+        info.name not in at.defaulted
+        and not sets_another
+        and not unread
+        and parameter_class(info) != "string"
+    )
 
 
 def _refuse_the_organism_beside_a_set_value(

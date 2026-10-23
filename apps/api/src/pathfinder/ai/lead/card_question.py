@@ -19,6 +19,14 @@ class CardQuestion(ConsultQuestion):
             "recorded question keeps the dimension its `cardQuestions` entry names."
         ),
     )
+    requirement: str = Field(
+        default="",
+        description=(
+            "The key of the requirement the question asks about, as the ledger "
+            "names it, or empty. A recorded question on the same requirement is "
+            "asked in its place."
+        ),
+    )
 
     @model_validator(mode="after")
     def _is_written_for_the_researcher(self) -> CardQuestion:

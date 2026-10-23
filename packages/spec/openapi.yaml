@@ -14544,6 +14544,10 @@ components:
           - input-step
           title: Paramkind
           type: string
+        pasted:
+          default: false
+          title: Pasted
+          type: boolean
       required:
       - paramName
       title: OpenSlot

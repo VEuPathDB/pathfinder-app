@@ -49,6 +49,12 @@ def _unheld_slot_questions(
     )
 
 
+def asks_about_a_missing_search(
+    question: SlotQuestion, lacking: Sequence[Constraint]
+) -> bool:
+    return any(message_states(question.question, c.requested_value) for c in lacking)
+
+
 def questions_that_bind_to_nothing(
     result: FrameResult,
     draft: OperationalSpec,
@@ -68,8 +74,7 @@ def questions_that_bind_to_nothing(
     free = [
         q
         for q in questions
-        if not q.names_a_slot
-        and not any(message_states(q.question, c.requested_value) for c in lacking)
+        if not q.names_a_slot and not asks_about_a_missing_search(q, lacking)
     ]
     if not free:
         return ""

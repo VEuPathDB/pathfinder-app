@@ -18,7 +18,8 @@ from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.questions import Keep, SlotQuestion, Withdraw
+from pathfinder.domain.strategy.question_options import Keep, Withdraw
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,

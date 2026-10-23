@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from types import MappingProxyType
 
@@ -12,6 +12,7 @@ from veupathdb.domain.parameters import (
     UnboundParameter,
     to_wire,
 )
+from veupathdb.wdk import WDKSearch, WDKStringParam
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
@@ -205,10 +206,22 @@ def card_values_of(spec: OperationalSpec, criterion_id: str) -> dict[str, BoundV
     return next((c.set_by("card") for c in spec.criteria if c.id == criterion_id), {})
 
 
+def pasted_params(definition: WDKSearch) -> frozenset[str]:
+    pasted: set[str] = set()
+    for param in definition.parameters or []:
+        match param:
+            case WDKStringParam(is_multi_line=True):
+                pasted.add(param.name)
+            case _:
+                continue
+    return frozenset(pasted)
+
+
 def open_slots(
     criterion_id: str,
     slots: Sequence[UnboundParameter],
     infos: list[ParameterInfo],
+    pasted: Collection[str],
 ) -> list[OpenSlot]:
     """Each parameter the binding left open, with the kind its sheet gives it.
 
@@ -220,6 +233,7 @@ def open_slots(
             criterion_id=criterion_id,
             param_name=slot.param_name,
             param_kind=kinds.get(slot.param_name, _TEXT),
+            pasted=slot.param_name in pasted,
             question=slot.question,
             options=slot.options,
         )

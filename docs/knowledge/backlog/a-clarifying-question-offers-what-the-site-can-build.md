@@ -31,6 +31,7 @@ site can approximate the request (card 50).
    not ask again for the same thing in parameter terms.
 4. A request that no reading can approximate says so once, with the reason and the
    nearest thing it can build.
+5. A Lead question that rewords a recorded one without its requirement key shows beside it.
 
 ## Related
 
@@ -40,4 +41,8 @@ comparison between clades is built in bands) are two cases of this rule.
 ## Done when
 
 The copy-number question and the "all Plasmodium" question each reach a built strategy
-within one clarifying exchange in replay, and the consult offers are pinned by tests.
+within one clarifying exchange in replay, and the consult offers are pinned by tests. In
+replay, the trypanosomatid-targets question without human (H11), the kinetoplastid core
+single-copy question (H12) and the second message of the more-proteins-in-one-genome case
+each reach the researcher as a card of two or three readings with the site's counts, not
+as a question in words. The Lead card shows each recorded question once.

@@ -7,7 +7,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
-from veupathdb.domain.parameters import ParamKind
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.agents.refusal_bound import may_refuse
@@ -20,11 +19,7 @@ from pathfinder.domain.strategy.requirement_reports import stated_numbers
 from pathfinder.services.strategies.reading_check import site_spelling
 from pathfinder.services.strategies.record_classes import search_record_types
 
-_TEXT: ParamKind = "string"
 _READINGS_ON_A_CARD = 2
-_READABLE_KINDS: frozenset[ParamKind] = frozenset(
-    {"string", "number", "number-range", "date", "date-range", "timestamp"}
-)
 
 
 async def _record_type(ctx: RunContext[AgentDeps], criterion: Criterion) -> str | None:
@@ -32,16 +27,6 @@ async def _record_type(ctx: RunContext[AgentDeps], criterion: Criterion) -> str 
         return criterion.record_class
     listed = await search_record_types(ctx.deps.site_id, [criterion.search_name])
     return listed.get(criterion.search_name)
-
-
-def _kind(criterion: Criterion, param: str) -> ParamKind:
-    held = criterion.resolved_params.get(param)
-    if held is not None:
-        return held.value.type
-    kinds: dict[str, ParamKind] = {
-        s.param_name: s.param_kind for s in criterion.open_params
-    }
-    return kinds.get(param, _TEXT)
 
 
 @dataclass(frozen=True)
@@ -143,16 +128,8 @@ async def _spelled(
 
 
 def _unreadable(question: SlotQuestion, criterion: Criterion) -> str:
-    named = _named(question)
-    kind = _kind(criterion, question.param_name)
-    if kind not in _READABLE_KINDS:
-        return (
-            f"{named} takes {kind}, and only a free-text or range parameter "
-            f"takes readings"
-        )
-    if any(s.param_name != question.param_name for s in criterion.open_params):
-        return f"{named}: bind the rest of {criterion.id} before its readings"
-    return ""
+    reason = criterion.why_no_readings(question.param_name)
+    return f"{_named(question)}: {reason}" if reason else ""
 
 
 async def _checked(ctx: RunContext[AgentDeps], question: SlotQuestion) -> _Held:

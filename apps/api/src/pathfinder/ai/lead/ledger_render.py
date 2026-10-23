@@ -23,11 +23,8 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
 )
-from pathfinder.domain.strategy.questions import (
-    OpenQuestion,
-    OptionBinding,
-    SetValues,
-)
+from pathfinder.domain.strategy.question_options import OptionBinding, SetValues
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.value_binding import plain_value
 

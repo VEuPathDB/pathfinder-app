@@ -3,7 +3,7 @@ answers it and the dispatch hands it to the Lead."""
 
 from __future__ import annotations
 
-from pathfinder.ai.lead.lead_consult import card_questions
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.questions import SlotQuestion

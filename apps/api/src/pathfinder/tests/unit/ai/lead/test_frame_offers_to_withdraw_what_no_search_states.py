@@ -25,12 +25,8 @@ from pathfinder.domain.strategy.operational_spec import (
     DroppedCriterion,
     OpenSlot,
 )
-from pathfinder.domain.strategy.questions import (
-    Keep,
-    SetValues,
-    SlotQuestion,
-    Withdraw,
-)
+from pathfinder.domain.strategy.question_options import Keep, SetValues, Withdraw
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,

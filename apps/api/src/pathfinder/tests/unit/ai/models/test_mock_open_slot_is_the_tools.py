@@ -34,7 +34,7 @@ from pathfinder.ai.models.mock.specs import CriterionReply
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.domain.strategy.questions import SetValues
+from pathfinder.domain.strategy.question_options import SetValues
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.recorded_searches import (
     no_count,

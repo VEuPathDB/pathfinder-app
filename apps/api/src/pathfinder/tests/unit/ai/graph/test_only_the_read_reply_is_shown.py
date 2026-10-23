@@ -71,7 +71,7 @@ def _through_hold(hold: CardHold, chunks: Sequence[BaseChunk]) -> list[BaseChunk
     written: list[BaseChunk] = []
     for chunk in chunks:
         written.extend(hold.admit(chunk))
-    written.extend(hold.release(TurnFacts()))
+    written.extend(hold.release(TurnFacts(), []))
     return written
 
 

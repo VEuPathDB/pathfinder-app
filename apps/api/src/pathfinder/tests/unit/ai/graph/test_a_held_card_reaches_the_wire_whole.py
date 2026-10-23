@@ -43,7 +43,7 @@ def _written(hold: CardHold, chunks: Sequence[BaseChunk]) -> list[str]:
     written: list[BaseChunk] = []
     for chunk in chunks:
         written.extend(hold.admit(chunk))
-    written.extend(hold.release(TurnFacts()))
+    written.extend(hold.release(TurnFacts(), []))
     return _labels(written)
 
 

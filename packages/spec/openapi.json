@@ -21814,6 +21814,11 @@
             ],
             "title": "Paramkind",
             "type": "string"
+          },
+          "pasted": {
+            "default": false,
+            "title": "Pasted",
+            "type": "boolean"
           }
         },
         "required": [

@@ -3,7 +3,7 @@ each after its reply rendered from the turn's facts; a denied card is dropped.""
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 
 from pydantic_ai.ui.vercel_ai.response_types import (
@@ -23,7 +23,9 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.ai.lead.card_reply import CardCallReply
+from pathfinder.ai.lead.recorded_cards import completed_consult_input
 from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.turn_facts import TurnFacts
 
 _TEXT = (TextStartChunk, TextDeltaChunk, TextEndChunk)
@@ -59,6 +61,15 @@ def _reply_of(call_id: str, card: list[BaseChunk], facts: TurnFacts) -> list[Bas
     ]
 
 
+def _as_recorded(chunk: BaseChunk, recorded: Sequence[OpenQuestion]) -> BaseChunk:
+    match chunk:
+        case ToolInputAvailableChunk(tool_name="consult_user", input=written):
+            completed = completed_consult_input(written, recorded)
+            return chunk.model_copy(update={"input": completed})
+        case _:
+            return chunk
+
+
 @dataclass
 class CardHold:
     """The card calls a run has not released yet.
@@ -89,10 +100,12 @@ class CardHold:
     def holds_a_card(self) -> bool:
         return bool(self._cards)
 
-    def release(self, facts: TurnFacts) -> list[BaseChunk]:
+    def release(
+        self, facts: TurnFacts, recorded: Sequence[OpenQuestion]
+    ) -> list[BaseChunk]:
         """Each held card whole, after its reply, in the order they began."""
         cards = [
-            chunk
+            _as_recorded(chunk, recorded)
             for call_id, card in self._cards.items()
             for chunk in (*_reply_of(call_id, card, facts), *card)
         ]

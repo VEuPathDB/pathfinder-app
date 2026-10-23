@@ -66,6 +66,7 @@ from pathfinder.ai.tools.standalone._frame_sheet import (
 from pathfinder.ai.tools.standalone._frame_sources import (
     chosen_reason,
     open_slots,
+    pasted_params,
 )
 from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
 from pathfinder.ai.tools.standalone._frame_unserved import (
@@ -338,6 +339,8 @@ async def _bind_the_search(
         why,
         defaulted=sorted(site_supplied),
         transform=bool(definition.allowed_primary_input_record_class_names),
+        pasted=pasted_params(definition),
+        left_open=[slot.param_name for slot in resolved.open_slots],
     )
     canonical = resolved
     # Only a binding with no open slot is validated: an unresolved required
@@ -360,7 +363,9 @@ async def _bind_the_search(
     )
     bound = with_typed_ids(bound, typed, state.request_messages)
     accepted = offered_reading(state, criterion_id, reading, bound)
-    open_params = open_slots(criterion_id, resolved.open_slots, infos)
+    open_params = open_slots(
+        criterion_id, resolved.open_slots, infos, pasted_params(definition)
+    )
     count, alternatives, measured = await record_bound_criterion(
         ctx,
         Criterion(

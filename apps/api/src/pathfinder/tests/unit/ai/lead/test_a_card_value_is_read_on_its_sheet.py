@@ -13,14 +13,16 @@ from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_consult
-from pathfinder.ai.lead.lead_consult import card_questions, consult_user
+from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.turn_facts import _parameter
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import OpenQuestion, SetValues, TypedOption
+from pathfinder.domain.strategy.question_options import SetValues, TypedOption
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.tests._support.recorded_searches import suite_search
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state

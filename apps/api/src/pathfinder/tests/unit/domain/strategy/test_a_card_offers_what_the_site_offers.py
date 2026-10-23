@@ -9,12 +9,10 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OpenSlot
+from pathfinder.domain.strategy.question_options import Keep, SetValues, Withdraw
 from pathfinder.domain.strategy.questions import (
-    Keep,
     OpenQuestion,
-    SetValues,
     SlotQuestion,
-    Withdraw,
     with_withdrawals,
 )
 

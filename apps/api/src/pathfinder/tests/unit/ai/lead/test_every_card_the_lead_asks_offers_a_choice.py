@@ -20,9 +20,11 @@ from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_consult import refuse_a_card_that_binds_nothing
+from pathfinder.ai.lead.recorded_cards import the_card_asked
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
-from pathfinder.domain.strategy.questions import Keep, SlotQuestion, Withdraw
+from pathfinder.domain.strategy.question_options import Keep, Withdraw
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -175,14 +177,16 @@ async def test_a_requirement_the_site_lacks_is_asked_to_drop_or_keep(
         ("Drop expressed in spores", Withdraw(constraint_id=_SPORES.key)),
         ("Keep expressed in spores", Keep(constraint_id=_SPORES.key)),
     ]
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(ModelRetry, match="which bind nothing"):
         refuse_a_card_that_binds_nothing(
             run_context_for(deps, "call_card"), [_SUBSTITUTE_CARD], reply="A card."
         )
-    assert (
-        "\"No search on this site states 'expressed in spores'. Drop it from the "
-        'request?" is not asked with its recorded options' in str(refused.value)
-    )
+    [recorded, own] = the_card_asked([_SUBSTITUTE_CARD], [asked])
+    assert [o.label for o in recorded.options] == [
+        "Drop expressed in spores",
+        "Keep expressed in spores",
+    ]
+    assert own.prompt == _SUBSTITUTE_CARD.prompt
 
 
 _WINNIE = "Cytauxzoon felis strain Winnie"

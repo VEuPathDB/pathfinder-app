@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.questions import (
 from pathfinder.domain.strategy.requirement_reports import (
     RecordTypeRole,
     ReportedRequirement,
+    RequirementProblem,
     RequirementReport,
     numbered_requirements,
     stated_numbers,
@@ -137,6 +138,25 @@ class FrameResult(CamelModel):
 
     def with_gap(self, kind: PassGapKind, sentence: str) -> FrameResult:
         return self.with_gaps([PassGap(kind=kind, sentence=sentence)])
+
+    def left_open_without_a_choice(self, spec: OperationalSpec) -> list[str]:
+        by_id = {c.id: c for c in spec.criteria}
+        choices = [
+            q
+            for q in self.open_questions
+            if q.names_a_slot
+            and q.criterion_id in by_id
+            and not q.asks_a_value_in_words(by_id[q.criterion_id])
+        ]
+        keyed = {key for q in choices for key in q.requirements}
+        unkeyed = sum(1 for q in choices if not q.requirements)
+        left = [
+            r.requirement
+            for r in self.requirement_problems
+            if r.problem is RequirementProblem.REQUEST_LEAVES_IT_OPEN
+            and r.requirement not in keyed
+        ]
+        return left[unkeyed:]
 
     @property
     def undecided_questions(self) -> list[str]:

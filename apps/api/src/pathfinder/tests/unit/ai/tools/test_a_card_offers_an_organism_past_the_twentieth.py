@@ -13,7 +13,8 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.tools.standalone._frame_sources import open_slots
 from pathfinder.domain.strategy.operational_spec import Criterion
-from pathfinder.domain.strategy.questions import SetValues, SlotQuestion
+from pathfinder.domain.strategy.question_options import SetValues
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests._support.qa_recording import client_recording
 
 _PLASMODB = [
@@ -72,7 +73,7 @@ async def _criterion(infos: list[ParameterInfo], text: str) -> Criterion:
         id="c1",
         text=text,
         search_name="GenesByExonCount",
-        open_params=open_slots("c1", resolved.open_slots, infos),
+        open_params=open_slots("c1", resolved.open_slots, infos, frozenset()),
     )
 
 

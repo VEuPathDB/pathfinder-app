@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
-from veupathdb.domain.parameters import ParamValue, from_wire
+from veupathdb.domain.parameters import ParamKind, ParamValue, from_wire
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.clipped import text_clipped_to
@@ -17,6 +17,21 @@ _READING_LIMIT = 90
 _LABEL_LIMIT = 120
 _CAVEAT_LIMIT = 300
 _READINGS_LIMIT = 3
+READABLE_KINDS: frozenset[ParamKind] = frozenset(
+    {"string", "number", "number-range", "date", "date-range", "timestamp"}
+)
+
+
+def why_no_readings(
+    kind: ParamKind, *, listed: bool, pasted: bool, open_beside: str
+) -> str:
+    if kind not in READABLE_KINDS:
+        return f"takes {kind}; only a free-text or range parameter takes readings"
+    if listed or pasted:
+        return "takes a value the researcher picks or pastes, which has no reading"
+    if open_beside:
+        return f"bind the rest of {open_beside} before its readings"
+    return ""
 
 
 class Reading(CamelModel):

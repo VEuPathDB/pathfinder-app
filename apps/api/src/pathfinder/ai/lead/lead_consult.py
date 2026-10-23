@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from assistant_core.graph.tool_summary import with_summary
-from assistant_core.graph.turn_state import ConsultOption, UserQuestionAnswer
+from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
@@ -15,6 +15,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardReply
 from pathfinder.ai.lead.readings import refused_picks
+from pathfinder.ai.lead.recorded_cards import card_questions, the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import (
     params_held,
@@ -29,13 +30,15 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.questions import (
-    AskedQuestion,
+from pathfinder.domain.strategy.question_options import (
     Keep,
-    OpenQuestion,
     SetValues,
     TypedOption,
     Withdraw,
+)
+from pathfinder.domain.strategy.questions import (
+    AskedQuestion,
+    OpenQuestion,
     requirement_choices,
 )
 from pathfinder.domain.strategy.readings import ReadValues
@@ -47,32 +50,6 @@ from pathfinder.services.strategies.sheet_params import sheet_params_for_searche
 
 _LABEL_LIMIT = 120
 _QUESTION_LIMIT = 300
-
-
-def _recommends(question: OpenQuestion, option: TypedOption) -> bool:
-    match option.binding:
-        case ReadValues(params=params, reading=reading):
-            return question.recommended_value in (reading, *params.values())
-        case SetValues(params=params):
-            return question.recommended_value in params.values()
-        case _:
-            return option.label == question.recommended_value
-
-
-def card_questions(questions: Sequence[OpenQuestion]) -> list[CardQuestion]:
-    """The recorded questions as the card asks them, each option by its label."""
-    return [
-        CardQuestion(
-            id=f"q{index}",
-            prompt=question.question,
-            dimension=question.dimension,
-            options=[
-                ConsultOption(label=o.label, recommended=_recommends(question, o))
-                for o in question.options
-            ],
-        )
-        for index, question in enumerate(questions, 1)
-    ]
 
 
 def _held_dimensions(
@@ -107,22 +84,17 @@ def refuse_a_card_that_binds_nothing(
     *,
     reply: CardReply,
 ) -> None:
-    """Refuse a card that does not ask each recorded binding question as recorded.
+    """Refuse a card whose own questions bind nothing.
 
-    An option the card relabels would bind nothing, so every recorded question
-    that offers options is asked with its recorded prompt and labels. A
-    question of the Lead's own offers no option, or the drop and keep options
-    of a requirement the thread holds; one with no option asks no dimension a
-    parameter of the spec holds. A question the researcher answered is never
-    asked again.
+    The card carries every recorded question that offers options as recorded,
+    whatever the call writes. A question of the Lead's own offers no option,
+    or the drop and keep options of a requirement the thread holds; one with
+    no option asks no dimension a parameter of the spec holds. A question the
+    researcher answered is never asked again.
     """
     del reply
     domain = ctx.deps.state.domain
     recorded = [q for q in domain.open_questions if q.options]
-    asked = {q.prompt: {o.label for o in q.options} for q in questions}
-    wrong = [
-        q for q in recorded if asked.get(q.question) != {o.label for o in q.options}
-    ]
     offered = {o.label for q in recorded for o in q.options}
     prompts = {q.question for q in recorded}
     own = [q for q in questions if q.prompt not in prompts]
@@ -137,14 +109,13 @@ def refuse_a_card_that_binds_nothing(
     claimed = [q for q in own if not q.options and q.dimension in held]
     decided = {q.question for q in domain.answered_questions}
     again = [q.prompt for q in questions if q.prompt[:_QUESTION_LIMIT] in decided]
-    if not wrong and not reused and not unbound and not claimed and not again:
+    if not reused and not unbound and not claimed and not again:
         return
     expected = [
         f"{q.prompt!r} with the options {[o.label for o in q.options]}"
         for q in card_questions(recorded)
     ]
     problems = [
-        *(f"{q.question!r} is not asked with its recorded options" for q in wrong),
         *(f"{prompt!r} offers a value a recorded question binds" for prompt in reused),
         *(
             f"{prompt!r} offers {labels}, which bind nothing, so an answer to "
@@ -164,8 +135,8 @@ def refuse_a_card_that_binds_nothing(
     held_choices = ", ".join(repr(label) for label in choices)
     msg = (
         f"The card binds nothing for these questions: {'; '.join(problems)}. The "
-        f"card asked {got}. Ask each of these exactly as recorded, in `questions`: "
-        f"{'; '.join(expected) or 'none'}. A question of your own offers no "
+        f"card asked {got}. The card asks these as recorded, whatever the call "
+        f"writes: {'; '.join(expected) or 'none'}. A question of your own offers no "
         f"options, for an answer in the researcher's words about something no "
         f"parameter of the spec sets, or offers 'Drop <requirement>' and 'Keep "
         f"<requirement>' for a requirement the conversation holds. The "
@@ -385,6 +356,7 @@ async def consult_user(
     """
     del reply
     state = ctx.deps.state
+    shown = the_card_asked(questions, state.domain.open_questions)
     pending = state.pending_approval
     card = "" if pending is None else pending.tool_call_id
     answers = list(state.user_question_answers.get(card, []))
@@ -415,8 +387,8 @@ async def consult_user(
         state.turn_markers.consulted = True
         state.turn_markers.answered_card = card
         apply_option_bindings(
-            state, answers, questions, sheets=await _card_sheets(state, answers)
+            state, answers, shown, sheets=await _card_sheets(state, answers)
         )
         state.domain.answer_open_questions(answered, on_card=True)
-        state.domain.record_answered(_asked(questions))
+        state.domain.record_answered(_asked(shown))
     return asked

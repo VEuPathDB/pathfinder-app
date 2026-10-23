@@ -99,10 +99,12 @@ from pathfinder.ai.lead.deleted_steps import ask_about_the_removals
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
+from pathfinder.ai.lead.recorded_cards import completed_hint
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import lead_usage_limits
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.domain.strategy.questions import OpenQuestion
 
 logger = get_logger(__name__)
 
@@ -184,13 +186,15 @@ def _stream_ends_after(
     return True
 
 
-def _resume_hints(parked: ParkedCall | None) -> list[DeferredToolHint]:
+def _resume_hints(
+    parked: ParkedCall | None, recorded: Sequence[OpenQuestion]
+) -> list[DeferredToolHint]:
     """What the resumed stream needs to re-announce the calls it answers."""
     if parked is None:
         return []
     if isinstance(parked, PendingDurableCall):
         return durable_resume_hints(parked)
-    return [approvals.deferred_hint(parked)]
+    return [completed_hint(approvals.deferred_hint(parked), recorded)]
 
 
 def _calls_of_an_earlier_message(
@@ -238,7 +242,7 @@ async def _drive_lead_stream(
     if turn_ends_before_the_run(resumption, capture, writer):
         return
     parked = resumption.parked
-    hints = _resume_hints(parked)
+    hints = _resume_hints(parked, state.domain.open_questions)
     emitter = _turn_emitter(state, message_id, hints)
     hold = CardHold(resumed={hint.tool_call_id for hint in hints})
     deferred_results = resumption.results

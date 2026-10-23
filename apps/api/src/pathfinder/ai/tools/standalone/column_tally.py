@@ -67,7 +67,7 @@ async def count_by_column(
         if only_column is None or not only_values
         else TallyOnly(column=only_column, values=only_values)
     )
-    spec = await resolved_search(ctx, search, record_type=record_type)
+    spec = await resolved_search(ctx, search, record_type=record_type, framing=True)
     try:
         tally = await run_column_tally(
             ctx.deps.site_id,

@@ -33,9 +33,9 @@ from pathfinder.ai.lead.frame_requirements import (
     requirements_the_site_lacks,
 )
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.lead_consult import card_questions
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.readings import count_readings
+from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.site_routes import site_route_sentence
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,

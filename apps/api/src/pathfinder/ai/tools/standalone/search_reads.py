@@ -13,6 +13,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import VagueSearchQueryError
 
+from pathfinder.ai.lead.intent_gate import unmet_preconditions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.tools.standalone._variant_targets import (
@@ -37,10 +38,15 @@ from pathfinder.services.strategies.record_classes import search_record_types
 _LOOKUP_LIMIT = 5
 _GENES = "transcript"
 _WORD_START = re.compile(r"(?<=[a-z])(?=[A-Z])")
+_TO_FRAMING = (
+    "This conversation holds no strategy, and framing finds the searches: "
+    "with the message classified new_strategy, dispatch frame_problem with the "
+    "request, and count the built step with count_step_by_column."
+)
 
 
 async def _refuse_an_unlisted_search(
-    ctx: RunContext[LeadDeps], search: VariantInput, record_type: str
+    ctx: RunContext[LeadDeps], search: VariantInput, record_type: str, *, framing: bool
 ) -> None:
     """Raises ModelRetry for a search the catalog does not list, with the
     searches the catalog lookup finds for its name."""
@@ -62,7 +68,8 @@ async def _refuse_an_unlisted_search(
             f"{unlisted} The catalog lookup for '{query}' finds no search, so "
             f"{site_id} has no search of that name."
         )
-        raise ModelRetry(msg)
+        reroute = framing and "frame_problem" not in unmet_preconditions(ctx.deps)
+        raise ModelRetry(f"{msg} {_TO_FRAMING}" if reroute else msg)
     named = ", ".join(f"{m.name} ({m.display_name})" for m in found)
     msg = (
         f"{unlisted} The catalog lookup for '{query}' finds: {named}. Call again "
@@ -88,14 +95,18 @@ def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantInput) 
 
 
 async def resolved_search(
-    ctx: RunContext[LeadDeps], search: VariantInput, *, record_type: str
+    ctx: RunContext[LeadDeps],
+    search: VariantInput,
+    *,
+    record_type: str,
+    framing: bool = False,
 ) -> VariantSpec:
     """The search under the record type the catalog lists it under, with each
     value as the entry its vocabulary names. A name the catalog does not list is
     looked up among the searches of ``record_type``."""
     reject_combine_variants([search])
     _refuse_an_unquoted_phrase(ctx, search)
-    await _refuse_an_unlisted_search(ctx, search, record_type)
+    await _refuse_an_unlisted_search(ctx, search, record_type, framing=framing)
     specs = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
     return specs[0]
 

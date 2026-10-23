@@ -97,6 +97,8 @@ async def rationale_for(
     *,
     defaulted: Collection[str],
     transform: bool,
+    pasted: Collection[str],
+    left_open: Collection[str],
 ) -> ChosenWhy:
     """The recorded reason for this binding, or a retry naming what is wrong.
 
@@ -151,6 +153,8 @@ async def rationale_for(
         values=values,
         defaulted=defaulted,
         transform=transform,
+        pasted=pasted,
+        left_open=left_open,
         record_names=(
             await record_type_names(ctx.deps.site_id, record_type)
             if why.basis == "record_type"

@@ -100,7 +100,7 @@ async def test_a_turn_is_one_root_span_on_its_session_with_its_models(
     in_turn = [s for s in finished if _trace_of(s) == _trace_of(root)]
     model_calls = [s for s in in_turn if "gen_ai.request.model" in (s.attributes or {})]
     assert {s.name.split(" ")[0] for s in model_calls} == {"chat"}
-    assert {(s.attributes or {}).get("session.id") for s in model_calls} == {
+    assert {str((s.attributes or {}).get("session.id")) for s in model_calls} == {
         str(conversation_id)
     }
 

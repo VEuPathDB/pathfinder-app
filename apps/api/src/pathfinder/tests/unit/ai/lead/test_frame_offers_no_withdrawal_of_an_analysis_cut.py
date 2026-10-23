@@ -20,7 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import Withdraw
+from pathfinder.domain.strategy.question_options import Withdraw
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
