@@ -10,6 +10,7 @@ from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCall
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from pathfinder.ai.audit.auditor import turn_tool_sources
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
 from pathfinder.ai.audit.turn import AuditTurnContext, build_deps
@@ -76,3 +77,29 @@ def test_the_deps_carry_the_turns_thread_site_and_message() -> None:
         "auditor",
         None,
     )
+
+
+async def test_a_research_read_of_the_turns_source_is_a_read_a_verdict_may_cite() -> (
+    None
+):
+    user_id = uuid4()
+    state = TurnState(
+        conversation_id=uuid4(), user_id=user_id, site_id="plasmodb", mode="chat"
+    )
+    context = AuditTurnContext(
+        site_id="plasmodb",
+        user_id=user_id,
+        db_session_factory=no_database,
+        cancel_event=asyncio.Event(),
+        tool_sources={
+            "research": FunctionToolset([literature_search]).prefixed("research")
+        },
+    )
+    deps = build_deps(state, context)
+    agent = Agent(
+        FunctionModel(_searching), deps_type=AuditDeps, toolsets=[turn_tool_sources]
+    )
+
+    await agent.run("find the paper", deps=deps)
+
+    assert deps.held_reads() == frozenset({_DOI, _PAGE})

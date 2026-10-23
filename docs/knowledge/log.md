@@ -13,7 +13,9 @@
   researcher's message. A served research read adds every reference it returns to the turn's
   reads, so a verdict may cite it (`ai/audit/retrievals.py`). The auditor runs on the deployment
   tier's model for its role (`platform/tiers.py::role_model`; `tier_model` is the one rule the
-  registry also applies) and charges that model's payer. `RESEARCH_TOOL_SOURCE` moves to
+  registry and the Lead also apply) and charges that model's payer, or the mock model under the mock
+  provider. A chat turn requires a payer only for the roles it runs (`InstalledAssistant.turn_roles`,
+  `registry.turn_role_models`): an audit turn runs the auditor, not the review role. `RESEARCH_TOOL_SOURCE` moves to
   `platform/tool_sources.py`. The OpenAPI pass registers a stream part two installed assistants
   both emit once, and still refuses another payload under the same kind.
 * **A gene model is investigated and the verdict stored.** `ai/audit/instructions.py` holds the

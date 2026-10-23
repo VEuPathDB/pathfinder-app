@@ -24,6 +24,7 @@ class InstalledAssistant:
     build_spec: Callable[[], AssistantSpec]
     compile_time_models: Callable[[], dict[str, str]]
     prompt_role: str
+    turn_roles: frozenset[str]
 
 
 def installed_assistants() -> dict[str, InstalledAssistant]:
@@ -32,11 +33,13 @@ def installed_assistants() -> dict[str, InstalledAssistant]:
             build_spec=build_pathfinder_spec,
             compile_time_models=phase_defaults,
             prompt_role="lead",
+            turn_roles=frozenset(phase_defaults()),
         ),
         AUDIT_ASSISTANT_ID: InstalledAssistant(
             build_spec=build_audit_spec,
             compile_time_models=audit_compile_time_models,
             prompt_role=AUDITOR_ROLE,
+            turn_roles=frozenset({AUDITOR_ROLE}),
         ),
     }
 
@@ -83,6 +86,13 @@ def assistant_role_models(
     return {role: picks.get(role) or default for role, default in defaults.items()}
 
 
+def turn_role_models(assistant_id: str, picks: Mapping[str, str]) -> dict[str, str]:
+    """The model of each role a chat turn of one assistant runs."""
+    runs = installed_assistants()[assistant_id].turn_roles
+    models = assistant_role_models(assistant_id, picks)
+    return {role: model for role, model in models.items() if role in runs}
+
+
 def turn_trace_labels(assistant_id: str, picks: Mapping[str, str]) -> dict[str, str]:
     """The provider, the tier and each role's model, as one turn's trace labels."""
     settings = get_settings()
@@ -107,5 +117,6 @@ __all__ = [
     "installed_assistants",
     "installed_phase_defaults",
     "prompt_reader_model",
+    "turn_role_models",
     "turn_trace_labels",
 ]

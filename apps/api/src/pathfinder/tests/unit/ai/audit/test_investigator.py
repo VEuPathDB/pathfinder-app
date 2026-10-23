@@ -4,30 +4,32 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core.models.scripted import retry_prompt_parts
 from pydantic_ai import Agent, ModelRetry, RunContext, Tool
 from pydantic_ai.messages import (
     ModelMessage,
-    ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.audit import investigator, verdict_tool
+from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.investigator import (
     BUDGET_ANSWER,
     INVESTIGATION_LIMITS,
     GeneModelInvestigation,
     audit_deps_of,
-    build_investigator_agent,
     investigate,
 )
-from pathfinder.ai.audit.verdict_tool import record_gene_model_verdict
+from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES
+from pathfinder.ai.audit.verdict_tool import (
+    record_gene_model_verdict,
+    unheld_cites_message,
+)
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.audit.verdicts import GeneModelVerdict, VerdictOrigin
@@ -71,13 +73,7 @@ def _storing(monkeypatch: pytest.MonkeyPatch, module: object) -> Stored:
 
 
 def _retries(messages: list[ModelMessage]) -> list[str]:
-    return [
-        str(part.content)
-        for message in messages
-        if isinstance(message, ModelRequest)
-        for part in message.parts
-        if isinstance(part, RetryPromptPart)
-    ]
+    return [str(part.content) for part in retry_prompt_parts(messages)]
 
 
 def _output(info: AgentInfo, args: dict[str, Any]) -> ModelResponse:
@@ -101,7 +97,7 @@ async def test_an_investigation_citing_an_unmade_read_is_refused(
         "is the model of EXA_0003 truncated", deps=_deps(), model=FunctionModel(respond)
     )
 
-    assert [_UNMADE in text for text in retried] == [True]
+    assert retried == [unheld_cites_message([_UNMADE])]
     assert (found.answer, found.verdicts, stored) == ("No read settles it.", (), [])
 
 
@@ -158,17 +154,17 @@ async def test_an_investigation_ignores_the_usage_of_its_caller() -> None:
     assert ([u.requests for u in inner], caller.requests) == ([1], 32)
 
 
-def test_the_investigator_holds_the_checks_and_reads_and_no_start() -> None:
-    agent = build_investigator_agent()
-    names = {
-        name
-        for toolset in agent.toolsets
-        if isinstance(toolset, FunctionToolset)
-        for name in toolset.tools
-    }
+async def test_the_investigator_holds_the_checks_and_reads_and_no_start() -> None:
+    offered: list[frozenset[str]] = []
 
-    assert {"audit_pseudogene_call", "read_audit_finding", "list_audit_runs"} <= names
-    assert {"start_gene_model_audit", "record_gene_model_verdict"} & names == set()
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        offered.append(frozenset(tool.name for tool in info.function_tools))
+        return _output(info, {"answer": "Nothing to judge.", "verdicts": []})
+
+    await investigate("is it right", deps=_deps(), model=FunctionModel(answer))
+
+    assert offered == [CHECK_TOOL_NAMES | READ_TOOL_NAMES]
 
 
 async def test_the_verdict_tool_refuses_an_unmade_read(

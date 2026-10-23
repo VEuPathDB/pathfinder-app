@@ -37,6 +37,7 @@ from pathfinder.platform.tiers import (
 )
 
 AUDITOR_MODEL = DEFAULT_MODEL_ID
+MOCK_AUDITOR_MODEL_ID = "mock:auditor"
 AUDITOR_LIMITS = UsageLimits(request_limit=40, tool_calls_limit=40)
 
 type AuditorAgent = Agent[AuditDeps, AuditReply | DeferredToolRequests]
@@ -50,8 +51,16 @@ def auditor_model_id() -> str:
     return role_model(AUDIT_ASSISTANT_ID, AUDITOR_ROLE, compile_time=AUDITOR_MODEL)
 
 
+def _mock_provider() -> bool:
+    return get_settings().pathfinder_chat_provider.strip().lower() == "mock"
+
+
+def charged_model_id() -> str:
+    return MOCK_AUDITOR_MODEL_ID if _mock_provider() else auditor_model_id()
+
+
 def _model() -> tuple[Model | str, ModelSettings | None]:
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+    if _mock_provider():
         return build_audit_mock(), None
     model_id = auditor_model_id()
     config = deployment_role_config(AUDIT_ASSISTANT_ID, AUDITOR_ROLE)

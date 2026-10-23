@@ -15,7 +15,7 @@ from assistant_core.quota import accumulate
 from assistant_core.spec import TurnContextRequest
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
-from pathfinder.ai.audit.auditor import auditor_model_id
+from pathfinder.ai.audit.auditor import charged_model_id
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
 from pathfinder.platform.model_keys import turn_paid_by
@@ -64,6 +64,6 @@ async def charge_usage(user_id: UUID, tokens: int, cost_usd: Decimal) -> None:
             user_id=user_id,
             tokens=tokens,
             cost_usd=cost_usd,
-            paid_by=turn_paid_by(auditor_model_id()),
+            paid_by=turn_paid_by(charged_model_id()),
         )
         await session.commit()

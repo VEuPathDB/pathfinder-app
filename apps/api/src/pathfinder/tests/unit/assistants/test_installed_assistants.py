@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathfinder.ai.agents.registry import phase_defaults
 from pathfinder.ai.audit.auditor import AUDITOR_MODEL, audit_compile_time_models
 from pathfinder.assistants.registry import (
     get_assistant_registry,
     installed_assistants,
     installed_phase_defaults,
+    turn_role_models,
 )
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import AUDITOR_ROLE, REVIEW_ROLE
@@ -32,3 +34,8 @@ def test_the_audit_roles_read_the_user_message_as_the_auditor() -> None:
         AUDITOR_ROLE: AUDITOR_MODEL,
         REVIEW_ROLE: AUDITOR_MODEL,
     }
+
+
+def test_a_chat_turn_runs_only_the_roles_its_assistant_runs_in_a_turn() -> None:
+    assert set(turn_role_models(AUDIT_ASSISTANT_ID, {})) == {AUDITOR_ROLE}
+    assert set(turn_role_models(PATHFINDER_ASSISTANT_ID, {})) == set(phase_defaults())
