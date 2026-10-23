@@ -10,6 +10,7 @@ from pathfinder import __version__
 
 PATHFINDER_APPLICATION_ID = "pathfinder"
 PATHFINDER_ASSISTANT_ID = "pathfinder"
+AUDIT_ASSISTANT_ID = "audit"
 
 VEUPATHDB_USER_AGENT = (
     f"PathFinder/{__version__} (+https://github.com/VEuPathDB/pathfinder-app)"

@@ -7,6 +7,7 @@ from typing import Annotated, Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import (
+    BaseModel,
     ConfigDict,
     Field,
     StringConstraints,
@@ -37,12 +38,12 @@ OrganismName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
 ]
 
-MAX_AUDITED_GENOMES = 8
 MAX_UNNAMED_GENOME_TARGETS = 8
 MAX_COMPARISON_GENOMES = 40
 MAX_TARGETS = 200
 DEFAULT_CONFIRM_LIMIT = 150
 MAX_CONFIRM_LIMIT = 500
+ADMITTED_GENOMES = "audit_max_genomes"
 
 
 def _escaped(name: str) -> str:
@@ -174,6 +175,12 @@ GeneTarget = Annotated[
 ]
 
 
+class AdmissionContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    audit_max_genomes: int | None = None
+
+
 def _repeated(names: Sequence[str]) -> list[str]:
     return sorted({name for name in names if names.count(name) > 1})
 
@@ -182,9 +189,7 @@ class AuditScope(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     site_id: str = Field(min_length=1)
-    genomes: tuple[OrganismName, ...] = Field(
-        default=(), max_length=MAX_AUDITED_GENOMES
-    )
+    genomes: tuple[OrganismName, ...] = ()
     comparison: tuple[OrganismName, ...] = Field(
         default=(), max_length=MAX_COMPARISON_GENOMES
     )
@@ -229,18 +234,7 @@ class AuditScope(CamelModel):
         return self
 
     @model_validator(mode="after")
-    def _genome_reads(self) -> Self:
-        read_whole = {
-            *self.genomes,
-            self.reference_genome,
-            *(t.whole_genome for t in self.targets),
-        } - {None}
-        if len(read_whole) > MAX_AUDITED_GENOMES:
-            msg = (
-                f"an audit reads at most {MAX_AUDITED_GENOMES} whole genomes, "
-                f"not {len(read_whole)}"
-            )
-            raise ValueError(msg)
+    def _genome_reads(self, info: ValidationInfo) -> Self:
         unnamed = sum(t.reads_unnamed_genome for t in self.targets)
         if unnamed > MAX_UNNAMED_GENOME_TARGETS:
             msg = (
@@ -248,7 +242,16 @@ class AuditScope(CamelModel):
                 f"missing-gene targets, not {unnamed}"
             )
             raise ValueError(msg)
+        cap = AdmissionContext.model_validate(info.context or {}).audit_max_genomes
+        read = len(whole_genome_reads(self))
+        if cap is not None and read > cap:
+            msg = f"an audit reads at most {cap} whole genomes, not {read}"
+            raise ValueError(msg)
         return self
+
+    @classmethod
+    def admitted(cls, raw: Mapping[str, object], *, max_genomes: int) -> AuditScope:
+        return cls.model_validate(raw, context={ADMITTED_GENOMES: max_genomes})
 
     @property
     def collected(self) -> tuple[str, ...]:
@@ -263,6 +266,15 @@ class AuditScope(CamelModel):
             (name, "comparison") for name in self.comparison
         ]
         return [*audited, *compared]
+
+
+def whole_genome_reads(scope: AuditScope) -> frozenset[str]:
+    named = (
+        *scope.genomes,
+        scope.reference_genome,
+        *(t.whole_genome for t in scope.targets),
+    )
+    return frozenset(name for name in named if name is not None)
 
 
 def paired_genome(target: GeneTarget, organisms: Mapping[str, str]) -> str | None:

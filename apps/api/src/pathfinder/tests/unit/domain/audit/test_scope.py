@@ -9,7 +9,6 @@ from pydantic import TypeAdapter, ValidationError
 
 from pathfinder.domain.audit.scope import (
     DEFAULT_CONFIRM_LIMIT,
-    MAX_AUDITED_GENOMES,
     MAX_UNNAMED_GENOME_TARGETS,
     AuditScope,
     CheckName,
@@ -18,6 +17,7 @@ from pathfinder.domain.audit.scope import (
     MissingGeneTarget,
     OrganelleTarget,
     SingleGeneTarget,
+    whole_genome_reads,
 )
 
 NF54 = "Plasmodium falciparum NF54"
@@ -27,6 +27,11 @@ PIGA_PAIR = GenePairTarget(
     check="pseudogene_call", genes=("PfNF54_100037200", "PF3D7_1032400")
 )
 _TARGET: TypeAdapter[GeneTarget] = TypeAdapter(GeneTarget)
+CAP = 8
+
+
+def _admitted(**fields: object) -> AuditScope:
+    return AuditScope.admitted(fields, max_genomes=CAP)
 
 
 def test_every_check_has_a_target_shape() -> None:
@@ -165,8 +170,8 @@ def test_a_target_is_named_once() -> None:
 
 def test_more_than_eight_audited_genomes_is_refused() -> None:
     nine = tuple(f"Plasmodium falciparum strain{k}" for k in range(9))
-    with pytest.raises(ValidationError, match="at most 8 items"):
-        AuditScope(site_id="plasmodb", genomes=nine, checks=("gene_length",))
+    with pytest.raises(ValidationError, match="at most 8 whole genomes, not 9"):
+        _admitted(site_id="plasmodb", genomes=nine, checks=("gene_length",))
 
 
 def test_a_scope_reads_its_camel_case_wire_form() -> None:
@@ -230,20 +235,25 @@ def _absent_from(*genomes: str) -> tuple[MissingGeneTarget, ...]:
     )
 
 
-STRAINS = tuple(f"Toxoplasma gondii strain{k}" for k in range(MAX_AUDITED_GENOMES + 1))
+STRAINS = tuple(f"Toxoplasma gondii strain{k}" for k in range(CAP + 1))
 
 
 def test_a_missing_gene_genome_counts_toward_the_genome_cap() -> None:
     with pytest.raises(ValidationError, match="at most 8 whole genomes, not 9"):
-        AuditScope(site_id="toxodb", targets=_absent_from(*STRAINS))
+        _admitted(
+            site_id="toxodb",
+            genomes=STRAINS[:1],
+            checks=("gene_length",),
+            targets=_absent_from(*STRAINS[1:]),
+        )
     with pytest.raises(ValidationError, match="at most 8 whole genomes, not 9"):
-        AuditScope(
+        _admitted(
             site_id="toxodb",
             genomes=STRAINS[:5],
             checks=("gene_length",),
             targets=_absent_from(*STRAINS[5:]),
         )
-    shared = AuditScope(
+    shared = _admitted(
         site_id="toxodb",
         genomes=STRAINS[:5],
         checks=("gene_length",),
@@ -264,15 +274,13 @@ def _organelles(*genomes: str) -> tuple[OrganelleTarget, ...]:
     )
 
 
-PLASMODIA = tuple(
-    f"Plasmodium falciparum strain{k}" for k in range(MAX_AUDITED_GENOMES + 1)
-)
+PLASMODIA = tuple(f"Plasmodium falciparum strain{k}" for k in range(CAP + 1))
 
 
 def test_an_organelle_genome_counts_toward_the_genome_cap() -> None:
     with pytest.raises(ValidationError, match="at most 8 whole genomes, not 9"):
-        AuditScope(site_id="plasmodb", targets=_organelles(*PLASMODIA))
-    shared = AuditScope(
+        _admitted(site_id="plasmodb", targets=_organelles(*PLASMODIA))
+    shared = _admitted(
         site_id="plasmodb",
         genomes=PLASMODIA[:4],
         checks=("gene_length",),
@@ -309,19 +317,19 @@ def test_fusion_and_missing_gene_targets_are_capped_together() -> None:
 def test_a_strain_or_window_target_counts_toward_no_genome_cap() -> None:
     strains = tuple(
         GenePairTarget(check="strain_model", genes=(f"PcyM_{k}", "PCYB_074210"))
-        for k in range(MAX_AUDITED_GENOMES + 1)
+        for k in range(CAP + 1)
     )
     lengths = tuple(
         SingleGeneTarget(check="gene_length", genes=(f"PcyM_L{k}",))
-        for k in range(MAX_AUDITED_GENOMES + 1)
+        for k in range(CAP + 1)
     )
-    scope = AuditScope(
+    scope = _admitted(
         site_id="plasmodb",
         genomes=PLASMODIA[:8],
         checks=("gene_length",),
         targets=(*strains, *lengths, *_fusions(MAX_UNNAMED_GENOME_TARGETS)),
     )
-    assert len(scope.targets) == 2 * (MAX_AUDITED_GENOMES + 1) + 8
+    assert len(scope.targets) == 2 * (CAP + 1) + 8
 
 
 P3D7 = "Plasmodium falciparum 3D7"
@@ -373,17 +381,62 @@ def test_a_reference_genome_serves_a_pseudogene_screen() -> None:
 
 def test_a_comparison_reference_genome_counts_toward_the_genome_cap() -> None:
     with pytest.raises(ValidationError, match="at most 8 whole genomes, not 9"):
-        AuditScope(
+        _admitted(
             site_id="plasmodb",
             genomes=PLASMODIA[:8],
             comparison=(P3D7,),
             checks=("pseudogene_call",),
             reference_genome=P3D7,
         )
-    audited = AuditScope(
+    audited = _admitted(
         site_id="plasmodb",
         genomes=PLASMODIA[:8],
         checks=("pseudogene_call",),
         reference_genome=PLASMODIA[0],
     )
     assert audited.reference_genome == PLASMODIA[0]
+
+
+EXAMPLES = tuple(f"Examplea alpha {letter}" for letter in "ABCDEFGH")
+EXAMPLE_REFERENCE = "Examplea alpha R"
+_REFERENCED: dict[str, object] = {
+    "siteId": "exampledb",
+    "genomes": list(EXAMPLES),
+    "comparison": [EXAMPLE_REFERENCE],
+    "checks": ["pseudogene_call"],
+    "referenceGenome": EXAMPLE_REFERENCE,
+}
+
+
+def test_the_cap_counts_the_reference_genome() -> None:
+    with pytest.raises(
+        ValidationError, match="an audit reads at most 8 whole genomes, not 9"
+    ):
+        AuditScope.admitted(_REFERENCED, max_genomes=8)
+    admitted = AuditScope.admitted(_REFERENCED, max_genomes=9)
+    stored = AuditScope.model_validate(_REFERENCED)
+    assert admitted == stored
+    assert whole_genome_reads(stored) == frozenset({*EXAMPLES, EXAMPLE_REFERENCE})
+
+
+def test_the_cap_counts_a_missing_gene_targets_absent_genome() -> None:
+    raw: dict[str, object] = {
+        "siteId": "exampledb",
+        "genomes": list(EXAMPLES),
+        "checks": ["gene_length"],
+        "targets": [
+            {
+                "check": "missing_gene",
+                "genes": ["EXA_0001"],
+                "absentOrganism": EXAMPLE_REFERENCE,
+            }
+        ],
+    }
+    with pytest.raises(
+        ValidationError, match="an audit reads at most 8 whole genomes, not 9"
+    ):
+        AuditScope.admitted(raw, max_genomes=8)
+    assert AuditScope.admitted(raw, max_genomes=9).targets[0].genome == (
+        EXAMPLE_REFERENCE
+    )
+    assert len(whole_genome_reads(AuditScope.model_validate(raw))) == 9

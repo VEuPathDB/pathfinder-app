@@ -17,7 +17,7 @@ from assistant_core.platform.types import ModelProvider, ReasoningEffort, TierNa
 from pydantic import ConfigDict
 
 from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import (
     ModelEntry,
     ModelRank,
@@ -27,8 +27,11 @@ from pathfinder.platform.model_catalog import (
 )
 
 __all__ = [
+    "AUDITOR_ROLE",
+    "AUDIT_ROLES",
     "KNOWN_ROLES",
     "OWN_KEY_TIER_PRESETS",
+    "REVIEW_ROLE",
     "TIER_PRESETS",
     "PhaseTierConfig",
     "TierPreset",
@@ -157,6 +160,15 @@ def _pathfinder_preset(tier: _Tier) -> TierPreset:
     )
 
 
+AUDITOR_ROLE = "auditor"
+REVIEW_ROLE = "audit_review"
+AUDIT_ROLES: frozenset[str] = frozenset({AUDITOR_ROLE, REVIEW_ROLE})
+
+
+def _audit_preset(tier: _Tier) -> TierPreset:
+    return TierPreset(roles={AUDITOR_ROLE: tier.thinker, REVIEW_ROLE: tier.worker})
+
+
 type _Presets = dict[str, dict[ModelProvider, dict[TierName, TierPreset]]]
 
 
@@ -166,7 +178,10 @@ def _presets(by_provider: dict[ModelProvider, dict[TierName, _Tier]]) -> _Preset
             provider: {name: build(tier) for name, tier in tiers.items()}
             for provider, tiers in by_provider.items()
         }
-        for assistant_id, build in ((PATHFINDER_ASSISTANT_ID, _pathfinder_preset),)
+        for assistant_id, build in (
+            (PATHFINDER_ASSISTANT_ID, _pathfinder_preset),
+            (AUDIT_ASSISTANT_ID, _audit_preset),
+        )
     }
 
 
@@ -176,14 +191,17 @@ TIER_PRESETS: _Presets = _presets(_BY_PROVIDER)
 # The presets a researcher's own key for the provider runs.
 OWN_KEY_TIER_PRESETS: _Presets = _presets(_OWN_KEY_BY_PROVIDER)
 
-# Every role any installed assistant runs a model for. A request that pins a
-# model for a role outside this set is refused at the chat boundary.
-KNOWN_ROLES: frozenset[str] = frozenset(
-    role
-    for by_provider in TIER_PRESETS.values()
-    for by_tier in by_provider.values()
-    for preset in by_tier.values()
-    for role in preset.roles
+# Every role a request may pin a model for. The audit roles run on their tier
+# alone, so the chat boundary refuses a pick for either of them.
+KNOWN_ROLES: frozenset[str] = (
+    frozenset(
+        role
+        for by_provider in TIER_PRESETS.values()
+        for by_tier in by_provider.values()
+        for preset in by_tier.values()
+        for role in preset.roles
+    )
+    - AUDIT_ROLES
 )
 
 

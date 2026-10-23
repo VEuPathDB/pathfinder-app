@@ -142,6 +142,8 @@ services:
       AUDIT_RUN_HOURS: ${AUDIT_RUN_HOURS:-6}
       # Audit jobs this process runs at once, on their own queue.
       AUDIT_CONCURRENCY: ${AUDIT_CONCURRENCY:-2}
+      # Whole genomes one audit run may read, the reference genome included.
+      AUDIT_MAX_GENOMES: ${AUDIT_MAX_GENOMES:-8}
       # The port and address of this process's Prometheus series, served at
       # /metrics apart from the app. The port is not published; 0 serves none.
       METRICS_PORT: ${METRICS_PORT:-9100}

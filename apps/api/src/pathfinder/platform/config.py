@@ -165,6 +165,15 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             "from chat turns and durable tools."
         ),
     )
+    audit_max_genomes: int = Field(
+        default=8,
+        ge=1,
+        description=(
+            "Whole genomes one audit run may read: its audited genomes, its "
+            "pseudogene screen's reference genome and the genomes its "
+            "missing-gene and organelle targets read. Only the worker reads it."
+        ),
+    )
     step_genes_cap: int = Field(
         default=10_000,
         ge=1,

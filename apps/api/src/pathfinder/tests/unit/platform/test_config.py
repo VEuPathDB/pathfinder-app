@@ -185,6 +185,17 @@ def test_audits_run_two_at_once_and_never_more_than_four() -> None:
             make_settings(audit_concurrency=refused)
 
 
+def test_an_audit_run_reads_eight_whole_genomes_unless_told_otherwise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AUDIT_MAX_GENOMES", raising=False)
+    assert make_settings().audit_max_genomes == 8
+    monkeypatch.setenv("AUDIT_MAX_GENOMES", "12")
+    assert make_settings().audit_max_genomes == 12
+    with pytest.raises(ValueError, match="audit_max_genomes"):
+        make_settings(audit_max_genomes=0)
+
+
 def test_metrics_are_published_on_9100_of_every_interface_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -3855,7 +3855,6 @@ components:
             maxLength: 255
             minLength: 1
           type: array
-          maxItems: 8
           title: Genomes
           default: []
         comparison:
