@@ -24,6 +24,7 @@ export const TOOL_LABELS: Record<string, string> = {
   lookup_phyletic_codes: "Look up phyletic codes",
   build_protein_count_comparison: "Compare protein counts",
   build_clade_only_expression: "Find groups only in a clade",
+  build_every_species_expression: "Find groups in every species",
   search_example_plans: "Find example plans",
   read_experiment: "Read another site's experiment",
   describe_site: "Describe site",

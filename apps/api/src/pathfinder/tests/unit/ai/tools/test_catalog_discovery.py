@@ -18,6 +18,8 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
     SearchOverviewResult,
+    UnknownSearchError,
+    UnlistedSearchError,
     search_inspection,
     searches,
 )
@@ -213,6 +215,29 @@ class TestTheSearchOverviewRead:
         msg = str(excinfo.value)
         assert "GenesByText" in msg
         assert "GenesByText_Search" in msg
+        assert ctx.deps.agent_state.get_overview("GenesByText_Search") is None
+
+    async def test_an_unlisted_search_is_a_model_retry_naming_the_listed_ones(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        async def _unlisted(site_id: str, search_name: str, _hint: str | None) -> str:
+            raise UnlistedSearchError(site_id, search_name)
+
+        async def _listed(_site: str) -> list[str]:
+            return ["GenesByText", "GenesByGoTerm"]
+
+        monkeypatch.setattr(search_inspection, "resolve_search_record_type", _unlisted)
+        monkeypatch.setattr(search_inspection, "listed_search_names", _listed)
+        ctx = agent_run_context(site_id="vectorbase")
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await catalog_discovery.get_search_overview(
+                ctx, search_name="GenesByText_Search"
+            )
+
+        assert str(excinfo.value) == str(
+            UnknownSearchError("GenesByText_Search", ["GenesByText", "GenesByGoTerm"])
+        )
         assert ctx.deps.agent_state.get_overview("GenesByText_Search") is None
 
     async def test_a_non_404_wdk_error_propagates(

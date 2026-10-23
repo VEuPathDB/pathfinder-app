@@ -164,8 +164,11 @@ Procedure:
         Presence in a clade or genome list L with no protein in any genome outside L
         is built by `build_clade_only_expression(clade)`, with `within` a clade M
         that holds L when only the genomes outside M must hold none; bind its
-        expression whole. A genus with no clade code is the list of its genome
-        codes. A T count counts genomes, and strains are genomes. When an expression
+        expression whole. Presence in every species of a clade or genome list L, a
+        species present when half its genomes rounded up hold a protein, is built by
+        `build_every_species_expression(clade)`; bind its expression whole. A genus
+        with no clade code is the list of its genome codes. A T count counts
+        genomes, and strains are genomes. When an expression
         names genomes of several species or strains of one taxon, state the taxon's
         scope in `group_scopes`: whole, with `except_codes` for the genomes the request
         leaves out, or named, exactly the genomes the units write. The site drops

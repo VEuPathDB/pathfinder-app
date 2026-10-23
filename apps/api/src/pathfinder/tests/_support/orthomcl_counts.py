@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import httpx
 import respx
@@ -19,13 +18,34 @@ from veupathdb.wdk import (
     ORTHO_TAXONOMY_SEARCH,
     get_site,
 )
+from veupathdb_mcp.testing import ORTHOMCL_COUNTS
 
 from pathfinder.tests._support.qa_recording import client_recording, qa_recording
 
 SITE = "orthomcl"
-COUNTS_STORE = Path(__file__).resolve().parents[1] / "fixtures" / "orthomcl_counts"
 LADDER = "orthomcl_protein_count_ladder.json"
 CLADE_ONLY = "orthomcl_clade_only_counts.json"
+EVERY_SPECIES = "orthomcl_every_species_counts.json"
+CRYPTOSPORIDIUM = [
+    "cand",
+    "cbov",
+    "choi",
+    "chot",
+    "chom",
+    "chod",
+    "cmel",
+    "cmtu",
+    "cmur",
+    "cpia",
+    "cpib",
+    "cpar",
+    "crya",
+    "cser",
+    "cspi",
+    "cscp",
+    "ctyz",
+    "cubi",
+]
 _UNAVAILABLE = "Service Unavailable"
 
 
@@ -59,7 +79,7 @@ class CountRecording(BaseModel):
 
 def count_recording(name: str) -> CountRecording:
     return CountRecording.model_validate_json(
-        qa_recording(COUNTS_STORE / name).read_text()
+        qa_recording(ORTHOMCL_COUNTS / name).read_text()
     )
 
 

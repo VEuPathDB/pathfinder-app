@@ -10,6 +10,7 @@ from pydantic import ConfigDict
 from veupathdb_mcp.audit import (
     SPLIT_MAX_GAP,
     GeneRow,
+    GroupMember,
     call_length,
     classify,
     pseudogene_calls_of,
@@ -30,11 +31,11 @@ class Candidate(CamelModel):
     target: GeneTarget
 
 
-def ortholog_groups(rows: Iterable[GeneRow]) -> dict[str, list[GeneRow]]:
-    groups: defaultdict[str, list[GeneRow]] = defaultdict(list)
+def ortholog_groups(rows: Iterable[GeneRow]) -> dict[str, list[GroupMember]]:
+    groups: defaultdict[str, list[GroupMember]] = defaultdict(list)
     for row in rows:
         if row.ortholog_group:
-            groups[row.ortholog_group].append(row)
+            groups[row.ortholog_group].append(GroupMember.of_row(row))
     return dict(groups)
 
 
@@ -83,7 +84,7 @@ def split_pairs(rows: Sequence[GeneRow]) -> list[tuple[GeneRow, GeneRow]]:
 
 
 def _splits(
-    rows: Sequence[GeneRow], groups: Mapping[str, list[GeneRow]]
+    rows: Sequence[GeneRow], groups: Mapping[str, list[GroupMember]]
 ) -> list[GenePairTarget]:
     return [
         GenePairTarget(check="gene_split", genes=(first.gene, second.gene))
@@ -94,7 +95,7 @@ def _splits(
 
 
 def _lengths(
-    rows: Sequence[GeneRow], groups: Mapping[str, list[GeneRow]]
+    rows: Sequence[GeneRow], groups: Mapping[str, list[GroupMember]]
 ) -> list[SingleGeneTarget]:
     return [
         SingleGeneTarget(check="gene_length", genes=(row.gene,))
@@ -107,7 +108,7 @@ def screen_genome(
     genome: str,
     checks: tuple[ScreenedCheck, ...],
     rows: Sequence[GeneRow],
-    groups: Mapping[str, list[GeneRow]],
+    groups: Mapping[str, list[GroupMember]],
 ) -> list[Candidate]:
     splits = _splits(rows, groups) if "gene_split" in checks else []
     lengths = _lengths(rows, groups) if "gene_length" in checks else []

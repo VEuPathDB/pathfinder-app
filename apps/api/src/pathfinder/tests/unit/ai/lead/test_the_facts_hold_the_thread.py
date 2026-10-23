@@ -13,7 +13,7 @@ from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStepNode,
 )
-from veupathdb_mcp.gene_lookup import GeneResolveResult, GeneResult
+from veupathdb_mcp.gene_lookup import GeneIdFound, GeneResult
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -388,12 +388,15 @@ _PLASMO_RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/"
 async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def _resolve(site_id: str, gene_ids: list[str]) -> GeneResolveResult:
+    async def _resolve(site_id: str, gene_ids: list[str]) -> list[GeneIdFound]:
         del site_id
-        found = [g for g in _IMAGE_GENES if g.gene_id in gene_ids]
-        return GeneResolveResult(records=found, total_count=len(found))
+        return [
+            GeneIdFound(given=g.gene_id, records=[g])
+            for g in _IMAGE_GENES
+            if g.gene_id in gene_ids
+        ]
 
-    monkeypatch.setattr(classification_gate, "resolve_gene_ids", _resolve)
+    monkeypatch.setattr(classification_gate, "read_each_gene_id", _resolve)
     state = pipeline_state(
         "plasmodb",
         user_prompt="Which genes are in this image?",

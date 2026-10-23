@@ -87,6 +87,7 @@ class AuditRunView(CamelModel):
     scope: AuditScope
     stages: RunStages
     requests: int
+    store_reads: int
     unfinished: list[StageName]
     genomes: list[GenomeView]
     counts: list[FindingTally]
@@ -219,6 +220,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         scope=run.scope,
         stages=run.stages,
         requests=run.stages.requests,
+        store_reads=run.stages.store_reads,
         unfinished=list(run.stages.unfinished),
         genomes=[GenomeView.model_validate(genome) for genome in genomes],
         counts=tally,

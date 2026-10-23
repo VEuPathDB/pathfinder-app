@@ -5,12 +5,18 @@ from __future__ import annotations
 import pytest
 from pydantic_ai import ModelRetry
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart, TextUIPart
-from veupathdb_mcp.gene_lookup import GeneResolveResult, GeneResult
+from veupathdb_mcp.audit import GeneIdProblem, GeneIdRefusal, TooManyIdsError
+from veupathdb_mcp.gene_lookup import GeneIdFound, GeneIdReading, GeneResult
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import classification_gate
 from pathfinder.ai.lead.intent import ClassifiedIntent, IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
+from pathfinder.tests._support.orthomcl_gene_class import (
+    ORTHOMCL,
+    held_record_types,
+    orthomcl_gene_class,
+)
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -29,6 +35,8 @@ class SiteReads:
         self.genes = genes
         self.organisms: list[str] = []
         self.resolved: list[list[str]] = []
+        self.several: set[str] = set()
+        self.bound: int | None = None
 
 
 @pytest.fixture
@@ -40,15 +48,31 @@ def site(monkeypatch: pytest.MonkeyPatch) -> SiteReads:
         reads.organisms.append(site_id)
         return recorded_organisms(site_id)
 
-    async def _resolve(site_id: str, gene_ids: list[str]) -> GeneResolveResult:
-        del site_id
+    async def _resolve(site_id: str, gene_ids: list[str]) -> list[GeneIdReading]:
         reads.resolved.append(gene_ids)
-        found = [GeneResult(gene_id=g) for g in gene_ids if g.upper() in reads.genes]
-        return GeneResolveResult(records=found, total_count=len(found))
+        if reads.bound is not None and len(gene_ids) > reads.bound:
+            raise TooManyIdsError(len(gene_ids), reads.bound, "record reads")
+        return [_reading(site_id, g, reads) for g in gene_ids]
 
     monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
-    monkeypatch.setattr(classification_gate, "resolve_gene_ids", _resolve)
+    monkeypatch.setattr(classification_gate, "read_each_gene_id", _resolve)
     return reads
+
+
+def _reading(site_id: str, gene_id: str, reads: SiteReads) -> GeneIdReading:
+    if gene_id in reads.several:
+        return GeneIdRefusal(
+            given=gene_id,
+            problem=GeneIdProblem.SEVERAL_GENES,
+            message=f"{gene_id} names 2 genes of {site_id}",
+        )
+    if gene_id.upper() in reads.genes:
+        return GeneIdFound(given=gene_id, records=[GeneResult(gene_id=gene_id)])
+    return GeneIdRefusal(
+        given=gene_id,
+        problem=GeneIdProblem.NOT_FOUND,
+        message=f"{gene_id} names no gene of {site_id}",
+    )
 
 
 def _intent(classification: str, **fields: object) -> UserIntent:
@@ -193,3 +217,60 @@ async def test_a_message_with_no_site_gene_stays_off_topic(site: SiteReads) -> N
     assert classified.intent.classification is IntentClassification.OFF_TOPIC
     assert site.resolved == []
     assert site.organisms == []
+
+
+async def test_an_id_naming_several_genes_leaves_the_others_read(
+    site: SiteReads,
+) -> None:
+    site.several.add("PF3D7_0709000")
+    state = _with_a_file(pipeline_state("plasmodb", user_prompt=IMAGE_QUESTION))
+
+    with pytest.raises(ModelRetry) as refused:
+        await _classify(state, _intent("off_topic", namedGeneIds=IMAGE_IDS))
+
+    assert str(refused.value).startswith(
+        "The researcher's message does not hold PF3D7_0709000. Name only"
+    )
+
+
+async def test_ids_past_one_read_are_held_and_not_refused(site: SiteReads) -> None:
+    site.bound = 80
+    ids = [f"PF3D7_{k:07d}" for k in range(81)]
+    state = _with_a_file(pipeline_state("plasmodb", user_prompt=IMAGE_QUESTION))
+
+    classified = await _classify(state, _intent("follow_up_question", namedGeneIds=ids))
+
+    assert (classified.intent.named_gene_ids, site.resolved) == (ids, [ids])
+
+
+async def test_a_site_with_no_gene_records_is_refused_after_one_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held_record_types(monkeypatch)
+    state = pipeline_state(
+        ORTHOMCL, user_prompt="Write a poem about PF3D7_1133400 please."
+    )
+
+    with orthomcl_gene_class() as wire:
+        classified = await _classify(state, _intent("off_topic"))
+
+    assert classified.intent.classification is IntentClassification.OFF_TOPIC
+    assert (wire.gene_reads.call_count, wire.record_type_reads.call_count) == (1, 0)
+
+
+async def test_ids_a_site_with_no_gene_records_cannot_read_are_not_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held_record_types(monkeypatch)
+    state = _with_a_file(pipeline_state(ORTHOMCL, user_prompt=IMAGE_QUESTION))
+
+    with orthomcl_gene_class() as wire:
+        classified = await _classify(
+            state, _intent("off_topic", namedGeneIds=IMAGE_IDS)
+        )
+
+    assert (
+        classified.intent.named_gene_ids,
+        wire.gene_reads.call_count,
+        wire.record_type_reads.call_count,
+    ) == (IMAGE_IDS, 1, 0)

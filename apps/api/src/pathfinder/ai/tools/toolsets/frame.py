@@ -13,8 +13,6 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
 from pathfinder.ai.tools.standalone._frame_schema import name_the_open_sheets
 from pathfinder.ai.tools.standalone.catalog import (
     browse_search_categories,
-    build_clade_only_expression,
-    build_protein_count_comparison,
     get_record_types,
     list_searches,
     list_transforms,
@@ -35,6 +33,11 @@ from pathfinder.ai.tools.standalone.gene import (
 )
 from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets
 from pathfinder.ai.tools.standalone.memory_tools import search_memory
+from pathfinder.ai.tools.standalone.orthomcl_expressions import (
+    build_clade_only_expression,
+    build_every_species_expression,
+    build_protein_count_comparison,
+)
 from pathfinder.ai.tools.standalone.saved_strategies import list_saved_strategies
 from pathfinder.ai.tools.standalone.strategy_graph import get_strategy
 from pathfinder.ai.tools.standalone.think import think
@@ -82,6 +85,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             lookup_phyletic_codes,
             build_protein_count_comparison,
             build_clade_only_expression,
+            build_every_species_expression,
             list_saved_strategies,
             list_gene_sets,
             Tool(set_criterion, prepare=name_the_open_sheets),

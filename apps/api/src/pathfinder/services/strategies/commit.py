@@ -56,6 +56,7 @@ from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync import (
     SyncResult,
+    UnclassedRootError,
     put_the_strategy_name,
     step_tree_is_current,
     sync_strategy_for_site,
@@ -340,6 +341,7 @@ async def _put_the_step_tree(
     graph: StrategyGraph,
     sync_state: WDKSyncState,
     new_ast: StrategyAst | None,
+    failures: list[StepPushFailure],
 ) -> SyncResult | None:
     """Re-root the WDK strategy on the tree the graph now maps to.
 
@@ -360,6 +362,9 @@ async def _put_the_step_tree(
             site_id=deps.site_id,
             user_prompt=deps.user_prompt,
         )
+    except UnclassedRootError as refused:
+        failures.append(refused.failure)
+        return None
     except VEuPathDBError as exc:
         logger.warning(
             "sync_strategy_for_site failed; persisting partial state",
@@ -423,7 +428,11 @@ async def _commit_to_wdk(
         None
         if failures
         else await _put_the_step_tree(
-            deps=deps, graph=graph, sync_state=sync_state, new_ast=new_ast
+            deps=deps,
+            graph=graph,
+            sync_state=sync_state,
+            new_ast=new_ast,
+            failures=failures,
         )
     )
     if sync_result is not None:

@@ -56,9 +56,9 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b9" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b18" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b35" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b10" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b22" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b39" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0b1" }
 
 [build-system]
@@ -357,7 +357,11 @@ forbidden_modules = [
     "veupathdb_mcp.audit.gene_ids",
     "veupathdb_mcp.audit.gene_models",
     "veupathdb_mcp.audit.genes",
+    "veupathdb_mcp.audit.intron_coverage",
+    "veupathdb_mcp.audit.intron_evidence",
+    "veupathdb_mcp.audit.intron_judge",
     "veupathdb_mcp.audit.introns",
+    "veupathdb_mcp.audit.introns_correction",
     "veupathdb_mcp.audit.introns_inputs",
     "veupathdb_mcp.audit.introns_orthologs",
     "veupathdb_mcp.audit.length",
@@ -370,10 +374,12 @@ forbidden_modules = [
     "veupathdb_mcp.audit.pseudogene_calls",
     "veupathdb_mcp.audit.pseudogene_calls_inputs",
     "veupathdb_mcp.audit.rates",
+    "veupathdb_mcp.audit.record_reads",
     "veupathdb_mcp.audit.selenocysteine",
     "veupathdb_mcp.audit.served",
     "veupathdb_mcp.audit.strain",
     "veupathdb_mcp.audit.strain_inputs",
+    "veupathdb_mcp.audit.track_reads",
     "veupathdb_mcp.audit.windows",
     "veupathdb_mcp.catalog._param_binding",
     "veupathdb_mcp.catalog._param_filters",
@@ -386,6 +392,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog.eda_backed",
     "veupathdb_mcp.catalog.experiment_card",
     "veupathdb_mcp.catalog.experiments",
+    "veupathdb_mcp.catalog.gene_records",
     "veupathdb_mcp.catalog.group_counts",
     "veupathdb_mcp.catalog.models",
     "veupathdb_mcp.catalog.overview_formatting",
@@ -439,6 +446,7 @@ forbidden_modules = [
     "veupathdb_mcp.gene_lookup.lookup",
     "veupathdb_mcp.gene_lookup.organism",
     "veupathdb_mcp.gene_lookup.organisms",
+    "veupathdb_mcp.gene_lookup.records",
     "veupathdb_mcp.gene_lookup.rerank",
     "veupathdb_mcp.gene_lookup.result",
     "veupathdb_mcp.gene_lookup.scoring",
@@ -481,6 +489,7 @@ forbidden_modules = [
     "veupathdb_mcp.separation.run",
     "veupathdb_mcp.separation.stats",
     "veupathdb_mcp.service_tokens",
+    "veupathdb_mcp.testing.fixture_store",
     "veupathdb_mcp.tool_errors",
     "veupathdb_mcp.tools.audit_anatomy_tools",
     "veupathdb_mcp.tools.audit_busco_tools",
@@ -506,6 +515,7 @@ forbidden_modules = [
     "veupathdb_mcp.wdk.gene_set_steps",
     "veupathdb_mcp.wdk.group_genomes",
     "veupathdb_mcp.wdk.helpers",
+    "veupathdb_mcp.wdk.id_list_datasets",
     "veupathdb_mcp.wdk.param_decoding",
     "veupathdb_mcp.wdk.params",
     "veupathdb_mcp.wdk.plan_counts",

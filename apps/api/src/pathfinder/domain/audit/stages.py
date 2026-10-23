@@ -6,6 +6,7 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, model_validator
+from veupathdb_mcp.audit import GeneListDataset
 
 StageName = Literal["collect", "screen", "confirm", "tie_break"]
 RunStatus = Literal["planned", "running", "finished"]
@@ -18,6 +19,7 @@ class StageRecord(CamelModel):
     name: StageName
     finished: bool = False
     requests: int = Field(default=0, ge=0)
+    store_reads: int = Field(default=0, ge=0)
     done: int = Field(default=0, ge=0)
     total: int = Field(default=0, ge=0)
     message: str = ""
@@ -33,6 +35,7 @@ class RunStages(CamelModel):
     stages: tuple[StageRecord, ...] = Field(default_factory=_fresh)
     halted: str | None = None
     target_failure: str | None = None
+    target_list: GeneListDataset | None = None
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
@@ -57,19 +60,28 @@ class RunStages(CamelModel):
     def requests(self) -> int:
         return sum(stage.requests for stage in self.stages)
 
+    @property
+    def store_reads(self) -> int:
+        return sum(stage.store_reads for stage in self.stages)
+
+    def _with(self, **update: object) -> RunStages:
+        return RunStages.model_validate({**dict(self), **update})
+
     def _changed(self, name: StageName, **update: object) -> RunStages:
-        return RunStages(
+        return self._with(
             stages=tuple(
                 s.model_copy(update=update) if s.name == name else s
                 for s in self.stages
-            ),
-            halted=self.halted,
-            target_failure=self.target_failure,
+            )
         )
 
-    def count(self, name: StageName, requests: int) -> RunStages:
+    def count(self, name: StageName, requests: int, store_reads: int = 0) -> RunStages:
         record = next(s for s in self.stages if s.name == name)
-        return self._changed(name, requests=record.requests + requests)
+        return self._changed(
+            name,
+            requests=record.requests + requests,
+            store_reads=record.store_reads + store_reads,
+        )
 
     def progress(
         self, name: StageName, *, done: int, total: int, message: str
@@ -84,19 +96,18 @@ class RunStages(CamelModel):
 
     def reopen(self, name: StageName) -> RunStages:
         first = STAGES.index(name)
-        return RunStages(
+        return self._with(
             stages=tuple(
                 s.model_copy(update={"finished": s.finished and k < first})
                 for k, s in enumerate(self.stages)
-            ),
-            halted=self.halted,
-            target_failure=self.target_failure,
+            )
         )
 
     def halt(self, reason: str | None) -> RunStages:
-        return RunStages(
-            stages=self.stages, halted=reason, target_failure=self.target_failure
-        )
+        return self._with(halted=reason)
 
     def note_target_failure(self, message: str) -> RunStages:
-        return RunStages(stages=self.stages, halted=self.halted, target_failure=message)
+        return self._with(target_failure=message)
+
+    def keep_target_list(self, listed: GeneListDataset) -> RunStages:
+        return self._with(target_list=listed)

@@ -7,7 +7,14 @@ import re
 
 from pydantic import ConfigDict, Field
 from veupathdb.model import CamelModel
-from veupathdb_mcp.gene_lookup import list_organisms, resolve_gene_ids
+from veupathdb_mcp.audit import GeneIdRefusal, TooManyIdsError
+from veupathdb_mcp.catalog import NoGeneRecordsError
+from veupathdb_mcp.gene_lookup import (
+    GeneIdFound,
+    GeneIdReading,
+    list_organisms,
+    read_each_gene_id,
+)
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import ReadRecord
@@ -38,6 +45,10 @@ class SiteReading(CamelModel):
     organisms: list[str] = Field(default_factory=list)
     genes: frozenset[str] = frozenset()
     """The asked ids that resolve to a gene of the site, case-folded."""
+    unread: frozenset[str] = frozenset()
+
+    def holds(self, gene_id: str) -> bool:
+        return gene_id.casefold() in self.genes | self.unread
 
 
 def _carries_a_file(state: PipelineState) -> bool:
@@ -52,6 +63,26 @@ def _ids_to_resolve(state: PipelineState, intent: UserIntent) -> list[str]:
     return list(dict.fromkeys(asked))
 
 
+async def _readings(site_id: str, asked: list[str]) -> list[GeneIdReading] | None:
+    if not asked:
+        return []
+    try:
+        return await read_each_gene_id(site_id, asked)
+    except TooManyIdsError, NoGeneRecordsError:
+        return None
+
+
+def _found(readings: list[GeneIdReading]) -> list[GeneIdFound]:
+    found: list[GeneIdFound] = []
+    for reading in readings:
+        match reading:
+            case GeneIdFound():
+                found.append(reading)
+            case GeneIdRefusal():
+                pass
+    return found
+
+
 async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading:
     """The organisms and genes of the site this intent is held to.
 
@@ -62,8 +93,8 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
     )
     organisms = await list_organisms(state.site_id) if reads_organisms else []
     asked = _ids_to_resolve(state, intent)
-    resolved = await resolve_gene_ids(state.site_id, asked) if asked else None
-    genes = [] if resolved is None else resolved.records
+    readings = await _readings(state.site_id, asked)
+    found = [] if readings is None else _found(readings)
     state.turn_markers.record_resolved_genes(
         ReadRecord(
             record_id=gene.gene_id,
@@ -71,11 +102,15 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
             product=gene.product,
             organism=gene.organism,
         )
-        for gene in genes
+        for reading in found
+        for gene in reading.records
     )
     return SiteReading(
         organisms=organisms,
-        genes=frozenset(gene.gene_id.casefold() for gene in genes),
+        genes=frozenset(reading.given.casefold() for reading in found),
+        unread=frozenset(g.casefold() for g in asked)
+        if readings is None
+        else frozenset(),
     )
 
 
@@ -127,7 +162,7 @@ def _unheld_ids(
     untyped = untyped_ids(intent, state.user_prompt)
     if not _carries_a_file(state):
         return untyped
-    return [gene_id for gene_id in untyped if gene_id.casefold() not in site.genes]
+    return [gene_id for gene_id in untyped if not site.holds(gene_id)]
 
 
 def _answers_nothing(state: PipelineState, intent: UserIntent) -> bool:

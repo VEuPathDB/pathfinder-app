@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.platform.db import DBSessionFactory
 from pydantic_ai.exceptions import CallDeferred, ModelRetry
+from veupathdb_mcp.catalog import UnlistedSearchError
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
@@ -280,6 +281,31 @@ async def test_a_group_search_reads_its_controls_by_group_name_with_no_record_ty
         (c.record_type, c.controls_search_name, c.controls_param_name) for c in configs
     ] == [("group", "GroupsByNameList", "group_names")]
     assert named == ["group"]
+
+
+async def test_an_unlisted_search_is_refused_by_name(
+    reads: _Reads, measured: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del reads
+
+    async def unlisted(site_id: str, search_name: str, record_type: str | None) -> str:
+        del record_type
+        raise UnlistedSearchError(site_id, search_name)
+
+    monkeypatch.setattr(experiment, "resolve_search_record_type", unlisted)
+
+    with pytest.raises(ModelRetry) as refused:
+        await experiment.run_control_tests_on_search(
+            agent_run_context(control_sets=_ATTACHED),
+            "GenesByNothing",
+            {},
+            control_set_id=_SAVED.control_set_id,
+        )
+
+    assert str(refused.value) == (
+        "plasmodb lists no search GenesByNothing under any record type"
+    )
+    assert measured == []
 
 
 async def test_the_search_test_refuses_an_attached_id_of_no_saved_set(

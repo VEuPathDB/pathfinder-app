@@ -99,9 +99,11 @@ async def save_subtree_as_strategy(
     isolated_sync = WDKSyncState()
     await fill_record_classes(site_id, cloned_steps)
 
+    classes: dict[str, str] = {}
     for node in (cloned_steps[sid] for sid in push_order):
-        node_class = step_class_of(cloned_steps, node.id) or ""
-        if node_class:
+        node_class = step_class_of(cloned_steps, node.id)
+        if node_class is not None:
+            classes[node.id] = node_class
             wdk_id, _validation, failure = await push_step_to_wdk(
                 sync_state=isolated_sync,
                 step=node,
@@ -141,7 +143,7 @@ async def save_subtree_as_strategy(
         wdk_strategy_id=identifier.id,
         name=name,
         description=description,
-        record_type=step_class_of(cloned_steps, cloned_root.id) or "",
+        record_type=classes[cloned_root.id],
         root_step_id=isolated_sync.wdk_step_ids[cloned_root.id],
         cloned_root=cloned_root,
     )

@@ -105,6 +105,7 @@ class _SearchWait(BaseModel):
 @dataclass
 class RequestTally:
     count: int = 0
+    store_reads: int = 0
 
 
 _TALLY: ContextVar[RequestTally | None] = ContextVar("wdk_request_tally", default=None)
@@ -126,6 +127,12 @@ class PathfinderObserver(OpenTelemetryObserver):
         tally = _TALLY.get()
         if tally is not None:
             tally.count += 1
+
+    def on_jbrowse_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
+        super().on_jbrowse_request(seconds, attrs)
+        tally = _TALLY.get()
+        if tally is not None:
+            tally.store_reads += 1
 
     def on_wdk_search_wait(self, seconds: float, attrs: MetricAttrs, /) -> None:
         super().on_wdk_search_wait(seconds, attrs)

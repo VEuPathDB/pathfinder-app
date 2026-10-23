@@ -5,7 +5,10 @@ from typing import Any
 
 import pytest
 from pydantic_ai import Tool
-from veupathdb_mcp.gene_lookup import GeneResolveResult
+from veupathdb_mcp import MAX_CALL_SECONDS_META_KEY
+from veupathdb_mcp.audit import RECORD_READS_PER_CALL
+from veupathdb_mcp.gene_lookup import GeneResolveResult, GeneResult
+from veupathdb_mcp.server import TOOLS
 
 from pathfinder.ai.tools.standalone import control_sets, gene
 from pathfinder.ai.tools.standalone.catalog import (
@@ -20,10 +23,15 @@ from pathfinder.ai.tools.standalone.gene import resolve_gene_ids_to_records
 from pathfinder.ai.tools.standalone.gene_sets import save_gene_set
 from pathfinder.services.experiment.control_sourcing import ResolvedControls
 from pathfinder.tests._support.database import detached_session
+from pathfinder.tests._support.orthomcl_gene_class import (
+    NO_GENE_RECORDS,
+    ORTHOMCL,
+    held_record_types,
+    orthomcl_gene_class,
+)
 from pathfinder.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
-from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 
@@ -74,31 +82,68 @@ async def test_the_phyletic_tree_is_read_under_the_class_the_site_lists_it(
     assert asked == [read_under]
 
 
-async def test_gene_ids_are_resolved_under_the_class_the_site_lists_the_search(
+async def test_gene_ids_are_read_by_record_and_upload_no_list(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked: list[str] = []
+    asked: list[tuple[str, list[str]]] = []
 
-    async def _resolve(_site_id: str, _ids: list[str], **kwargs: Any) -> Any:
-        asked.append(kwargs["record_type"])
-        return GeneResolveResult(records=[], total_count=0)
+    async def _read(site_id: str, gene_ids: list[str]) -> GeneResolveResult:
+        asked.append((site_id, gene_ids))
+        return GeneResolveResult(
+            records=[GeneResult(gene_id=g) for g in gene_ids], total_count=1
+        )
 
-    monkeypatch.setattr(gene, "resolve_gene_ids", _resolve)
-    list_searches_under(monkeypatch, "transcript", ["GeneByLocusTag"])
-    await resolve_gene_ids_to_records(agent_run_context(), ["PF3D7_1222600"])
-    serve_orthomcl_record_classes(monkeypatch)
-
-    unlisted = returned(
-        await resolve_gene_ids_to_records(
-            agent_run_context(site_id="orthomcl"), ["PF3D7_1222600"]
-        ),
+    monkeypatch.setattr(gene, "read_gene_ids", _read)
+    found = returned(
+        await resolve_gene_ids_to_records(agent_run_context(), [" PF3D7_1222600 "]),
         GeneResolveResult,
     )
 
-    assert (asked, unlisted.error) == (
-        ["transcript"],
-        "The site lists no record type for GeneByLocusTag.",
+    assert (asked, [r.gene_id for r in found.records]) == (
+        [("plasmodb", ["PF3D7_1222600"])],
+        ["PF3D7_1222600"],
     )
+
+
+async def test_a_site_with_no_gene_records_refuses_the_read_by_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held_record_types(monkeypatch)
+
+    with orthomcl_gene_class() as wire:
+        refused = returned(
+            await resolve_gene_ids_to_records(
+                agent_run_context(site_id=ORTHOMCL), ["PF3D7_1133400"]
+            ),
+            GeneResolveResult,
+        )
+
+    assert (refused.records, refused.error) == ([], NO_GENE_RECORDS)
+    assert (wire.gene_reads.call_count, wire.record_type_reads.call_count) == (1, 0)
+
+
+async def test_more_ids_than_one_call_reads_are_refused_before_any_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _read(site_id: str, gene_ids: list[str]) -> GeneResolveResult:
+        raise AssertionError((site_id, gene_ids))
+
+    monkeypatch.setattr(gene, "read_gene_ids", _read)
+    ids = [f"PF3D7_{k:07d}" for k in range(RECORD_READS_PER_CALL + 1)]
+    refused = returned(
+        await resolve_gene_ids_to_records(agent_run_context(), ids), GeneResolveResult
+    )
+
+    assert refused.error == "Too many IDs (max 80). Reduce the list."
+
+
+def test_the_read_keeps_the_budget_the_served_tool_declares() -> None:
+    [served] = [
+        row.meta for row in TOOLS if row.fn.__name__ == "resolve_gene_ids_to_records"
+    ]
+
+    assert served == {MAX_CALL_SECONDS_META_KEY: gene.RESOLVE_MAX_CALL_SECONDS}
+    assert gene.RESOLVE_MAX_CALL_SECONDS == 120
 
 
 async def test_controls_on_orthomcl_are_read_as_proteins(

@@ -268,6 +268,16 @@ def test_frame_instructions_build_a_presence_only_in_a_clade() -> None:
     ) in text
 
 
+def test_frame_instructions_build_a_presence_in_every_species() -> None:
+    text = _normalized(_FRAME_INSTRUCTIONS)
+
+    assert (
+        "Presence in every species of a clade or genome list L, a species present "
+        "when half its genomes rounded up hold a protein, is built by "
+        "`build_every_species_expression(clade)`; bind its expression whole."
+    ) in text
+
+
 def test_frame_instructions_ask_for_the_scope_of_a_taxon_an_expression_spans() -> None:
     assert (
         "When an expression names genomes of several species or strains of one "

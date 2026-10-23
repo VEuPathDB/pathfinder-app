@@ -34,6 +34,7 @@ from pathfinder.tests._support.audit import (
     NF54,
     NF54_PIGA,
     PIGA,
+    FakeSite,
     RecordedLane,
     carried,
     gene_row,
@@ -77,7 +78,7 @@ class GeneReads:
         self.asked: list[list[str]] = []
         self.failures = list(failures)
 
-    async def gene_rows(self, site_id: str, gene_ids: list[str]) -> list[GeneRow]:
+    async def named_rows(self, site_id: str, gene_ids: list[str]) -> list[GeneRow]:
         del site_id
         self.asked.append(gene_ids)
         if self.failures:
@@ -88,15 +89,10 @@ class GeneReads:
 async def test_a_target_that_names_its_genome_is_placed_there_without_a_gene_read(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked: list[list[str]] = []
-
-    async def gene_rows(site_id: str, gene_ids: list[str]) -> list[GeneRow]:
-        del site_id
-        asked.append(sorted(gene_ids))
-        refused = "connection refused"
-        raise httpx.ConnectError(refused)
-
-    monkeypatch.setattr(screen, "gene_rows", gene_rows)
+    site = FakeSite([])
+    site.target_failures.extend([httpx.ConnectError("connection refused")] * 20)
+    monkeypatch.setattr(screen, "upload_gene_list", site.upload_list)
+    monkeypatch.setattr(screen, "read_gene_list", site.read_list)
     owner = await seed_thread()
     scope = AuditScope(site_id="plasmodb", targets=(MISSING, MITO, PIGA_PAIR))
     run_id = await create_run(owner=owner, scope=scope)
@@ -113,8 +109,7 @@ async def test_a_target_that_names_its_genome_is_placed_there_without_a_gene_rea
         MITO.key: (NF54, "screened"),
         PIGA_PAIR.key: ("", "unreached"),
     }
-    assert asked
-    assert {tuple(genes) for genes in asked} == {(PIGA, NF54_PIGA)}
+    assert site.uploads == [[PIGA, NF54_PIGA]]
 
 
 async def test_an_answer_that_names_no_error_keeps_what_its_check_could_not_judge(
@@ -188,7 +183,7 @@ async def test_a_strain_finding_is_settled_in_the_genome_of_the_model_called_wro
 
     reads = GeneReads()
     monkeypatch.setattr(checks, "audit_strain_model", strain_model)
-    monkeypatch.setattr(confirm, "gene_rows", reads.gene_rows)
+    monkeypatch.setattr(confirm, "record_rows", reads.named_rows)
     run = await run_with(
         [NewFinding(genome=STRAIN_M, target=STRAIN, sampled=True, status="screened")]
     )
@@ -219,7 +214,7 @@ async def test_a_reference_genome_the_site_does_not_answer_leaves_the_finding_un
     refused = "connection refused"
     reads = GeneReads(httpx.ConnectError(refused))
     monkeypatch.setattr(checks, "audit_strain_model", strain_model)
-    monkeypatch.setattr(confirm, "gene_rows", reads.gene_rows)
+    monkeypatch.setattr(confirm, "record_rows", reads.named_rows)
     run = await run_with(
         [NewFinding(genome=STRAIN_M, target=STRAIN, sampled=True, status="screened")]
     )
@@ -256,7 +251,7 @@ async def test_a_fusion_missing_or_organelle_error_stays_in_the_genome_it_was_pl
     monkeypatch.setattr(checks, "audit_gene_fusion", gene_fusion)
     monkeypatch.setattr(checks, "audit_missing_gene", missing_gene)
     monkeypatch.setattr(checks, "audit_organelle_gene", organelle_gene)
-    monkeypatch.setattr(confirm, "gene_rows", reads.gene_rows)
+    monkeypatch.setattr(confirm, "record_rows", reads.named_rows)
     run = await run_with(
         [
             NewFinding(genome=FRAGILE, target=FUSION, sampled=True, status="screened"),
@@ -309,7 +304,7 @@ async def test_a_pair_given_by_alias_costs_a_read_only_for_the_reference(
 
     reads = GeneReads()
     monkeypatch.setattr(checks, "audit_strain_model", strain_model)
-    monkeypatch.setattr(confirm, "gene_rows", reads.gene_rows)
+    monkeypatch.setattr(confirm, "record_rows", reads.named_rows)
     aliased = GenePairTarget(check="strain_model", genes=(PCYM_ALIAS, PCYB_ALIAS))
     run = await run_with(
         [NewFinding(genome=STRAIN_M, target=aliased, sampled=True, status="screened")]

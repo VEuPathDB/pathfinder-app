@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 import httpx
 import respx
+from pydantic import BaseModel, Field
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.wdk import get_site
 
@@ -16,97 +17,79 @@ DD2_YIP1 = "PfDd2_140076300"
 P3D7_YIP1 = "PF3D7_1472100"
 UNFLAGGED_STRAIN = GenePairTarget(check="pseudogene_call", genes=(DD2_YIP1, P3D7_YIP1))
 _USER = 376
-_DATASET = 9
-_ATTRIBUTES = [
-    "organism_full",
-    "gene_orthomcl_name",
-    "protein_length",
-    "gene_name",
-    "gene_product",
-    "sequence_id",
-    "gene_start_min",
-    "gene_end_max",
-    "strand_plus_minus",
-    "is_pseudo",
-    "gene_type",
-    "input_id",
-]
-_RECORDS = [
-    {
-        "displayName": P3D7_YIP1,
-        "id": [
-            {"name": "gene_source_id", "value": P3D7_YIP1},
-            {"name": "source_id", "value": "PF3D7_1472100.1"},
-            {"name": "project_id", "value": "PlasmoDB"},
-        ],
-        "recordClassName": "TranscriptRecordClasses.TranscriptRecordClass",
+_RECORDS: dict[str, dict[str, object]] = {
+    P3D7_YIP1: {
         "attributes": {
-            "gene_orthomcl_name": "OG8_0005198",
-            "protein_length": "314",
-            "gene_name": "YIP1",
             "organism_full": "Plasmodium falciparum 3D7",
-            "gene_start_min": "2941398",
-            "gene_type": "protein coding gene",
+            "orthomcl_name": "OG8_0005198",
+            "name": "YIP1",
+            "product": "protein transport protein YIP1, putative",
             "sequence_id": "Pf3D7_14_v3",
-            "is_pseudo": "No",
-            "gene_product": "protein transport protein YIP1, putative",
-            "gene_end_max": "2945279",
+            "start_min": "2941398",
+            "end_max": "2945279",
             "strand_plus_minus": "-",
-            "input_id": P3D7_YIP1,
+            "is_pseudo": "No",
+            "gene_type": "protein coding gene",
         },
-        "tables": {},
-        "tableErrors": [],
+        "transcripts": [{"transcript_id": "PF3D7_1472100.1", "protein_length": "314"}],
     },
-    {
-        "displayName": DD2_YIP1,
+    DD2_YIP1: {
+        "attributes": {
+            "organism_full": DD2,
+            "orthomcl_name": "OG8_0005198",
+            "name": "YIP1",
+            "product": "protein transport protein YIP1, putative",
+            "sequence_id": "PfDd2_14",
+            "start_min": "2919589",
+            "end_max": "2921032",
+            "strand_plus_minus": "-",
+            "is_pseudo": "No",
+            "gene_type": "protein coding gene",
+        },
+        "transcripts": [
+            {"transcript_id": "PfDd2_140076300-t41_1", "protein_length": "289"}
+        ],
+    },
+}
+
+
+class _PrimaryKey(BaseModel):
+    name: str
+    value: str
+
+
+class _RecordRequest(BaseModel):
+    primary_key: list[_PrimaryKey] = Field(alias="primaryKey")
+
+
+def _record(gene: str, *, readable: bool) -> dict[str, object]:
+    held = _RECORDS[gene]
+    return {
+        "displayName": gene,
         "id": [
-            {"name": "gene_source_id", "value": DD2_YIP1},
-            {"name": "source_id", "value": "PfDd2_140076300-t41_1"},
+            {"name": "source_id", "value": gene},
             {"name": "project_id", "value": "PlasmoDB"},
         ],
-        "recordClassName": "TranscriptRecordClasses.TranscriptRecordClass",
-        "attributes": {
-            "gene_orthomcl_name": "OG8_0005198",
-            "protein_length": "289",
-            "gene_name": "YIP1",
-            "organism_full": DD2,
-            "gene_start_min": "2919589",
-            "gene_type": "protein coding gene",
-            "sequence_id": "PfDd2_14",
-            "is_pseudo": "No",
-            "gene_product": "protein transport protein YIP1, putative",
-            "gene_end_max": "2921032",
-            "strand_plus_minus": "-",
-            "input_id": DD2_YIP1,
-        },
-        "tables": {},
+        "recordClassName": "GeneRecordClasses.GeneRecordClass",
+        "attributes": held["attributes"],
+        "tables": {"GeneTranscripts": held["transcripts"]} if readable else {},
         "tableErrors": [],
-    },
-]
-
-
-def _answer(total: int) -> dict[str, object]:
-    count = len(_RECORDS)
-    return {
-        "meta": {
-            "totalCount": total,
-            "responseCount": count,
-            "displayTotalCount": total,
-            "viewTotalCount": total,
-            "displayViewTotalCount": total,
-            "recordClassName": "transcript",
-            "attributes": _ATTRIBUTES,
-            "tables": [],
-        },
-        "records": _RECORDS,
     }
 
 
 @contextmanager
-def yip1_rows(*, total: int = len(_RECORDS)) -> Iterator[respx.Route]:
+def yip1_records(*, readable: bool = True) -> Iterator[respx.Route]:
     site = get_site(SITE)
     service = site.service_url
     token = veupathdb_auth_token_ctx.set("a-registered-token")
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        asked = _RecordRequest.model_validate_json(request.content)
+        gene = next(
+            part.value for part in asked.primary_key if part.name == "source_id"
+        )
+        return httpx.Response(200, json=_record(gene, readable=readable))
+
     try:
         with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
             router.get(f"{site.web_base_url}/app").mock(
@@ -115,11 +98,8 @@ def yip1_rows(*, total: int = len(_RECORDS)) -> Iterator[respx.Route]:
             router.get(f"{service}/users/current").mock(
                 return_value=httpx.Response(200, json={"id": _USER, "isGuest": False})
             )
-            router.post(f"{service}/users/{_USER}/datasets").mock(
-                return_value=httpx.Response(200, json={"id": _DATASET})
+            yield router.post(f"{service}/record-types/gene/records").mock(
+                side_effect=answer
             )
-            yield router.post(
-                f"{service}/record-types/transcript/searches/GeneByLocusTag/reports/standard"
-            ).mock(return_value=httpx.Response(200, json=_answer(total)))
     finally:
         veupathdb_auth_token_ctx.reset(token)

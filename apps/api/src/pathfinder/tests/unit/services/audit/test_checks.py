@@ -57,7 +57,7 @@ from pathfinder.tests._support.audit_wire import (
     DD2_YIP1,
     SITE,
     UNFLAGGED_STRAIN,
-    yip1_rows,
+    yip1_records,
 )
 
 
@@ -254,7 +254,7 @@ async def test_a_tool_error_is_failed_or_unreached(
 
 
 async def test_the_library_refuses_a_strain_gene_its_site_does_not_flag() -> None:
-    with yip1_rows() as report:
+    with yip1_records() as report:
         found = await confirm_target(SITE, UNFLAGGED_STRAIN)
     assert found == UnitFailure(
         status="failed",
@@ -263,15 +263,18 @@ async def test_the_library_refuses_a_strain_gene_its_site_does_not_flag() -> Non
             "the check reads a strain gene the site calls a pseudogene"
         ),
     )
-    assert report.call_count == 1
+    assert report.call_count == 2
 
 
-async def test_a_report_served_short_of_its_total_is_failed() -> None:
-    with yip1_rows(total=3) as report:
+async def test_a_gene_record_with_no_transcript_table_is_failed() -> None:
+    with yip1_records(readable=False) as report:
         found = await confirm_target(SITE, UNFLAGGED_STRAIN)
     assert found == UnitFailure(
         status="failed",
-        message="WDK GeneByLocusTag report served 2 records of a total of 3",
+        message=(
+            f"the gene record of {DD2_YIP1} on plasmodb gives no readable "
+            "GeneTranscripts"
+        ),
     )
     assert report.call_count == 1
 

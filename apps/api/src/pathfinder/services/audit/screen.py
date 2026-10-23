@@ -8,7 +8,12 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
-from veupathdb_mcp.audit import GeneRow, gene_rows
+from veupathdb_mcp.audit import (
+    GeneListDataset,
+    GeneRow,
+    read_gene_list,
+    upload_gene_list,
+)
 
 from pathfinder.domain.audit.sampling import sample_candidates
 from pathfinder.domain.audit.scope import GeneTarget, paired_genome
@@ -104,9 +109,25 @@ class _TargetRead:
     unread: bool = False
 
 
-async def _target_rows(site_id: str, genes: list[str]) -> list[GeneRow] | UnitFailure:
+async def _target_list(run: AuditRunRecord, genes: list[str]) -> GeneListDataset:
+    async with async_session_factory() as session:
+        stored = await AuditRepository(session).stored_run(run.id)
+    if stored is not None and stored.stages.target_list is not None:
+        return stored.stages.target_list
+    listed = await upload_gene_list(run.site_id, genes)
+    async with async_session_factory() as session:
+        await AuditRepository(session).change_stages(
+            run.id, lambda stages: stages.keep_target_list(listed)
+        )
+        await session.commit()
+    return listed
+
+
+async def _target_rows(
+    run: AuditRunRecord, genes: list[str]
+) -> list[GeneRow] | UnitFailure:
     try:
-        return await gene_rows(site_id, genes)
+        return await read_gene_list(await _target_list(run, genes))
     except UNIT_FAILURES as exc:
         return UnitFailure(status=failure_status(exc), message=str(exc))
 
@@ -119,7 +140,9 @@ async def _counted(run_id: UUID, requests: int) -> None:
 
 async def _noted(run_id: UUID, message: str) -> None:
     async with async_session_factory() as session:
-        await AuditRepository(session).note_target_failure(run_id, message)
+        await AuditRepository(session).change_stages(
+            run_id, lambda stages: stages.note_target_failure(message)
+        )
         await session.commit()
 
 
@@ -132,7 +155,7 @@ async def _read_targets(
 
     async def attempt(_: UUID) -> bool:
         async with tallied(run.id, "screen") as tally:
-            read = await _target_rows(run.site_id, genes)
+            read = await _target_rows(run, genes)
         await _counted(run.id, tally.count)
         match read:
             case UnitFailure(status=status, message=message):

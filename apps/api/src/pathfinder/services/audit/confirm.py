@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from assistant_core.platform.db import async_session_factory
-from veupathdb_mcp.audit import gene_rows
+from veupathdb_mcp.audit import record_rows
 
 from pathfinder.domain.audit.findings import (
     Confirmation,
@@ -22,6 +22,7 @@ from pathfinder.persistence.repositories.audit_findings import (
     FindingFilter,
     SettledFinding,
 )
+from pathfinder.platform.metrics import RequestTally
 from pathfinder.services.audit.checks import UnitFailure, confirm_target
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
 from pathfinder.services.audit.units import (
@@ -48,7 +49,7 @@ async def _organisms(
     site_id: str, genes: Sequence[str]
 ) -> dict[str, str] | UnitFailure:
     try:
-        rows = await gene_rows(site_id, list(genes))
+        rows = await record_rows(site_id, list(genes))
     except UNIT_FAILURES as exc:
         return UnitFailure(status=failure_status(exc), message=str(exc))
     organisms = {row.gene: row.organism for row in rows}
@@ -145,17 +146,17 @@ def _settled(
 async def _settle(
     finding: AuditFindingRecord,
     checked: tuple[Confirmation | UnitFailure, _Placed],
-    requests: int,
+    tally: RequestTally,
 ) -> tuple[SettledFinding, str]:
     reached, placed = checked
-    settled, evidence, said = _settled(reached, requests, placed)
+    settled, evidence, said = _settled(reached, tally.count, placed)
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
         await repo.settle_finding(finding.id, settled)
         if evidence is not None:
             await repo.save_evidence(finding.id, evidence, requests=0)
         await AuditRepository(session).count_requests(
-            finding.run_id, "confirm", requests
+            finding.run_id, "confirm", tally.count, tally.store_reads
         )
         await session.commit()
     return settled, said
@@ -182,7 +183,7 @@ async def run_confirm_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) 
             await session.commit()
         async with tallied(run.id, "confirm") as tally:
             checked = await _check(run.site_id, finding)
-        settled, said = await _settle(finding, checked, tally.count)
+        settled, said = await _settle(finding, checked, tally)
         answered = settled.status != "unreached"
         done += answered
         await lane.update(

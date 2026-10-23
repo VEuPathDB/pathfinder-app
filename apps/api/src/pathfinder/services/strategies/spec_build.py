@@ -300,8 +300,8 @@ async def _push_tree_to_wdk(
             outcome.skipped_step_ids.append(node.id)
             continue
         search_name = wdk_search_name(node)
-        record_type = step_class_of(steps_by_id, node.id) or ""
-        if not record_type:
+        record_type = step_class_of(steps_by_id, node.id)
+        if record_type is None:
             unclassed = unclassed_step_failure(node.id, search_name)
             sync_state.wdk_push_errors[node.id] = unclassed.error
             failed_node_ids.add(node.id)
@@ -335,11 +335,12 @@ async def _push_tree_to_wdk(
             push_parameters = validated.params
             if validated.record_class:
                 node.record_class = validated.record_class
+                record_type = validated.record_class
         wdk_id, _validation, failure = await push_step_to_wdk(
             sync_state=sync_state,
             step=node,
             site_id=site_id,
-            record_type=step_class_of(steps_by_id, node.id) or "",
+            record_type=record_type,
             search_name=search_name,
             parameters=push_parameters,
         )

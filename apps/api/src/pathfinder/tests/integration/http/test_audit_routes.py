@@ -198,6 +198,7 @@ async def test_a_run_carries_its_deadline_progress_and_stopped_genomes(
         "name": "collect",
         "finished": False,
         "requests": 0,
+        "storeReads": 0,
         "done": 1,
         "total": 2,
         "message": "waiting 30 s for plasmodb",

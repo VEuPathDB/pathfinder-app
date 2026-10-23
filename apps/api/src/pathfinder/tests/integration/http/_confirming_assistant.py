@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from assistant_core.graph.single_agent import single_agent_graph
+from assistant_core.graph.single_agent import SingleAgent, single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.models.scripted import (
     RoleMarkers,
@@ -94,8 +94,10 @@ def _build_graph(
         checkpointer=checkpointer,
         state_type=TurnState,
         context_type=HelperTurnContext,
-        build_agent=build_confirming_agent,
-        build_deps=build_deps,
+        agent=SingleAgent(
+            build_agent=build_confirming_agent,
+            build_deps=build_deps,
+        ),
         charge_usage=charge_usage,
     )
 

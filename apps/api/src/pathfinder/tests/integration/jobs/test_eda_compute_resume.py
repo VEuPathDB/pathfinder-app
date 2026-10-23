@@ -13,7 +13,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.graph.single_agent import single_agent_graph
+from assistant_core.graph.single_agent import SingleAgent, single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.models.scripted import (
     RoleMarkers,
@@ -162,8 +162,10 @@ def _build_graph(
         checkpointer=checkpointer,
         state_type=TurnState,
         context_type=Context,
-        build_agent=_build_agent,
-        build_deps=_build_deps,
+        agent=SingleAgent(
+            build_agent=_build_agent,
+            build_deps=_build_deps,
+        ),
         charge_usage=charge_usage,
     )
 

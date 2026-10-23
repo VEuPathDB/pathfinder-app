@@ -11,7 +11,7 @@ from uuid import UUID
 
 import pytest
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
-from assistant_core.graph.single_agent import single_agent_graph
+from assistant_core.graph.single_agent import SingleAgent, single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.models.scripted import (
@@ -209,8 +209,10 @@ def build_helper_graph(
         checkpointer=checkpointer,
         state_type=TurnState,
         context_type=HelperTurnContext,
-        build_agent=build_helper_agent,
-        build_deps=build_deps,
+        agent=SingleAgent(
+            build_agent=build_helper_agent,
+            build_deps=build_deps,
+        ),
         charge_usage=charge_usage,
     )
 

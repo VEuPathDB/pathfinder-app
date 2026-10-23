@@ -12,18 +12,25 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb.wdk import get_site
 from veupathdb_mcp import MAX_CALL_SECONDS_META_KEY
-from veupathdb_mcp.catalog import CladeOnlyExpression, ProteinCountComparison
+from veupathdb_mcp.catalog import (
+    CladeOnlyExpression,
+    EverySpeciesExpression,
+    ProteinCountComparison,
+)
 from veupathdb_mcp.server import TOOLS
 
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.tools.standalone import catalog
-from pathfinder.ai.tools.standalone.catalog import (
+from pathfinder.ai.tools.standalone import orthomcl_expressions
+from pathfinder.ai.tools.standalone.orthomcl_expressions import (
     build_clade_only_expression,
+    build_every_species_expression,
     build_protein_count_comparison,
 )
 from pathfinder.tests._support.orthomcl_counts import (
     CLADE_ONLY,
+    CRYPTOSPORIDIUM,
+    EVERY_SPECIES,
     LADDER,
     SITE,
     count_recording,
@@ -90,9 +97,9 @@ def test_the_comparison_keeps_the_budget_the_served_tool_declares() -> None:
     ]
 
     assert served == {
-        MAX_CALL_SECONDS_META_KEY: catalog.PROTEIN_COMPARISON_MAX_CALL_SECONDS
+        MAX_CALL_SECONDS_META_KEY: orthomcl_expressions.PROTEIN_COMPARISON_MAX_CALL_SECONDS
     }
-    assert catalog.PROTEIN_COMPARISON_MAX_CALL_SECONDS == 120
+    assert orthomcl_expressions.PROTEIN_COMPARISON_MAX_CALL_SECONDS == 120
 
 
 async def test_a_count_report_the_site_fails_is_a_failed_call_the_model_reads() -> None:
@@ -121,7 +128,9 @@ async def test_a_count_report_the_site_fails_is_a_failed_call_the_model_reads() 
 async def test_a_comparison_past_its_budget_is_a_failed_call_the_model_reads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(catalog, "PROTEIN_COMPARISON_MAX_CALL_SECONDS", 0.01)
+    monkeypatch.setattr(
+        orthomcl_expressions, "PROTEIN_COMPARISON_MAX_CALL_SECONDS", 0.01
+    )
 
     with (
         replayed_counts(LADDER, delay=1.0) as replay,
@@ -176,6 +185,38 @@ async def test_within_a_larger_clade_counts_the_recorded_groups() -> None:
     assert summary_of(result).data["summary"] == (
         "558 groups with a protein in 1 genomes and none in 806 others"
     )
+
+
+async def test_every_species_holds_each_species_at_half_its_genomes_rounded_up() -> (
+    None
+):
+    (recorded,) = count_recording(EVERY_SPECIES).reports
+
+    with replayed_counts(EVERY_SPECIES) as replay:
+        result = await build_every_species_expression(
+            agent_run_context(site_id=SITE), CRYPTOSPORIDIUM
+        )
+
+    built = returned(result, EverySpeciesExpression)
+    hominis = next(s for s in built.species if s.species == "Cryptosporidium hominis")
+    assert built.expression == recorded.expression
+    assert (built.groups, len(built.species), built.genomes) == (
+        2505,
+        12,
+        tuple(sorted(CRYPTOSPORIDIUM)),
+    )
+    assert (len(hominis.genomes), hominis.present) == (4, 2)
+    assert replay.sent == [built.expression]
+    assert summary_of(result).data["summary"] == (
+        "2505 groups present in each of 12 species"
+    )
+
+
+async def test_a_clade_of_one_species_is_sent_back() -> None:
+    with replayed_counts(EVERY_SPECIES) as replay, pytest.raises(ModelRetry):
+        await build_every_species_expression(agent_run_context(site_id=SITE), ["cand"])
+
+    assert replay.sent == []
 
 
 async def test_a_code_the_taxonomy_lacks_is_sent_back() -> None:

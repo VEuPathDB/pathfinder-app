@@ -169,7 +169,7 @@ async def tallied(run_id: UUID, stage: StageName) -> AsyncIterator[RequestTally]
         except Exception:
             async with async_session_factory() as session:
                 await AuditRepository(session).count_requests(
-                    run_id, stage, tally.count
+                    run_id, stage, tally.count, tally.store_reads
                 )
                 await session.commit()
             raise

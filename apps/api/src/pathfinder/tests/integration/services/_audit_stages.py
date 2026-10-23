@@ -55,7 +55,8 @@ def faked_site(monkeypatch: pytest.MonkeyPatch) -> FakeSite:
     monkeypatch.setattr(collect, "genome_priorities", no_busco_scores)
     monkeypatch.setattr(collect, "organism_report", served_organisms)
     monkeypatch.setattr(collect, "site_build", fake.site_build)
-    monkeypatch.setattr(screen, "gene_rows", fake.gene_rows)
+    monkeypatch.setattr(screen, "upload_gene_list", fake.upload_list)
+    monkeypatch.setattr(screen, "read_gene_list", fake.read_list)
     return fake
 
 

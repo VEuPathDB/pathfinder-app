@@ -6100,6 +6100,10 @@
             "type": "integer",
             "title": "Requests"
           },
+          "storeReads": {
+            "type": "integer",
+            "title": "Storereads"
+          },
           "unfinished": {
             "items": {
               "type": "string",
@@ -6144,6 +6148,7 @@
           "scope",
           "stages",
           "requests",
+          "storeReads",
           "unfinished",
           "genomes",
           "counts",
@@ -9685,6 +9690,27 @@
       },
       "GeneFusionAudit": {
         "properties": {
+          "models": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ModelSpans"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "evidenceUnread": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidenceunread"
+          },
           "geneIds": {
             "items": {
               "$ref": "#/components/schemas/GeneId"
@@ -9749,6 +9775,16 @@
                 "type": "null"
               }
             ]
+          },
+          "merged": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneSpan"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -9786,6 +9822,27 @@
       },
       "GeneLengthAudit": {
         "properties": {
+          "models": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ModelSpans"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "evidenceUnread": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidenceunread"
+          },
           "geneIds": {
             "items": {
               "$ref": "#/components/schemas/GeneId"
@@ -9920,6 +9977,31 @@
           "codeInferred"
         ],
         "title": "GeneLengthAudit"
+      },
+      "GeneListDataset": {
+        "properties": {
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
+          "datasetId": {
+            "type": "integer",
+            "title": "Datasetid"
+          },
+          "size": {
+            "type": "integer",
+            "maximum": 400.0,
+            "minimum": 1.0,
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "siteId",
+          "datasetId",
+          "size"
+        ],
+        "title": "GeneListDataset"
       },
       "GenePairTarget": {
         "properties": {
@@ -10230,6 +10312,38 @@
         ],
         "title": "GeneSetResponse",
         "description": "A gene set, as returned to the client."
+      },
+      "GeneSpan": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "seqid": {
+            "type": "string",
+            "title": "Seqid"
+          },
+          "strand": {
+            "$ref": "#/components/schemas/Strand"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "seqid",
+          "strand",
+          "start",
+          "end"
+        ],
+        "title": "GeneSpan"
       },
       "GeneTranscript": {
         "properties": {
@@ -11508,6 +11622,51 @@
           "small"
         ]
       },
+      "ModelSpans": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "seqid": {
+            "type": "string",
+            "title": "Seqid"
+          },
+          "strand": {
+            "$ref": "#/components/schemas/Strand"
+          },
+          "exons": {
+            "items": {
+              "$ref": "#/components/schemas/Span"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Exons"
+          },
+          "cds": {
+            "items": {
+              "$ref": "#/components/schemas/Span"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Cds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "transcript",
+          "seqid",
+          "strand",
+          "exons",
+          "cds"
+        ],
+        "title": "ModelSpans"
+      },
       "MultiPickValue": {
         "properties": {
           "type": {
@@ -12716,6 +12875,24 @@
           "referenceGene": {
             "type": "string",
             "title": "Referencegene"
+          },
+          "referenceModel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelSpans"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceUnread": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1,
+            "title": "Evidenceunread"
           }
         },
         "type": "object",
@@ -13450,6 +13627,16 @@
               }
             ],
             "title": "Targetfailure"
+          },
+          "targetList": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneListDataset"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -13793,6 +13980,27 @@
       },
       "SelenoproteinEndAudit": {
         "properties": {
+          "models": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ModelSpans"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "evidenceUnread": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidenceunread"
+          },
           "verdict": {
             "$ref": "#/components/schemas/SecVerdict"
           },
@@ -14176,6 +14384,19 @@
         "title": "SourceUrlUIPart",
         "description": "A source part of a message."
       },
+      "Span": {
+        "prefixItems": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          }
+        ],
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+      },
       "StageRecord": {
         "properties": {
           "name": {
@@ -14197,6 +14418,12 @@
             "type": "integer",
             "minimum": 0.0,
             "title": "Requests",
+            "default": 0
+          },
+          "storeReads": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Storereads",
             "default": 0
           },
           "done": {
@@ -14830,6 +15057,27 @@
       },
       "StrainModelAudit": {
         "properties": {
+          "models": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ModelSpans"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "evidenceUnread": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidenceunread"
+          },
           "lost": {
             "items": {
               "prefixItems": [
@@ -15009,6 +15257,13 @@
           "median"
         ],
         "title": "StrainRelatives"
+      },
+      "Strand": {
+        "type": "string",
+        "enum": [
+          "+",
+          "-"
+        ]
       },
       "StrategyAst": {
         "properties": {

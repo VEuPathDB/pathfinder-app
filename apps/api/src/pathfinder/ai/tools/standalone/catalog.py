@@ -1,6 +1,5 @@
 """Agent tools for catalog discovery: record types, searches, categories,
-transforms, phyletic codes, the OrthoMCL expressions built from them, and
-example public strategies."""
+transforms, phyletic codes and example public strategies."""
 
 from collections.abc import Sequence
 from typing import Literal, cast
@@ -10,21 +9,18 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, model_validator
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import (
     UNIVERSAL_SEARCHES,
-    CladeOnlyExpression,
-    ProteinCountComparison,
     SearchMatch,
     VagueSearchQueryError,
 )
 from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
-from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     joined,
@@ -42,8 +38,6 @@ ORTHOLOG_PATTERN_SEARCH = "GenesByOrthologPattern"
 # whose closest scored hit is under it says so; the number changes that
 # sentence and never refuses a search.
 _FAINT_MATCH = 0.35
-
-PROTEIN_COMPARISON_MAX_CALL_SECONDS = 120
 
 
 class _PhyleticLookup(CamelModel):
@@ -339,89 +333,6 @@ async def lookup_phyletic_codes(
     return with_summary(
         codes,
         f"{_PhyleticLookup.model_validate(codes).total} phyletic codes for {query}",
-        ctx=ctx,
-    )
-
-
-async def build_protein_count_comparison(
-    ctx: RunContext[AgentDeps],
-    genome_a: str,
-    genome_b: str,
-    reverse: bool = False,
-) -> ToolReturn[ProteinCountComparison]:
-    """Build the OrthoMCL phyletic_expression for the groups in which genome A
-    holds more proteins than genome B, and count the groups it returns.
-
-    The expression is B=0 AND A>=1 OR B=1 AND A>=2 OR ... OR B=K AND A>=K+1,
-    where K is the smallest count for which B>=K+1 returns no group. K is read
-    from the site with at most 15 count reports. Each ladder gives its
-    expression, the groups it returns, and length, its characters; the
-    parameter has no length limit, so bind the expression whole. A group with
-    as many proteins in both genomes is in neither ladder. A genome B with 1024
-    or more proteins in one group is refused.
-
-    Args:
-        ctx: Agent run context.
-        genome_a: Genome A, one genome code (leaf=true in lookup_phyletic_codes).
-        genome_b: Genome B, one genome code (leaf=true in lookup_phyletic_codes).
-        reverse: Also build the ladder of the groups in which genome B holds
-            more proteins than genome A.
-    """
-    try:
-        comparison = await read_in_time(
-            "build_protein_count_comparison",
-            f"the protein counts of {genome_a} and {genome_b}",
-            catalog.compare_protein_counts(
-                ctx.deps.site_id, genome_a, genome_b, reverse=reverse
-            ),
-            deadline=PROTEIN_COMPARISON_MAX_CALL_SECONDS,
-        )
-    except ValidationError as exc:
-        raise ModelRetry(exc.detail or exc.title) from exc
-    return with_summary(
-        comparison,
-        "; ".join(
-            f"{ladder.groups} groups with more proteins in {ladder.more} than "
-            f"{ladder.fewer}"
-            for ladder in comparison.ladders
-        ),
-        ctx=ctx,
-    )
-
-
-async def build_clade_only_expression(
-    ctx: RunContext[AgentDeps],
-    clade: list[str],
-    within: list[str] | None = None,
-) -> ToolReturn[CladeOnlyExpression]:
-    """Build the OrthoMCL phyletic_expression for the groups present in a clade
-    L and in no genome outside it, and count the groups it returns.
-
-    The expression is L>=1T AND C=0T, with C every genome outside L, written
-    from the site's taxonomy: a clade code for each whole clade outside L and a
-    genome code for the rest. With within, a clade M that holds every genome of
-    L, C is every genome outside M, so the groups may also hold proteins
-    elsewhere in M. The result gives expression, groups, length, its
-    characters, genomes, the genome codes of L, and outside, the number of
-    genomes C covers; the parameter has no length limit, so bind the expression
-    whole. For a clade X whose genomes must hold no protein, write L>=1T AND
-    X=0T instead.
-
-    Args:
-        ctx: Agent run context.
-        clade: L, one clade code, or the genome codes of a group with no clade
-            code of its own, such as a genus, from lookup_phyletic_codes.
-        within: M, the codes of a clade that holds every genome of L; every
-            genome outside M must hold no protein.
-    """
-    try:
-        built = await catalog.clade_only_expression(ctx.deps.site_id, clade, within)
-    except ValidationError as exc:
-        raise ModelRetry(exc.detail or exc.title) from exc
-    return with_summary(
-        built,
-        f"{built.groups} groups with a protein in {len(built.genomes)} genomes and "
-        f"none in {built.outside} others",
         ctx=ctx,
     )
 

@@ -4,6 +4,7 @@ import inspect
 
 from veupathdb_mcp.server import TOOLS
 
+from pathfinder.tests._support.orthomcl_counts import CRYPTOSPORIDIUM
 from pathfinder.tests.integration.mcp._served import OwnedStep
 from pathfinder.tests.integration.mcp.test_conformance_ours import sample_arguments
 
@@ -14,7 +15,7 @@ def test_every_sample_names_a_served_tool() -> None:
     served = {row.fn.__name__ for row in TOOLS}
 
     assert sorted(set(_SAMPLES) - served) == []
-    assert len(_SAMPLES) == 18
+    assert len(_SAMPLES) == 19
 
 
 def test_every_sample_passes_only_the_arguments_its_tool_takes() -> None:
@@ -33,4 +34,8 @@ def test_every_sample_passes_only_the_arguments_its_tool_takes() -> None:
     assert signatures["build_clade_only_expression"] == {
         "site_id": "orthomcl",
         "clade": ["APIC"],
+    }
+    assert signatures["build_every_species_expression"] == {
+        "site_id": "orthomcl",
+        "clade": CRYPTOSPORIDIUM,
     }

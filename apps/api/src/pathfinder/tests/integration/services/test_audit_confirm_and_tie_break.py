@@ -30,7 +30,7 @@ from pathfinder.tests._support.audit_wire import (
     DD2,
     DD2_YIP1,
     UNFLAGGED_STRAIN,
-    yip1_rows,
+    yip1_records,
 )
 from pathfinder.tests.integration.services._audit_confirm import (
     PAIR,
@@ -272,26 +272,34 @@ async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
 
 
 @pytest.mark.parametrize(
-    ("total", "reason"),
+    ("readable", "reason", "reads"),
     [
         (
-            2,
+            True,
             (
                 f"{DD2_YIP1} is not flagged a pseudogene on plasmodb (is_pseudo: No); "
                 "the check reads a strain gene the site calls a pseudogene"
             ),
+            2,
         ),
-        (3, "WDK GeneByLocusTag report served 2 records of a total of 3"),
+        (
+            False,
+            (
+                f"the gene record of {DD2_YIP1} on plasmodb gives no readable "
+                "GeneTranscripts"
+            ),
+            1,
+        ),
     ],
 )
 async def test_a_check_the_library_refuses_on_the_wire_is_stored_failed_once(
-    total: int, reason: str
+    readable: bool, reason: str, reads: int
 ) -> None:
     finding = NewFinding(
         genome=DD2, target=UNFLAGGED_STRAIN, sampled=True, status="screened"
     )
     run = await run_with([finding])
-    with observed_requests(), yip1_rows(total=total) as report:
+    with observed_requests(), yip1_records(readable=readable) as report:
         await carried(confirm.run_confirm_stage, run, RecordedLane(), seconds=3600)
     (failed,) = (await findings_of(run.id)).values()
     assert (failed.status, failed.error_type, failed.attempts, failed.message) == (
@@ -300,9 +308,9 @@ async def test_a_check_the_library_refuses_on_the_wire_is_stored_failed_once(
         1,
         reason,
     )
-    assert report.call_count == 1
-    assert failed.requests == 3
-    assert (await stage_requests(run))["confirm"] == 3
+    assert report.call_count == reads
+    assert failed.requests == reads + 1
+    assert (await stage_requests(run))["confirm"] == reads + 1
 
 
 async def test_a_finding_the_worker_stopped_during_is_tried_again(

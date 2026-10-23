@@ -16,6 +16,7 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
 )
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations import (
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
@@ -31,7 +32,7 @@ from pathfinder.services.strategies import (
 )
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
-from pathfinder.services.strategies.sync import SyncResult
+from pathfinder.services.strategies.sync import SyncResult, UnclassedRootError
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 STRATEGY_ID = 330643473
@@ -397,3 +398,33 @@ async def test_a_later_put_that_holds_the_step_ends_the_detached_record(
 
     assert result.failures == []
     assert sync_state.wdk_push_errors == {}
+
+
+@pytest.mark.asyncio
+async def test_a_root_the_site_lists_no_class_for_is_a_failed_push(
+    api: _RecordingAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    unclassed = StepPushFailure(
+        step_id="step_join",
+        search_name="__combine__",
+        error="The site lists no record type for __combine__.",
+    )
+
+    async def _refused(**_kwargs: Any) -> SyncResult:
+        raise UnclassedRootError(unclassed)
+
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _refused)
+    root = _join(
+        "step_join",
+        _leaf("step_a", "GenesByMolecularWeight"),
+        _leaf("step_b", "GenesByTaxon"),
+        CombineOp.INTERSECT,
+    )
+    deps = _seed(root, {"step_a": 100, "step_b": 200, "step_join": 440436303}, api)
+
+    result = await apply_and_commit(
+        deps=deps,
+        op=UpdateCombineOperatorOp(step_id="step_join", operator=CombineOp.UNION),
+    )
+
+    assert (result.failures, result.sync_result) == ([unclassed], None)

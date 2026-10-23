@@ -51,7 +51,7 @@ def record_class_at(
 ) -> str | None:
     steps: dict[str, StrategyStep] = {}
     _add_joined(roots, "root", classes, steps)
-    return record_class_of("root", steps, fallback="") or None
+    return record_class_of("root", steps)
 
 
 def _add_joined(

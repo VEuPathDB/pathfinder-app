@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import (
     pushable_root_id,
     rebuild_tree,
     walk,
+    wdk_search_name,
 )
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
@@ -22,6 +23,7 @@ from veupathdb.wdk import (
     get_strategy_api,
 )
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.validate import validate_strategy
@@ -33,10 +35,19 @@ from pathfinder.services.strategies.organism_params import (
     tree_organism_parameters,
     tree_taxa,
 )
-from pathfinder.services.strategies.record_classes import fill_record_classes
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    unclassed_step_failure,
+)
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
+
+
+class UnclassedRootError(StrategyCompilationError):
+    def __init__(self, failure: StepPushFailure) -> None:
+        super().__init__(failure.error)
+        self.failure = failure
 
 
 @dataclass
@@ -260,6 +271,7 @@ async def sync_strategy_for_site(
     graph that has no name yet is pushed under ``user_prompt``.
 
     :raises RootResolutionError: If root step cannot be determined.
+    :raises UnclassedRootError: If the site lists no record type for the root.
     :raises StrategyCompilationError: If steps lack WDK IDs or validation fails.
     :raises VEuPathDBError: On WDK API failures.
     """
@@ -274,18 +286,21 @@ async def sync_strategy_for_site(
     root_step = rebuild_tree(pushable_id, graph.steps)
 
     await fill_record_classes(site_id, graph.steps)
-    graph.record_type = (
-        step_class_of(graph.steps, pushable_id) or graph.record_type or None
-    )
+    record_type = step_class_of(graph.steps, pushable_id)
+    if record_type is None:
+        raise UnclassedRootError(
+            unclassed_step_failure(
+                pushable_id, wdk_search_name(graph.steps[pushable_id])
+            )
+        )
+    graph.record_type = record_type
 
     sync_state.organism_params = await tree_organism_parameters(site_id, root_step)
     datasets = await tree_dataset_organisms(
         site_id, root_step, sync_state.organism_params
     )
     taxa = await tree_taxa(site_id, root_step, sync_state.organism_params, datasets)
-    _validate_graph(
-        root_step, graph.record_type, sync_state.organism_params, datasets, taxa
-    )
+    _validate_graph(root_step, record_type, sync_state.organism_params, datasets, taxa)
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
@@ -337,14 +352,11 @@ def _detached(all_steps: list[StrategyStepNode], state: _StrategyState) -> list[
 
 def _validate_graph(
     root_step: StrategyStepNode,
-    record_type: str | None,
+    record_type: str,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
     taxa: Mapping[str, frozenset[str]],
 ) -> None:
-    """Validate the strategy structure when a record type is known."""
-    if not record_type:
-        return
     validation_result = validate_strategy(
         root_step, record_type, organism_params, dataset_organisms, taxa=taxa
     )

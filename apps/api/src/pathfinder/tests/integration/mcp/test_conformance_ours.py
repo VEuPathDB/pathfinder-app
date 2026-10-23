@@ -28,6 +28,7 @@ from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.server import SERVER_NAME, TOOLS
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
+from pathfinder.tests._support.orthomcl_counts import CRYPTOSPORIDIUM
 from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
 from pathfinder.tests.integration.mcp._served import (
     RECORD_TYPE,
@@ -152,9 +153,9 @@ class AdmissionRecord(CamelModel):
 
 def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
     """The arguments a conformance call may use, on the one site kept warm and,
-    for the two OrthoMCL expression builders, on the site they serve.
+    for the three OrthoMCL expression builders, on the site they serve.
 
-    Eighteen of the served tools appear. `enrich_gene_ids` is not among them: the
+    Nineteen of the served tools appear. `enrich_gene_ids` is not among them: the
     suite calls one non-destructive write, and the cheaper of the two answers it.
     """
     return {
@@ -171,6 +172,10 @@ def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
             "reverse": True,
         },
         "build_clade_only_expression": {"site_id": ORTHOMCL, "clade": [CLADE]},
+        "build_every_species_expression": {
+            "site_id": ORTHOMCL,
+            "clade": CRYPTOSPORIDIUM,
+        },
         "search_example_plans": {"site_id": SITE, "query": "gametocyte genes"},
         "get_search_overview": {"site_id": SITE, "search_name": TARGET_SEARCH},
         "get_parameter_options": {

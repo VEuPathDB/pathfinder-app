@@ -26,6 +26,10 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset({"clade", "within"}),
         frozenset({"clade"}),
     ),
+    "build_every_species_expression": (
+        frozenset({"clade"}),
+        frozenset({"clade"}),
+    ),
     "build_protein_count_comparison": (
         frozenset({"genome_a", "genome_b", "reverse"}),
         frozenset({"genome_a", "genome_b"}),

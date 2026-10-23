@@ -34,6 +34,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "lookup_phyletic_codes",
         "build_protein_count_comparison",
         "build_clade_only_expression",
+        "build_every_species_expression",
         "lookup_gene_records",
         "read_gene_record",
         "get_ai_expression_summary",

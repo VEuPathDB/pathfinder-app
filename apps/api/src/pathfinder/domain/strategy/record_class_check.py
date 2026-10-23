@@ -46,7 +46,7 @@ def step_class_of(steps: Mapping[str, StrategyStep], step_id: str) -> str | None
         else step.model_copy(update={"primary_input_id": None})
         for sid, step in steps.items()
     }
-    return record_class_of(step_id, view, fallback="") or None
+    return record_class_of(step_id, view)
 
 
 class MixedCombine(NamedTuple):
@@ -67,8 +67,8 @@ def first_mixed_combine(
             continue
         if operator is CombineOp.COLOCATE:
             continue
-        primary = record_class_of(left.id, view, fallback="")
-        secondary = record_class_of(right.id, view, fallback="")
+        primary = record_class_of(left.id, view)
+        secondary = record_class_of(right.id, view)
         if primary and secondary and primary != secondary:
             return MixedCombine(operator, left, right, primary, secondary)
     return None
@@ -126,7 +126,7 @@ def transform_input_refusal(
         source = node.primary_input
         if node.secondary_input is not None or source is None or declared is None:
             continue
-        given = record_class_of(source.id, view, fallback="")
+        given = record_class_of(source.id, view)
         if not declared.takes or not given or given in declared.takes:
             continue
         label = _side(node)

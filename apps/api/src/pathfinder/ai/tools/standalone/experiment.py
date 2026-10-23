@@ -16,7 +16,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
-from veupathdb_mcp.catalog import resolve_search_record_type
+from veupathdb_mcp.catalog import UnlistedSearchError, resolve_search_record_type
 from veupathdb_mcp.controls import (
     IntersectionConfig,
     run_positive_negative_controls,
@@ -273,9 +273,12 @@ async def run_control_tests_on_search(
             reads it from the search.
     """
     saved = await _saved_controls(ctx, control_set_id)
-    record_type = await resolve_search_record_type(
-        ctx.deps.site_id, target_search_name, record_type
-    )
+    try:
+        record_type = await resolve_search_record_type(
+            ctx.deps.site_id, target_search_name, record_type
+        )
+    except UnlistedSearchError as exc:
+        raise ModelRetry(exc.detail or exc.title) from exc
     controls = controls_search(record_type)
     measured = await run_positive_negative_controls(
         IntersectionConfig(

@@ -19,7 +19,7 @@ from assistant_core.conversation.event_writer import (
     ChatEventWriter,
     append_user_message_once,
 )
-from assistant_core.graph.single_agent import single_agent_graph
+from assistant_core.graph.single_agent import SingleAgent, single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.models.scripted import (
     RoleMarkers,
@@ -133,8 +133,10 @@ def _spec(recorder: _Recorder, saver: BaseCheckpointSaver[Any]) -> AssistantSpec
             checkpointer=checkpointer,
             state_type=TurnState,
             context_type=HelperTurnContext,
-            build_agent=recorder.agent,
-            build_deps=build_deps,
+            agent=SingleAgent(
+                build_agent=recorder.agent,
+                build_deps=build_deps,
+            ),
             charge_usage=charge_usage,
         )
 

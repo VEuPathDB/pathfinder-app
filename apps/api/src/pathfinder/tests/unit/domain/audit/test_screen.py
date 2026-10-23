@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb_mcp.audit import call_length
+from veupathdb_mcp.audit import GeneRow, GroupMember, call_length
 
 from pathfinder.domain.audit.scope import GenePairTarget, SingleGeneTarget
 from pathfinder.domain.audit.screen import (
@@ -66,6 +66,20 @@ def test_a_pair_yields_only_its_split_candidate() -> None:
         "gene_length:NF54_SHORT",
     ]
     assert [c.target.key for c in lengths_only] == ["gene_length:NF54_SHORT"]
+
+
+def _group(*rows: GeneRow) -> list[GroupMember]:
+    return [GroupMember.of_row(row) for row in rows]
+
+
+def test_a_screen_group_counts_no_pseudogene_row() -> None:
+    kin = [
+        row.model_copy(update={"pseudo": True})
+        for row in relatives(9, 400, group=SHORT_GROUP)
+    ]
+    groups = ortholog_groups([SHORT, *kin])
+    assert [m.protein_length for m in groups[SHORT_GROUP]] == [200, *[None] * 9]
+    assert screen_genome(NF54, ("gene_length",), [SHORT], groups) == []
 
 
 def test_a_typical_gene_is_not_a_candidate() -> None:
@@ -151,19 +165,19 @@ def test_the_library_judges_a_split_only_with_exactly_two_coding_members() -> No
     third = gene_row("NF54_C", NF54, 160, start=12000)
     pseudo = gene_row("NF54_C", NF54, 160, start=12000, pseudo=True)
     kin = relatives(9, 400)
-    assert call_length([part_a, part_b], [part_a, part_b, *kin]).length_class == (
+    assert call_length([part_a, part_b], _group(part_a, part_b, *kin)).length_class == (
         "SPLIT"
     )
     assert call_length(
-        [part_a, part_b], [part_a, part_b, pseudo, *kin]
+        [part_a, part_b], _group(part_a, part_b, pseudo, *kin)
     ).length_class == ("SPLIT")
     assert call_length(
-        [part_a, part_b], [part_a, part_b, third, *kin]
+        [part_a, part_b], _group(part_a, part_b, third, *kin)
     ).length_class == ("UNQUALIFIED")
     with pytest.raises(
         ValueError, match="a length call reads one gene or a pair, not 3"
     ):
-        call_length([part_a, part_b, third], [part_a, part_b, third, *kin])
+        call_length([part_a, part_b, third], _group(part_a, part_b, third, *kin))
 
 
 def test_a_pseudogene_call_pairs_with_its_reference_gene_by_product() -> None:

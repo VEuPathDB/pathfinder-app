@@ -3800,6 +3800,9 @@ components:
         requests:
           type: integer
           title: Requests
+        storeReads:
+          type: integer
+          title: Storereads
         unfinished:
           items:
             type: string
@@ -3833,6 +3836,7 @@ components:
       - scope
       - stages
       - requests
+      - storeReads
       - unfinished
       - genomes
       - counts
@@ -6301,6 +6305,18 @@ components:
       title: GeneEvidencePayload
     GeneFusionAudit:
       properties:
+        models:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ModelSpans'
+            - type: 'null'
+          type: array
+          title: Models
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          title: Evidenceunread
         geneIds:
           items:
             $ref: '#/components/schemas/GeneId'
@@ -6339,6 +6355,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/FusionAudit'
           - type: 'null'
+        merged:
+          anyOf:
+          - $ref: '#/components/schemas/GeneSpan'
+          - type: 'null'
       type: object
       required:
       - geneIds
@@ -6367,6 +6387,18 @@ components:
       title: GeneId
     GeneLengthAudit:
       properties:
+        models:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ModelSpans'
+            - type: 'null'
+          type: array
+          title: Models
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          title: Evidenceunread
         geneIds:
           items:
             $ref: '#/components/schemas/GeneId'
@@ -6453,6 +6485,25 @@ components:
       - code
       - codeInferred
       title: GeneLengthAudit
+    GeneListDataset:
+      properties:
+        siteId:
+          type: string
+          title: Siteid
+        datasetId:
+          type: integer
+          title: Datasetid
+        size:
+          type: integer
+          maximum: 400.0
+          minimum: 1.0
+          title: Size
+      type: object
+      required:
+      - siteId
+      - datasetId
+      - size
+      title: GeneListDataset
     GenePairTarget:
       properties:
         check:
@@ -6647,6 +6698,30 @@ components:
       - createdAt
       title: GeneSetResponse
       description: A gene set, as returned to the client.
+    GeneSpan:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        seqid:
+          type: string
+          title: Seqid
+        strand:
+          $ref: '#/components/schemas/Strand'
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+      type: object
+      required:
+      - gene
+      - seqid
+      - strand
+      - start
+      - end
+      title: GeneSpan
     GeneTranscript:
       properties:
         transcriptId:
@@ -7552,6 +7627,40 @@ components:
       - flagship
       - standard
       - small
+    ModelSpans:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        transcript:
+          type: string
+          title: Transcript
+        seqid:
+          type: string
+          title: Seqid
+        strand:
+          $ref: '#/components/schemas/Strand'
+        exons:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          minItems: 1
+          title: Exons
+        cds:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          minItems: 1
+          title: Cds
+      type: object
+      required:
+      - gene
+      - transcript
+      - seqid
+      - strand
+      - exons
+      - cds
+      title: ModelSpans
     MultiPickValue:
       properties:
         type:
@@ -8340,6 +8449,16 @@ components:
         referenceGene:
           type: string
           title: Referencegene
+        referenceModel:
+          anyOf:
+          - $ref: '#/components/schemas/ModelSpans'
+          - type: 'null'
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          maxItems: 1
+          title: Evidenceunread
       type: object
       required:
       - verdict
@@ -8851,6 +8970,10 @@ components:
           - type: string
           - type: 'null'
           title: Targetfailure
+        targetList:
+          anyOf:
+          - $ref: '#/components/schemas/GeneListDataset'
+          - type: 'null'
       type: object
       title: RunStages
     SaveSubstrategyRequest:
@@ -9094,6 +9217,18 @@ components:
       title: SelenoproteinConfirmation
     SelenoproteinEndAudit:
       properties:
+        models:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ModelSpans'
+            - type: 'null'
+          type: array
+          title: Models
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          title: Evidenceunread
         verdict:
           $ref: '#/components/schemas/SecVerdict'
         afterModelEnd:
@@ -9350,6 +9485,13 @@ components:
       - url
       title: SourceUrlUIPart
       description: A source part of a message.
+    Span:
+      prefixItems:
+      - type: integer
+      - type: integer
+      type: array
+      maxItems: 2
+      minItems: 2
     StageRecord:
       properties:
         name:
@@ -9368,6 +9510,11 @@ components:
           type: integer
           minimum: 0.0
           title: Requests
+          default: 0
+        storeReads:
+          type: integer
+          minimum: 0.0
+          title: Storereads
           default: 0
         done:
           type: integer
@@ -9749,6 +9896,18 @@ components:
       title: StrainConfirmation
     StrainModelAudit:
       properties:
+        models:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ModelSpans'
+            - type: 'null'
+          type: array
+          title: Models
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          title: Evidenceunread
         lost:
           items:
             prefixItems:
@@ -9859,6 +10018,11 @@ components:
       - copiesPerOrganism
       - median
       title: StrainRelatives
+    Strand:
+      type: string
+      enum:
+      - +
+      - '-'
     StrategyAst:
       properties:
         recordType:

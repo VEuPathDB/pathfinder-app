@@ -14,6 +14,8 @@ from veupathdb_mcp.audit import (
     GeneEvidence,
     GeneLengthAudit,
     GeneRow,
+    GroupMember,
+    OrthologGroup,
     PseudogeneCallAudit,
 )
 
@@ -138,15 +140,19 @@ class CheckTools:
             raise self.pseudogene_failures.pop(0)
         return PIGA_INTACT
 
-    async def orthologs(self, site_id: str, gene: str) -> list[GeneRow]:
+    async def orthologs(self, site_id: str, gene: str) -> OrthologGroup:
         del site_id
         _requested()
         self.ortholog_reads.append(gene)
         if self.ortholog_failures[gene]:
             raise self.ortholog_failures[gene].pop(0)
-        if self.ortholog_rows is not None:
-            return self.ortholog_rows
-        return [row for row in ROWS if row.ortholog_group == "OG7_0000001"]
+        rows = self.ortholog_rows or [
+            row for row in ROWS if row.ortholog_group == "OG7_0000001"
+        ]
+        return OrthologGroup(
+            gene=gene,
+            members=[GroupMember.of_row(row) for row in rows if row.gene != gene],
+        )
 
     async def evidence(self, site_id: str, gene: str) -> GeneEvidence:
         del site_id
@@ -173,8 +179,9 @@ def faked_checks(monkeypatch: pytest.MonkeyPatch) -> CheckTools:
     monkeypatch.setattr(checks, "audit_gene_length", fakes.length)
     monkeypatch.setattr(checks, "audit_pseudogene_call", fakes.pseudogene)
     monkeypatch.setattr(checks, "audit_gene_split", fakes.split)
-    monkeypatch.setattr(confirm, "gene_rows", fakes.site.gene_rows)
+    monkeypatch.setattr(confirm, "record_rows", fakes.site.named_rows)
     monkeypatch.setattr(tie_break, "orthologs_of", fakes.orthologs)
+    monkeypatch.setattr(tie_break, "record_rows", fakes.site.named_rows)
     monkeypatch.setattr(weighing, "audit_gene_evidence", fakes.evidence)
     return fakes
 

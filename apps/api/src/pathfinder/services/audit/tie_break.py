@@ -10,7 +10,9 @@ from assistant_core.platform.db import async_session_factory
 from veupathdb_mcp.audit import (
     GeneLengthAudit,
     GeneRow,
+    GroupMember,
     orthologs_of,
+    record_rows,
     relatives_median,
     tie_break,
 )
@@ -60,7 +62,10 @@ _NO_REFERENCE = UnitFailure(
 
 
 def relatives_evidence(
-    reference_gene: str, genes: Sequence[str], rows: list[GeneRow]
+    reference_gene: str,
+    genes: Sequence[str],
+    rows: Sequence[GeneRow],
+    group: Sequence[GroupMember],
 ) -> RelativesEvidence | UnitFailure:
     lengths = {row.gene: row.protein_length for row in rows}
     parts = [n for gene in genes if (n := lengths.get(gene))]
@@ -69,12 +74,12 @@ def relatives_evidence(
     if model is None:
         return UnitFailure(
             status="failed",
-            message=f"the ortholog rows of {genes[0]} hold no row of the model",
+            message=f"the record reads of {genes[0]} hold no row of the model",
         )
     reference_length = lengths.get(reference_gene)
     organism = None if reference is None else reference.organism
     model_length = sum(parts) if len(parts) == len(genes) else None
-    median = None if reference is None else relatives_median(reference, model, rows)
+    median = None if reference is None else relatives_median(reference, model, group)
     return RelativesEvidence(
         reference_gene=reference_gene,
         reference_length=reference_length,
@@ -206,11 +211,13 @@ async def _read_relatives(
         case UnitFailure() as missing:
             return missing
         case str() as reference_gene:
+            named = list(dict.fromkeys([*genes, reference_gene]))
             try:
-                rows = await orthologs_of(site_id, genes[0])
+                group = await orthologs_of(site_id, genes[0])
+                rows = await record_rows(site_id, named)
             except UNIT_FAILURES as exc:
                 return UnitFailure(status=failure_status(exc), message=str(exc))
-            return relatives_evidence(reference_gene, genes, rows)
+            return relatives_evidence(reference_gene, genes, rows, group.members)
 
 
 async def _read(run: AuditRunRecord, unit: _Unit) -> _Read:

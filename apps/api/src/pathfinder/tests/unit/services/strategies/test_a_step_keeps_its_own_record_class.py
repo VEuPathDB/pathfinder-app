@@ -10,6 +10,7 @@ from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKIdentifier, WDKStepTree
 from veupathdb_mcp.catalog import ValidatedParams
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations import UpdateStepParamsOp
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import save_substrategy, stated_sides
@@ -20,7 +21,10 @@ from pathfinder.services.strategies.step_push_planner import (
     StepPushPlan,
 )
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
-from pathfinder.services.strategies.sync import sync_strategy_for_site
+from pathfinder.services.strategies.sync import (
+    UnclassedRootError,
+    sync_strategy_for_site,
+)
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
@@ -105,22 +109,39 @@ async def test_a_pushed_step_of_no_listed_class_is_not_sent(api: StubAPI) -> Non
     assert sync_state.wdk_push_errors == {"step_lost": _UNSENT}
 
 
-@pytest.mark.parametrize(
-    ("node", "record_type"),
-    [(_groups(), "group"), (_unlisted(), None)],
-)
-async def test_a_sync_reads_the_strategys_class_off_its_root(
-    api: StubAPI, node: StrategyStepNode, record_type: str | None
-) -> None:
-    graph = _graph(node)
-    sync_state = WDKSyncState(wdk_step_ids={node.id: 227284900})
+async def test_a_sync_reads_the_strategys_class_off_its_root(api: StubAPI) -> None:
+    graph = _graph(_groups())
+    sync_state = WDKSyncState(wdk_step_ids={"step_groups": 227284900})
 
     await sync_strategy_for_site(graph=graph, sync_state=sync_state, site_id="orthomcl")
 
     assert (graph.record_type, [c.name for c in api.calls]) == (
-        record_type,
+        "group",
         ["create_strategy"],
     )
+
+
+async def test_an_unlisted_transform_root_is_a_named_refusal(api: StubAPI) -> None:
+    root = StrategyStepNode(
+        id="step_lost", search_name="Unlisted", primary_input=_groups()
+    )
+    graph = _graph(root)
+    graph.record_type = "group"
+    sync_state = WDKSyncState(
+        wdk_step_ids={"step_groups": 227284900, "step_lost": 227284901}
+    )
+
+    with pytest.raises(UnclassedRootError) as refused:
+        await sync_strategy_for_site(
+            graph=graph, sync_state=sync_state, site_id="orthomcl"
+        )
+
+    assert (refused.value.failure, refused.value.detail, api.calls) == (
+        StepPushFailure(step_id="step_lost", search_name="Unlisted", error=_UNSENT),
+        _UNSENT,
+        [],
+    )
+    assert graph.record_type == "group"
 
 
 def _session(graph: StrategyGraph) -> StrategySession:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
@@ -186,11 +186,11 @@ class AuditRepository:
         await self.session.flush()
 
     async def count_requests(
-        self, run_id: UUID, stage: StageName, requests: int
+        self, run_id: UUID, stage: StageName, requests: int, store_reads: int = 0
     ) -> None:
         run = await self._locked(run_id)
         run.stages = _stages(
-            RunStages.model_validate(run.stages).count(stage, requests)
+            RunStages.model_validate(run.stages).count(stage, requests, store_reads)
         )
         await self.session.flush()
 
@@ -199,11 +199,11 @@ class AuditRepository:
         run.stages = _stages(RunStages.model_validate(run.stages).finish(stage))
         await self.session.flush()
 
-    async def note_target_failure(self, run_id: UUID, message: str) -> None:
+    async def change_stages(
+        self, run_id: UUID, change: Callable[[RunStages], RunStages]
+    ) -> None:
         run = await self._locked(run_id)
-        run.stages = _stages(
-            RunStages.model_validate(run.stages).note_target_failure(message)
-        )
+        run.stages = _stages(change(RunStages.model_validate(run.stages)))
         await self.session.flush()
 
     async def set_halted(self, run_id: UUID, reason: str | None) -> None:

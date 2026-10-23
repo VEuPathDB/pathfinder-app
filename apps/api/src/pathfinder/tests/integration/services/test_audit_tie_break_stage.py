@@ -75,7 +75,7 @@ async def test_tie_break_weighs_each_confirmed_length_error_against_its_relative
     assert {
         gene: (e.status, e.payload, e.attempts, e.requests)
         for gene, e in weighed.items()
-    } == {"NF54_SHORT": ("stored", WEIGHED, 1, 1)}
+    } == {"NF54_SHORT": ("stored", WEIGHED, 1, 2)}
     assert WEIGHED.side == "STRAIN_SHORT"
     assert tools.ortholog_reads == ["NF54_SHORT"]
     assert tools.evidence_reads == ["NF54_SHORT", NF54_PIGA]
@@ -88,7 +88,7 @@ async def test_tie_break_weighs_each_confirmed_length_error_against_its_relative
         "collect": 0,
         "screen": 0,
         "confirm": 3,
-        "tie_break": 3,
+        "tie_break": 4,
     }
 
 
@@ -146,7 +146,7 @@ async def test_a_tie_break_read_the_site_answers_late_is_waited_for(
         "stored",
         WEIGHED,
         2,
-        2,
+        3,
     )
     assert lane.updates == [
         (0, 2, "gene_length:NF54_SHORT: unreached (connection refused)"),
@@ -154,7 +154,7 @@ async def test_a_tie_break_read_the_site_answers_late_is_waited_for(
         (1, 2, "gene_length:NF54_SHORT: stored"),
         (2, 2, "gene_length:NF54_SHORT: gene evidence stored"),
     ]
-    assert (await stage_requests(run))["tie_break"] == 3
+    assert (await stage_requests(run))["tie_break"] == 4
 
 
 async def test_a_tie_break_read_unanswered_at_the_deadline_is_read_on_the_next_run(
@@ -240,7 +240,7 @@ async def test_a_confirmation_naming_no_reference_is_failed_without_a_read(
         (3, 4, "gene_length:NF54_SHORT: gene evidence stored"),
         (4, 4, "gene_length:NF54_SHORT2: gene evidence stored"),
     ]
-    assert (await stage_requests(run))["tie_break"] == 3
+    assert (await stage_requests(run))["tie_break"] == 4
 
 
 async def test_a_named_finding_with_no_confirmation_is_failed_without_a_read(

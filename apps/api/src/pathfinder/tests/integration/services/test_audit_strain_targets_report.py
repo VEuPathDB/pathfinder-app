@@ -60,7 +60,7 @@ def site(monkeypatch: pytest.MonkeyPatch) -> Iterator[FakeSite]:
             *(gene_row(pair.genes[1], P3D7, 341) for pair in PAIRS),
             gene_row(PCYB_PKAC, P3D7, 341),
         ]
-        monkeypatch.setattr(confirm, "gene_rows", fake.gene_rows)
+        monkeypatch.setattr(confirm, "record_rows", fake.named_rows)
         monkeypatch.setattr(checks, "audit_strain_model", strain_model)
         yield fake
 

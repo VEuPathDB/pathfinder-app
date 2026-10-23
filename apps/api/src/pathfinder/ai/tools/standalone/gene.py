@@ -5,18 +5,21 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb_mcp import ToolErrorPayload, tool_error
+from veupathdb_mcp.audit import RECORD_READS_PER_CALL
+from veupathdb_mcp.catalog import NoGeneRecordsError
 from veupathdb_mcp.gene_lookup import (
-    MAX_GENE_IDS,
     GeneResolveResult,
     GeneSearchResult,
     lookup_genes_by_text,
     normalize_gene_ids,
-    resolve_gene_ids,
+    read_gene_ids,
 )
 from veupathdb_mcp.wdk import GeneExpressionSummary, get_gene_expression_summary
 
+from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.services.strategies.record_classes import search_record_types
+
+RESOLVE_MAX_CALL_SECONDS = 120
 
 
 async def lookup_gene_records(
@@ -56,20 +59,24 @@ async def lookup_gene_records(
 async def resolve_gene_ids_to_records(
     ctx: RunContext[AgentDeps],
     gene_ids: list[str],
-    search_name: str = "GeneByLocusTag",
-    param_name: str = "ds_gene_ids",
 ) -> ToolReturn[GeneResolveResult]:
-    """Resolve known gene IDs to full records (product name, organism, gene type).
+    """Resolve known gene IDs to records (product name, organism, gene type),
+    each read from its own gene record.
 
     Use this to validate gene IDs or fetch metadata for IDs you already have
-    (e.g. from literature).  For discovering genes by name, use `lookup_gene_records` instead.
+    (e.g. from literature). For discovering genes by name, use
+    `lookup_gene_records` instead. One call takes at most 80 IDs. A previous or
+    alternate ID resolves to the gene it names now. An id no gene record names is
+    matched against gene and transcript ids by the site's text search. When one
+    ID names several genes, holds a wildcard or a space, or matches more than 50
+    transcripts, the call answers an error and no records. A site that serves no
+    gene records, such as OrthoMCL, answers an error and reads nothing. The
+    call writes nothing into the account.
 
     Args:
         ctx: Agent run context.
         gene_ids: List of gene/locus tag IDs to resolve (e.g.
             ['PF3D7_1222600', 'PF3D7_1031000']).
-        search_name: WDK search that accepts ID lists (default 'GeneByLocusTag').
-        param_name: Parameter name for the ID list (default 'ds_gene_ids').
     """
     ids = normalize_gene_ids(gene_ids or [])
     if not ids:
@@ -79,36 +86,31 @@ async def resolve_gene_ids_to_records(
             ctx=ctx,
             status="warn",
         )
-    if len(ids) > MAX_GENE_IDS:
+    if len(ids) > RECORD_READS_PER_CALL:
         return with_summary(
             GeneResolveResult(
                 records=[],
                 total_count=0,
-                error=f"Too many IDs (max {MAX_GENE_IDS}). Reduce the list.",
+                error=f"Too many IDs (max {RECORD_READS_PER_CALL}). Reduce the list.",
             ),
             f"0 of {len(ids)} ids resolved",
             ctx=ctx,
             status="warn",
         )
-    listed = await search_record_types(ctx.deps.site_id, [search_name])
-    if search_name not in listed:
+    try:
+        resolved = await read_in_time(
+            "resolve_gene_ids_to_records",
+            f"the records of {len(ids)} gene ids",
+            read_gene_ids(ctx.deps.site_id, ids),
+            deadline=RESOLVE_MAX_CALL_SECONDS,
+        )
+    except NoGeneRecordsError as exc:
         return with_summary(
-            GeneResolveResult(
-                records=[],
-                total_count=0,
-                error=f"The site lists no record type for {search_name}.",
-            ),
+            GeneResolveResult(records=[], total_count=0, error=exc.detail),
             f"0 of {len(ids)} ids resolved",
             ctx=ctx,
             status="warn",
         )
-    resolved = await resolve_gene_ids(
-        ctx.deps.site_id,
-        ids,
-        record_type=listed[search_name],
-        search_name=search_name,
-        param_name=param_name,
-    )
     found = len(resolved.records)
     return with_summary(
         resolved,

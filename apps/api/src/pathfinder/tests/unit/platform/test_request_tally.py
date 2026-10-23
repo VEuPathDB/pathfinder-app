@@ -74,3 +74,12 @@ def test_nested_blocks_count_into_the_innermost() -> None:
         with counting_wdk_requests() as inner:
             get_observer().on_wdk_request(0.01, _ATTRS)
     assert (outer.count, inner.count) == (1, 1)
+
+
+def test_a_genome_store_read_counts_apart_from_the_wdk_requests() -> None:
+    with counting_wdk_requests() as tally:
+        get_observer().on_wdk_request(0.01, _ATTRS)
+        get_observer().on_jbrowse_request(0.01, _ATTRS)
+        get_observer().on_jbrowse_request(0.02, _ATTRS)
+    get_observer().on_jbrowse_request(0.01, _ATTRS)
+    assert (tally.count, tally.store_reads) == (1, 2)

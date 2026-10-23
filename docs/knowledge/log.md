@@ -1,5 +1,43 @@
 # Log
 
+## 2026-10-23
+
+* **PathFinder takes veupathdb-mcp v0.2.0-b39 and veupathdb-py v0.1.0b22.** The screen stage uploads the run's gene
+  targets once (`upload_gene_list`) and keeps the `GeneListDataset` on the run's stages
+  (`RunStages.target_list`, in the `audit_runs.stages` JSON, so no migration). Each pass
+  reads the report of that list back (`read_gene_list`), so a screen resumed after an
+  unanswered read uploads no second dataset. The classification gate reads every id it holds
+  in one `read_each_gene_id` call and judges each id by its own answer. Past 80 ids, or on a
+  site that lists no gene record type, the gate reads none and holds every asked id: it
+  refuses no id it could not read. On a site with no gene records (OrthoMCL) the first gene
+  read answers 404 and the library reads the site's record types once per process, so the
+  read costs one POST and, in a cold process, one `GET /record-types`;
+  `resolve_gene_ids_to_records` answers the library's named error, and the audit stages
+  store it as a failed unit.
+
+* **PathFinder takes veupathdb-mcp v0.2.0-b38, veupathdb-py v0.1.0b21 and assistant-core
+  v0.3.0b10.** An audit run uploads at most one gene list: the screen stage reads the
+  placement of every gene target in one `one_list_rows` call, and the confirm and tie-break
+  stages read the genes of one finding by record (`record_rows`). The tie-break reads the
+  ortholog group of the model gene (`OrthologGroup`, which does not hold the gene itself)
+  and the record rows of the model and the reference, and takes the relatives' median from
+  the group members. A screen group holds `GroupMember.of_row` of each collected row, so a
+  pseudogene row gives no length. The chat path reads gene ids by record and uploads no
+  list: `resolve_gene_ids_to_records` calls `read_gene_ids` (at most 80 ids, with the 120 s
+  budget the served tool declares), and the classification gate reads each id it holds
+  apart, so an id that names several genes does not hide the others. The control and
+  separation paths keep their one dataset. A sync whose root step has no listed record
+  class is refused by name and never takes the strategy's earlier class. Each stage of an
+  audit run counts the genome store reads of its units apart from its WDK requests
+  (`PathfinderObserver.on_jbrowse_request`, `StageRecord.store_reads`), and the run view
+  shows `storeReads`; a finding keeps its WDK requests only. FRAME carries
+  `build_every_species_expression`, which writes presence in every species of a clade
+  from the site's taxonomy, one unit per species at half its genomes rounded up, and binds
+  its expression whole. The three OrthoMCL builders move to
+  `ai/tools/standalone/orthomcl_expressions.py`, and the tests read the OrthoMCL count
+  recordings from `veupathdb_mcp.testing.ORTHOMCL_COUNTS`. Every test graph of one agent
+  passes a `SingleAgent` holder.
+
 ## 2026-10-22
 
 * **A taxon the expression spans has a stated scope.** When FRAME's phyletic units name

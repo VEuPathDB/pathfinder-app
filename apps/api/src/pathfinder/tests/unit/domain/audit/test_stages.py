@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
+from veupathdb_mcp.audit import GeneListDataset
 
 from pathfinder.domain.audit.stages import STAGES, RunStages
 
@@ -42,6 +43,14 @@ def test_requests_add_up_across_resumes() -> None:
     stages = RunStages().count("collect", 3).count("collect", 2).count("screen", 1)
     assert stages.requests == 6
     assert [s.requests for s in stages.stages] == [5, 1, 0, 0]
+
+
+def test_store_reads_add_up_apart_from_the_requests() -> None:
+    stages = (
+        RunStages().count("confirm", 3, 45).count("confirm", 2, 5).count("screen", 1)
+    )
+    assert (stages.requests, stages.store_reads) == (6, 50)
+    assert [s.store_reads for s in stages.stages] == [0, 0, 50, 0]
 
 
 def test_a_stored_list_that_finishes_out_of_order_is_refused() -> None:
@@ -107,3 +116,21 @@ def test_the_last_target_failure_rides_every_change_of_the_stages() -> None:
         "connection refused",
         None,
     )
+
+
+def test_the_kept_target_list_rides_every_change_and_round_trips() -> None:
+    listed = GeneListDataset(site_id="plasmodb", dataset_id=9, size=300)
+    kept = RunStages().keep_target_list(listed).note_target_failure("refused")
+    changed = (
+        kept.count("collect", 1)
+        .progress("collect", done=1, total=1, message="m")
+        .finish("collect")
+        .reopen("collect")
+        .halt("sign-in needed")
+    )
+    stored = changed.model_dump(by_alias=True, mode="json")
+    assert (changed.target_list, stored["targetList"]) == (
+        listed,
+        {"siteId": "plasmodb", "datasetId": 9, "size": 300},
+    )
+    assert RunStages.model_validate(stored) == changed

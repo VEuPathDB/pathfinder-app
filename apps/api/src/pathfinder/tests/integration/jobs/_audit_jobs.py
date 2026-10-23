@@ -17,6 +17,7 @@ from procrastinate.testing import InMemoryConnector
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKError
 from veupathdb.wdk import VEuPathDBClaims
+from veupathdb_mcp.audit import GroupMember, OrthologGroup
 
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.jobs.impls.audit_run_impl import run_audit_job
@@ -133,11 +134,18 @@ class Checks:
             raise RuntimeError(msg)
         return PIGA_INTACT
 
-    async def orthologs(self, site_id: str, gene: str) -> list[object]:
+    async def orthologs(self, site_id: str, gene: str) -> OrthologGroup:
         del site_id
         self._refused()
         group = next(row.ortholog_group for row in ROWS if row.gene == gene)
-        return [row for row in ROWS if row.ortholog_group == group]
+        return OrthologGroup(
+            gene=gene,
+            members=[
+                GroupMember.of_row(row)
+                for row in ROWS
+                if row.ortholog_group == group and row.gene != gene
+            ],
+        )
 
     async def evidence(self, site_id: str, gene: str) -> object:
         del site_id
@@ -153,12 +161,14 @@ def wire_checks(monkeypatch: pytest.MonkeyPatch) -> Checks:
     monkeypatch.setattr(collect, "genome_priorities", no_busco_scores)
     monkeypatch.setattr(collect, "organism_report", served_organisms)
     monkeypatch.setattr(collect, "site_build", site.site_build)
-    monkeypatch.setattr(screen, "gene_rows", site.gene_rows)
-    monkeypatch.setattr(confirm, "gene_rows", site.gene_rows)
+    monkeypatch.setattr(screen, "upload_gene_list", site.upload_list)
+    monkeypatch.setattr(screen, "read_gene_list", site.read_list)
+    monkeypatch.setattr(confirm, "record_rows", site.named_rows)
     monkeypatch.setattr(checks, "audit_gene_length", fakes.length)
     monkeypatch.setattr(checks, "audit_gene_split", fakes.split)
     monkeypatch.setattr(checks, "audit_pseudogene_call", fakes.pseudogene)
     monkeypatch.setattr(tie_break, "orthologs_of", fakes.orthologs)
+    monkeypatch.setattr(tie_break, "record_rows", site.named_rows)
     monkeypatch.setattr(weighing, "audit_gene_evidence", fakes.evidence)
     return fakes
 

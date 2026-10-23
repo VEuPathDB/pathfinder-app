@@ -93,8 +93,8 @@ class TestTheStrategysClassIsTheRoots:
             "root": _transform("root", "GenesFromTranscripts", "leaf", "gene"),
         }
 
-        assert record_class_of("root", steps, fallback="transcript") == "gene"
-        assert record_class_of("leaf", steps, fallback="transcript") == "transcript"
+        assert record_class_of("root", steps) == "gene"
+        assert record_class_of("leaf", steps) == "transcript"
 
     def test_a_combine_takes_the_class_of_the_steps_it_consumes(self) -> None:
         steps = {
@@ -103,18 +103,26 @@ class TestTheStrategysClassIsTheRoots:
             "and": _combine("and", "a", "b"),
         }
 
-        assert record_class_of("and", steps, fallback="gene") == "transcript"
+        assert record_class_of("and", steps) == "transcript"
 
-    def test_a_step_whose_search_did_not_resolve_takes_the_fallback(self) -> None:
-        steps = {"leaf": _leaf("leaf", "GenesByNothing")}
+    def test_a_step_whose_search_did_not_resolve_has_no_class(self) -> None:
+        steps = {
+            "leaf": _leaf("leaf", "GenesByNothing"),
+            "known": _leaf("known", "GenesByMolecularWeight", "transcript"),
+            "and": _combine("and", "leaf", "known"),
+        }
 
-        assert record_class_of("leaf", steps, fallback="transcript") == "transcript"
+        assert [record_class_of(sid, steps) for sid in ("leaf", "known", "and")] == [
+            None,
+            "transcript",
+            "transcript",
+        ]
 
     def test_a_cycle_does_not_hang(self) -> None:
         a = _combine("a", "b", "b")
         b = StrategyStep(id="b", kind=StepKind.TRANSFORM, primary_input_id="a")
 
-        assert record_class_of("a", {"a": a, "b": b}, fallback="gene") == "gene"
+        assert [record_class_of(sid, {"a": a, "b": b}) for sid in "ab"] == [None, None]
 
 
 class TestEachStepTakesTheClassItsSearchIsListedUnder:
@@ -139,7 +147,7 @@ class TestEachStepTakesTheClassItsSearchIsListedUnder:
         await assign_step_record_classes(steps, _catalog_resolver)
 
         assert steps["and"].record_class is None
-        assert record_class_of("and", steps, fallback="gene") == "transcript"
+        assert record_class_of("and", steps) == "transcript"
 
 
 @dataclass
