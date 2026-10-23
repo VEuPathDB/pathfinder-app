@@ -5997,6 +5997,18 @@
             "type": "string",
             "title": "Siteid"
           },
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
           "release": {
             "anyOf": [
               {
@@ -6016,6 +6028,17 @@
               "finished"
             ],
             "title": "Status"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "queued",
+              "running",
+              "halted",
+              "finished"
+            ],
+            "title": "Phase"
           },
           "deadlineAt": {
             "anyOf": [
@@ -6080,8 +6103,10 @@
         "required": [
           "id",
           "siteId",
+          "conversationId",
           "release",
           "status",
+          "phase",
           "deadlineAt",
           "genomes",
           "checks",
@@ -6170,6 +6195,45 @@
           "reviewed": {
             "type": "integer",
             "title": "Reviewed"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "resume",
+                  "retry"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "reviewsRunning": {
+            "type": "boolean",
+            "title": "Reviewsrunning"
+          },
+          "halt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunHalt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "left": {
+            "$ref": "#/components/schemas/LeftUnits"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceTally"
+            },
+            "type": "array",
+            "title": "Evidence"
           }
         },
         "type": "object",
@@ -6186,7 +6250,12 @@
           "targets",
           "review",
           "synthesis",
-          "reviewed"
+          "reviewed",
+          "action",
+          "reviewsRunning",
+          "halt",
+          "left",
+          "evidence"
         ],
         "title": "AuditRunView"
       },
@@ -8922,6 +8991,43 @@
         "title": "EventsSnapshot",
         "description": "The completed history a thread serves, and where a tail continues it."
       },
+      "EvidenceTally": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "confirmation",
+              "relatives",
+              "gene_evidence"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "trying",
+              "stored",
+              "failed",
+              "unreached",
+              "unread"
+            ],
+            "title": "Status"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "status",
+          "count"
+        ],
+        "title": "EvidenceTally"
+      },
       "EvidenceView": {
         "properties": {
           "kind": {
@@ -11417,6 +11523,38 @@
           "anthropic",
           "google"
         ]
+      },
+      "LeftUnits": {
+        "properties": {
+          "genomes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Genomes"
+          },
+          "findings": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Findings"
+          },
+          "evidence": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Evidence"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "genomes",
+          "findings",
+          "evidence",
+          "total"
+        ],
+        "title": "LeftUnits"
       },
       "LengthCheck": {
         "properties": {
@@ -14374,6 +14512,28 @@
         "type": "array",
         "maxItems": 2,
         "minItems": 2
+      },
+      "RunHalt": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "sign_in",
+              "task_failed"
+            ],
+            "title": "Kind"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "detail"
+        ],
+        "title": "RunHalt"
       },
       "RunStages": {
         "properties": {

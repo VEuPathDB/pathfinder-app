@@ -1,5 +1,5 @@
-"""The tallies of an audit run's findings: by the genome that holds each error, and by the
-genome that screened each sampled candidate."""
+"""The tallies of an audit run's findings, by the genome that holds each error and by the
+genome that screened each sampled candidate, and of its evidence by kind and status."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from pathfinder.domain.audit.findings import FindingTally
-from pathfinder.persistence.models import AuditFinding
+from pathfinder.domain.audit.run_state import EvidenceTally
+from pathfinder.persistence.models import AuditEvidence, AuditFinding
 
 __all__ = ["AuditTallyRepository"]
 
@@ -66,3 +67,18 @@ class AuditTallyRepository:
             AuditFinding.screened_genome,
             AuditFinding.target_key.not_in(target_keys),
         )
+
+    async def evidence_tally(self, run_id: UUID) -> list[EvidenceTally]:
+        found = await self.session.execute(
+            select(AuditEvidence.kind, AuditEvidence.status, func.count())
+            .join(AuditFinding, AuditFinding.id == AuditEvidence.finding_id)
+            .where(AuditFinding.run_id == run_id)
+            .group_by(AuditEvidence.kind, AuditEvidence.status)
+            .order_by(AuditEvidence.kind, AuditEvidence.status)
+        )
+        return [
+            EvidenceTally.model_validate(
+                {"kind": kind, "status": status, "count": count}
+            )
+            for kind, status, count in found
+        ]

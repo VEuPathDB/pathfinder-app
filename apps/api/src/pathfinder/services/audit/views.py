@@ -27,6 +27,16 @@ from pathfinder.domain.audit.rates import (
     genome_rates,
     target_report,
 )
+from pathfinder.domain.audit.run_state import (
+    EvidenceTally,
+    LeftUnits,
+    RunAction,
+    RunPhase,
+    left_units,
+    reviews_running,
+    run_action,
+    run_phase,
+)
 from pathfinder.domain.audit.scope import (
     AuditScope,
     CheckName,
@@ -34,7 +44,7 @@ from pathfinder.domain.audit.scope import (
     GenomeRole,
     GenomeStatus,
 )
-from pathfinder.domain.audit.stages import RunStages, RunStatus, StageName
+from pathfinder.domain.audit.stages import RunHalt, RunStages, RunStatus, StageName
 from pathfinder.domain.audit.verdicts import FindingReview, ReviewProgress, Synthesis
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
@@ -57,8 +67,10 @@ class AuditRunSummary(CamelModel):
 
     id: UUID
     site_id: str
+    conversation_id: UUID | None
     release: str | None
     status: RunStatus
+    phase: RunPhase
     deadline_at: datetime | None
     genomes: list[str]
     checks: list[CheckName]
@@ -98,6 +110,11 @@ class AuditRunView(CamelModel):
     review: ReviewProgress | None
     synthesis: Synthesis | None
     reviewed: int
+    action: RunAction | None
+    reviews_running: bool
+    halt: RunHalt | None
+    left: LeftUnits
+    evidence: list[EvidenceTally]
 
 
 class FindingView(CamelModel):
@@ -184,8 +201,14 @@ def _summary(run: AuditRunRecord) -> AuditRunSummary:
     return AuditRunSummary(
         id=run.id,
         site_id=run.site_id,
+        conversation_id=run.conversation_id,
         release=run.release,
         status=run.status,
+        phase=run_phase(
+            run.status,
+            halted=run.stages.halted is not None,
+            deadline_at=run.deadline_at,
+        ),
         deadline_at=run.deadline_at,
         genomes=list(run.scope.genomes),
         checks=sorted({*run.scope.checks, *(t.check for t in run.scope.targets)}),
@@ -224,9 +247,13 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         targets = await AuditFindingRepository(session).findings(
             run_id, FindingFilter(keys=keys)
         )
+        evidence = await tallies.evidence_tally(run_id)
         reviewed = await AuditReviewRepository(session).reviewed_count(run_id)
+    summary = _summary(run)
+    left = left_units((genome.status for genome in genomes), tally, evidence)
+    running = reviews_running(summary.phase, run.review)
     return AuditRunView(
-        run=_summary(run),
+        run=summary,
         scope=run.scope,
         stages=run.stages,
         requests=run.stages.requests,
@@ -239,6 +266,11 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         review=run.review,
         synthesis=run.synthesis,
         reviewed=reviewed,
+        action=run_action(summary.phase, left, reviews_running=running),
+        reviews_running=running,
+        halt=run.stages.halt_reason,
+        left=left,
+        evidence=evidence,
     )
 
 

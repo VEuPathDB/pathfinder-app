@@ -2,6 +2,12 @@
 
 ## 2026-10-23
 
+* **An audit run's read names its phase, its next action and the units it left.** Every run
+  summary carries its `conversationId` and `phase`; `GET /api/v1/audits/{run_id}` adds `action`
+  (`resume`, `retry` or null), `reviewsRunning`, `halt` (`{kind, detail}` or null), `left` (the
+  genomes, findings and evidence left `unreached` or `unread`, with their total) and `evidence`,
+  the run's evidence counted by kind and status
+  (`persistence/repositories/audit_tallies.py::evidence_tally`).
 * **An audit rate splits what it left unresolved by status.** `domain/audit/rates.py::Unresolved`
   counts the findings of a rate or a target tally that are `screened`, `unsampled`, `trying`,
   `failed`, `unreached` or `unread`, and `GenomeRate.unresolved` and `TargetTally.unresolved`
