@@ -63,6 +63,7 @@ from pathfinder.platform.metrics import (
 )
 from pathfinder.platform.migrations import init_db
 from pathfinder.platform.model_catalog import install_catalog_prices
+from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.observability import setup_observability, trace_routes
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.readiness import (
@@ -390,7 +391,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
 
     # The mock overlay's routes mount under the mock chat provider only.
     if include_dev_routes is None:
-        include_dev_routes = settings.pathfinder_chat_provider.strip().lower() == "mock"
+        include_dev_routes = is_mock_deployment()
     if include_dev_routes:
         app.include_router(dev.router)
 

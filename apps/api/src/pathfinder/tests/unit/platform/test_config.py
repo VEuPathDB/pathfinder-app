@@ -71,6 +71,10 @@ def test_mock_provider_is_rejected_outside_development() -> None:
         make_settings(api_env="production", pathfinder_chat_provider="mock")
 
 
+def test_the_mock_provider_is_read_without_case_or_spaces() -> None:
+    assert make_settings(pathfinder_chat_provider=" Mock ").mock_provider is True
+
+
 def test_non_mock_mode_requires_real_model_backend() -> None:
     with pytest.raises(ValueError, match="configured model backend"):
         make_settings(pathfinder_chat_provider="default")

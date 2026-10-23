@@ -17,7 +17,7 @@ from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.model_keys import keyed_model
+from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
 from pathfinder.platform.tiers import deployment_role_config, tier_model
 
 _LEAD_ROLE = "lead"
@@ -41,7 +41,7 @@ def resolve_lead_model_context(
 ) -> LeadModelContext:
     """The agent override to run under, the model id it resolves to, and the
     effort it runs at."""
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+    if is_mock_deployment():
         return LeadModelContext(
             override=agent.override(model=get_mock_model()),
             model_id="mock:lead",

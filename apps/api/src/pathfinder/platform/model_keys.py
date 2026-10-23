@@ -315,7 +315,7 @@ def _keyable(provider: ModelProvider) -> KeyableProvider | None:
 
 
 def is_mock_deployment() -> bool:
-    return get_settings().pathfinder_chat_provider.strip().lower() == "mock"
+    return get_settings().mock_provider
 
 
 async def one_generation(model: Model) -> None:

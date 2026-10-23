@@ -9,6 +9,7 @@ from pydantic import ConfigDict
 from pathfinder.assistants.registry import installed_phase_defaults
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
+from pathfinder.platform.model_keys import is_mock_deployment
 
 
 class ModelCatalogEntryResponse(ModelEntry):
@@ -63,7 +64,7 @@ async def list_models() -> ModelListResponse:
     route answers before sign-in.
     """
     settings = get_settings()
-    is_mock = settings.pathfinder_chat_provider.strip().lower() == "mock"
+    is_mock = is_mock_deployment()
     models = [
         _build_response_entry(m)
         for m in get_model_catalog()
