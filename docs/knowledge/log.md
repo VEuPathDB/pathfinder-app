@@ -2,6 +2,16 @@
 
 ## 2026-10-23
 
+* **An audit is planned and priced before it runs.** `domain/audit/planning.py` holds the pure
+  rules: the genome budget counts the reference and every unnamed whole-genome target, the
+  audited genomes are kept by served BUSCO gap, one marked reference strain per species, the
+  comparison genomes start with the reference strains, the estimate is a sum over units and
+  `same_scope` ignores order. `services/audit/planning.py` reads the organism list, the organism
+  report and the BUSCO priorities, resolves names with up to 5 suggestions, refuses an intron
+  target with no junction track and a Sec target whose reference protein holds no `U` (through
+  `record_proteins`, never an upload), admits the scope at `AUDIT_MAX_GENOMES` and prices it with
+  `MEASURED_COSTS`, the per-unit means of the QA plasmodb and toxodb cost run (build 71). See
+  `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md`.
 * **An audit begins from a conversation.** The audit queue names and the run lock move to
   `services/audit/queue.py`. `begin_run` admits a scope under `AUDIT_MAX_GENOMES` before any
   write. The run and finding views carry the review progress, the synthesis and each

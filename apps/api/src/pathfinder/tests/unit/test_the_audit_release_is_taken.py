@@ -47,8 +47,14 @@ _AUDIT_NAMES = {
     "StrainModelAudit",
     "call_length",
     "classify",
+    "GENOME_ATTRIBUTES",
+    "gene_organism",
     "genes_of_genome",
     "genome_priorities",
+    "genus_of",
+    "organism_report",
+    "provenance_of",
+    "species_of",
     "read_gene_list",
     "orthologs_of",
     "pseudogene_calls_of",
@@ -59,7 +65,7 @@ _AUDIT_NAMES = {
     "tie_break",
     "upload_gene_list",
 }
-_GENE_LOOKUP_NAMES = {"GeneIdFound", "read_each_gene_id"}
+_GENE_LOOKUP_NAMES = {"GeneIdFound", "list_organisms", "read_each_gene_id"}
 _CATALOG_NAMES = {"NoGeneRecordsError", "require_gene_records"}
 _TOOL_NAMES = {
     "audit_gene_evidence",
