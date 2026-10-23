@@ -2,6 +2,13 @@
 
 ## 2026-10-23
 
+* **An audit run reads as one phase with one next action.** `domain/audit/run_state.py` names a
+  stored run's phase (`not_started` with no deadline, `queued`, `running`, `halted`,
+  `finished`), the units it left (`unreached` or `unread` genomes, findings and evidence) and
+  the action its page may take: `resume` for a halted run, `retry` for a finished run with units
+  left, and none while its reviews wait or run, because the review job holds the run's lock.
+  `RunStages.halt_reason` reads the stored halt as a kind (`sign_in` or `task_failed`) and its
+  detail; `SIGN_IN_NEEDED` moves to `domain/audit/stages.py`.
 * **Every log line names the work and the user.** `platform/log_ids.py::LogIds` holds the ids a
   line may name and refuses any other value: a site or assistant id is a lowercase id, the
   method an HTTP verb, the route a template. A chat turn binds `conversation_id`, `turn_id`,

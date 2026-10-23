@@ -16,7 +16,7 @@ from assistant_core.platform.db import async_session_factory
 from fastmcp.exceptions import ToolError
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.domain.audit.stages import StageName
+from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, StageName
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.metrics import RequestTally, counting_wdk_requests
 from pathfinder.services.audit.sign_in import sign_in_holds
@@ -26,7 +26,6 @@ _FORBIDDEN = 403
 FIRST_WAIT_SECONDS = 30.0
 LONGEST_WAIT_SECONDS = 900.0
 SLICE_SECONDS = 1800.0
-SIGN_IN_NEEDED = "sign-in needed"
 NOT_READ = "not read before the run's deadline"
 UNIT_FAILURES = (httpx.HTTPError, VEuPathDBError, ToolError, pydantic.ValidationError)
 

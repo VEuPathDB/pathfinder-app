@@ -11,6 +11,15 @@ from veupathdb_mcp.audit import GeneListDataset
 StageName = Literal["collect", "screen", "confirm", "tie_break"]
 RunStatus = Literal["planned", "running", "finished"]
 STAGES: tuple[StageName, ...] = ("collect", "screen", "confirm", "tie_break")
+SIGN_IN_NEEDED = "sign-in needed"
+HaltKind = Literal["sign_in", "task_failed"]
+
+
+class RunHalt(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: HaltKind
+    detail: str
 
 
 class StageRecord(CamelModel):
@@ -63,6 +72,13 @@ class RunStages(CamelModel):
     @property
     def store_reads(self) -> int:
         return sum(stage.store_reads for stage in self.stages)
+
+    @property
+    def halt_reason(self) -> RunHalt | None:
+        if self.halted is None:
+            return None
+        kind: HaltKind = "sign_in" if self.halted == SIGN_IN_NEEDED else "task_failed"
+        return RunHalt(kind=kind, detail=self.halted)
 
     def _with(self, **update: object) -> RunStages:
         return RunStages.model_validate({**dict(self), **update})
