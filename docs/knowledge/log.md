@@ -2,6 +2,40 @@
 
 ## 2026-10-23
 
+* **Every log line names the work and the user.** `platform/log_ids.py::LogIds` holds the ids a
+  line may name and refuses any other value: a site or assistant id is a lowercase id, the
+  method an HTTP verb, the route a template. A chat turn binds `conversation_id`, `turn_id`,
+  `user_id`, `site_id` and `assistant_id`, and `run_turn` binds the site it resolved from the
+  thread, so a completion turn names it too. The runtime (assistant-core 0.3.0b11) binds a
+  durable task's `task_id`, `conversation_id`, `tool_name`, owner and, around the body, site;
+  PathFinder binds only the completion turn's `assistant_id`. An audit job binds `run_id`,
+  `user_id`, `conversation_id` and `site_id`. An API request binds `method`, the route template
+  and the path's `conversation_id`; PathFinder's request middleware (`main.py`) sets
+  `request_id`, now only from an `X-Request-ID` of at most 64 letters, digits and dashes and
+  otherwise a fresh UUID, and `platform/security.py::resolve_principal` sets `user_id`; the
+  runtime's processors put both on the line. A chat body's `siteId` is a site id or empty.
+  A route's template is the full `path_format` FastAPI's `iter_route_contexts` gives it,
+  mapped once when the app is built (`platform/route_templates.py`), which refuses a route
+  included under two templates. The request metric no longer counts an audit or gene-set
+  route under its bare suffix (`/{run_id}`), and a converter is spelled as the OpenAPI path
+  spells it (`{strategyId}`). A path's `strategyId` names the
+  conversation too. The turn runner's failure line drops its `error_detail` field and keeps
+  `error_type`; its traceback still carries the exception message.
+  The runtime's stdlib bridge merges contextvars, so library lines inside a block carry the
+  same keys (`conventions/observability.md`).
+* **The audit checks and runs are agent tools.** `ai/audit/check_tools.py` exposes the nine
+  single-gene library checks under their library names and docstrings, plus
+  `rate_with_interval`; no whole-genome check is a chat tool and none reaches a dataset
+  upload. The tools read the turn's site and never ask the model for one: the plan and start
+  tools take a `PlanAsk` and the api adds the site. Every check, plan, run, finding list and
+  finding read records a statistic fact (`StatisticKind` gains seven audit kinds).
+  `start_gene_model_audit` is an approval tool whose validator replans and refuses a changed
+  scope; the `data-audit-start` card is drawn from the replan. A genome-store outage inside a
+  check fails that one call. The site-error status rule lives in `services/site_errors.py` and is
+  shared by the run and the chat seam: 401 or 403 reaches the turn, a transport error or a 5xx
+  is no answer, a data parsing error is failed, and anything else is a refusal. An audit tool
+  records everything it hands the model, audit facts stay turn-scoped and are never pinned, and
+  the reply checker points an identifier a statistic row holds at that row.
 * **An audit is planned and priced before it runs.** `domain/audit/planning.py` holds the pure
   rules: the genome budget counts the reference and every unnamed whole-genome target, the
   audited genomes are kept by served BUSCO gap, one marked reference strain per species, the

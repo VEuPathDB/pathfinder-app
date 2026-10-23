@@ -13,6 +13,7 @@ from pydantic_ai.models import Model
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
+from pathfinder.ai.audit.stream_parts import register_audit_stream_parts
 from pathfinder.ai.conversation.turn_stop import restore_pre_turn_strategy
 from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
 from pathfinder.ai.graph.builder import build_pathfinder_graph
@@ -134,9 +135,10 @@ async def strategy_revision_chunks(
 
 
 def _register_product_stream_parts(registry: StreamPartRegistry) -> None:
-    """Every part this product emits: the strategy surface and the EDA surface."""
+    """Every part this product emits: the strategy, EDA and audit surfaces."""
     register_strategy_stream_parts(registry)
     register_eda_stream_parts(registry)
+    register_audit_stream_parts(registry)
 
 
 def _mock_model() -> Model:

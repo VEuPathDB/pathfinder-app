@@ -41,14 +41,37 @@ class SiteGenome(CamelModel):
     gap: float | None
 
 
-class PlanRequest(CamelModel):
+class PlanAsk(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    site_id: str = Field(min_length=1)
-    genomes: tuple[str, ...] = ()
-    checks: tuple[ScreenedCheck, ...] | None = None
-    targets: tuple[GeneTarget, ...] = ()
-    confirm_limit: int | None = None
+    genomes: tuple[str, ...] = Field(
+        default=(),
+        description=(
+            "The genomes to screen, each by the site's full organism name. A name "
+            "the site does not hold comes back unresolved, with suggestions."
+        ),
+    )
+    checks: tuple[ScreenedCheck, ...] | None = Field(
+        default=None,
+        description=(
+            "The screens to run over every named genome. Null lets the planner "
+            "choose them; an empty list is refused."
+        ),
+    )
+    targets: tuple[GeneTarget, ...] = Field(
+        default=(),
+        description=(
+            f"Single genes or gene pairs to check one by one, each with its check; "
+            f"at most {MAX_TARGETS}."
+        ),
+    )
+    confirm_limit: int | None = Field(
+        default=None,
+        description=(
+            "How many screened candidates of each check and genome the run "
+            f"confirms, from 1 to {MAX_CONFIRM_LIMIT}. Null keeps the default."
+        ),
+    )
 
     @field_validator("checks")
     @classmethod
@@ -83,6 +106,14 @@ class PlanRequest(CamelModel):
             )
             raise ValueError(msg)
         return limit
+
+
+class PlanRequest(PlanAsk):
+    site_id: str = Field(min_length=1)
+
+    @classmethod
+    def on_site(cls, ask: PlanAsk, site_id: str) -> PlanRequest:
+        return cls(site_id=site_id, **dict(ask))
 
 
 class RefusedTarget(CamelModel):

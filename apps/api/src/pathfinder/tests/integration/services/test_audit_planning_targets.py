@@ -13,7 +13,7 @@ from pathfinder.domain.audit.planning import RefusedTarget
 from pathfinder.domain.audit.scope import AuditScope, MissingGeneTarget, OrganelleTarget
 from pathfinder.services.audit import planning
 from pathfinder.services.audit.planning import propose_scope, unresolved_names
-from pathfinder.tests.integration.services._audit_planning import (
+from pathfinder.tests._support.audit_planning import (
     BETA_R,
     RNA_KEPT,
     RNA_REFUSED,

@@ -328,11 +328,7 @@ async def _drive_lead_stream(
     except GraphBubbleUp:
         raise
     except Exception:
-        logger.exception(
-            "lead turn raised while emitting",
-            conversation_id=str(state.conversation_id),
-            user_id=str(state.user_id),
-        )
+        logger.exception("lead turn raised while emitting")
         raise
     absorb_loop_stop(deps.state, capture, guard)
 

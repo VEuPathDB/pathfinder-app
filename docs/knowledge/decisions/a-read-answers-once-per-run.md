@@ -24,7 +24,18 @@ A site error or timeout in a read is one failed tool call, never the end of the 
 `READ_ONLY_TOOLS`, the resilience the sub-agents get from `ToolResilience`: a
 `WDKError` or `ExternalServiceError` of any status but 401 and 403, an
 `httpx.TransportError`, a `ConnectionError` or a `TimeoutError` in a listed read becomes
-`ToolFailed` with the site's words and status ("HTTP 502: ... ReadTimeout"). A read with a
+`ToolFailed` with the site's words and status ("HTTP 502: ... ReadTimeout"). A library tool
+the api calls in process raises a `fastmcp` `ToolError` and keeps the library's words. Its
+cause is judged by one rule, `services/site_errors.py::site_status` and `unreached`, the
+rule an audit run judges a failed unit by:
+- a status of 401 or 403 reaches the turn's error path;
+- a transport error, a timeout, or a status of 500 or more is no answer (a `JBrowseError`
+  by its upstream status);
+- every other cause is a refusal the model reads: an error with the data parsing code (a
+  `DataParsingError` or a `TrackReadError`: the site answered with something unreadable),
+  a `GenomeIndexError`, a validation error, a status below 500;
+- a `ToolError` with no cause is the library's refusal of the arguments.
+A read with a
 deadline raises the same failure itself through `read_in_time`: `get_sample_records` and
 `read_step_columns` at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a
 whole listing. Because the failure is raised, `ReadOnceToolset` holds nothing for it and the

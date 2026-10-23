@@ -25,6 +25,7 @@ from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.services.audit import units
 from pathfinder.services.audit.collect import run_collect_stage
 from pathfinder.services.audit.confirm import run_confirm_stage
@@ -48,6 +49,7 @@ from pathfinder.services.audit.units import (
     SignInNeededError,
     Waits,
 )
+from pathfinder.services.site_errors import unreached
 from pathfinder.services.wdk_identity import require_registered_wdk_login
 
 _BODIES: dict[
@@ -227,7 +229,7 @@ async def _sign_in_check() -> Literal["held", "refused", "unanswered"]:
     except WDKLoginRequiredError:
         return "refused"
     except (httpx.TransportError, ExternalServiceError) as exc:
-        if not units.unreached(exc):
+        if not unreached(exc):
             raise
         return "unanswered"
     return "held"
@@ -278,14 +280,24 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
             )
 
 
+def _run_log_ids(run: AuditRunRecord) -> LogIds:
+    return LogIds(
+        run_id=run.id,
+        user_id=run.user_id,
+        conversation_id=run.conversation_id,
+        site_id=run.site_id,
+    )
+
+
 async def carry_run(job: AuditJob) -> None:
     async with advisory_lease(audit_lock(job.run_id)) as held:
         run = await _stored(job.run_id) if held else None
         if run is None or run.status == "finished" or run.stages.halted:
             return
         try:
-            async with signed_in_as_owner(run):
-                await _carry_signed_in(run, job)
+            with log_ids_scope(_run_log_ids(run)):
+                async with signed_in_as_owner(run):
+                    await _carry_signed_in(run, job)
         except Exception as error:
             await _failed(run.id, error)
             raise

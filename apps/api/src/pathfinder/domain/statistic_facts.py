@@ -23,7 +23,34 @@ from pathfinder.domain.eda_parts import (
 )
 from pathfinder.domain.strategy.number_precision import significant_number
 
-type StatisticKind = Literal["pca", "two_by_two", "contingency", "boxplot", "trend"]
+type StatisticKind = Literal[
+    "pca",
+    "two_by_two",
+    "contingency",
+    "boxplot",
+    "trend",
+    "gene_check",
+    "audit_finding",
+    "audit_run",
+    "audit_runs",
+    "audit_findings",
+    "audit_plan",
+    "audit_rate",
+    "audit_start",
+]
+
+TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
+    {
+        "gene_check",
+        "audit_finding",
+        "audit_run",
+        "audit_runs",
+        "audit_findings",
+        "audit_plan",
+        "audit_rate",
+        "audit_start",
+    }
+)
 
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 
@@ -87,6 +114,19 @@ def statistic_references(
         for row in statistic.rows:
             if number in row.numbers():
                 yield f"[stat:{statistic.id}.{row.name}]"
+
+
+def statistic_word_references(
+    statistics: Sequence[StatisticFact], token: str
+) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            f"[stat:{statistic.id}.{row.name}]"
+            for statistic in statistics
+            for row in statistic.rows
+            if row.value == token
+        )
+    )
 
 
 def _span(values: Sequence[float]) -> str:
@@ -196,6 +236,7 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 
 
 __all__ = [
+    "TURN_STATISTICS",
     "StatisticFact",
     "StatisticKind",
     "StatisticRowFact",
@@ -203,5 +244,6 @@ __all__ = [
     "statistic_id",
     "statistic_references",
     "statistic_value",
+    "statistic_word_references",
     "statistics_fact",
 ]

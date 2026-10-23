@@ -72,6 +72,37 @@ The product events are `card_answered`, `strategy_opened`, `export_requested`,
 `POST /api/v1/product-events`, and `conversation_created`, recorded by the server
 when a thread's first message creates it.
 
+# What a log line names
+
+Both processes log JSON lines through the runtime's `setup_logging`, whose stdlib
+bridge runs `merge_contextvars` too, so a line from procrastinate, httpx, a library
+or pydantic-ai written inside a bound block carries the same keys as PathFinder's
+own. The keys are the fields of `platform/log_ids.py::LogIds`, which refuses any
+value that is not an id. The bound keys are ids only; no line carries a prompt, a
+message, an attachment, an email, a token, a cookie or a key; exception messages
+and tracebacks stay as system text.
+
+| Work | Bound at | Keys |
+|---|---|---|
+| A chat turn | `jobs/impls/chat_turn_impl.py`, and the resolved site at `ai/conversation/turn_runner.py::run_turn` | `conversation_id`, `turn_id`, `user_id`, `site_id`, `assistant_id` |
+| A durable body | the runtime's `run_durable_task` | `conversation_id`, `user_id`, `task_id`, `tool_name`, `site_id` |
+| A completion turn | the runtime's runner, `site_id` at `run_turn` and `assistant_id` at `jobs/completion.py` | `conversation_id`, `user_id`, `task_id` and `tool_name` of the task that opened it, `site_id`, `assistant_id` |
+| An audit job | `services/audit/job.py::carry_run` | `run_id`, `user_id`, `conversation_id`, `site_id` |
+| An API request | `transport/http/deps.py::bind_request_log_ids`, an app dependency | `method`, `route` (the template), `conversation_id` from the path |
+
+On an API request PathFinder also sets two runtime context variables the
+runtime's processors put on every line: `request_id` in the request middleware
+(`main.py`), taken from `X-Request-ID` only when it is at most 64 letters,
+digits and dashes and otherwise a fresh UUID, and `user_id` in
+`platform/security.py::resolve_principal` once the principal resolves.
+
+The runtime binds the task's keys around the whole durable call, so its
+`durable tool failed` line and its settle lines carry them. The task row holds
+no site, so the runtime's own lines outside the body name none: the
+`durable tool failed` line, the settle lines and the lines of a completion
+turn written before `run_turn` resolves the thread's site. The lines
+procrastinate writes before and after it calls a job are outside every block.
+
 # The same numbers without Langfuse
 
 `uv run python -m pathfinder.devtools.usage report [--since DATE] [--site X]` reads

@@ -19,8 +19,11 @@ A resumed run starts from the first unfinished stage and reads only the open
 units of that stage.
 
 **How a unit settles.** A unit is `trying` while it is read. A site that does
-not answer (a transport error, a 5xx, a JBrowse store that fails upstream)
-settles it `unreached`, and the stage reads it again after a pause that doubles
+not answer settles it `unreached`. `services/site_errors.py::unreached` is the rule:
+a transport error, a timeout, a broken connection, or a status of 500 or more (a
+JBrowse store by its upstream status). An error with the data parsing code, such as
+a malformed table or track file, is an answer the site gave, so it is `failed` at
+any status. The stage reads an `unreached` unit again after a pause that doubles
 from 30 seconds to 15 minutes, until the deadline; the other units go on
 meanwhile. Any other failure settles it `failed` with the site's message. A
 unit still `trying` when a stage starts was being read when a worker stopped:

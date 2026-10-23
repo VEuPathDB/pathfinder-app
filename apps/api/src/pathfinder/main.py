@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Any, cast
-from uuid import uuid4
 
 from assistant_core import registry
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
@@ -18,7 +17,7 @@ from assistant_core.platform.db import async_session_factory, close_db, get_engi
 from assistant_core.platform.logging import get_logger, setup_logging
 from assistant_core.platform.observability import shutdown_observability
 from assistant_core.tasks.job_context import install_durable_job_context
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry import trace
@@ -56,6 +55,7 @@ from pathfinder.platform.error_handlers import (
     veupathdb_error_handler,
 )
 from pathfinder.platform.langfuse.client import shutdown_langfuse
+from pathfinder.platform.log_ids import accepted_request_id
 from pathfinder.platform.metrics import (
     HttpMetricsMiddleware,
     PathfinderObserver,
@@ -70,6 +70,7 @@ from pathfinder.platform.readiness import (
     get_readiness,
     reset_readiness,
 )
+from pathfinder.platform.route_templates import install_route_templates
 from pathfinder.platform.security import (
     RejectNullBytesMiddleware,
     csrf_middleware,
@@ -81,6 +82,7 @@ from pathfinder.platform.site_catalogs import (
 )
 from pathfinder.services.eda.catalog import preload_study_index
 from pathfinder.services.search_waits import runs_on_the_deployment_line
+from pathfinder.transport.http.deps import bind_request_log_ids
 from pathfinder.transport.http.openapi import install_openapi_post_passes
 from pathfinder.transport.http.routers import (
     audits,
@@ -316,6 +318,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         lifespan=lifespan,
         docs_url="/docs" if settings.api_docs_enabled else None,
         redoc_url="/redoc" if settings.api_docs_enabled else None,
+        dependencies=[Depends(bind_request_log_ids)],
     )
 
     app.add_middleware(
@@ -352,7 +355,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        request_id = request.headers.get("X-Request-ID", str(uuid4()))
+        request_id = accepted_request_id(request.headers.get("X-Request-ID"))
         request_id_ctx.set(request_id)
         trace.get_current_span().set_attribute("app.request_id", request_id)
         veupathdb_auth_token_ctx.set(
@@ -395,6 +398,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         app.include_router(dev_site_login.router)
 
     install_openapi_post_passes(app)
+    install_route_templates(app)
 
     return app
 

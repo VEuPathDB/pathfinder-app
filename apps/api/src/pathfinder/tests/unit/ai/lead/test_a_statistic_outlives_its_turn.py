@@ -81,3 +81,21 @@ def test_a_later_read_of_one_statistic_replaces_the_earlier() -> None:
     state.domain.record_statistics([rerun])
 
     assert state.domain.statistics == [rerun]
+
+
+def test_an_audit_findings_fact_is_not_pinned_into_the_next_turn() -> None:
+    listed = StatisticFact(
+        id="stat_5a6b7c8d",
+        kind="audit_findings",
+        title="Findings of an audit run",
+        rows=[StatisticRowFact(name="findings.0.genome", value="Examplea alpha A")],
+    )
+    state = pipeline_state(user_prompt="List the findings.")
+    state.user_message_id = uuid4()
+    state.domain.record_statistics([_PCA, listed])
+    state.user_message_id = uuid4()
+
+    pinned = pinned_statistics(run_context_for(lead_deps(state)))
+
+    assert pinned is not None
+    assert ("stat_1c2d3e4f" in pinned, "stat_5a6b7c8d" in pinned) == (True, False)

@@ -174,7 +174,7 @@ class TestTheTextAGraphFailureLeaves:
         parts = [c for c in writer.chunks if c.get("type") == "data-turn-failed"]
         assert parts[0]["data"] == {"errorText": turn_failure.STOPPED_WHILE_RUNNING}
 
-    async def test_the_log_keeps_the_type_and_the_message(
+    async def test_the_log_names_the_type_and_no_detail_field(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         writer = _writer()
@@ -184,7 +184,7 @@ class TestTheTextAGraphFailureLeaves:
 
         logged = _failure_logs(caplog.records)
         assert [entry.error_type for entry in logged] == ["RuntimeError"]
-        assert [entry.error_detail for entry in logged] == [_RAISED]
+        assert [entry.error_detail for entry in logged] == [""]
 
 
 class TestTheSentencesNameNothingAnAssistantMayNotHave:

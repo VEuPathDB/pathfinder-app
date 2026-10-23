@@ -10,12 +10,23 @@ from assistant_core.platform.db import get_db_session
 from assistant_core.platform.types import ModelProvider, PaidBy
 from fastapi import Depends, HTTPException, Query, Request, status
 from langgraph.store.postgres.aio import AsyncPostgresStore
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+    field_validator,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import SiteUnavailableError
+from pathfinder.platform.log_ids import LogIds, bind_log_ids
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.readiness import get_readiness
+from pathfinder.platform.route_templates import route_template
 from pathfinder.platform.security import resolve_principal
 from pathfinder.services.provider_keys import key_statuses, require_payers
 from pathfinder.services.users import effective_monthly_limit_usd, ensure_user_exists
@@ -27,6 +38,40 @@ from pathfinder.transport.http.schemas.site_id import SiteId
 
 # Type aliases for dependencies
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+class _RouteIds(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    conversation_id: UUID | None = Field(
+        default=None,
+        validation_alias=AliasChoices("conversation_id", "strategyId"),
+    )
+
+    @field_validator("conversation_id", mode="wrap")
+    @classmethod
+    def _unread_id_is_absent(
+        cls, value: object, handler: ValidatorFunctionWrapHandler
+    ) -> UUID | None:
+        try:
+            parsed: UUID | None = handler(value)
+        except ValidationError:
+            return None
+        return parsed
+
+
+async def bind_request_log_ids(request: Request) -> None:
+    bind_log_ids(
+        LogIds.model_validate(
+            {
+                "method": request.method,
+                "route": route_template(request.scope),
+                "conversation_id": _RouteIds.model_validate(
+                    request.path_params
+                ).conversation_id,
+            }
+        )
+    )
 
 
 def get_memory_store(request: Request) -> MemoryStore:

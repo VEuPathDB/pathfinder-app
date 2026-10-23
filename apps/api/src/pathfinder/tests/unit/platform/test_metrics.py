@@ -15,6 +15,7 @@ from pathfinder.platform.metrics import (
     PathfinderObserver,
     serve_metrics,
 )
+from pathfinder.platform.route_templates import install_route_templates
 
 _REQUESTS = "pathfinder_http_requests_total"
 _LATENCY_COUNT = "pathfinder_http_request_duration_seconds_count"
@@ -32,6 +33,7 @@ def _app() -> FastAPI:
         return {"id": thing_id}
 
     app.add_middleware(HttpMetricsMiddleware)
+    install_route_templates(app)
     return app
 
 
@@ -138,7 +140,7 @@ async def test_the_app_counts_its_requests_under_their_templates() -> None:
     app = create_app(include_dev_routes=False)
     labels = {
         "method": "GET",
-        "route": "/api/v1/conversations/{strategyId:uuid}",
+        "route": "/api/v1/conversations/{strategyId}",
         "status": "4xx",
     }
     before = _sample(_REQUESTS, labels)
@@ -167,3 +169,15 @@ def test_a_search_wait_is_counted_under_bounded_labels(
     PathfinderObserver().on_wdk_search_wait(0.5, attrs)
 
     assert _sample(_WAITS, labels) == before + 1
+
+
+async def test_a_route_under_an_include_prefix_counts_under_its_full_template() -> None:
+    app = create_app(include_dev_routes=False)
+    labels = {"method": "GET", "route": "/api/v1/gene-sets", "status": "4xx"}
+    before = _sample(_REQUESTS, labels)
+    bare = _sample(_REQUESTS, {**labels, "route": ""})
+
+    assert await _get(app, "/api/v1/gene-sets") == 401
+
+    assert _sample(_REQUESTS, labels) == before + 1
+    assert _sample(_REQUESTS, {**labels, "route": ""}) == bare

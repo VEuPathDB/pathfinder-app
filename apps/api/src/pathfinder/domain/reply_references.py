@@ -23,7 +23,11 @@ from pathfinder.domain.reference_grammar import (
 )
 from pathfinder.domain.reference_placement import misplacements
 from pathfinder.domain.scratchpad_facts import hard_facts
-from pathfinder.domain.statistic_facts import statistic_references, statistic_value
+from pathfinder.domain.statistic_facts import (
+    statistic_references,
+    statistic_value,
+    statistic_word_references,
+)
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.tally_facts import tally_count, tally_references
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
@@ -399,6 +403,9 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
             kind="identifier" if identifier else "number",
             references=_record_references(facts, token)
             or _value_word_references(facts, token)
+            or (
+                statistic_word_references(facts.statistics, token) if identifier else ()
+            )
             or numbered,
         )
 

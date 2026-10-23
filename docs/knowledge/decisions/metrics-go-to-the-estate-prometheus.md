@@ -31,7 +31,7 @@ more of it, so the series live on a server the app does not serve.
 
 | series | process | labels |
 |---|---|---|
-| `pathfinder_http_requests_total` | api | method, route template (`unmatched` when none), status class |
+| `pathfinder_http_requests_total` | api | method, full route template with every include prefix (`platform/route_templates.py`; `unmatched` when none), status class |
 | `pathfinder_http_request_duration_seconds` | api | method, route template; time to the response headers, so a stream counts its first frame |
 | `pathfinder_chat_turns_started_total` | api | assistant; one per queued turn |
 | `pathfinder_chat_turns_finished_total` | worker | assistant, outcome (`completed`, `failed`, `stopped`), the model that read the prompt |
@@ -48,7 +48,8 @@ direction label. A tool's own `ModelRetry` is not a source error. The default
 process and garbage-collector collectors stay on.
 
 Nothing names a user, a conversation, a site's free text or a raw path. A route
-label is the template FastAPI matched (`/api/v1/conversations/{strategyId:uuid}`).
+label is the full template of the route FastAPI matched, spelled as the OpenAPI
+path spells it (`/api/v1/conversations/{strategyId}`).
 Every label value comes from a fixed set, so a request cannot add a series: a
 method outside the standard HTTP methods counts as `OTHER`, and a model id the
 catalog does not name counts as `other`.

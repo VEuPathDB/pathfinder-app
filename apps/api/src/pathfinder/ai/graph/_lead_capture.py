@@ -314,8 +314,6 @@ async def _charge_token_delta(
     except SQLAlchemyError:
         logger.warning(
             "failed to accumulate streaming token delta",
-            user_id=str(state.user_id),
-            conversation_id=str(state.conversation_id),
             delta=delta_tokens,
         )
         return
@@ -380,11 +378,7 @@ async def _persist_residual_quota(
                 )
             await session.commit()
         except SQLAlchemyError:
-            logger.warning(
-                "failed to accumulate lead residual quota",
-                user_id=str(state.user_id),
-                conversation_id=str(state.conversation_id),
-            )
+            logger.warning("failed to accumulate lead residual quota")
             return
         capture.charged_output_tokens += lead_residual_tokens
         capture.charged_cost += lead_residual_cost

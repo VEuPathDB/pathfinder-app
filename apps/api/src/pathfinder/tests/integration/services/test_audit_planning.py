@@ -14,7 +14,7 @@ from pathfinder.services.audit.planning import (
     propose_scope,
     site_genomes,
 )
-from pathfinder.tests.integration.services._audit_planning import (
+from pathfinder.tests._support.audit_planning import (
     ALPHA_R,
     BETA_R,
     BETA_S,

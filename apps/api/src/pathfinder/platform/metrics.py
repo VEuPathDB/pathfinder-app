@@ -9,11 +9,12 @@ from wsgiref.simple_server import WSGIServer
 
 from prometheus_client import Counter, Histogram, start_http_server
 from pydantic import BaseModel, ConfigDict
-from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from veupathdb import MetricAttrs
 from veupathdb.observability.otel import OpenTelemetryObserver
 from veupathdb.wdk import list_sites
+
+from pathfinder.platform.route_templates import route_template
 
 __all__ = [
     "CHAT_TURNS_FINISHED",
@@ -146,8 +147,7 @@ def _method_of(scope: Scope) -> str:
 
 
 def _route_of(scope: Scope) -> str:
-    route = scope.get("route")
-    return route.path if isinstance(route, Route) else _UNMATCHED_ROUTE
+    return route_template(scope) or _UNMATCHED_ROUTE
 
 
 class HttpMetricsMiddleware:

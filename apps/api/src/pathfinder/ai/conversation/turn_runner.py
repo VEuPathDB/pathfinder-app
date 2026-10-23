@@ -50,6 +50,7 @@ from pathfinder.ai.conversation.turn_failure import (
 )
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
 from pathfinder.ai.conversation.turn_title import write_turn_name
+from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.platform.tool_sources import metered_mcp_toolset, source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
@@ -183,6 +184,7 @@ async def run_turn(
         request = dataclasses.replace(request, body=body)
         # Work this turn defers outlives the turn, so it reads the picks here.
         with (
+            log_ids_scope(LogIds(site_id=effective_site_id)),
             traced(turn_trace_scope(request, spec.assistant_id, writer.turn_id)),
             attach_phase_overrides(
                 PhaseOverrides(
@@ -396,10 +398,7 @@ async def _drive_graph(
         result.encountered_error = True
         logger.exception(
             "Turn runner failed",
-            conversation_id=str(body.conversation_id),
-            user_id=str(graph_input.get("user_id")),
             error_type=type(exc).__name__,
-            error_detail=str(exc),
         )
         error_text = turn_failure_text(exc, graph_ran=True)
         await write_tool_call_errors(tracked, open_calls.ids(), error_text)

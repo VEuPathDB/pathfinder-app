@@ -14,15 +14,14 @@ import httpx
 import pydantic
 from assistant_core.platform.db import async_session_factory
 from fastmcp.exceptions import ToolError
-from veupathdb.errors import ExternalServiceError, VEuPathDBError, WDKError
-from veupathdb.jbrowse import JBrowseError
+from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.audit.stages import StageName
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.metrics import RequestTally, counting_wdk_requests
 from pathfinder.services.audit.sign_in import sign_in_holds
+from pathfinder.services.site_errors import site_status, unreached
 
-_SERVER_ERROR = 500
 _FORBIDDEN = 403
 FIRST_WAIT_SECONDS = 30.0
 LONGEST_WAIT_SECONDS = 900.0
@@ -104,34 +103,8 @@ def waits_until(deadline: datetime, *, first_seconds: float) -> Waits:
     )
 
 
-def unreached(exc: BaseException | None) -> bool:
-    match exc:
-        case httpx.TransportError():
-            return True
-        case httpx.HTTPStatusError():
-            return exc.response.status_code >= _SERVER_ERROR
-        case JBrowseError():
-            return exc.upstream_status >= _SERVER_ERROR
-        case WDKError() | ExternalServiceError():
-            return exc.status >= _SERVER_ERROR
-        case _:
-            return False
-
-
-def _refusal(exc: BaseException | None) -> int | None:
-    match exc:
-        case httpx.HTTPStatusError():
-            return exc.response.status_code
-        case JBrowseError():
-            return exc.upstream_status
-        case VEuPathDBError():
-            return exc.status
-        case _:
-            return None
-
-
 def signed_out(exc: BaseException | None) -> bool:
-    match _refusal(exc):
+    match site_status(exc):
         case 401:
             return True
         case 403:
@@ -152,7 +125,7 @@ def halt_when_signed_out(exc: BaseException) -> None:
     judged = _judged(exc)
     if signed_out(judged):
         raise SignInNeededError from exc
-    if _refusal(judged) == _FORBIDDEN:
+    if site_status(judged) == _FORBIDDEN:
         _note_forbidden(exc)
 
 

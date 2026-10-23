@@ -280,12 +280,15 @@ def _genome_plan(
     )
 
 
+def plain_problems(error: pydantic.ValidationError) -> str:
+    return "; ".join(p["msg"].removeprefix("Value error, ") for p in error.errors())
+
+
 def _admitted(raw: dict[str, object], cap: int) -> tuple[AuditScope | None, str | None]:
     try:
         return AuditScope.admitted(raw, max_genomes=cap), None
     except pydantic.ValidationError as exc:
-        problems = (p["msg"].removeprefix("Value error, ") for p in exc.errors())
-        return None, "; ".join(problems)
+        return None, plain_problems(exc)
 
 
 def _plain_refusal(

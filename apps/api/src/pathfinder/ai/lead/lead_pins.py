@@ -24,6 +24,7 @@ from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.exchanges import exchanges_section
+from pathfinder.domain.statistic_facts import TURN_STATISTICS
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -285,7 +286,11 @@ def pinned_turn_briefing(ctx: RunContext[LeadDeps]) -> str | None:
 
 def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
     """Every statistic the thread computed, each value under its reference."""
-    statistics = ctx.deps.state.domain.statistics
+    statistics = [
+        statistic
+        for statistic in ctx.deps.state.domain.statistics
+        if statistic.kind not in TURN_STATISTICS
+    ]
     if not statistics:
         return None
     lines = [

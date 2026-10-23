@@ -6599,6 +6599,7 @@
           "siteId": {
             "type": "string",
             "maxLength": 50,
+            "pattern": "^$|^[a-z][a-z0-9_-]{0,49}$",
             "title": "Siteid",
             "default": ""
           },
@@ -9168,6 +9169,10 @@
       },
       "FindingDetail": {
         "properties": {
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
           "finding": {
             "$ref": "#/components/schemas/FindingView"
           },
@@ -9191,6 +9196,7 @@
         },
         "type": "object",
         "required": [
+          "siteId",
           "finding",
           "evidence",
           "review"
@@ -9199,6 +9205,10 @@
       },
       "FindingPage": {
         "properties": {
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
           "total": {
             "type": "integer",
             "title": "Total"
@@ -9217,6 +9227,7 @@
         },
         "type": "object",
         "required": [
+          "siteId",
           "total",
           "offset",
           "findings"
@@ -18976,6 +18987,122 @@
         "title": "AssumedValueCaveat",
         "type": "object"
       },
+      "AuditStartCard": {
+        "properties": {
+          "toolCallId": {
+            "title": "Toolcallid",
+            "type": "string"
+          },
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "genomes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genomes",
+            "type": "array"
+          },
+          "comparison": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Comparison",
+            "type": "array"
+          },
+          "referenceGenome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencegenome"
+          },
+          "checks": {
+            "items": {
+              "enum": [
+                "pseudogene_call",
+                "selenoprotein_end",
+                "gene_length",
+                "gene_split",
+                "gene_fusion",
+                "strain_model",
+                "missing_gene",
+                "organelle_join",
+                "intron_support"
+              ],
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "targets": {
+            "title": "Targets",
+            "type": "integer"
+          },
+          "leftOut": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Leftout",
+            "type": "array"
+          },
+          "refusedTargets": {
+            "items": {
+              "$ref": "#/components/schemas/RefusedTarget"
+            },
+            "title": "Refusedtargets",
+            "type": "array"
+          },
+          "wdkRequests": {
+            "title": "Wdkrequests",
+            "type": "integer"
+          },
+          "storeReads": {
+            "title": "Storereads",
+            "type": "integer"
+          },
+          "hours": {
+            "title": "Hours",
+            "type": "number"
+          },
+          "hoursAtMost": {
+            "title": "Hoursatmost",
+            "type": "number"
+          },
+          "modelReviews": {
+            "title": "Modelreviews",
+            "type": "integer"
+          },
+          "datasets": {
+            "title": "Datasets",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "siteId",
+          "genomes",
+          "comparison",
+          "referenceGenome",
+          "checks",
+          "targets",
+          "leftOut",
+          "refusedTargets",
+          "wdkRequests",
+          "storeReads",
+          "hours",
+          "hoursAtMost",
+          "modelReviews",
+          "datasets"
+        ],
+        "title": "AuditStartCard",
+        "type": "object"
+      },
       "BackgroundTaskStarted": {
         "properties": {
           "taskId": {
@@ -23390,6 +23517,24 @@
         "title": "RecalledMemory",
         "type": "object"
       },
+      "RefusedTarget": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "reason"
+        ],
+        "title": "RefusedTarget",
+        "type": "object"
+      },
       "ReplacedLifecycle": {
         "description": "A requirement another requirement took the place of.\n\n``by`` is the key of the requirement that replaced it.",
         "properties": {
@@ -24399,7 +24544,15 @@
           "two_by_two",
           "contingency",
           "boxplot",
-          "trend"
+          "trend",
+          "gene_check",
+          "audit_finding",
+          "audit_run",
+          "audit_runs",
+          "audit_findings",
+          "audit_plan",
+          "audit_rate",
+          "audit_start"
         ],
         "type": "string"
       },
@@ -26322,6 +26475,16 @@
       "StreamPartsSchemaIndex": {
         "description": "Index of stream-part payload schemas. Never called - exists for OpenAPI generation.",
         "properties": {
+          "auditStart": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditStartCard"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "backgroundTaskStarted": {
             "anyOf": [
               {

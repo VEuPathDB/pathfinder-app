@@ -108,6 +108,4 @@ async def charge_spend(
                 )
             await session.commit()
     except SQLAlchemyError:
-        logger.warning(
-            "failed to charge a model run beside the turn", user_id=str(user_id)
-        )
+        logger.warning("failed to charge a model run beside the turn")

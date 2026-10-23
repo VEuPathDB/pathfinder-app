@@ -103,7 +103,6 @@ async def retrieve_memories(
     except MemoryStoreTimeoutError as exc:
         logger.warning(
             "memory retrieval timed out; the turn runs without memories",
-            conversation_id=str(state.conversation_id),
             seconds=exc.seconds,
         )
         return []
@@ -135,7 +134,6 @@ async def memory_index(
     except MemoryStoreTimeoutError as exc:
         logger.warning(
             "memory index timed out; the turn names no memory to recall",
-            conversation_id=str(state.conversation_id),
             seconds=exc.seconds,
         )
         return {}

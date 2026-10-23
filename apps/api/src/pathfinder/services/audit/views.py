@@ -129,6 +129,7 @@ class FindingView(CamelModel):
 class FindingPage(CamelModel):
     model_config = ConfigDict(frozen=True)
 
+    site_id: str
     total: int
     offset: int
     findings: list[FindingView]
@@ -149,6 +150,7 @@ class EvidenceView(CamelModel):
 class FindingDetail(CamelModel):
     model_config = ConfigDict(frozen=True)
 
+    site_id: str
     finding: FindingView
     evidence: list[EvidenceView]
     review: FindingReview | None
@@ -241,7 +243,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
 
 
 async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> FindingPage:
-    await readable_run(run_id, user_id)
+    run = await readable_run(run_id, user_id)
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
         total = await repo.count_findings(run_id, query.where)
@@ -253,6 +255,7 @@ async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> Find
             by_impact=True,
         )
     return FindingPage(
+        site_id=run.site_id,
         total=total,
         offset=query.offset,
         findings=[FindingView.model_validate(finding) for finding in found],
@@ -260,7 +263,7 @@ async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> Find
 
 
 async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> FindingDetail:
-    await readable_run(run_id, user_id)
+    run = await readable_run(run_id, user_id)
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
         found = await repo.finding(run_id, finding_id)
@@ -272,6 +275,7 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
         evidence = await repo.evidence(run_id, [finding_id])
         review = await AuditReviewRepository(session).review_of(finding_id)
     return FindingDetail(
+        site_id=run.site_id,
         finding=FindingView.model_validate(found),
         evidence=[EvidenceView.model_validate(record) for record in evidence],
         review=review,

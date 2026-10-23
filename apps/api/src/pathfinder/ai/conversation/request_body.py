@@ -13,9 +13,11 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     UIMessage,
 )
 
+from pathfinder.platform.log_ids import SITE_ID_PATTERN
 from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.tiers import KNOWN_ROLES
 
+_SITE_OR_NONE = f"^$|{SITE_ID_PATTERN}"
 _TURN_FACTS = frozenset({"errors", "aborted", "finishReason"})
 _PART_STREAM_FACTS = frozenset(
     {"resultProviderMetadata", "summary", "summaryStatus"},
@@ -57,7 +59,7 @@ class ChatRequestBody(CamelModel):
     # Which assistant answers. Read only when the conversation is created; an
     # existing thread keeps the assistant it was created with.
     assistant_id: str | None = None
-    site_id: str = Field(default="", max_length=50)
+    site_id: str = Field(default="", max_length=50, pattern=_SITE_OR_NONE)
     mode: str = "strategy"
     # A role no installed assistant runs a model for is refused here, so the
     # runtime downstream only ever sees a role some preset names.

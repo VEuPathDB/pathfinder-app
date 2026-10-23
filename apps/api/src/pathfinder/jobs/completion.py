@@ -11,6 +11,7 @@ from assistant_core.tasks.completion_turn import CompletionTurn
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import turn_trace_labels
+from pathfinder.jobs.log_context import completion_log_context
 from pathfinder.jobs.turn_keys import turn_keys
 
 
@@ -23,24 +24,25 @@ async def open_completion_turn(turn: CompletionTurn) -> None:
             "phase_reasoning": turn.phase_overrides.reasoning,
         },
     )
-    async with turn_keys(
-        user_id=turn.user_id, spec=turn.spec, body=body, writer=turn.writer
-    ):
-        await run_turn(
-            request=TurnRequest(
-                body=body,
-                user_id=turn.user_id,
-                durable_result=turn.durable_result,
-                durable_results=turn.durable_results,
-                trace_labels=turn_trace_labels(
-                    turn.spec.assistant_id, body.phase_models
+    with completion_log_context(turn):
+        async with turn_keys(
+            user_id=turn.user_id, spec=turn.spec, body=body, writer=turn.writer
+        ):
+            await run_turn(
+                request=TurnRequest(
+                    body=body,
+                    user_id=turn.user_id,
+                    durable_result=turn.durable_result,
+                    durable_results=turn.durable_results,
+                    trace_labels=turn_trace_labels(
+                        turn.spec.assistant_id, body.phase_models
+                    ),
                 ),
-            ),
-            spec=turn.spec,
-            compiled_graph=turn.compiled_graph,
-            memory_store=turn.memory_store,
-            writer=turn.writer,
-        )
+                spec=turn.spec,
+                compiled_graph=turn.compiled_graph,
+                memory_store=turn.memory_store,
+                writer=turn.writer,
+            )
 
 
 __all__ = ["open_completion_turn"]

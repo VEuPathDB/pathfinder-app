@@ -29,7 +29,6 @@ from pathfinder.ai.tools.standalone.catalog_discovery import (
     AlreadyReadNotice,
     get_search_overview,
 )
-from pathfinder.platform.uuid_utils import format_uuid
 
 logger = get_logger(__name__)
 
@@ -52,17 +51,14 @@ async def request_search_inspection(
             constraint deviation regardless of whether it succeeds.
         why: One sentence explaining what the planner / executor /
             verifier needs that the existing discovered set can't
-            provide. Required so post-mortem can identify the gap in
-            discovery's instructions.
+            provide. The call's trace keeps it, so a post-mortem can
+            identify the gap in discovery's instructions.
         record_type: Optional record type override (auto-resolved when
             omitted, same as ``get_search_overview``).
     """
     logger.warning(
         "constraint deviation: phase requested out-of-band search inspection",
         search_name=search_name,
-        why=why,
-        site_id=ctx.deps.site_id,
-        conversation_id=format_uuid(ctx.deps.conversation_id),
     )
     return await get_search_overview(
         ctx,

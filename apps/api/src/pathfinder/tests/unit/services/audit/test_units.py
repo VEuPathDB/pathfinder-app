@@ -17,7 +17,7 @@ from veupathdb.errors import (
     WDKError,
     WDKLoginRequiredError,
 )
-from veupathdb.jbrowse import JBrowseError
+from veupathdb.jbrowse import GenomeIndexError, JBrowseError, TrackReadError
 
 from pathfinder.services.audit import units
 from pathfinder.services.audit.units import (
@@ -29,10 +29,10 @@ from pathfinder.services.audit.units import (
     Waits,
     failure_status,
     in_passes,
-    unreached,
     waits_until,
     watching_refusals,
 )
+from pathfinder.services.site_errors import unreached
 from pathfinder.tests._support.audit import FakeClock
 from pathfinder.tests._support.veupathdb_tokens import (
     SUBJECT,
@@ -94,6 +94,11 @@ def test_a_refusal_a_parse_failure_and_a_missing_cause_are_not_unreached() -> No
         (_answered(404), "failed"),
         (httpx.DecodingError("not gzip"), "failed"),
         (httpx.TooManyRedirects("loop"), "failed"),
+        (_caused(TrackReadError("bigwig header unreadable")), "failed"),
+        (_caused(TimeoutError()), "unreached"),
+        (_caused(ConnectionError()), "unreached"),
+        (_caused(TrackReadError("no such track", status=404)), "failed"),
+        (_caused(GenomeIndexError("no contig")), "failed"),
     ],
 )
 def test_a_tool_error_is_judged_by_its_cause(

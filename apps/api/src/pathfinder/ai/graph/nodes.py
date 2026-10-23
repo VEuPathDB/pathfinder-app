@@ -48,10 +48,7 @@ async def _name_strategy_revision(
             message_id=message_id,
         )
     except SQLAlchemyError:
-        logger.warning(
-            "failed to name the turn's strategy revision",
-            conversation_id=str(conversation_id),
-        )
+        logger.warning("failed to name the turn's strategy revision")
 
 
 async def _compact_the_notes(
@@ -69,10 +66,7 @@ async def _compact_the_notes(
             agent=partial(build_compactor_agent, meter=meter),
         )
     except Exception:
-        logger.exception(
-            "scratchpad compaction failed",
-            conversation_id=str(state.conversation_id),
-        )
+        logger.exception("scratchpad compaction failed")
         compaction_run = None
     await charge_spend(
         context.db_session_factory, user_id=state.user_id, spent=meter.spent
@@ -112,10 +106,7 @@ async def _write_the_notes(
                 ),
             )
     except Exception:
-        logger.exception(
-            "the memory auto-write failed; the turn keeps its reply",
-            conversation_id=str(state.conversation_id),
-        )
+        logger.exception("the memory auto-write failed; the turn keeps its reply")
         return False
     return True
 

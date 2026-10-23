@@ -330,3 +330,13 @@ def test_a_message_of_files_alone_logs_no_empty_text() -> None:
             "url": _PNG_URL,
         },
     ]
+
+
+@pytest.mark.parametrize("site", ["a@b.org", "plasmo db", "PlasmoDB"])
+def test_a_site_that_is_not_a_site_id_is_refused(site: str) -> None:
+    with pytest.raises(ValidationError):
+        ChatRequestBody.model_validate(_body(siteId=site))
+
+
+def test_a_body_may_name_no_site() -> None:
+    assert ChatRequestBody.model_validate(_body(siteId="")).site_id == ""

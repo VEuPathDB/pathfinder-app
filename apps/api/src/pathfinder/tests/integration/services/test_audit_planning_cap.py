@@ -15,7 +15,7 @@ from pathfinder.domain.audit.scope import (
     whole_genome_reads,
 )
 from pathfinder.services.audit.planning import propose_scope
-from pathfinder.tests.integration.services._audit_planning import (
+from pathfinder.tests._support.audit_planning import (
     BETA_R,
     BETA_S,
     OUTGROUP,

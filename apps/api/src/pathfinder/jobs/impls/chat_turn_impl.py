@@ -43,7 +43,7 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
     spec = registry.resolve(parsed.assistant_id)
 
     settings = get_settings()
-    with turn_log_context(conversation_id=body.conversation_id, turn_id=parsed.turn_id):
+    with turn_log_context(parsed):
         async with (
             metered_turn(
                 assistant_id=spec.assistant_id,
@@ -93,6 +93,5 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
 
         logger.info(
             "chat turn completed",
-            assistant_id=spec.assistant_id,
             has_veupathdb_auth=parsed.veupathdb_auth_token is not None,
         )

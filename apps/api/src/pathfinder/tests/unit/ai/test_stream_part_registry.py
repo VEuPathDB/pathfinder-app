@@ -12,7 +12,9 @@ from assistant_core.conversation.stream_parts.registry import (
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
+from pathfinder.ai.audit.stream_parts import register_audit_stream_parts
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
+from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.main import create_app
 
 # The set the schema index carried before the registry existed. A registration
@@ -98,6 +100,9 @@ PINNED_STRATEGY_KINDS = frozenset(
 )
 
 
+PINNED_AUDIT_KINDS = frozenset({"data-audit-start"})
+
+
 class _Payload(BaseModel):
     value: str = ""
 
@@ -171,6 +176,20 @@ def test_strategy_registers_the_science_kinds() -> None:
     registry = StreamPartRegistry()
     register_strategy_stream_parts(registry)
     assert registry.kinds() == PINNED_STRATEGY_KINDS
+
+
+def test_audit_registers_the_start_card() -> None:
+    registry = StreamPartRegistry()
+    register_audit_stream_parts(registry)
+    assert registry.kinds() == PINNED_AUDIT_KINDS
+
+
+def test_pathfinder_emits_the_audit_start_card() -> None:
+    registry = StreamPartRegistry()
+    register = build_pathfinder_spec().register_stream_parts
+    assert register is not None
+    register(registry)
+    assert registry.kinds() >= PINNED_AUDIT_KINDS
 
 
 def test_entries_are_ordered_by_schema_name() -> None:

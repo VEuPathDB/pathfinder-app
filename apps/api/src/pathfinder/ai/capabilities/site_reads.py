@@ -8,15 +8,18 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from fastmcp.exceptions import ToolError
 from pydantic_ai import ToolFailed
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 from veupathdb.errors import ExternalServiceError, WDKError
+from veupathdb.jbrowse import JBrowseError
+
+from pathfinder.services.site_errors import site_status, unreached
 
 # An account the request does not have is no outage; the error path reports it.
 _IDENTITY_STATUSES = frozenset({401, 403})
-_SERVER_ERROR_STATUS = 500
 
 
 def site_words(error: BaseException) -> str:
@@ -47,24 +50,38 @@ def site_refusal(tool_name: str, said: str) -> ToolFailed:
     )
 
 
+def _judged_read(tool_name: str, error: BaseException, said: str) -> ToolFailed:
+    if unreached(error):
+        return site_read_failure(tool_name, said)
+    return site_refusal(tool_name, said)
+
+
 def failed_read(tool_name: str, error: BaseException) -> ToolFailed:
-    """The failed call for a site error: a refusal below 500, else no answer."""
-    match error:
-        case WDKError(status=status) | ExternalServiceError(status=status) if (
-            status < _SERVER_ERROR_STATUS
-        ):
-            return site_refusal(tool_name, site_words(error))
-        case _:
-            return site_read_failure(tool_name, site_words(error))
+    """The failed call for a site error: no answer at 500 or more, else a refusal."""
+    return _judged_read(tool_name, error, site_words(error))
+
+
+def _failed_tool(tool_name: str, error: ToolError) -> ToolFailed | None:
+    cause = error.__cause__
+    if site_status(cause) in _IDENTITY_STATUSES:
+        return None
+    if cause is None:
+        return site_refusal(tool_name, str(error))
+    return _judged_read(tool_name, cause, str(error))
 
 
 def site_failure(error: BaseException) -> bool:
-    """Whether the error is a site outage or timeout and no identity refusal."""
+    """Whether the error is a site outage, timeout or refusal and no identity refusal."""
     match error:
-        case WDKError(status=status) | ExternalServiceError(status=status):
-            return status not in _IDENTITY_STATUSES
-        case httpx.TransportError() | TimeoutError() | ConnectionError():
-            return True
+        case (
+            WDKError()
+            | ExternalServiceError()
+            | JBrowseError()
+            | httpx.TransportError()
+            | TimeoutError()
+            | ConnectionError()
+        ):
+            return site_status(error) not in _IDENTITY_STATUSES
         case _:
             return False
 
@@ -102,6 +119,15 @@ class SiteReadFailures(AbstractCapability[AgentDepsT]):
         error: Exception,
     ) -> Any:
         del ctx, call, args
-        if tool_def.name not in self.reads or not site_failure(error):
+        if tool_def.name not in self.reads:
             raise error
-        raise failed_read(tool_def.name, error) from error
+        match error:
+            case ToolError():
+                failed = _failed_tool(tool_def.name, error)
+            case _ if site_failure(error):
+                failed = failed_read(tool_def.name, error)
+            case _:
+                failed = None
+        if failed is None:
+            raise error
+        raise failed from error
