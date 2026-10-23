@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
 
 import pytest
 from assistant_core.persistence.repositories.conversation import (
@@ -49,10 +48,6 @@ _REQUEST = "Find genes upregulated\n 24 hours post blood meal in Anopheles gambi
 _PROVISIONAL = "Find genes upregulated 24 hours post blood meal in Anopheles..."
 
 
-async def _no_catalog(*_args: Any) -> None:
-    return None
-
-
 def _write_through(monkeypatch: pytest.MonkeyPatch, threads: Threads) -> StubAPI:
     """Push through the real sync and persist every write on ``threads``."""
     api = install_stub_api(monkeypatch)
@@ -66,8 +61,6 @@ def _write_through(monkeypatch: pytest.MonkeyPatch, threads: Threads) -> StubAPI
         monkeypatch.setattr(module, "ConversationRepository", lambda _s: threads)
     monkeypatch.setattr(naming, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(commit, "sync_strategy_for_site", sync.sync_strategy_for_site)
-    monkeypatch.setattr(sync, "make_record_type_resolver", _no_catalog)
-    monkeypatch.setattr(sync, "assign_step_record_classes", _no_catalog)
     monkeypatch.setattr(
         commit,
         "persist_strategy_ast_to_conversation",

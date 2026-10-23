@@ -9,6 +9,7 @@ from veupathdb.wdk import StrategyAPI, WDKAnswer, WDKIdentifier
 
 from pathfinder.platform.config import get_settings
 from pathfinder.services import eval as gold
+from pathfinder.services.experiment import materialization
 from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 
 _STEP = 5001
@@ -33,12 +34,12 @@ async def test_a_gold_strategy_above_the_cap_is_deleted(
         )
     )
     monkeypatch.setattr(gold, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
 
     with pytest.raises(TooManyGenesError):
         await gold.build_gold_strategy(
             gold_id="gold-1",
             site_id="plasmodb",
-            record_type="transcript",
             step_tree={"id": "step_a", "searchName": "GenesByTaxon", "parameters": {}},
         )
 

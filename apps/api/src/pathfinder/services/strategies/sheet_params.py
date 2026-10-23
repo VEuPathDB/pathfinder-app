@@ -13,7 +13,6 @@ from veupathdb_mcp.catalog import (
     ParamFetcher,
     format_param_info_typed,
     read_search_definition,
-    resolve_search_record_type,
     wdk_fetch_at,
 )
 
@@ -24,25 +23,33 @@ from pathfinder.services.strategies.record_classes import search_record_types
 logger = get_logger(__name__)
 
 
+async def _listed_under(site_id: str, search_name: str) -> str | None:
+    listed = await search_record_types(site_id, [search_name])
+    if search_name not in listed:
+        logger.warning(
+            "the site lists no record type for the search", search_name=search_name
+        )
+        return None
+    return listed[search_name]
+
+
 async def sheet_params_for_searches(
     *,
     site_id: str,
-    record_type: str | None,
     search_names: Collection[str],
 ) -> dict[str, list[ParameterInfo]]:
     """The visible parameters of every search the catalog reads, each read under
     the record type the catalog lists it under.
 
-    A search the catalog cannot read is left out, so the caller keeps the
-    values it already holds for that search.
+    A search the catalog lists under no record type, or cannot read, is left
+    out, so the caller keeps the values it already holds for that search.
     """
     sheets: dict[str, list[ParameterInfo]] = {}
     for search_name in sorted(set(search_names)):
         try:
-            listed = await search_record_types(site_id, [search_name])
-            listed_under = await resolve_search_record_type(
-                site_id, search_name, listed.get(search_name, record_type)
-            )
+            listed_under = await _listed_under(site_id, search_name)
+            if listed_under is None:
+                continue
             definition = await read_search_definition(
                 site_id, listed_under, search_name
             )
@@ -96,7 +103,6 @@ async def vocabularies_under(
 async def sheets_under_their_parents(
     *,
     site_id: str,
-    record_type: str | None,
     steps: Iterable[StepRead],
     sheets: Mapping[str, Sequence[ParameterInfo]],
 ) -> dict[str, list[ParameterInfo]]:
@@ -114,10 +120,9 @@ async def sheets_under_their_parents(
         if not parents_moved(values, step.names, sheet):
             continue
         try:
-            listed = await search_record_types(site_id, [search_name])
-            listed_under = await resolve_search_record_type(
-                site_id, search_name, listed.get(search_name, record_type)
-            )
+            listed_under = await _listed_under(site_id, search_name)
+            if listed_under is None:
+                continue
             fetch_at = wdk_fetch_at(site_id, listed_under, search_name)
             under[step.node.id] = await vocabularies_under(
                 fetch_at, list(sheet), values

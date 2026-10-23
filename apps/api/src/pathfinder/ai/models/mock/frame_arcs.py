@@ -116,7 +116,9 @@ def no_search_frame(messages: list[ModelMessage]) -> ToolCallPart:
     report the requirement after its last "with" by its number, binding nothing."""
     called = acted_tool_names(messages)
     if "search_for_searches" not in called:
-        return scripted_call("search_for_searches", {"query": message()})
+        return scripted_call(
+            "search_for_searches", {"query": message(), "record_type": "transcript"}
+        )
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
     asked = asked_property()
@@ -223,7 +225,9 @@ def other_site_frame(messages: list[ModelMessage]) -> ToolCallPart:
         return frame_call(_own_spec(held, None), called, replies, instructions)
     answer = last_answer(messages, "search_for_searches")
     if answer is None:
-        return scripted_call("search_for_searches", {"query": message()})
+        return scripted_call(
+            "search_for_searches", {"query": message(), "record_type": "transcript"}
+        )
     ranked = _RANKED.validate_python(answer)
     hit = _own_hit(ranked, _nearer(messages))
     if hit is not None and hit.name is not None:
@@ -253,7 +257,9 @@ def portal_frame(messages: list[ModelMessage]) -> ToolCallPart:
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
     if "search_for_searches" not in called:
-        return scripted_call("search_for_searches", {"query": crit.text})
+        return scripted_call(
+            "search_for_searches", {"query": crit.text, "record_type": "transcript"}
+        )
     refused = refusal_of(messages, "set_criterion")
     call = criterion_call(crit, criterion_replies(messages), instructions_of(messages))
     if refused is None and call is not None:

@@ -7,6 +7,7 @@ what left.
 
 ## Ranked
 
+52. [The every-species reading is built by the library](the-every-species-reading-is-built-by-the-library.md) - FRAME writes presence in every species of a group by hand from the parameter's help; veupathdb-mcp gains a builder that writes it from the taxonomy, and FRAME binds it whole.
 51. [A clarifying question offers what the site can build](a-clarifying-question-offers-what-the-site-can-build.md) - a consult asks for raw search parameters and then still refuses; it offers two or three buildable readings in the user's terms, builds the one picked, and refuses once with the nearest buildable thing.
 50. [A copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md) - "more genes per genome in Toxoplasma than Plasmodium" is refused although the phyletic expression counts proteins over a genome list; build it as count bands joined with OR and state the clade-average caveat.
 49. [An audit screens a genome for selenoproteins](an-audit-screens-a-genome-for-selenoproteins.md) - a genome-scope run screens length and split candidates from the gene reports; the selenoprotein check needs each genome's proteins with a `U`, which no library function reads per genome, so until one does it runs on explicit gene targets only.
@@ -28,6 +29,7 @@ what left.
 
 31. [A message that commands a change is an edit when it also asks a question](a-message-that-commands-a-change-is-an-edit.md) - a command beside a question can be classified a question that withdraws nothing, and the turn answers read-only.
 29. [A decision model is chosen on our own scorecards](a-decision-model-is-chosen-on-our-own-scorecards.md) - PARKED: Cloudflare's open-weight Clef and Clef-flash take Jev's request shape; the five Jev scorecards are rerun on both, on hosted Workers AI, before any decision model is wired.
+53. [A recorded gold strategy builds from its file](a-recorded-gold-strategy-builds-from-its-file.md) - no recorded gold file validates as a typed step tree, so the gold build route builds none of them.
 
 ## Known and accepted
 

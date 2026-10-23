@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -67,6 +68,15 @@ def _cloned() -> ClonedSavedStrategy:
     )
 
 
+def _group_clone() -> ClonedSavedStrategy:
+    return ClonedSavedStrategy(
+        root=StrategyStepNode(search_name="GroupsByPhyleticPattern"),
+        name=_SAVED_NAME,
+        record_type="group",
+        wdk_strategy_id=_SAVED_WDK_ID,
+    )
+
+
 def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
     return agent_run_context(agent_state=state, db_session_factory=no_database)
 
@@ -74,12 +84,13 @@ def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
 def _serve_library(
     monkeypatch: pytest.MonkeyPatch,
     entries: list[SavedStrategyListing],
+    cloned: ClonedSavedStrategy | None = None,
 ) -> None:
     async def _list(*_args: object, **_kwargs: object) -> list[SavedStrategyListing]:
         return entries
 
     async def _clone(*_args: object, **_kwargs: object) -> ClonedSavedStrategy:
-        return _cloned()
+        return cloned or _cloned()
 
     monkeypatch.setattr(_frame_saved, "list_saved_strategies", _list)
     monkeypatch.setattr(_frame_saved, "clone_saved_strategy", _clone)
@@ -138,8 +149,7 @@ class TestACriterionStartsFromASavedStrategy:
     async def test_a_saved_group_strategy_frames_the_spec_on_the_group_class(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        groups = _listing()[0].model_copy(update={"record_type": "group"})
-        _serve_library(monkeypatch, [groups])
+        _serve_library(monkeypatch, _listing(), _group_clone())
         state = AgentToolState()
 
         await set_criterion(
@@ -155,11 +165,11 @@ class TestACriterionStartsFromASavedStrategy:
         assert draft.record_type == "group"
 
     @pytest.mark.asyncio
-    async def test_a_saved_strategy_listed_with_no_class_states_none(
+    async def test_a_saved_strategy_the_site_names_no_class_for_states_none(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        unknown = _listing()[0].model_copy(update={"record_type": ""})
-        _serve_library(monkeypatch, [unknown])
+        unclassed = replace(_group_clone(), record_type="")
+        _serve_library(monkeypatch, _listing(), unclassed)
         state = AgentToolState()
 
         await set_criterion(

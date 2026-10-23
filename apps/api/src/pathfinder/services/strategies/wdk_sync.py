@@ -93,9 +93,7 @@ async def fetch_and_convert(
     nodes = [
         node for root in (payload.root, *payload.detached_roots) for node in walk(root)
     ]
-    kinds = await analysis_kinds_of(
-        site_id=site_id, record_type=payload.record_type, nodes=nodes
-    )
+    kinds = await analysis_kinds_of(site_id=site_id, nodes=nodes)
     if kinds:
         payload.metadata = StepWords(analysis_kinds=kinds).model_dump(
             by_alias=True, mode="json"

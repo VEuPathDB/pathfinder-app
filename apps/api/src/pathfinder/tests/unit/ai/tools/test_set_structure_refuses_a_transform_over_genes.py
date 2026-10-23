@@ -15,7 +15,7 @@ from pathfinder.ai.tools.standalone.frame_structure import (
 from pathfinder.domain.strategy.operational_spec import StructureNode
 from pathfinder.services.strategies.record_classes import (
     record_class_names,
-    search_record_classes,
+    search_record_types,
 )
 from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.qa_recording import needs_suite_recordings
@@ -47,14 +47,14 @@ def _state() -> AgentToolState:
 
 @pytest.mark.asyncio
 @needs_suite_recordings
-async def test_the_recorded_compounds_transform_takes_compounds() -> None:
-    classes = await search_record_classes(
+async def test_the_recorded_transforms_are_listed_under_genes() -> None:
+    listed = await search_record_types(
         "plasmodb", ["GenesByCompoundsTransform", "GenesByOrthologs", "Unlisted"]
     )
 
-    assert {name: (c.returns, c.takes) for name, c in classes.items()} == {
-        "GenesByCompoundsTransform": ("transcript", ("compound",)),
-        "GenesByOrthologs": ("transcript", ("transcript",)),
+    assert listed == {
+        "GenesByCompoundsTransform": "transcript",
+        "GenesByOrthologs": "transcript",
     }
     assert await record_class_names("plasmodb") == {
         "transcript": "Genes",

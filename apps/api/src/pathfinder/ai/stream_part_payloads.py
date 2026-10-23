@@ -55,7 +55,7 @@ class StrategyMeta(CamelModel):
     name: str
     is_saved: bool
     estimated_size: int | None = Field(ge=0)
-    record_class_name: str
+    record_class_name: str | None
 
 
 class StrategyLink(CamelModel):

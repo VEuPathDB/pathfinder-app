@@ -15,8 +15,11 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.domain.parameters import InputDatasetValue
+from veupathdb.domain.strategy import StrategyStepNode, walk
+from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
+    StrategyAPI,
     WDKDatasetConfigIdList,
     WDKDatasetIdListContent,
     get_strategy_api,
@@ -25,7 +28,8 @@ from veupathdb.wdk import (
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.experiment.materialization import (
-    _materialize_step_tree,
+    materialize_classed_tree,
+    tree_classes,
 )
 from pathfinder.services.gene_sets.step_genes import (
     TooManyGenesError,
@@ -56,80 +60,69 @@ class GoldStrategyResult:
 
 
 async def _provision_datasets(
-    api: Any,
-    step_tree: dict[str, Any],
+    api: StrategyAPI,
+    root: StrategyStepNode,
     dataset_gene_ids: dict[str, list[str]] | None,
 ) -> None:
-    """Create WDK datasets for any ds_gene_ids params and replace IDs in-place.
+    """Create a WDK dataset for each named parameter and bind every step to it.
 
     Gold strategies may reference user-specific dataset IDs (e.g. curated
     gene ID lists). This function creates fresh datasets under the current
-    user and patches the step tree with the new IDs.
+    user and binds the tree's steps to the new IDs.
     """
-    if not dataset_gene_ids:
-        return
-
-    # Create each dataset and build old->new ID mapping
-    id_map: dict[str, str] = {}
-    for param_name, gene_ids in dataset_gene_ids.items():
+    for param_name, gene_ids in (dataset_gene_ids or {}).items():
         config = WDKDatasetConfigIdList(
             source_type="idList",
             source_content=WDKDatasetIdListContent(ids=gene_ids),
         )
         new_id = await api.create_dataset(config)
-        id_map[param_name] = str(new_id)
         logger.info(
             "Created dataset for gold strategy",
             param_name=param_name,
             gene_count=len(gene_ids),
             dataset_id=new_id,
         )
-
-    # Walk the step tree and replace dataset IDs
-    def _patch(node: dict[str, Any]) -> None:
-        params = node.get("parameters", {})
-        for param_name, new_id in id_map.items():
-            if param_name in params:
-                params[param_name] = new_id
-        if node.get("primaryInput"):
-            _patch(node["primaryInput"])
-        if node.get("secondaryInput"):
-            _patch(node["secondaryInput"])
-
-    _patch(step_tree)
+        for step in walk(root):
+            if param_name in step.parameters:
+                step.parameters[param_name] = InputDatasetValue(dataset_id=str(new_id))
 
 
 async def build_gold_strategy(
     *,
     gold_id: str,
     site_id: str,
-    record_type: str,
     step_tree: dict[str, Any],
     dataset_gene_ids: dict[str, list[str]] | None = None,
     user_id: UUID | None = None,
 ) -> GoldStrategyResult:
     """Materialize a gold strategy AST on WDK and fetch all result gene IDs.
 
-    1. Provisions any user-specific datasets (gene ID lists).
-    2. Recursively creates WDK steps from the step tree.
-    3. Wraps them in a WDK strategy.
-    4. Fetches all gene IDs from the root step via standard report.
-    5. Returns the gene IDs plus WDK IDs.
+    1. Reads each step's record type, and refuses a tree the site cannot run.
+    2. Provisions any user-specific datasets (gene ID lists).
+    3. Recursively creates WDK steps from the step tree.
+    4. Wraps them in a WDK strategy.
+    5. Fetches all gene IDs from the root step via standard report.
+    6. Returns the gene IDs plus WDK IDs.
     """
     api = get_strategy_api(site_id)
-
-    await _provision_datasets(api, step_tree, dataset_gene_ids)
-
     tree_node = StrategyStepNode.model_validate(step_tree)
-    root_tree = await _materialize_step_tree(api, tree_node, record_type)
-    root_step_id = root_tree.step_id
+    known = await tree_classes(site_id, tree_node)
 
-    created = await api.create_strategy(
-        step_tree=root_tree,
-        name=f"gold:{gold_id}",
-        description=f"Gold strategy: {gold_id}",
-        is_saved=False,
-    )
+    await _provision_datasets(api, tree_node, dataset_gene_ids)
+
+    made: list[int] = []
+    try:
+        root_tree = await materialize_classed_tree(site_id, tree_node, known, made)
+        created = await api.create_strategy(
+            step_tree=root_tree,
+            name=f"gold:{gold_id}",
+            description=f"Gold strategy: {gold_id}",
+            is_saved=False,
+        )
+    except VEuPathDBError:
+        await api.delete_orphaned_steps(made)
+        raise
+    root_step_id = root_tree.step_id
     wdk_strategy_id = created.id
 
     logger.info(

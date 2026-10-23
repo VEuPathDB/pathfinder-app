@@ -18,7 +18,10 @@ from pathfinder.tests.unit.ai.tools.test_catalog_discovery import serve_go_overv
 
 # name -> (every argument, the required ones)
 _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
-    "browse_search_categories": (frozenset({"record_type"}), frozenset()),
+    "browse_search_categories": (
+        frozenset({"record_type"}),
+        frozenset({"record_type"}),
+    ),
     "build_clade_only_expression": (
         frozenset({"clade", "within"}),
         frozenset({"clade"}),
@@ -46,21 +49,18 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "get_strategy": (frozenset({"summary_only"}), frozenset()),
     "list_gene_sets": (frozenset(), frozenset()),
     "list_saved_strategies": (frozenset(), frozenset()),
-    "list_searches": (frozenset({"record_type"}), frozenset()),
-    "list_transforms": (frozenset({"record_type"}), frozenset()),
+    "list_searches": (frozenset({"record_type"}), frozenset({"record_type"})),
+    "list_transforms": (frozenset({"record_type"}), frozenset({"record_type"})),
     "lookup_gene_records": (
         frozenset({"limit", "organism", "query"}),
         frozenset({"query"}),
     ),
-    "lookup_phyletic_codes": (
-        frozenset({"query", "record_type"}),
-        frozenset({"query"}),
-    ),
+    "lookup_phyletic_codes": (frozenset({"query"}), frozenset({"query"})),
     "read_experiment": (frozenset({"dataset_id"}), frozenset({"dataset_id"})),
     "search_example_plans": (frozenset({"limit", "query"}), frozenset({"query"})),
     "search_for_searches": (
         frozenset({"category", "keywords", "limit", "query", "record_type"}),
-        frozenset({"query"}),
+        frozenset({"query", "record_type"}),
     ),
     "search_memory": (frozenset({"kind", "query", "top_k"}), frozenset({"query"})),
     "set_criterion": (

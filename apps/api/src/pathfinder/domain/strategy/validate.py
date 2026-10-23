@@ -2,12 +2,10 @@
 
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from typing import NamedTuple
 
-from pydantic import ConfigDict, JsonValue
+from pydantic import JsonValue
 from veupathdb.domain.parameters import to_decoded_map
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
-from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.organism_remedy import remedy_for, scope_text
 from pathfinder.domain.strategy.organism_scope import (
@@ -78,120 +76,6 @@ def _nodes(node: StrategyStepNode) -> Iterator[StrategyStepNode]:
     yield node
     for child in node.inputs():
         yield from _nodes(child)
-
-
-class SearchRecordClasses(CamelModel):
-    """The record class a search returns and the classes its input step may
-    hold, as WDK declares them; ``takes`` is empty for a search with no input."""
-
-    model_config = ConfigDict(frozen=True)
-
-    display_name: str
-    returns: str
-    takes: tuple[str, ...] = ()
-
-
-def _returned_classes(
-    node: StrategyStepNode, classes: Mapping[str, SearchRecordClasses]
-) -> set[str]:
-    """The known record classes a subtree returns. A combine returns the
-    classes of its inputs, and one of unknown class adds none."""
-    if node.infer_kind() == "combine":
-        return {c for child in node.inputs() for c in _returned_classes(child, classes)}
-    own = classes.get(node.search_name)
-    return set() if own is None else {own.returns}
-
-
-class MixedCombine(NamedTuple):
-    operator: CombineOp
-    left: StrategyStepNode
-    right: StrategyStepNode
-    primary: str
-    secondary: str
-
-
-def first_mixed_combine(
-    root: StrategyStepNode, classes: Mapping[str, SearchRecordClasses]
-) -> MixedCombine | None:
-    for node in _nodes(root):
-        left, right, operator = node.primary_input, node.secondary_input, node.operator
-        if left is None or right is None or operator is None:
-            continue
-        if operator is CombineOp.COLOCATE:
-            continue
-        primary = _returned_classes(left, classes)
-        secondary = _returned_classes(right, classes)
-        if len(primary) == 1 and len(secondary) == 1 and primary != secondary:
-            return MixedCombine(operator, left, right, primary.pop(), secondary.pop())
-    return None
-
-
-def _side(node: StrategyStepNode) -> str:
-    left, right, operator = node.primary_input, node.secondary_input, node.operator
-    if left is None or right is None or operator is None:
-        return node.id
-    return f"({_side(left)} {operator.value} {_side(right)})"
-
-
-def mixed_combine_refusal(
-    mixed: MixedCombine,
-    record_names: Mapping[str, str],
-    transforms: Mapping[str, SearchRecordClasses],
-) -> str:
-    left, right = _side(mixed.left), _side(mixed.right)
-    first = record_names.get(mixed.primary, mixed.primary)
-    second = record_names.get(mixed.secondary, mixed.secondary)
-    named = {mixed.primary: first, mixed.secondary: second}
-    remedies = [
-        f"{t.display_name} ({name}) maps {named[source]} to {named[target]}: "
-        f"put it over {side}."
-        for source, target, side in (
-            (mixed.primary, mixed.secondary, left),
-            (mixed.secondary, mixed.primary, right),
-        )
-        for name, t in sorted(transforms.items())
-        if source in t.takes and t.returns == target
-    ]
-    remedy = " ".join(remedies) or (
-        f"No transform on this site maps {first} to {second} or {second} to "
-        f"{first}. Bind both inputs to searches on one record type, or ask the "
-        f"researcher."
-    )
-    return (
-        f"The {mixed.operator.value} of {left} ({first}) and {right} ({second}) "
-        f"joins two record types. WDK combines only steps of one record type, so "
-        f"the site refuses this combine. {remedy}"
-    )
-
-
-def transform_input_refusal(
-    root: StrategyStepNode,
-    classes: Mapping[str, SearchRecordClasses],
-    record_names: Mapping[str, str],
-) -> str | None:
-    """Why the first transform whose input returns a record class it does not
-    take is refused, or None. A search or an input of unknown or mixed class
-    abstains."""
-    for node in _nodes(root):
-        own = classes.get(node.search_name)
-        source = node.primary_input
-        if node.infer_kind() != "transform" or source is None or own is None:
-            continue
-        given = sorted(_returned_classes(source, classes))
-        if not own.takes or len(given) != 1 or set(given) <= set(own.takes):
-            continue
-        takes = " or ".join(record_names.get(c, c) for c in own.takes)
-        returns = record_names.get(own.returns, own.returns)
-        subtree = record_names.get(given[0], given[0])
-        return (
-            f"{node.id} runs {own.display_name} ({node.search_name}), which takes "
-            f"{takes} as its input step, and the subtree under it returns "
-            f"{subtree}. WDK runs a transform only on the record classes it "
-            f"declares, so this tree cannot run. {own.display_name} maps {takes} "
-            f"to {returns}; it is not a filter on {subtree}. Drop {node.id}, bind "
-            f"it to a search on {subtree} that states it, or ask the researcher."
-        )
-    return None
 
 
 @dataclass

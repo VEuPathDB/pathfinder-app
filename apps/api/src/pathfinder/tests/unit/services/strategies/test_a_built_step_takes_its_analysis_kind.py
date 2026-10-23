@@ -160,8 +160,8 @@ async def _nothing(**_kwargs: object) -> None:
 async def test_an_inserted_saved_deseq_step_takes_its_kind(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    install_stub_api(monkeypatch)
     serve_the_catalog(monkeypatch)
+    install_stub_api(monkeypatch)
     site: Any = _SavedSite()
     monkeypatch.setattr(insert_saved, "get_strategy_api", lambda _site: site)
     monkeypatch.setattr(insert_saved, "canonicalize_synced_parameters", _as_strings)

@@ -31,8 +31,9 @@ _REFUSAL = (
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
+    api = install_stub_api(monkeypatch)
     serve_orthomcl_record_classes(monkeypatch)
-    return install_stub_api(monkeypatch)
+    return api
 
 
 def _step(

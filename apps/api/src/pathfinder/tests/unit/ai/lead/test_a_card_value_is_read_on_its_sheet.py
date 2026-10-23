@@ -70,9 +70,9 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
     read: list[list[str]] = []
 
     async def _sheets(
-        *, site_id: str, record_type: str | None, search_names: Collection[str]
+        *, site_id: str, search_names: Collection[str]
     ) -> dict[str, list[ParameterInfo]]:
-        del site_id, record_type
+        del site_id
         read.append(sorted(search_names))
         return {_SEARCH: sheet}
 

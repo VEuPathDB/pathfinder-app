@@ -73,6 +73,7 @@ async def test_the_faulted_term_is_recorded_under_the_parameter_it_is_set_on(
     await search_for_searches(
         agent_run_context(agent_state=state, tool_call_id="call_read"),
         query="predicted signal peptide",
+        record_type="transcript",
     )
 
     answer = await set_criterion(

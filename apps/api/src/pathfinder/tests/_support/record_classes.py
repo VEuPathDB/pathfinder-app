@@ -3,7 +3,7 @@ search definitions under ``tests/fixtures/wdk``."""
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Collection
+from collections.abc import Awaitable, Callable, Collection, Mapping
 from functools import cache
 from pathlib import Path
 
@@ -77,6 +77,18 @@ def list_every_search_under(monkeypatch: pytest.MonkeyPatch, record_type: str) -
             if search is None or search.output_record_class_name is None:
                 return record_type
             return search.output_record_class_name
+
+        return _listed_under
+
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
+
+
+def list_each_search_under(
+    monkeypatch: pytest.MonkeyPatch, listing: Mapping[str, str]
+) -> None:
+    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
+        async def _listed_under(search_name: str) -> str | None:
+            return listing.get(search_name)
 
         return _listed_under
 

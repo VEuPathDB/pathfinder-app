@@ -16,9 +16,12 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.frame_expression_checks import (
+    hold_an_every_genome_presence_to_a_question,
+    hold_the_taxa_to_their_scope,
+)
 from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from pathfinder.ai.agents.frame_result_checks import (
-    hold_an_every_genome_presence_to_a_question,
     hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,
     hold_the_record_types_to_a_role,
@@ -161,7 +164,10 @@ Procedure:
         is built by `build_clade_only_expression(clade)`, with `within` a clade M
         that holds L when only the genomes outside M must hold none; bind its
         expression whole. A genus with no clade code is the list of its genome
-        codes. A T count counts genomes, and strains are genomes. The site drops
+        codes. A T count counts genomes, and strains are genomes. When an expression
+        names genomes of several species or strains of one taxon, state the taxon's
+        scope in `group_scopes`: whole, with `except_codes` for the genomes the request
+        leaves out, or named, exactly the genomes the units write. The site drops
         parentheses and reads AND before OR, so write an OR of AND terms, each term
         repeating the units it shares. `<`, `<=` and `>=` hold only for a group with a
         protein in the list, so absence from a list L is `L=0T`, and absence from at
@@ -399,5 +405,6 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
     agent.output_validator(hold_the_readings_to_the_site)
+    agent.output_validator(hold_the_taxa_to_their_scope)
     agent.output_validator(hold_an_every_genome_presence_to_a_question)
     return agent

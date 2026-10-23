@@ -204,19 +204,18 @@ async def _the_replay_reading(
     stated = {c.id for spec in _every_spec(domain) for c in spec.criteria}
     steps = steps_the_replay_reads(changes, live, stated)
     searches = frozenset(step.node.search_name for step in steps)
-    record_type = None if live is None else live.record_type
     named = {c.search_name for spec in _every_spec(domain) for c in spec.criteria}
     held = {node.search_name for node in nodes_of(live).values()} if live else set()
     classes = await search_record_types(site_id, (named | held) - {""})
     if not searches:
         return _Reading({}, {}, analyses_of(live), searches, {}, classes)
     sheets = await sheet_params_for_searches(
-        site_id=site_id, record_type=record_type, search_names=sorted(searches)
+        site_id=site_id, search_names=sorted(searches)
     )
     return _Reading(
         sheets=sheets,
         under_parents=await sheets_under_their_parents(
-            site_id=site_id, record_type=record_type, steps=steps, sheets=sheets
+            site_id=site_id, steps=steps, sheets=sheets
         ),
         analyses=analyses_of(live),
         searches=searches,

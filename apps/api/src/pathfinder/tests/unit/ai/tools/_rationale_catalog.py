@@ -146,7 +146,9 @@ async def read(
     )
     serve_no_other_sites(monkeypatch)
     await search_for_searches(
-        agent_run_context(agent_state=state, tool_call_id=call), query=query
+        agent_run_context(agent_state=state, tool_call_id=call),
+        query=query,
+        record_type="transcript",
     )
 
 

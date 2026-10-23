@@ -9,7 +9,6 @@ from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
     StrategyStepNode,
-    flatten_tree,
 )
 
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -18,6 +17,7 @@ from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_steps
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.models._mock_turns import Scene, names, play
@@ -61,7 +61,7 @@ def _toxo_turn() -> LeadDeps:
     )
     graph = StrategyGraph(graph_id="g1", name="strategy", site_id="toxodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(root)
+    graph.steps = classed_steps(root)
     graph.recompute_roots()
     session = StrategySession(site_id="toxodb")
     session.graph = graph

@@ -28,6 +28,7 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     gene_set_chunk,
     gene_set_list_chunk,
 )
+from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.services.evidence.gene_sets import (
     list_stored_gene_sets,
@@ -175,7 +176,6 @@ async def _genes_to_save(
 async def save_gene_set(
     ctx: RunContext[AgentDeps],
     name: str,
-    record_type: str = "transcript",
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
@@ -189,7 +189,6 @@ async def save_gene_set(
 
     Args:
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').
-        record_type: Record type (default 'transcript').
         step_id: The step of THIS conversation's strategy whose genes to save,
             by its graph id (e.g. 'step_3'). Leave it out for the strategy's
             root step. The genes of a step are read from that step on
@@ -203,7 +202,9 @@ async def save_gene_set(
         msg = "VALIDATION_ERROR: Gene set name must be a non-empty string."
         raise ModelRetry(msg)
     deps = ctx.deps
-    genes, src = await _genes_to_save(deps, step_id, gene_ids, record_type)
+    genes, src = await _genes_to_save(
+        deps, step_id, gene_ids, gene_record_class(site_kind(deps.site_id))
+    )
     gs = GeneSet(
         id=str(uuid4()),
         name=name,
@@ -295,7 +296,7 @@ async def list_gene_sets(
             saved_here=saved_here(gs.conversation_id, deps.conversation_id),
             saved_on=gs.site_id,
             genes_on_this_site=len(gs.genes_on(deps.site_id, kind)),
-            record_noun=counted_noun(gs.record_type) if gs.record_type else "gene",
+            record_noun=counted_noun(gs.record_type or gene_record_class(kind)),
             out_of_date=gs.out_of_date,
         )
         for gs in stored

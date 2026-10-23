@@ -116,6 +116,7 @@ async def _answer(state: AgentToolState, call: ToolCallPart) -> object:
             ranked = await search_for_searches(
                 agent_run_context(agent_state=state, tool_call_id=call.tool_call_id),
                 query=args["query"],
+                record_type="transcript",
             )
             return ranked.return_value
         case "set_criterion":

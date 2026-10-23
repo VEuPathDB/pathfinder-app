@@ -48,7 +48,9 @@ async def test_a_read_keeps_its_hits_with_their_similarity(
     state = AgentToolState()
 
     await search_for_searches(
-        agent_run_context(agent_state=state), query="genes with a predicted GPI anchor"
+        agent_run_context(agent_state=state),
+        query="genes with a predicted GPI anchor",
+        record_type="transcript",
     )
 
     assert state.catalog_reads == [
@@ -92,7 +94,9 @@ async def test_a_read_marks_the_turn_as_looked_up(
     serve_no_other_sites(monkeypatch)
     ctx = agent_run_context()
 
-    await search_for_searches(ctx, query="genes with an InterPro domain")
+    await search_for_searches(
+        ctx, query="genes with an InterPro domain", record_type="transcript"
+    )
 
     assert ctx.deps.turn_markers.catalog_looked_up is True
 

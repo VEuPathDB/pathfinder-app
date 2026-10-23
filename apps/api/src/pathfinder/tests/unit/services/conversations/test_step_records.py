@@ -15,6 +15,7 @@ from pathfinder.services.conversations.responses import (
     StepRecord,
     StepRecordsResponse,
 )
+from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.step_answers import (
     GENE_TOTAL,
     PUSHED_STEP,
@@ -32,8 +33,9 @@ _GENE_VIEW = [WDKFilterValue(name="representativeTranscriptOnly", value={})]
 def _install(
     monkeypatch: pytest.MonkeyPatch, *, record_type: str = "transcript"
 ) -> SiteApi:
-    stored = thread(record_type=record_type)
+    stored = thread(record_type="transcript")
     api = SiteApi()
+    list_searches_under(monkeypatch, record_type, ["GenesByExonCount"])
 
     async def _owned(*_args: Any, **_kwargs: Any) -> Any:
         return stored
@@ -161,3 +163,32 @@ async def test_a_strategy_of_records_that_are_not_genes_is_refused(
 
     assert refusal.value.detail == "A compound record is not a gene."
     assert api.reads == []
+
+
+async def test_a_snp_step_in_a_gene_strategy_is_read_as_snps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = _install(monkeypatch, record_type="snp")
+
+    with pytest.raises(ValidationError) as refusal:
+        await _read(PUSHED_STEP)
+
+    assert (refusal.value.detail, api.reads) == ("A snp record is not a gene.", [])
+
+
+async def test_a_step_of_no_listed_class_is_refused_by_its_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = _install(monkeypatch)
+    list_searches_under(monkeypatch, "transcript", [])
+
+    with pytest.raises(ValidationError) as refusal:
+        await _read(PUSHED_STEP)
+
+    assert (refusal.value.detail, api.reads) == (
+        (
+            "The site lists no record type for GenesByExonCount, so step "
+            f"{PUSHED_STEP!r} cannot be read."
+        ),
+        [],
+    )

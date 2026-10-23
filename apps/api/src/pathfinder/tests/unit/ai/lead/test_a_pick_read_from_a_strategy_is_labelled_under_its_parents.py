@@ -144,9 +144,9 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> _Reads:
     published = {_DOMAINS: _PUBLISHED, _TEXT: visible_sheet(["text_expression"])}
 
     async def _sheets(
-        *, site_id: str, record_type: str | None, search_names: Collection[str]
+        *, site_id: str, search_names: Collection[str]
     ) -> dict[str, list[ParameterInfo]]:
-        del site_id, record_type
+        del site_id
         return {name: published[name] for name in search_names}
 
     async def _marks(_site_id: str, _searches: Collection[str]) -> dict[str, str]:

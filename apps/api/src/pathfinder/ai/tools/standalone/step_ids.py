@@ -15,6 +15,7 @@ from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
 from pathfinder.ai.tools.standalone._sample_page import sample_page
+from pathfinder.ai.tools.standalone._step_read import read_as
 from pathfinder.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     named_or_root,
@@ -62,13 +63,13 @@ def _no_such_step(wdk_step_id: int, live: list[int]) -> str:
 async def _sampled_ids(deps: StepIdsReader, wdk_step_id: int, limit: int) -> StepIds:
     """The ids ``get_sample_records`` reads at the same limit, in its order."""
     session = deps.strategy_session
-    graph = session.get_graph(None)
+    record_type, _own = await read_as(session, wdk_step_id)
     sampled = await sample_page(
         deps.site_id,
         wdk_step_id,
         limit=limit,
         attributes=["primary_key"],
-        record_type=(graph.record_type if graph is not None else None) or "transcript",
+        record_type=record_type,
         seed=step_sample_seed(session, wdk_step_id),
     )
     return StepIds(gene_ids=sampled.gene_ids, total=sampled.result.total_count)

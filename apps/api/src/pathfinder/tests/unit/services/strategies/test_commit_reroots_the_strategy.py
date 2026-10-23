@@ -22,7 +22,13 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepMetaOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
+from pathfinder.services.strategies import (
+    commit,
+    live_counts,
+    record_classes,
+    step_wdk_push,
+    sync,
+)
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
@@ -190,7 +196,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     async def _resolver(_site_id: str) -> Any:
         return _listed_under
 
-    monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     return recording
 
 

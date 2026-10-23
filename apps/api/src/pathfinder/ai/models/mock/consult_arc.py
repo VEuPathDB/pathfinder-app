@@ -166,7 +166,9 @@ def _asked(crit: CriterionSpec, offer: _Offer | None) -> dict[str, Any]:
 def _catalog_read(called: frozenset[str], crit: CriterionSpec) -> ToolCallPart | None:
     """The catalog reads a pass makes before it binds, each once."""
     if "search_for_searches" not in called:
-        return scripted_call("search_for_searches", {"query": crit.text})
+        return scripted_call(
+            "search_for_searches", {"query": crit.text, "record_type": "transcript"}
+        )
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
     return None

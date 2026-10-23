@@ -180,9 +180,14 @@ def _wrapped_args_hint(
 # Next-action libraries
 # ---------------------------------------------------------------------------
 
+_ONE_OF_THE_SITES = 'record_type="<one of the record types get_record_types names>"'
 _NEXT_ACTIONS_WDK_404_SEARCH = [
-    'Call search_for_searches(query="<describe what you need>") to find the correct search name',
-    'Call list_searches(record_type="transcript") to see all available searches',
+    "Call get_record_types to see the record types this site publishes",
+    (
+        'Call search_for_searches(query="<describe what you need>", '
+        f"{_ONE_OF_THE_SITES}) to find the correct search name"
+    ),
+    f"Call list_searches({_ONE_OF_THE_SITES}) to see all of that type's searches",
 ]
 
 _NEXT_ACTIONS_WDK_422 = [

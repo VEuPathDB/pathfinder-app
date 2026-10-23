@@ -53,7 +53,7 @@ async def count_step_by_column(
         )
         msg = f"Step {wdk_step_id} is not a step of this strategy. {built}"
         raise ModelRetry(msg)
-    record_type, own_search = read_as(session, wdk_step_id)
+    record_type, own_search = await read_as(session, wdk_step_id)
     sync = session.sync_state
     strategy_id = None if sync is None else sync.wdk_strategy_id
     step_url = (

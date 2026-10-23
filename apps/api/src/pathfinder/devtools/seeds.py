@@ -19,18 +19,10 @@ import sys
 from pathlib import Path
 
 from veupathdb.domain.strategy import (
-    DEFAULT_COMBINE_OPERATOR,
-    StrategyStepNode,
     leaves,
 )
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    StrategyAPI,
-    WDKSearchConfig,
-    WDKStepTree,
-    encode_params,
     get_strategy_api,
     password_login,
 )
@@ -41,6 +33,7 @@ from pathfinder.ai.models.mock.site_values import MARKS_FILE
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.controls_search import controls_search
+from pathfinder.services.experiment.materialization import materialize_step_tree
 from pathfinder.services.experiment.seed.catalog import (
     SEEDS_DIR,
     get_seeds_for_site,
@@ -50,38 +43,6 @@ from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
 from pathfinder.services.wdk_build import site_build
 
 STRATEGY_NAME = "pathfinder seed measure"
-
-
-async def _push(
-    api: StrategyAPI, node: StrategyStepNode, record_type: str, made: list[int]
-) -> WDKStepTree:
-    """Create the steps of a seed tree, inputs first, and note each step id."""
-    if node.primary_input is None or node.secondary_input is None:
-        step = await api.create_step(
-            NewStepSpec(
-                search_name=node.search_name,
-                search_config=WDKSearchConfig(
-                    parameters=encode_params(node.parameters)
-                ),
-                custom_name=node.display_name or node.search_name,
-            ),
-            record_type=record_type,
-        )
-        made.append(step.id)
-        return WDKStepTree(step_id=step.id)
-    left = await _push(api, node.primary_input, record_type, made)
-    right = await _push(api, node.secondary_input, record_type, made)
-    combined = await api.create_combined_step(
-        CombinedStepSpec(
-            primary_step_id=left.step_id,
-            secondary_step_id=right.step_id,
-            boolean_operator=node.operator or DEFAULT_COMBINE_OPERATOR,
-            custom_name=node.display_name or "combine",
-        ),
-        record_type=record_type,
-    )
-    made.append(combined.id)
-    return WDKStepTree(step_id=combined.id, primary_input=left, secondary_input=right)
 
 
 async def measure_seed(
@@ -100,7 +61,7 @@ async def measure_seed(
     strategy_id: int | None = None
     try:
         root = seed.step_node()
-        tree = await _push(api, root, seed.record_type, made)
+        tree = await materialize_step_tree(seed.site_id, root, made)
         strategy_id = (
             await api.create_strategy(tree, name=STRATEGY_NAME, is_internal=True)
         ).id

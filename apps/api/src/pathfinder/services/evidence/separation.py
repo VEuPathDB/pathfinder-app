@@ -13,7 +13,7 @@ from veupathdb_mcp.separation import (
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.identity import SEPARATION_STRATEGY_NAME
-from pathfinder.services.separation.offer import RECORD_TYPE, separation_report
+from pathfinder.services.separation.offer import separation_report
 from pathfinder.services.separation.thread_searches import thread_searches
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
@@ -43,7 +43,6 @@ async def separate_controls(
     )
     sheets = await sheet_params_for_searches(
         site_id=site_id,
-        record_type=RECORD_TYPE,
         search_names={m.candidate.search_name for m in result.measured},
     )
     return separation_report(result, task_id=task_id, sheets=sheets)

@@ -38,7 +38,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.services.strategies import step_wdk_push
+from pathfinder.services.strategies import record_classes, step_wdk_push
 from pathfinder.services.strategies.step_push_planner import CreateAction, StepPushPlan
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -245,7 +245,11 @@ class TestValidationWritesTheClassOntoTheStep:
             del search_name, exclude
             return None
 
+        async def _resolver(_site_id: str) -> Any:
+            return _catalog_resolver
+
         monkeypatch.setattr(step_wdk_push, "validate_parameters", _validate)
+        monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
         monkeypatch.setattr(
             step_wdk_push,
             "make_validation_callbacks",
@@ -264,8 +268,9 @@ class TestValidationWritesTheClassOntoTheStep:
             StepPushPlan(step_id="root", action=CreateAction(), reason="new"),
         ]
 
+        await record_classes.fill_record_classes("plasmodb", steps)
         incomplete = await step_wdk_push._validate_plan_params(
-            plan, steps, "plasmodb", "transcript", {}
+            plan, steps, "plasmodb", {}
         )
 
         assert incomplete == set()

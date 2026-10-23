@@ -38,11 +38,9 @@ from pathfinder.ai.tools.standalone import (
 )
 from pathfinder.services.strategies import (
     record_classes,
-    sheet_params,
     spec_build,
     stated_sides,
     step_wdk_push,
-    sync,
 )
 from pathfinder.tests._support.catalog_builders import serve_search_details
 from pathfinder.tests._support.qa_recording import client_recording, qa_recording
@@ -133,12 +131,7 @@ def serve_recorded_record_types(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
         return _listed_under
 
-    async def _owner(_site_id: str, search_name: str, record_type: str | None) -> str:
-        return record_type or await _listed_under(search_name) or "transcript"
-
-    monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
-    monkeypatch.setattr(sheet_params, "resolve_search_record_type", _owner)
 
 
 def serve_recorded_listing(monkeypatch: pytest.MonkeyPatch) -> None:

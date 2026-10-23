@@ -13,6 +13,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.services.eda import analysis_kinds
+from pathfinder.tests._support.record_classes import list_each_search_under
 
 DESEQ_SEARCH = "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq"
 WGCNA_SEARCH = (
@@ -58,20 +59,12 @@ def serve_the_catalog(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Serve each definition to the stamp, and record which searches it read."""
     read: list[str] = []
 
-    async def _record_type(
-        _site: str, search_name: str, record_type: str | None
-    ) -> str:
-        """A known record type answers; else the record type that lists the search."""
-        if record_type:
-            return record_type
-        return RECORD_TYPES[search_name]
-
     async def _definition(_site: str, _record: str, search_name: str) -> WDKSearch:
         read.append(search_name)
         if search_name == UNREADABLE_SEARCH:
             raise _NO_SUCH_SEARCH
         return definition_of(search_name)
 
-    monkeypatch.setattr(analysis_kinds, "resolve_search_record_type", _record_type)
+    list_each_search_under(monkeypatch, RECORD_TYPES)
     monkeypatch.setattr(analysis_kinds, "read_search_definition", _definition)
     return read

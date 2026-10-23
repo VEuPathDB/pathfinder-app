@@ -75,7 +75,9 @@ class TestASilentZeroReportsEmpty:
         serve_no_other_sites(monkeypatch)
         ctx = agent_run_context()
         ctx.deps.agent_state = AgentToolState()
-        returned = await search_for_searches(ctx, "nothing at all")
+        returned = await search_for_searches(
+            ctx, "nothing at all", record_type="transcript"
+        )
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "0 searches"
         assert chunk.data["status"] == "empty"

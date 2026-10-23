@@ -51,15 +51,10 @@ from pathfinder.domain.strategy.spec_fold import (
     fold_organism_universe,
     intersected_leaves,
 )
-from pathfinder.domain.strategy.validate import (
-    transform_input_refusal,
-)
 from pathfinder.domain.strategy.words import words_of
 from pathfinder.services.strategies.organism_universe import universe_counts
 from pathfinder.services.strategies.record_classes import (
-    record_class_names,
-    search_record_classes,
-    tree_combine_refusal,
+    tree_record_class_refusal,
 )
 
 
@@ -237,26 +232,14 @@ async def _refuse_a_tree_of_another_record_class(
     ctx: RunContext[AgentDeps], proposed: SpecStructure
 ) -> None:
     """A combine joins inputs of one record class, and a transform runs only on
-    an input of a record class WDK says it takes.
-
-    The site is read only when the tree holds a combine or a transform.
-    """
-    if proposed.root.kind == "leaf":
-        return
+    an input of a record class WDK says it takes."""
     draft = ctx.deps.agent_state.operational_spec_draft
     stated = draft.model_copy(update={"structure": proposed})
     steps = stated_steps(stated)
     if steps is None:
         return
-    named = structure_criteria(proposed)
-    searches = [c.search_name for c in stated.criteria if c.id in named]
-    refusal = await tree_combine_refusal(
-        ctx.deps.site_id, steps
-    ) or transform_input_refusal(
-        steps,
-        await search_record_classes(ctx.deps.site_id, searches),
-        await record_class_names(ctx.deps.site_id),
-    )
+    held = {c.id: c.record_class for c in stated.criteria if c.record_class}
+    refusal = await tree_record_class_refusal(ctx.deps.site_id, steps, held)
     if refusal is not None:
         msg = f"The structure is refused: {refusal} Nothing was recorded."
         raise ModelRetry(msg)
@@ -307,7 +290,8 @@ async def set_structure(
     - ``{"kind": "leaf", "criterionId": "<id>"}`` -- one bound criterion.
     - ``{"kind": "combine", "operator": "INTERSECT" | "UNION" | "MINUS",
       "inputs": [<left>, <right>]}`` -- boolean-combine two or more
-      subtrees. A tree of one criterion is that criterion's leaf.
+      subtrees. A tree of one criterion is that criterion's leaf. The inputs
+      of a combine return one record type; a transform maps one type to another.
     - ``{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}``
       -- a search that MAPS the subtree's genes rather than combining with
       them (e.g. ``GenesByOrthologs`` returning orthologs in another

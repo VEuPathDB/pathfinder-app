@@ -18,6 +18,7 @@ from veupathdb.wdk import WDKRecordType, WDKSearch
 from pathfinder.ai.tools.standalone import _sample_attributes, _sample_page, results
 from pathfinder.ai.tools.standalone._sample_attributes import selecting_attributes
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies.sync_state import WDKSyncState
 
 from .conftest import agent_run_context
 
@@ -116,6 +117,7 @@ def _signal_peptide_and_transmembrane() -> StrategySession:
     )
     graph.recompute_roots()
     session.graph = graph
+    session.sync_state = WDKSyncState(wdk_step_ids={"step_and": 42})
     return session
 
 

@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.revision import (
     without_wdk_ids,
 )
 from pathfinder.persistence.models import PersistedStrategyGraph
+from pathfinder.services.strategies.record_classes import tree_record_class_refusal
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
@@ -73,7 +74,9 @@ def snapshot_as_plan(
     return _plan_only(ast)
 
 
-def _plan_only(ast: StrategyAst) -> MaterializedStrategy:
+def _plan_only(ast: StrategyAst, refusal: str | None = None) -> MaterializedStrategy:
+    if refusal is not None:
+        ast = ast.model_copy(update={"wdk_push_errors": {ast.root.id: refusal}})
     return MaterializedStrategy(
         strategy_ast=ast.model_dump(by_alias=True, exclude_none=True, mode="json"),
         record_type=ast.record_type or None,
@@ -122,8 +125,15 @@ async def materialize_strategy_snapshot(
         ),
     )
     graph = session.graph
-    if graph is None:
-        return _plan_only(fresh)
+    refusal = await tree_record_class_refusal(site_id, fresh.root, {})
+    if refusal is not None:
+        logger.warning(
+            "The site cannot run the snapshot's tree; the thread keeps the plan only",
+            conversation_id=str(conversation_id),
+            refusal=refusal,
+        )
+    if graph is None or refusal is not None:
+        return _plan_only(fresh, refusal)
     name_the_combines(graph.steps.values())
     sync_state = ensure_sync_state(session)
     try:

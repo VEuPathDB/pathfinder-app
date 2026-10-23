@@ -17,6 +17,7 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._edit_refusal import batch_refusal_context
 from pathfinder.ai.tools.standalone._validation_helpers import (
     OperationPayload,
     StepTreePayload,
@@ -241,7 +242,7 @@ async def apply_operations(
         raise ModelRetry(msg) from exc
     except ValidationError as exc:
         raise validation_model_retry(
-            exc, recordType=graph.record_type or "transcript"
+            exc, **await batch_refusal_context(deps, operations)
         ) from exc
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:

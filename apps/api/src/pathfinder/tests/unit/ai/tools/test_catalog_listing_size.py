@@ -89,7 +89,7 @@ async def test_the_portal_listing_leaves_the_frame_history_uncompacted(
         tool_payloads, "list_search_listings", AsyncMock(return_value=_portal_rows())
     )
 
-    listing = returned(await list_searches(_ctx()), list[str])
+    listing = returned(await list_searches(_ctx(), record_type="transcript"), list[str])
     history = _frame_history(listing)
 
     assert len(listing) == PORTAL_SEARCHES

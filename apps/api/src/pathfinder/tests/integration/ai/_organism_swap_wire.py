@@ -224,7 +224,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
         return _transcript
 
-    monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 

@@ -45,6 +45,7 @@ from pathfinder.services.strategies.live_counts import read_the_live_strategy
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
+from pathfinder.services.strategies.record_classes import step_record_class
 from pathfinder.services.strategies.session_factory import stored_strategy_session
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from pathfinder.services.strategies.write_lock import strategy_write_lock
@@ -212,11 +213,21 @@ async def _take_the_sites_values(
         if step.kind is StepKind.COMBINE:
             taken = _take_the_operator(step, operators.get(wdk_key))
         else:
-            taken = await _take_the_parameters(
+            own = wdk_step.record_class_name or await step_record_class(
+                site_id, graph.steps, step.id
+            )
+            if own is None:
+                logger.warning(
+                    "The site lists no record type for the step's search, so its "
+                    "values were not read",
+                    step_id=step.id,
+                    search_name=wdk_step.search_name,
+                )
+            taken = own is not None and await _take_the_parameters(
                 step,
                 wdk_step.search_name,
                 wdk_step.search_config.parameters,
-                record_type=step.record_class or graph.record_type or "",
+                record_type=own,
                 site_id=site_id,
             )
         weighed = _take_the_weight(step, wdk_step.search_config)

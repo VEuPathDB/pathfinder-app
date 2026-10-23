@@ -127,6 +127,27 @@ def test_seed_def_forbids_unknown_fields() -> None:
         )
 
 
+def test_a_seed_states_its_record_type() -> None:
+    with pytest.raises(ValidationError) as refused:
+        SeedDef.model_validate(
+            {
+                "name": "x",
+                "description": "x",
+                "site_id": "orthomcl",
+                "step_tree": {"searchName": "GroupsByPhyleticPattern"},
+                "control_set": {
+                    "name": "x",
+                    "positive_ids": ["a"],
+                    "negative_ids": ["b"],
+                    "provenance_notes": "x",
+                    "tags": ["t"],
+                },
+            }
+        )
+
+    assert [error["loc"] for error in refused.value.errors()] == [("record_type",)]
+
+
 def _controls(positives: list[str], negatives: list[str]) -> dict[str, object]:
     return {
         "name": "x",
@@ -207,6 +228,7 @@ def test_a_measurement_counts_the_seeds_own_controls() -> None:
         "description": "x",
         "site_id": "plasmodb",
         "step_tree": {"searchName": "GenesByText"},
+        "record_type": "transcript",
         "control_set": _controls(["a", "b"], ["c", "d"]),
     }
     measured = _measured(root_count=10, positives_recovered=2, negatives_admitted=0)

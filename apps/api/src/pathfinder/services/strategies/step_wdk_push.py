@@ -15,19 +15,18 @@ from veupathdb.domain.strategy import (
     StepKind,
     StepValidation,
     StrategyStep,
-    record_class_of,
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk import encode_params, get_strategy_api
 from veupathdb_mcp.catalog import (
     ValidationCallbacks,
-    assign_step_record_classes,
     make_validation_callbacks,
     validate_parameters,
 )
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
 from pathfinder.services.strategies._wdk_step_calls import (
@@ -36,6 +35,10 @@ from pathfinder.services.strategies._wdk_step_calls import (
     _push_leaf_step,
     _push_transform_step,
     _put_search_config,
+)
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    unclassed_step_failure,
 )
 from pathfinder.services.strategies.step_push_planner import (
     CreateAction,
@@ -291,7 +294,6 @@ async def _validate_plan_params(
     plan: list[StepPushPlan],
     steps_by_id: dict[str, StrategyStep],
     site_id: str,
-    strategy_class: str,
     existing_wdk_ids: dict[str, int],
 ) -> set[str]:
     """Canonicalize the params of each step the plan writes them for, in place.
@@ -301,25 +303,19 @@ async def _validate_plan_params(
     of being reported, because a draft is left out of the built strategy.
     """
     callbacks: ValidationCallbacks = make_validation_callbacks(site_id)
-
-    async def _listed_under(search_name: str) -> str | None:
-        return await callbacks.resolve_record_type_for_search(None, search_name)
-
-    await assign_step_record_classes(steps_by_id, _listed_under)
     incomplete: set[str] = set()
     for entry in plan:
         step = steps_by_id.get(entry.step_id)
         if step is None or not _sends_parameters(entry.action):
             continue
-        if not names_a_wdk_question(step):
+        record_type = step_class_of(steps_by_id, entry.step_id) or ""
+        if not names_a_wdk_question(step) or not record_type:
             continue
         try:
             validated = await validate_parameters(
                 SearchContext(
                     site_id=site_id,
-                    record_type=record_class_of(
-                        entry.step_id, steps_by_id, fallback=strategy_class
-                    ),
+                    record_type=record_type,
                     search_name=wdk_search_name(step),
                 ),
                 parameters=dict(step.parameters),
@@ -351,10 +347,10 @@ async def push_steps_with_plan(
         return PushOutcome(succeeded=[], failures=[])
 
     steps_by_id: dict[str, StrategyStep] = dict(graph.steps)
-    strategy_class = graph.record_type or "transcript"
+    await fill_record_classes(site_id, steps_by_id)
 
     incomplete = await _validate_plan_params(
-        plan, steps_by_id, site_id, strategy_class, sync_state.wdk_step_ids
+        plan, steps_by_id, site_id, sync_state.wdk_step_ids
     )
     plan = defer_draft_steps(
         plan,
@@ -371,14 +367,15 @@ async def push_steps_with_plan(
         step = steps_by_id.get(entry.step_id)
         if step is None or isinstance(entry.action, SkipAction):
             continue
-        record_type = record_class_of(step.id, steps_by_id, fallback=strategy_class)
-        failure, replaced = await _execute_action(
-            entry.action,
-            sync_state,
-            site_id,
-            step,
-            record_type,
-        )
+        record_type = step_class_of(steps_by_id, step.id) or ""
+        if record_type:
+            failure, replaced = await _execute_action(
+                entry.action, sync_state, site_id, step, record_type
+            )
+        else:
+            failure = unclassed_step_failure(step.id, wdk_search_name(step))
+            sync_state.wdk_push_errors[step.id] = failure.error
+            replaced = None
         if replaced is not None:
             recreated[step.id] = replaced
         if failure is None:

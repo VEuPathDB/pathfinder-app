@@ -3,6 +3,7 @@ the count of its genes PlasmoDB holds."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from uuid import UUID
 
 import pytest
@@ -69,3 +70,23 @@ async def test_a_saved_set_says_where_a_conversation_can_start_from_it(
         "reaches the VEuPathDB workspace only when it is published. It holds gene "
         "IDs only: this conversation has no pushed strategy step behind them."
     )
+
+
+@pytest.mark.parametrize(
+    ("site_id", "noun"), [("plasmodb", "gene"), ("orthomcl", "protein")]
+)
+async def test_a_set_of_no_record_type_counts_the_sites_genes(
+    monkeypatch: pytest.MonkeyPatch, site_id: str, noun: str
+) -> None:
+    async def _listed(*, site_id: str, user_id: UUID | None) -> list[GeneSet]:
+        del user_id
+        return [replace(_PROTEINS, site_id=site_id)]
+
+    monkeypatch.setattr(gene_sets, "list_stored_gene_sets", _listed)
+
+    listed = returned(
+        await gene_sets.list_gene_sets(agent_run_context(site_id=site_id)),
+        GeneSetListResponse,
+    )
+
+    assert [row.record_noun for row in listed.gene_sets] == [noun]

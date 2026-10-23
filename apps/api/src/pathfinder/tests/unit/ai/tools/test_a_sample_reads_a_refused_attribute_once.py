@@ -8,6 +8,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKAnswer, WDKFilterValue, WDKSortSpec
 
 from pathfinder.ai.tools.standalone import _sample_page, results
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
@@ -145,7 +146,12 @@ async def test_the_tool_names_the_attribute_the_site_refused(
 
     sample = returned(
         await results.get_sample_records(
-            agent_run_context(site_id="vectorbase"), 42, limit=100
+            agent_run_context(
+                site_id="vectorbase",
+                strategy_session=classed_strategy("vectorbase", {"step_vb": 42}),
+            ),
+            42,
+            limit=100,
         ),
         _sample_page.StepSample,
     )
@@ -187,7 +193,10 @@ async def test_a_server_error_is_a_failed_read_with_no_rows(
 
     monkeypatch.setattr(results, "sample_attributes", asked)
     _serve(monkeypatch, broken_at=2)
-    ctx = agent_run_context(site_id="vectorbase")
+    ctx = agent_run_context(
+        site_id="vectorbase",
+        strategy_session=classed_strategy("vectorbase", {"step_vb": 42}),
+    )
 
     with pytest.raises(ToolFailed) as failed:
         await results.get_sample_records(ctx, 42, limit=100)

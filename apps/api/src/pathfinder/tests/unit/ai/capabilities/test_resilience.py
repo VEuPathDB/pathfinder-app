@@ -422,3 +422,22 @@ class TestOnToolValidateError:
         msg = str(excinfo.value)
         assert "input" in msg
         assert "search_tool" in msg
+
+
+@pytest.mark.asyncio
+async def test_a_missing_search_on_orthomcl_points_at_the_sites_record_types() -> None:
+    capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
+    ctx = _make_ctx()
+    ctx.deps.site_id = "orthomcl"
+
+    result: Any = await capability.on_tool_execute_error(
+        ctx,
+        call=_make_call("get_search_overview"),
+        tool_def=_make_tool_def("get_search_overview"),
+        args={"search_name": "GroupsByNothing"},
+        error=WDKError("search not found", status=404),
+    )
+
+    assert "transcript" not in result
+    assert result.index("get_record_types") < result.index("search_for_searches")
+    assert 'record_type="<one of the record types get_record_types names>"' in result

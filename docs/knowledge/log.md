@@ -2,6 +2,47 @@
 
 ## 2026-10-22
 
+* **A taxon the expression spans has a stated scope.** When FRAME's phyletic units name
+  genomes of two or more species of one genus, or two or more genomes of one species,
+  FRAME states in `FrameResult.group_scopes` whether the request means the whole taxon
+  (with optional `except_codes`) or exactly the units written
+  (`domain/strategy/named_groups.py`). A pass with no scope is sent back in the
+  shared refusal bound, then binds with a `group_scope_missing` gap; a `whole` scope that
+  leaves genomes out is sent back naming the codes, then binds with a
+  `group_genomes_left_out` gap. The thread keeps the scopes, as it keeps record-type
+  roles. Per-species or per-genome presence units that together hold a whole taxon reach
+  the every-genome question as `L=NT` does. The checks live in
+  `ai/agents/frame_expression_checks.py`. A word rule that read the group from the
+  request was rejected. The library has no builder for the every-species reading, so
+  FRAME still writes it from the parameter's help.
+
+* **A tree of two record types is refused before anything is posted.** One check
+  (`record_classes.tree_record_class_refusal`) refuses a combine whose inputs return two
+  record classes, and a transform fed a class it does not take, on every path that
+  posts a tree: FRAME's `set_structure`, a build, every commit and canvas edit, and a
+  revert or a branch that pushes a stored snapshot. A refused snapshot is kept as the
+  plan, with the refusal as its root's push error. Each step's class is the one the
+  step holds, else the class the site lists its search under; a combine returns its
+  primary input's class (a colocation too), and a step of unknown class is unknown,
+  never its input's class, as the spec reads it. A refusal names a step by the name it
+  shows. A saved strategy bound as an input carries the class WDK names for it. No push,
+  sync, read or refusal falls back to `transcript`: a step whose class the site lists
+  under none is not sent, and its failure names the search; a strategy of unknown class
+  states none (`StrategyMeta.recordClassName` is nullable). A sample, an id read, a sweep
+  (agent check and worker), a column read, a site edit read back, the step-records route,
+  an analysis kind, a search's sheet, the turn's facts, a step response and a refused edit take the step's
+  own class, never the strategy's: a step the strategy does not hold, or one of no listed
+  class, is refused by name or stated unknown. Every turn classes its graph's steps on
+  arrival. A colocation returns the class its own search (`GenesBySpanLogic`) is listed
+  under, in the check and in the push. The catalog tools (`search_for_searches`,
+  `browse_search_categories`, `list_searches`, `list_transforms`) require the record
+  type; `lookup_phyletic_codes` and `resolve_gene_ids_to_records` read it from the
+  site's listing of the search they run, and the gene-set and control-set saves take the
+  site's gene class (proteins on OrthoMCL). A gold strategy (`POST /api/v1/eval/build-gold`,
+  whose request no longer names a record type) and a seed measurement post each step under
+  its own class after the same refusal, and a search the site does not serve points the
+  model at `get_record_types`.
+
 * **FRAME builds two OrthoMCL expressions instead of writing them.** PathFinder takes
   veupathdb-mcp v0.2.0-b35 (same veupathdb-py v0.1.0b18). FRAME carries
   `build_protein_count_comparison`, which reads from the site the largest count a ladder of

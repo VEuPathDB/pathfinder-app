@@ -9,7 +9,6 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     pushable_root_id,
     rebuild_tree,
-    record_class_of,
     walk,
 )
 from veupathdb.errors import VEuPathDBError
@@ -22,8 +21,8 @@ from veupathdb.wdk import (
     get_site,
     get_strategy_api,
 )
-from veupathdb_mcp.catalog import assign_step_record_classes, make_record_type_resolver
 
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
@@ -34,6 +33,7 @@ from pathfinder.services.strategies.organism_params import (
     tree_organism_parameters,
     tree_taxa,
 )
+from pathfinder.services.strategies.record_classes import fill_record_classes
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -273,11 +273,9 @@ async def sync_strategy_for_site(
         raise RootResolutionError(msg)
     root_step = rebuild_tree(pushable_id, graph.steps)
 
-    if any(step.search_name and not step.record_class for step in graph.steps.values()):
-        resolver = await make_record_type_resolver(site_id)
-        await assign_step_record_classes(graph.steps, resolver)
-    graph.record_type = record_class_of(
-        pushable_id, graph.steps, fallback=graph.record_type or "transcript"
+    await fill_record_classes(site_id, graph.steps)
+    graph.record_type = (
+        step_class_of(graph.steps, pushable_id) or graph.record_type or None
     )
 
     sync_state.organism_params = await tree_organism_parameters(site_id, root_step)

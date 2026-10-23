@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A search is bound under the record type the site lists it under
-description: Every read of a search's definition (set_criterion, the qualifier comparison, the Lead's sheets and the analysis kinds) uses the record type the site's catalog lists the search under, falling back to the strategy's only for a name the catalog does not list; set_criterion refuses a name the catalog lists under none; a 404 on the search's own lookup is the site's refusal, recorded for the pass and refused by name after that without a site read; past the repetition threshold the pass stops with its own reason, "stopped on a search the site does not serve"; an input-dataset parameter takes typed ids saved as the site's ID list, or a dataset id in the typed form. The root's record type, a fix-your-arguments directive, a cap on set_criterion and a named budget in the runtime's guard were rejected.
+description: Every read of a search's definition (set_criterion, the qualifier comparison, the Lead's sheets and the analysis kinds) uses the record type the site's catalog lists the search under; a search the catalog lists under none has no sheet and no kind, and the read names it; set_criterion refuses a name the catalog lists under none; a 404 on the search's own lookup is the site's refusal, recorded for the pass and refused by name after that without a site read; past the repetition threshold the pass stops with its own reason, "stopped on a search the site does not serve"; an input-dataset parameter takes typed ids saved as the site's ID list, or a dataset id in the typed form. The root's record type (also as the fallback for an unlisted search), a fix-your-arguments directive, a cap on set_criterion and a named budget in the runtime's guard were rejected.
 tags: [agents, frame, parameters, wdk]
 generated: { by: claude-code/opus-5.5, at: 2026-10-22T00:00:00Z }
 status: stable
@@ -20,8 +20,10 @@ search's definition looks the record type up in the site's catalog first
   by a consult answer);
 - the analysis kind of a step (`analysis_kinds`).
 
-The strategy's record type is used only for a name the catalog does not list,
-as `organism_params` and `text_queries` already do.
+A search the catalog lists under no record type has no sheet and no analysis
+kind. The read logs "the site lists no record type for the search" with its
+name, and the caller keeps the values it holds for that search, as for a
+search the site cannot read.
 
 `set_criterion` adds these rules:
 
@@ -57,6 +59,10 @@ as `organism_params` and `text_queries` already do.
 
 - **The strategy root's record type.** It is right only for a leaf of the root's
   record type, and the site answers 404 for every other leaf.
+- **The strategy's record type as the fallback for an unlisted search.** A
+  search's sheet lives under its own record type
+  (`/record-types/{rt}/searches/{name}`), so a guessed type reads another
+  sheet or answers 404. An unlisted search is stated as unknown instead.
 - **A 404 returned as a directive to correct the arguments.** No argument of
   `set_criterion` names a record type, so no correction exists. A returned
   directive also spends no retry, so nothing ends the loop.

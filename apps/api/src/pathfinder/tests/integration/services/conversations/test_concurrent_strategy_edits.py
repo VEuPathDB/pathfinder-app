@@ -41,6 +41,7 @@ from pathfinder.services.strategies import (
 )
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.tests._support import wdk_write_stubs
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 # A strategy write defers the gene-set refresh onto the job queue.
 pytestmark = pytest.mark.usefixtures("open_job_queue")
@@ -162,6 +163,7 @@ def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     monkeypatch.setattr(
         stated_sides, "validate_parameters", wdk_write_stubs.accepts_every_value
     )
+    list_every_search_under(monkeypatch, "transcript")
     return api
 
 

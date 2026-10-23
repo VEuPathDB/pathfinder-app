@@ -36,6 +36,7 @@ from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 
 @dataclass
@@ -118,6 +119,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
         return set()
 
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+    list_every_search_under(monkeypatch, "transcript")
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
         params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})

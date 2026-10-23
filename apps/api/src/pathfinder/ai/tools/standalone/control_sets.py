@@ -20,6 +20,7 @@ from pathfinder.ai.tools.standalone.saved_control_sets import (
     listed_control_sets,
 )
 from pathfinder.domain.evidence import NamedControlSet
+from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.services.evidence.control_sets import (
     UnknownControlSetError,
     control_ids_from_saved_gene_set,
@@ -31,6 +32,7 @@ from pathfinder.services.evidence.control_sets import (
     saved_control_sets,
     validate_control_ids,
 )
+from pathfinder.services.gene_sets.homes import site_kind
 
 
 class BuiltControlSet(CamelModel):
@@ -47,7 +49,6 @@ async def build_control_set(
     name: str,
     positive_ids: list[str],
     negative_ids: list[str] | None = None,
-    record_type: str = "transcript",
 ) -> ToolReturn[BuiltControlSet]:
     """Validate gene IDs against WDK and save them as a reusable control set
     for scored runs. Pass the positive controls (genes that SHOULD be
@@ -57,6 +58,7 @@ async def build_control_set(
     saved set is attached to this conversation.
     """
     runtime = ctx.deps.runtime
+    record_type = gene_record_class(site_kind(runtime.site_id))
 
     pos = await validate_control_ids(
         runtime.site_id, positive_ids, record_type=record_type

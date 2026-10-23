@@ -74,7 +74,6 @@ async def test_a_stated_leaf_that_carries_no_value_asks_the_catalog_nothing(
         root=_tree(),
         stated=_stated(),
         site_id="toxodb",
-        record_type="transcript",
         callbacks=_callbacks(),
     )
 

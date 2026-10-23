@@ -67,7 +67,10 @@ def _serve(
 
 async def _answer(state: AgentToolState) -> list[JSONObject]:
     ctx = agent_run_context(agent_state=state)
-    return returned(await search_for_searches(ctx, query=_QUERY), list[JSONObject])
+    return returned(
+        await search_for_searches(ctx, query=_QUERY, record_type="transcript"),
+        list[JSONObject],
+    )
 
 
 async def _own_site_answer(monkeypatch: pytest.MonkeyPatch) -> list[JSONObject]:
@@ -191,6 +194,8 @@ async def test_the_summary_names_the_other_sites_shown(
     _serve(monkeypatch, [CRYPTO, TOXO])
     ctx = agent_run_context(agent_state=AgentToolState())
 
-    chunk = summary_of(await search_for_searches(ctx, query=_QUERY))
+    chunk = summary_of(
+        await search_for_searches(ctx, query=_QUERY, record_type="transcript")
+    )
 
     assert chunk.data["summary"] == "2 searches, experiments on cryptodb and toxodb"

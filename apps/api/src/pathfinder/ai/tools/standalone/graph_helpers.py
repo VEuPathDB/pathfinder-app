@@ -18,6 +18,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.domain.strategy.explain import explain_operation
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_status import step_status
 from pathfinder.domain.strategy.types import SyncStateProtocol
@@ -92,7 +93,7 @@ def build_step_response(
     wdk_push_error: str | None = None
 
     if graph:
-        record_type = graph.record_type
+        record_type = step_class_of(graph.steps, step.id)
     if sync_state:
         wdk_step_id = sync_state.wdk_step_ids.get(step.id)
         validation = sync_state.step_validations.get(step.id)

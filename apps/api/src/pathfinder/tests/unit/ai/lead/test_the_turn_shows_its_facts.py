@@ -10,7 +10,6 @@ from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
     StrategyStepNode,
-    flatten_tree,
 )
 
 from pathfinder.ai.agents.state import CreatedGeneSet
@@ -35,6 +34,7 @@ from pathfinder.domain.strategy.step_rationale import SearchRationale, said_besi
 from pathfinder.domain.turn_facts import ParameterFact, RetiredFact, SavedSetFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.classed_strategy import classed_steps
 from pathfinder.tests.unit.ai.lead.conftest import (
     domain_answering,
     lead_deps,
@@ -79,7 +79,7 @@ def _spec() -> OperationalSpec:
 def _session() -> StrategySession:
     graph = StrategyGraph(graph_id="g1", name="Peptidases", site_id="amoebadb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(
+    graph.steps = classed_steps(
         StrategyStepNode(
             id="s_and",
             search_name=COMBINE_SEARCH_NAME,

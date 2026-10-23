@@ -19,6 +19,7 @@ from pathfinder.ai.lead.turn_facts import _parameters
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import sheet_params
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.recorded_searches import client_search
 
 _LOCATION = "GenesByLocation"
@@ -27,13 +28,10 @@ _PROMPT = "(Example: Pf3D7_04_v3)"
 
 @pytest.fixture(autouse=True)
 def _recorded_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _record_type(*_args: Any, **_kwargs: Any) -> str:
-        return "transcript"
-
     async def _definition(*_args: Any, **_kwargs: Any) -> WDKSearch:
         return client_search("search_genes_by_location")
 
-    monkeypatch.setattr(sheet_params, "resolve_search_record_type", _record_type)
+    list_searches_under(monkeypatch, "transcript", ["GenesByLocation"])
     monkeypatch.setattr(sheet_params, "read_search_definition", _definition)
 
 

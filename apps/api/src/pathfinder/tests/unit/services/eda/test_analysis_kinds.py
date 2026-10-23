@@ -49,9 +49,7 @@ async def test_each_step_takes_the_kind_its_query_runs(
         ),
     ]
 
-    kinds = await analysis_kinds_of(
-        site_id="plasmodb", record_type="transcript", nodes=nodes
-    )
+    kinds = await analysis_kinds_of(site_id="plasmodb", nodes=nodes)
 
     assert kinds == {
         "step_deseq": StampedKind(search_name=DESEQ_SEARCH, kind=AnalysisKind.COMPUTE),
@@ -73,7 +71,6 @@ async def test_a_search_the_catalog_cannot_read_takes_no_kind(
 
     kinds = await analysis_kinds_of(
         site_id="plasmodb",
-        record_type="transcript",
         nodes=[eda_node("step_x", UNREADABLE_SEARCH)],
     )
 
@@ -85,9 +82,7 @@ async def test_a_per_dataset_deseq_step_reads_the_cut_its_plugin_applies(
 ) -> None:
     serve_the_catalog(monkeypatch)
     node = eda_node("step_deseq", DESEQ_SEARCH)
-    kinds = await analysis_kinds_of(
-        site_id="plasmodb", record_type="transcript", nodes=[node]
-    )
+    kinds = await analysis_kinds_of(site_id="plasmodb", nodes=[node])
 
     binding = exported_analysis(kinds[node.id].kind, node.parameters)
 
@@ -104,11 +99,21 @@ async def test_a_wgcna_step_reads_as_no_analysis(
     """GenesByWGCNAModule declares the parameter and never reads it."""
     serve_the_catalog(monkeypatch)
     node = eda_node("step_wgcna", WGCNA_SEARCH)
-    kinds = await analysis_kinds_of(
-        site_id="plasmodb", record_type="transcript", nodes=[node]
-    )
+    kinds = await analysis_kinds_of(site_id="plasmodb", nodes=[node])
 
     assert (kinds, exported_analysis(kinds[node.id].kind, node.parameters)) == (
         {node.id: StampedKind(search_name=WGCNA_SEARCH, kind=AnalysisKind.NONE)},
         None,
     )
+
+
+async def test_a_search_listed_under_no_record_type_is_not_read_under_another(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    read = serve_the_catalog(monkeypatch)
+
+    kinds = await analysis_kinds_of(
+        site_id="plasmodb", nodes=[eda_node("step_x", "GenesByUnlistedEda")]
+    )
+
+    assert (kinds, read) == ({}, [])

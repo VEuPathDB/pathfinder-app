@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone.frame_structure import (
     SetStructureResult,
     set_structure,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    SavedStrategyRef,
+    StructureNode,
+)
 from pathfinder.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
@@ -89,3 +93,36 @@ async def test_the_proteins_groups_intersected_with_a_group_leaf_are_set() -> No
     )
 
     assert returned(result, SetStructureResult).criteria_combined == 3
+
+
+@pytest.mark.asyncio
+async def test_a_saved_protein_strategy_intersected_with_a_group_leaf_is_refused() -> (
+    None
+):
+    state = _state()
+    state.frame_set_criterion(
+        Criterion(
+            id="c_saved_proteins",
+            text="my saved proteins",
+            record_class="sequence",
+            saved_strategy_ref=SavedStrategyRef(
+                conversation_id="9bd3a584-0000-4000-8000-000000000001",
+                name="Trypanothione reductase proteins",
+                wdk_strategy_id=227284890,
+                step_count=1,
+                subtree=StrategyStepNode(id="step_saved", search_name="ByIdList"),
+            ),
+        )
+    )
+
+    with pytest.raises(ModelRetry) as refused:
+        await set_structure(
+            agent_run_context(site_id="orthomcl", agent_state=state),
+            root=_intersect(_leaf("c_saved_proteins")),
+        )
+
+    assert state.operational_spec_draft.structure is None
+    assert str(refused.value).startswith(
+        "The structure is refused: The INTERSECT of c_saved_proteins (Proteins) "
+        "and c_mammal_presence (Ortholog Groups) joins two record types."
+    )

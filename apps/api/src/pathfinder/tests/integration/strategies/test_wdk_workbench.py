@@ -59,7 +59,9 @@ async def test_validate_control_ids_splits_real_from_fake(
     real = sorted(kinase_ids)[:5]
     fakes = ["NOT_A_GENE_AAA", "BOGUS_999", "PF3D7_9999999"]
 
-    resolved = await validate_control_ids("plasmodb", [*real, *fakes])
+    resolved = await validate_control_ids(
+        "plasmodb", [*real, *fakes], record_type="transcript"
+    )
 
     assert set(resolved.valid_ids) == set(real)
     assert set(resolved.unresolved_ids) == set(fakes)
@@ -73,7 +75,7 @@ async def test_validate_control_ids_dedups_and_preserves_order(
     real = sorted(kinase_ids)[:3]
 
     resolved = await validate_control_ids(
-        "plasmodb", [real[0], real[1], real[0], real[2]]
+        "plasmodb", [real[0], real[1], real[0], real[2]], record_type="transcript"
     )
 
     assert resolved.valid_ids == real

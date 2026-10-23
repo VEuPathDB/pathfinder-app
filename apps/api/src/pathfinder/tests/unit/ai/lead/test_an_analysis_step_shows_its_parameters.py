@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from veupathdb.domain.strategy import flatten_tree
-
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
@@ -14,6 +12,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import ParameterFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_steps
 from pathfinder.tests.unit.ai.lead.conftest import (
     domain_answering,
     lead_deps,
@@ -32,7 +31,7 @@ _NOT_MEASURED = "its count at another value is not measured"
 def _deps(prompt: str, bound: AnalysisBinding | None = None) -> LeadDeps:
     graph = StrategyGraph(graph_id="g1", name="24h", site_id="plasmodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(exported_step())
+    graph.steps = classed_steps(exported_step())
     graph.recompute_roots()
     session = StrategySession(site_id="plasmodb")
     session.graph = graph

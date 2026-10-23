@@ -22,7 +22,6 @@ from pathfinder.ai.tools.standalone.catalog import (
     get_record_types,
     list_searches,
     list_transforms,
-    lookup_phyletic_codes,
     search_for_searches,
 )
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides
@@ -136,7 +135,9 @@ class TestSearchForSearches:
 
         result = returned(
             await search_for_searches(
-                _ctx(state), query="gametocyte RNA-Seq differential expression"
+                _ctx(state),
+                query="gametocyte RNA-Seq differential expression",
+                record_type="transcript",
             ),
             list[JSONObject],
         )
@@ -166,6 +167,7 @@ class TestSearchForSearches:
             await search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy plasmodium falciparum",
+                record_type="transcript",
             ),
             list[JSONObject],
         )
@@ -198,6 +200,7 @@ class TestSearchForSearches:
             await search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy or go term plasmodium",
+                record_type="transcript",
             ),
             list[JSONObject],
         )
@@ -209,7 +212,9 @@ class TestSearchForSearches:
 
     async def test_a_vague_query_is_refused(self) -> None:
         result = returned(
-            await search_for_searches(_ctx(AgentToolState()), query="genes"),
+            await search_for_searches(
+                _ctx(AgentToolState()), query="genes", record_type="transcript"
+            ),
             list[JSONObject],
         )
 
@@ -234,7 +239,9 @@ class TestAFaintMatchIsReported:
     ) -> list[JSONObject]:
         _serve(monkeypatch, "search_for_searches", matches)
         return returned(
-            await search_for_searches(_ctx(AgentToolState()), query=_GPI),
+            await search_for_searches(
+                _ctx(AgentToolState()), query=_GPI, record_type="transcript"
+            ),
             list[JSONObject],
         )
 
@@ -328,7 +335,9 @@ class TestListSearches:
         state = AgentToolState()
         state.register_search("GenesByGoTerm", _inspected("GenesByGoTerm"))
 
-        result = returned(await list_searches(_ctx(state)), list[str])
+        result = returned(
+            await list_searches(_ctx(state), record_type="transcript"), list[str]
+        )
 
         assert result == ["GenesByTaxon", "GenesByGoTerm"]
         assert state.catalog_reads == [
@@ -410,7 +419,10 @@ class TestListTransforms:
         )
         state = AgentToolState()
 
-        result = returned(await list_transforms(_ctx(state)), list[JSONObject])
+        result = returned(
+            await list_transforms(_ctx(state), record_type="transcript"),
+            list[JSONObject],
+        )
 
         assert [row["name"] for row in result] == ["GenesByOrthologs"]
         assert state.catalog_reads == [
@@ -446,17 +458,7 @@ class TestListTransforms:
         )
         state = AgentToolState()
 
-        await list_transforms(_ctx(state))
+        await list_transforms(_ctx(state), record_type="transcript")
 
         overrides = _frame_enum_overrides(_ctx(state))
         assert "GenesByOrthologs" in overrides[("set_criterion", "search_name")]
-
-
-def test_the_phyletic_lookup_names_its_use_on_either_kind_of_site() -> None:
-    doc = " ".join((inspect.getdoc(lookup_phyletic_codes) or "").split())
-
-    assert "included_species or excluded_species" in doc
-    assert "phyletic_expression" in doc
-    assert "genomes" in doc
-    assert "species" in doc
-    assert "record_type is read only on the genomics sites" in doc

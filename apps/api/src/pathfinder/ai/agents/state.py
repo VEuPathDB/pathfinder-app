@@ -11,6 +11,7 @@ from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 from pathfinder.ai.agents.unserved import UnservedSearch
 from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.named_combine import NamedCombine
+from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
@@ -210,6 +211,7 @@ class AgentToolState:
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
     held_record_roles: dict[str, RecordRole] = field(default_factory=dict)
+    held_group_scopes: dict[str, GroupScope] = field(default_factory=dict)
     # The spec the dispatch found, which a pass that changes nothing still holds.
     spec_the_dispatch_found: OperationalSpec | None = None
     # The searches the site refused to run this pass, with what it answered.

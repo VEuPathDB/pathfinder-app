@@ -19,7 +19,6 @@ from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
     StrategyStepNode,
-    flatten_tree,
 )
 
 from pathfinder.ai.conversation._turn_helpers import _extract_chunk
@@ -41,6 +40,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import UNCHECKED_PROSE, StepFact, TurnFacts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_steps
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -66,7 +66,7 @@ def _session() -> StrategySession:
     )
     graph = StrategyGraph(graph_id="g1", name="strategy", site_id="microsporidiadb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(root)
+    graph.steps = classed_steps(root)
     graph.recompute_roots()
     session = StrategySession(site_id="microsporidiadb")
     session.graph = graph

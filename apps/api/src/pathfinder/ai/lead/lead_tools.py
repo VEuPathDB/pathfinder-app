@@ -250,7 +250,6 @@ def _written_turn_message(classification: IntentClassification) -> str:
 async def save_gene_set(
     ctx: RunContext[LeadDeps],
     name: str,
-    record_type: str = "transcript",
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
@@ -263,7 +262,6 @@ async def save_gene_set(
 
     Args:
         name: The name the user gave the set.
-        record_type: Record type (default 'transcript').
         step_id: The step of THIS conversation's strategy whose genes to save,
             by its graph id (e.g. 'step_3'). Leave it out for the strategy's
             root step. The genes of a step are read from that step on
@@ -275,7 +273,6 @@ async def save_gene_set(
     return await gene_sets.save_gene_set(
         inner_context(ctx),
         name=name,
-        record_type=record_type,
         step_id=step_id,
         gene_ids=gene_ids,
     )

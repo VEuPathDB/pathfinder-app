@@ -47,7 +47,11 @@ from pathfinder.ai.tools.standalone._step_columns import (
     measured,
     settled,
 )
-from pathfinder.ai.tools.standalone._step_read import graph_step_id, read_as
+from pathfinder.ai.tools.standalone._step_read import (
+    graph_step_id,
+    own_class,
+    read_as,
+)
 from pathfinder.domain.evidence import ColumnFit, CountedIn
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
@@ -108,7 +112,7 @@ async def _sample(
 ) -> SampledRecords:
     """The step's sample, with the attributes the strategy's searches select on
     and the columns the step's own search shows."""
-    record_type, own_search = read_as(session, wdk_step_id)
+    record_type, own_search = await read_as(session, wdk_step_id)
     attributes = [
         *(gene_sample_attributes(record_type) or []),
         *await sample_attributes(
@@ -182,7 +186,9 @@ class _SearchStep:
     count: int | None = None
 
 
-def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | None:
+async def _search_step(
+    ctx: RunContext[AgentDeps], wdk_step_id: int
+) -> _SearchStep | None:
     """The criterion whose search the step runs, or None for any other step."""
     session = ctx.deps.strategy_session
     sync, graph = session.sync_state, session.get_graph(None)
@@ -197,7 +203,7 @@ def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | 
     return _SearchStep(
         criterion=criterion,
         search_name=step.search_name,
-        record_type=graph.record_type,
+        record_type=await own_class(session, step),
         count=sync.step_counts.get(criterion.id),
     )
 
@@ -327,7 +333,7 @@ async def read_step_columns(
     Args:
         wdk_step_id: The WDK step id of a search step, not a combine.
     """
-    target = _search_step(ctx, wdk_step_id)
+    target = await _search_step(ctx, wdk_step_id)
     fit = (
         None
         if target is None

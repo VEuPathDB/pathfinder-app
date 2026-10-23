@@ -13,12 +13,12 @@ from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
-from veupathdb.domain.strategy import record_class_of
 from veupathdb_mcp.controls import ControlTargetData, ControlTestResult
 
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._step_read import graph_step_id, read_as
 from pathfinder.ai.tools.standalone.saved_control_sets import (
     ATTACH_A_SET,
     unattached_set,
@@ -212,27 +212,6 @@ PARAMETER_SWEEP = declare_durable_tool(
 )
 
 
-def _swept_search(
-    ctx: RunContext[LeadDeps], wdk_step_id: int
-) -> tuple[str, str] | None:
-    """The search and record class of the step this conversation pushed as that id."""
-    session = ctx.deps.runtime.strategy_session
-    graph = session.get_graph(None)
-    sync = session.sync_state
-    if graph is None or sync is None:
-        return None
-    step_id = next(
-        (held for held, wdk in sync.wdk_step_ids.items() if wdk == wdk_step_id), None
-    )
-    step = None if step_id is None else graph.steps.get(step_id)
-    if step is None or step.search_name is None:
-        return None
-    record_class = record_class_of(
-        step.id, graph.steps, fallback=graph.record_type or "transcript"
-    )
-    return step.search_name, record_class
-
-
 async def sweep_can_run(
     ctx: RunContext[LeadDeps],
     *,
@@ -256,10 +235,12 @@ async def sweep_can_run(
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET} Nothing was started and no card was shown."
         raise ModelRetry(msg)
-    swept = None if not parameters else _swept_search(ctx, wdk_step_id)
-    if parameters is None or swept is None:
+    session = ctx.deps.runtime.strategy_session
+    if not parameters or graph_step_id(session, wdk_step_id) is None:
         return
-    search_name, record_class = swept
+    record_class, search_name = await read_as(session, wdk_step_id)
+    if search_name is None:
+        return
     tunable = await tunable_parameters_of_search(
         ctx.deps.runtime.site_id, record_class, search_name
     )

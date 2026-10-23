@@ -67,6 +67,7 @@ def _site(score: str, **config: Any) -> WDKStrategyDetails:
                     "id": _WDK_ID,
                     "searchName": "GenesByExportPred",
                     "searchConfig": {"parameters": {_SCORE: score}, **config},
+                    "recordClassName": "transcript",
                 }
             },
         }

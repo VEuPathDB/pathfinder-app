@@ -119,7 +119,7 @@ class SeedDef(BaseModel):
     site_id: str
     step_tree: JSONObject
     control_set: ControlSetDef
-    record_type: str = "transcript"
+    record_type: str
     measured: SeedMeasurement | None = None
 
     def step_node(self) -> StrategyStepNode:

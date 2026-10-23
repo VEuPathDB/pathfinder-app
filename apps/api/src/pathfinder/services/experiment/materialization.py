@@ -6,8 +6,10 @@ from veupathdb.domain.strategy import (
     ColocationParams,
     CombineOp,
     StrategyStepNode,
+    flatten_tree,
     walk,
 )
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
@@ -15,37 +17,59 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStepTree,
     encode_params,
+    get_strategy_api,
 )
+
+from pathfinder.domain.strategy.record_class_check import step_class_of
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    tree_record_class_refusal,
+    unclassed_step_failure,
+)
+from pathfinder.services.strategies.step_search import COLOCATION_SEARCH
 
 logger = get_logger(__name__)
 
 
-async def _materialize_step_tree(
-    api: StrategyAPI,
-    node: StrategyStepNode,
-    record_type: str,
+async def tree_classes(site_id: str, root: StrategyStepNode) -> dict[str, str]:
+    refusal = await tree_record_class_refusal(site_id, root, {})
+    if refusal is not None:
+        raise ValidationError(title="The site cannot run this tree", detail=refusal)
+    steps = flatten_tree(root)
+    await fill_record_classes(site_id, steps)
+    classes = {sid: step_class_of(steps, sid) for sid in steps}
+    known = {sid: found for sid, found in classes.items() if found}
+    unclassed = [steps[sid] for sid in steps if sid not in known]
+    if unclassed:
+        lost = unclassed_step_failure(unclassed[0].id, unclassed[0].search_name or "")
+        raise ValidationError(title="A step has no record type", detail=lost.error)
+    return known
+
+
+async def materialize_step_tree(
+    site_id: str, root: StrategyStepNode, made: list[int]
 ) -> WDKStepTree:
-    """Create the WDK steps of a :class:`StrategyStepNode` tree.
+    return await materialize_classed_tree(
+        site_id, root, await tree_classes(site_id, root), made
+    )
 
-    ``walk`` yields every input before the step that consumes it, so
-    each node finds its inputs already created.
 
-    :param api: Strategy API instance.
-    :param node: Strategy plan node.
-    :param record_type: WDK record type for all steps.
-    :returns: :class:`WDKStepTree` ready for strategy creation.
-    """
+async def materialize_classed_tree(
+    site_id: str, root: StrategyStepNode, known: dict[str, str], made: list[int]
+) -> WDKStepTree:
+    api = get_strategy_api(site_id)
     created: dict[str, WDKStepTree] = {}
-    for step in walk(node):
+    for step in walk(root):
         slots: list[WDKStepTree | None] = [
             *(created[input_id] for input_id in step.input_ids()),
             None,
             None,
         ]
         created[step.id] = await _materialize_step(
-            api, step, record_type, slots[0], slots[1]
+            api, step, known[step.id], slots[0], slots[1]
         )
-    return created[node.id]
+        made.append(created[step.id].step_id)
+    return created[root.id]
 
 
 async def _materialize_step(
@@ -70,12 +94,12 @@ async def _materialize_step(
             # at creation; the returned step tree wires both inputs.
             step = await api.create_transform_step(
                 NewStepSpec(
-                    search_name="GenesBySpanLogic",
+                    search_name=COLOCATION_SEARCH,
                     search_config=WDKSearchConfig(parameters=coloc.to_wdk_params()),
                     custom_name=display_name,
                 ),
                 input_step_id=primary_tree.step_id,
-                record_type="transcript",
+                record_type=record_type,
             )
         else:
             step = await api.create_combined_step(

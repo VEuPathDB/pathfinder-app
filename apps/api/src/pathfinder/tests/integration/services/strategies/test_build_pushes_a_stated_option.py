@@ -45,6 +45,7 @@ from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
 
 # A strategy write defers the gene-set refresh onto the job queue.
@@ -106,6 +107,7 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
     monkeypatch.setattr(spec_build, "sync_strategy_for_site", api.pushes.sync)
+    list_every_search_under(monkeypatch, "transcript")
     return api
 
 

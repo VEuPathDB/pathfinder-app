@@ -6345,11 +6345,6 @@
             "minLength": 1,
             "title": "Siteid"
           },
-          "recordType": {
-            "type": "string",
-            "title": "Recordtype",
-            "default": "gene"
-          },
           "stepTree": {
             "additionalProperties": true,
             "type": "object",
@@ -23485,8 +23480,15 @@
             "title": "Estimatedsize"
           },
           "recordClassName": {
-            "title": "Recordclassname",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recordclassname"
           }
         },
         "required": [

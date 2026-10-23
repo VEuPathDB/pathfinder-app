@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.message_reading import (
     adds_an_alternative,
     message_states_constraint,
 )
+from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
@@ -57,6 +58,7 @@ class ThreadRequirements(BaseModel):
     # lifecycle. A check reports none as a gap.
     retired_requirements: list[RetiredRequirement] = Field(default_factory=list)
     record_roles: dict[str, RecordRole] = Field(default_factory=dict)
+    group_scopes: dict[str, GroupScope] = Field(default_factory=dict)
     # Every question an answer settled. A question is never a requirement, so
     # a check that restates one reports no gap.
     answered_questions: list[OpenQuestion] = Field(default_factory=list)

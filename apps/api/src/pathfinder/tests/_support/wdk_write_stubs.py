@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import commit, stated_sides, step_wdk_push
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_definitions,
     serve_recorded_record_types,
@@ -38,6 +39,7 @@ def stub_every_catalog_read(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", no_plan_params)
     monkeypatch.setattr(stated_sides, "validate_parameters", accepts_every_value)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", no_reconcile)
+    list_every_search_under(monkeypatch, "transcript")
 
 
 def validate_against(

@@ -16,6 +16,7 @@ from veupathdb_mcp.wdk import SampleRecordsResult
 from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
@@ -60,7 +61,10 @@ class _Step:
 
 
 async def _sampled(step_id: int, message_id: UUID) -> list[str]:
-    ctx = agent_run_context(site_id="amoebadb")
+    ctx = agent_run_context(
+        site_id="amoebadb",
+        strategy_session=classed_strategy("amoebadb", {"step_tm": step_id}),
+    )
     ctx.deps.turn_markers.message_id = message_id
     result = await results.get_sample_records(ctx, step_id, limit=8)
     return [str(r["id"]) for r in returned(result, SampleRecordsResult).records]
@@ -79,7 +83,7 @@ def served(monkeypatch: pytest.MonkeyPatch) -> _Step:
 
 
 async def test_a_sample_that_names_no_step_reads_the_root(served: _Step) -> None:
-    session = StrategySession(site_id="amoebadb")
+    session = classed_strategy("amoebadb", {"step_root": 441126163})
     session.sync_state = WDKSyncState(
         wdk_step_ids={"step_root": 441126163, "step_tm": 441126143},
         wdk_step_tree=WDKStepTree(
@@ -145,6 +149,7 @@ def _one_step_session(organism: str) -> StrategySession:
     graph = StrategyGraph(graph_id="g1", name="location", site_id="hostdb")
     graph.record_type = "transcript"
     graph.steps = flatten_tree(step)
+    graph.steps["step_loc"].record_class = "transcript"
     graph.recompute_roots()
     session = StrategySession(site_id="hostdb")
     session.graph = graph

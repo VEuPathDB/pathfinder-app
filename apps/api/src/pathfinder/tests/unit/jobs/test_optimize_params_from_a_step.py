@@ -256,3 +256,63 @@ async def test_a_sweep_on_a_set_the_site_does_not_hold_is_refused(
 
     with pytest.raises(UnknownControlSetError, match="names no control set"):
         await _saved_set_sweep("5f1c6a2e-0000-4000-8000-0000000000aa")
+
+
+def _serve_a_step(
+    monkeypatch: pytest.MonkeyPatch, search_name: str, record_class_name: str | None
+) -> list[str]:
+    read_under: list[str] = []
+
+    class _Api:
+        async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
+            del user_id
+            return WDKStep(
+                id=step_id,
+                search_name=search_name,
+                record_class_name=record_class_name,
+                search_config=WDKSearchConfig(parameters={"scope": "gene"}),
+            )
+
+    async def read(
+        site_id: str, record_type: str, search_name: str
+    ) -> list[ParameterInfo]:
+        del site_id, search_name
+        read_under.append(record_type)
+        return [
+            _param("scope", "single-pick-vocabulary", options=["gene", "transcript"])
+        ]
+
+    monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
+    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    return read_under
+
+
+@pytest.mark.parametrize(
+    ("search_name", "record_class_name"),
+    [("GroupsByPhyleticPattern", "group"), ("GenesWithSignalPeptide", None)],
+)
+async def test_the_sweep_reads_the_step_under_its_own_class(
+    monkeypatch: pytest.MonkeyPatch, search_name: str, record_class_name: str | None
+) -> None:
+    read_under = _serve_a_step(monkeypatch, search_name, record_class_name)
+
+    await _run(parameters=["scope"])
+
+    assert read_under[:1] == [record_class_name or "transcript"]
+
+
+async def test_a_step_of_no_class_is_refused_by_its_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    read_under = _serve_a_step(monkeypatch, "Unlisted", None)
+
+    with pytest.raises(ValueError, match="cannot be swept") as refused:
+        await _run(parameters=["scope"])
+
+    assert (str(refused.value), read_under) == (
+        (
+            f"The site lists no record type for Unlisted, so step {STEP_ID} cannot "
+            "be swept."
+        ),
+        [],
+    )

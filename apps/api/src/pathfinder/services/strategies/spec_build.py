@@ -11,7 +11,6 @@ from veupathdb.domain.strategy import (
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
-    record_class_of,
     subtree_ids,
     wdk_search_name,
 )
@@ -27,6 +26,7 @@ from pathfinder.domain.strategy.build_outcome import (
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.orthology import organism_change
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import (
     contradicted_joins,
@@ -43,7 +43,11 @@ from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from pathfinder.services.strategies.reconcile import reconcile_sync_state_with_wdk
-from pathfinder.services.strategies.record_classes import tree_combine_refusal
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    tree_record_class_refusal,
+    unclassed_step_failure,
+)
 from pathfinder.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
@@ -155,7 +159,6 @@ async def _canonical_build(
             root=written,
             stated=deps.stated_values,
             site_id=deps.site_id,
-            record_type=graph.record_type or "transcript",
             callbacks=callbacks,
         )
     except ValidationError:
@@ -183,11 +186,12 @@ async def build_strategy_from_spec(
         msg = "no active strategy graph for the current conversation"
         raise RuntimeError(msg)
 
+    refusal = await tree_record_class_refusal(deps.site_id, root, {})
+    if refusal is not None:
+        raise ApplyError(refusal)
     built = await _canonical_build(deps, graph, root)
     root = built.root
     refusal = _a_build_the_spec_refuses(deps, graph, root, built.sides)
-    if refusal is None:
-        refusal = await tree_combine_refusal(deps.site_id, root)
     if refusal is not None:
         raise ApplyError(refusal)
 
@@ -223,7 +227,6 @@ async def build_strategy_from_spec(
     outcome = BuildOutcome(organism_change=organism_change(root, marks))
     await _push_tree_to_wdk(
         nodes=nodes,
-        graph_record_type=graph.record_type or "transcript",
         site_id=deps.site_id,
         sync_state=sync_state,
         outcome=outcome,
@@ -279,7 +282,6 @@ async def build_strategy_from_spec(
 async def _push_tree_to_wdk(
     *,
     nodes: list[StrategyStep],
-    graph_record_type: str,
     site_id: str,
     sync_state: WDKSyncState,
     outcome: BuildOutcome,
@@ -291,19 +293,27 @@ async def _push_tree_to_wdk(
     """
     failed_node_ids: set[str] = set()
     steps_by_id = {node.id: node for node in nodes}
+    await fill_record_classes(site_id, steps_by_id)
     callbacks = make_validation_callbacks(site_id)
     for node in nodes:
         if _has_failed_descendant(node, failed_node_ids, steps_by_id):
             outcome.skipped_step_ids.append(node.id)
             continue
         search_name = wdk_search_name(node)
+        record_type = step_class_of(steps_by_id, node.id) or ""
+        if not record_type:
+            unclassed = unclassed_step_failure(node.id, search_name)
+            sync_state.wdk_push_errors[node.id] = unclassed.error
+            failed_node_ids.add(node.id)
+            outcome.failed_steps.append(unclassed)
+            continue
         push_parameters: dict[str, ParamValue] = dict(node.parameters)
         if names_a_wdk_question(node):
             try:
                 validated = await validate_parameters(
                     SearchContext(
                         site_id=site_id,
-                        record_type=graph_record_type,
+                        record_type=record_type,
                         search_name=search_name,
                     ),
                     parameters=dict(node.parameters),
@@ -329,9 +339,7 @@ async def _push_tree_to_wdk(
             sync_state=sync_state,
             step=node,
             site_id=site_id,
-            record_type=record_class_of(
-                node.id, steps_by_id, fallback=graph_record_type
-            ),
+            record_type=step_class_of(steps_by_id, node.id) or "",
             search_name=search_name,
             parameters=push_parameters,
         )

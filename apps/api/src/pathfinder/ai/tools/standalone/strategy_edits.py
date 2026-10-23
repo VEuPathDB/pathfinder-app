@@ -6,7 +6,6 @@ from typing import cast
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.types import JSONArray, JSONObject
-from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
@@ -22,6 +21,7 @@ from pathfinder.ai.lead._delete_rules import (
     refuse_a_delete_the_card_did_not_list,
     refuse_a_delete_the_graph_cannot_place,
 )
+from pathfinder.ai.tools.standalone._edit_refusal import refusal_context
 from pathfinder.ai.tools.standalone._spec_edit_checks import (
     refuse_a_write_the_spec_did_not_state,
 )
@@ -76,26 +76,7 @@ async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
         msg = operation_refused_message(str(exc), wrote="edit")
         raise ModelRetry(msg) from exc
     except ValidationError as exc:
-        raise validation_model_retry(exc, **_refusal_context(deps, op)) from exc
-
-
-def _refusal_context(deps: AgentDeps, op: GraphOperation) -> dict[str, JsonValue]:
-    """What a refused value is reported with: the record type, and the search
-    of the step the operation patches."""
-    graph = deps.strategy_session.get_graph(None)
-    context: dict[str, JsonValue] = {
-        "recordType": "transcript"
-        if graph is None
-        else graph.record_type or "transcript"
-    }
-    match op:
-        case UpdateStepParamsOp() if graph is not None:
-            step = graph.get_step(op.step_id)
-            if step is not None and step.search_name:
-                context["searchName"] = step.search_name
-        case _:
-            pass
-    return context
+        raise validation_model_retry(exc, **await refusal_context(deps, op)) from exc
 
 
 async def update_leaf_params(

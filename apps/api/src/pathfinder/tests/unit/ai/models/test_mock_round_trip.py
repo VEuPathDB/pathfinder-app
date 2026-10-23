@@ -70,7 +70,10 @@ def test_a_plan_with_a_transform_ranks_it_before_binding() -> None:
     ranked = frame_call(plan, frozenset({"search_memory"}), [], "")
 
     assert ranked.tool_name == "search_for_searches"
-    assert ranked.args_as_dict() == {"query": "syntenic orthologs"}
+    assert ranked.args_as_dict() == {
+        "query": "syntenic orthologs",
+        "record_type": "transcript",
+    }
     listed = frozenset({"search_memory", "list_searches", "search_for_searches"})
     assert frame_call(plan, listed, [], "").tool_name == "set_criterion"
 
@@ -80,4 +83,4 @@ def test_a_plan_without_a_transform_ranks_its_title() -> None:
 
     ranked = frame_call(plan, frozenset({"search_memory"}), [], "")
 
-    assert ranked.args_as_dict() == {"query": plan.title}
+    assert ranked.args_as_dict() == {"query": plan.title, "record_type": "transcript"}

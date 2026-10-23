@@ -32,6 +32,7 @@ from pathfinder.domain.strategy.operations import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
+from pathfinder.services.strategies.record_classes import search_record_types
 from pathfinder.services.strategies.step_search import (
     names_a_wdk_question,
     states_a_question,
@@ -186,7 +187,6 @@ async def canonicalize_stated_leaves(
     root: StrategyStepNode,
     stated: Mapping[str, StatedCriterion],
     site_id: str,
-    record_type: str,
     callbacks: ValidationCallbacks,
 ) -> list[WrittenStep]:
     """Put every leaf the spec states a value for in the catalog's own form.
@@ -195,13 +195,17 @@ async def canonicalize_stated_leaves(
     reads one form on both sides of the batch.
     """
     writes: list[WrittenStep] = []
-    for node in leaves(root):
-        if node.id not in stated or not states_a_question(node.search_name):
+    stated_leaves = [node for node in leaves(root) if node.id in stated]
+    listed = await search_record_types(site_id, [n.search_name for n in stated_leaves])
+    for node in stated_leaves:
+        if not states_a_question(node.search_name):
             continue
         # A leaf that carries no value has none to put in the catalog's form.
         if not node.parameters:
             continue
-        search = SearchContext(site_id, record_type, node.search_name)
+        search = SearchContext(
+            site_id, listed.get(node.search_name, ""), node.search_name
+        )
         validated = await validate_parameters(
             search, parameters=dict(node.parameters), callbacks=callbacks
         )
@@ -227,13 +231,14 @@ async def _canonical_params_op(
     *,
     graph: StrategyGraph,
     site_id: str,
-    record_type: str,
     callbacks: ValidationCallbacks,
 ) -> _CanonicalOp:
     step = graph.get_step(op.step_id)
     if step is None or not names_a_wdk_question(step):
         return _CanonicalOp(op=op, writes=[])
-    search = SearchContext(site_id, record_type, wdk_search_name(step))
+    name = wdk_search_name(step)
+    listed = await search_record_types(site_id, [name])
+    search = SearchContext(site_id, step.record_class or listed.get(name, ""), name)
     validated = await validate_parameters(
         search,
         parameters={**step.parameters, **op.parameters},
@@ -257,7 +262,6 @@ async def _canonical_tree_op(
     *,
     stated: Mapping[str, StatedCriterion],
     site_id: str,
-    record_type: str,
     callbacks: ValidationCallbacks,
 ) -> _CanonicalOp:
     written = op.model_copy(deep=True)
@@ -272,7 +276,6 @@ async def _canonical_tree_op(
         root=root,
         stated=stated,
         site_id=site_id,
-        record_type=record_type,
         callbacks=callbacks,
     )
     return _CanonicalOp(op=written, writes=writes)
@@ -291,7 +294,6 @@ async def canonical_batch(
     value the batch never moved reads the same before and after it.
     """
     callbacks = make_validation_callbacks(site_id)
-    record_type = graph.record_type or "transcript"
     canonical: list[GraphOperation] = []
     writes: list[WrittenStep] = []
     for op in ops:
@@ -301,7 +303,6 @@ async def canonical_batch(
                     op,
                     graph=graph,
                     site_id=site_id,
-                    record_type=record_type,
                     callbacks=callbacks,
                 )
             case (
@@ -314,7 +315,6 @@ async def canonical_batch(
                     op,
                     stated=stated,
                     site_id=site_id,
-                    record_type=record_type,
                     callbacks=callbacks,
                 )
             case _:

@@ -98,15 +98,16 @@ async def test_a_gold_strategy_thread_claims_the_strategy_it_minted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     del patch_app_db_engine
+    api = _minting_api(_GOLD_STRATEGY)
+    monkeypatch.setattr("pathfinder.services.eval.get_strategy_api", lambda _site: api)
     monkeypatch.setattr(
-        "pathfinder.services.eval.get_strategy_api",
-        lambda _site: _minting_api(_GOLD_STRATEGY),
+        "pathfinder.services.experiment.materialization.get_strategy_api",
+        lambda _site: api,
     )
 
     result = await build_gold_strategy(
         gold_id="gold-1",
         site_id=_SITE,
-        record_type="transcript",
         step_tree=_step_tree(),
         user_id=seed_user.id,
     )

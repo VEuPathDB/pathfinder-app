@@ -266,3 +266,12 @@ def test_frame_instructions_build_a_presence_only_in_a_clade() -> None:
         "that holds L when only the genomes outside M must hold none; bind its "
         "expression whole."
     ) in text
+
+
+def test_frame_instructions_ask_for_the_scope_of_a_taxon_an_expression_spans() -> None:
+    assert (
+        "When an expression names genomes of several species or strains of one "
+        "taxon, state the taxon's scope in `group_scopes`: whole, with "
+        "`except_codes` for the genomes the request leaves out, or named, exactly "
+        "the genomes the units write."
+    ) in _normalized(_FRAME_INSTRUCTIONS)

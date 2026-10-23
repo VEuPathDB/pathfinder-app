@@ -40,6 +40,7 @@ from pathfinder.services.strategies.step_search import (
     states_a_question,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 _VALUES = PatchAction(search_config=True, name=False)
 
@@ -196,6 +197,7 @@ class _Validations:
 def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: recorder)
+    list_every_search_under(monkeypatch, "transcript")
     return recorder
 
 
@@ -222,7 +224,6 @@ async def _push(nodes: list[StrategyStep]) -> BuildOutcome:
     outcome = BuildOutcome()
     await spec_build._push_tree_to_wdk(
         nodes=nodes,
-        graph_record_type="transcript",
         site_id="plasmodb",
         sync_state=WDKSyncState(),
         outcome=outcome,

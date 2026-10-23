@@ -32,8 +32,11 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     rank_other_sites,
     with_other_sites,
 )
+from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
+
+ORTHOLOG_PATTERN_SEARCH = "GenesByOrthologPattern"
 
 # Mirrors the tool server's _MIN_SEMANTIC_SIM (0.35) and moves with it. A result
 # whose closest scored hit is under it says so; the number changes that
@@ -79,7 +82,7 @@ async def get_record_types(
 async def search_for_searches(
     ctx: RunContext[AgentDeps],
     query: str,
-    record_type: str = "transcript",
+    record_type: str,
     keywords: list[str] | None = None,
     category: str | None = None,
     limit: int = 20,
@@ -101,8 +104,8 @@ async def search_for_searches(
         query: Descriptive natural language query about what you're looking for.
             Be as descriptive as possible for better results.
             Example: 'gametocyte RNA-Seq differential expression DESeq analysis'
-        record_type: Record type to search. Defaults to 'transcript' (gene searches).
-            Use 'snp', 'pathway', 'compound', etc. for non-gene searches.
+        record_type: The record type whose searches are ranked, one that
+            get_record_types names for this site.
         keywords: Optional exact identifiers to match against search names (urlSegment).
             These get massive score boost. Extract from dataset names, search
             name fragments, or organism codes mentioned in the user's request.
@@ -210,7 +213,7 @@ def _ranking_note(matches: list[SearchMatch], site_id: str, query: str) -> str |
 
 async def browse_search_categories(
     ctx: RunContext[AgentDeps],
-    record_type: str = "transcript",
+    record_type: str,
 ) -> ToolReturn[list[JSONObject]]:
     """Browse available search categories and their example searches.
 
@@ -222,8 +225,8 @@ async def browse_search_categories(
 
     Args:
         ctx: Agent run context.
-        record_type: Record type. Defaults to 'transcript' (gene searches).
-            Use 'snp', 'pathway', etc. for non-gene searches.
+        record_type: The record type whose categories are listed, one that
+            get_record_types names for this site.
     """
     categories = await tool_payloads.list_search_categories(
         ctx.deps.site_id, record_type
@@ -259,7 +262,7 @@ def record_a_listing(
 
 async def list_searches(
     ctx: RunContext[AgentDeps],
-    record_type: str = "transcript",
+    record_type: str,
 ) -> ToolReturn[list[str]]:
     """List the search names of a record type, and nothing else.
 
@@ -269,7 +272,8 @@ async def list_searches(
 
     Args:
         ctx: Agent run context.
-        record_type: Record type. Defaults to 'transcript' (gene searches).
+        record_type: The record type whose searches are listed, one that
+            get_record_types names for this site.
     """
     listings = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
     shown = [listing for listing in listings if listing.name]
@@ -284,7 +288,7 @@ async def list_searches(
 
 async def list_transforms(
     ctx: RunContext[AgentDeps],
-    record_type: str = "transcript",
+    record_type: str,
 ) -> ToolReturn[list[JSONObject]]:
     """List available transform and combine operations (with descriptions).
 
@@ -293,7 +297,8 @@ async def list_transforms(
 
     Args:
         ctx: Agent run context.
-        record_type: Record type. Defaults to 'transcript'.
+        record_type: The record type whose transforms are listed, one that
+            get_record_types names for this site.
     """
     transforms = await tool_payloads.list_transform_listings(
         ctx.deps.site_id, record_type
@@ -309,13 +314,13 @@ async def list_transforms(
 async def lookup_phyletic_codes(
     ctx: RunContext[AgentDeps],
     query: str,
-    record_type: str = "transcript",
 ) -> ToolReturn[JSONObject | ToolErrorPayload]:
     """Look up phyletic genome and clade codes by name.
 
     On a genomics site the codes are for GenesByOrthologPattern: put a code or
     its label in included_species or excluded_species; profile_pattern is
-    derived from those two lists and is never written by hand. On OrthoMCL the
+    derived from those two lists and is never written by hand. Its tree is read
+    under the record type the site lists that search under. On OrthoMCL the
     codes are for phyletic_expression: each match carries its code, label,
     leaf and genomes, the number of genomes under a clade, and species groups
     the matched genomes by species, so the strains of one species are several
@@ -326,10 +331,11 @@ async def lookup_phyletic_codes(
         query: Species or clade name to search for (e.g., 'falciparum', 'human',
             'Apicomplexa'). A code with leaf=false is a clade and selects every
             genome under it.
-        record_type: Record type. Defaults to 'transcript'. record_type is read
-            only on the genomics sites.
     """
-    codes = await catalog.lookup_phyletic_codes(ctx.deps.site_id, record_type, query)
+    listed = await search_record_types(ctx.deps.site_id, [ORTHOLOG_PATTERN_SEARCH])
+    codes = await catalog.lookup_phyletic_codes(
+        ctx.deps.site_id, listed.get(ORTHOLOG_PATTERN_SEARCH, ""), query
+    )
     return with_summary(
         codes,
         f"{_PhyleticLookup.model_validate(codes).total} phyletic codes for {query}",

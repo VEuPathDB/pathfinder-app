@@ -22,6 +22,7 @@ from pathfinder.services.strategies.step_push_planner import (
 )
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     PROTEOME_PARAM,
@@ -80,6 +81,7 @@ async def _the_writes(
 
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _nothing_incomplete)
+    list_every_search_under(monkeypatch, "transcript")
     plan = plan_step_pushes(old_ast=before, new_ast=after, existing_wdk_ids=site.ids)
     assert {entry.step_id: entry.action for entry in plan} == {
         SURFACE: SkipAction(),

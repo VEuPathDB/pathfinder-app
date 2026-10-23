@@ -10,8 +10,13 @@ from veupathdb.model import CamelModel
 
 type SiteKind = Literal["genomics", "portal", "orthomcl"]
 
-GENE_RECORD_CLASSES = frozenset({"transcript", "gene"})
+TRANSCRIPT_RECORD_CLASS = "transcript"
+GENE_RECORD_CLASSES = frozenset({TRANSCRIPT_RECORD_CLASS, "gene"})
 PROTEIN_RECORD_CLASS = "sequence"
+
+
+def gene_record_class(kind: SiteKind) -> str:
+    return PROTEIN_RECORD_CLASS if kind == "orthomcl" else TRANSCRIPT_RECORD_CLASS
 
 
 def holds_genes(kind: SiteKind, record_class: str) -> bool:

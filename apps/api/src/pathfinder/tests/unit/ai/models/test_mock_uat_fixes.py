@@ -166,7 +166,9 @@ def test_a_build_finds_searches_by_the_request_first(arc: str, site_id: str) -> 
     )
 
     assert names(calls)[:3] == ["search_memory", "search_for_searches", "list_searches"]
-    assert args_of(calls, "search_for_searches") == [{"query": "Find signal genes"}]
+    assert args_of(calls, "search_for_searches") == [
+        {"query": "Find signal genes", "record_type": "transcript"}
+    ]
 
 
 @pytest.mark.parametrize("site_id", SITES)

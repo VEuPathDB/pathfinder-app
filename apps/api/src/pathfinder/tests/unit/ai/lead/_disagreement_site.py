@@ -86,6 +86,7 @@ class TheSite:
                 "id": ids[step_id],
                 "searchName": step.search_name or "boolean_question_transcript",
                 "searchConfig": {"parameters": wire},
+                "recordClassName": "transcript",
             }
         return WDKStrategyDetails.model_validate(
             {

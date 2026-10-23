@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 import pytest
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb_mcp.wdk import SampleRecordsResult
 
 from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
 
 
 def _session(record_type: str | None) -> StrategySession:
-    session = StrategySession(site_id="plasmodb")
-    if record_type is not None:
-        graph = StrategyGraph("g1", "kinases", "plasmodb")
-        graph.record_type = record_type
-        session.add_graph(graph)
-    return session
+    if record_type is None:
+        return StrategySession(site_id="plasmodb")
+    return classed_strategy("plasmodb", {"step_kinases": 42}, record_type)
 
 
 def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
@@ -61,16 +60,20 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return seen
 
 
-async def test_a_session_with_no_record_type_asks_for_transcript_attributes(
+async def test_a_session_with_no_record_type_reads_no_sample(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen = _record_attributes(monkeypatch)
 
-    await results.get_sample_records(
-        agent_run_context(strategy_session=_session(None)), 42
-    )
+    with pytest.raises(ModelRetry) as refused:
+        await results.get_sample_records(
+            agent_run_context(strategy_session=_session(None)), 42
+        )
 
-    assert seen == ["transcript", "transcript"]
+    assert (seen, str(refused.value)) == (
+        [],
+        "Step 42 is not a step of this strategy, so it cannot be read.",
+    )
 
 
 async def test_a_session_names_its_own_record_type(

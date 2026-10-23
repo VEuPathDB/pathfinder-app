@@ -8,8 +8,8 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import PhyleticTree, StringValue
 
-from pathfinder.ai.agents import frame_result_checks
-from pathfinder.ai.agents.frame_result_checks import (
+from pathfinder.ai.agents import frame_expression_checks
+from pathfinder.ai.agents.frame_expression_checks import (
     hold_an_every_genome_presence_to_a_question,
 )
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -53,7 +53,7 @@ class _Taxonomy:
 @pytest.fixture
 def taxonomy(monkeypatch: pytest.MonkeyPatch) -> _Taxonomy:
     held = _Taxonomy()
-    monkeypatch.setattr(frame_result_checks, "ortho_taxonomy", held)
+    monkeypatch.setattr(frame_expression_checks, "ortho_taxonomy", held)
     return held
 
 
@@ -108,8 +108,8 @@ async def test_every_plasmodium_genome_is_sent_back_twice_for_a_question(
         ctx, result
     ) == result.with_gap(
         "every_genome_unasked",
-        "c_groups binds presence in every genome of a list, and the researcher "
-        "was not asked which presence the request means.",
+        "c_groups binds presence across a list of many genomes, and the "
+        "researcher was not asked which presence the request means.",
     )
     assert taxonomy.read == ["orthomcl", "orthomcl", "orthomcl"]
 

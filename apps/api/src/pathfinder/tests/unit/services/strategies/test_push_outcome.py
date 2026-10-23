@@ -31,6 +31,7 @@ from pathfinder.services.strategies.step_wdk_push import (
     push_steps_with_plan,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 
 @dataclass
@@ -164,6 +165,7 @@ def counting_api(monkeypatch: pytest.MonkeyPatch) -> CountingStrategyAPI:
     monkeypatch.setattr(
         step_wdk_push, "_validate_plan_params", _noop_validate_plan_params
     )
+    list_every_search_under(monkeypatch, "transcript")
     return api
 
 

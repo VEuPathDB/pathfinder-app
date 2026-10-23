@@ -19,6 +19,7 @@ from pathfinder.services.eda.analysis_kinds import analysis_kinds_of
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.tests._support.eda_step_doubles import DE_DATASET
 from pathfinder.tests._support.qa_recording import qa_recording
+from pathfinder.tests._support.record_classes import list_each_search_under
 from pathfinder.tests.unit.ai.lead._analysis_thread import document
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
@@ -33,13 +34,10 @@ def recorded(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     by_name = {e["urlSegment"]: WDKSearch.model_validate(e) for e in raw}
 
-    async def record_type(_site: str, _name: str, _record: str | None) -> str:
-        return "transcript"
-
     async def definition(_site: str, _record: str, name: str) -> WDKSearch:
         return by_name[name]
 
-    monkeypatch.setattr(analysis_kinds, "resolve_search_record_type", record_type)
+    list_each_search_under(monkeypatch, dict.fromkeys(by_name, "transcript"))
     monkeypatch.setattr(analysis_kinds, "read_search_definition", definition)
 
 
@@ -60,7 +58,6 @@ async def test_the_deseq_search_is_a_compute_and_the_phenotype_search_a_subset()
 ):
     kinds = await analysis_kinds_of(
         site_id="plasmodb",
-        record_type="transcript",
         nodes=[_node("step_deseq", _DESEQ), _node("step_phenotype", _PHENOTYPE)],
     )
 
@@ -73,9 +70,7 @@ async def test_the_deseq_search_is_a_compute_and_the_phenotype_search_a_subset()
 @pytest.mark.usefixtures("recorded")
 async def test_an_unstamped_deseq_user_dataset_step_reads_its_cut() -> None:
     node = _node("step_deseq", _DESEQ)
-    kinds = await analysis_kinds_of(
-        site_id="plasmodb", record_type="transcript", nodes=[node]
-    )
+    kinds = await analysis_kinds_of(site_id="plasmodb", nodes=[node])
 
     binding = exported_analysis(kinds[node.id].kind, node.parameters)
 

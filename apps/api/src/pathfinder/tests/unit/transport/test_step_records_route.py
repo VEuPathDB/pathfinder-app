@@ -19,6 +19,7 @@ from pathfinder.platform.error_handlers import (
     veupathdb_error_handler,
 )
 from pathfinder.services.conversations import step_records
+from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.step_answers import (
     PUSHED_STEP,
     SITE,
@@ -47,6 +48,7 @@ def _app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 
     monkeypatch.setattr(step_records, "get_owned_thread", _owned)
     monkeypatch.setattr(step_records, "get_strategy_api", lambda _site_id: api)
+    list_searches_under(monkeypatch, "transcript", ["GenesByExonCount"])
     app = FastAPI()
     app.include_router(router)
     app.add_exception_handler(VEuPathDBError, cast("_Handler", veupathdb_error_handler))

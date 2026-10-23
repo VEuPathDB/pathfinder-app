@@ -50,7 +50,7 @@ from pathfinder.services.strategies.persist import (
 from pathfinder.services.strategies.reconcile import (
     reconcile_sync_state_with_wdk,
 )
-from pathfinder.services.strategies.record_classes import tree_combine_refusal
+from pathfinder.services.strategies.record_classes import tree_record_class_refusal
 from pathfinder.services.strategies.stated_sides import canonical_batch
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
@@ -161,14 +161,14 @@ async def _refuse_a_tree_the_site_cannot_run(
     *,
     rollback: tuple[StrategyAst | None, GraphLabels],
 ) -> None:
-    """Refuse the batch, before any push, when a combine of the tree it leaves
-    joins two record types, or an INTERSECT joins two known and disjoint
-    organism scopes. Every commit runs this check, so a tree that keeps its
-    shape is checked like one that moves."""
+    """Refuse the batch before any push when the tree it leaves joins two record
+    types, feeds a transform a type it does not take, or intersects two known
+    and disjoint organism scopes."""
     if wdk_ast is None:
         return
-    refusal = await tree_combine_refusal(
-        deps.site_id, wdk_ast.root
+    held = {sid: s.record_class for sid, s in graph.steps.items() if s.record_class}
+    refusal = await tree_record_class_refusal(
+        deps.site_id, wdk_ast.root, held
     ) or await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
     if refusal is not None:
         restore_graph(graph, *rollback)

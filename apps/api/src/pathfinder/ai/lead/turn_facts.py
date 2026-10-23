@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from veupathdb.domain.parameters import InputDatasetValue, to_wire
-from veupathdb.domain.strategy import StrategyStep, record_class_of
+from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.analysis_facts import analysis_parameters
@@ -33,6 +33,7 @@ from pathfinder.domain.caveats import (
 from pathfinder.domain.constraint_check import shortfalls
 from pathfinder.domain.control_result_facts import control_result_fact
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.last_change import LastChange, change_since
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -46,6 +47,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.option_labels import option_label
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
@@ -61,6 +63,7 @@ from pathfinder.domain.turn_facts import (
     TurnFacts,
 )
 from pathfinder.domain.zero_combine import zero_combine_caveats
+from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.strategies.commit import live_strategy_url
 
 
@@ -205,13 +208,10 @@ def _built_steps(
     ]
 
 
-def _record_types(graph: StrategyGraph | None) -> dict[str, str]:
+def _record_types(graph: StrategyGraph | None) -> dict[str, str | None]:
     if graph is None:
         return {}
-    return {
-        step_id: record_class_of(step_id, graph.steps, fallback=graph.record_type or "")
-        for step_id in graph.steps
-    }
+    return {step_id: step_class_of(graph.steps, step_id) for step_id in graph.steps}
 
 
 def _counted_live(
@@ -354,7 +354,8 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     )
     verdict = state.turn_verdict
     stop = deps.last_phase_stop
-    noun = counted_noun(graph.record_type) if graph and graph.record_type else "gene"
+    genes = gene_record_class(site_kind(deps.runtime.site_id))
+    noun = counted_noun(graph.record_type if graph and graph.steps else genes)
     sources = read_sources(
         markers,
         built,
@@ -393,9 +394,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
                     kind="gene_set",
                     name=s.name,
                     count=s.gene_count,
-                    record_noun=counted_noun(s.record_type)
-                    if s.record_type
-                    else "gene",
+                    record_noun=counted_noun(s.record_type or genes),
                 )
                 for s in markers.created_gene_sets
             ),

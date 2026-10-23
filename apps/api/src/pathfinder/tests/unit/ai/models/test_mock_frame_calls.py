@@ -179,7 +179,7 @@ def test_discovery_precedes_every_criterion(spec: SpecPlan) -> None:
     )
     assert (first.tool_name, first.args_as_dict()) == (
         "search_for_searches",
-        {"query": spec.title},
+        {"query": spec.title, "record_type": "transcript"},
     )
     assert (second.tool_name, second.args_as_dict()) == (
         "list_searches",

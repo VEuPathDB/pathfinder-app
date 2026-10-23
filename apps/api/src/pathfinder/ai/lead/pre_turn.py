@@ -52,7 +52,10 @@ from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.organism_params import organism_parameters
-from pathfinder.services.strategies.record_classes import search_record_types
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    search_record_types,
+)
 from pathfinder.services.strategies.revision_ops import last_change
 from pathfinder.services.strategies.sheet_params import (
     sheet_params_for_searches,
@@ -179,6 +182,7 @@ async def refresh_live_strategy_state(
         built_counts(context.strategy_session.get_graph(None), sync_state),
         live_counts,
     )
+    await _class_every_step(context)
     await _stamp_the_analysis_kinds(context)
     await _answer_what_was_written_outside(working_state, context)
     await hydrate_spec_from_the_strategy(working_state, context)
@@ -205,6 +209,12 @@ def _record_the_strategy_at_arrival(state: PipelineState, context: Context) -> N
         None if graph is None else graph.primary_root_id(),
         {} if session.sync_state is None else session.sync_state.step_counts,
     )
+
+
+async def _class_every_step(context: Context) -> None:
+    graph = context.strategy_session.get_graph(None)
+    if graph is not None:
+        await fill_record_classes(context.site_id, graph.steps)
 
 
 async def _stamp_the_analysis_kinds(context: Context) -> None:
@@ -348,12 +358,10 @@ async def stated_spec_of(
     )
     sheets = await sheet_params_for_searches(
         site_id=site_id,
-        record_type=ast.record_type,
         search_names=search_names,
     )
     under_parents = await sheets_under_their_parents(
         site_id=site_id,
-        record_type=ast.record_type,
         steps=steps_stated_by(hydrated, ast),
         sheets=sheets,
     )

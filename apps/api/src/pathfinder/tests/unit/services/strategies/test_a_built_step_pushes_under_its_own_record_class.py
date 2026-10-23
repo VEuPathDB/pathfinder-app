@@ -3,12 +3,15 @@ listed under, so a transform reads its own input parameters from the catalog."""
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 import pytest
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
+    StepKind,
     StepValidation,
     StrategyStep,
     StrategyStepNode,
@@ -17,7 +20,7 @@ from veupathdb.domain.strategy import (
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.services.strategies import spec_build
+from pathfinder.services.strategies import record_classes, spec_build
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _LISTED_UNDER = {
@@ -27,12 +30,18 @@ _LISTED_UNDER = {
 }
 
 
-async def _validate(ctx: SearchContext, **_kwargs: object) -> ValidatedParams:
-    return ValidatedParams(params={}, record_class=_LISTED_UNDER[ctx.search_name])
-
-
 def _recording(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
     pushed: list[tuple[str, str]] = []
+
+    async def _validate(ctx: SearchContext, **_kwargs: object) -> ValidatedParams:
+        pushed.append((ctx.search_name, ctx.record_type))
+        return ValidatedParams(params={}, record_class=_LISTED_UNDER[ctx.search_name])
+
+    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
+        async def _listed_under(search_name: str) -> str | None:
+            return _LISTED_UNDER.get(search_name)
+
+        return _listed_under
 
     async def _push(
         *,
@@ -50,6 +59,7 @@ def _recording(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
 
     monkeypatch.setattr(spec_build, "validate_parameters", _validate)
     monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     return pushed
 
 
@@ -76,15 +86,41 @@ async def test_each_step_of_an_orthomcl_build_pushes_under_its_own_class(
 
     await spec_build._push_tree_to_wdk(
         nodes=[steps[step_id] for step_id in order],
-        graph_record_type="transcript",
         site_id="orthomcl",
         sync_state=WDKSyncState(),
         outcome=BuildOutcome(),
     )
 
     assert pushed == [
+        ("GroupsByPhyleticPattern", "group"),
         ("pattern", "group"),
+        ("FromGroups", "sequence"),
         ("proteins", "sequence"),
+        ("ByTaxonomy", "sequence"),
         ("taxon", "sequence"),
         ("and", "sequence"),
     ]
+
+
+async def test_a_build_step_the_site_lists_under_no_class_is_not_sent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pushed = _recording(monkeypatch)
+    outcome = BuildOutcome()
+
+    await spec_build._push_tree_to_wdk(
+        nodes=[StrategyStep(id="lost", kind=StepKind.SEARCH, search_name="Unlisted")],
+        site_id="orthomcl",
+        sync_state=WDKSyncState(),
+        outcome=outcome,
+    )
+
+    assert (pushed, [f.error for f in outcome.failed_steps]) == (
+        [],
+        [
+            (
+                "The site lists no record type for Unlisted, so PathFinder cannot "
+                "address the step and did not send it."
+            )
+        ],
+    )

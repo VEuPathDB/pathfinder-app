@@ -15,7 +15,6 @@ from veupathdb_mcp.catalog import (
     EdaBackedSearch,
     eda_backed_search,
     read_search_definition,
-    resolve_search_record_type,
 )
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
@@ -43,7 +42,7 @@ def kind_of_search(described: EdaBackedSearch | None) -> AnalysisKind:
 
 
 async def analysis_kinds_of(
-    *, site_id: str, record_type: str | None, nodes: Iterable[StrategyStepNode]
+    *, site_id: str, nodes: Iterable[StrategyStepNode]
 ) -> dict[str, StampedKind]:
     """The kind of every step that carries an analysis document, by step id.
 
@@ -57,7 +56,7 @@ async def analysis_kinds_of(
             continue
         if node.search_name not in by_search:
             by_search[node.search_name] = await _kind_on_the_site(
-                site_id, record_type, node.search_name
+                site_id, node.search_name
             )
         kind = by_search[node.search_name]
         if kind is not None:
@@ -82,9 +81,7 @@ async def read_the_unread_kinds(*, site_id: str, graph: StrategyGraph) -> None:
         and node.search_name not in graph.unreadable_searches
         and study_step_request(node.parameters) is not None
     ]
-    kinds = await analysis_kinds_of(
-        site_id=site_id, record_type=graph.record_type, nodes=unread
-    )
+    kinds = await analysis_kinds_of(site_id=site_id, nodes=unread)
     graph.note_analysis_kinds(kinds)
     graph.unreadable_searches |= {
         node.search_name for node in unread if node.id not in kinds
@@ -104,15 +101,19 @@ def unread_analyses(graph: StrategyGraph) -> list[str]:
     ]
 
 
-async def _kind_on_the_site(
-    site_id: str, record_type: str | None, search_name: str
-) -> AnalysisKind | None:
+async def _kind_on_the_site(site_id: str, search_name: str) -> AnalysisKind | None:
     try:
         listed = await search_record_types(site_id, [search_name])
-        listed_under = await resolve_search_record_type(
-            site_id, search_name, listed.get(search_name, record_type)
+        if search_name not in listed:
+            logger.warning(
+                "The site lists no record type for the search, so its kind is unread",
+                site_id=site_id,
+                search_name=search_name,
+            )
+            return None
+        definition = await read_search_definition(
+            site_id, listed[search_name], search_name
         )
-        definition = await read_search_definition(site_id, listed_under, search_name)
     # The catalog's own loader names these three as the ways a load fails.
     except (VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(

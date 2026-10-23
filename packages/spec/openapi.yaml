@@ -3973,10 +3973,6 @@ components:
           maxLength: 50
           minLength: 1
           title: Siteid
-        recordType:
-          type: string
-          title: Recordtype
-          default: gene
         stepTree:
           additionalProperties: true
           type: object
@@ -15767,8 +15763,10 @@ components:
           - type: 'null'
           title: Estimatedsize
         recordClassName:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Recordclassname
-          type: string
       required:
       - strategyId
       - name

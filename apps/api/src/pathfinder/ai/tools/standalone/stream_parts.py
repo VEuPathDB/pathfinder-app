@@ -165,7 +165,7 @@ def strategy_meta_chunk(session: StrategySession, graph: StrategyGraph) -> DataC
         name=graph.name,
         is_saved=False,
         estimated_size=_strategy_root_count(graph, session.sync_state),
-        record_class_name=graph.record_type or "transcript",
+        record_class_name=graph.record_type,
     )
     return DataChunk(
         type="data-strategy-meta",

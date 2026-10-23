@@ -109,6 +109,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             stated_operators=stated_operators(state.user_prompt),
             stated_requirements=list(state.domain.requirements),
             held_record_roles=dict(state.domain.record_roles),
+            held_group_scopes=dict(state.domain.group_scopes),
             spec_the_dispatch_found=found,
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),

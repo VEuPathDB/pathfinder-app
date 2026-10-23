@@ -31,6 +31,7 @@ from pathfinder.services.eda.authoring import new_analysis, serialize_spec
 from pathfinder.services.strategies import spec_build
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.catalog_builders import serve_search_details
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 _DATASET_ID = "DS_e973eadd57"
 _DESEQ_SEARCH = "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq"
@@ -137,6 +138,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
         return 440185943, None, None
 
     serve_search_details(monkeypatch, _resolved)
+    list_every_search_under(monkeypatch, "transcript")
     monkeypatch.setattr(spec_build, "make_validation_callbacks", _callbacks)
     monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
     return pushed
@@ -155,7 +157,6 @@ async def _build(spec: str) -> tuple[BuildOutcome, WDKSyncState]:
     sync_state = WDKSyncState()
     await spec_build._push_tree_to_wdk(
         nodes=[steps[root.id]],
-        graph_record_type="transcript",
         site_id="plasmodb",
         sync_state=sync_state,
         outcome=outcome,

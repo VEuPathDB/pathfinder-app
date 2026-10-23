@@ -14,8 +14,8 @@ from veupathdb_mcp.wdk import SampleRecordsResult
 
 from pathfinder.ai.tools.standalone import _sample_page, results, step_ids
 from pathfinder.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -269,12 +269,7 @@ def test_an_empty_step_has_no_offset() -> None:
 
 
 def _built_step() -> StrategySession:
-    session = StrategySession(site_id="vectorbase")
-    graph = StrategyGraph(graph_id="g1", name="P450s", site_id="vectorbase")
-    graph.record_type = "transcript"
-    session.graph = graph
-    session.sync_state = WDKSyncState(wdk_step_ids={"step_p450": _STEP})
-    return session
+    return classed_strategy("vectorbase", {"step_p450": _STEP})
 
 
 async def test_the_id_read_and_the_sample_answer_the_same_genes_in_order(

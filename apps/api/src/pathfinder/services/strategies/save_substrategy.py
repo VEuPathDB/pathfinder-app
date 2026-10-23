@@ -30,8 +30,13 @@ from veupathdb.domain.strategy import (
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import get_strategy_api
 
+from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.errors import ErrorCode, NotFoundError
+from pathfinder.services.strategies.record_classes import (
+    fill_record_classes,
+    unclassed_step_failure,
+)
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
 from pathfinder.services.strategies.sync import build_step_tree_from_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -92,17 +97,22 @@ async def save_subtree_as_strategy(
     push_order = subtree_ids(cloned_root.id, cloned_steps)
 
     isolated_sync = WDKSyncState()
-    record_type = graph.record_type or "transcript"
+    await fill_record_classes(site_id, cloned_steps)
 
     for node in (cloned_steps[sid] for sid in push_order):
-        wdk_id, _validation, failure = await push_step_to_wdk(
-            sync_state=isolated_sync,
-            step=node,
-            site_id=site_id,
-            record_type=record_type,
-            search_name=wdk_search_name(node),
-            parameters=dict(node.parameters),
-        )
+        node_class = step_class_of(cloned_steps, node.id) or ""
+        if node_class:
+            wdk_id, _validation, failure = await push_step_to_wdk(
+                sync_state=isolated_sync,
+                step=node,
+                site_id=site_id,
+                record_type=node_class,
+                search_name=wdk_search_name(node),
+                parameters=dict(node.parameters),
+            )
+        else:
+            wdk_id = None
+            failure = unclassed_step_failure(node.id, wdk_search_name(node))
         if failure is not None or wdk_id is None:
             reason = failure.error if failure is not None else "no WDK id returned"
             raise ValidationError(
@@ -131,7 +141,7 @@ async def save_subtree_as_strategy(
         wdk_strategy_id=identifier.id,
         name=name,
         description=description,
-        record_type=record_type,
+        record_type=step_class_of(cloned_steps, cloned_root.id) or "",
         root_step_id=isolated_sync.wdk_step_ids[cloned_root.id],
         cloned_root=cloned_root,
     )

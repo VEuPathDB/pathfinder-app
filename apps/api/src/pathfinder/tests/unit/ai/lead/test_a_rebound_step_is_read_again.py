@@ -195,11 +195,11 @@ async def test_a_catalog_that_fails_to_load_leaves_the_kind_unset(
     install_stub_api(monkeypatch)
     serve_the_catalog(monkeypatch)
 
-    async def _catalog_down(_site: str, _search: str, _record_type: str | None) -> str:
+    async def _catalog_down(_site: str, _record_type: str, _search: str) -> None:
         msg = "catalog load failed"
         raise RuntimeError(msg)
 
-    monkeypatch.setattr(analysis_kinds, "resolve_search_record_type", _catalog_down)
+    monkeypatch.setattr(analysis_kinds, "read_search_definition", _catalog_down)
     session = _session(_eda("step_old", DESEQ_SEARCH), None)
     graph = _graph(session)
     graph.steps.clear()

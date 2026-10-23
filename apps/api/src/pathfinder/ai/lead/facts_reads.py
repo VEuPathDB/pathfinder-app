@@ -86,7 +86,7 @@ def listed_ids(
     steps: Sequence[StepFact],
     sync: SyncStateProtocol | None,
     sources: Sequence[SourceFact],
-    record_types: Mapping[str, str],
+    record_types: Mapping[str, str | None],
 ) -> list[ListedFact]:
     """The ids each listing of this turn returned, each with the page of its
     step's record type, under the step it listed, in tree order. A record shown as a source of that
@@ -104,15 +104,12 @@ def listed_ids(
             step_id=step.step_id,
             step_name=step.display_name,
             records=[
-                ListedRecord(
-                    record_id=g,
-                    url=record_page_url(site_id, record_types[step.step_id], g),
-                )
+                ListedRecord(record_id=g, url=record_page_url(site_id, record_type, g))
                 for g in listed[step.step_id]
             ],
         )
         for step in steps
-        if listed.get(step.step_id)
+        if listed.get(step.step_id) and (record_type := record_types[step.step_id])
     ]
 
 

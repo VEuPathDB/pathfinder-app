@@ -16,6 +16,7 @@ from veupathdb_mcp.gene_lookup import (
 from veupathdb_mcp.wdk import GeneExpressionSummary, get_gene_expression_summary
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.services.strategies.record_classes import search_record_types
 
 
 async def lookup_gene_records(
@@ -55,7 +56,6 @@ async def lookup_gene_records(
 async def resolve_gene_ids_to_records(
     ctx: RunContext[AgentDeps],
     gene_ids: list[str],
-    record_type: str = "transcript",
     search_name: str = "GeneByLocusTag",
     param_name: str = "ds_gene_ids",
 ) -> ToolReturn[GeneResolveResult]:
@@ -68,7 +68,6 @@ async def resolve_gene_ids_to_records(
         ctx: Agent run context.
         gene_ids: List of gene/locus tag IDs to resolve (e.g.
             ['PF3D7_1222600', 'PF3D7_1031000']).
-        record_type: WDK record type (default 'transcript').
         search_name: WDK search that accepts ID lists (default 'GeneByLocusTag').
         param_name: Parameter name for the ID list (default 'ds_gene_ids').
     """
@@ -91,10 +90,22 @@ async def resolve_gene_ids_to_records(
             ctx=ctx,
             status="warn",
         )
+    listed = await search_record_types(ctx.deps.site_id, [search_name])
+    if search_name not in listed:
+        return with_summary(
+            GeneResolveResult(
+                records=[],
+                total_count=0,
+                error=f"The site lists no record type for {search_name}.",
+            ),
+            f"0 of {len(ids)} ids resolved",
+            ctx=ctx,
+            status="warn",
+        )
     resolved = await resolve_gene_ids(
         ctx.deps.site_id,
         ids,
-        record_type=record_type,
+        record_type=listed[search_name],
         search_name=search_name,
         param_name=param_name,
     )

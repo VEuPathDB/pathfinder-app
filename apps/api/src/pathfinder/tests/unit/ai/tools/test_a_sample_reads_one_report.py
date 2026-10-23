@@ -7,8 +7,8 @@ from veupathdb.wdk import WDKAnswer, WDKFilterValue, WDKSortSpec
 
 from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.ai.tools.standalone.step_ids import StepGeneIds, read_step_ids
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
@@ -57,12 +57,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch, total: int) -> _Groups:
 
 
 def _group_step() -> StrategySession:
-    session = StrategySession(site_id="orthomcl")
-    graph = StrategyGraph(graph_id="g1", name="every species", site_id="orthomcl")
-    graph.record_type = "group"
-    session.graph = graph
-    session.sync_state = WDKSyncState(wdk_step_ids={"step_root": _GROUP_STEP})
-    return session
+    return classed_strategy("orthomcl", {"step_root": _GROUP_STEP}, "group")
 
 
 async def test_a_step_of_a_hundred_records_sampled_at_a_hundred_is_one_report(

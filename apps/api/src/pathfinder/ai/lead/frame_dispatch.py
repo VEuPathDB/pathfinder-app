@@ -52,6 +52,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     message_states,
 )
+from pathfinder.domain.strategy.named_groups import merged_scopes
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
@@ -216,6 +217,7 @@ async def run_frame(
         ]
         reported = resolved_reports(result.requirement_problems, domain.requirements)
         domain.record_roles |= record_roles(result.record_types, domain.requirements)
+        domain.group_scopes = merged_scopes(domain.group_scopes, result.group_scopes)
         domain.operational_spec = domain.follow_readings(
             domain.spec_before_dispatch, domain.operational_spec
         )

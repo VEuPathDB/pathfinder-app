@@ -100,6 +100,7 @@ def _session() -> StrategySession:
     graph = StrategyGraph(graph_id="g1", name="location", site_id="hostdb")
     graph.record_type = "transcript"
     graph.steps = flatten_tree(step)
+    graph.steps["step_loc"].record_class = "transcript"
     graph.recompute_roots()
     session = StrategySession(site_id="hostdb")
     session.graph = graph

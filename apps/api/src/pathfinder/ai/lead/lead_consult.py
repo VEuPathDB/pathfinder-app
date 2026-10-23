@@ -307,9 +307,7 @@ async def _card_sheets(
     )
     if spec is None or not searches:
         return {}
-    return await sheet_params_for_searches(
-        site_id=state.site_id, record_type=spec.record_type, search_names=searches
-    )
+    return await sheet_params_for_searches(site_id=state.site_id, search_names=searches)
 
 
 def _chosen(label: str, question: OpenQuestion | None) -> str:

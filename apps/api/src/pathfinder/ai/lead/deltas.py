@@ -13,6 +13,7 @@ from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
@@ -44,6 +45,9 @@ PassGapKind = Literal[
     "question_decides_nothing",
     "questions_bind_nothing",
     "every_genome_unasked",
+    "group_genomes_left_out",
+    "group_scope_missing",
+    "group_scope_exception_unknown",
     "missing_after_refusal",
     "record_role_missing",
     "record_type_unknown",
@@ -98,6 +102,15 @@ class FrameResult(CamelModel):
             "One entry for each requirement, from 'Requirements the researcher "
             "stated' in your instructions, that names a record type: whether "
             "the result is those records, or the tree passes through them."
+        ),
+    )
+    group_scopes: list[GroupScope] = Field(
+        default_factory=list,
+        exclude=True,
+        description=(
+            "One entry for each genus, species or clade whose genomes the units "
+            "of a phyletic expression name more than one of: whether the "
+            "request means the whole taxon, or exactly the units written."
         ),
     )
     # The reports with the held words in place of each number. The dispatch

@@ -5,7 +5,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    ColocationParams,
+    CombineOp,
+    StrategyStepNode,
+    walk,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
@@ -13,7 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.orthology import stated_steps
-from pathfinder.domain.strategy.validate import (
+from pathfinder.domain.strategy.record_class_check import (
     SearchRecordClasses,
     first_mixed_combine,
     mixed_combine_refusal,
@@ -76,12 +82,30 @@ def _n1_spec(root: StructureNode) -> OperationalSpec:
     )
 
 
+def _own(
+    root: StrategyStepNode, classes: Mapping[str, SearchRecordClasses] = CLASSES
+) -> dict[str, str]:
+    return {
+        node.id: classes[node.search_name].returns
+        for node in walk(root)
+        if node.search_name in classes
+    }
+
+
+def _transforms(
+    classes: Mapping[str, SearchRecordClasses],
+) -> dict[str, SearchRecordClasses]:
+    return {name: c for name, c in classes.items() if c.takes}
+
+
 def _refusal(
     spec: OperationalSpec, classes: Mapping[str, SearchRecordClasses] = CLASSES
 ) -> str | None:
     steps = stated_steps(spec)
     assert steps is not None
-    return transform_input_refusal(steps, classes, NAMES)
+    return transform_input_refusal(
+        steps, _own(steps, classes), _transforms(classes), NAMES
+    )
 
 
 def test_a_compounds_transform_over_genes_is_refused() -> None:
@@ -199,7 +223,7 @@ def test_a_combine_of_two_known_record_classes_is_the_combines_refusal() -> None
 
     steps = stated_steps(spec)
     assert steps is not None
-    mixed = first_mixed_combine(steps, CLASSES)
+    mixed = first_mixed_combine(steps, _own(steps))
     assert mixed is not None
 
     assert _refusal(spec) is None
@@ -209,4 +233,32 @@ def test_a_combine_of_two_known_record_classes_is_the_combines_refusal() -> None
         "site refuses this combine. No transform on this site maps Compounds to "
         "Genes or Genes to Compounds. Bind both inputs to searches on one record "
         "type, or ask the researcher."
+    )
+
+
+def test_a_transform_over_a_colocation_reads_the_primary_inputs_class() -> None:
+    genes_near_snps = StrategyStepNode(
+        id="c_near",
+        search_name=COMBINE_SEARCH_NAME,
+        operator=CombineOp.COLOCATE,
+        colocation_params=ColocationParams(),
+        primary_input=StrategyStepNode(id="c_genes", search_name="GenesByTaxon"),
+        secondary_input=StrategyStepNode(id="c_snps", search_name="SnpsByLocation"),
+    )
+    root = StrategyStepNode(
+        id="c_to_genes", search_name="GenesFromSnps", primary_input=genes_near_snps
+    )
+    from_snps = SearchRecordClasses(
+        display_name="Genes from SNPs", returns="transcript", takes=("snp",)
+    )
+    own = {"c_genes": "transcript", "c_snps": "snp", "c_to_genes": "transcript"}
+
+    refusal = transform_input_refusal(
+        root, own, {"GenesFromSnps": from_snps}, {**NAMES, "snp": "SNPs"}
+    )
+
+    assert refusal is not None
+    assert refusal.startswith(
+        "c_to_genes runs Genes from SNPs (GenesFromSnps), which takes SNPs as its "
+        "input step, and the subtree under it returns Genes."
     )

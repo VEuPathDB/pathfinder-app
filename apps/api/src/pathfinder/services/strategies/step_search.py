@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import (
 from veupathdb.errors import ValidationError
 
 _SET_OPERATION_PREFIX = "boolean_question_"
+COLOCATION_SEARCH = "GenesBySpanLogic"
 
 
 def is_a_set_operation(search_name: str) -> bool:

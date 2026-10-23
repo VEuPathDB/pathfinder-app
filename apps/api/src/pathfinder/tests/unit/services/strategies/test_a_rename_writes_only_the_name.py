@@ -34,6 +34,7 @@ from pathfinder.services.strategies.step_push_planner import (
 )
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     install_stub_api,
@@ -183,6 +184,7 @@ class TestThePushSendsWhatThePlanNames:
     def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         api = StubAPI()
         monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
+        list_every_search_under(monkeypatch, "transcript")
         return api
 
     @pytest.fixture
@@ -193,11 +195,7 @@ class TestThePushSendsWhatThePlanNames:
         async def _record(*_args: Any, **kwargs: Any) -> Any:
             seen.append(kwargs["parameters"])
 
-        async def _listed_under(*_args: Any, **_kwargs: Any) -> None:
-            return None
-
         monkeypatch.setattr(step_wdk_push, "validate_parameters", _record)
-        monkeypatch.setattr(step_wdk_push, "assign_step_record_classes", _listed_under)
         return seen
 
     async def _push(self, action: PatchAction) -> None:

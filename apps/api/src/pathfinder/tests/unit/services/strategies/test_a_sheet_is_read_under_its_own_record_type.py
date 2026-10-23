@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import StringValue
-from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
 
+from pathfinder.ai.lead.pre_turn import stated_spec_of
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.eda import analysis_kinds
@@ -35,8 +36,7 @@ async def test_a_protein_search_of_a_group_strategy_has_its_sheet(
 
     sheets = await sheet_params_for_searches(
         site_id="orthomcl",
-        record_type="group",
-        search_names=["ByIdList", "GroupsFromSequences"],
+        search_names=["ByIdList", "GroupsFromSequences", "GroupsByPhyleticPattern"],
     )
 
     assert site.reads == [("sequence", "ByIdList"), ("group", "GroupsFromSequences")]
@@ -59,11 +59,24 @@ async def test_a_protein_step_of_a_group_strategy_has_its_kind(
         },
     )
 
-    kinds = await analysis_kinds_of(
-        site_id="orthomcl", record_type="group", nodes=[node]
-    )
+    kinds = await analysis_kinds_of(site_id="orthomcl", nodes=[node])
 
     assert site.reads == [("sequence", "ByIdList")]
     assert kinds == {
         "step_protein": StampedKind(search_name="ByIdList", kind=AnalysisKind.NONE)
     }
+
+
+async def test_a_group_step_of_a_strategy_recorded_as_genes_reads_the_group_sheet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    site = _serve(monkeypatch)
+    ast = StrategyAst(
+        record_type="transcript",
+        root=StrategyStepNode(id="step_groups", search_name="GroupsFromSequences"),
+    )
+
+    await stated_spec_of(ast, site_id="orthomcl", goal="the protein's group")
+
+    assert ("group", "GroupsFromSequences") in site.reads
+    assert ("transcript", "GroupsFromSequences") not in site.reads

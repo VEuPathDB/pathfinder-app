@@ -36,7 +36,9 @@ async def test_validate_splits_recognized_from_unresolved(
 
     monkeypatch.setattr(control_sourcing, "resolve_gene_ids", _resolve)
 
-    res = await validate_control_ids("plasmodb", ["g1", "typo", "g3", "g1"])
+    res = await validate_control_ids(
+        "plasmodb", ["g1", "typo", "g3", "g1"], record_type="transcript"
+    )
     assert res.valid_ids == ["g1", "g3"]
     assert res.unresolved_ids == ["typo"]
 
@@ -45,7 +47,7 @@ async def test_validate_splits_recognized_from_unresolved(
 async def test_validate_empty_skips_wdk(monkeypatch: pytest.MonkeyPatch) -> None:
     called = MagicMock()
     monkeypatch.setattr(control_sourcing, "resolve_gene_ids", called)
-    res = await validate_control_ids("plasmodb", ["  ", ""])
+    res = await validate_control_ids("plasmodb", ["  ", ""], record_type="transcript")
     assert res.valid_ids == []
     assert res.unresolved_ids == []
     called.assert_not_called()

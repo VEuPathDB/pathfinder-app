@@ -18,12 +18,17 @@ from pathfinder.ai.models.mock import site_values
 from pathfinder.devtools import seeds
 from pathfinder.devtools.seeds import marks_json, seeds_json
 from pathfinder.platform.config import get_settings
+from pathfinder.services.experiment import materialization
 from pathfinder.services.experiment.seed.catalog import (
     SEEDS_DIR,
     get_seeds_for_site,
     seed_databases,
 )
 from pathfinder.tests._support.organism_reads import MARKS
+from pathfinder.tests._support.record_classes import (
+    list_each_search_under,
+    list_searches_under,
+)
 
 
 @pytest.mark.parametrize("site_id", seed_databases())
@@ -84,16 +89,25 @@ class _Made:
         self.id = made_id
 
 
+_PFAM = "GroupsByPFamIdOrKeyword"
+_PATTERN = "GroupsByPhyleticPattern"
+
+
 class _SeedApi:
     def __init__(self) -> None:
         self.ids = iter(range(1, 100))
+        self.posted: list[str] = []
 
-    async def create_step(self, *args: Any, **kwargs: Any) -> _Made:
+    async def create_step(self, *args: Any, record_type: str, **kwargs: Any) -> _Made:
         del args, kwargs
+        self.posted.append(record_type)
         return _Made(next(self.ids))
 
-    async def create_combined_step(self, *args: Any, **kwargs: Any) -> _Made:
+    async def create_combined_step(
+        self, *args: Any, record_type: str, **kwargs: Any
+    ) -> _Made:
         del args, kwargs
+        self.posted.append(record_type)
         return _Made(next(self.ids))
 
     async def create_strategy(self, *args: Any, **kwargs: Any) -> _Made:
@@ -102,6 +116,10 @@ class _SeedApi:
 
     async def delete_strategy(self, strategy_id: int) -> None:
         del strategy_id
+
+    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
+        del step_ids
+        return []
 
 
 async def test_a_group_seed_reads_its_controls_by_group_id(
@@ -124,13 +142,16 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
             target=ControlTargetData(step_id=wdk_step_id, estimated_size=5),
         )
 
-    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: _SeedApi())
+    api = _SeedApi()
+    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(seeds, "run_step_control_tests", run)
+    list_searches_under(monkeypatch, "group", [_PFAM, _PATTERN])
     (seed, *_) = get_seeds_for_site("orthomcl")
 
     await seeds.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
 
-    assert seed.record_type == "group"
+    assert (seed.record_type, api.posted) == ("group", ["group"] * 3)
     assert tested == [
         ControlsSearch(
             search_name="GroupsByNameList",
@@ -138,3 +159,19 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
             record_type="group",
         )
     ]
+
+
+async def test_a_seed_whose_leaves_the_site_lists_under_two_classes_posts_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = _SeedApi()
+    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
+    list_each_search_under(monkeypatch, {_PFAM: "sequence", _PATTERN: "group"})
+    (seed, *_) = get_seeds_for_site("orthomcl")
+
+    measured = await seeds.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
+
+    assert api.posted == []
+    assert measured.refusal is not None
+    assert "joins two record types" in measured.refusal

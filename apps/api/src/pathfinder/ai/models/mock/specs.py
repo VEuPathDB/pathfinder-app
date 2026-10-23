@@ -271,7 +271,9 @@ def frame_call(
             "search_memory", {"query": message() or spec.title, "kind": "case"}
         )
     if "search_for_searches" not in already_called:
-        return scripted_call("search_for_searches", {"query": query})
+        return scripted_call(
+            "search_for_searches", {"query": query, "record_type": "transcript"}
+        )
     if "list_searches" not in already_called:
         return scripted_call("list_searches", {"record_type": "transcript"})
     for crit in spec.criteria:

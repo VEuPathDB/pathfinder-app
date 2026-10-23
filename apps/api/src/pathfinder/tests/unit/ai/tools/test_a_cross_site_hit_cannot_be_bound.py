@@ -49,7 +49,9 @@ async def _after_a_read_showing_cryptodb(
         AsyncMock(return_value=[WDKSearch(url_segment=_SHARED_SEARCH)]),
     )
     ctx = agent_run_context(agent_state=AgentToolState())
-    await search_for_searches(ctx, query="infection time course RNA-Seq")
+    await search_for_searches(
+        ctx, query="infection time course RNA-Seq", record_type="transcript"
+    )
     return ctx
 
 

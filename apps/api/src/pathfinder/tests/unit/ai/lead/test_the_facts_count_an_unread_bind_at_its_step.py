@@ -4,7 +4,7 @@ live strategy holds for its step, in the value row and in the caveats."""
 from __future__ import annotations
 
 from veupathdb.domain.parameters import StringValue
-from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.operational_spec import (
@@ -15,6 +15,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_steps
 from pathfinder.tests.unit.ai.lead.conftest import (
     domain_answering,
     lead_deps,
@@ -53,7 +54,7 @@ def _spec() -> OperationalSpec:
 def _session(count: int | None) -> StrategySession:
     graph = StrategyGraph(graph_id="g1", name="orthologs", site_id="vectorbase")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(StrategyStepNode(id=_STEP, search_name=_SEARCH))
+    graph.steps = classed_steps(StrategyStepNode(id=_STEP, search_name=_SEARCH))
     graph.recompute_roots()
     session = StrategySession(site_id="vectorbase")
     session.graph = graph

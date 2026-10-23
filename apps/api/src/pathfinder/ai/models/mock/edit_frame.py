@@ -187,7 +187,9 @@ def grown_call(
         return _listing()
     maps = next((c for c in growth.criteria if c.role == "transform"), None)
     if maps is not None and "search_for_searches" not in called:
-        return scripted_call("search_for_searches", {"query": maps.text})
+        return scripted_call(
+            "search_for_searches", {"query": maps.text, "record_type": "transcript"}
+        )
     for crit in growth.criteria:
         call = criterion_call(crit, replies, instructions)
         if call is not None:

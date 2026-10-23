@@ -83,7 +83,7 @@ async def bind_saved_criterion(
             id=criterion_id,
             text=text,
             role=role,
-            record_class=match.record_type or None,
+            record_class=cloned.record_type or None,
             saved_strategy_ref=SavedStrategyRef(
                 conversation_id=match.conversation_id,
                 name=match.name,

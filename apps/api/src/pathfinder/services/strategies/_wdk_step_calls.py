@@ -16,7 +16,10 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
 from pathfinder.domain.strategy.combine_naming import combine_name
-from pathfinder.services.strategies.step_search import refuse_a_set_operation
+from pathfinder.services.strategies.step_search import (
+    COLOCATION_SEARCH,
+    refuse_a_set_operation,
+)
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -101,15 +104,14 @@ async def _push_combine_step(
             return None
         # GenesBySpanLogic takes span_a and span_b as AnswerParams. The step
         # tree wires both inputs, so only the primary id is passed here.
-        # The search lives under "transcript" for every record type.
         wdk_result = await api.create_transform_step(
             NewStepSpec(
-                search_name="GenesBySpanLogic",
+                search_name=COLOCATION_SEARCH,
                 search_config=WDKSearchConfig(parameters=coloc.to_wdk_params()),
                 custom_name=name,
             ),
             input_step_id=primary_wdk_id,
-            record_type="transcript",
+            record_type=record_type,
         )
         return wdk_result.id
 

@@ -29,9 +29,10 @@ from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.tools.standalone import step_ids
 from pathfinder.ai.tools.standalone._sample_page import SampledRecords
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -41,9 +42,7 @@ _PROMPT = "Which genes are in the result? [[arc:list-ids]]"
 
 
 def _session() -> StrategySession:
-    session = StrategySession(site_id="trichdb")
-    session.graph = StrategyGraph(graph_id="g1", name="union", site_id="trichdb")
-    session.graph.record_type = "transcript"
+    session = classed_strategy("trichdb", {"step_union": _UNION_STEP})
     session.sync_state = WDKSyncState(
         wdk_step_ids={"step_union": _UNION_STEP},
         wdk_strategy_id=330600001,

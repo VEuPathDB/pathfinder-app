@@ -19,6 +19,7 @@ from pathfinder.services.conversations.responses import (
 from pathfinder.services.gene_records.attributes import product_attribute
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.gene_sets.step_genes import extract_gene_id
+from pathfinder.services.strategies.record_classes import step_record_class
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -77,7 +78,16 @@ async def read_step_records(
             status=409,
             detail=f"Step {step_id!r} is not on the site yet, so it has no results.",
         )
-    record_type = graph.record_type or ""
+    record_type = await step_record_class(site_id, graph.steps, step_id)
+    if record_type is None:
+        raise ValidationError(
+            title="The step has no record type",
+            detail=(
+                f"The site lists no record type for "
+                f"{graph.steps[step_id].search_name or step_id}, so step "
+                f"{step_id!r} cannot be read."
+            ),
+        )
     product = product_attribute(record_type)
     if product is None:
         raise ValidationError(

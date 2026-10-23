@@ -41,7 +41,6 @@ class BuildGoldRequest(CamelModel):
 
     gold_id: str
     site_id: SiteId
-    record_type: str = Field(default="gene")
     step_tree: dict[str, Any]
     dataset_gene_ids: dict[str, list[str]] | None = Field(default=None)
 
@@ -64,7 +63,6 @@ async def build_gold_strategy_endpoint(
     result = await build_gold_strategy(
         gold_id=request.gold_id,
         site_id=request.site_id,
-        record_type=request.record_type,
         step_tree=request.step_tree,
         dataset_gene_ids=request.dataset_gene_ids,
         user_id=user_id,

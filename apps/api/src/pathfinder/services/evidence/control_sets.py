@@ -152,7 +152,7 @@ async def validate_control_ids(
     site_id: str,
     gene_ids: list[str],
     *,
-    record_type: str = "transcript",
+    record_type: str,
 ) -> control_sourcing.ResolvedControls:
     """Split gene ids WDK recognizes from the ones it does not."""
     return await control_sourcing.validate_control_ids(

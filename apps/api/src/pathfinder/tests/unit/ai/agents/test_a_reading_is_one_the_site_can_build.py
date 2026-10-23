@@ -56,9 +56,9 @@ _PRESENT = Constraint(
 @pytest.fixture(autouse=True)
 def _no_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _sheets(
-        *, site_id: str, record_type: str | None, search_names: Collection[str]
+        *, site_id: str, search_names: Collection[str]
     ) -> dict[str, list[ParameterInfo]]:
-        del site_id, record_type, search_names
+        del site_id, search_names
         return {}
 
     monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)

@@ -3,9 +3,15 @@ options its sheet offers, then binds the organism the answer chose."""
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
+from pydantic_ai import Tool
 
 from pathfinder.ai.models.mock.site_values import SiteValues
+from pathfinder.ai.tools.standalone.catalog import list_searches, search_for_searches
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.ai.tools.standalone.frame_structure import set_structure
 from pathfinder.tests.unit.ai.models._mock_turns import (
     SHEET_ORGANISMS,
     Scene,
@@ -17,6 +23,25 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
 SITES = ("plasmodb", "vectorbase")
 _ORDER = "Frame work order: mock frame"
 _QUESTION = "Which organism should the signal peptide search read?"
+
+
+_TOOLS: dict[str, Tool[Any]] = {
+    "search_for_searches": Tool(search_for_searches),
+    "list_searches": Tool(list_searches),
+    "set_criterion": Tool(set_criterion),
+    "set_structure": Tool(set_structure),
+}
+
+
+def _unsent(calls: list[Any]) -> dict[str, list[str]]:
+    return {
+        call.tool_name: sorted(
+            set(_TOOLS[call.tool_name].function_schema.json_schema.get("required", []))
+            - set(call.args_as_dict())
+        )
+        for call in calls
+        if call.tool_name in _TOOLS
+    }
 
 
 def _answered(organism: str) -> str:
@@ -41,6 +66,7 @@ def test_the_first_pass_leaves_the_organism_open_and_asks_it(site_id: str) -> No
         "set_structure",
         "final_result",
     ]
+    assert _unsent(calls) == {name: [] for name in _TOOLS}
     assert [params["organism"] for params in bound] == [None]
     assert (asked["disposition"], asked["openQuestions"]) == (
         "needs_user",

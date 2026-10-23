@@ -20,12 +20,16 @@ from veupathdb.wdk import (
 
 from pathfinder.ai.tools.standalone import _sample_page, gene_sets, results, step_ids
 from pathfinder.ai.tools.standalone.step_ids import StepGeneIds, read_step_ids
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.gene_sets import step_genes
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.classed_strategy import classed_strategy
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    summary_of,
+)
 
 _ROOT_WDK_STEP = 441031123
 _STEP_GENES = ["PF3D7_0304600", "PF3D7_1133400", "PF3D7_0930300"]
@@ -96,8 +100,7 @@ def reports(monkeypatch: pytest.MonkeyPatch) -> _Reports:
 
 
 def _built_session() -> StrategySession:
-    session = StrategySession(site_id="plasmodb")
-    session.graph = StrategyGraph(graph_id="g1", name="antigens", site_id="plasmodb")
+    session = classed_strategy("plasmodb", {"step_root": _ROOT_WDK_STEP})
     session.sync_state = WDKSyncState(
         wdk_step_ids={"step_root": _ROOT_WDK_STEP}, wdk_strategy_id=330531493
     )

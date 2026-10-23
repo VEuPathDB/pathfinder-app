@@ -38,6 +38,7 @@ from pathfinder.services.strategies import (
 )
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_every_search_under
 
 _STEP_PUSHES = frozenset(
     {
@@ -239,6 +240,7 @@ def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         monkeypatch.setattr(module, "defer_the_gene_set_refresh", _noop)
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
+    list_every_search_under(monkeypatch, "transcript")
     return api
 
 
