@@ -14,6 +14,7 @@ class PurgeCounts(CamelModel):
     experiments: int
     control_sets: int
     audit_runs: int
+    audit_verdicts: int
     staged_eval_cases: int
 
 

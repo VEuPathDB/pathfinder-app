@@ -83,6 +83,12 @@ def migrated(
     drop_database(base_url, name)
 
 
+@pytest.fixture
+def at_head(migrated: str) -> str:
+    command.upgrade(alembic_config(migrated), "head")
+    return migrated
+
+
 def _seed(url: str) -> tuple[str, str, int]:
     user_id, conversation_id, run_id = str(uuid4()), str(uuid4()), str(uuid4())
     with psycopg.connect(psycopg_url(url), autocommit=True) as connection:
@@ -344,9 +350,9 @@ async def _write_a_run(session: AsyncSession) -> UUID:
 
 
 async def test_the_models_store_an_absent_payload_as_null_and_read_every_row_back(
-    migrated: str,
+    at_head: str,
 ) -> None:
-    engine = create_async_engine(migrated, poolclass=NullPool)
+    engine = create_async_engine(at_head, poolclass=NullPool)
     try:
         async with AsyncSession(engine) as session:
             run_id = await _write_a_run(session)
@@ -371,7 +377,7 @@ async def test_the_models_store_an_absent_payload_as_null_and_read_every_row_bac
         await engine.dispose()
 
     assert rows(
-        migrated, "SELECT kind, payload IS NULL FROM audit_evidence ORDER BY kind"
+        at_head, "SELECT kind, payload IS NULL FROM audit_evidence ORDER BY kind"
     ) == [("confirmation", True), ("relatives", False)]
     assert (run_record.id, run_record.status, run_record.seed) == (run_id, "planned", 7)
     assert run_record.scope == _SCOPE

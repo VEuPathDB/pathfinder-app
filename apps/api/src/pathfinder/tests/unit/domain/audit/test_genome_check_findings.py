@@ -16,15 +16,17 @@ from veupathdb_mcp.audit import (
     missing_verdict,
 )
 
+from pathfinder.domain.audit.confirmations import (
+    FusionConfirmation,
+    MissingGeneConfirmation,
+    OrganelleConfirmation,
+    StrainConfirmation,
+)
 from pathfinder.domain.audit.findings import (
     NO_ERROR,
     Classification,
     ConfirmationEvidence,
     EvidencePayload,
-    FusionConfirmation,
-    MissingGeneConfirmation,
-    OrganelleConfirmation,
-    StrainConfirmation,
     classify_confirmation,
 )
 from pathfinder.tests._support.audit import gene_row

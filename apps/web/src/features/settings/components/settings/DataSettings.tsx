@@ -123,7 +123,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
         />
         <DangerAction
           label="Clear site data"
-          description={`Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.`}
+          description={`Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review, and the judgements made about your genes. Conversations move to Recently deleted. Strategies and memories stay.`}
           loading={clearing === "site"}
           confirmed={confirmAction === "site"}
           onConfirm={() => setConfirmAction("site")}
@@ -134,7 +134,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
         />
         <DangerAction
           label="Clear ALL data"
-          description="Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing."
+          description="Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site, and the judgements made about your genes. Conversations move to Recently deleted. Strategies stay but stop syncing."
           loading={clearing === "all-local"}
           confirmed={confirmAction === "all-local"}
           onConfirm={() => setConfirmAction("all-local")}

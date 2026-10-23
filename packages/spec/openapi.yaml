@@ -2535,6 +2535,7 @@ paths:
             - strain_model
             - missing_gene
             - organelle_join
+            - intron_support
             type: string
           - type: 'null'
           title: Check
@@ -2592,6 +2593,10 @@ paths:
             - fused_model
             - missing_gene
             - organelle_split_at_join
+            - missing_exon
+            - shifted_splice_site
+            - spurious_intron
+            - unsupported_intron
             type: string
           - type: 'null'
           title: Errortype
@@ -2802,15 +2807,15 @@ paths:
         ``wdkStrategiesKept`` counts those strategies.
 
 
-        Always deletes: gene sets, control sets, audit runs, the runs whose
+        Always deletes: gene sets, control sets, audit runs, audit verdicts, the
 
-        strategy is gone, and the user''s investigations still waiting for
+        runs whose strategy is gone, and the user''s investigations still waiting
 
-        curation. An audit run and a staged investigation each name a site, so a
+        for curation. An audit run, an audit verdict and a staged investigation
 
-        purge of one site clears only that site''s; ``auditRuns`` and
+        each name a site, so a purge of one site clears only that site''s;
 
-        ``stagedEvalCases`` count them.
+        ``auditRuns``, ``auditVerdicts`` and ``stagedEvalCases`` count them.
 
 
         A memory names no site, so a purge of everything also deletes the user''s
@@ -3761,6 +3766,7 @@ components:
             - strain_model
             - missing_gene
             - organelle_join
+            - intron_support
           type: array
           title: Checks
         targets:
@@ -3889,6 +3895,7 @@ components:
                 gene_fusion: '#/components/schemas/SingleGeneTarget'
                 gene_length: '#/components/schemas/SingleGeneTarget'
                 gene_split: '#/components/schemas/GenePairTarget'
+                intron_support: '#/components/schemas/SingleGeneTarget'
                 missing_gene: '#/components/schemas/MissingGeneTarget'
                 organelle_join: '#/components/schemas/OrganelleTarget'
                 pseudogene_call: '#/components/schemas/GenePairTarget'
@@ -4339,6 +4346,7 @@ components:
           - $ref: '#/components/schemas/StrainConfirmation'
           - $ref: '#/components/schemas/MissingGeneConfirmation'
           - $ref: '#/components/schemas/OrganelleConfirmation'
+          - $ref: '#/components/schemas/IntronConfirmation'
           title: Confirmation
           discriminator:
             propertyName: check
@@ -4346,6 +4354,7 @@ components:
               gene_fusion: '#/components/schemas/FusionConfirmation'
               gene_length: '#/components/schemas/LengthConfirmation'
               gene_split: '#/components/schemas/LengthConfirmation'
+              intron_support: '#/components/schemas/IntronConfirmation'
               missing_gene: '#/components/schemas/MissingGeneConfirmation'
               organelle_join: '#/components/schemas/OrganelleConfirmation'
               pseudogene_call: '#/components/schemas/PseudogeneConfirmation'
@@ -5926,6 +5935,7 @@ components:
           - strain_model
           - missing_gene
           - organelle_join
+          - intron_support
           title: Check
         status:
           type: string
@@ -5950,6 +5960,10 @@ components:
             - fused_model
             - missing_gene
             - organelle_split_at_join
+            - missing_exon
+            - shifted_splice_site
+            - spurious_intron
+            - unsupported_intron
           - type: 'null'
           title: Errortype
         judged:
@@ -6001,6 +6015,7 @@ components:
               gene_fusion: '#/components/schemas/SingleGeneTarget'
               gene_length: '#/components/schemas/SingleGeneTarget'
               gene_split: '#/components/schemas/GenePairTarget'
+              intron_support: '#/components/schemas/SingleGeneTarget'
               missing_gene: '#/components/schemas/MissingGeneTarget'
               organelle_join: '#/components/schemas/OrganelleTarget'
               pseudogene_call: '#/components/schemas/GenePairTarget'
@@ -6032,6 +6047,10 @@ components:
             - fused_model
             - missing_gene
             - organelle_split_at_join
+            - missing_exon
+            - shifted_splice_site
+            - spurious_intron
+            - unsupported_intron
           - type: 'null'
           title: Errortype
         certainty:
@@ -6080,6 +6099,7 @@ components:
           - strain_model
           - missing_gene
           - organelle_join
+          - intron_support
           title: Check
           readOnly: true
       type: object
@@ -6792,6 +6812,7 @@ components:
           - strain_model
           - missing_gene
           - organelle_join
+          - intron_support
           title: Check
         bounds:
           anyOf:
@@ -7028,6 +7049,199 @@ components:
       - insertedSavedName
       - combineStepId
       title: InsertSavedResponse
+    IntronAudit:
+      properties:
+        verdict:
+          $ref: '#/components/schemas/IntronVerdict'
+        introns:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/IntronSupport'
+            type: array
+          - type: 'null'
+          title: Introns
+        unread:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/UnreadIntron'
+            type: array
+          - type: 'null'
+          title: Unread
+        bestJunctionReads:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bestjunctionreads
+        unstrandedIgnored:
+          type: integer
+          minimum: 0.0
+          title: Unstrandedignored
+          default: 0
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        geneIds:
+          items:
+            $ref: '#/components/schemas/GeneId'
+          type: array
+          title: Geneids
+        gene:
+          type: string
+          title: Gene
+        transcript:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcript
+        otherTranscripts:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Othertranscripts
+        tracksRefused:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Tracksrefused
+        evidenceUnread:
+          items:
+            type: string
+          type: array
+          title: Evidenceunread
+        correctedCds:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Span'
+            type: array
+          - type: 'null'
+          title: Correctedcds
+        correctedProtein:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Correctedprotein
+        frameKept:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Framekept
+        code:
+          anyOf:
+          - $ref: '#/components/schemas/GeneticCode'
+          - type: 'null'
+        codeInferred:
+          type: boolean
+          title: Codeinferred
+        orthologs:
+          anyOf:
+          - $ref: '#/components/schemas/OrthologSupport'
+          - type: 'null'
+        correctionReason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Correctionreason
+        model:
+          anyOf:
+          - $ref: '#/components/schemas/ModelSpans'
+          - type: 'null'
+      type: object
+      required:
+      - verdict
+      - introns
+      - unread
+      - bestJunctionReads
+      - geneIds
+      - gene
+      - transcript
+      - otherTranscripts
+      - tracksRefused
+      - evidenceUnread
+      - correctedCds
+      - correctedProtein
+      - frameKept
+      - code
+      - codeInferred
+      - orthologs
+      title: IntronAudit
+    IntronConfirmation:
+      properties:
+        check:
+          type: string
+          const: intron_support
+          title: Check
+          default: intron_support
+        result:
+          $ref: '#/components/schemas/IntronAudit'
+      type: object
+      required:
+      - result
+      title: IntronConfirmation
+    IntronDepth:
+      properties:
+        intronMedianDepth:
+          type: number
+          title: Intronmediandepth
+        exonMedianDepth:
+          type: number
+          title: Exonmediandepth
+        coveredShare:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Coveredshare
+        track:
+          type: string
+          title: Track
+        depthShare:
+          type: number
+          title: Depthshare
+          readOnly: true
+      type: object
+      required:
+      - intronMedianDepth
+      - exonMedianDepth
+      - coveredShare
+      - track
+      - depthShare
+      title: IntronDepth
+    IntronSupport:
+      properties:
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        reads:
+          type: integer
+          title: Reads
+        tracks:
+          type: integer
+          title: Tracks
+      type: object
+      required:
+      - start
+      - end
+      - reads
+      - tracks
+      title: IntronSupport
+    IntronVerdict:
+      type: string
+      enum:
+      - SUPPORTED
+      - UNSUPPORTED_SHIFTED
+      - UNSUPPORTED_MISSING_EXON
+      - UNSUPPORTED_REPLACED
+      - UNSUPPORTED_NONCANONICAL
+      - UNSUPPORTED_RETAINED
+      - UNSUPPORTED_UNEXPLAINED
+      - NOT_EXPRESSED
+      - NOT_CHECKED
     JSONObject:
       additionalProperties:
         $ref: '#/components/schemas/JsonValue'
@@ -7949,6 +8163,46 @@ components:
       - SPLIT_AT_JOIN
       - INTACT_ON_THE_LINE
       - NOT_FOUND
+    OrthologSupport:
+      properties:
+        named:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Named
+        read:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Read
+        compared:
+          items:
+            type: string
+          type: array
+          title: Compared
+        forCorrected:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Forcorrected
+        forAnnotated:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Forannotated
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - named
+      - read
+      - compared
+      - forCorrected
+      - forAnnotated
+      title: OrthologSupport
     OverlappingGene:
       properties:
         gene:
@@ -8517,6 +8771,9 @@ components:
         auditRuns:
           type: integer
           title: Auditruns
+        auditVerdicts:
+          type: integer
+          title: Auditverdicts
         stagedEvalCases:
           type: integer
           title: Stagedevalcases
@@ -8530,6 +8787,7 @@ components:
       - experiments
       - controlSets
       - auditRuns
+      - auditVerdicts
       - stagedEvalCases
       title: PurgeCounts
       description: What one purge destroyed, and what it could not.
@@ -9308,6 +9566,7 @@ components:
           enum:
           - gene_length
           - gene_fusion
+          - intron_support
           title: Check
         genes:
           prefixItems:
@@ -10324,6 +10583,7 @@ components:
           - strain_model
           - missing_gene
           - organelle_join
+          - intron_support
           title: Check
         checked:
           type: integer
@@ -10997,6 +11257,50 @@ components:
       - parts
       title: UIMessage
       description: A message as displayed in the UI by Vercel AI Elements.
+    UnreadIntron:
+      properties:
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        inCds:
+          type: boolean
+          title: Incds
+        outcome:
+          $ref: '#/components/schemas/UnreadOutcome'
+        replacement:
+          items:
+            $ref: '#/components/schemas/IntronSupport'
+          type: array
+          title: Replacement
+        motif:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Motif
+        depth:
+          anyOf:
+          - $ref: '#/components/schemas/IntronDepth'
+          - type: 'null'
+      type: object
+      required:
+      - start
+      - end
+      - inCds
+      - outcome
+      - replacement
+      title: UnreadIntron
+    UnreadOutcome:
+      type: string
+      enum:
+      - SHIFTED
+      - MISSING_EXON
+      - REPLACED
+      - NONCANONICAL
+      - RETAINED
+      - UNEXPLAINED
     UpdateCombineOperatorOp:
       properties:
         kind:

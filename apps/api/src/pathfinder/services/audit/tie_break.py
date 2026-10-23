@@ -17,11 +17,11 @@ from veupathdb_mcp.audit import (
     tie_break,
 )
 
+from pathfinder.domain.audit.confirmations import LengthConfirmation
 from pathfinder.domain.audit.findings import (
     ConfirmationEvidence,
     EvidenceKind,
     EvidencePayload,
-    LengthConfirmation,
     RelativesEvidence,
     remodeled_by_side,
 )

@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from veupathdb_mcp.audit import GeneEvidence
 from veupathdb_mcp.tools import audit_gene_evidence
 
+from pathfinder.domain.audit.confirmations import StrainConfirmation
 from pathfinder.domain.audit.findings import (
     ConfirmationEvidence,
     EvidencePayload,
     GeneEvidencePayload,
     RelativesEvidence,
-    StrainConfirmation,
     classify_confirmation,
 )
 from pathfinder.domain.audit.rates import (

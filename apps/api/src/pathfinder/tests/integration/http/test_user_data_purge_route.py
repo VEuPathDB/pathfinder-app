@@ -70,6 +70,7 @@ async def test_purge_dismisses_all_conversations_and_reports_counts(
             "experiments": 0,
             "controlSets": 0,
             "auditRuns": 0,
+            "auditVerdicts": 0,
             "stagedEvalCases": 0,
         },
     }
@@ -129,6 +130,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
             "experiments": 0,
             "controlSets": 0,
             "auditRuns": 0,
+            "auditVerdicts": 0,
             "stagedEvalCases": 0,
         },
     }
@@ -153,6 +155,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
         "experiments": 0,
         "controlSets": 0,
         "auditRuns": 0,
+        "auditVerdicts": 0,
         "stagedEvalCases": 0,
     }
     async with session_maker() as verify:

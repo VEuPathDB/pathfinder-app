@@ -10,7 +10,8 @@ from assistant_core.platform.db import async_session_factory
 from fastmcp.exceptions import ToolError
 from veupathdb.errors import DataParsingError
 
-from pathfinder.domain.audit.findings import ConfirmationEvidence, LengthConfirmation
+from pathfinder.domain.audit.confirmations import LengthConfirmation
+from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,

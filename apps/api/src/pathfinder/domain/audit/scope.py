@@ -25,6 +25,7 @@ CheckName = Literal[
     "strain_model",
     "missing_gene",
     "organelle_join",
+    "intron_support",
 ]
 ScreenedCheck = Literal["gene_length", "gene_split", "pseudogene_call"]
 GenomeRole = Literal["audited", "comparison"]
@@ -58,7 +59,7 @@ def target_key(check: str, genes: Sequence[str], *qualifiers: str) -> str:
 class SingleGeneTarget(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    check: Literal["gene_length", "gene_fusion"]
+    check: Literal["gene_length", "gene_fusion", "intron_support"]
     genes: tuple[GeneName]
 
     @property

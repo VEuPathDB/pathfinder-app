@@ -6,10 +6,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pathfinder.domain.audit.findings import (
-    ConfirmationEvidence,
-    PseudogeneConfirmation,
-)
+from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
+from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.persistence.models import AuditEvidence
 from pathfinder.persistence.repositories.audit import STOPPED_MESSAGE, UnitNotOpenError
 from pathfinder.persistence.repositories.audit_findings import AuditFindingRepository

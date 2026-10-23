@@ -10,6 +10,7 @@ from veupathdb_mcp.tools import (
     audit_gene_fusion,
     audit_gene_length,
     audit_gene_split,
+    audit_intron_support,
     audit_missing_gene,
     audit_organelle_gene,
     audit_pseudogene_call,
@@ -17,9 +18,10 @@ from veupathdb_mcp.tools import (
     audit_strain_model,
 )
 
-from pathfinder.domain.audit.findings import (
+from pathfinder.domain.audit.confirmations import (
     Confirmation,
     FusionConfirmation,
+    IntronConfirmation,
     LengthConfirmation,
     MissingGeneConfirmation,
     OrganelleConfirmation,
@@ -53,6 +55,8 @@ async def _single(site_id: str, target: SingleGeneTarget) -> Confirmation:
             )
         case "gene_fusion":
             return FusionConfirmation(result=await audit_gene_fusion(site_id, gene))
+        case "intron_support":
+            return IntronConfirmation(result=await audit_intron_support(site_id, gene))
 
 
 async def _pair(site_id: str, target: GenePairTarget) -> Confirmation:

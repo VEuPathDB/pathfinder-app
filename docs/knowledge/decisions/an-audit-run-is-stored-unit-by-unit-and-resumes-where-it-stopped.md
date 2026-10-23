@@ -89,8 +89,15 @@ finding whose error moved to another genome counts as judged clean in the genome
 that screened it. A check with no judged finding has no rate. A finding the
 check could not judge (its classification states what was not judged: GAP,
 NO_SYNTENY, NOT_FOUND, NO_RELATIVES, NOT_JUDGED, ANNOTATED_IN_GENOME, a fusion
-check on a gene that is not LONG) is stored `judged = false`, is in neither
-count, and is counted as `unjudged` beside the rate and in the run's counts.
+check on a gene that is not LONG, an intron check answering NOT_EXPRESSED or
+NOT_CHECKED) is stored `judged = false`, is in neither count, and is counted as
+`unjudged` beside the rate and in the run's counts.
+
+The intron check (`intron_support`) is a gene target only. Its answer names an
+error per verdict: a missing exon (high certainty), a shifted splice site for a
+shifted or a replaced intron (medium; the stored answer keeps which), a spurious
+intron for a noncanonical or a retained one (medium), and an unsupported intron
+for an annotated intron no evidence explains (low).
 
 A researcher's gene targets are not in any rate. The run reports them apart:
 each judged target counts as checked in every genome it judged (both genomes of
@@ -132,6 +139,18 @@ length finding waits until its relatives are settled for that reason, and a read
 still held back at the deadline is stored `unread`. The findings pages are ordered by impact in SQL,
 highest first and unweighed last, on an index in that order.
 
+**A model's judgement is a verdict row.** `audit_verdicts` (alembic
+`2026_10_23_0001`) holds one row per judgement a model made about a gene model,
+with its origin (`auditor`, `lead`, `verification` or `review`), the site, the
+model that wrote it and the thread it was made in. A review names the finding it
+judged and the run that holds it, and a finding holds at most one review; a
+review takes its owner, application, thread and site from its run. A chat
+verdict names no run. A run's review progress and its synthesis are the
+`review` and `synthesis` columns of `audit_runs`, empty before a review starts.
+Deleting a run deletes its reviews; deleting a thread keeps its verdicts. A
+purge of the user's data deletes the user's verdicts of the purged site, or of
+every site, and reports them as `auditVerdicts`.
+
 # What was rejected
 
 **The run in memory, written at the end.** One row per run with a result blob
@@ -153,8 +172,10 @@ value separates them in the tally and the views with no other change.
 `apps/api/src/pathfinder/services/audit/units.py`,
 `apps/api/src/pathfinder/persistence/repositories/audit.py`,
 `apps/api/src/pathfinder/persistence/repositories/audit_findings.py`,
+`apps/api/src/pathfinder/persistence/repositories/audit_reviews.py`,
 `apps/api/src/pathfinder/domain/audit/screen.py`,
 `apps/api/src/pathfinder/domain/audit/findings.py`,
+`apps/api/src/pathfinder/domain/audit/confirmations.py`,
 `apps/api/src/pathfinder/domain/audit/rates.py`,
 `apps/api/src/pathfinder/services/audit/collect.py`,
 `apps/api/src/pathfinder/services/audit/tie_break.py`. The jobs that carry the run

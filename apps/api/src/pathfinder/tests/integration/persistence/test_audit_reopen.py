@@ -7,10 +7,8 @@ from uuid import UUID
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pathfinder.domain.audit.findings import (
-    ConfirmationEvidence,
-    PseudogeneConfirmation,
-)
+from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
+from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.domain.audit.stages import STAGES
 from pathfinder.persistence.repositories.audit import (

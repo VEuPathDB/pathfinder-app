@@ -196,6 +196,7 @@ async def test_a_signed_out_purge_keeps_the_threads_it_could_not_finish(
         "experiments": 0,
         "controlSets": 0,
         "auditRuns": 0,
+        "auditVerdicts": 0,
         "stagedEvalCases": 0,
     }
     async with session_maker() as verify:
@@ -377,6 +378,7 @@ async def test_the_next_purge_finishes_a_thread_the_first_one_only_dismissed(
         "experiments": 0,
         "controlSets": 0,
         "auditRuns": 0,
+        "auditVerdicts": 0,
         "stagedEvalCases": 0,
     }
     async with session_maker() as verify:

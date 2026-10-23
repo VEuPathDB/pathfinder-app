@@ -47,11 +47,11 @@ async def purge_user_data_endpoint(
     row in the workbench, so a later purge can finish the job.
     ``wdkStrategiesKept`` counts those strategies.
 
-    Always deletes: gene sets, control sets, audit runs, the runs whose
-    strategy is gone, and the user's investigations still waiting for
-    curation. An audit run and a staged investigation each name a site, so a
-    purge of one site clears only that site's; ``auditRuns`` and
-    ``stagedEvalCases`` count them.
+    Always deletes: gene sets, control sets, audit runs, audit verdicts, the
+    runs whose strategy is gone, and the user's investigations still waiting
+    for curation. An audit run, an audit verdict and a staged investigation
+    each name a site, so a purge of one site clears only that site's;
+    ``auditRuns``, ``auditVerdicts`` and ``stagedEvalCases`` count them.
 
     A memory names no site, so a purge of everything also deletes the user's
     memories and the tombstones that hold them out; a purge of one site
@@ -78,6 +78,7 @@ async def purge_user_data_endpoint(
             experiments=result.experiments,
             control_sets=result.control_sets,
             audit_runs=result.audit_runs,
+            audit_verdicts=result.audit_verdicts,
             staged_eval_cases=result.staged_eval_cases,
         ),
     )

@@ -10,8 +10,9 @@ from fastmcp.exceptions import ToolError
 from veupathdb.errors import DataParsingError, WDKError
 from veupathdb.jbrowse import JBrowseError
 
-from pathfinder.domain.audit.findings import (
+from pathfinder.domain.audit.confirmations import (
     FusionConfirmation,
+    IntronConfirmation,
     LengthConfirmation,
     MissingGeneConfirmation,
     OrganelleConfirmation,
@@ -53,6 +54,7 @@ from pathfinder.tests._support.audit_answers import (
     organelle,
     strain,
 )
+from pathfinder.tests._support.audit_introns import INTRON_GENE, intron_audit
 from pathfinder.tests._support.audit_wire import (
     DD2_YIP1,
     SITE,
@@ -141,6 +143,24 @@ async def test_a_fusion_target_calls_the_tool_with_its_gene(
     )
     assert found == FusionConfirmation(result=answer)
     assert asked == [("plasmodb", FRAGILE_RPT6)]
+
+
+async def test_an_intron_target_calls_the_tool_with_its_gene(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[tuple[str, str]] = []
+    answer = intron_audit("UNSUPPORTED_REPLACED")
+
+    async def tool(site_id: str, gene: str) -> object:
+        asked.append((site_id, gene))
+        return answer
+
+    monkeypatch.setattr(checks, "audit_intron_support", tool)
+    found = await confirm_target(
+        "toxodb", SingleGeneTarget(check="intron_support", genes=(INTRON_GENE,))
+    )
+    assert found == IntronConfirmation(result=answer)
+    assert asked == [("toxodb", INTRON_GENE)]
 
 
 async def test_a_strain_target_calls_the_tool_strain_first(

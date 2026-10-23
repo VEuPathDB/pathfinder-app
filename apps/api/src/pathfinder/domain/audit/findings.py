@@ -14,16 +14,24 @@ from veupathdb_mcp.audit import (
     GeneEvidence,
     GeneFusionAudit,
     GeneLengthAudit,
-    MissingGeneAudit,
+    IntronVerdict,
     MissingVerdict,
-    OrganelleGeneAudit,
     OrganelleVerdict,
-    PseudogeneCallAudit,
-    SelenoproteinEndAudit,
     SideVerdict,
     StrainModelAudit,
 )
 
+from pathfinder.domain.audit.confirmations import (
+    Confirmation,
+    FusionConfirmation,
+    IntronConfirmation,
+    LengthConfirmation,
+    MissingGeneConfirmation,
+    OrganelleConfirmation,
+    PseudogeneConfirmation,
+    SelenoproteinConfirmation,
+    StrainConfirmation,
+)
 from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.stages import RunStatus, StageName
 
@@ -43,106 +51,12 @@ ErrorType = Literal[
     "fused_model",
     "missing_gene",
     "organelle_split_at_join",
+    "missing_exon",
+    "shifted_splice_site",
+    "spurious_intron",
+    "unsupported_intron",
 ]
 MAX_STOPS = 3
-
-
-class PseudogeneConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["pseudogene_call"] = "pseudogene_call"
-    result: PseudogeneCallAudit
-
-    @property
-    def verdict(self) -> str:
-        return self.result.verdict
-
-
-class SelenoproteinConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["selenoprotein_end"] = "selenoprotein_end"
-    result: SelenoproteinEndAudit
-
-    @property
-    def verdict(self) -> str:
-        return self.result.verdict
-
-
-class LengthConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["gene_length", "gene_split"]
-    result: GeneLengthAudit
-
-    @model_validator(mode="after")
-    def _genes_of_check(self) -> Self:
-        expected = 1 if self.check == "gene_length" else 2
-        if len(self.result.genes) != expected:
-            msg = f"{self.check} reads {expected} genes, not {len(self.result.genes)}"
-            raise ValueError(msg)
-        return self
-
-    @property
-    def verdict(self) -> str:
-        return self.result.verdict
-
-
-class FusionConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["gene_fusion"] = "gene_fusion"
-    result: GeneFusionAudit
-
-    @property
-    def verdict(self) -> str:
-        fusion = self.result.fusion
-        return self.result.length_class if fusion is None else fusion.verdict
-
-
-class StrainConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["strain_model"] = "strain_model"
-    result: StrainModelAudit
-
-    @property
-    def verdict(self) -> str:
-        return self.result.side
-
-
-class MissingGeneConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["missing_gene"] = "missing_gene"
-    result: MissingGeneAudit
-
-    @property
-    def verdict(self) -> str:
-        return self.result.verdict
-
-
-class OrganelleConfirmation(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    check: Literal["organelle_join"] = "organelle_join"
-    result: OrganelleGeneAudit
-
-    @property
-    def verdict(self) -> str:
-        return self.result.verdict
-
-
-Confirmation = Annotated[
-    PseudogeneConfirmation
-    | SelenoproteinConfirmation
-    | LengthConfirmation
-    | FusionConfirmation
-    | StrainConfirmation
-    | MissingGeneConfirmation
-    | OrganelleConfirmation,
-    Field(discriminator="check"),
-]
 
 
 class Classification(CamelModel):
@@ -231,6 +145,26 @@ _ORGANELLES: dict[OrganelleVerdict, Classification] = {
     ),
 }
 
+_UNSPLICED: Classification = _named("unsupported_intron", "low")
+_INTRONS: dict[IntronVerdict, Classification] = {
+    "SUPPORTED": NO_ERROR,
+    "UNSUPPORTED_MISSING_EXON": _named("missing_exon", "high"),
+    "UNSUPPORTED_SHIFTED": _named("shifted_splice_site", "medium"),
+    "UNSUPPORTED_REPLACED": _named("shifted_splice_site", "medium"),
+    "UNSUPPORTED_NONCANONICAL": _named("spurious_intron", "medium"),
+    "UNSUPPORTED_RETAINED": _named("spurious_intron", "medium"),
+    "UNSUPPORTED_UNEXPLAINED": _UNSPLICED,
+    "NOT_EXPRESSED": _unjudged(
+        "NOT_EXPRESSED",
+        "the gene's reads are below the expression gate, so the check judges no intron",
+    ),
+    "NOT_CHECKED": _unjudged(
+        "NOT_CHECKED",
+        "the site serves no junction track for the gene's genome, so the check "
+        "judges no intron",
+    ),
+}
+
 
 def _fusion(result: GeneFusionAudit) -> Classification:
     if result.fusion is not None:
@@ -308,7 +242,8 @@ def _classify_targeted(
     confirmation: FusionConfirmation
     | StrainConfirmation
     | MissingGeneConfirmation
-    | OrganelleConfirmation,
+    | OrganelleConfirmation
+    | IntronConfirmation,
 ) -> Classification:
     match confirmation:
         case FusionConfirmation(result=result):
@@ -319,6 +254,8 @@ def _classify_targeted(
             return _MISSING[result.verdict]
         case OrganelleConfirmation(result=result):
             return _ORGANELLES[result.verdict]
+        case IntronConfirmation(result=result):
+            return _INTRONS[result.verdict]
 
 
 def classify_confirmation(
@@ -328,7 +265,8 @@ def classify_confirmation(
     | FusionConfirmation
     | StrainConfirmation
     | MissingGeneConfirmation
-    | OrganelleConfirmation,
+    | OrganelleConfirmation
+    | IntronConfirmation,
 ) -> Classification:
     match confirmation:
         case PseudogeneConfirmation(result=result):
@@ -346,6 +284,7 @@ def classify_confirmation(
             | StrainConfirmation()
             | MissingGeneConfirmation()
             | OrganelleConfirmation()
+            | IntronConfirmation()
         ):
             return _classify_targeted(confirmation)
 

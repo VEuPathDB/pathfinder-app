@@ -15,7 +15,7 @@ from assistant_core.persistence.models import (
     application_id_column,
 )
 from assistant_core.platform.types import JSONArray, JSONObject
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -58,6 +58,13 @@ from pathfinder.domain.audit.scope import (
     GenomeStatus,
 )
 from pathfinder.domain.audit.stages import RunStages, RunStatus
+from pathfinder.domain.audit.verdicts import (
+    FindingReview,
+    GeneModelVerdict,
+    ReviewProgress,
+    Synthesis,
+    VerdictOrigin,
+)
 from pathfinder.domain.message_rating import Rating, WithheldCase
 
 
@@ -694,6 +701,12 @@ class AuditRun(Base):
     deadline_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    review: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    synthesis: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
     created_at: Mapped[datetime] = _stamp()
     updated_at: Mapped[datetime] = _touched()
     finished_at: Mapped[datetime | None] = mapped_column(
@@ -850,6 +863,53 @@ class AuditEvidence(Base):
     updated_at: Mapped[datetime] = _touched()
 
 
+class AuditVerdict(Base):
+    __tablename__ = "audit_verdicts"
+    __table_args__ = (
+        UniqueConstraint("finding_id", name="uq_audit_verdicts_finding_id"),
+        CheckConstraint(
+            "origin IN ('auditor', 'lead', 'verification', 'review')",
+            name="ck_audit_verdicts_origin",
+        ),
+        CheckConstraint(
+            "(origin = 'review') = (finding_id IS NOT NULL) "
+            "AND (origin = 'review') = (review IS NOT NULL)",
+            name="ck_audit_verdicts_review",
+        ),
+        CheckConstraint(
+            "finding_id IS NULL OR run_id IS NOT NULL", name="ck_audit_verdicts_run"
+        ),
+        Index("ix_audit_verdicts_run_id", "run_id"),
+        Index(
+            "ix_audit_verdicts_user_app_conversation",
+            "user_id",
+            "application_id",
+            "conversation_id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    application_id: Mapped[str] = application_id_column()
+    conversation_id: Mapped[UUID | None] = saved_in_column("audit_verdicts")
+    run_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=True
+    )
+    finding_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("audit_findings.id", ondelete="CASCADE"), nullable=True
+    )
+    site_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
+    verdict: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    review: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    model_id: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = _stamp()
+
+
 class AuditRunRecord(BaseModel):
     model_config = ConfigDict(frozen=True, from_attributes=True)
 
@@ -863,6 +923,8 @@ class AuditRunRecord(BaseModel):
     status: RunStatus
     stages: RunStages
     deadline_at: datetime | None
+    review: ReviewProgress | None
+    synthesis: Synthesis | None
     created_at: datetime
     finished_at: datetime | None
 
@@ -915,3 +977,44 @@ class AuditEvidenceRecord(BaseModel):
     attempts: int
     stopped: int
     message: str | None
+
+
+class _StoredVerdict(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID | None
+    finding_id: int | None
+    conversation_id: UUID | None
+    site_id: str
+    origin: str
+    verdict: JSONObject
+    review: JSONObject | None
+    model_id: str
+    created_at: datetime
+
+
+class AuditVerdictRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID | None
+    finding_id: int | None
+    conversation_id: UUID | None
+    site_id: str
+    origin: VerdictOrigin
+    verdict: GeneModelVerdict
+    review: FindingReview | None
+    model_id: str
+    created_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def _review_with_its_verdict(cls, data: object) -> dict[str, object]:
+        stored = _StoredVerdict.model_validate(data)
+        review = (
+            None
+            if stored.review is None
+            else {**stored.review, "verdict": stored.verdict}
+        )
+        return {**stored.model_dump(), "review": review}

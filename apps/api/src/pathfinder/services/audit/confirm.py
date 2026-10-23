@@ -8,12 +8,8 @@ from dataclasses import dataclass, replace
 from assistant_core.platform.db import async_session_factory
 from veupathdb_mcp.audit import record_rows
 
-from pathfinder.domain.audit.findings import (
-    Confirmation,
-    ConfirmationEvidence,
-    StrainConfirmation,
-    classify_confirmation,
-)
+from pathfinder.domain.audit.confirmations import Confirmation, StrainConfirmation
+from pathfinder.domain.audit.findings import ConfirmationEvidence, classify_confirmation
 from pathfinder.domain.audit.scope import paired_genome
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository

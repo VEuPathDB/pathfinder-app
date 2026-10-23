@@ -26,6 +26,7 @@ from pathfinder.persistence.models import (
     GeneSetRow,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
 from pathfinder.persistence.rows import rows_changed
@@ -48,6 +49,7 @@ class PurgeResult:
     experiments: int
     control_sets: int
     audit_runs: int
+    audit_verdicts: int
     staged_eval_cases: int
 
 
@@ -78,10 +80,11 @@ async def purge_user_data(
     the user made on the website stays. A chat whose VEuPathDB strategy is
     still there is dismissed instead of deleted, and a run in the same
     position keeps its row, so a later purge can finish the job. Gene sets,
-    experiments, control sets and audit runs are otherwise deleted.
-    A caller destroys only what it can read, so the same user's data under
-    another application is untouched. An audit run and a staged eval candidate
-    each name a site, so a purge of one site clears only that site's. An empty
+    experiments, control sets, audit runs and audit verdicts are otherwise
+    deleted. A caller destroys only what it can read, so the same user's data
+    under another application is untouched. An audit run, an audit verdict and
+    a staged eval candidate each name a site, so a purge of one site clears
+    only that site's. An empty
     site is every site. A memory names no site, so only a purge of every site
     clears the memories and the tombstones that hold them out.
     The memories go after the relational purge commits, so a failure there
@@ -156,6 +159,9 @@ async def purge_user_data(
     pg_gene_sets, pg_experiments, pg_control_sets = await _purge_related_data(
         session, user_id, site_id, kept_runs
     )
+    audit_verdicts = await AuditReviewRepository(session).delete_for_user(
+        user_id=user_id, site_id=site_id
+    )
     audit_runs = await AuditRepository(session).delete_runs(
         user_id=user_id, site_id=site_id
     )
@@ -186,6 +192,7 @@ async def purge_user_data(
         experiments=pg_experiments,
         control_sets=pg_control_sets,
         audit_runs=audit_runs,
+        audit_verdicts=audit_verdicts,
         staged_eval_cases=staged_eval_cases,
     )
 
@@ -199,6 +206,7 @@ async def purge_user_data(
         experiments=pg_experiments,
         control_sets=pg_control_sets,
         audit_runs=audit_runs,
+        audit_verdicts=audit_verdicts,
         staged_eval_cases=staged_eval_cases,
     )
 

@@ -18,6 +18,11 @@ from veupathdb_mcp.audit import (
     SelenoproteinEndAudit,
 )
 
+from pathfinder.domain.audit.confirmations import (
+    LengthConfirmation,
+    PseudogeneConfirmation,
+    SelenoproteinConfirmation,
+)
 from pathfinder.domain.audit.findings import (
     NO_ERROR,
     AuditOutcome,
@@ -27,10 +32,7 @@ from pathfinder.domain.audit.findings import (
     FindingCounts,
     FindingTally,
     GeneEvidencePayload,
-    LengthConfirmation,
-    PseudogeneConfirmation,
     RelativesEvidence,
-    SelenoproteinConfirmation,
     classify_confirmation,
 )
 from pathfinder.tests._support.audit import (

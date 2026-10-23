@@ -11,10 +11,8 @@ from fastapi import FastAPI
 from httpx import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.audit.findings import (
-    ConfirmationEvidence,
-    PseudogeneConfirmation,
-)
+from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
+from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget, SingleGeneTarget
 from pathfinder.persistence.repositories.audit import AuditRepository, CollectedGenome
 from pathfinder.persistence.repositories.audit_findings import (

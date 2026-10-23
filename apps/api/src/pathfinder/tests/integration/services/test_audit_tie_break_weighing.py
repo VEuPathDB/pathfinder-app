@@ -13,11 +13,11 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKError
 from veupathdb_mcp.audit import SideVerdict
 
+from pathfinder.domain.audit.confirmations import StrainConfirmation
 from pathfinder.domain.audit.findings import (
     ConfirmationEvidence,
     ErrorType,
     GeneEvidencePayload,
-    StrainConfirmation,
 )
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.models import AuditRunRecord
