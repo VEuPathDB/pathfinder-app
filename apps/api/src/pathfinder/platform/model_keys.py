@@ -270,7 +270,7 @@ def keyed_model(model: Model | str) -> Model | str:
 
     A model already built, and every model of a mock deployment, pass unchanged.
     """
-    if isinstance(model, Model) or _is_mock_deployment():
+    if isinstance(model, Model) or is_mock_deployment():
         return model
     keys = _current()
     users_key = _users_key(provider_of(model), keys)
@@ -314,7 +314,7 @@ def _keyable(provider: ModelProvider) -> KeyableProvider | None:
     return next((keyable for keyable in KEYABLE_PROVIDERS if keyable == provider), None)
 
 
-def _is_mock_deployment() -> bool:
+def is_mock_deployment() -> bool:
     return get_settings().pathfinder_chat_provider.strip().lower() == "mock"
 
 

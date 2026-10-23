@@ -24,10 +24,9 @@ from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, build_run_toolset
 from pathfinder.ai.audit.start_card import ask_about_the_audits
 from pathfinder.ai.audit.verdict_tool import record_gene_model_verdict
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
-from pathfinder.platform.model_keys import keyed_model
+from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import (
     AUDITOR_ROLE,
@@ -51,16 +50,12 @@ def auditor_model_id() -> str:
     return role_model(AUDIT_ASSISTANT_ID, AUDITOR_ROLE, compile_time=AUDITOR_MODEL)
 
 
-def _mock_provider() -> bool:
-    return get_settings().pathfinder_chat_provider.strip().lower() == "mock"
-
-
 def charged_model_id() -> str:
-    return MOCK_AUDITOR_MODEL_ID if _mock_provider() else auditor_model_id()
+    return MOCK_AUDITOR_MODEL_ID if is_mock_deployment() else auditor_model_id()
 
 
 def _model() -> tuple[Model | str, ModelSettings | None]:
-    if _mock_provider():
+    if is_mock_deployment():
         return build_audit_mock(), None
     model_id = auditor_model_id()
     config = deployment_role_config(AUDIT_ASSISTANT_ID, AUDITOR_ROLE)
