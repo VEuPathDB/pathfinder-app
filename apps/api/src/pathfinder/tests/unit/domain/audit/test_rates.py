@@ -11,6 +11,7 @@ from pathfinder.domain.audit.rates import (
     GenomeRate,
     GenomeUse,
     Importance,
+    Unresolved,
     Weighing,
     genome_rates,
     impact,
@@ -135,23 +136,78 @@ def test_each_genome_and_check_has_its_own_rate_in_order() -> None:
     ]
     assert genome_rates(tally) == [
         GenomeRate(
-            genome=DD2, check="gene_length", bounds=None, unjudged=0, unresolved=7
+            genome=DD2,
+            check="gene_length",
+            bounds=None,
+            unjudged=0,
+            unresolved_by_status=Unresolved(unsampled=7),
         ),
         GenomeRate(
             genome=NF54,
             check="gene_length",
             bounds=rate_with_bounds(0, 4, 0),
             unjudged=0,
-            unresolved=0,
+            unresolved_by_status=Unresolved(),
         ),
         GenomeRate(
             genome=NF54,
             check="pseudogene_call",
             bounds=rate_with_bounds(1, 1, 0),
             unjudged=0,
-            unresolved=0,
+            unresolved_by_status=Unresolved(),
         ),
     ]
+
+
+def test_the_unresolved_count_is_split_by_status() -> None:
+    tally = [
+        _row(NF54, "confirmed", 1, error=True),
+        _row(NF54, "confirmed", 2),
+        _row(NF54, "unreached", 1),
+        _row(NF54, "unread", 1),
+        _row(NF54, "unsampled", 1),
+        _row(NF54, "failed", 2),
+    ]
+    (rate,) = genome_rates(tally)
+    assert rate.unresolved_by_status == Unresolved(
+        unsampled=1, failed=2, unreached=1, unread=1
+    )
+    assert rate.unresolved == 5
+    assert rate.bounds == rate_with_bounds(1, 3, 5)
+
+
+def test_an_unresolved_split_reads_on_the_wire_with_its_total() -> None:
+    (rate,) = genome_rates([_row(NF54, "unread", 2), _row(NF54, "trying", 1)])
+    wire = rate.model_dump(by_alias=True, mode="json")
+    assert (wire["unresolved"], wire["unresolvedByStatus"]) == (
+        3,
+        {
+            "screened": 0,
+            "unsampled": 0,
+            "trying": 1,
+            "failed": 0,
+            "unreached": 0,
+            "unread": 2,
+            "total": 3,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    ("certainty", "weight"), [("high", 1.0), ("medium", 0.6), ("low", 0.3)]
+)
+def test_a_weighing_states_its_certainty_weight(certainty: str, weight: float) -> None:
+    weighing = Weighing.model_validate(
+        {
+            "certainty": certainty,
+            "importance": {"genes": ["PF3D7_1032400"], "source": "cited"},
+            "use": {"genome": NF54, "source": "other_strain", "reference": False},
+        }
+    )
+    assert (weighing.certainty_weight, weighing.impact) == (
+        weight,
+        round(weight * 0.5, 3),
+    )
 
 
 def test_a_rate_reads_on_the_wire_with_its_interval() -> None:
@@ -241,6 +297,7 @@ def test_a_weighing_names_its_inputs_and_their_sources() -> None:
             "reference": True,
             "value": 1.0,
         },
+        "certaintyWeight": 0.6,
         "impact": 0.3,
     }
     assert Weighing.model_validate(weighing.model_dump(by_alias=True, mode="json")) == (

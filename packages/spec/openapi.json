@@ -10763,10 +10763,13 @@
             "minimum": 0.0,
             "title": "Unjudged"
           },
+          "unresolvedByStatus": {
+            "$ref": "#/components/schemas/Unresolved"
+          },
           "unresolved": {
             "type": "integer",
-            "minimum": 0.0,
-            "title": "Unresolved"
+            "title": "Unresolved",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -10775,6 +10778,7 @@
           "check",
           "bounds",
           "unjudged",
+          "unresolvedByStatus",
           "unresolved"
         ],
         "title": "GenomeRate"
@@ -16588,10 +16592,13 @@
             "minimum": 0.0,
             "title": "Unjudged"
           },
+          "unresolvedByStatus": {
+            "$ref": "#/components/schemas/Unresolved"
+          },
           "unresolved": {
             "type": "integer",
-            "minimum": 0.0,
-            "title": "Unresolved"
+            "title": "Unresolved",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -16601,6 +16608,7 @@
           "checked",
           "errors",
           "unjudged",
+          "unresolvedByStatus",
           "unresolved"
         ],
         "title": "TargetTally"
@@ -17764,6 +17772,56 @@
           "UNEXPLAINED"
         ]
       },
+      "Unresolved": {
+        "properties": {
+          "screened": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Screened",
+            "default": 0
+          },
+          "unsampled": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unsampled",
+            "default": 0
+          },
+          "trying": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Trying",
+            "default": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed",
+            "default": 0
+          },
+          "unreached": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unreached",
+            "default": 0
+          },
+          "unread": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unread",
+            "default": 0
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "Unresolved"
+      },
       "UpdateCombineOperatorOp": {
         "properties": {
           "kind": {
@@ -18439,6 +18497,11 @@
           "use": {
             "$ref": "#/components/schemas/GenomeUse"
           },
+          "certaintyWeight": {
+            "type": "number",
+            "title": "Certaintyweight",
+            "readOnly": true
+          },
           "impact": {
             "type": "number",
             "title": "Impact",
@@ -18450,6 +18513,7 @@
           "certainty",
           "importance",
           "use",
+          "certaintyWeight",
           "impact"
         ],
         "title": "Weighing"

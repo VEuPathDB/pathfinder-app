@@ -2,6 +2,12 @@
 
 ## 2026-10-23
 
+* **An audit rate splits what it left unresolved by status.** `domain/audit/rates.py::Unresolved`
+  counts the findings of a rate or a target tally that are `screened`, `unsampled`, `trying`,
+  `failed`, `unreached` or `unread`, and `GenomeRate.unresolved` and `TargetTally.unresolved`
+  are its computed total; the wire keeps `unresolved` and adds `unresolvedByStatus`.
+  `Weighing.certaintyWeight` states the certainty factor of an impact, so a reader shows the
+  three factors without a second copy of the weights.
 * **An audit run reads as one phase with one next action.** `domain/audit/run_state.py` names a
   stored run's phase (`not_started` with no deadline, `queued`, `running`, `halted`,
   `finished`), the units it left (`unreached` or `unread` genomes, findings and evidence) and
