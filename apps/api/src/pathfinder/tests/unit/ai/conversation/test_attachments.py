@@ -14,11 +14,11 @@ from pathfinder.ai.conversation.attachments import (
     ReadAttachment,
     read_attachments,
 )
-from pathfinder.platform.errors import (
+from pathfinder.platform.attachment_errors import (
     AttachmentNotReadableError,
     AttachmentTooLargeError,
-    ErrorCode,
 )
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.model_catalog import ModelEntry, get_model_entry
 from pathfinder.tests._support.models import DEFAULT_MODEL
 

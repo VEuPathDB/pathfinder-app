@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import BinaryContent
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart
 
-from pathfinder.platform.errors import (
+from pathfinder.platform.attachment_errors import (
     AttachmentNotReadableError,
     AttachmentTooLargeError,
 )

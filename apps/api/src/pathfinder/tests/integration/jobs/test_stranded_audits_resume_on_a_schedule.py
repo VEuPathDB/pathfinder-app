@@ -12,7 +12,8 @@ from procrastinate.testing import InMemoryConnector
 from pathfinder.jobs.tasks import resume_stranded_audits_job
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.config import get_settings
-from pathfinder.services.audit.job import audit_lock, start_run
+from pathfinder.services.audit.job import start_run
+from pathfinder.services.audit.queue import audit_lock
 from pathfinder.services.audit.runs import RunOwner, create_run, owned_run
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests._support.provider_keys import sealed_provider_keys

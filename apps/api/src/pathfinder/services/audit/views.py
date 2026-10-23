@@ -35,12 +35,14 @@ from pathfinder.domain.audit.scope import (
     GenomeStatus,
 )
 from pathfinder.domain.audit.stages import RunStages, RunStatus, StageName
+from pathfinder.domain.audit.verdicts import FindingReview, ReviewProgress, Synthesis
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     FindingFilter,
 )
+from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.audit.runs import readable_run
@@ -93,6 +95,9 @@ class AuditRunView(CamelModel):
     counts: list[FindingTally]
     rates: list[GenomeRate]
     targets: TargetReport
+    review: ReviewProgress | None
+    synthesis: Synthesis | None
+    reviewed: int
 
 
 class FindingView(CamelModel):
@@ -114,6 +119,7 @@ class FindingView(CamelModel):
     attempts: int
     stopped: int
     message: str | None
+    reviewed: bool
 
     @computed
     def check(self) -> CheckName:
@@ -145,6 +151,7 @@ class FindingDetail(CamelModel):
 
     finding: FindingView
     evidence: list[EvidenceView]
+    review: FindingReview | None
 
 
 class FindingQuery(CamelModel):
@@ -215,6 +222,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         targets = await AuditFindingRepository(session).findings(
             run_id, FindingFilter(keys=keys)
         )
+        reviewed = await AuditReviewRepository(session).reviewed_count(run_id)
     return AuditRunView(
         run=_summary(run),
         scope=run.scope,
@@ -226,6 +234,9 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         counts=tally,
         rates=genome_rates(sample),
         targets=target_report(_target(finding) for finding in targets),
+        review=run.review,
+        synthesis=run.synthesis,
+        reviewed=reviewed,
     )
 
 
@@ -259,7 +270,9 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
                 detail=f"no finding {finding_id} in run {run_id}",
             )
         evidence = await repo.evidence(run_id, [finding_id])
+        review = await AuditReviewRepository(session).review_of(finding_id)
     return FindingDetail(
         finding=FindingView.model_validate(found),
         evidence=[EvidenceView.model_validate(record) for record in evidence],
+        review=review,
     )

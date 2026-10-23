@@ -18,7 +18,8 @@ from pathfinder.persistence.repositories.audit_findings import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.services.audit.job import audit_lock, outcome, start_run
+from pathfinder.services.audit.job import outcome, start_run
+from pathfinder.services.audit.queue import audit_lock
 from pathfinder.services.audit.runs import create_run, owned_run
 from pathfinder.services.audit.sign_in import AuditsDisabledError
 from pathfinder.tests._support.audit import seed_thread

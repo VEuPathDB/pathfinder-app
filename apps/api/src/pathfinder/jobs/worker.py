@@ -45,7 +45,7 @@ from pathfinder.platform.metrics import PathfinderObserver, serve_metrics
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
-from pathfinder.services.audit.job import AUDIT_QUEUE
+from pathfinder.services.audit.queue import AUDIT_QUEUE
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 
 AUDIT_SHUTDOWN_SECONDS = 5.0

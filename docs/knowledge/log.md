@@ -2,6 +2,10 @@
 
 ## 2026-10-23
 
+* **An audit begins from a conversation.** The audit queue names and the run lock move to
+  `services/audit/queue.py`. `begin_run` admits a scope under `AUDIT_MAX_GENOMES` before any
+  write. The run and finding views carry the review progress, the synthesis and each
+  finding's review.
 * **PathFinder takes veupathdb-mcp v0.2.0-b39 and veupathdb-py v0.1.0b22.** The screen stage uploads the run's gene
   targets once (`upload_gene_list`) and keeps the `GeneListDataset` on the run's stages
   (`RunStages.target_list`, in the `audit_runs.stages` JSON, so no migration). Each pass

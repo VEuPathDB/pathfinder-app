@@ -23,12 +23,8 @@ from pathfinder.persistence.repositories.audit_findings import (
     FindingFilter,
 )
 from pathfinder.platform.config import get_settings
-from pathfinder.services.audit.job import (
-    AUDIT_QUEUE,
-    audit_lock,
-    outcome,
-    start_run,
-)
+from pathfinder.services.audit.job import outcome, start_run
+from pathfinder.services.audit.queue import AUDIT_QUEUE, audit_lock
 from pathfinder.services.audit.runs import create_run, owned_run
 from pathfinder.services.audit.views import run_view
 from pathfinder.tests._support.audit import (

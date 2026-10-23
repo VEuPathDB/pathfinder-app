@@ -106,6 +106,16 @@ the ``ProblemDetail`` body. A VEuPathDB refusal lives in
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pathfinder.platform.attachment_errors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.platform.audit_errors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Security
 --------
 

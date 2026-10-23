@@ -18,7 +18,7 @@ from pathfinder.jobs.worker import (
     serving_workers,
 )
 from pathfinder.platform.config import get_settings
-from pathfinder.services.audit.job import AUDIT_QUEUE
+from pathfinder.services.audit.queue import AUDIT_QUEUE
 
 _SETTLE_SECONDS = 2.0
 

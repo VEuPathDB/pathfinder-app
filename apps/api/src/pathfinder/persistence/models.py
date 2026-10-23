@@ -964,6 +964,7 @@ class AuditFindingRecord(BaseModel):
     attempts: int
     stopped: int
     message: str | None
+    reviewed: bool = False
 
 
 class AuditEvidenceRecord(BaseModel):

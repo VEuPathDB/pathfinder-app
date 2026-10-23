@@ -26,7 +26,8 @@ from pathfinder.jobs.auth_context import attach_application
 from pathfinder.jobs.impls.audit_run_impl import run_audit_job
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
-from pathfinder.services.audit.job import AUDIT_JOB, AUDIT_QUEUE, resume_stranded_runs
+from pathfinder.services.audit.job import resume_stranded_runs
+from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
 from pathfinder.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
 

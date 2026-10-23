@@ -19,6 +19,7 @@ from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb_mcp.search_line import told_while_waiting
 
 from pathfinder.domain.audit.findings import AuditOutcome, counts_of
+from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import RunStatus, StageName
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
@@ -32,9 +33,14 @@ from pathfinder.services.audit.progress import (
     StageLane,
     waiting_for_sign_in,
 )
-from pathfinder.services.audit.runs import RunOwner, owned_run
+from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE, audit_lock, working
+from pathfinder.services.audit.runs import RunOwner, create_run, owned_run
 from pathfinder.services.audit.screen import run_screen_stage
-from pathfinder.services.audit.sign_in import seal_sign_in, signed_in_as_owner
+from pathfinder.services.audit.sign_in import (
+    AuditsDisabledError,
+    seal_sign_in,
+    signed_in_as_owner,
+)
 from pathfinder.services.audit.tie_break import run_tie_break_stage
 from pathfinder.services.audit.units import (
     SIGN_IN_NEEDED,
@@ -44,9 +50,6 @@ from pathfinder.services.audit.units import (
 )
 from pathfinder.services.wdk_identity import require_registered_wdk_login
 
-AUDIT_QUEUE = "audit"
-AUDIT_JOB = "audit:run"
-_WORKING = frozenset({"todo", "doing"})
 _BODIES: dict[
     StageName, Callable[[AuditRunRecord, StageLane, Waits], Awaitable[None]]
 ] = {
@@ -65,10 +68,6 @@ class AuditJob(BaseModel):
     pause: float = Field(gt=0)
 
 
-def audit_lock(run_id: UUID) -> str:
-    return f"audit-run:{run_id}"
-
-
 async def _defer(job: AuditJob, *, after: float) -> None:
     lock = audit_lock(job.run_id)
     deferrer = task_app().configure_task(
@@ -82,11 +81,6 @@ async def _defer(job: AuditJob, *, after: float) -> None:
         await deferrer.defer_async(payload=job.model_dump(mode="json"))
     except AlreadyEnqueued:
         return
-
-
-async def _working(run_id: UUID) -> bool:
-    found = await task_app().job_manager.list_jobs_async(lock=audit_lock(run_id))
-    return any(job.status in _WORKING for job in found)
 
 
 async def _registered_token() -> str:
@@ -137,7 +131,7 @@ async def start_run(
 ) -> AuditOutcome:
     run = await owned_run(run_id, owner)
     finished = run.status == "finished"
-    if await _working(run_id) or (finished and not retry_unreached):
+    if await working(run_id) or (finished and not retry_unreached):
         return await _outcome(run)
     kept = seal_sign_in(run_id, owner.user_id, await _signed_in(run))
     deadline = datetime.now(UTC) + timedelta(hours=get_settings().audit_run_hours)
@@ -154,6 +148,18 @@ async def start_run(
         after=0,
     )
     return await outcome(run_id, owner)
+
+
+async def begin_run(*, owner: RunOwner, scope: AuditScope) -> AuditOutcome:
+    settings = get_settings()
+    if settings.provider_key_cipher is None:
+        raise AuditsDisabledError
+    await require_registered_wdk_login()
+    admitted = AuditScope.admitted(
+        scope.model_dump(mode="json", by_alias=True),
+        max_genomes=settings.audit_max_genomes,
+    )
+    return await start_run(await create_run(owner=owner, scope=admitted), owner)
 
 
 async def _stored(run_id: UUID) -> AuditRunRecord | None:
@@ -289,7 +295,7 @@ async def resume_stranded_runs() -> None:
     async with async_session_factory() as session:
         resumable = await AuditRepository(session).resumable_runs()
     for run in resumable:
-        stranded = run.stages.halted is None and not await _working(run.id)
+        stranded = run.stages.halted is None and not await working(run.id)
         if run.deadline_at is not None and stranded:
             await _defer(
                 AuditJob(

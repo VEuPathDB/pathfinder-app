@@ -68,6 +68,7 @@ class ErrorCode(StrEnum):
     PROVIDER_KEYS_DISABLED = "PROVIDER_KEYS_DISABLED"
     # A gene-model audit
     AUDITS_DISABLED = "AUDITS_DISABLED"
+    AUDIT_NEEDS_A_THREAD = "AUDIT_NEEDS_A_THREAD"
     # A file the user attached to a message
     ATTACHMENT_TOO_LARGE = "ATTACHMENT_TOO_LARGE"
     ATTACHMENT_NOT_READABLE = "ATTACHMENT_NOT_READABLE"
@@ -482,30 +483,6 @@ class ProviderKeysDisabledError(AppError):
             title="Personal keys are off",
             status=403,
             detail="This deployment does not accept personal provider keys.",
-        )
-
-
-class AttachmentTooLargeError(AppError):
-    """A message carries more attachment bytes, or more attachments, than a turn takes."""
-
-    def __init__(self, detail: str) -> None:
-        super().__init__(
-            code=ErrorCode.ATTACHMENT_TOO_LARGE,
-            title="Attachment too large",
-            status=413,
-            detail=detail,
-        )
-
-
-class AttachmentNotReadableError(AppError):
-    """An attachment of a kind the model that reads the message cannot read."""
-
-    def __init__(self, detail: str) -> None:
-        super().__init__(
-            code=ErrorCode.ATTACHMENT_NOT_READABLE,
-            title="Attachment not readable",
-            status=422,
-            detail=detail,
         )
 
 

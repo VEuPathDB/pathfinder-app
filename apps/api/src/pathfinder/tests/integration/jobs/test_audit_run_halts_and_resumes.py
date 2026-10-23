@@ -22,11 +22,11 @@ from pathfinder.platform.config import get_settings
 from pathfinder.services import wdk_identity
 from pathfinder.services.audit import job
 from pathfinder.services.audit.job import (
-    audit_lock,
     outcome,
     resume_stranded_runs,
     start_run,
 )
+from pathfinder.services.audit.queue import audit_lock
 from pathfinder.services.audit.runs import create_run, owned_run
 from pathfinder.services.audit.sign_in import seal_sign_in
 from pathfinder.tests._support.audit import seed_thread

@@ -7,7 +7,7 @@ from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
-from sqlalchemy import Select, case, func, select, update
+from sqlalchemy import Select, case, exists, func, select, update
 from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,7 @@ from pathfinder.persistence.models import (
     AuditEvidenceRecord,
     AuditFinding,
     AuditFindingRecord,
+    AuditVerdict,
 )
 from pathfinder.persistence.repositories.audit import (
     UnitNotOpenError,
@@ -36,10 +37,17 @@ __all__ = ["AuditFindingRepository", "FindingFilter", "NewFinding", "SettledFind
 _INSERT_CHUNK = 1000
 _PAYLOAD: TypeAdapter[EvidencePayload] = TypeAdapter(EvidencePayload)
 _EVIDENCE_KEY = "uq_audit_evidence_finding_kind"
+_REVIEWED = exists().where(AuditVerdict.finding_id == AuditFinding.id).label("reviewed")
 
 
 def _evidence_unit(finding_id: int, kind: str) -> str:
     return f"{kind} evidence of finding {finding_id}"
+
+
+def _reviewed(finding: AuditFinding, *, reviewed: bool) -> AuditFindingRecord:
+    return AuditFindingRecord.model_validate(finding).model_copy(
+        update={"reviewed": reviewed}
+    )
 
 
 class NewFinding(BaseModel):
@@ -177,13 +185,14 @@ class AuditFindingRepository:
         )
         query = (
             self._filtered(run_id, where)
+            .add_columns(_REVIEWED)
             .order_by(*order)
             .offset(offset)
             .limit(limit)
             .execution_options(populate_existing=True)
         )
-        found = await self.session.scalars(query)
-        return [AuditFindingRecord.model_validate(finding) for finding in found]
+        found = await self.session.execute(query)
+        return [_reviewed(finding, reviewed=reviewed) for finding, reviewed in found]
 
     async def count_findings(self, run_id: UUID, where: FindingFilter) -> int:
         counted = await self.session.scalar(
@@ -192,12 +201,14 @@ class AuditFindingRepository:
         return counted or 0
 
     async def finding(self, run_id: UUID, finding_id: int) -> AuditFindingRecord | None:
-        found = await self.session.scalar(
-            select(AuditFinding)
-            .where(AuditFinding.run_id == run_id, AuditFinding.id == finding_id)
-            .execution_options(populate_existing=True)
-        )
-        return None if found is None else AuditFindingRecord.model_validate(found)
+        found = (
+            await self.session.execute(
+                select(AuditFinding, _REVIEWED)
+                .where(AuditFinding.run_id == run_id, AuditFinding.id == finding_id)
+                .execution_options(populate_existing=True)
+            )
+        ).one_or_none()
+        return None if found is None else _reviewed(found[0], reviewed=found[1])
 
     async def try_finding(self, finding_id: int) -> None:
         tried = await self.session.scalar(

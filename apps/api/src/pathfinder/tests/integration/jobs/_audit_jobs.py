@@ -37,7 +37,7 @@ from pathfinder.services.audit import (
     tie_break,
     weighing,
 )
-from pathfinder.services.audit.job import AUDIT_JOB
+from pathfinder.services.audit.queue import AUDIT_JOB
 from pathfinder.tests._support.audit import (
     NF54,
     NF54_PIGA,

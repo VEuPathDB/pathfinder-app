@@ -10,8 +10,9 @@ import pytest
 from pathfinder.ai.conversation.attachments import ReadAttachment
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants import registry
+from pathfinder.platform.attachment_errors import AttachmentNotReadableError
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import AttachmentNotReadableError, ErrorCode
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.models import DEFAULT_MODEL, display_name
 from pathfinder.tests._support.second_assistant import HELPER, second_assistant

@@ -10,7 +10,9 @@ status: stable
 # What was decided
 
 **A queue and a worker of their own.** `services/audit/job.py` defers the job
-`audit:run` on the queue `audit`. The worker process runs two procrastinate
+`audit:run` on the queue `audit`. `services/audit/queue.py` holds the names of
+the queue and its jobs, the key of a run's lock and the test for a queued or
+doing job of a run, so every job of a run reads one copy of each. The worker process runs two procrastinate
 workers: the one that serves chat turns, durable tools and maintenance at
 `WORKER_CONCURRENCY`, and one that serves only `audit` at `AUDIT_CONCURRENCY`.
 A turn therefore never waits for an audit slot, and the number of runs that
@@ -117,6 +119,7 @@ keeps a second job off the run until the first one ends.
 # Anchor
 
 `apps/api/src/pathfinder/services/audit/job.py`,
+`apps/api/src/pathfinder/services/audit/queue.py`,
 `apps/api/src/pathfinder/services/audit/units.py`,
 `apps/api/src/pathfinder/jobs/worker.py`,
 `apps/api/src/pathfinder/jobs/tasks.py`,
