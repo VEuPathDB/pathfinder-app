@@ -37,6 +37,13 @@ from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.verdicts import evidence_cite, finding_cite
 from pathfinder.platform.audit_errors import AuditNeedsAThreadError
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.audit.finding_views import (
+    FindingDetail,
+    FindingPage,
+    FindingQuery,
+    finding_detail,
+    finding_page,
+)
 from pathfinder.services.audit.job import begin_run
 from pathfinder.services.audit.planning import plain_problems, propose_scope
 from pathfinder.services.audit.sign_in import AuditsDisabledError
@@ -44,11 +51,6 @@ from pathfinder.services.audit.verdicts import AuditCaller
 from pathfinder.services.audit.views import (
     AuditRunSummary,
     AuditRunView,
-    FindingDetail,
-    FindingPage,
-    FindingQuery,
-    finding_detail,
-    finding_page,
     list_runs,
     run_view,
 )

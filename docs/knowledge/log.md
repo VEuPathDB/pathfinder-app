@@ -2,6 +2,13 @@
 
 ## 2026-10-23
 
+* **An audit finding names the verdict its check gave and whether it is a gene target.**
+  `domain/audit/confirmations.py::FindingVerdict` is the union of the library's verdict
+  literals, intron verdicts included, and each confirmation's `verdict` returns its own one.
+  `FindingView.verdict` is the stored confirmation's verdict (null when none is stored) and
+  `FindingView.fromTarget` is true for a finding of one of the run's gene targets. The finding
+  reads move to `services/audit/finding_views.py`, which builds each view field by field;
+  `services/audit/views.py` keeps the run views.
 * **An audit run's read names its phase, its next action and the units it left.** Every run
   summary carries its `conversationId` and `phase`; `GET /api/v1/audits/{run_id}` adds `action`
   (`resume`, `retry` or null), `reviewsRunning`, `halt` (`{kind, detail}` or null), `left` (the

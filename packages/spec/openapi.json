@@ -9515,6 +9515,37 @@
         ],
         "title": "FindingTally"
       },
+      "FindingVerdict": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PseudogeneVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/SecVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/LengthVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/LengthClass"
+          },
+          {
+            "$ref": "#/components/schemas/FusionVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/SideVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/MissingVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/OrganelleVerdict"
+          },
+          {
+            "$ref": "#/components/schemas/IntronVerdict"
+          }
+        ]
+      },
       "FindingView": {
         "properties": {
           "id": {
@@ -9681,6 +9712,20 @@
             "type": "boolean",
             "title": "Reviewed"
           },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingVerdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fromTarget": {
+            "type": "boolean",
+            "title": "Fromtarget"
+          },
           "check": {
             "type": "string",
             "enum": [
@@ -9717,6 +9762,8 @@
           "stopped",
           "message",
           "reviewed",
+          "verdict",
+          "fromTarget",
           "check"
         ],
         "title": "FindingView"

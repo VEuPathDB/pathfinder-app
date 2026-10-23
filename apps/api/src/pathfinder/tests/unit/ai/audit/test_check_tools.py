@@ -40,7 +40,11 @@ from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import GenePairTarget
 from pathfinder.domain.statistic_facts import statistic_value
 from pathfinder.services.audit import investigation
-from pathfinder.services.audit.views import EvidenceView, FindingDetail, FindingView
+from pathfinder.services.audit.finding_views import (
+    EvidenceView,
+    FindingDetail,
+    FindingView,
+)
 from pathfinder.services.gene_records.read import gene_record_url
 
 _STRAIN = "EXA_0001"
@@ -411,6 +415,8 @@ def test_finding_rows_are_dotted_paths() -> None:
             stopped=0,
             message=None,
             reviewed=False,
+            verdict="INTACT",
+            from_target=True,
         ),
         evidence=[
             EvidenceView(
@@ -434,6 +440,10 @@ def test_finding_rows_are_dotted_paths() -> None:
     assert fact.value("confirmation.confirmation.result.strainCdsLength") == "900"
     assert fact.value("finding.genome") == _GENOME
     assert fact.value("finding.target.check") == "pseudogene_call"
+    assert (fact.value("finding.verdict"), fact.value("finding.fromTarget")) == (
+        "INTACT",
+        "true",
+    )
     assert (
         statistic_value(
             [fact], f"{fact.id}.confirmation.confirmation.result.strainCdsLength"

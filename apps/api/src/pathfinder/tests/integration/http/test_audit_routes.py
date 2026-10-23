@@ -11,26 +11,23 @@ from fastapi import FastAPI
 from httpx import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
-from pathfinder.domain.audit.findings import ConfirmationEvidence
-from pathfinder.domain.audit.scope import AuditScope, GenePairTarget, SingleGeneTarget
+from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.persistence.repositories.audit import AuditRepository, CollectedGenome
-from pathfinder.persistence.repositories.audit_findings import (
-    AuditFindingRepository,
-    FindingFilter,
-    NewFinding,
-    SettledFinding,
-)
 from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.tests._support.audit import (
     NF54,
     NF54_PIGA,
     P3D7,
     PIGA,
-    PIGA_INTACT,
     seed_thread,
 )
 from pathfinder.tests._support.audit_genome_screens import NF135, NF135_PRIORITY
+from pathfinder.tests.integration.http._audit_reads import (
+    SHORT,
+    UNANSWERED,
+    UNREADABLE,
+    stored_pair_run,
+)
 from pathfinder.tests.integration.http.conftest import (
     client_for,
     make_user,
@@ -41,12 +38,8 @@ pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "site_login_names_the_user"
 )
 
-PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA))
-SHORT = SingleGeneTarget(check="gene_length", genes=("NF54_SHORT",))
 DEADLINE = datetime(2026, 10, 21, 18, 0, tzinfo=UTC)
 BEYOND_BIGINT = 10**19
-UNREADABLE = "the gene record of NF54_SHORT is unreadable"
-UNANSWERED = "plasmodb did not answer"
 
 
 def _problem(response: Response) -> tuple[int, str, str]:
@@ -55,54 +48,6 @@ def _problem(response: Response) -> tuple[int, str, str]:
         response.headers["content-type"],
         response.json()["code"],
     )
-
-
-async def _stored_run() -> tuple[RunOwner, UUID, int]:
-    owner = await seed_thread()
-    run_id = await create_run(
-        owner=owner, scope=AuditScope(site_id="plasmodb", targets=(PAIR, SHORT))
-    )
-    async with async_session_factory() as session:
-        repo = AuditFindingRepository(session)
-        await repo.add_findings(
-            run_id,
-            [
-                NewFinding(genome=NF54, target=PAIR, sampled=True, status="screened"),
-                NewFinding(genome=NF54, target=SHORT, sampled=True, status="screened"),
-            ],
-        )
-        pair = (
-            await repo.findings(run_id, FindingFilter(checks=("pseudogene_call",)))
-        )[0]
-        await repo.try_finding(pair.id)
-        await repo.settle_finding(
-            pair.id,
-            SettledFinding(
-                status="confirmed",
-                error_type="intact_gene_called_pseudogene",
-                certainty="high",
-                requests=6,
-            ),
-        )
-        short = (await repo.findings(run_id, FindingFilter(checks=("gene_length",))))[0]
-        await repo.try_finding(short.id)
-        await repo.settle_finding(
-            short.id, SettledFinding(status="failed", message=UNREADABLE)
-        )
-        await repo.try_evidence(pair.id, "confirmation")
-        await repo.save_evidence(
-            pair.id,
-            ConfirmationEvidence(
-                confirmation=PseudogeneConfirmation(result=PIGA_INTACT)
-            ),
-            requests=2,
-        )
-        await repo.try_evidence(pair.id, "relatives")
-        await repo.fail_evidence(
-            pair.id, "relatives", status="unreached", message=UNANSWERED, requests=1
-        )
-        await session.commit()
-    return owner, run_id, pair.id
 
 
 async def _started_genome_run() -> tuple[RunOwner, UUID]:
@@ -132,7 +77,7 @@ async def _started_genome_run() -> tuple[RunOwner, UUID]:
 
 
 async def test_the_owner_lists_and_reads_a_run(app: FastAPI) -> None:
-    owner, run_id, _ = await _stored_run()
+    owner, run_id, _ = await stored_pair_run()
     newer = await create_run(
         owner=owner, scope=AuditScope(site_id="plasmodb", targets=(SHORT,))
     )
@@ -267,7 +212,7 @@ async def test_a_genome_reads_with_its_busco_gap(app: FastAPI) -> None:
 
 
 async def test_findings_are_filtered_and_paged(app: FastAPI) -> None:
-    owner, run_id, pair_id = await _stored_run()
+    owner, run_id, pair_id = await stored_pair_run()
     url = f"/api/v1/audits/{run_id}/findings"
     async with client_for(app, owner.user_id) as client:
         named = (
@@ -303,7 +248,7 @@ async def test_findings_are_filtered_and_paged(app: FastAPI) -> None:
 
 
 async def test_a_finding_reads_with_its_evidence(app: FastAPI) -> None:
-    owner, run_id, pair_id = await _stored_run()
+    owner, run_id, pair_id = await stored_pair_run()
     async with client_for(app, owner.user_id) as client:
         detail = (
             await client.get(f"/api/v1/audits/{run_id}/findings/{pair_id}")
@@ -348,7 +293,7 @@ async def test_another_user_and_another_application_see_no_run(
     app: FastAPI, db_session: AsyncSession, other_application: str
 ) -> None:
     del other_application
-    owner, run_id, pair_id = await _stored_run()
+    owner, run_id, pair_id = await stored_pair_run()
     stranger = await make_user(db_session)
     async with client_for(app, stranger.id) as client:
         assert (await client.get("/api/v1/audits")).json() == []
@@ -365,8 +310,8 @@ async def test_another_user_and_another_application_see_no_run(
 
 
 async def test_an_owner_reads_no_finding_of_another_users_run(app: FastAPI) -> None:
-    owner, run_id, _ = await _stored_run()
-    _, other_run_id, other_pair_id = await _stored_run()
+    owner, run_id, _ = await stored_pair_run()
+    _, other_run_id, other_pair_id = await stored_pair_run()
     async with client_for(app, owner.user_id) as client:
         crossed = await client.get(f"/api/v1/audits/{run_id}/findings/{other_pair_id}")
     body = crossed.json()
