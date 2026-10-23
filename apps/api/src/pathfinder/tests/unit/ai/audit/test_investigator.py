@@ -1,0 +1,226 @@
+from __future__ import annotations
+
+from typing import Any
+from uuid import uuid4
+
+import pytest
+from pydantic_ai import Agent, ModelRetry, RunContext, Tool
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    TextPart,
+    ToolCallPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.toolsets.function import FunctionToolset
+from pydantic_ai.usage import RunUsage, UsageLimits
+
+from pathfinder.ai.audit import investigator, verdict_tool
+from pathfinder.ai.audit.deps import AuditDeps
+from pathfinder.ai.audit.investigator import (
+    BUDGET_ANSWER,
+    INVESTIGATION_LIMITS,
+    GeneModelInvestigation,
+    audit_deps_of,
+    build_investigator_agent,
+    investigate,
+)
+from pathfinder.ai.audit.verdict_tool import record_gene_model_verdict
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.domain.audit.verdicts import GeneModelVerdict, VerdictOrigin
+from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.audit.verdicts import AuditCaller
+from pathfinder.tests._support.run_context import run_context_for
+
+_UNMADE = "audit_gene_length:EXA_0003"
+_VERDICT = {
+    "genes": ["EXA_0003"],
+    "modelGenome": "Examplea alpha A",
+    "verdict": "error",
+    "errorType": "truncated_model",
+    "certainty": "medium",
+    "cause": "The model ends early.",
+    "cites": [_UNMADE],
+}
+type Stored = list[tuple[VerdictOrigin, GeneModelVerdict]]
+
+
+def _deps() -> AuditDeps:
+    return AuditDeps(site_id="plasmodb", user_id=uuid4(), conversation_id=uuid4())
+
+
+def _storing(monkeypatch: pytest.MonkeyPatch, module: object) -> Stored:
+    stored: Stored = []
+
+    async def record(
+        *,
+        caller: AuditCaller,
+        origin: VerdictOrigin,
+        verdict: GeneModelVerdict,
+        model_id: str,
+    ) -> int:
+        del caller, model_id
+        stored.append((origin, verdict))
+        return len(stored)
+
+    monkeypatch.setattr(module, "record_verdict", record)
+    return stored
+
+
+def _retries(messages: list[ModelMessage]) -> list[str]:
+    return [
+        str(part.content)
+        for message in messages
+        if isinstance(message, ModelRequest)
+        for part in message.parts
+        if isinstance(part, RetryPromptPart)
+    ]
+
+
+def _output(info: AgentInfo, args: dict[str, Any]) -> ModelResponse:
+    (tool,) = info.output_tools
+    return ModelResponse(parts=[ToolCallPart(tool_name=tool.name, args=args)])
+
+
+async def test_an_investigation_citing_an_unmade_read_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = _storing(monkeypatch, investigator)
+    retried: list[str] = []
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        retried.extend(_retries(messages[-1:]))
+        if not retried:
+            return _output(info, {"answer": "It is truncated.", "verdicts": [_VERDICT]})
+        return _output(info, {"answer": "No read settles it.", "verdicts": []})
+
+    found, _ = await investigate(
+        "is the model of EXA_0003 truncated", deps=_deps(), model=FunctionModel(respond)
+    )
+
+    assert [_UNMADE in text for text in retried] == [True]
+    assert (found.answer, found.verdicts, stored) == ("No read settles it.", (), [])
+
+
+async def test_an_investigation_runs_on_its_own_budget() -> None:
+    def forever(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        args = {"confirmed": 1, "checked": 2, "unresolved": len(messages)}
+        return ModelResponse(
+            parts=[ToolCallPart(tool_name="rate_with_interval", args=args)]
+        )
+
+    found, spent = await investigate(
+        "what is the rate", deps=_deps(), model=FunctionModel(forever)
+    )
+
+    assert INVESTIGATION_LIMITS.request_limit == 24
+    assert (found.answer, found.verdicts) == (BUDGET_ANSWER, ())
+    assert spent.requests == 24
+
+
+async def test_an_investigation_ignores_the_usage_of_its_caller() -> None:
+    inner: list[RunUsage] = []
+
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        return _output(info, {"answer": "Nothing to judge.", "verdicts": []})
+
+    async def ask_the_investigator(ctx: RunContext[AuditDeps]) -> str:
+        found, spent = await investigate(
+            "is it right", deps=ctx.deps, model=FunctionModel(answer)
+        )
+        inner.append(spent)
+        return found.answer
+
+    def outer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        if len(messages) == 1:
+            return ModelResponse(
+                parts=[ToolCallPart(tool_name="ask_the_investigator", args={})]
+            )
+        return ModelResponse(parts=[TextPart("done")])
+
+    caller = RunUsage(requests=30)
+    agent = Agent(
+        FunctionModel(outer), deps_type=AuditDeps, tools=[Tool(ask_the_investigator)]
+    )
+    await agent.run(
+        "go",
+        deps=_deps(),
+        usage=caller,
+        usage_limits=UsageLimits(request_limit=32),
+    )
+
+    assert ([u.requests for u in inner], caller.requests) == ([1], 32)
+
+
+def test_the_investigator_holds_the_checks_and_reads_and_no_start() -> None:
+    agent = build_investigator_agent()
+    names = {
+        name
+        for toolset in agent.toolsets
+        if isinstance(toolset, FunctionToolset)
+        for name in toolset.tools
+    }
+
+    assert {"audit_pseudogene_call", "read_audit_finding", "list_audit_runs"} <= names
+    assert {"start_gene_model_audit", "record_gene_model_verdict"} & names == set()
+
+
+async def test_the_verdict_tool_refuses_an_unmade_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = _storing(monkeypatch, verdict_tool)
+    deps = _deps()
+
+    with pytest.raises(ModelRetry, match=_UNMADE):
+        await record_gene_model_verdict(
+            run_context_for(deps), GeneModelVerdict.model_validate(_VERDICT)
+        )
+
+    assert stored == []
+
+
+async def test_the_verdict_tool_stores_a_verdict_under_the_turns_origin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = _storing(monkeypatch, verdict_tool)
+    deps = _deps().model_copy(update={"origin": "verification", "reads": {_UNMADE}})
+
+    returned = await record_gene_model_verdict(
+        run_context_for(deps, "c1"), GeneModelVerdict.model_validate(_VERDICT)
+    )
+
+    assert [origin for origin, _ in stored] == ["verification"]
+    (chunk,) = returned.metadata
+    assert chunk.data["summary"] == "EXA_0003: error"
+
+
+def test_an_investigation_holds_no_facts_in_its_model_schema() -> None:
+    schema = GeneModelInvestigation.model_json_schema()
+
+    assert set(schema["properties"]) == {"answer", "verdicts"}
+
+
+def test_a_turns_deps_become_an_investigations_on_its_site_and_thread() -> None:
+    turn = AgentDeps(
+        site_id="toxodb",
+        user_id=uuid4(),
+        conversation_id=uuid4(),
+        strategy_session=StrategySession("toxodb"),
+        turn_markers=TurnMarkers(),
+    )
+
+    deps = audit_deps_of(turn, origin="verification")
+
+    assert (deps.site_id, deps.user_id, deps.conversation_id, deps.origin) == (
+        "toxodb",
+        turn.user_id,
+        turn.conversation_id,
+        "verification",
+    )
+    assert (deps.reads, deps.facts, deps.records) == (set(), [], [])

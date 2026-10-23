@@ -2,6 +2,17 @@
 
 ## 2026-10-23
 
+* **A gene model is investigated and the verdict stored.** `ai/audit/instructions.py` holds the
+  judging rules every auditing agent reads (which side of a disagreement is wrong, the five
+  traps, `undecided`, what a cite names, a curator question, references) and one paragraph per
+  role. `ai/audit/verdict_tool.py::record_gene_model_verdict` refuses a cite of a read the turn
+  did not make and stores the rest under the turn's origin. `ai/audit/investigator.py::investigate`
+  runs the checks and the run reads (never the start tool) on a fresh usage under its own limits,
+  stores each verdict its output holds, and returns the investigation with the turn's facts and
+  records and the usage it spent; a run stopped at its limits answers so with no verdict.
+  `audit_deps_of` builds the investigation's deps from a PathFinder turn. The investigator holds
+  no verdict tool: its output is the one place its verdicts are stored. `ai/audit/mock.py` holds
+  the audit agents' scripts.
 * **Every log line names the work and the user.** `platform/log_ids.py::LogIds` holds the ids a
   line may name and refuses any other value: a site or assistant id is a lowercase id, the
   method an HTTP verb, the route a template. A chat turn binds `conversation_id`, `turn_id`,
