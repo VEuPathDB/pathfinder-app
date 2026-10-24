@@ -192,7 +192,7 @@ async def run_verification(
     markers.verification_dispatched = True
     # A check counts as stopped until its digest is recorded.
     markers.verification_stopped = True
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id=parent_tool_call_id)
     scope = verification_scope(deps, check_id=parent_tool_call_id)
     agent_deps.verification_scope = scope
     agent_deps.tool_repetition_guard = build_tool_repetition_guard()

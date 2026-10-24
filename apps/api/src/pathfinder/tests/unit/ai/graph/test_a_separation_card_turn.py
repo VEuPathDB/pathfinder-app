@@ -155,8 +155,10 @@ async def test_yes_builds_the_offer_and_the_lead_answers_once(
 ) -> None:
     built: list[Any] = []
 
-    async def _build(deps: LeadDeps, minted: MintedSpec) -> ExecuteDelta:
-        del minted
+    async def _build(
+        deps: LeadDeps, minted: MintedSpec, *, call_id: str
+    ) -> ExecuteDelta:
+        del minted, call_id
         built.append(deps.state.domain.operational_spec)
         return ExecuteDelta(outcome=BuildOutcome(pushed_step_ids=["c4"]))
 

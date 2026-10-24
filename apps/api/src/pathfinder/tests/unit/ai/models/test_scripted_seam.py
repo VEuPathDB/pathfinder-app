@@ -147,12 +147,13 @@ def test_the_retry_parts_are_the_ones_a_tool_refused_on() -> None:
     assert "refused" in parts[0].model_response()
 
 
-def test_the_product_script_declares_its_four_roles() -> None:
+def test_the_product_script_declares_its_five_roles() -> None:
     assert [entry.role for entry in PATHFINDER_SCRIPT.roles] == [
         "lead",
         "frame",
         "verification",
         "execution",
+        "investigator",
     ]
 
 
@@ -163,6 +164,7 @@ def test_the_product_script_declares_its_four_roles() -> None:
         ("set_criterion", "frame"),
         ("run_control_tests_on_step", "verification"),
         ("update_leaf_params", "execution"),
+        ("audit_pseudogene_call", "investigator"),
     ],
 )
 def test_the_product_script_still_recognizes_each_sub_agent(

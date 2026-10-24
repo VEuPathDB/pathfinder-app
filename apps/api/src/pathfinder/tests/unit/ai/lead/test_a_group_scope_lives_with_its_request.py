@@ -63,7 +63,9 @@ def test_a_pass_starts_from_the_scopes_the_thread_holds() -> None:
     deps = _deps()
     deps.state.domain.group_scopes = {"plasmodium": _WHOLE}
 
-    assert agent_deps_for(deps).agent_state.held_group_scopes == {"plasmodium": _WHOLE}
+    assert agent_deps_for(deps, call_id="call_test").agent_state.held_group_scopes == {
+        "plasmodium": _WHOLE
+    }
 
 
 def test_a_new_request_over_an_empty_strategy_forgets_the_scopes() -> None:

@@ -121,7 +121,7 @@ def _deps() -> LeadDeps:
 async def _dispatch(deps: LeadDeps) -> object:
     return await stream_sub_agent(
         run=PhaseRun("frame", "bind the criteria", 1),
-        agent_deps=agent_deps_for(deps),
+        agent_deps=agent_deps_for(deps, call_id="call_test"),
         parent_tool_call_id="call_frame_1",
         expected_output_type=FrameResult,
         deps=deps,

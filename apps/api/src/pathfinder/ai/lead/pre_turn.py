@@ -43,6 +43,7 @@ from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from pathfinder.domain.strategy.staleness import detect_build_staleness
+from pathfinder.services.audit.views import conversation_holds_runs
 from pathfinder.services.conversations.thread_activity import (
     ThreadActivity,
     read_thread_activity,
@@ -87,6 +88,10 @@ async def pathfinder_pre_turn(
             conversation_id=state.conversation_id,
         )
         change = await last_change(session, conversation_id=state.conversation_id)
+        audits = await conversation_holds_runs(
+            session, conversation_id=state.conversation_id
+        )
+    refreshed.turn_markers.audit_runs_held = audits
     attach_change_at_arrival(refreshed, context, change)
     briefed = attach_turn_briefing(refreshed, context, activity, answered=answered)
     return await attach_open_eda_analysis(

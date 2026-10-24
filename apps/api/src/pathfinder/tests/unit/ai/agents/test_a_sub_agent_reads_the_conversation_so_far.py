@@ -20,14 +20,16 @@ def test_a_dispatched_sub_agent_carries_the_conversation() -> None:
     ctx = lead_run_context(user_prompt="Use the experiment you recommended.")
     ctx.deps.state.domain.record_exchange(_RECOMMENDED)
 
-    assert agent_deps_for(ctx.deps).exchanges == [_RECOMMENDED]
+    assert agent_deps_for(ctx.deps, call_id="call_test").exchanges == [_RECOMMENDED]
 
 
 def test_the_sub_agent_reads_the_section_the_lead_reads() -> None:
     ctx = lead_run_context(user_prompt="Use the experiment you recommended.")
     ctx.deps.state.domain.record_exchange(_RECOMMENDED)
 
-    rendered = pinned_conversation_so_far(run_context_for(agent_deps_for(ctx.deps)))
+    rendered = pinned_conversation_so_far(
+        run_context_for(agent_deps_for(ctx.deps, call_id="call_test"))
+    )
 
     assert rendered == exchanges_section([_RECOMMENDED])
 

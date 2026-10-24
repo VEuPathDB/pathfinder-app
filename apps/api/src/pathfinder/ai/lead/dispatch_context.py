@@ -6,21 +6,28 @@ the two ways a dispatch ends before it returns a delta.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from typing import NoReturn
 
 from assistant_core.capabilities.refused_calls import CallRefused
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import CallDeferred, ModelRetry
+from pydantic_ai.models import Model
+from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.capabilities.metering import RunPricing
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.edit_messages import EditMessage
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
+from pathfinder.ai.lead.sub_agent_tools import (
+    LeadDeps,
+    SubAgentDurablePark,
+    SubAgentRunUsage,
+)
 from pathfinder.domain.strategy.constraints import (
     combination_requirements_from,
     organism_hints_from,
@@ -33,6 +40,7 @@ from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
+from pathfinder.platform.model_keys import turn_paid_by
 
 
 def framing_goal(state: PipelineState) -> str:
@@ -81,7 +89,25 @@ def offered_readings(state: PipelineState) -> list[ReadValues]:
     ]
 
 
-def agent_deps_for(deps: LeadDeps) -> AgentDeps:
+def _meter(deps: LeadDeps, call_id: str) -> Callable[[RunUsage, Model], None]:
+    def meter(usage: RunUsage, model: Model) -> None:
+        pricing = RunPricing.of(model)
+        deps.record_sub_agent_usage(
+            SubAgentRunUsage(
+                usage=usage,
+                model_name=pricing.model_name,
+                provider_name=pricing.provider_name,
+                provider_url=pricing.provider_url,
+                parent_tool_call_id=call_id,
+                paid_by=turn_paid_by(model.model_id),
+                billed=True,
+            )
+        )
+
+    return meter
+
+
+def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
     state = deps.state
     runtime = deps.runtime
     ledger = derive_ledger(state, deps.intent, phase_stop=deps.last_phase_stop)
@@ -126,6 +152,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         conversation_id=state.conversation_id,
         db_session_factory=runtime.db_session_factory,
         user_prompt=state.request_the_thread_answers,
+        meter=_meter(deps, call_id),
     )
 
 
@@ -136,7 +163,7 @@ def inner_context(ctx: RunContext[LeadDeps]) -> RunContext[AgentDeps]:
     enforces are the outer ones.
     """
     return RunContext(
-        deps=agent_deps_for(ctx.deps),
+        deps=agent_deps_for(ctx.deps, call_id=ctx.tool_call_id or ""),
         model=ctx.model,
         usage=ctx.usage,
         usage_limits=ctx.usage_limits,

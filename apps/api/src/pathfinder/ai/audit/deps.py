@@ -44,7 +44,7 @@ class AuditDeps(AssistantDeps):
 
     def turn_facts(self, request: str) -> TurnFacts:
         return TurnFacts(
-            statistics=list(self.facts),
+            audit_statistics=list(self.facts),
             sources=[record.source_fact() for record in self.records],
             request_messages=[request] if request else [],
         )

@@ -1,0 +1,90 @@
+{
+  "models": [
+    {
+      "gene": "TGGT1_316600",
+      "transcript": "TGGT1_316600-t26_1",
+      "seqid": "TGGT1_chrXI",
+      "strand": "+",
+      "exons": [
+        [
+          5359580,
+          5359801
+        ],
+        [
+          5360347,
+          5360415
+        ],
+        [
+          5361232,
+          5361336
+        ]
+      ],
+      "cds": [
+        [
+          5359580,
+          5359801
+        ],
+        [
+          5360347,
+          5360415
+        ],
+        [
+          5361232,
+          5361336
+        ]
+      ]
+    },
+    {
+      "gene": "TGME49_316600",
+      "transcript": "TGME49_316600.R3814",
+      "seqid": "TGME49_chrXI",
+      "strand": "+",
+      "exons": [
+        [
+          5414557,
+          5415159
+        ],
+        [
+          5415737,
+          5415805
+        ],
+        [
+          5416622,
+          5417534
+        ]
+      ],
+      "cds": [
+        [
+          5414938,
+          5415159
+        ],
+        [
+          5415737,
+          5415805
+        ],
+        [
+          5416622,
+          5416732
+        ]
+      ]
+    }
+  ],
+  "evidence_unread": [],
+  "verdict": "STOPS_AT_SEC",
+  "after_model_end": "*G*LAGGFKKGN",
+  "reference_tail": "UG",
+  "tail_identity": 1.0,
+  "sec_aligned": true,
+  "gene_ids": [
+    {
+      "given": "TGGT1_316600",
+      "resolved": "TGGT1_316600"
+    },
+    {
+      "given": "TGME49_316600",
+      "resolved": "TGME49_316600"
+    }
+  ],
+  "gene": "TGGT1_316600",
+  "reference_gene": "TGME49_316600"
+}

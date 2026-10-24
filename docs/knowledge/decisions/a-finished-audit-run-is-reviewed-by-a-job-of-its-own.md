@@ -72,7 +72,9 @@ reviews give, with its sentence. A finding's reviewed impact is shown beside
 the stored impact, which keeps the page order. No share of kept findings is
 shown.
 
-**One reviewer run.** The prompt is the stored `FindingDetail` as JSON. The
+**One reviewer run.** The prompt is the stored `FindingDetail` as JSON, less its
+`models`: the review judges from the facts and the evidence, and the stored
+confirmation already holds the spans the figure draws. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each
 stored piece of evidence, and the references its own research reads returned.
 The output validator retries a review whose verdict or `known_from` names

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -8,8 +8,10 @@ from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, SkipValidation
+from pydantic_ai.models import Model
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
+from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.state import AgentToolState, CatalogRead
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
@@ -125,6 +127,7 @@ class AgentDeps(AssistantDeps):
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
     # The conversation's last exchanges, as the researcher read them.
     exchanges: list[Exchange] = Field(default_factory=list)
+    meter: SkipValidation[Callable[[RunUsage, Model], None]] | None = None
 
     def record_catalog_read(self, read: CatalogRead) -> None:
         """Keep a catalog read for this agent and mark the turn as looked up."""

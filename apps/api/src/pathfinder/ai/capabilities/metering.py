@@ -19,14 +19,39 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import PaidBy
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability, WrapRunHandler
+from pydantic_ai.models import AbstractModel
 from pydantic_ai.run import AgentRunResult
+from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.platform.model_keys import turn_paid_by
 
 logger = get_logger(__name__)
 
-__all__ = ["ModelSpend", "SpendMeter", "charge_spend"]
+__all__ = ["ModelSpend", "RunPricing", "SpendMeter", "charge_spend"]
+
+
+@dataclass(frozen=True)
+class RunPricing:
+    model_name: str | None
+    provider_name: str | None
+    provider_url: str | None
+
+    @classmethod
+    def of(cls, model: AbstractModel) -> RunPricing:
+        return cls(
+            model_name=model.model_name,
+            provider_name=model.system,
+            provider_url=model.base_url,
+        )
+
+    def cost(self, usage: RunUsage) -> Decimal:
+        return cost_for_run(
+            usage=usage,
+            model_name=self.model_name,
+            provider_name=self.provider_name,
+            provider_url=self.provider_url,
+        )
 
 
 @dataclass(frozen=True)
@@ -76,12 +101,7 @@ class _MeteredRuns(AbstractCapability[Any]):
             self.spent.append(
                 ModelSpend(
                     tokens=ctx.usage.total_tokens,
-                    cost_usd=cost_for_run(
-                        usage=ctx.usage,
-                        model_name=ctx.model.model_name,
-                        provider_name=ctx.model.system,
-                        provider_url=ctx.model.base_url,
-                    ),
+                    cost_usd=RunPricing.of(ctx.model).cost(ctx.usage),
                     paid_by=turn_paid_by(self.model_id),
                 )
             )

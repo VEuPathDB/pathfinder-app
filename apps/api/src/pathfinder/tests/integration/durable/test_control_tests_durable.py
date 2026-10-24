@@ -345,7 +345,7 @@ async def test_a_check_reads_only_the_set_its_conversation_attached(
     elsewhere = await _save_controls(user_id, name="Two-gene set")
 
     await use_control_set(lead, attached)
-    checker = agent_deps_for(lead.deps)
+    checker = agent_deps_for(lead.deps, call_id="call_test")
     checker.verification_scope = verification_scope(lead.deps, check_id="call_verify")
     ctx = run_context_for(checker, "call_check")
 

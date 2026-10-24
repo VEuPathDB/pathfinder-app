@@ -10,9 +10,11 @@ status: stable
 
 # The decision
 
-Two `IntentClassification` values name a turn that asks for no strategy:
-`context_statement` ("I'm investigating virulence factors in Leishmania major")
-and `memory_request` ("Please remember for future sessions: ..."). Six name a
+Three `IntentClassification` values name a turn that asks for no strategy:
+`context_statement` ("I'm investigating virulence factors in Leishmania major"),
+`memory_request` ("Please remember for future sessions: ...") and
+`gene_model_audit` (an audit request, a question about an audit's progress, or
+a question whether a gene's model is right). Six name a
 turn that does: `new_strategy`, `extend_strategy`, `edit_strategy`,
 `clarification_response`, `slot_answer`, `approval`. The set lives in
 `ai/lead/intent.py::BUILDING_INTENTS`.
@@ -32,6 +34,17 @@ earlier message unlocks nothing.
 **Once classified**, a turn whose classification is not a building one loses
 `BUILDING_TOOLS` - the five dispatch tools plus `open_eda_analysis`,
 `set_eda_filters`, `run_eda_compute` and `create_eda_step`.
+
+**An audit starts only from an audit turn.** `AUDIT_START_TOOLS`
+(`start_gene_model_audit`) is withheld on every classified turn whose
+classification is not `gene_model_audit`, unless the turn answers that card. The
+audit reads and `investigate_gene_models` follow the rule for tools that are not
+building tools: any classified turn that is not off topic reaches them. Their
+schemas are on the request only when the turn reads audits: a `gene_model_audit`
+turn, a turn that answers the start card, or a thread that holds a run
+(`intent_gate.turn_reads_audits`). A `gene_model_audit` message records no
+requirement, no withdrawal and no request text on the thread
+(`intent.UNRECORDED_INTENTS`).
 
 **Once building**, each phase tool answers for its own precondition
 (`unmet_preconditions`):

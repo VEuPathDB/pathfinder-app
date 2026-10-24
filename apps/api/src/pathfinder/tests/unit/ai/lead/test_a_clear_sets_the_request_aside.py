@@ -118,7 +118,7 @@ async def test_the_passes_after_a_clear_read_this_message_alone() -> None:
     deps = await _cleared()
 
     assert framing_goal(deps.state) == _NEW
-    assert agent_deps_for(deps).user_prompt == _NEW
+    assert agent_deps_for(deps, call_id="call_test").user_prompt == _NEW
     assert verification_scope(deps, check_id="call_verify").messages == [_NEW]
 
 

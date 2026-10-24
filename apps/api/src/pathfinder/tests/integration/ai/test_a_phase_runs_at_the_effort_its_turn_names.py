@@ -90,7 +90,7 @@ async def test_a_sub_agent_sends_its_turns_effort(
         agent.override(model=_recording(sent), model_settings=settings),
         pytest.raises(_SentError),
     ):
-        await agent.run(_ASKED, deps=agent_deps_for(deps))
+        await agent.run(_ASKED, deps=agent_deps_for(deps, call_id="call_test"))
 
     assert sent == [effort]
 

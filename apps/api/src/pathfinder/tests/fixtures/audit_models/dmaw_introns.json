@@ -1,0 +1,125 @@
+{
+  "verdict": "UNSUPPORTED_SHIFTED",
+  "introns": [
+    {
+      "start": 4793693,
+      "end": 4793790,
+      "reads": 0,
+      "tracks": 0
+    },
+    {
+      "start": 4793909,
+      "end": 4793969,
+      "reads": 1349,
+      "tracks": 1
+    }
+  ],
+  "unread": [
+    {
+      "start": 4793693,
+      "end": 4793790,
+      "in_cds": true,
+      "outcome": "SHIFTED",
+      "replacement": [
+        {
+          "start": 4793713,
+          "end": 4793786,
+          "reads": 1226,
+          "tracks": 1
+        }
+      ],
+      "motif": null,
+      "depth": null,
+      "spans_assembly_gap": false
+    }
+  ],
+  "best_junction_reads": 1349,
+  "unstranded_ignored": 0,
+  "reason": null,
+  "gene_ids": [
+    {
+      "given": "Afu2g18040",
+      "resolved": "Afu2g18040"
+    }
+  ],
+  "gene": "Afu2g18040",
+  "transcript": "Afu2g18040-T",
+  "other_transcripts": 0,
+  "tracks_refused": [],
+  "evidence_unread": [],
+  "corrected_cds": [
+    [
+      4793606,
+      4793712
+    ],
+    [
+      4793787,
+      4793908
+    ],
+    [
+      4793970,
+      4795120
+    ]
+  ],
+  "corrected_protein": "MKAANASSAEAYRVLSRAFRFDNEDQKLWWHSTAPMFAKMLETANYTTPCQYQYLITYKECVIPSLGCYPTNSAPRWLSILTRYGTPFELSLNCSNSIVRYTFEPINQHTGTDKDPFNTHAIWESLQHLLPLEKSIDLEWFRHFKHDLTLNSEESAFLAHNDRLVGGTIRTQNKLALDLKDGRFALKTYIYPALKAVVTGKTIHELVFGSVRRLAVREPRILPPLNMLEEYIRSRGSKSTASPRLVSCDLTSPAKSRIKIYLLEQMVSLEAMEDLWTLGGRRRDASTLEGLSLVRELWDLIQLSPGLKSYPAPYLPLGVIPDERLPLMANFTLHQNDPVPEPQVYFTTFGMNDMAVADALTTFFERRGWSEMARTYETTLKSYYPHADHDKLNYLHAYISFSYRDRTPYLSVYLQSFETGDWAVANLSESKVKCQDAACQPTSLPPDLSKTGVYYSGLH",
+  "frame_kept": true,
+  "code": "standard",
+  "code_inferred": true,
+  "orthologs": {
+    "named": 16,
+    "read": 16,
+    "compared": [
+      "ASPACDRAFT_1890851",
+      "BO72DRAFT_379646",
+      "BDV34DRAFT_204410",
+      "AN11080",
+      "P174DRAFT_388948",
+      "CIMG_11934",
+      "FOBCDRAFT_230538",
+      "FPRN_06665"
+    ],
+    "for_corrected": 0,
+    "for_annotated": 0,
+    "reason": null
+  },
+  "correction_reason": null,
+  "model": {
+    "gene": "Afu2g18040",
+    "transcript": "Afu2g18040-T",
+    "seqid": "Chr2_A_fumigatus_Af293",
+    "strand": "-",
+    "exons": [
+      [
+        4793606,
+        4793692
+      ],
+      [
+        4793791,
+        4793908
+      ],
+      [
+        4793970,
+        4795120
+      ]
+    ],
+    "cds": [
+      [
+        4793606,
+        4793692
+      ],
+      [
+        4793791,
+        4793908
+      ],
+      [
+        4793970,
+        4795120
+      ]
+    ]
+  },
+  "junction_tracks": {
+    "organism_abbrev": "afumAf293",
+    "listed": 1,
+    "read": 1
+  }
+}

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  auditFindingUrl,
+  auditRunUrl,
+  auditsUrl,
   chatRoot,
   chatUrl,
   conversationIdFromPath,
   edaTabUrl,
   helpUrl,
+  savedUrl,
   strategyCanvasUrl,
   strategyStepUrl,
   yourDataUrl,
@@ -14,6 +18,7 @@ describe("route builders", () => {
   it("name no site, since the website that frames PathFinder decides it", () => {
     expect(chatRoot()).toBe("/conversation");
     expect(chatUrl("c1")).toBe("/conversation/c1");
+    expect(savedUrl()).toBe("/saved");
   });
 
   it("reads the conversation id out of a path, past a query or a hash", () => {
@@ -42,5 +47,15 @@ describe("route builders", () => {
     expect(helpUrl()).toBe("/help");
     expect(yourDataUrl()).toBe("/help/your-data");
     expect(yourDataUrl("declined")).toBe("/help/your-data#declined");
+  });
+
+  it("builds the audit addresses with the filters they carry", () => {
+    expect(auditsUrl()).toBe("/audits");
+    expect(auditRunUrl("0a1b")).toBe("/audits/0a1b");
+    expect(auditRunUrl("0a1b", "?origin=target")).toBe("/audits/0a1b?origin=target");
+    expect(auditFindingUrl("0a1b", 7)).toBe("/audits/0a1b/findings/7");
+    expect(auditFindingUrl("0a1b", 7, "?check=gene_length")).toBe(
+      "/audits/0a1b/findings/7?check=gene_length",
+    );
   });
 });

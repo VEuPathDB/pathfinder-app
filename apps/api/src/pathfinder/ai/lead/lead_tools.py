@@ -164,7 +164,7 @@ async def classify_user_intent(
     one search's whole result is them, it asks for a build: ``new_strategy``
     with no strategy and ``extend_strategy`` on one.
 
-    Two classifications ask for no strategy at all:
+    Three classifications ask for no strategy at all:
 
     - ``context_statement``: the message states what the user works on and
       asks for nothing; one that names an organism of this site and what to
@@ -173,8 +173,12 @@ async def classify_user_intent(
       Example: "Please remember for future conversations: I always work with
       P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
 
-    Both are answered in prose, and ``memory_request`` with one ``remember``
-    call per thing to keep. Neither is a request to build.
+    - ``gene_model_audit``: an audit request, a question about an audit's
+      progress, or a question whether a gene's model is right. It states no
+      requirement and becomes no strategy request.
+
+    The first two are answered in prose, and ``memory_request`` with one
+    ``remember`` call per thing to keep. None of them is a request to build.
 
     PathFinder does its work through these tools; it writes no code and no
     general text. In scope: building, extending, editing and verifying

@@ -128,11 +128,22 @@ describe("AppNavRail section links", () => {
     expect(click).toBe(true);
   });
 
-  it("links the chat and the saved strategies, and neither help nor a workbench", async () => {
+  it("links the chat, the saved strategies and the audits, and neither help nor a workbench", async () => {
     draw();
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/conversation", "/saved"]);
+    expect(hrefs).toEqual(["/conversation", "/saved", "/audits"]);
+  });
+
+  it("names the audits link and marks it current on an audit page", async () => {
+    route.pathname = "/audits/0a1b/findings/7";
+    draw();
+    const audits = await screen.findByRole("link", { name: "Audits" });
+    expect(audits).toHaveAttribute("href", "/audits");
+    expect(audits).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Conversation" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("offers no site switch on a website locked to its own site", async () => {

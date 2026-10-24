@@ -131,7 +131,7 @@ async def test_a_resync_after_recovery_reads_the_organism_of_the_tree_it_left(
     deps = lead_deps(pipeline_state(user_prompt="carry"), strategy_session=session)
 
     fresh = await sub_agent_dispatch._resync_outcome(
-        agent_deps_for(deps), BuildOutcome()
+        agent_deps_for(deps, call_id="call_test"), BuildOutcome()
     )
 
     assert fresh.organism_change == OrganismChange(seed=[_SOURCE], records=[_TARGET])

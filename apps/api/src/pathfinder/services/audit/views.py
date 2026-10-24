@@ -8,6 +8,7 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.audit import GenomePriority
 
 from pathfinder.domain.audit.findings import (
@@ -46,6 +47,7 @@ from pathfinder.persistence.repositories.audit_findings import (
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
+from pathfinder.persistence.repositories.audit_threads import AuditThreadRepository
 from pathfinder.services.audit.review_views import (
     AgreementView,
     ErrorTypeView,
@@ -149,9 +151,16 @@ def _target(finding: AuditFindingRecord) -> TargetFinding:
     )
 
 
-async def list_runs(user_id: UUID) -> list[AuditRunSummary]:
+async def conversation_holds_runs(
+    session: AsyncSession, *, conversation_id: UUID
+) -> bool:
+    threads = AuditThreadRepository(session)
+    return await threads.holds_runs(conversation_id=conversation_id)
+
+
+async def list_runs(user_id: UUID, site_id: str | None = None) -> list[AuditRunSummary]:
     async with async_session_factory() as session:
-        runs = await AuditRepository(session).runs(user_id=user_id)
+        runs = await AuditRepository(session).runs(user_id=user_id, site_id=site_id)
     return [_summary(run) for run in runs]
 
 

@@ -90,10 +90,9 @@ def _with_reads(
 
 
 async def investigate(
-    question: str, *, deps: AuditDeps, model: Model
-) -> tuple[GeneModelInvestigation, RunUsage]:
+    question: str, *, deps: AuditDeps, model: Model, usage: RunUsage
+) -> GeneModelInvestigation:
     owner = deps.caller.user_id
-    usage = RunUsage()
     try:
         result = await build_investigator_agent().run(
             question,
@@ -104,7 +103,7 @@ async def investigate(
         )
     except UsageLimitExceeded:
         stopped = GeneModelInvestigation(answer=BUDGET_ANSWER, verdicts=())
-        return _with_reads(stopped, deps), usage
+        return _with_reads(stopped, deps)
     finally:
         await charge_run(owner, usage, model, model_id=model.model_id)
     found = result.output
@@ -115,4 +114,4 @@ async def investigate(
             verdict=verdict,
             model_id=model.model_name,
         )
-    return _with_reads(found, deps), usage
+    return _with_reads(found, deps)

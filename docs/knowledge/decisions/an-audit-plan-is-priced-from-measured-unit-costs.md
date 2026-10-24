@@ -3,7 +3,7 @@ type: Decision
 title: An audit plan is composed from the site's genomes and priced from measured unit costs
 description: The planner reads three site answers (the organism list, the organism report and the BUSCO priorities), resolves each named genome, picks the species reference, keeps the audited genomes the genome cap allows by served BUSCO gap, orders the comparison genomes, refuses the intron and Sec targets the site cannot judge without uploading a dataset, admits the scope under AUDIT_MAX_GENOMES and prices it from per-unit means measured on QA. A single bound per run, prices from the library's ceilings and a Sec pre-filter through an id-list upload were rejected.
 tags: [audit, planning, estimate, cost, genome-cap]
-generated: { by: claude-code/opus-5, at: 2026-10-23T00:00:00Z }
+generated: { by: claude-code/opus-5, at: 2026-10-24T00:00:00Z }
 status: stable
 ---
 
@@ -57,7 +57,10 @@ gene list (`LIBRARY_READS_PER_LISTED_GENE`, the library's stated cost and not
 part of `MEASURED_COSTS`); a run leaves no dataset in the account, and
 a scope whose only targets are missing-gene or organelle targets lists no gene.
 Each screened check costs `confirm_limit` findings per audited genome, so the
-request count is an upper bound. `model_reviews` is the review cap plus the
+request count is an upper bound. A check's measured confirm cost already holds the gene
+model reads it makes beside its own reads (one for a strain or selenoprotein
+check, two for a fusion check), because the cost run took a release that makes
+them, so the estimate adds no separate charge for them. `model_reviews` is the review cap plus the
 agreement sample.
 
 # Rejected
@@ -67,5 +70,8 @@ agreement sample.
 - **Prices from the library's read ceilings.** The intron ceiling is several
   times the measured reads, so every estimate with an intron target would
   overstate the cost by the same factor.
+- **A separate charge for the gene model reads.** The measured confirm cost
+  already counts them, so a second charge prices each strain, fusion and
+  selenoprotein finding above the requests it sends.
 - **A Sec pre-filter through an id-list upload.** It would leave a dataset in
   the researcher's account for every plan, and no plan may write.

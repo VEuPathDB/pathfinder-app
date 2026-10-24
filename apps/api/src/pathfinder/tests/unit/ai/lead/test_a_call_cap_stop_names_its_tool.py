@@ -85,7 +85,7 @@ def test_a_repeated_call_keeps_its_own_words() -> None:
 @pytest.mark.usefixtures("collector", "reading_frame")
 async def test_a_pass_stopped_on_a_cap_records_the_cap_and_its_tool() -> None:
     deps = lead_deps(pipeline_state(user_prompt="Find the kinases."))
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id="call_test")
     agent_deps.tool_repetition_guard = ToolRepetitionGuard(call_caps={"read_one": 2})
 
     delta = await stream_sub_agent(

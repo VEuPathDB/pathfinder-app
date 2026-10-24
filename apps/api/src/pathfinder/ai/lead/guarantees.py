@@ -77,6 +77,14 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "set_eda_filters": Reversibility.UNREVISIONED_WRITE,
     "use_control_set": Reversibility.IN_STATE,
     "verify_strategy": Reversibility.IN_STATE,
+    "plan_gene_model_audit": Reversibility.READ,
+    "list_audit_runs": Reversibility.READ,
+    "read_audit_run": Reversibility.READ,
+    "list_audit_findings": Reversibility.READ,
+    "read_audit_findings": Reversibility.READ,
+    "start_gene_model_audit": Reversibility.UNREVISIONED_WRITE,
+    "review_audit_run": Reversibility.UNREVISIONED_WRITE,
+    "investigate_gene_models": Reversibility.UNREVISIONED_WRITE,
 }
 
 

@@ -7,7 +7,13 @@ from collections.abc import Mapping
 import pytest
 
 from pathfinder.domain.audit.planning import PlanRequest, SiteGenome, estimate
-from pathfinder.domain.audit.scope import AuditScope, MissingGeneTarget
+from pathfinder.domain.audit.scope import (
+    AuditScope,
+    GenePairTarget,
+    GeneTarget,
+    MissingGeneTarget,
+    SingleGeneTarget,
+)
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.planning import (
     MEASURED_COSTS,
@@ -255,3 +261,24 @@ async def test_the_estimate_waits_the_settings_run_hours(
 
     assert proposal.estimate is not None
     assert proposal.estimate.hours_at_most == 3.5
+
+
+@pytest.mark.parametrize(
+    ("target", "requests"),
+    [
+        (GenePairTarget(check="selenoprotein_end", genes=("EXA_1", "EXR_1")), 9),
+        (GenePairTarget(check="strain_model", genes=("EXA_1", "EXR_1")), 10),
+        (SingleGeneTarget(check="gene_fusion", genes=("EXA_1",)), 22),
+    ],
+)
+def test_a_check_that_reads_gene_models_is_priced_at_its_measured_confirm_cost(
+    target: GeneTarget, requests: int
+) -> None:
+    scope = AuditScope(site_id=SITE, targets=(target,))
+    listed = len(target.genes)
+    evidence = MEASURED_COSTS.evidence_requests["gene_evidence"]
+
+    cost = estimate(scope, run_hours=6, costs=MEASURED_COSTS)
+
+    assert MEASURED_COSTS.confirm_requests[target.check] == requests
+    assert cost.wdk_requests == 1 + listed + requests + evidence

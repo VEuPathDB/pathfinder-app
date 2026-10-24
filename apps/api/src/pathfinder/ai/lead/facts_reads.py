@@ -7,11 +7,12 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.domain.turn_facts import StepFact
+from pathfinder.domain.turn_facts import SavedSetFact, StepFact
 from pathfinder.services.record_pages import record_page_url
 
 
@@ -104,4 +105,28 @@ def named_genes(markers: TurnMarkers) -> list[SourceFact]:
     return [record.source_fact() for record in markers.resolved_genes]
 
 
-__all__ = ["listed_ids", "named_genes", "read_sources", "with_counts_before"]
+def saved_sets(markers: TurnMarkers, genes: str) -> list[SavedSetFact]:
+    return [
+        *(
+            SavedSetFact(
+                kind="gene_set",
+                name=s.name,
+                count=s.gene_count,
+                record_noun=counted_noun(s.record_type or genes),
+            )
+            for s in markers.created_gene_sets
+        ),
+        *(
+            SavedSetFact(kind="control_set", name=s.name)
+            for s in markers.created_control_sets
+        ),
+    ]
+
+
+__all__ = [
+    "listed_ids",
+    "named_genes",
+    "read_sources",
+    "saved_sets",
+    "with_counts_before",
+]

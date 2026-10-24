@@ -100,7 +100,7 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     steps = deps.step_count
     if steps:
         raise ModelRetry(build_would_replace_the_strategy(steps))
-    return await build_the_spec(deps)
+    return await build_the_spec(deps, call_id=dispatch_call_id(ctx))
 
 
 @dataclass(frozen=True)
@@ -132,19 +132,22 @@ def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
     return MintedSpec(spec=folded.spec, tree=tree)
 
 
-async def build_the_spec(deps: LeadDeps) -> ExecuteDelta:
+async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     """Mint the thread's spec into steps and push them, with no model in between."""
-    return await build_the_minted(deps, minted_spec(deps.state.domain.operational_spec))
+    minted = minted_spec(deps.state.domain.operational_spec)
+    return await build_the_minted(deps, minted, call_id=call_id)
 
 
-async def build_the_minted(deps: LeadDeps, minted: MintedSpec) -> ExecuteDelta:
+async def build_the_minted(
+    deps: LeadDeps, minted: MintedSpec, *, call_id: str
+) -> ExecuteDelta:
     """Push a minted spec as the thread's strategy.
 
     The thread holds no step when this runs, so the build writes the strategy
     whole.
     """
     spec, built = minted.spec, minted.tree
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id=call_id)
     context = replace(
         agent_deps.to_strategy_context(),
         step_words=step_words(spec, built.step_id_by_criterion),
@@ -239,7 +242,7 @@ async def run_recovery(
     session = deps.runtime.strategy_session
     before = _written_strategy(session)
     tree_before = live_tree(session.get_graph(None))
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id=parent_tool_call_id)
     streamed = await stream_sub_agent(
         run=PhaseRun("execution", work_order),
         agent_deps=agent_deps,

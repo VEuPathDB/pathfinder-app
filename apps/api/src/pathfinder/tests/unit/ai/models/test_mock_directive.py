@@ -172,6 +172,11 @@ def test_the_registry_holds_every_named_arc() -> None:
             "muris-phrase",
             "narrowed-organism",
             "withdrawn-requirement",
+            "audit",
+            "audit-plan",
+            "audit-finding",
+            "audit-finding-spelled",
+            "audit-investigation",
         ]
     )
 

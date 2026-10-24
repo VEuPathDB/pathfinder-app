@@ -96,7 +96,9 @@ def agent_factories() -> dict[str, Callable[..., Agent[Any, Any]]]:
 
 def _agent_deps() -> AgentDeps:
     """Sub-agent deps that open no database: the run reads no scratchpad."""
-    deps = agent_deps_for(lead_deps(pipeline_state(user_prompt="check the build")))
+    deps = agent_deps_for(
+        lead_deps(pipeline_state(user_prompt="check the build")), call_id="call_test"
+    )
     deps.db_session_factory = None
     return deps
 

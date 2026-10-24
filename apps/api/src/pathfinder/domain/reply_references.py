@@ -226,7 +226,7 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "value": _value,
     "source": _source,
     "record": _record,
-    "stat": lambda facts, body: statistic_value(facts.statistics, body),
+    "stat": lambda facts, body: statistic_value(facts.cited_statistics(), body),
     "tally": lambda facts, body: tally_count(facts.tallies, body),
 }
 
@@ -301,7 +301,9 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
             references=record_references(facts, token)
             or value_word_references(facts, token)
             or (
-                statistic_word_references(facts.statistics, token) if identifier else ()
+                statistic_word_references(facts.cited_statistics(), token)
+                if identifier
+                else ()
             )
             or numbered,
         )
@@ -348,7 +350,9 @@ def unheld_references(prose: str, facts: TurnFacts) -> list[str]:
 def _held_under(match: re.Match[str], facts: TurnFacts) -> tuple[str, ...]:
     if reference_kind(match) != "stat":
         return ()
-    held = statistic_group_references(facts.statistics, match.group("body") or "")
+    held = statistic_group_references(
+        facts.cited_statistics(), match.group("body") or ""
+    )
     return held[:_GROUP_SHOWN]
 
 

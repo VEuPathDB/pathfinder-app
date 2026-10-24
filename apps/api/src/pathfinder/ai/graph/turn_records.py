@@ -20,6 +20,7 @@ from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
+from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
@@ -239,6 +240,8 @@ class TurnMarkers(CamelModel):
     # Which of the asked genes each membership check of this turn found held.
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)
+    audit_facts: list[StatisticFact] = Field(default_factory=list)
+    audit_runs_held: bool = False
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -417,6 +420,11 @@ class TurnMarkers(CamelModel):
 
     def record_tally(self, tally: TallyFact) -> None:
         self.tallies.append(tally)
+
+    def record_audit_facts(self, facts: Iterable[StatisticFact]) -> None:
+        read = {fact.id: fact for fact in self.audit_facts}
+        read.update((fact.id, fact) for fact in facts)
+        self.audit_facts = list(read.values())
 
     def record_membership(self, membership: MembershipFact) -> None:
         """Keep which of the asked genes one membership check found held."""

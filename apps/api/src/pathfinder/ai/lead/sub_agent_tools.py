@@ -256,6 +256,7 @@ class SubAgentRunUsage:
     provider_url: str | None
     parent_tool_call_id: str
     paid_by: PaidBy
+    billed: bool = False
 
 
 @dataclass(frozen=True)

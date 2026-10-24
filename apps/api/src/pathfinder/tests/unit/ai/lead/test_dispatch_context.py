@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
+from assistant_core.platform.types import PaidBy
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.models.wrapper import WrapperModel
+from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
 
 from pathfinder.ai.agents.state import LookupRecord
+from pathfinder.ai.capabilities.metering import RunPricing
+from pathfinder.ai.graph._lead_capture import _LeadRunCapture, absorb_sub_agent_usage
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.dispatch_context import agent_deps_for
+from pathfinder.ai.lead.dispatch_context import agent_deps_for, inner_context
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.lead.sub_agent_tools import SubAgentRunUsage
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     organism_hints_from,
@@ -21,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -96,7 +106,8 @@ def test_the_dispatch_deps_carry_the_organism_hints() -> None:
     )
 
     deps = agent_deps_for(
-        lead_deps(_threaded_state(_HINT_PROMPT, intent), intent=intent)
+        lead_deps(_threaded_state(_HINT_PROMPT, intent), intent=intent),
+        call_id="call_test",
     )
 
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
@@ -117,7 +128,8 @@ def test_the_dispatch_deps_carry_the_combination_requirements() -> None:
     )
 
     deps = agent_deps_for(
-        lead_deps(_threaded_state(_COMBINATION_PROMPT, intent), intent=intent)
+        lead_deps(_threaded_state(_COMBINATION_PROMPT, intent), intent=intent),
+        call_id="call_test",
     )
 
     assert [c.requested_value for c in deps.agent_state.combination_requirements] == [
@@ -166,7 +178,9 @@ def test_the_clarification_turn_ledger_carries_the_first_turn_values() -> None:
 def test_the_frame_deps_goal_carries_the_original_request_and_the_answer() -> None:
     deps = lead_deps(_two_turn_state(), intent=_turn_two_intent())
 
-    goal = agent_deps_for(deps).agent_state.operational_spec_draft.goal
+    goal = agent_deps_for(
+        deps, call_id="call_test"
+    ).agent_state.operational_spec_draft.goal
 
     assert _TURN_ONE in goal
     assert _TURN_TWO in goal
@@ -233,7 +247,9 @@ def test_the_commit_context_carries_the_criteria_the_spec_states() -> None:
         ],
     )
 
-    context = agent_deps_for(lead_deps(state)).to_strategy_context()
+    context = agent_deps_for(
+        lead_deps(state), call_id="call_test"
+    ).to_strategy_context()
 
     assert context.stated_criteria == frozenset({"step_a", "step_b"})
 
@@ -241,7 +257,7 @@ def test_the_commit_context_carries_the_criteria_the_spec_states() -> None:
 def test_a_lookup_one_pass_ran_does_not_reach_the_next_pass() -> None:
     """A pick binds from a lookup of its own pass only."""
     deps = lead_deps(pipeline_state("vectorbase", user_prompt=_HINT_PROMPT))
-    first = agent_deps_for(deps).agent_state
+    first = agent_deps_for(deps, call_id="call_test").agent_state
     first.record_lookup(
         "GenesByInterproDomain",
         "domain_typeahead",
@@ -258,7 +274,7 @@ def test_a_lookup_one_pass_ran_does_not_reach_the_next_pass() -> None:
         ),
     )
 
-    second = agent_deps_for(deps).agent_state
+    second = agent_deps_for(deps, call_id="call_test").agent_state
 
     assert (
         first.looked_up,
@@ -292,7 +308,7 @@ def test_the_turns_placed_combine_and_the_found_tree_reach_the_tool_state() -> N
     )
     state.domain.spec_before_dispatch = found
 
-    tool_state = agent_deps_for(lead_deps(state)).agent_state
+    tool_state = agent_deps_for(lead_deps(state), call_id="call_test").agent_state
 
     assert tool_state.named_combine == NamedCombine(
         position="root", operator=CombineOp.UNION
@@ -303,6 +319,69 @@ def test_the_turns_placed_combine_and_the_found_tree_reach_the_tool_state() -> N
 def test_the_turns_operator_words_reach_the_tool_state() -> None:
     state = pipeline_state("plasmodb", user_prompt="Undo that, keep the intersection.")
 
-    tool_state = agent_deps_for(lead_deps(state)).agent_state
+    tool_state = agent_deps_for(lead_deps(state), call_id="call_test").agent_state
 
     assert tool_state.stated_operators == frozenset({CombineOp.INTERSECT})
+
+
+class _Hosted(WrapperModel):
+    @property
+    def system(self) -> str:
+        return "openai"
+
+    @property
+    def base_url(self) -> str:
+        return "https://api.openai.com/v1"
+
+
+def _hosted() -> _Hosted:
+    return _Hosted(TestModel(model_name="gpt-4o"))
+
+
+def test_a_metered_run_is_recorded_on_the_call_that_ran_it() -> None:
+    recorded: list[SubAgentRunUsage] = []
+    deps = lead_deps(pipeline_state(user_prompt="q"), record_usage=recorded.append)
+    usage = RunUsage(input_tokens=1000, output_tokens=200)
+    meter = agent_deps_for(deps, call_id="call_investigate").meter
+    assert meter is not None
+
+    meter(usage, _hosted())
+
+    assert recorded == [
+        SubAgentRunUsage(
+            usage=usage,
+            model_name="gpt-4o",
+            provider_name="openai",
+            provider_url="https://api.openai.com/v1",
+            parent_tool_call_id="call_investigate",
+            paid_by=PaidBy.DEPLOYMENT,
+            billed=True,
+        )
+    ]
+
+
+def test_the_turn_prices_a_metered_run_as_the_quota_does() -> None:
+    capture = _LeadRunCapture()
+    deps = lead_deps(
+        pipeline_state(user_prompt="q"),
+        record_usage=lambda info: absorb_sub_agent_usage(capture, info),
+    )
+    usage = RunUsage(input_tokens=1000, output_tokens=200)
+    meter = agent_deps_for(deps, call_id="call_investigate").meter
+    assert meter is not None
+
+    meter(usage, _hosted())
+
+    assert capture.sub_agent_cost == RunPricing.of(_hosted()).cost(usage)
+    assert capture.sub_agent_cost == Decimal("0.004500")
+
+
+def test_a_tool_on_the_lead_meters_under_its_own_call() -> None:
+    recorded: list[SubAgentRunUsage] = []
+    deps = lead_deps(pipeline_state(user_prompt="q"), record_usage=recorded.append)
+    meter = inner_context(run_context_for(deps, "call_investigate")).deps.meter
+    assert meter is not None
+
+    meter(RunUsage(input_tokens=5), _hosted())
+
+    assert [one.parent_tool_call_id for one in recorded] == ["call_investigate"]

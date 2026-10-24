@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.persistence.models import AuditRunRecord
@@ -28,14 +29,18 @@ def _missing(run_id: UUID) -> NotFoundError:
     )
 
 
+async def add_run(session: AsyncSession, *, owner: RunOwner, scope: AuditScope) -> UUID:
+    return await AuditRepository(session).create_run(
+        user_id=owner.user_id,
+        conversation_id=owner.conversation_id,
+        scope=scope,
+        seed=secrets.randbits(_SEED_BITS),
+    )
+
+
 async def create_run(*, owner: RunOwner, scope: AuditScope) -> UUID:
     async with async_session_factory() as session:
-        run_id = await AuditRepository(session).create_run(
-            user_id=owner.user_id,
-            conversation_id=owner.conversation_id,
-            scope=scope,
-            seed=secrets.randbits(_SEED_BITS),
-        )
+        run_id = await add_run(session, owner=owner, scope=scope)
         await session.commit()
     return run_id
 

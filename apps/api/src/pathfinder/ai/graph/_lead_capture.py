@@ -32,7 +32,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
 
-from pathfinder.ai.capabilities.metering import SpendMeter
+from pathfinder.ai.capabilities.metering import RunPricing, SpendMeter
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
@@ -72,6 +72,14 @@ class SpendOutsideTheLead:
             sub_agent_cost=self.sub_agent_cost - billed.sub_agent_cost,
             own_key_tokens=self.own_key_tokens - billed.own_key_tokens,
             own_key_cost=self.own_key_cost - billed.own_key_cost,
+        )
+
+    def plus(self, tokens: int, cost: Decimal, *, own_key: bool) -> SpendOutsideTheLead:
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens + tokens,
+            sub_agent_cost=self.sub_agent_cost + cost,
+            own_key_tokens=self.own_key_tokens + (tokens if own_key else 0),
+            own_key_cost=self.own_key_cost + (cost if own_key else Decimal(0)),
         )
 
 
@@ -182,14 +190,14 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
     A dispatch that ran more than one pass owes the sum of them, so the card
     the thread reads carries what the turn counted for that call.
     """
-    cost = cost_for_run(
-        usage=info.usage,
-        model_name=info.model_name,
-        provider_name=info.provider_name,
-        provider_url=info.provider_url,
-    )
+    pricing = RunPricing(info.model_name, info.provider_name, info.provider_url)
+    cost = pricing.cost(info.usage)
     capture.sub_agent_tokens += info.usage.total_tokens
     capture.sub_agent_cost += cost
+    if info.billed:
+        capture.billed_outside_the_lead = capture.billed_outside_the_lead.plus(
+            info.usage.total_tokens, cost, own_key=info.paid_by is PaidBy.USER
+        )
     if info.paid_by is PaidBy.USER:
         capture.own_key_sub_agent_tokens += info.usage.total_tokens
         capture.own_key_sub_agent_cost += cost

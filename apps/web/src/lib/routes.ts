@@ -13,6 +13,10 @@ export function chatRoot(): string {
   return "/conversation";
 }
 
+export function savedUrl(): string {
+  return "/saved";
+}
+
 /** The conversation the path names, or null on the draft route. */
 export function conversationIdFromPath(pathname: string): string | null {
   return pathname.match(CONVERSATION_ID_IN_PATH)?.[1] ?? null;
@@ -51,4 +55,16 @@ export type YourDataSection =
 export function yourDataUrl(section?: YourDataSection): string {
   const base = `${helpUrl()}/your-data`;
   return section === undefined ? base : `${base}#${section}`;
+}
+
+export function auditsUrl(): string {
+  return "/audits";
+}
+
+export function auditRunUrl(runId: string, search = ""): string {
+  return `${auditsUrl()}/${runId}${search}`;
+}
+
+export function auditFindingUrl(runId: string, findingId: number, search = ""): string {
+  return `${auditRunUrl(runId)}/findings/${String(findingId)}${search}`;
 }

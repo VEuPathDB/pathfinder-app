@@ -39,7 +39,8 @@ def _build_state() -> PipelineState:
 
 def _deps(state: PipelineState, ctx: Context) -> AgentDeps:
     return agent_deps_for(
-        LeadDeps(state=state, intent=None, runtime=ctx, retrieved_memories=[])
+        LeadDeps(state=state, intent=None, runtime=ctx, retrieved_memories=[]),
+        call_id="call_test",
     )
 
 
@@ -58,6 +59,7 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "user_prompt",
         "verification_scope",
         "exchanges",
+        "meter",
         "cancel_event",
         "memory_store",
         "retrieved_memories",

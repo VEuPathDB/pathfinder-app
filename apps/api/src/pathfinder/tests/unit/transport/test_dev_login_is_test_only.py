@@ -33,6 +33,10 @@ def test_the_production_app_has_no_dev_login_route() -> None:
     assert dev.dev_login not in _endpoints(include_dev_routes=False)
 
 
+def test_the_production_app_has_no_sample_audit_route() -> None:
+    assert _endpoints(include_dev_routes=False) & {dev.store_sample_audit_run} == set()
+
+
 def test_the_overlay_app_does_have_it() -> None:
     assert dev.dev_login in _endpoints(include_dev_routes=True)
 

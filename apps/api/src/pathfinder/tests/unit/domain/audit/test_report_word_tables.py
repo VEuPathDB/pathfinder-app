@@ -4,9 +4,11 @@ from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_DESCRIPTIONS,
     ERROR_TYPE_TITLES,
+    HALT_SENTENCES,
     LITERATURE_SENTENCES,
     REVIEW_STATUS_SENTENCES,
     UNCHECKED_SENTENCES,
+    UNRESOLVED_WORDS,
     VERDICT_KIND_SENTENCES,
 )
 
@@ -94,4 +96,29 @@ def test_the_unchecked_sentences_table_reads_its_exact_words() -> None:
         "declined": "Not checked: the check does not take this target",
         "unreached": "Not checked: the site did not answer",
         "unread": "Not checked: not read before the run's deadline",
+    }
+
+
+def test_the_halt_sentences_table_reads_its_exact_words() -> None:
+    assert HALT_SENTENCES == {
+        "sign_in": (
+            "The audit needs your VEuPathDB sign-in. Sign in on the site, then "
+            "resume it."
+        ),
+        "task_failed": (
+            "The audit task stopped on an error. Resume it to go on from the last "
+            "unit it finished."
+        ),
+    }
+
+
+def test_the_unresolved_words_table_reads_its_exact_words() -> None:
+    assert UNRESOLVED_WORDS == {
+        "screened": "not checked yet",
+        "unsampled": "not in the random sample",
+        "trying": "being checked",
+        "failed": "where the check failed",
+        "declined": "that the check does not take",
+        "unreached": "where the site did not answer",
+        "unread": "not read before the run's deadline",
     }

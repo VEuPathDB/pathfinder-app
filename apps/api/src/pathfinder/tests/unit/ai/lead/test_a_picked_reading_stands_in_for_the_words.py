@@ -417,7 +417,10 @@ def test_the_ledger_shows_a_held_reading_under_its_criterion() -> None:
 
 
 def _offered(deps: LeadDeps) -> list[str]:
-    return [r.reading for r in agent_deps_for(deps).agent_state.offered_readings]
+    return [
+        r.reading
+        for r in agent_deps_for(deps, call_id="call_test").agent_state.offered_readings
+    ]
 
 
 def test_a_pass_is_offered_the_readings_of_an_open_question() -> None:

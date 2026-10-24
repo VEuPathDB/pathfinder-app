@@ -45,6 +45,9 @@ FindingStatus = Literal[
     "unreached",
     "unread",
 ]
+UnresolvedStatus = Literal[
+    "screened", "unsampled", "trying", "failed", "declined", "unreached", "unread"
+]
 EvidenceStatus = Literal["pending", "trying", "stored", "failed", "unreached", "unread"]
 EvidenceKind = Literal["confirmation", "relatives", "gene_evidence"]
 Certainty = Literal["high", "medium", "low"]

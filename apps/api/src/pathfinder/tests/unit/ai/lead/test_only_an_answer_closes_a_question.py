@@ -43,6 +43,7 @@ def test_the_answering_intents_are_the_answers_and_the_changes() -> None:
         IntentClassification.OFF_TOPIC,
         IntentClassification.CONTEXT_STATEMENT,
         IntentClassification.MEMORY_REQUEST,
+        IntentClassification.GENE_MODEL_AUDIT,
     }
 
 

@@ -3,12 +3,12 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
-from assistant_core.cost import cost_for_run
 from assistant_core.platform.db import async_session_factory
 from assistant_core.quota import accumulate
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
+from pathfinder.ai.capabilities.metering import RunPricing
 from pathfinder.platform.model_keys import turn_paid_by
 
 
@@ -31,10 +31,5 @@ async def charge(
 async def charge_run(
     user_id: UUID, usage: RunUsage, model: Model, *, model_id: str
 ) -> None:
-    cost = cost_for_run(
-        usage=usage,
-        model_name=model.model_name,
-        provider_name=model.system,
-        provider_url=model.base_url,
-    )
+    cost = RunPricing.of(model).cost(usage)
     await charge(user_id, usage.total_tokens, cost, model_id=model_id)

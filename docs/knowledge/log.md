@@ -26,6 +26,77 @@
   `decisions/a-step-is-counted-by-its-word-cloud-only-when-the-words-are-its-records.md` and
   `decisions/verify-reviews-the-intent-the-genes-and-the-sources.md`.
 
+* **The Lead starts and reads gene-model audits and calls the investigator.**
+  `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
+  `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,
+  `list_audit_findings`, `read_audit_findings`, `review_audit_run`) by running the auditor's own
+  tool bodies under an `AuditDeps` of the turn. Each read's facts go to `TurnMarkers.audit_facts`
+  and its genes to the records the turn read, so a reply cites `[stat:<fact id>.<row>]` and
+  `[record:<gene>]` under the turn contract as it stands and the facts part lists the genes
+  under "Records read". The audit facts ride `TurnFacts.audit_statistics`, which references read
+  and the wire leaves out. The audit tools' schemas reach the model only on a `gene_model_audit`
+  turn, a turn that answers the start card, or a thread that already holds a run
+  (`TurnMarkers.audit_runs_held`, read at turn start), so a strategy turn's tool list is the
+  one it had before. The start card is drawn by a second deferred-call handler, after the
+  contract one, so a replan that fails denies the call inside the run.
+  `investigate_gene_models` (`ai/tools/standalone/gene_model_investigation.py`) is the first
+  production caller of `investigate`: it owns the run's usage and meters it in a `finally`
+  through `AgentDeps.meter`, which `agent_deps_for` points at the Lead's `record_sub_agent_usage`
+  under the calling tool's id (every dispatch now names its call id). The pass is `billed`,
+  since `investigate` already charged it, so the turn counts it and the residual quota write
+  leaves it out; both price a run through `RunPricing`. A new classification,
+  `gene_model_audit`, records no requirement, no request text and no withdrawal on the thread,
+  and the start tool is withheld on every other turn unless the turn answers its card. See
+  `decisions/building-is-a-response-to-a-request.md`.
+* **The audits list follows the site the website locks.** `GET /api/v1/audits` takes an
+  optional `siteId` (`SiteIdQuery`), and `AuditRepository.runs` filters on it. On a component
+  site's website `/audits` reads only that site's runs, drops the Site column and reads "No audits
+  on <site> yet"; on the portal it lists every site's runs. The rule is in
+  `decisions/the-site-comes-from-the-website-that-frames-pathfinder.md`.
+* **The audit words read alike, and the nav names each section by its route.** `unresolvedText`
+  orders its parts by the served words' keys, so no web copy of the order is kept. A genome or
+  evidence row that the site did not answer reads "The site did not answer", and one not read in
+  time "Not read before the run's deadline", as the finding statuses do. The nav rail's entries
+  take `chatRoot()`, `savedUrl()` (new) and `auditsUrl()`.
+* **The web lists a researcher's audits at `/audits`.** `features/audit/AuditRunsPage.tsx` reads
+  `GET /api/v1/audits` and the served words, and shows one row per run in the order the API
+  lists them: the day it started, linked to the run's page, its site, what it examines, its
+  checks in the served words and its phase. With no run, it says to ask the audit assistant.
+* **The web tests read the sample audit run through the generated schemas.**
+  `features/audit/__fixtures__/sampleRun.ts` parses the recorded `sampleRun.json` into
+  `SAMPLE_RUN`, `SAMPLE_FINDINGS` and `SAMPLE_DETAILS`; `sampleDetail(check)` gives the detail of
+  the sample's error of that check and throws when the sample holds none. Its test holds each
+  `checkTitle` and `errorTitle` to the served words in `packages/spec/audit_words.json`.
+* **A sample audit run backs the report page's flow and the web fixture.**
+  `data/audit/sample_run.json` holds a finished plasmodb run of ten findings, built from the
+  recorded test-support results, with the reviews and the synthesis of the stored shapes.
+  `services/audit/sample_run.py::store_sample_run` stores it for one person, and the mock-only
+  `POST /api/v1/dev/audits/sample` answers its run id and finding ids. The routes' answers for it
+  are `apps/web/src/features/audit/__fixtures__/sampleRun.json`, with ids and times fixed. See
+  `conventions/recording-the-audit-models.md`.
+
+* **An audit finding reads its gene models in genome coordinates.** `domain/audit/models.py`
+  derives `FindingDetail.models` from the stored confirmation alone: the annotated models of the
+  genes the check judged, the model an intron's RNA-seq junctions propose (`corrected`: the
+  library's corrected CDS, and the exons of the annotated model with each unread intron added and
+  each replacing junction cut out, the rule of the library's `correct_model`, which it does not
+  publish; or `retained`, with the intron kept as exon when the correction was not read), a
+  fusion's merged span and a selenoprotein's stop codon, the last three coding bases on its
+  strand, split across an intron when the last coding part is shorter than three. `FIGURE_KINDS`
+  names the figure of every check. A check that read no model, an organelle or a missing-gene finding, and a confirmation
+  stored before the library returned models read `models` as null; nothing is read again and no
+  column is added. The review prompt leaves `models` out.
+
+* **An audit run counts a check's gene model reads with its other requests (veupathdb-mcp
+  0.2.0b47).** The confirm stage counts them on the finding and on the stage, as
+  `tests/integration/services/test_audit_model_reads_counted.py` proves over the recorded GT1
+  SelK wire (9 requests). The plan adds no charge for them: the measured confirm cost of each
+  check already holds them, and `UnitCosts` names no model reads.
+  `tests/fixtures/audit_models/` adds the recorded DMAW intron, PKAC strain, RPT6 fusion and GT1
+  SelK results with their models, and the list of unpublished tool server modules matches the
+  b47 published surface. See `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md` and
+  `conventions/recording-the-audit-models.md`.
+
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
   `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted
   run or retries what a finished run left unread or unreached, and answers the run view. It
@@ -174,6 +245,31 @@
   `ChatEmptyState` are a button. The Settings modal's open state and tab live in
   `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav
   rail's gear read and write it, and a focused memory still holds the modal on the memory tab.
+* **The audit pages format numbers and text in one module.** `features/audit/format.ts` holds
+  `percent`, `shareText`, `rateText` (the rate and its Wilson interval), `rangeText` (the floor
+  and ceiling the unresolved findings allow), `plural`, `joinWords`, `dayText` (the UTC day),
+  `impactText`, `scopeText` and `unresolvedText` (the unresolved count by status, in the words
+  the API serves). `percent`
+  rounds a half to the even percent, as `domain/audit/words.py::percent` does, so a page and the
+  API state one rate in one number.
+* **The API serves the audit words, and the web holds only words no backend table holds.**
+  `GET /api/v1/audits/words` answers `AuditWords` (`services/audit/words.py`), built from
+  `domain/audit/words.py`'s tables: the checks, the error types and their descriptions, a
+  finding's status, the unresolved count by status (`UNRESOLVED_WORDS`, new), why a run halted
+  (`HALT_SENTENCES`, new; `RunHalt.detail` stays the raw reason), and a review's verdict,
+  literature and progress. `packages/spec/audit_words.json` is its recorded body, held to the
+  route by an api test; the web reads it through `lib/api/audits.ts::auditWordsOptions`.
+  `features/audit/words.ts` keeps words only for values with no backend table: certainty, the
+  genome and evidence statuses, the evidence kinds, the stages, the genome roles, the run phases,
+  the importance and use sources, and `ORIGIN_WORDS`.
+* **A declined finding counts among the unresolved under its own words.** `UnresolvedStatus`
+  holds `declined` beside `Unresolved.declined`, `UNRESOLVED_WORDS["declined"]` reads "that the
+  check does not take", and the served `FindingStatusWords` and `UnresolvedWords` name it, so
+  `unresolvedText` states a declined count.
+* **The web names the audit addresses in one place and the nav rail links them.**
+  `lib/routes.ts` holds `auditsUrl()` (`/audits`), `auditRunUrl(runId, search)` and
+  `auditFindingUrl(runId, findingId, search)`, where `search` is empty or starts with `?`; the nav
+  rail's third entry, `Audits`, links `/audits` and is current on every path under it.
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
   (`true` reads only the run's gene targets, `false` only the screened candidates).

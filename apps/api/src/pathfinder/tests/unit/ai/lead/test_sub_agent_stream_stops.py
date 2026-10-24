@@ -186,7 +186,7 @@ async def _dispatch(
     declared: int = 8,
     guard: ToolRepetitionGuard | None = None,
 ) -> object:
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id="call_test")
     if guard is not None:
         agent_deps.tool_repetition_guard = guard
     return await stream_sub_agent(

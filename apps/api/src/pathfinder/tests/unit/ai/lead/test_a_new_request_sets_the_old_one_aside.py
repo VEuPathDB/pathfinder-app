@@ -90,7 +90,7 @@ async def test_the_fresh_order_reads_the_new_request_alone() -> None:
         f"User's goal: {_NEW}",
     ]
     assert framing_goal(deps.state) == _NEW
-    draft = agent_deps_for(deps).agent_state.operational_spec_draft
+    draft = agent_deps_for(deps, call_id="call_test").agent_state.operational_spec_draft
     assert (draft.goal, draft.criteria) == (_NEW, [])
 
 
@@ -182,7 +182,12 @@ async def test_a_reclassification_to_a_new_request_before_any_frame_sets_the_old
     assert domain.original_request == _NEW
     assert domain.requirements == []
     assert domain.open_questions == []
-    assert agent_deps_for(deps).agent_state.operational_spec_draft.criteria == []
+    assert (
+        agent_deps_for(
+            deps, call_id="call_test"
+        ).agent_state.operational_spec_draft.criteria
+        == []
+    )
     assert framing_goal(deps.state) == _NEW
 
 

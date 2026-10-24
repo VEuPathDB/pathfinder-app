@@ -239,6 +239,7 @@ class TurnFacts(CamelModel):
     memberships: list[MembershipFact] = Field(default_factory=list, exclude=True)
     # The statistics the EDA service computed on the thread. Their card shows them.
     statistics: list[StatisticFact] = Field(default_factory=list)
+    audit_statistics: list[StatisticFact] = Field(default_factory=list, exclude=True)
     # The column tallies this turn ran. Their card shows them.
     tallies: list[TallyFact] = Field(default_factory=list)
     stopped_check: str = ""
@@ -340,6 +341,9 @@ class TurnFacts(CamelModel):
     def record_ids(self) -> list[str]:
         """The ids of the records this turn shows, in the order it shows them."""
         return [s.record_id for s in self.shown_records()]
+
+    def cited_statistics(self) -> list[StatisticFact]:
+        return [*self.statistics, *self.audit_statistics]
 
     def citable_records(self) -> list[SourceFact]:
         """Every record a record reference renders: this turn's reads and the

@@ -11,7 +11,7 @@ from pydantic import SecretStr
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.wrapper import WrapperModel
-from pydantic_ai.usage import RequestUsage
+from pydantic_ai.usage import RequestUsage, RunUsage
 from sqlalchemy import select
 
 from pathfinder.ai.audit.deps import AuditDeps
@@ -56,7 +56,9 @@ async def _investigated() -> UUID:
         origin="lead",
     )
     model = _OpenAINamed(FunctionModel(_answer, model_name="gpt-4o"))
-    await investigate("is the model of EXA_0001 right", deps=deps, model=model)
+    await investigate(
+        "is the model of EXA_0001 right", deps=deps, model=model, usage=RunUsage()
+    )
     return owner.user_id
 
 
