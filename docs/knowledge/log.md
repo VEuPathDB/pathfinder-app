@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **An investigation writes its usage row.** `investigate()` charges the tokens and cost its
+  run spent, also when it stops at its budget, through `ai/audit/charges.py`, the one helper the
+  auditor turn's `charge_usage` and the review job use too: `charge` writes the row on
+  `turn_paid_by` of the model id, and `charge_run` prices a `RunUsage` on its model first. The
+  owner pays when the turn's keyring holds a live key for the model's provider, and the
+  deployment pays otherwise.
 * **A length check that read no DNA is an unjudged finding.** A `gene_length` or `gene_split`
   answer of `NOT_CHECKED` classifies as not judged (`domain/audit/findings.py`, `_LENGTH_UNREAD`),
   so the confirm stage stores it confirmed with `judged` false and its reason, and the run view's

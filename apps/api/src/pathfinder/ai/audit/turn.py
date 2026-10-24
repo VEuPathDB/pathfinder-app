@@ -11,14 +11,13 @@ from uuid import UUID
 from assistant_core.graph.runtime import TurnContext
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.platform.db import async_session_factory
-from assistant_core.quota import accumulate
 from assistant_core.spec import TurnContextRequest
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
 from pathfinder.ai.audit.auditor import charged_model_id
+from pathfinder.ai.audit.charges import charge
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
-from pathfinder.platform.model_keys import turn_paid_by
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -56,14 +55,4 @@ def build_deps(state: TurnState, context: AuditTurnContext) -> AuditDeps:
 
 
 async def charge_usage(user_id: UUID, tokens: int, cost_usd: Decimal) -> None:
-    if tokens == 0 and cost_usd == 0:
-        return
-    async with async_session_factory() as session:
-        await accumulate(
-            session,
-            user_id=user_id,
-            tokens=tokens,
-            cost_usd=cost_usd,
-            paid_by=turn_paid_by(charged_model_id()),
-        )
-        await session.commit()
+    await charge(user_id, tokens, cost_usd, model_id=charged_model_id())

@@ -5,11 +5,9 @@ from __future__ import annotations
 from time import monotonic
 from typing import Any
 
-from assistant_core.cost import cost_for_run
 from assistant_core.models.capture import maybe_wrap_model
 from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.db import async_session_factory
-from assistant_core.quota import accumulate
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.models import Model, infer_model
@@ -17,6 +15,7 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
 
+from pathfinder.ai.audit.charges import charge_run
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import REVIEWER_INSTRUCTIONS
 from pathfinder.ai.audit.mock import build_review_mock
@@ -31,7 +30,7 @@ from pathfinder.domain.audit.verdicts import (
 )
 from pathfinder.platform.errors import ProviderKeyError
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
-from pathfinder.platform.model_keys import is_mock_deployment, keyed_model, turn_paid_by
+from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE, deployment_role_config
 from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
@@ -175,28 +174,6 @@ def review_settings(model_id: str) -> ModelSettings:
     return build_model_settings(model_id, thinking=effort)
 
 
-async def _charge(
-    run: ReviewedRun, usage: RunUsage, model: Model, model_id: str
-) -> None:
-    cost = cost_for_run(
-        usage=usage,
-        model_name=model.model_name,
-        provider_name=model.system,
-        provider_url=model.base_url,
-    )
-    if usage.total_tokens == 0 and cost == 0:
-        return
-    async with async_session_factory() as session:
-        await accumulate(
-            session,
-            user_id=run.user_id,
-            tokens=usage.total_tokens,
-            cost_usd=cost,
-            paid_by=turn_paid_by(model_id),
-        )
-        await session.commit()
-
-
 class _Reviewer:
     def __init__(
         self, run: ReviewedRun, model_id: str, research: AbstractToolset[Any] | None
@@ -218,7 +195,9 @@ class _Reviewer:
                 usage=usage,
             )
         finally:
-            await _charge(self.run, usage, self.model, self.model_id)
+            await charge_run(
+                self.run.user_id, usage, self.model, model_id=self.model_id
+            )
 
     async def budget_used(self) -> bool:
         async with async_session_factory() as session:

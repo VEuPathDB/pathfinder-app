@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.models.scripted import retry_prompt_parts
@@ -12,8 +12,9 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
 )
+from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from pydantic_ai.usage import RunUsage, UsageLimits
+from pydantic_ai.usage import RequestUsage, RunUsage, UsageLimits
 
 from pathfinder.ai.audit import investigator, verdict_tool
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES
@@ -48,6 +49,21 @@ _VERDICT = {
     "cites": [_UNMADE],
 }
 type Stored = list[tuple[VerdictOrigin, GeneModelVerdict]]
+type Charged = list[tuple[UUID, int, str]]
+
+
+@pytest.fixture(autouse=True)
+def charged(monkeypatch: pytest.MonkeyPatch) -> Charged:
+    seen: Charged = []
+
+    async def charge(
+        user_id: UUID, usage: RunUsage, model: Model, *, model_id: str
+    ) -> None:
+        del model
+        seen.append((user_id, usage.total_tokens, model_id))
+
+    monkeypatch.setattr(investigator, "charge_run", charge)
+    return seen
 
 
 def _deps() -> AuditDeps:
@@ -101,7 +117,27 @@ async def test_an_investigation_citing_an_unmade_read_is_refused(
     assert (found.answer, found.verdicts, stored) == ("No read settles it.", (), [])
 
 
-async def test_an_investigation_runs_on_its_own_budget() -> None:
+async def test_an_investigation_charges_the_tokens_it_spent(charged: Charged) -> None:
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        (tool,) = info.output_tools
+        call = ToolCallPart(
+            tool_name=tool.name, args={"answer": "Nothing to judge.", "verdicts": []}
+        )
+        return ModelResponse(
+            parts=[call], usage=RequestUsage(input_tokens=100, output_tokens=20)
+        )
+
+    deps = _deps()
+    model = FunctionModel(answer, model_name="judge")
+
+    _, spent = await investigate("is it right", deps=deps, model=model)
+
+    assert spent.total_tokens == 120
+    assert charged == [(deps.user_id, 120, "function:judge")]
+
+
+async def test_an_investigation_runs_on_its_own_budget(charged: Charged) -> None:
     def forever(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
         args = {"confirmed": 1, "checked": 2, "unresolved": len(messages)}
@@ -109,13 +145,17 @@ async def test_an_investigation_runs_on_its_own_budget() -> None:
             parts=[ToolCallPart(tool_name="rate_with_interval", args=args)]
         )
 
+    deps = _deps()
     found, spent = await investigate(
-        "what is the rate", deps=_deps(), model=FunctionModel(forever)
+        "what is the rate",
+        deps=deps,
+        model=FunctionModel(forever, model_name="forever"),
     )
 
     assert INVESTIGATION_LIMITS.request_limit == 24
     assert (found.answer, found.verdicts) == (BUDGET_ANSWER, ())
     assert spent.requests == 24
+    assert charged == [(deps.user_id, spent.total_tokens, "function:forever")]
 
 
 async def test_an_investigation_ignores_the_usage_of_its_caller() -> None:
