@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+* **The web names the audit addresses in one place and the nav rail links them.**
+  `lib/routes.ts` holds `auditsUrl()` (`/audits`), `auditRunUrl(runId, search)` and
+  `auditFindingUrl(runId, findingId, search)`, where `search` is empty or starts with `?`; the nav
+  rail's third entry, `Audits`, links `/audits` and is current on every path under it.
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
   (`true` reads only the run's gene targets, `false` only the screened candidates).
