@@ -42,6 +42,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     work,
     work_through,
 )
+from pathfinder.tests.integration.jobs._audit_reviews import work_reviews
 
 SIGN_IN_NEEDED = "sign-in needed"
 _TOLERANCE = timedelta(seconds=5)
@@ -196,6 +197,7 @@ async def test_a_refused_retry_leaves_a_finished_run_finished(
     with holding(TOKEN):
         await start_run(run_id, owner)
     await work_through(jobs)
+    await work_reviews(jobs)
 
     with holding(None), pytest.raises(WDKLoginRequiredError):
         await start_run(run_id, owner, retry_unreached=True)

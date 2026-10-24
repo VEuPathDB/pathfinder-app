@@ -23,11 +23,13 @@ from veupathdb_mcp.embeddings import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application
+from pathfinder.jobs.impls.audit_review_impl import run_review_job
 from pathfinder.jobs.impls.audit_run_impl import run_audit_job
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
 from pathfinder.services.audit.job import resume_stranded_runs
-from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE
+from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE, AUDIT_REVIEW_JOB
+from pathfinder.services.audit.reviews import resume_stranded_reviews
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
 from pathfinder.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
 
@@ -62,6 +64,11 @@ async def run_audit_job_task(payload: dict[str, JsonValue]) -> None:
     await run_audit_job(payload)
 
 
+@procrastinate_app.task(queue=AUDIT_QUEUE, name=AUDIT_REVIEW_JOB)
+async def run_review_job_task(payload: dict[str, JsonValue]) -> None:
+    await run_review_job(payload)
+
+
 # The deferring write names the thread as the lock, so the job never runs
 # beside one of the thread's turns.
 @procrastinate_app.task(queue=DEFAULT_QUEUE, name=GENE_SET_REFRESH_TASK)
@@ -90,6 +97,7 @@ async def release_stalled_jobs_job(timestamp: int) -> None:
 async def resume_stranded_audits_job(timestamp: int) -> None:
     del timestamp
     await resume_stranded_runs()
+    await resume_stranded_reviews()
 
 
 @procrastinate_app.periodic(cron="41 4 * * *")

@@ -32,6 +32,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     work,
     work_through,
 )
+from pathfinder.tests.integration.jobs._audit_reviews import work_reviews
 
 _TOLERANCE = timedelta(seconds=5)
 
@@ -107,6 +108,7 @@ async def test_units_a_late_continuation_never_read_are_stored_unread_and_retrie
         10,
         (),
     )
+    await work_reviews(jobs)
 
     await start_run(run_id, owner, retry_unreached=True)
     await work_through(jobs)

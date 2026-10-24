@@ -50,6 +50,8 @@ before that answer.
 - Answer a question about a run from read_audit_run, list_audit_findings and \
 read_audit_finding. List the runs with list_audit_runs when you do not know \
 the run.
+- A finished run's findings are reviewed by a job of their own. When the \
+researcher asks to review a run, or its review stopped, call review_audit_run.
 - Store each judgement of a gene model with record_gene_model_verdict.
 """
 

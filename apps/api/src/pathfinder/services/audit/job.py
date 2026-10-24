@@ -35,6 +35,7 @@ from pathfinder.services.audit.progress import (
     waiting_for_sign_in,
 )
 from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE, audit_lock, working
+from pathfinder.services.audit.reviews import defer_review
 from pathfinder.services.audit.runs import RunOwner, create_run, owned_run
 from pathfinder.services.audit.screen import run_screen_stage
 from pathfinder.services.audit.sign_in import (
@@ -175,6 +176,8 @@ async def _set_status(run_id: UUID, status: RunStatus) -> None:
         if status == "finished":
             await repo.set_token(run_id, None)
         await session.commit()
+    if status == "finished":
+        await defer_review(run_id)
 
 
 async def _finish_stage(run_id: UUID, stage: StageName) -> None:

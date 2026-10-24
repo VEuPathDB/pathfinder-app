@@ -46,6 +46,7 @@ from pathfinder.services.audit.finding_views import (
 )
 from pathfinder.services.audit.job import begin_run
 from pathfinder.services.audit.planning import plain_problems, propose_scope
+from pathfinder.services.audit.reviews import start_review
 from pathfinder.services.audit.sign_in import AuditsDisabledError
 from pathfinder.services.audit.verdicts import AuditCaller
 from pathfinder.services.audit.views import (
@@ -112,6 +113,16 @@ async def read_audit_finding(
 ) -> FindingDetail:
     with _found():
         return await finding_detail(run_id, finding_id, caller.user_id)
+
+
+async def review_audit_run(caller: AuditCaller, run_id: UUID) -> AuditRunView:
+    try:
+        owner = caller.owner()
+    except AuditNeedsAThreadError as refused:
+        raise CallRefused(refused.detail or refused.title) from refused
+    with _found():
+        await start_review(run_id, owner)
+        return await run_view(run_id, caller.user_id)
 
 
 def planner_refusal(proposal: ScopeProposal) -> str:
@@ -206,6 +217,25 @@ async def read_audit_run_tool(
     return with_summary(read, f"Audit run {view.run.status}", ctx=ctx)
 
 
+async def review_audit_run_tool(
+    ctx: RunContext[AuditDeps], run_id: UUID
+) -> ToolReturn[AuditRead[AuditRunView]]:
+    """Start or resume the review of a finished audit run's findings, and read the run.
+
+    The review judges each confirmed finding once, highest impact first, up to
+    the review cap of a run. A finding already reviewed is not reviewed again.
+    Nothing starts while the run or its review is working, or when the review
+    already finished with no finding left. The run's review field holds the
+    progress.
+    """
+    view = await review_audit_run(ctx.deps.caller, run_id)
+    fact = audit_run_fact(view)
+    ctx.deps.facts.append(fact)
+    read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
+    state = "not started" if view.review is None else view.review.status
+    return with_summary(read, f"Review {state}", ctx=ctx)
+
+
 async def list_audit_findings_tool(
     ctx: RunContext[AuditDeps], run_id: UUID, query: FindingQuery
 ) -> ToolReturn[AuditRead[FindingPage]]:
@@ -265,6 +295,7 @@ def build_run_toolset() -> FunctionToolset[AuditDeps]:
                 requires_approval=True,
                 args_validator=audit_can_start,
             ),
+            Tool(review_audit_run_tool, name="review_audit_run"),
             *_read_tools(),
         ],
         max_retries=3,

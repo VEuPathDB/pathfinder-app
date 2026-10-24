@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from typing import Annotated
 from uuid import UUID
 
-from assistant_core import quota
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import get_db_session
 from assistant_core.platform.types import ModelProvider, PaidBy
@@ -28,8 +27,8 @@ from pathfinder.platform.principal import Principal
 from pathfinder.platform.readiness import get_readiness
 from pathfinder.platform.route_templates import route_template
 from pathfinder.platform.security import resolve_principal
-from pathfinder.services.provider_keys import key_statuses, require_payers
-from pathfinder.services.users import effective_monthly_limit_usd, ensure_user_exists
+from pathfinder.services.turn_payment import turn_payment
+from pathfinder.services.users import ensure_user_exists
 from pathfinder.services.wdk_identity import (
     require_registered_wdk_login,
     require_session_matches_wdk_identity,
@@ -166,23 +165,17 @@ async def require_turn_paid(
     by the deployment's. The monthly allowance stops only a turn that runs some
     model on the deployment's key.
     """
-    payers = require_payers(model_ids, await key_statuses(session, user_id))
-    if PaidBy.DEPLOYMENT not in payers.values():
-        return payers
-    status_now = await quota.get_current(
-        session,
-        user_id,
-        limit_usd=await effective_monthly_limit_usd(session, user_id),
-    )
-    if status_now.used_usd >= status_now.limit_usd:
+    payment = await turn_payment(session, user_id, model_ids)
+    spent = payment.budget
+    if spent is not None:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
                 "code": "monthly_quota_exhausted",
-                "usedUsd": str(status_now.used_usd),
-                "limitUsd": str(status_now.limit_usd),
-                "resetsAt": status_now.resets_at.isoformat(),
-                "totalTokens": status_now.total_tokens,
+                "usedUsd": str(spent.used_usd),
+                "limitUsd": str(spent.limit_usd),
+                "resetsAt": spent.resets_at.isoformat(),
+                "totalTokens": spent.total_tokens,
             },
         )
-    return payers
+    return payment.payers

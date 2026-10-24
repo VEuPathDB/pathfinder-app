@@ -20,7 +20,6 @@ from assistant_core.graph.stream_events import (
     turn_stopped_event,
 )
 from assistant_core.graph.turn_state import DurableTaskResult
-from assistant_core.mcp.resolution import ResolvedToolSources
 from assistant_core.platform.context import PhaseOverrides, attach_phase_overrides
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.observability import TraceScope, traced
@@ -36,7 +35,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     StartChunk,
 )
 
-from pathfinder.ai.capabilities.security import tool_output_scan
+from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.ai.conversation._turn_helpers import (
     _extract_chunk,
     build_turn_start,
@@ -51,7 +50,6 @@ from pathfinder.ai.conversation.turn_failure import (
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
 from pathfinder.ai.conversation.turn_title import write_turn_name
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
-from pathfinder.platform.tool_sources import metered_mcp_toolset, source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
     turn_start_strategy,
@@ -162,12 +160,7 @@ async def run_turn(
             )
             body = body.model_copy(update={"site_id": effective_site_id})
             resolved = await tool_source_sessions.enter_async_context(
-                ResolvedToolSources(
-                    declarations=spec.tool_sources,
-                    credential=source_credential,
-                    scan=tool_output_scan(),
-                    build_toolset=metered_mcp_toolset,
-                ),
+                screened_sources(spec.tool_sources),
             )
             runtime_context = await spec.build_turn_context(
                 TurnContextRequest(

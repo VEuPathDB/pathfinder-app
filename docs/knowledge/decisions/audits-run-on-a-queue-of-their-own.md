@@ -64,7 +64,9 @@ reopens the run and writes its new deadline and token in one transaction. A job
 that raises stores "the audit job failed" with the error on the run and on the
 unit it was reading, and erases the kept sign-in; a unit failed after its third
 stop keeps that error after the stop message. The run stays halted until a new
-`start_run`; the resume pass does not queue a halted run.
+`start_run`; the resume pass does not queue a halted run. The same pass queues
+the review of a finished run whose review job was lost
+([A finished audit run is reviewed by a job of its own](a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md)).
 
 **The worker start reads no app table.** Only the api migrates
 (`platform/migrations.py::init_db`), and the worker can start before it does. A

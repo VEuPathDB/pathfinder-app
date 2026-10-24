@@ -2,6 +2,18 @@
 
 ## 2026-10-24
 
+* **A finished audit run reviews its findings in a job of its own.** Finishing a run
+  queues `audit:review` under the run's lock. The job reviews the confirmed named
+  findings highest impact first, at most `MAX_REVIEWS_PER_RUN`, one bounded reviewer
+  run each (`ai/audit/review.py`) that cites only the finding, its stored evidence and
+  its own literature reads, and judges a seeded sample a second time with no sight of
+  the first answer. The owner's keys pay through `services/turn_payment.py`, the rule
+  `require_turn_paid` now reads; a refused key or a used budget stops the job with the
+  reason. Literature is screened as a turn's (`ai/capabilities/screened_sources.py`),
+  `review_audit_run` resumes a stopped review, and the periodic resume pass queues a
+  review whose job was lost. See
+  [A finished audit run is reviewed by a job of its own](decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md).
+
 * **One phyletic builder, and an expression is shown by its handle.** veupathdb-mcp
   0.2.0b42 (now pinned) replaces the three OrthoMCL builders with
   `build_phyletic_expression(site_id, pattern)`, bounds a pattern at 8 levels and 128 terms
