@@ -17012,6 +17012,11 @@ components:
       - withdrawn
       - replaced
       type: string
+    RowForm:
+      enum:
+      - value
+      - word
+      type: string
     SampleCaveat:
       description: 'A column of a step whose values do not all fit the bound, or that the
 
@@ -17643,6 +17648,9 @@ components:
         value:
           title: Value
           type: string
+        form:
+          $ref: '#/components/schemas/RowForm'
+          default: value
       required:
       - name
       - value

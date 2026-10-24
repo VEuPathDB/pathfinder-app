@@ -21,6 +21,7 @@ from pathfinder.domain.reference_grammar import (
     reference_kind,
 )
 from pathfinder.domain.reference_placement import misplacements
+from pathfinder.domain.reply_notes import ReplyNotes
 from pathfinder.domain.reply_suggestions import (
     A_TOKEN,
     EDGE_MARKS,
@@ -251,15 +252,22 @@ def _unheld_words(match: re.Match[str]) -> str:
 def render_reply(prose: str, facts: TurnFacts) -> str:
     """The reply with each reference replaced by the fact it names. A count
     reference carries the record noun, so the noun written after it is absorbed.
+    A word reference that closes its clause is a numbered note below the reply.
     A reference that names nothing the facts hold is shown as its plain words."""
+    notes = ReplyNotes(facts.cited_statistics())
 
     def replaced(match: re.Match[str]) -> str:
+        noted = notes.marker(match) if reference_kind(match) == "stat" else None
+        if noted is not None:
+            return noted
         rendered = _rendered(match, facts)
         noun = match.group("noun") or ""
         shown = _unheld_words(match) if rendered is None else rendered
         return shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
 
-    return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
+    return notes.appended(
+        reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
+    )
 
 
 def _words(text: str) -> set[str]:

@@ -11,7 +11,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage, UsageLimits
 
-from pathfinder.ai.audit.facts import audit_run_fact, json_rows
+from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.verdicts import (
@@ -23,6 +23,7 @@ from pathfinder.domain.audit.verdicts import (
 )
 from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
+from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
@@ -93,7 +94,7 @@ def synthesis_counts_fact(view: AuditRunView, counts: SynthesisCounts) -> Statis
         id=statistic_id("audit_synthesis", [str(view.run.id)]),
         kind="audit_synthesis",
         title=f"The reviews of audit run {view.run.id}",
-        rows=json_rows("", counts.model_dump(mode="json", by_alias=True)),
+        rows=model_rows(counts),
     )
 
 

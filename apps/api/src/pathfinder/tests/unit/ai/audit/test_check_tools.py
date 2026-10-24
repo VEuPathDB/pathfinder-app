@@ -33,12 +33,13 @@ from veupathdb_mcp.audit import (
 
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolset
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.facts import audit_finding_fact, json_rows
+from pathfinder.ai.audit.facts import audit_finding_fact
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import GenePairTarget
 from pathfinder.domain.statistic_facts import statistic_value
+from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.services.audit import investigation
 from pathfinder.services.audit.finding_views import (
     EvidenceView,
@@ -445,10 +446,10 @@ def test_finding_rows_are_dotted_paths() -> None:
     assert fact.kind == "audit_finding"
     assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert fact.value("finding.genome") == _GENOME
-    assert fact.value("finding.target.check") == "pseudogene_call"
+    assert fact.value("finding.target.check") == "pseudogene call"
     assert (fact.value("finding.verdict"), fact.value("finding.fromTarget")) == (
-        "INTACT",
-        "true",
+        "intact",
+        "yes",
     )
     assert (
         statistic_value(
@@ -458,7 +459,11 @@ def test_finding_rows_are_dotted_paths() -> None:
     )
 
 
+class _Spans(BaseModel):
+    lost: list[tuple[int, int]]
+
+
 def test_a_fact_holds_every_scalar_of_a_long_answer() -> None:
-    rows = json_rows("lost", [[k, k + 9] for k in range(0, 3000, 10)])
+    rows = model_rows(_Spans(lost=[(k, k + 9) for k in range(0, 3000, 10)]))
 
     assert (len(rows), rows[-1].name, rows[-1].value) == (600, "lost.299.1", "2999")

@@ -53,7 +53,10 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
     }
 )
 
+type RowForm = Literal["value", "word"]
+
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
+_A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
 
 def statistic_id(kind: StatisticKind, variables: Sequence[str]) -> str:
@@ -69,10 +72,18 @@ class StatisticRowFact(CamelModel):
 
     name: str
     value: str
+    form: RowForm = "value"
 
     def numbers(self) -> list[str]:
         """Each number the value writes, without its digit separators."""
         return [found.replace(",", "") for found in _DIGITS.findall(self.value)]
+
+    def note(self) -> str:
+        field = next(
+            (part for part in reversed(self.name.split(".")) if not part.isdigit()),
+            self.name,
+        )
+        return f"{_A_CAPITAL.sub(' ', field).lower()}: {self.value}"
 
 
 class StatisticFact(CamelModel):
@@ -101,10 +112,25 @@ class StatisticFact(CamelModel):
         return self.model_copy(update={"title": redact(self.title)})
 
 
+def plain_words(code: str) -> str:
+    words = code.replace("_", " ")
+    return words.lower() if code.isupper() else words
+
+
+def statistic_row(
+    statistics: Sequence[StatisticFact], body: str
+) -> StatisticRowFact | None:
+    held_id, _, name = body.partition(".")
+    held = next((s for s in reversed(statistics) if s.id == held_id), None)
+    return (
+        None if held is None else next((r for r in held.rows if r.name == name), None)
+    )
+
+
 def statistic_value(statistics: Sequence[StatisticFact], body: str) -> str | None:
     """The value a ``stat`` reference names as ``<id>.<row name>``."""
-    held_id, _, name = body.partition(".")
-    return next((s.value(name) for s in reversed(statistics) if s.id == held_id), None)
+    row = statistic_row(statistics, body)
+    return None if row is None else row.value
 
 
 def statistic_group_references(
@@ -142,6 +168,7 @@ def statistic_word_references(
             for statistic in statistics
             for row in statistic.rows
             if row.value == token
+            or (row.form == "word" and row.value == plain_words(token))
         )
     )
 
@@ -254,12 +281,15 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 
 __all__ = [
     "TURN_STATISTICS",
+    "RowForm",
     "StatisticFact",
     "StatisticKind",
     "StatisticRowFact",
     "pca_fact",
+    "plain_words",
     "statistic_id",
     "statistic_references",
+    "statistic_row",
     "statistic_value",
     "statistic_word_references",
     "statistics_fact",

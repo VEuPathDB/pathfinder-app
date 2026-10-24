@@ -5,7 +5,7 @@ that module under the per-file line cap. Prose only; no logic.
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.lead._lead_audit_instructions import AUDIT_RULES
 from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
-from pathfinder.ai.lead.card_reply import CITABLE_RECORDS
+from pathfinder.ai.lead.card_reply import CITABLE_RECORDS, PLACEMENT_RULES
 from pathfinder.services.parameter_optimization.config import (
     SWEEP_MCC_FLOOR,
     SWEEP_RECALL_FLOOR,
@@ -148,10 +148,8 @@ component's variance, a test's value or p-value, a group's median;
 strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
 parameter is named by its wire name. "The signal peptide step returns [count:step_sp] and the \
-result [root], so the ortholog filter removes [diff:step_sp,root]." A count reference \
-renders with its noun, so no noun follows it. A number word (one to twelve, twice, \
-two-fold) never stands in the clause of a count or value reference, which stands in place of \
-the number. A reply with a digit, a reference the facts cannot render, or a bracket that nests \
+result [root], so the ortholog filter removes [diff:step_sp,root]." {PLACEMENT_RULES} \
+A reply with a digit, a reference the facts cannot render, or a bracket that nests \
 or opens with a reference's name and is none comes back with the reference that renders each fact.
 
 ## Rules
