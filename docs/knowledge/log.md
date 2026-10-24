@@ -4,16 +4,27 @@
 
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
-  step's columns (`list_step_columns`, 100 a page, a genome code column its word cloud counts
-  marked countable), and `count_step_by_column` counts by value through `count_by_column`, so
-  a search's own column is counted too. It takes `top` (20, at most 200) and names a tally in
-  the step's own records, so a transcript step counts transcripts. A refused byValue report
-  is a refusal with the site's status, and an empty one is a step of 0 records. In
-  `read_step_columns` a refused column is an unread fit that states the refusal, and the
-  other columns are still read. The note that named a counted step whose read returned no
-  rows is gone. The trimmed `transcript_search_columns` recording is taken again, and its
-  record columns keep `columnDataType`. See
-  `decisions/a-step-is-counted-by-its-word-cloud-only-when-the-words-are-its-records.md`.
+  step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
+  genome code column its word cloud counts marked countable), and `count_step_by_column`
+  counts by value through `count_by_column`, so a search's own column is counted too. It takes
+  `top` (20, at most 200), keeps a number column's bins in order, and names a tally in the
+  step's own records, so a transcript step counts transcripts. Only a 4xx is a refusal; a 5xx,
+  a timeout or a connect error fails the call and refuses no column. Both step tools are
+  reached before the turn is classified, and one Lead rule now routes a count per value: on
+  the step that holds the records, else a build, and `count_by_column` only for one catalog
+  search's whole result. `ColumnTally.missing` is gone.
+* **A column fit counts transcripts and states the records with no value.** Both reports a
+  column fit reads count one row per transcript (WDK's `AbstractByValueReporter` and
+  `AbstractAttributeReporter.getAttributeSql`), so `ColumnFit.counted_in` has no default and
+  every fit names transcripts. The byValue total is `subsetSize`, and `subsetSize` less
+  `numVarValues` is the fit's `no_value` ("740 of 840 transcripts fit ...; 100 hold no
+  value"); `numMissingCases` is always 0 in WDK's SQL and is not read. A 4xx refusal is a fit
+  with `refused_status`, the other columns are still read, and a refused column or one no
+  record holds a value of adds the note that names the step to sample. The trimmed
+  `transcript_search_columns` recording is taken again with `columnDataType` and `tools` on its
+  record columns, by `apps/api/scripts/trim_transcript_search_columns.py`. See
+  `decisions/a-step-is-counted-by-its-word-cloud-only-when-the-words-are-its-records.md` and
+  `decisions/verify-reviews-the-intent-the-genes-and-the-sources.md`.
 
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
   `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted

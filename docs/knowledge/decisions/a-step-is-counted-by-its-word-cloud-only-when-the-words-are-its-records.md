@@ -11,7 +11,8 @@ status: stable
 
 **A built step is counted by the site, in one request.**
 `services/experiment/step_tally.py::run_step_tally` reads the step's record type
-once, then counts the step with one reporter request:
+from the site catalog (`get_raw_record_types`), so the only record type read on the
+wire is the tool server's, then counts the step with one reporter request:
 
 - a genome code column the record type offers only a `wordCloud` format for
   (`WDKAttributeField.format_named("wordCloud")`, for example
@@ -23,20 +24,33 @@ once, then counts the step with one reporter request:
   a `STRING` or `NUMBER` column that lists `byValue` in `tools.reports`, and refuses
   any other column with `ColumnNotCountedError`, which names the columns that can be
   counted. A string column answers its values ranked by count, at most `top`, with
-  the number of values; a number column answers its bins.
+  the number of values; a number column answers its bins, every bin in the site's
+  order, and its number of values is its number of bins.
 
 The tool takes `top`, 20 unless the model asks, at most 200
 (`DEFAULT_COLUMN_COUNT_TOP`, `MAX_COLUMN_COUNT_TOP`). The column report counts the
-step's records: on a transcript step a gene counts once per transcript, so the
-tally's noun is the record type's own (`graph_helpers.record_noun`: transcripts,
-proteins), never the noun a step's size is counted in.
+step's records: WDK's `AbstractByValueReporter` groups one row per primary key of
+the answer, and on a transcript step that is one row per transcript, so a gene
+counts once per transcript. The tally's noun is the record type's own
+(`graph_helpers.record_noun`: transcripts, proteins), never the noun a step's size
+is counted in.
 
 **The Lead lists a step's columns before it counts.** `step_columns` lists the
 columns of any built step of the strategy, a transform included, through
 `list_step_columns`: each column's name, display name, data type and `countable`, a
 genome code column its word cloud counts marked countable
 (`step_tally.py::countable_columns`). A transcript step lists about 2,400 columns,
-so the tool answers 100 per page with the total and an `offset`.
+so the tool takes a `name` (text the name or display name contains, any case) and
+`countable_only`, and answers 100 per page with the number that match and an
+`offset`.
+
+**The Lead's rule routes a count per value by what holds the records.** A count
+per value of a column is counted on the step that holds the records (`step_columns`,
+then `count_step_by_column`); when no step holds them the question is a build and
+the count follows it, through a transform when the records are a result's members;
+`count_by_column` counts only one catalog search's whole result, unchanged, by a
+search name the catalog lists (`ai/lead/_lead_count_rules.py`). Both step tools are
+reads the Lead reaches before the turn is classified (`UNCLASSIFIED_TOOLS`).
 
 No OrthoMCL attribute offers `byValue`, so on OrthoMCL every count of a record
 type column is a word cloud.
@@ -60,10 +74,13 @@ with the first 20 columns that can pass, those the site counts by value and the
 genome code columns, never a column already refused on that step in the same Lead
 pass, and the number left out; every other refusal names `step_columns`.
 
-**A refused byValue report is a refusal, not a count of 0.** The client raises
-`WDKError` on a refused report, and the tally refuses the column with the site's
-HTTP status. An empty answer is a step of 0 records and a tally of 0. A report
-that names records which all lack a value refuses the column.
+**Only a 4xx is a refusal, and a refusal is not a count of 0.** The client raises
+`WDKError` on a failed report. A 4xx refuses the column with the site's HTTP status
+and keeps it out of what the pass offers again; a 5xx, a timeout or a connect error
+fails the call and refuses no column. A report of 0 records is a tally of 0. A
+report whose records all lack a value refuses the column: WDK counts only the
+records with a value, so the report's `subsetSize` is the step and the bins hold the
+rest.
 
 **Genome codes are named.** When every counted value is a genome code, each row
 carries the genome's name as its `label`, and the card shows it beside the code.
