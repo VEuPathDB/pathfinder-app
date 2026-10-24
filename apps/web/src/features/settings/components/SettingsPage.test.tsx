@@ -8,7 +8,7 @@ import { useState, type ReactElement } from "react";
 import { healthCheckQueryKey } from "@pathfinder/shared/generated/hooks/useHealthCheck";
 
 import { createTestWrapper } from "@/lib/query/testing";
-import type { SettingsTab } from "../types";
+import type { SettingsTab } from "@/state/useSettingsModalStore";
 import { SettingsPage } from "./SettingsPage";
 
 vi.mock("./settings/ModelSettings", () => ({ ModelSettings: () => <p>Model body</p> }));

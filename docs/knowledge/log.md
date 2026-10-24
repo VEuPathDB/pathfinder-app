@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+* **The first-run hint opens Settings on the Model tab.** The words "Settings -> Model" in
+  `ChatEmptyState` are a button. The Settings modal's open state and tab live in
+  `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav
+  rail's gear read and write it, and a focused memory still holds the modal on the memory tab.
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
   (`true` reads only the run's gene targets, `false` only the screened candidates).

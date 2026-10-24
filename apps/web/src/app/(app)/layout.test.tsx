@@ -37,19 +37,13 @@ vi.mock("@/app/hooks/useSidebarResize", () => ({
     startDragging: vi.fn(),
   }),
 }));
-vi.mock("@/app/hooks/useModalState", () => ({
-  useModalState: () => ({
-    settingsOpen: false,
-    settingsTab: null,
-    openSettings: vi.fn(),
-    closeSettings: vi.fn(),
-  }),
-}));
 vi.mock("@/features/sidebar/components/ConversationSidebar", () => ({
   ConversationSidebar: () => <div data-testid="conversation-sidebar" />,
 }));
 vi.mock("@/features/settings/components/SettingsPage", () => ({
-  SettingsPage: () => <div data-testid="settings-page" />,
+  SettingsPage: ({ open, tab }: { open: boolean; tab: string }) => (
+    <div data-testid="settings-page" data-open={String(open)} data-tab={tab} />
+  ),
 }));
 vi.mock("@/features/help/DataNotice", () => ({
   DataNotice: () => <div data-testid="data-notice" />,
@@ -65,7 +59,9 @@ import { strategyQueryOptions } from "@/lib/api/strategy";
 import { createTestWrapper } from "@/lib/query/testing";
 import { makeStrategy } from "@/lib/types/fixtures";
 import { chatRoot } from "@/lib/routes";
+import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useSessionStore } from "@/state/useSessionStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import AppShellLayout from "./layout";
 
 beforeEach(() => {
@@ -235,6 +231,46 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(
       screen.queryByRole("link", { name: "Go to conversation" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShellLayout settings modal", () => {
+  beforeEach(holdUnseededReads);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    act(() => {
+      useMemoryFocusStore.getState().clearFocus();
+      useSettingsModalStore.setState({ isOpen: false, tab: "model" });
+    });
+  });
+
+  it("opens from the gear", async () => {
+    drawSession(true);
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "false");
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-tab", "model");
+  });
+
+  it("opens on the tab a caller outside the shell names", () => {
+    drawSession(true);
+
+    act(() => useSettingsModalStore.getState().open("keys"));
+
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-tab", "keys");
+  });
+
+  it("opens on the memory tab while a memory is focused", () => {
+    drawSession(true);
+
+    act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
+
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("settings-page")).toHaveAttribute("data-tab", "memory");
   });
 });
 

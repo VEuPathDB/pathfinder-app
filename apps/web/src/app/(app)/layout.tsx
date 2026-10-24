@@ -112,7 +112,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           siteId={selectedSite}
           siteSwitchable={locked === undefined}
           onSiteChange={handleSiteChange}
-          onOpenSettings={() => modals.openSettings()}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}
         />

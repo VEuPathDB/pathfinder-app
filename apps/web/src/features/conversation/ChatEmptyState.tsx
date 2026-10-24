@@ -15,6 +15,7 @@ import {
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { useSettingsStore } from "@/state/useSettingsStore";
 
 type SuggestionsBySite = Record<string, readonly string[] | undefined>;
@@ -37,6 +38,7 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
   const siteId = useSessionStore((s) => s.selectedSite);
   const hintDismissed = useSettingsStore((s) => s.firstRunHintDismissed);
   const dismissHint = useSettingsStore((s) => s.dismissFirstRunHint);
+  const openSettings = useSettingsModalStore((s) => s.open);
   const choice = assistantChoice(assistantId);
   // The suggestion bank asks for strategies, which only the default assistant
   // builds.
@@ -94,7 +96,14 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
             <Settings2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <div className="flex-1">
               Running on the default provider and models. Change the models and tiers in{" "}
-              <span className="font-medium text-foreground">Settings -&gt; Model</span>.
+              <button
+                type="button"
+                onClick={() => openSettings("model")}
+                className="font-medium text-foreground underline underline-offset-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+              >
+                Settings -&gt; Model
+              </button>
+              .
             </div>
             <button
               type="button"
