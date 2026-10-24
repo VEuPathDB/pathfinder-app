@@ -39,7 +39,11 @@ three typed lists, and the evidence card carries the same review.
   histogram of, and that at most half the record type's searches carry. Each is one report over
   the whole step, the byValue column reporter for a record type column and the
   column's attribute histogram for a search's own column, and the answer is a
-  `ColumnFit` ("840 of 840 genes fit # TM Domains (2 to 99)"). A sole such
+  `ColumnFit` ("840 of 840 genes fit # TM Domains (2 to 99)"). A report the
+  site refuses (`WDKError`) is a fit with `shown` false that states the site
+  refused that column, and the step's other columns are still read; a refused
+  rival keeps the other rivals' fits from standing. An empty report is a step
+  of 0 records, not a missing column. A sole such
   column's fit stands; several such columns stand only when every one holds
   every record inside the bounds, since no site data says which of them the
   bounds read (`ai/tools/standalone/_step_columns.py`). No column is chosen by

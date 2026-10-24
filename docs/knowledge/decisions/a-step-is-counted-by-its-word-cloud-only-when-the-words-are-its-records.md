@@ -1,9 +1,9 @@
 ---
 type: Decision
 title: A step is counted by its word cloud only when the words are its records
-description: The Lead's count_step_by_column counts a built step's records by one column in one reporter request, with the column's byValue reporter where the site offers it and with the column's wordCloud attribute reporter otherwise; word counts are accepted only when every word is a genome code of the site's taxonomy and the counts sum to the step's record count, because a matching sum is necessary but not sufficient. Any other word-cloud column, a word cloud at the site's cap, a byValue answer with no counts and a column with neither reporter are refused by name. Downloading the step's records and counting them in process, and accepting any word-cloud column whose sum matches, were rejected.
+description: The Lead's count_step_by_column counts a built step's records by one column in one reporter request, with the tool server's count_by_column (the byValue reporter, over the record type's and the search's own columns) and with a genome code column's wordCloud attribute reporter where the site offers only that; step_columns lists a step's columns 100 at a time with which can be counted. Word counts are accepted only when every word is a genome code of the site's taxonomy and the counts sum to the step's record count, because a matching sum is necessary but not sufficient. Any other word-cloud column, a word cloud at the site's cap, a refused byValue report and a column with neither reporter are refused by name. Downloading the step's records and counting them in process, and accepting any word-cloud column whose sum matches, were rejected.
 tags: [lead, tools, tally, orthomcl, wdk]
-generated: { by: claude-code/opus-5.5, at: 2026-10-22T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-24T00:00:00Z }
 status: stable
 ---
 
@@ -13,14 +13,33 @@ status: stable
 `services/experiment/step_tally.py::run_step_tally` reads the step's record type
 once, then counts the step with one reporter request:
 
-- a column whose `tools.reports` holds `byValue` is counted with the step's
-  `byValue` column reporter (`get_column_distribution`), the reporter
-  `count_by_column` uses for a search;
-- any other column is counted with its `wordCloud` format
+- a genome code column the record type offers only a `wordCloud` format for
   (`WDKAttributeField.format_named("wordCloud")`, for example
-  `abbreviation-wordCloud`), through the client's `get_step_word_counts`.
+  `abbreviation-wordCloud`) is counted with it, through the client's
+  `get_step_word_counts`;
+- every other column goes to the tool server's `veupathdb_mcp.wdk.count_by_column`,
+  which counts it with the step's `byValue` column reporter. It reads the record
+  type's columns and the step search's own columns (a BLAST step's `evalue`), counts
+  a `STRING` or `NUMBER` column that lists `byValue` in `tools.reports`, and refuses
+  any other column with `ColumnNotCountedError`, which names the columns that can be
+  counted. A string column answers its values ranked by count, at most `top`, with
+  the number of values; a number column answers its bins.
 
-No OrthoMCL attribute offers `byValue`, so on OrthoMCL every count is a word cloud.
+The tool takes `top`, 20 unless the model asks, at most 200
+(`DEFAULT_COLUMN_COUNT_TOP`, `MAX_COLUMN_COUNT_TOP`). The column report counts the
+step's records: on a transcript step a gene counts once per transcript, so the
+tally's noun is the record type's own (`graph_helpers.record_noun`: transcripts,
+proteins), never the noun a step's size is counted in.
+
+**The Lead lists a step's columns before it counts.** `step_columns` lists the
+columns of any built step of the strategy, a transform included, through
+`list_step_columns`: each column's name, display name, data type and `countable`, a
+genome code column its word cloud counts marked countable
+(`step_tally.py::countable_columns`). A transcript step lists about 2,400 columns,
+so the tool answers 100 per page with the total and an `offset`.
+
+No OrthoMCL attribute offers `byValue`, so on OrthoMCL every count of a record
+type column is a word cloud.
 
 **Word counts are accepted only from a column of genome codes.** The word cloud
 counts words, not values: it splits a value into words, drops short and numeric
@@ -36,22 +55,24 @@ genome codes by its name (`abbreviation`, the genome code column of OrthoMCL's
 records), never by a word cloud sent to find out; any other column with only a
 word cloud is refused by name before a word cloud is read. A word cloud at the
 site's cap of 10,000 distinct words answers no counts, and the client refuses
-it; the tally refuses it by name. Every refusal lists only the columns that can
-pass: those the site counts by value and the genome code columns, and never a
-column already refused on that step in the same Lead pass.
+it; the tally refuses it by name. A column the tool server cannot count is refused
+with the first 20 columns that can pass, those the site counts by value and the
+genome code columns, never a column already refused on that step in the same Lead
+pass, and the number left out; every other refusal names `step_columns`.
 
-**A byValue answer with no counts is not a count of 0.** The client answers a
-site error on the byValue reporter with an empty distribution. When it names no
-records, the tally reads the step's count: a step of 0 records is a tally of 0,
-and any other step is refused as "the site answered no counts". When it names
-records that all lack a value, the column is refused.
+**A refused byValue report is a refusal, not a count of 0.** The client raises
+`WDKError` on a refused report, and the tally refuses the column with the site's
+HTTP status. An empty answer is a step of 0 records and a tally of 0. A report
+that names records which all lack a value refuses the column.
 
 **Genome codes are named.** When every counted value is a genome code, each row
 carries the genome's name as its `label`, and the card shows it beside the code.
 
-**The tally keeps its 200 largest rows** (`services/experiment/tally_rows.py`,
-`KEPT_ROWS`), states the total and the number of values, and its card links the
-step on the site (`ColumnTally.step_url`, the strategy's page at that step).
+**The tally keeps its `top` largest rows**, states the total and the number of
+values, and its card links the step on the site (`ColumnTally.step_url`, the
+strategy's page at that step). Each row, the total and the number of values are a
+`TallyFact` the reply quotes as `[tally:<id>.<value>]`, `[tally:<id>]` and
+`[tally:<id>:values]`.
 
 **A count of a result's members goes through the transform.** The Lead's rule:
 a count of a result's members by a column (the proteins of a set of groups by

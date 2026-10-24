@@ -2,6 +2,19 @@
 
 ## 2026-10-24
 
+* **A step is listed and counted by any column through the tool server.** veupathdb-py
+  0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
+  step's columns (`list_step_columns`, 100 a page, a genome code column its word cloud counts
+  marked countable), and `count_step_by_column` counts by value through `count_by_column`, so
+  a search's own column is counted too. It takes `top` (20, at most 200) and names a tally in
+  the step's own records, so a transcript step counts transcripts. A refused byValue report
+  is a refusal with the site's status, and an empty one is a step of 0 records. In
+  `read_step_columns` a refused column is an unread fit that states the refusal, and the
+  other columns are still read. The note that named a counted step whose read returned no
+  rows is gone. The trimmed `transcript_search_columns` recording is taken again, and its
+  record columns keep `columnDataType`. See
+  `decisions/a-step-is-counted-by-its-word-cloud-only-when-the-words-are-its-records.md`.
+
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
   `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted
   run or retries what a finished run left unread or unreached, and answers the run view. It
