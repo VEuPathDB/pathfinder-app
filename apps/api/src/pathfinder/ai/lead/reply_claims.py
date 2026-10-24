@@ -35,14 +35,6 @@ _A_CRITERION = r".{0,40}?\b(?:criterion|criteria|filter)\b"
 _TO_THE_PLAN = r".{0,60}?\bto the (?:plan|spec)\b"
 CLAIMED_A_FRAME = re.compile(_FRAMED + f"(?:{_A_CRITERION}|{_TO_THE_PLAN})")
 
-# A clause that reports an audit run as started, running or done.
-_AUDIT = r"\baudit\b(?: run)?\s+"
-CLAIMED_AN_AUDIT_RUN = re.compile(
-    _AUDIT + r"(?:(?:is|was|has been|has)\s+)?"
-    r"(?:complete|completed|finished|done|started|running|begun|ran|found|shows?"
-    r"|showed|confirmed)\b"
-)
-
 # A clause that says a search is not on the site. Each form names a search, so
 # a count or a step the reply calls unavailable is not read as one.
 _SEARCH = r"\bsearch(?:es)?\b"

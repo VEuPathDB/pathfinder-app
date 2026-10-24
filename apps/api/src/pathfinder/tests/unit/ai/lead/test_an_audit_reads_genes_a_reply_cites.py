@@ -11,6 +11,7 @@ from pathfinder.ai.audit import run_tools
 from pathfinder.ai.audit.facts import AuditRead, audit_run_fact
 from pathfinder.ai.lead import lead_audit
 from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.audit.rates import TargetReport
 from pathfinder.domain.audit.run_state import LeftUnits
@@ -109,7 +110,29 @@ def stored_run(monkeypatch: pytest.MonkeyPatch) -> None:
         assert run_id == _RUN
         return _view()
 
+    async def listed(caller: AuditCaller) -> list[AuditRunSummary]:
+        del caller
+        return [_view().run]
+
     monkeypatch.setattr(run_tools, "read_audit_run", read)
+    monkeypatch.setattr(run_tools, "list_audit_runs", listed)
+
+
+def _audit_deps() -> LeadDeps:
+    state = pipeline_state(user_prompt="Is my audit done?", user_message_id=uuid4())
+    state.turn_markers.intent_classified = True
+    return lead_deps(state, intent=user_intent(IntentClassification.GENE_MODEL_AUDIT))
+
+
+async def test_a_listed_run_is_not_held_and_a_read_one_is() -> None:
+    deps = _audit_deps()
+    ctx = run_context_for(deps)
+
+    await lead_audit.list_audit_runs(ctx)
+    listed = list(deps.state.turn_markers.audit_runs)
+    await lead_audit.read_audit_run(ctx, _RUN)
+
+    assert (listed, deps.state.turn_markers.audit_runs) == ([], [_RUN])
 
 
 async def test_a_run_read_holds_the_genes_of_its_findings_as_records() -> None:

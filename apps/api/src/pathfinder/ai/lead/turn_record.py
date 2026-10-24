@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import UUID
-
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import RunContext
@@ -86,7 +84,6 @@ class TurnRecord(CamelModel):
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
     chosen_readings: tuple[ChosenReading, ...] = ()
-    audit_runs: tuple[UUID, ...] = ()
     audit_turn: bool = False
 
     @property
@@ -199,6 +196,5 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         ),
         looked_up_the_catalog=markers.catalog_looked_up,
         chosen_readings=tuple(markers.chosen_readings),
-        audit_runs=tuple(markers.audit_runs),
         audit_turn=turn_is_an_audit(deps),
     )

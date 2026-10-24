@@ -222,7 +222,6 @@ async def list_audit_runs_tool(
     runs = await list_audit_runs(ctx.deps.caller)
     fact = audit_runs_fact(runs)
     ctx.deps.facts.append(fact)
-    ctx.deps.runs.extend(run.id for run in runs)
     read = AuditRead[list[AuditRunSummary]](answer=runs, fact_id=fact.id)
     return with_summary(read, count_noun(len(runs), "audit run"), ctx=ctx)
 

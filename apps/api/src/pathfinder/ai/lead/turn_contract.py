@@ -15,7 +15,6 @@ from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import (
     UNBACKED_ABSENCE,
-    UNRUN_AUDIT,
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
@@ -36,7 +35,6 @@ from pathfinder.ai.lead.contract_messages import (
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
-    CLAIMED_AN_AUDIT_RUN,
     claims,
     denies,
     ends_with_a_question,
@@ -124,7 +122,6 @@ MismatchKind = Literal[
     "unmade_change",
     "unbacked_absence",
     "unstated_reading",
-    "claimed_audit_run",
 ]
 
 
@@ -325,12 +322,6 @@ def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
     return unstated_reading_message(unstated[0]) if unstated else None
 
 
-def _claimed_audit_run(report: LeadResponse, record: TurnRecord) -> str | None:
-    if record.audit_runs or not claims(report.prose, CLAIMED_AN_AUDIT_RUN):
-        return None
-    return UNRUN_AUDIT
-
-
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -351,7 +342,6 @@ _RULES: tuple[
     ("unmade_change", _unmade_change),
     ("unbacked_absence", _unbacked_absence),
     ("unstated_reading", _unstated_reading),
-    ("claimed_audit_run", _claimed_audit_run),
 )
 
 
