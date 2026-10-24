@@ -2,6 +2,23 @@
 
 ## 2026-10-24
 
+* **The Lead starts and reads gene-model audits and calls the investigator.**
+  `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
+  `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,
+  `list_audit_findings`, `read_audit_findings`, `review_audit_run`) by running the auditor's own
+  tool bodies under an `AuditDeps` of the turn, then keeping each read's facts on
+  `TurnMarkers.audit_facts` and its genes on `resolved_genes`, so a reply cites
+  `[stat:<fact id>.<row>]` and `[record:<gene>]` under the turn contract as it stands. The start
+  card is drawn by a second deferred-call handler, after the contract one, so a replan that fails
+  denies the call inside the run. `investigate_gene_models`
+  (`ai/tools/standalone/gene_model_investigation.py`) is the first production caller of
+  `investigate`: it runs on a fresh usage and meters it once through `AgentDeps.meter`, which
+  `agent_deps_for` points at the Lead's `record_sub_agent_usage` under the calling tool's id; the
+  pass is marked `billed`, since `investigate` already charged it, so the turn counts it and the
+  residual quota write leaves it out. A new classification, `gene_model_audit`, asks for no
+  strategy and becomes no strategy request; the start tool is withheld on every other turn
+  unless the turn answers its card. See `decisions/building-is-a-response-to-a-request.md`.
+
 * **The audit views read the reviews and the synthesis in plain words.**
   `services/audit/review_views.py` builds `ReviewLine` on each finding of a page, `ReviewText` on a
   finding's detail, and on the run view the error-type sections, the headline finding lines, the
