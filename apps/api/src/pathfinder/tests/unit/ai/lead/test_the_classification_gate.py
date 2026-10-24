@@ -33,7 +33,7 @@ NO_QUESTION = (
     "No question of yours is open on this conversation and no card waits, so "
     "this message answers none. Classify it as what it asks for: one of "
     "new_strategy, extend_strategy, edit_strategy, follow_up_question, "
-    "off_topic, context_statement, memory_request."
+    "off_topic, context_statement, memory_request, gene_model_audit."
 )
 
 

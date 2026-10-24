@@ -3,6 +3,7 @@ that module under the per-file line cap. Prose only; no logic.
 """
 
 from pathfinder.ai.agents.vocabulary import with_vocabulary
+from pathfinder.ai.lead._lead_audit_instructions import AUDIT_RULES
 from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
 from pathfinder.ai.lead.card_reply import CITABLE_RECORDS
 from pathfinder.services.parameter_optimization.config import (
@@ -410,4 +411,4 @@ and the Ledger. Plain markdown.
 
 """
 
-LEAD_INSTRUCTIONS = with_vocabulary(_OPENING + _SWEEP_RULE + _CLOSING)
+LEAD_INSTRUCTIONS = with_vocabulary(_OPENING + _SWEEP_RULE + AUDIT_RULES + _CLOSING)

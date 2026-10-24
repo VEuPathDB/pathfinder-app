@@ -35,6 +35,7 @@ class IntentClassification(StrEnum):
     OFF_TOPIC = "off_topic"
     CONTEXT_STATEMENT = "context_statement"
     MEMORY_REQUEST = "memory_request"
+    GENE_MODEL_AUDIT = "gene_model_audit"
 
 
 # The classifications that ask for a change to the strategy. Only these turns

@@ -12,6 +12,7 @@ from collections.abc import Callable, Collection, Sequence
 
 from pydantic_ai import RunContext
 
+from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.graph._lead_answers import is_pure_approval
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
@@ -58,6 +59,8 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "export_gene_set",
     }
 )
+
+AUDIT_START_TOOLS: frozenset[str] = frozenset({START_TOOL})
 
 DECLINED_OFFER_REFUSAL = (
     "You declined the last offer. Say what to change, or ask me to offer it again."
@@ -181,6 +184,16 @@ def _answered_card(deps: LeadDeps) -> frozenset[str]:
     return frozenset({parked.tool_name})
 
 
+def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
+    intent = deps.intent
+    if (
+        intent is not None
+        and intent.classification is IntentClassification.GENE_MODEL_AUDIT
+    ):
+        return frozenset()
+    return AUDIT_START_TOOLS - _answered_card(deps)
+
+
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
     if not turn_is_classified(deps):
@@ -189,9 +202,11 @@ def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[s
     if turn_is_off_topic(deps):
         # The answer is the redirect the instructions state, so it calls nothing.
         return frozenset()
+    unstarted = _unstarted_audits(deps)
     if not turn_builds(deps):
-        return frozenset(name for name in names if name not in BUILDING_TOOLS)
-    unmet = unmet_preconditions(deps)
+        withheld = BUILDING_TOOLS | unstarted
+        return frozenset(name for name in names if name not in withheld)
+    unmet = unmet_preconditions(deps) | unstarted
     return frozenset(name for name in names if name not in unmet)
 
 
@@ -224,6 +239,7 @@ def withheld_tools_pin(
 
 
 __all__ = [
+    "AUDIT_START_TOOLS",
     "BUILDING_TOOLS",
     "DECLINED_OFFER_REFUSAL",
     "UNCLASSIFIED_TOOLS",

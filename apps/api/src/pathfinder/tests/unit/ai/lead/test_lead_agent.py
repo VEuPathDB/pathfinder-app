@@ -85,6 +85,14 @@ LEAD_TOOL_NAMES = frozenset(
         "separate_controls",
         "adopt_separating_strategy",
         "search_memory",
+        "plan_gene_model_audit",
+        "start_gene_model_audit",
+        "list_audit_runs",
+        "read_audit_run",
+        "list_audit_findings",
+        "read_audit_findings",
+        "review_audit_run",
+        "investigate_gene_models",
     }
 )
 
@@ -125,8 +133,8 @@ def test_the_built_agent_carries_every_lead_tool() -> None:
 
 
 def test_the_tools_that_ask_for_approval() -> None:
-    """The seven the user answers: a design fork, two offers of further work,
-    two deletions, a long sweep and a long separation run."""
+    """The eight the user answers: a design fork, two offers of further work,
+    two deletions, a long sweep, a long separation run and an audit start."""
     tools = registered_tools(build_lead_agent().toolsets)
     deferred = sorted(name for name, tool in tools.items() if tool.requires_approval)
     assert deferred == [
@@ -137,6 +145,7 @@ def test_the_tools_that_ask_for_approval() -> None:
         "optimize_search_parameters",
         "propose_changes",
         "separate_controls",
+        "start_gene_model_audit",
     ]
 
 

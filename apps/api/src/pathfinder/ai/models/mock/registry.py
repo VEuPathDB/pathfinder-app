@@ -16,6 +16,13 @@ from pathfinder.ai.models.mock import (
     unset_value_arcs,
 )
 from pathfinder.ai.models.mock.arc import Arc, Script, Sequence, history_free
+from pathfinder.ai.models.mock.audit_arcs import (
+    audit_finding,
+    audit_finding_spelled,
+    audit_investigation,
+    audit_plan,
+    audit_start,
+)
 from pathfinder.ai.models.mock.calls import classify, lead_final, narrated, stated
 from pathfinder.ai.models.mock.consult_arc import consult, open_value_frame, withdraw
 from pathfinder.ai.models.mock.control_flow_arcs import (
@@ -206,6 +213,11 @@ ARCS: dict[str, Arc] = {
     "muris-phrase": _built(spec_frame(phrase_label_arcs.muris_phrase_spec)),
     "narrowed-organism": _arc(lead(narrowed_organism)),
     "withdrawn-requirement": _arc(lead(withdrawn_requirement)),
+    "audit": _arc(lead(audit_start)),
+    "audit-plan": _arc(lead(audit_plan)),
+    "audit-finding": _arc(lead(audit_finding)),
+    "audit-finding-spelled": _arc(lead(audit_finding_spelled)),
+    "audit-investigation": _arc(lead(audit_investigation)),
 }
 
 

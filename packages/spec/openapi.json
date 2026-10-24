@@ -23202,7 +23202,8 @@
           "denial",
           "off_topic",
           "context_statement",
-          "memory_request"
+          "memory_request",
+          "gene_model_audit"
         ],
         "title": "IntentClassification",
         "type": "string"

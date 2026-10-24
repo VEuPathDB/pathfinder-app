@@ -174,6 +174,11 @@ async def classify_user_intent(
     Both are answered in prose, and ``memory_request`` with one ``remember``
     call per thing to keep. Neither is a request to build.
 
+    An audit request, a question about an audit's progress, and a question
+    whether a gene's model is right are ``gene_model_audit``. It asks for no
+    strategy: state no requirement, and the message becomes no strategy
+    request.
+
     PathFinder does its work through these tools; it writes no code and no
     general text. In scope: building, extending, editing and verifying
     strategies; EDA; exports; saved gene sets; memory;

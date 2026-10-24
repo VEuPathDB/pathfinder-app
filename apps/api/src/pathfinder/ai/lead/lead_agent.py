@@ -29,6 +29,10 @@ from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin, registered_tools
 from pathfinder.ai.lead.intent_gate import withheld_tools_pin, withhold_by_turn_state
 from pathfinder.ai.lead.lead_adoption import adopt_separating_strategy
+from pathfinder.ai.lead.lead_audit import (
+    ask_about_the_audits_on_the_lead,
+    lead_audit_tools,
+)
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
     refuse_a_card_that_binds_nothing,
@@ -175,6 +179,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
                 max_retries=3,
             ),
             Tool(adopt_separating_strategy, requires_approval=True),
+            *lead_audit_tools(),
         ],
     )
     return ReadOnceToolset(
@@ -211,6 +216,9 @@ def build_lead_agent() -> LeadAgent:
                 AllowedTools[LeadDeps](rules=[withhold_by_turn_state]),
                 stable,
                 HandleDeferredToolCalls[LeadDeps](handler=hold_the_contract_on_a_card),
+                HandleDeferredToolCalls[LeadDeps](
+                    handler=ask_about_the_audits_on_the_lead
+                ),
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
