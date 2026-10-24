@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **A reading FRAME chose without asking is named in the reply.** `FrameResult.chosen_reading`
+  (`domain/strategy/chosen_reading.py`: the reading built and at least one other) marks a request
+  that reads more than one way and was built one way without a card. The frame dispatch records it
+  on the turn (`TurnMarkers.chosen_readings`), and the turn contract refuses a reply that does not
+  name the chosen reading and every other one (`unstated_reading`). No card is added: the choice
+  stays FRAME's, and the reply makes it visible.
 * **A share of a result is quoted as the count inside the strategy.** A variant that
   `compare_search_variants` counted in place shows both counts in the facts part
   (`ComparedVariant.row`: its size alone and its count in the strategy's result). A reply that

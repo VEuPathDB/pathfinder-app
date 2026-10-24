@@ -13,6 +13,7 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
@@ -117,6 +118,16 @@ class FrameResult(CamelModel):
             "One entry for each genus, species or clade whose genomes the units "
             "of a phyletic expression name more than one of: whether the "
             "request means the whole taxon, or exactly the units written."
+        ),
+    )
+    chosen_reading: ChosenReading | None = Field(
+        default=None,
+        description=(
+            "Only when the request reads two or more ways, the readings would "
+            "build different strategies, and you built one without asking: "
+            "the reading you built and each other reading. The Lead's reply "
+            "names every one of them. None when the request reads one way or "
+            "you ask which reading it means."
         ),
     )
     # The reports with the held words in place of each number. The dispatch

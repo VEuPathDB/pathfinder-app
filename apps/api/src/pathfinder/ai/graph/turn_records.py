@@ -19,6 +19,7 @@ from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
@@ -233,6 +234,8 @@ class TurnMarkers(CamelModel):
     resolved_genes: list[ReadRecord] = Field(default_factory=list)
     # The counts each completed comparison of this turn returned, in order.
     comparisons: list[ComparisonFact] = Field(default_factory=list)
+    # The reading each framing pass of this turn built without asking.
+    chosen_readings: list[ChosenReading] = Field(default_factory=list)
     # Which of the asked genes each membership check of this turn found held.
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)
@@ -407,6 +410,10 @@ class TurnMarkers(CamelModel):
     def record_comparison(self, comparison: ComparisonFact) -> None:
         """Keep the counts one completed comparison returned."""
         self.comparisons.append(comparison)
+
+    def record_reading(self, reading: ChosenReading | None) -> None:
+        if reading is not None:
+            self.chosen_readings.append(reading)
 
     def record_tally(self, tally: TallyFact) -> None:
         self.tallies.append(tally)

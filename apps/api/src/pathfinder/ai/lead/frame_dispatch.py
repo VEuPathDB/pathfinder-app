@@ -48,10 +48,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     criteria_floor,
 )
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    message_states,
-)
+from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.named_groups import merged_scopes
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.requirement_reports import (
@@ -215,6 +212,7 @@ async def run_frame(
         deps.state.turn_markers.unstated_requirements = [
             c.requested_value for c in lacking
         ]
+        deps.state.turn_markers.record_reading(result.chosen_reading)
         reported = resolved_reports(result.requirement_problems, domain.requirements)
         domain.record_roles |= record_roles(result.record_types, domain.requirements)
         domain.group_scopes = merged_scopes(domain.group_scopes, result.group_scopes)

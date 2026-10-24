@@ -29,6 +29,7 @@ from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
@@ -81,6 +82,8 @@ class TurnRecord(CamelModel):
     export_step_ids: tuple[str, ...] = ()
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
+    # The readings a framing pass of this turn built without asking.
+    chosen_readings: tuple[ChosenReading, ...] = ()
 
     @property
     def check_could_not_finish(self) -> bool:
@@ -191,4 +194,5 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
             open_analysis_exports(graph, deps.state.domain.open_eda_analysis)
         ),
         looked_up_the_catalog=markers.catalog_looked_up,
+        chosen_readings=tuple(markers.chosen_readings),
     )

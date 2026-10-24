@@ -15,6 +15,7 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.spec_diff import SpecDiff
@@ -408,6 +409,17 @@ def unmade_change_message(
         f"The message asks {ask} and this turn made no change and raised no card: "
         f"make {change} through {how}, or say in the reply why {change} cannot be "
         "made."
+    )
+
+
+def unstated_reading_message(reading: ChosenReading) -> str:
+    """Why a reply that does not name the reading a framing pass chose is refused."""
+    others = ", ".join(f"'{label}'" for label in reading.alternatives)
+    other = "other" if len(reading.alternatives) == 1 else "others"
+    return (
+        "The request reads more than one way, and the framing pass built "
+        f"'{reading.chosen}' without asking. Say in the reply which reading the "
+        f"strategy answers and name the {other}: {others}."
     )
 
 
