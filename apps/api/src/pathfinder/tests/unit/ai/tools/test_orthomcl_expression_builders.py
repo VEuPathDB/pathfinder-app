@@ -138,7 +138,11 @@ async def test_a_code_the_taxonomy_lacks_is_sent_back_before_any_count() -> None
         await _built(absent)
 
     assert str(refused.value) == (
-        "These codes are not in the site's taxonomy: ['NOPE']."
+        "build_phyletic_expression refused the pattern before the site ran it: "
+        "These codes are not in the site's taxonomy: ['NOPE']. This is the "
+        "builder's own limit, not a site failure: correct or narrow the pattern and "
+        "build it again. A requirement no pattern within the limit states is never "
+        "site_refused_the_search."
     )
     assert replay.sent == []
 

@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **A builder's own refusal is not a site failure.** `build_phyletic_expression` reads the
+  library's `ValidationError` (its guard: unknown codes, the term and depth caps, the count-read
+  ceiling) as the builder's limit: the retry says so and the pass records it in
+  `AgentToolState.builder_refusals`. A `WDKError` the site answered while the builder counted is
+  recorded in `refused_searches`, as a bound count's refusal is. `hold_the_reports_to_the_refusals`
+  sends back a `site_refused_the_search` report naming a search only the builder refused, so no
+  card says the site failed to run it.
 * **A ready spec's structure names only criteria the draft bound.** The FRAME output validator
   `hold_the_structure_to_bound_criteria` (`ai/agents/frame_result_checks.py`) sends back a
   `spec_ready` pass whose structure names a criterion the draft lacks or holds with no search

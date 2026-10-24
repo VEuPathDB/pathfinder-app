@@ -266,6 +266,15 @@ def _misreported_refusals(
             "no search: put the search the site refused in `search`, or report the "
             "requirement as site_has_no_search."
         )
+    limited = [r for r in unrefused if r.search in state.builder_refusals]
+    if limited:
+        named = [r.search for r in limited]
+        limits = "; ".join(state.builder_refusals[search] for search in named)
+        return limited, (
+            f"site_refused_the_search names {named}, and the site never ran it: "
+            f"build_phyletic_expression's own limit refused the pattern ({limits}). "
+            "Narrow the pattern, or report the requirement as site_has_no_search."
+        )
     unlisted = [r for r in unrefused if r.search in state.unserved_searches]
     if unlisted:
         return unlisted, (

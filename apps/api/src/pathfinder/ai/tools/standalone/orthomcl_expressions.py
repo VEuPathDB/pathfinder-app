@@ -3,8 +3,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.errors import ValidationError
+from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
+from veupathdb.errors import ValidationError, WDKError
 from veupathdb_mcp.catalog import (
+    PhyleticExpressionResult,
     PhyleticPattern,
     ortho_taxonomy,
     write_phyletic_expression,
@@ -30,6 +32,26 @@ class BuiltExpression(CamelModel):
     groups: int
     codes: tuple[str, ...]
     sets: tuple[SetSize, ...] = ()
+
+
+def _builder_limit(limit: str) -> str:
+    return (
+        f"build_phyletic_expression refused the pattern before the site ran it: "
+        f"{limit} This is the builder's own limit, not a site failure: correct or narrow "
+        "the pattern and build it again. A requirement no pattern within the limit "
+        "states is never site_refused_the_search."
+    )
+
+
+async def _written(
+    ctx: RunContext[AgentDeps], pattern: PhyleticPattern
+) -> PhyleticExpressionResult:
+    try:
+        return await write_phyletic_expression(ctx.deps.site_id, pattern)
+    except WDKError as refused:
+        answer = f"HTTP {refused.status}: {refused.detail}"
+        ctx.deps.agent_state.refused_searches[PHYLETIC_EXPRESSION_SEARCH] = answer
+        raise
 
 
 async def build_phyletic_expression(
@@ -77,8 +99,8 @@ async def build_phyletic_expression(
     The result gives handle, reading (the expression in words), groups (the
     groups it returns), codes (the codes it names) and sets (each set the
     pattern names with the genomes its codes cover on the site's taxonomy).
-    A genome count you state comes from sets, never from your own count. The expression itself
-    stays with the conversation: bind phyletic_expression to the handle, such as
+    A genome count you state comes from sets, never from your own count.
+    The expression itself stays with the conversation: bind phyletic_expression to the handle, such as
     "expr:3f2a9c01b7de", in this pass or a later one, or offer it as a value of
     a question. A pattern the site could not read or count within the call
     budget is refused with its size; narrow it and call again.
@@ -95,11 +117,13 @@ async def build_phyletic_expression(
         built = await read_in_time(
             "build_phyletic_expression",
             "the phyletic expression's group counts",
-            write_phyletic_expression(ctx.deps.site_id, pattern),
+            _written(ctx, pattern),
             deadline=PHYLETIC_EXPRESSION_MAX_CALL_SECONDS,
         )
     except ValidationError as exc:
-        raise ModelRetry(exc.detail or exc.title) from exc
+        limit = exc.detail or exc.title
+        ctx.deps.agent_state.builder_refusals[PHYLETIC_EXPRESSION_SEARCH] = limit
+        raise ModelRetry(_builder_limit(limit)) from exc
     held = BuiltExpression(
         handle=held_handle(
             ctx.deps.agent_state, built.expression, pattern, built.reading
