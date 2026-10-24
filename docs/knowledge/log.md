@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A stored value renders in the form its type gives it, and a word reference that closes a
+  clause is a note.** An audit read's rows come from the answer's serialization schema
+  (`domain/statistic_rows.py`): a number and a one-word identifier render in place, an enum
+  as plain words, a boolean as yes or no, and a leaf with no display form is refused. A `stat`
+  reference to a word or a sentence renders the word inside its clause and a numbered note
+  below the reply where it closes the clause (`domain/reply_notes.py`), so a reply that cites
+  a word it wrote shows it once. The Lead's audit rule and the shared placement rule state it.
+  See [a word reference that closes a clause is a note](decisions/a-word-reference-that-closes-a-clause-is-a-note.md).
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
