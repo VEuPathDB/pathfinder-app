@@ -6,7 +6,7 @@ import re
 from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
-from pydantic_ai.usage import UsageLimits
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import TurnMarkers
@@ -37,12 +37,20 @@ def lead_usage_limits() -> UsageLimits:
     )
 
 
-def lead_turn_budget_message() -> str:
-    """What the user reads when a turn spends the ceiling it runs under."""
+def _spent_limit(spent: RunUsage, limits: UsageLimits) -> str:
+    calls, tools = limits.request_limit, limits.tool_calls_limit
+    if tools is not None and spent.tool_calls > tools:
+        return count_noun(tools, "tool call")
+    if calls is not None and spent.requests >= calls:
+        return count_noun(calls, "model call")
+    return f"{limits.total_tokens_limit} tokens"
+
+
+def lead_turn_budget_message(spent: RunUsage, limits: UsageLimits) -> str:
+    """What the user reads when a turn spends a ceiling it runs under."""
     return (
-        f"I stopped this turn at its budget of {LEAD_TURN_CALL_LIMIT} model calls "
-        f"and {get_settings().lead_turn_token_limit} tokens. Narrow the request "
-        f"and send it again, and I will start a fresh turn on it."
+        f"I stopped this turn at its budget of {_spent_limit(spent, limits)}. "
+        "Narrow the request and send it again, and I will start a fresh turn on it."
     )
 
 
@@ -145,6 +153,8 @@ def budget_stop_report(
     session: StrategySession,
     turn: TurnMarkers,
     questions: Sequence[OpenQuestion],
+    spent: RunUsage,
+    limits: UsageLimits,
 ) -> str:
     """What a turn at its whole budget produced, then the stop itself."""
     graph = session.graph
@@ -154,6 +164,6 @@ def budget_stop_report(
         _this_turn(turn),
         *_verification(ledger, session),
         *(q.question for q in questions),
-        lead_turn_budget_message(),
+        lead_turn_budget_message(spent, limits),
     ]
     return "\n\n".join(parts)

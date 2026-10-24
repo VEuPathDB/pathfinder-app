@@ -5,9 +5,10 @@ from __future__ import annotations
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.turn_budget import budget_stop_report
+from pathfinder.ai.lead.turn_budget import budget_stop_report, lead_usage_limits
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    AT_THE_CALLS,
     STEP,
     STRATEGY_LINE,
     built_outcome,
@@ -33,7 +34,12 @@ def _stale_lines(state: PipelineState) -> list[str]:
 
 def _strategy_paragraph(state: PipelineState) -> str:
     report = budget_stop_report(
-        derive_ledger(state, None), built_session(), TurnMarkers(), []
+        derive_ledger(state, None),
+        built_session(),
+        TurnMarkers(),
+        [],
+        AT_THE_CALLS,
+        lead_usage_limits(),
     )
     return report.split("\n\n")[0]
 

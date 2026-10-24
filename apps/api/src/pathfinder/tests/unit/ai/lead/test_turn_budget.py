@@ -6,6 +6,7 @@ from collections.abc import Iterator, Sequence
 from uuid import uuid4
 
 import pytest
+from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.state import VerificationDigest
@@ -33,6 +34,7 @@ from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     ADDED,
     ADDED_LINE,
+    AT_THE_CALLS,
     BUDGET,
     CHANGED_NOTHING,
     NOT_VERIFIED,
@@ -86,10 +88,20 @@ def test_each_turn_gets_its_own_limits_object() -> None:
     assert lead_usage_limits() == first
 
 
-def test_the_turn_budget_message_names_the_whole_turn_ceiling() -> None:
-    assert lead_turn_budget_message() == (
-        f"I stopped this turn at its budget of 80 model calls and "
-        f"{_DEFAULT_LIMIT} tokens. {_TAIL}"
+@pytest.mark.parametrize(
+    ("spent", "limit"),
+    [
+        (RunUsage(requests=80), "80 model calls"),
+        (RunUsage(requests=12, tool_calls=81), "80 tool calls"),
+        (RunUsage(requests=15, input_tokens=600_001), f"{_DEFAULT_LIMIT} tokens"),
+    ],
+    ids=["calls", "tool_calls", "tokens"],
+)
+def test_the_turn_budget_message_names_the_limit_the_turn_spent(
+    spent: RunUsage, limit: str
+) -> None:
+    assert lead_turn_budget_message(spent, lead_usage_limits()) == (
+        f"I stopped this turn at its budget of {limit}. {_TAIL}"
     )
 
 
@@ -125,6 +137,8 @@ def _report(
         session,
         turn if turn is not None else _built_this_turn(),
         questions,
+        AT_THE_CALLS,
+        lead_usage_limits(),
     )
 
 
