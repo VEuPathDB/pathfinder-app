@@ -31,6 +31,7 @@ from pathfinder.domain.audit.words import (
     ERROR_TYPE_TITLES,
     verdict_sentence,
 )
+from pathfinder.domain.statistic_facts import Sentence
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -84,7 +85,7 @@ class FindingView(CamelModel):
     requests: int
     attempts: int
     stopped: int
-    message: str | None
+    message: Sentence | None
     reviewed: bool
     verdict: FindingVerdict | None
     from_target: bool
@@ -96,7 +97,7 @@ class FindingView(CamelModel):
         return self.target.check
 
     @computed
-    def verdict_text(self) -> str | None:
+    def verdict_text(self) -> Sentence | None:
         return (
             None if self.verdict is None else verdict_sentence(self.check, self.verdict)
         )
@@ -128,7 +129,7 @@ class EvidenceView(CamelModel):
     requests: int
     attempts: int
     stopped: int
-    message: str | None
+    message: Sentence | None
 
 
 class FindingDetail(CamelModel):

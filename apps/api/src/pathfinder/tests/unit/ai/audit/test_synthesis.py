@@ -30,11 +30,15 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
     ReviewAgreement,
-    Synthesis,
+    StoredSynthesis,
     VerdictKind,
     finding_cite,
 )
-from pathfinder.domain.statistic_facts import statistic_id
+from pathfinder.domain.statistic_facts import (
+    StatisticFact,
+    StatisticRowFact,
+    statistic_id,
+)
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
@@ -168,7 +172,7 @@ async def _synthesized(
     reviews: list[VerdictView],
     model: FunctionModel,
     view: AuditRunView | None = None,
-) -> Synthesis:
+) -> StoredSynthesis:
     return await synthesize(
         view or _view(), reviews, impacts=_IMPACTS, model=model, usage=RunUsage()
     )
@@ -376,7 +380,7 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
         _view(), reviews, impacts=_IMPACTS, model=FunctionModel(refuse), usage=usage
     )
 
-    assert found == Synthesis(
+    assert found == StoredSynthesis(
         sections=(),
         headline=(),
         summary=NO_FINDING_KEPT,
@@ -415,7 +419,7 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
 
     found = await _synthesized(reviews, build_synthesis_mock())
 
-    assert found == Synthesis(
+    assert found == StoredSynthesis(
         sections=(
             ErrorTypeSection(
                 error_type=_TRUNCATED,
@@ -436,4 +440,15 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
             f"rejected [stat:{_COUNTS}.rejected]."
         ),
         agreement=ReviewAgreement(sampled=0, agreed=0),
+        facts=(
+            StatisticFact(
+                id=_COUNTS,
+                kind="audit_synthesis",
+                title=f"The reviews of audit run {_RUN}",
+                rows=[
+                    StatisticRowFact(name="kept", value="4"),
+                    StatisticRowFact(name="rejected", value="1"),
+                ],
+            ),
+        ),
     )

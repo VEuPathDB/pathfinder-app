@@ -15,7 +15,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
     ReviewProgress,
-    Synthesis,
+    StoredSynthesis,
     VerdictKind,
     finding_cite,
 )
@@ -162,7 +162,7 @@ async def reviewed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
         )
         await reviews.set_synthesis(
             run_id,
-            Synthesis(
+            StoredSynthesis(
                 sections=(
                     ErrorTypeSection(
                         error_type="intact_gene_called_pseudogene",

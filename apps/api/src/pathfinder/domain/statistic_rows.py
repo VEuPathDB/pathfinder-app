@@ -20,7 +20,7 @@ from pydantic import (
 from pathfinder.domain.audit.facts import CODE_WORDS, YES_NO
 from pathfinder.domain.statistic_facts import StatisticRowFact
 
-type LeafKind = Literal["number", "share", "boolean", "words", "string"]
+type LeafKind = Literal["number", "share", "boolean", "words", "string", "sentence"]
 
 _JSON: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 _SCALARS: Mapping[str, LeafKind] = {
@@ -29,6 +29,7 @@ _SCALARS: Mapping[str, LeafKind] = {
     "boolean": "boolean",
     "string": "string",
 }
+_FORMATS: Mapping[str, LeafKind] = {"share": "share", "sentence": "sentence"}
 
 
 class NoDisplayFormError(ValueError):
@@ -107,7 +108,9 @@ class SchemaNode(BaseModel):
         if self.kind is None or self.kind not in _SCALARS:
             schema = self.model_dump_json(by_alias=True, exclude_defaults=True)
             raise NoDisplayFormError(path, f"the schema {schema}")
-        return "share" if self.format == "share" else _SCALARS[self.kind]
+        if self.format is not None and self.format in _FORMATS:
+            return _FORMATS[self.format]
+        return _SCALARS[self.kind]
 
 
 _UNTYPED = SchemaNode()
@@ -131,7 +134,7 @@ def _scalar(
         case str() if named is not None:
             words = named.words(value)
             return StatisticRowFact(name=path, value=words, form="word", code=value)
-        case str() if len(value.split()) > 1:
+        case str() if any(branch.format == "sentence" for branch in branches):
             return StatisticRowFact(name=path, value=value, form="sentence")
         case _:
             return StatisticRowFact(name=path, value=str(value), form="word")

@@ -42,6 +42,17 @@ def misused_references(
                 continue
 
 
+def referenced_facts(
+    prose: str, statistics: Sequence[StatisticFact]
+) -> tuple[StatisticFact, ...]:
+    named = {match.group("body") for match in A_REFERENCE.finditer(prose)}
+    held = (
+        (fact, [row for row in fact.rows if f"{fact.id}.{row.name}" in named])
+        for fact in statistics
+    )
+    return tuple(fact.model_copy(update={"rows": rows}) for fact, rows in held if rows)
+
+
 @dataclass
 class ReplyNotes:
     statistics: Sequence[StatisticFact]
@@ -64,4 +75,10 @@ class ReplyNotes:
         return f"\n\n{notes}"
 
 
-__all__ = ["KindMismatch", "MisusedReference", "ReplyNotes", "misused_references"]
+__all__ = [
+    "KindMismatch",
+    "MisusedReference",
+    "ReplyNotes",
+    "misused_references",
+    "referenced_facts",
+]

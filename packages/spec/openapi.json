@@ -5871,15 +5871,18 @@
           "share": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Share"
+                "type": "number",
+                "format": "share"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Share"
           },
           "text": {
             "type": "string",
+            "format": "sentence",
             "title": "Text"
           }
         },
@@ -9311,12 +9314,14 @@
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cause"
           },
           "confirmedBy": {
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Confirmedby"
           },
           "findingIds": {
@@ -9363,6 +9368,7 @@
           },
           "description": {
             "type": "string",
+            "format": "sentence",
             "title": "Description"
           },
           "count": {
@@ -9389,7 +9395,8 @@
           "cause": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9400,7 +9407,8 @@
           "confirmedBy": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9662,7 +9670,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9723,6 +9732,7 @@
           },
           "value": {
             "type": "string",
+            "format": "sentence",
             "title": "Value"
           }
         },
@@ -10166,6 +10176,7 @@
             "type": "string",
             "maxLength": 1200,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cardtext"
           },
           "impact": {
@@ -10185,7 +10196,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 600
+                "maxLength": 600,
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -10544,7 +10556,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -10606,7 +10619,8 @@
           "verdictText": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -11332,6 +11346,7 @@
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cause"
           },
           "cites": {
@@ -11904,7 +11919,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15642,12 +15658,14 @@
           "share": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Share"
+                "type": "number",
+                "format": "share"
               },
               {
                 "type": "null"
               }
             ],
+            "title": "Share",
             "readOnly": true
           }
         },
@@ -15672,6 +15690,7 @@
           },
           "verdictText": {
             "type": "string",
+            "format": "sentence",
             "title": "Verdicttext"
           },
           "secondVerdict": {
@@ -15704,7 +15723,8 @@
           "impactReason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15723,6 +15743,7 @@
           },
           "literatureText": {
             "type": "string",
+            "format": "sentence",
             "title": "Literaturetext"
           }
         },
@@ -15764,6 +15785,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message",
             "default": ""
           }
@@ -15788,6 +15810,7 @@
           },
           "text": {
             "type": "string",
+            "format": "sentence",
             "title": "Text"
           },
           "done": {
@@ -15800,6 +15823,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message"
           }
         },
@@ -15846,20 +15870,24 @@
         "properties": {
           "verdictText": {
             "type": "string",
+            "format": "sentence",
             "title": "Verdicttext"
           },
           "literatureText": {
             "type": "string",
+            "format": "sentence",
             "title": "Literaturetext"
           },
           "paperText": {
             "type": "string",
+            "format": "sentence",
             "title": "Papertext"
           },
           "secondText": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15902,6 +15930,7 @@
           },
           "detail": {
             "type": "string",
+            "format": "sentence",
             "title": "Detail"
           }
         },
@@ -15924,7 +15953,8 @@
           "halted": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15935,7 +15965,8 @@
           "targetFailure": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -16412,10 +16443,6 @@
           }
         ]
       },
-      "Share": {
-        "type": "number",
-        "format": "share"
-      },
       "SideVerdict": {
         "type": "string",
         "enum": [
@@ -16750,6 +16777,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message",
             "default": ""
           }
@@ -18002,6 +18030,7 @@
             "type": "string",
             "maxLength": 1200,
             "minLength": 1,
+            "format": "sentence",
             "title": "Summary"
           },
           "agreement": {
@@ -25235,6 +25264,7 @@
             "type": "string"
           },
           "reason": {
+            "format": "sentence",
             "title": "Reason",
             "type": "string"
           }

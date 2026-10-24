@@ -19,7 +19,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
     ReviewProgress,
-    Synthesis,
+    StoredSynthesis,
     VerdictKind,
     finding_cite,
 )
@@ -229,7 +229,7 @@ async def test_pending_reviews_are_finished_runs_still_reviewing() -> None:
     _, synthesized, _ = await _run_with_findings([0.3])
     _, halted, _ = await _run_with_findings([0.075])
     _, unfinished, _ = await _run_with_findings([1.0])
-    synthesis = Synthesis(
+    synthesis = StoredSynthesis(
         sections=(
             ErrorTypeSection(
                 error_type="truncated_model",

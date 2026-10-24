@@ -7,6 +7,8 @@ from typing import Literal, Self
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, model_validator
 
+from pathfinder.domain.statistic_facts import Sentence
+
 StageName = Literal["collect", "screen", "confirm", "tie_break"]
 RunStatus = Literal["planned", "running", "finished"]
 STAGES: tuple[StageName, ...] = ("collect", "screen", "confirm", "tie_break")
@@ -18,7 +20,7 @@ class RunHalt(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     kind: HaltKind
-    detail: str
+    detail: Sentence
 
 
 class StageRecord(CamelModel):
@@ -30,7 +32,7 @@ class StageRecord(CamelModel):
     store_reads: int = Field(default=0, ge=0)
     done: int = Field(default=0, ge=0)
     total: int = Field(default=0, ge=0)
-    message: str = ""
+    message: Sentence = ""
 
 
 def _fresh() -> tuple[StageRecord, ...]:
@@ -41,8 +43,8 @@ class RunStages(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     stages: tuple[StageRecord, ...] = Field(default_factory=_fresh)
-    halted: str | None = None
-    target_failure: str | None = None
+    halted: Sentence | None = None
+    target_failure: Sentence | None = None
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:

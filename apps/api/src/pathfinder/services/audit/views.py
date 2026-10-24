@@ -38,7 +38,10 @@ from pathfinder.domain.audit.scope import (
     GenomeStatus,
 )
 from pathfinder.domain.audit.stages import RunHalt, RunStages, RunStatus, StageName
-from pathfinder.domain.audit.verdicts import ReviewProgress, Synthesis
+from pathfinder.domain.audit.verdicts import ReviewProgress, StoredSynthesis, Synthesis
+from pathfinder.domain.reply_references import nested_text
+from pathfinder.domain.statistic_facts import Sentence
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -86,7 +89,7 @@ class GenomeView(CamelModel):
     requests: int
     attempts: int
     stopped: int
-    message: str | None
+    message: Sentence | None
     priority: GenomePriority | None
     reference_strain: bool | None
 
@@ -116,6 +119,16 @@ class AuditRunView(CamelModel):
     headline: list[FindingLine]
     review_state: ReviewState | None
     agreement: AgreementView | None
+
+
+def _shown(stored: StoredSynthesis) -> Synthesis:
+    facts = TurnFacts(audit_statistics=list(stored.facts))
+    return Synthesis(
+        sections=stored.sections,
+        headline=stored.headline,
+        summary=nested_text(stored.summary, facts),
+        agreement=stored.agreement,
+    )
 
 
 def _summary(run: AuditRunRecord) -> AuditRunSummary:
@@ -193,7 +206,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         rates=genome_rates(sample),
         targets=target_report(_target(finding) for finding in targets),
         review=run.review,
-        synthesis=run.synthesis,
+        synthesis=None if run.synthesis is None else _shown(run.synthesis),
         reviewed=reviewed,
         action=run_action(summary.phase, left, reviews_running=running),
         reviews_running=running,

@@ -21,6 +21,7 @@ from pathfinder.domain.audit.scope import (
     ScreenedCheck,
 )
 from pathfinder.domain.audit.verdicts import AGREEMENT_SAMPLE, MAX_REVIEWS_PER_RUN
+from pathfinder.domain.statistic_facts import Sentence
 
 START_LABEL = "Start this audit?"
 EVIDENCE_KINDS: Mapping[CheckName, tuple[EvidenceKind, ...]] = {
@@ -120,7 +121,7 @@ class RefusedTarget(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     key: str
-    reason: str
+    reason: Sentence
 
 
 class RunEstimate(CamelModel):
@@ -178,8 +179,8 @@ class ScopeProposal(CamelModel):
     unresolved: tuple[str, ...] = ()
     suggestions: dict[str, tuple[str, ...]] = Field(default_factory=dict)
     refused_targets: tuple[RefusedTarget, ...] = ()
-    no_reference: str | None = None
-    refusal: str | None = None
+    no_reference: Sentence | None = None
+    refusal: Sentence | None = None
 
     @model_validator(mode="after")
     def _scope_and_estimate_together(self) -> Self:

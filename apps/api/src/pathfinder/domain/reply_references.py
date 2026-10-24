@@ -55,6 +55,7 @@ _A_NUMBER = re.compile(rf"[+-]?{_NUM}(?:[-/]{_NUM})*(?:%|-?[A-Za-z]{{1,4}})?|log
 # The count a comparison reference names after its variant.
 _COMPARED = ("unique", "result", "shared")
 _GROUP_SHOWN = 6
+_A_CITE = re.compile(r"[ \t]*\[cite:(?P<body>[^\[\]\n]+)\]")
 # The link a record reference renders: the record's id, then its page.
 _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
@@ -283,6 +284,14 @@ def render_reply(prose: str, facts: TurnFacts, label: str = "") -> str:
     return text
 
 
+def nested_text(prose: str, facts: TurnFacts) -> str:
+    def cited(match: re.Match[str]) -> str:
+        value = statistic_value(facts.cited_statistics(), match.group("body"))
+        return "" if value is None else f" ({value})"
+
+    return render_reply(_A_CITE.sub(cited, prose), facts)
+
+
 def note_label() -> str:
     return f"n{uuid4().hex[:8]}-"
 
@@ -426,6 +435,7 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
 __all__ = [
     "ProseFault",
     "linked_records",
+    "nested_text",
     "note_label",
     "prose_faults",
     "render_reply",

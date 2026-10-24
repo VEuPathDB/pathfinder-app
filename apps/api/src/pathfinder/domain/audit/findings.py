@@ -34,6 +34,7 @@ from pathfinder.domain.audit.confirmations import (
 )
 from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.stages import RunStatus, StageName
+from pathfinder.domain.statistic_facts import Sentence
 
 FindingStatus = Literal[
     "screened",
@@ -438,4 +439,4 @@ class AuditOutcome(CamelModel):
     failed_genomes: tuple[str, ...]
     unreached_genomes: tuple[str, ...]
     unread_genomes: tuple[str, ...]
-    halted: str | None = None
+    halted: Sentence | None = None

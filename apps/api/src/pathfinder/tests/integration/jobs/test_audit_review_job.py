@@ -28,6 +28,7 @@ from pathfinder.ai.capabilities.security import INJECTION_TEST_MARKER
 from pathfinder.domain.audit.verdicts import (
     ReviewAgreement,
     ReviewProgress,
+    StoredSynthesis,
     Synthesis,
     finding_cite,
 )
@@ -411,7 +412,7 @@ async def test_a_stored_synthesis_is_read_back_on_the_run(
 ) -> None:
     del jobs
     owner, run_id, _ = await finished_run({1: high(1)})
-    synthesis = Synthesis(
+    synthesis = StoredSynthesis(
         sections=(),
         headline=(),
         summary="No synthetic finding was kept.",
@@ -420,4 +421,9 @@ async def test_a_stored_synthesis_is_read_back_on_the_run(
 
     await store_synthesis(run_id, synthesis)
 
-    assert (await run_view(run_id, owner.user_id)).synthesis == synthesis
+    assert (await run_view(run_id, owner.user_id)).synthesis == Synthesis(
+        sections=(),
+        headline=(),
+        summary="No synthetic finding was kept.",
+        agreement=ReviewAgreement(sampled=0, agreed=0),
+    )

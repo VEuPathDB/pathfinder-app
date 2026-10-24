@@ -7,6 +7,7 @@ import re
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.reply_references import (
     ProseFault,
+    nested_text,
     note_label,
     prose_faults,
     render_reply,
@@ -132,3 +133,51 @@ def test_each_reply_takes_a_note_label_of_its_own() -> None:
 
     assert len(labels) == 50
     assert all(re.fullmatch(r"n[0-9a-f]{8}-", label) for label in labels)
+
+
+def test_nested_text_places_values_and_cites_in_parentheses() -> None:
+    prose = (
+        "The run kept [stat:stat_0a1b2c3d.finding.reads] reads, and the review "
+        "found no support [cite:stat_0a1b2c3d.review.cause]."
+    )
+
+    assert nested_text(prose, _FACTS) == (
+        "The run kept 1226 reads, and the review found no support "
+        "(The junction has no reads.)."
+    )
+
+
+_GENOME = StatisticFact(
+    id="stat_9e8d7c6b",
+    kind="audit_finding",
+    title="Finding 2 of audit run 0b6f3a52-6a1e-4c55-9a62-1f1d2a3b4c5d",
+    rows=[
+        StatisticRowFact(
+            name="finding.genome", value="Plasmodium yoelii yoelii 17X", form="word"
+        )
+    ],
+)
+
+
+def test_a_held_name_placed_by_its_reference_is_never_refused() -> None:
+    facts = TurnFacts(audit_statistics=[_GENOME])
+    prose = "The finding is in [stat:stat_9e8d7c6b.finding.genome]."
+
+    assert (prose_faults(prose, facts), render_reply(prose, facts)) == (
+        [],
+        "The finding is in Plasmodium yoelii yoelii 17X.",
+    )
+
+
+def test_a_held_name_written_out_names_the_reference_that_places_it() -> None:
+    facts = TurnFacts(audit_statistics=[_GENOME])
+
+    faults = prose_faults("The finding is in Plasmodium yoelii yoelii 17X.", facts)
+
+    assert faults == [
+        ProseFault(
+            token="17X",
+            kind="number",
+            references=("[stat:stat_9e8d7c6b.finding.genome]",),
+        )
+    ]

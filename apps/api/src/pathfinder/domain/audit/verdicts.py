@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field, model_validator
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
-from pathfinder.domain.statistic_facts import Share
+from pathfinder.domain.statistic_facts import Sentence, Share, StatisticFact
 
 VerdictKind = Literal["error", "no_error", "undecided"]
 VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
@@ -44,7 +44,7 @@ class GeneModelVerdict(CamelModel):
     verdict: VerdictKind
     error_type: ErrorType | None = None
     certainty: Certainty | None = None
-    cause: str = Field(min_length=1, max_length=MAX_CAUSE)
+    cause: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     cites: tuple[str, ...] = Field(min_length=1, max_length=MAX_CITES)
 
     @model_validator(mode="after")
@@ -70,9 +70,9 @@ class FindingReview(CamelModel):
     already_known: LiteratureStatus
     known_from: tuple[str, ...] = Field(default=(), max_length=MAX_CITES)
     paper_depends: bool | None = None
-    card_text: str = Field(min_length=1, max_length=MAX_CARD)
+    card_text: Sentence = Field(min_length=1, max_length=MAX_CARD)
     impact: float | None = Field(default=None, ge=0.0, le=1.0)
-    impact_reason: str | None = Field(default=None, max_length=MAX_CAUSE)
+    impact_reason: Sentence | None = Field(default=None, max_length=MAX_CAUSE)
     second_verdict: VerdictKind | None = None
     stopped: bool = False
 
@@ -97,8 +97,8 @@ class ErrorTypeSection(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     error_type: ErrorType
-    cause: str = Field(min_length=1, max_length=MAX_CAUSE)
-    confirmed_by: str = Field(min_length=1, max_length=MAX_CAUSE)
+    cause: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
+    confirmed_by: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     finding_ids: tuple[int, ...] = Field(min_length=1)
 
 
@@ -133,7 +133,7 @@ class SynthesisDraft(CamelModel):
 
     sections: tuple[ErrorTypeSection, ...]
     headline: tuple[int, ...] = Field(max_length=MAX_HEADLINES)
-    summary: str = Field(min_length=1, max_length=MAX_CARD)
+    summary: Sentence = Field(min_length=1, max_length=MAX_CARD)
 
     @model_validator(mode="after")
     def _headline_in_sections(self) -> Self:
@@ -153,10 +153,14 @@ class Synthesis(SynthesisDraft):
     agreement: ReviewAgreement
 
 
+class StoredSynthesis(Synthesis):
+    facts: tuple[StatisticFact, ...] = ()
+
+
 class ReviewProgress(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     status: ReviewStatus
     done: int = Field(default=0, ge=0)
     total: int = Field(default=0, ge=0)
-    message: str = ""
+    message: Sentence = ""

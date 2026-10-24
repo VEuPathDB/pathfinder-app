@@ -20,7 +20,7 @@ from pathfinder.domain.statistic_rows import fact_schema
 _HAND_BUILT: frozenset[StatisticKind] = frozenset(
     {"pca", "two_by_two", "contingency", "boxplot", "trend"}
 )
-_DISPLAY_KINDS = {"number", "share", "boolean", "words", "string"}
+_DISPLAY_KINDS = {"number", "share", "boolean", "words", "string", "sentence"}
 
 
 def _answers(annotation: object) -> Iterator[type[BaseModel]]:

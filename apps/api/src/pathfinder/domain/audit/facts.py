@@ -12,6 +12,7 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
 )
 from pathfinder.domain.audit.words import SIDE_SENTENCES
+from pathfinder.domain.statistic_facts import Sentence
 
 NOT_READ = "Not read"
 NONE = "None found"
@@ -38,7 +39,7 @@ class Fact(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     label: str
-    value: str
+    value: Sentence
 
 
 class EvidenceFacts(CamelModel):

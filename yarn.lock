@@ -11972,6 +11972,7 @@ __metadata:
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
     react-error-boundary: "npm:^6.1.4"
+    react-markdown: "npm:^10.1.0"
     remark-gfm: "npm:^4.0.1"
     shiki: "npm:^4.4.3"
     sonner: "npm:^2.0.8"

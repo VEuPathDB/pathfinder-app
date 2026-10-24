@@ -3626,10 +3626,13 @@ components:
           title: Agreed
         share:
           anyOf:
-          - $ref: '#/components/schemas/Share'
+          - type: number
+            format: share
           - type: 'null'
+          title: Share
         text:
           type: string
+          format: sentence
           title: Text
       type: object
       required:
@@ -6017,11 +6020,13 @@ components:
           type: string
           maxLength: 600
           minLength: 1
+          format: sentence
           title: Cause
         confirmedBy:
           type: string
           maxLength: 600
           minLength: 1
+          format: sentence
           title: Confirmedby
         findingIds:
           items:
@@ -6059,6 +6064,7 @@ components:
           title: Title
         description:
           type: string
+          format: sentence
           title: Description
         count:
           type: integer
@@ -6079,11 +6085,13 @@ components:
         cause:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Cause
         confirmedBy:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Confirmedby
         reviewed:
@@ -6271,6 +6279,7 @@ components:
         message:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Message
       type: object
@@ -6311,6 +6320,7 @@ components:
           title: Label
         value:
           type: string
+          format: sentence
           title: Value
       type: object
       required:
@@ -6605,6 +6615,7 @@ components:
           type: string
           maxLength: 1200
           minLength: 1
+          format: sentence
           title: Cardtext
         impact:
           anyOf:
@@ -6617,6 +6628,7 @@ components:
           anyOf:
           - type: string
             maxLength: 600
+            format: sentence
           - type: 'null'
           title: Impactreason
         secondVerdict:
@@ -6856,6 +6868,7 @@ components:
         message:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Message
         reviewed:
@@ -6894,6 +6907,7 @@ components:
         verdictText:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Verdicttext
           readOnly: true
@@ -7384,6 +7398,7 @@ components:
           type: string
           maxLength: 600
           minLength: 1
+          format: sentence
           title: Cause
         cites:
           items:
@@ -7777,6 +7792,7 @@ components:
         message:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Message
         priority:
@@ -10294,8 +10310,10 @@ components:
           title: Agreed
         share:
           anyOf:
-          - $ref: '#/components/schemas/Share'
+          - type: number
+            format: share
           - type: 'null'
+          title: Share
           readOnly: true
       type: object
       required:
@@ -10314,6 +10332,7 @@ components:
           title: Verdict
         verdictText:
           type: string
+          format: sentence
           title: Verdicttext
         secondVerdict:
           anyOf:
@@ -10332,6 +10351,7 @@ components:
         impactReason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Impactreason
         literature:
@@ -10343,6 +10363,7 @@ components:
           title: Literature
         literatureText:
           type: string
+          format: sentence
           title: Literaturetext
       type: object
       required:
@@ -10376,6 +10397,7 @@ components:
           default: 0
         message:
           type: string
+          format: sentence
           title: Message
           default: ''
       type: object
@@ -10394,6 +10416,7 @@ components:
           title: Status
         text:
           type: string
+          format: sentence
           title: Text
         done:
           type: integer
@@ -10403,6 +10426,7 @@ components:
           title: Total
         message:
           type: string
+          format: sentence
           title: Message
       type: object
       required:
@@ -10438,16 +10462,20 @@ components:
       properties:
         verdictText:
           type: string
+          format: sentence
           title: Verdicttext
         literatureText:
           type: string
+          format: sentence
           title: Literaturetext
         paperText:
           type: string
+          format: sentence
           title: Papertext
         secondText:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Secondtext
       type: object
@@ -10474,6 +10502,7 @@ components:
           title: Kind
         detail:
           type: string
+          format: sentence
           title: Detail
       type: object
       required:
@@ -10490,11 +10519,13 @@ components:
         halted:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Halted
         targetFailure:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Targetfailure
       type: object
@@ -10817,9 +10848,6 @@ components:
       anyOf:
       - type: string
       - type: 'null'
-    Share:
-      type: number
-      format: share
     SideVerdict:
       type: string
       enum:
@@ -11055,6 +11083,7 @@ components:
           default: 0
         message:
           type: string
+          format: sentence
           title: Message
           default: ''
       type: object
@@ -11801,6 +11830,7 @@ components:
           type: string
           maxLength: 1200
           minLength: 1
+          format: sentence
           title: Summary
         agreement:
           $ref: '#/components/schemas/ReviewAgreement'
@@ -16872,6 +16902,7 @@ components:
           title: Key
           type: string
         reason:
+          format: sentence
           title: Reason
           type: string
       required:

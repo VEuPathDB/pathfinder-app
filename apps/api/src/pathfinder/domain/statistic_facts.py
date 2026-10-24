@@ -6,13 +6,16 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from itertools import combinations
 from statistics import fmean
 from typing import Annotated, Literal
 
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field, WithJsonSchema
+from pydantic import ConfigDict, Field, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 
 from pathfinder.domain.eda_parts import (
     EdaBoxplotBox,
@@ -54,7 +57,20 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
 )
 
 type RowForm = Literal["number", "word", "sentence"]
-type Share = Annotated[float, WithJsonSchema({"type": "number", "format": "share"})]
+
+
+@dataclass(frozen=True)
+class SchemaFormat:
+    name: str
+
+    def __get_pydantic_json_schema__(
+        self, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        return {**handler(core_schema), "format": self.name}
+
+
+Share = Annotated[float, SchemaFormat("share")]
+Sentence = Annotated[str, SchemaFormat("sentence")]
 
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -277,6 +293,8 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 __all__ = [
     "TURN_STATISTICS",
     "RowForm",
+    "SchemaFormat",
+    "Sentence",
     "Share",
     "StatisticFact",
     "StatisticKind",

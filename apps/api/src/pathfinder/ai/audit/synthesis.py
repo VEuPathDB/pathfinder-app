@@ -17,10 +17,11 @@ from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
-    Synthesis,
+    StoredSynthesis,
     SynthesisDraft,
     review_agreement,
 )
+from pathfinder.domain.reply_notes import referenced_facts
 from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
 from pathfinder.domain.statistic_rows import model_rows
@@ -203,11 +204,11 @@ async def synthesize(
     model: Model,
     usage: RunUsage,
     settings: ModelSettings | None = None,
-) -> Synthesis:
+) -> StoredSynthesis:
     agreement = review_agreement([v.review for v in reviews if v.review is not None])
     kept = kept_findings(reviews, impacts)
     if not kept:
-        return Synthesis(
+        return StoredSynthesis(
             sections=(), headline=(), summary=NO_FINDING_KEPT, agreement=agreement
         )
     prompt, facts = _prompt(view, reviews, kept)
@@ -223,9 +224,10 @@ async def synthesize(
     except (UsageLimitExceeded, UnexpectedModelBehavior) as stopped:
         raise SynthesisStoppedError from stopped
     draft = result.output
-    return Synthesis(
+    return StoredSynthesis(
         sections=draft.sections,
         headline=draft.headline,
         summary=draft.summary,
         agreement=agreement,
+        facts=referenced_facts(draft.summary, facts.cited_statistics()),
     )

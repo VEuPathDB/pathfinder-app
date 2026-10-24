@@ -12,7 +12,7 @@ from veupathdb_mcp.audit import GeneticCode
 
 from pathfinder.ai.audit import fact_sources
 from pathfinder.ai.audit.check_tools import build_check_toolset
-from pathfinder.domain.statistic_facts import Share, StatisticRowFact
+from pathfinder.domain.statistic_facts import Sentence, Share, StatisticRowFact
 from pathfinder.domain.statistic_rows import (
     NoDisplayFormError,
     fact_schema,
@@ -39,7 +39,7 @@ class Answer(CamelModel):
     junctions: list[Junction]
     transcript: str
     genome: str
-    cause: str | None
+    cause: Sentence | None
     span: tuple[int, int]
     code: GeneticCode
 
@@ -78,7 +78,7 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
         StatisticRowFact(name="junctions.0.reads", value="1226"),
         StatisticRowFact(name="junctions.0.share", value="88.9%"),
         StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
-        StatisticRowFact(name="genome", value="Examplea alpha", form="sentence"),
+        StatisticRowFact(name="genome", value="Examplea alpha", form="word"),
         StatisticRowFact(name="span.0", value="4793693"),
         StatisticRowFact(name="span.1", value="4793790"),
         StatisticRowFact(
@@ -87,13 +87,16 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
     ]
 
 
-def test_one_word_is_a_word_and_two_words_are_a_sentence() -> None:
-    rows = [
-        schema_rows(Answer, {"genome": genome})[0].form
-        for genome in ("Examplea", "Examplea alpha")
-    ]
+def test_a_sentence_is_a_marked_field_and_any_other_string_a_word() -> None:
+    rows = schema_rows(
+        Answer,
+        {"genome": "Plasmodium yoelii yoelii 17X", "cause": "The intron is unread."},
+    )
 
-    assert rows == ["word", "sentence"]
+    assert [(row.name, row.form) for row in rows] == [
+        ("genome", "word"),
+        ("cause", "sentence"),
+    ]
 
 
 def test_a_prefix_names_the_rows_under_it() -> None:
@@ -116,7 +119,7 @@ def test_a_key_the_schema_does_not_hold_still_renders() -> None:
 
     assert rows == [
         StatisticRowFact(name="frameKept", value="Yes", form="word"),
-        StatisticRowFact(name="added", value="two words", form="sentence"),
+        StatisticRowFact(name="added", value="two words", form="word"),
         StatisticRowFact(name="count", value="3"),
     ]
 
