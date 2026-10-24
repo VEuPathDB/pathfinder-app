@@ -7,6 +7,7 @@ from pathfinder.domain.audit.rates import (
     TargetFinding,
     TargetReport,
     TargetTally,
+    Unresolved,
     target_report,
 )
 
@@ -50,7 +51,7 @@ def test_a_strain_pair_counts_in_both_genomes_and_its_error_in_the_model_genome(
                 checked=4,
                 errors=2,
                 unjudged=0,
-                unresolved=0,
+                unresolved_by_status=Unresolved(),
             ),
             TargetTally(
                 genome=DD2,
@@ -58,7 +59,7 @@ def test_a_strain_pair_counts_in_both_genomes_and_its_error_in_the_model_genome(
                 checked=4,
                 errors=1,
                 unjudged=0,
-                unresolved=0,
+                unresolved_by_status=Unresolved(),
             ),
         ],
         unplaced=0,
@@ -99,3 +100,23 @@ def test_a_remodeled_target_counts_its_error_in_the_genome_that_holds_it() -> No
     assert [
         (t.genome, t.checked, t.errors) for t in target_report([remodeled]).genomes
     ] == [(DD2, 1, 0), (vivax, 1, 1)]
+
+
+def test_a_target_left_unread_is_unresolved_under_its_status() -> None:
+    (tally,) = target_report(
+        [
+            TargetFinding(
+                check="gene_length",
+                status="unread",
+                error_type=None,
+                judged=True,
+                model_genome=DD2,
+                judged_genomes=(DD2,),
+            )
+        ]
+    ).genomes
+    assert (tally.genome, tally.unresolved_by_status, tally.unresolved) == (
+        DD2,
+        Unresolved(unread=1),
+        1,
+    )

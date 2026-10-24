@@ -7,14 +7,35 @@ from typing import Annotated, Literal, Self
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, model_validator
 from veupathdb_mcp.audit import (
+    FusionVerdict,
     GeneFusionAudit,
     GeneLengthAudit,
     IntronAudit,
+    IntronVerdict,
+    LengthClass,
+    LengthVerdict,
     MissingGeneAudit,
+    MissingVerdict,
     OrganelleGeneAudit,
+    OrganelleVerdict,
     PseudogeneCallAudit,
+    PseudogeneVerdict,
+    SecVerdict,
     SelenoproteinEndAudit,
+    SideVerdict,
     StrainModelAudit,
+)
+
+type FindingVerdict = (
+    PseudogeneVerdict
+    | SecVerdict
+    | LengthVerdict
+    | LengthClass
+    | FusionVerdict
+    | SideVerdict
+    | MissingVerdict
+    | OrganelleVerdict
+    | IntronVerdict
 )
 
 
@@ -25,7 +46,7 @@ class PseudogeneConfirmation(CamelModel):
     result: PseudogeneCallAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> PseudogeneVerdict:
         return self.result.verdict
 
 
@@ -36,7 +57,7 @@ class SelenoproteinConfirmation(CamelModel):
     result: SelenoproteinEndAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> SecVerdict:
         return self.result.verdict
 
 
@@ -55,7 +76,7 @@ class LengthConfirmation(CamelModel):
         return self
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> LengthVerdict:
         return self.result.verdict
 
 
@@ -66,7 +87,7 @@ class FusionConfirmation(CamelModel):
     result: GeneFusionAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> LengthClass | FusionVerdict:
         fusion = self.result.fusion
         return self.result.length_class if fusion is None else fusion.verdict
 
@@ -78,7 +99,7 @@ class StrainConfirmation(CamelModel):
     result: StrainModelAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> SideVerdict:
         return self.result.side
 
 
@@ -89,7 +110,7 @@ class MissingGeneConfirmation(CamelModel):
     result: MissingGeneAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> MissingVerdict:
         return self.result.verdict
 
 
@@ -100,7 +121,7 @@ class OrganelleConfirmation(CamelModel):
     result: OrganelleGeneAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> OrganelleVerdict:
         return self.result.verdict
 
 
@@ -111,7 +132,7 @@ class IntronConfirmation(CamelModel):
     result: IntronAudit
 
     @property
-    def verdict(self) -> str:
+    def verdict(self) -> IntronVerdict:
         return self.result.verdict
 
 

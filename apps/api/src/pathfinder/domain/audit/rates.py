@@ -31,6 +31,28 @@ ImportanceSource = Literal["cited", "uncited", "not_read"]
 UseSource = Literal["reference_strain", "other_strain", "unknown", "model_role"]
 
 
+class Unresolved(CamelModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    screened: int = Field(default=0, ge=0)
+    unsampled: int = Field(default=0, ge=0)
+    trying: int = Field(default=0, ge=0)
+    failed: int = Field(default=0, ge=0)
+    unreached: int = Field(default=0, ge=0)
+    unread: int = Field(default=0, ge=0)
+
+    @computed
+    def total(self) -> int:
+        return (
+            self.screened
+            + self.unsampled
+            + self.trying
+            + self.failed
+            + self.unreached
+            + self.unread
+        )
+
+
 class GenomeRate(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -38,7 +60,11 @@ class GenomeRate(CamelModel):
     check: CheckName
     bounds: RateBounds | None
     unjudged: int = Field(ge=0)
-    unresolved: int = Field(ge=0)
+    unresolved_by_status: Unresolved
+
+    @computed
+    def unresolved(self) -> int:
+        return self.unresolved_by_status.total
 
 
 def _side(row: FindingTally) -> str:
@@ -53,24 +79,28 @@ def _side(row: FindingTally) -> str:
             return "unresolved"
 
 
+def _rate(genome: str, check: CheckName, n: Counter[str]) -> GenomeRate:
+    unresolved = Unresolved.model_validate(n)
+    checked = n["named"] + n["clean"]
+    return GenomeRate(
+        genome=genome,
+        check=check,
+        bounds=rate_with_bounds(n["named"], checked, unresolved.total)
+        if checked
+        else None,
+        unjudged=n["unjudged"],
+        unresolved_by_status=unresolved,
+    )
+
+
 def genome_rates(tally: Sequence[FindingTally]) -> list[GenomeRate]:
     counted: defaultdict[tuple[str, CheckName], Counter[str]] = defaultdict(Counter)
     for row in tally:
-        counted[row.genome, row.check][_side(row)] += row.count
-    return [
-        GenomeRate(
-            genome=genome,
-            check=check,
-            bounds=rate_with_bounds(
-                n["named"], n["named"] + n["clean"], n["unresolved"]
-            )
-            if n["named"] + n["clean"]
-            else None,
-            unjudged=n["unjudged"],
-            unresolved=n["unresolved"],
-        )
-        for (genome, check), n in sorted(counted.items())
-    ]
+        side = _side(row)
+        counted[row.genome, row.check][
+            row.status if side == "unresolved" else side
+        ] += row.count
+    return [_rate(genome, check, n) for (genome, check), n in sorted(counted.items())]
 
 
 class TargetFinding(CamelModel):
@@ -92,7 +122,11 @@ class TargetTally(CamelModel):
     checked: int = Field(ge=0)
     errors: int = Field(ge=0)
     unjudged: int = Field(ge=0)
-    unresolved: int = Field(ge=0)
+    unresolved_by_status: Unresolved
+
+    @computed
+    def unresolved(self) -> int:
+        return self.unresolved_by_status.total
 
 
 class TargetReport(CamelModel):
@@ -118,6 +152,8 @@ def _target_side(target: TargetFinding, genome: str) -> str:
             return "errors"
         case "clean":
             return "checked"
+        case "unresolved":
+            return target.status
         case side:
             return side
 
@@ -140,7 +176,7 @@ def target_report(targets: Iterable[TargetFinding]) -> TargetReport:
                 checked=n["checked"],
                 errors=n["errors"],
                 unjudged=n["unjudged"],
-                unresolved=n["unresolved"],
+                unresolved_by_status=Unresolved.model_validate(n),
             )
             for (genome, check), n in sorted(counted.items())
         ],
@@ -177,6 +213,10 @@ class Weighing(CamelModel):
     certainty: Certainty
     importance: Importance
     use: GenomeUse
+
+    @computed
+    def certainty_weight(self) -> float:
+        return CERTAINTY_WEIGHT[self.certainty]
 
     @computed
     def impact(self) -> float:

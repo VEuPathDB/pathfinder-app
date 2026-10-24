@@ -3731,6 +3731,12 @@ components:
         siteId:
           type: string
           title: Siteid
+        conversationId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Conversationid
         release:
           anyOf:
           - type: string
@@ -3743,6 +3749,15 @@ components:
           - running
           - finished
           title: Status
+        phase:
+          type: string
+          enum:
+          - not_started
+          - queued
+          - running
+          - halted
+          - finished
+          title: Phase
         deadlineAt:
           anyOf:
           - type: string
@@ -3786,8 +3801,10 @@ components:
       required:
       - id
       - siteId
+      - conversationId
       - release
       - status
+      - phase
       - deadlineAt
       - genomes
       - checks
@@ -3847,6 +3864,28 @@ components:
         reviewed:
           type: integer
           title: Reviewed
+        action:
+          anyOf:
+          - type: string
+            enum:
+            - resume
+            - retry
+          - type: 'null'
+          title: Action
+        reviewsRunning:
+          type: boolean
+          title: Reviewsrunning
+        halt:
+          anyOf:
+          - $ref: '#/components/schemas/RunHalt'
+          - type: 'null'
+        left:
+          $ref: '#/components/schemas/LeftUnits'
+        evidence:
+          items:
+            $ref: '#/components/schemas/EvidenceTally'
+          type: array
+          title: Evidence
       type: object
       required:
       - run
@@ -3862,6 +3901,11 @@ components:
       - review
       - synthesis
       - reviewed
+      - action
+      - reviewsRunning
+      - halt
+      - left
+      - evidence
       title: AuditRunView
     AuditScope:
       properties:
@@ -5772,6 +5816,35 @@ components:
       - cursor
       title: EventsSnapshot
       description: The completed history a thread serves, and where a tail continues it.
+    EvidenceTally:
+      properties:
+        kind:
+          type: string
+          enum:
+          - confirmation
+          - relatives
+          - gene_evidence
+          title: Kind
+        status:
+          type: string
+          enum:
+          - pending
+          - trying
+          - stored
+          - failed
+          - unreached
+          - unread
+          title: Status
+        count:
+          type: integer
+          minimum: 0.0
+          title: Count
+      type: object
+      required:
+      - kind
+      - status
+      - count
+      title: EvidenceTally
     EvidenceView:
       properties:
         kind:
@@ -6111,6 +6184,17 @@ components:
       - modelGenome
       - count
       title: FindingTally
+    FindingVerdict:
+      anyOf:
+      - $ref: '#/components/schemas/PseudogeneVerdict'
+      - $ref: '#/components/schemas/SecVerdict'
+      - $ref: '#/components/schemas/LengthVerdict'
+      - $ref: '#/components/schemas/LengthClass'
+      - $ref: '#/components/schemas/FusionVerdict'
+      - $ref: '#/components/schemas/SideVerdict'
+      - $ref: '#/components/schemas/MissingVerdict'
+      - $ref: '#/components/schemas/OrganelleVerdict'
+      - $ref: '#/components/schemas/IntronVerdict'
     FindingView:
       properties:
         id:
@@ -6216,6 +6300,13 @@ components:
         reviewed:
           type: boolean
           title: Reviewed
+        verdict:
+          anyOf:
+          - $ref: '#/components/schemas/FindingVerdict'
+          - type: 'null'
+        fromTarget:
+          type: boolean
+          title: Fromtarget
         check:
           type: string
           enum:
@@ -6249,6 +6340,8 @@ components:
       - stopped
       - message
       - reviewed
+      - verdict
+      - fromTarget
       - check
       title: FindingView
     ForkConversationRequest:
@@ -7021,16 +7114,19 @@ components:
           type: integer
           minimum: 0.0
           title: Unjudged
+        unresolvedByStatus:
+          $ref: '#/components/schemas/Unresolved'
         unresolved:
           type: integer
-          minimum: 0.0
           title: Unresolved
+          readOnly: true
       type: object
       required:
       - genome
       - check
       - bounds
       - unjudged
+      - unresolvedByStatus
       - unresolved
       title: GenomeRate
     GenomeUse:
@@ -7461,6 +7557,31 @@ components:
       - openai
       - anthropic
       - google
+    LeftUnits:
+      properties:
+        genomes:
+          type: integer
+          minimum: 0.0
+          title: Genomes
+        findings:
+          type: integer
+          minimum: 0.0
+          title: Findings
+        evidence:
+          type: integer
+          minimum: 0.0
+          title: Evidence
+        total:
+          type: integer
+          title: Total
+          readOnly: true
+      type: object
+      required:
+      - genomes
+      - findings
+      - evidence
+      - total
+      title: LeftUnits
     LengthCheck:
       properties:
         verdict:
@@ -9459,6 +9580,22 @@ components:
       type: array
       maxItems: 2
       minItems: 2
+    RunHalt:
+      properties:
+        kind:
+          type: string
+          enum:
+          - sign_in
+          - task_failed
+          title: Kind
+        detail:
+          type: string
+          title: Detail
+      type: object
+      required:
+      - kind
+      - detail
+      title: RunHalt
     RunStages:
       properties:
         stages:
@@ -10873,10 +11010,12 @@ components:
           type: integer
           minimum: 0.0
           title: Unjudged
+        unresolvedByStatus:
+          $ref: '#/components/schemas/Unresolved'
         unresolved:
           type: integer
-          minimum: 0.0
           title: Unresolved
+          readOnly: true
       type: object
       required:
       - genome
@@ -10884,6 +11023,7 @@ components:
       - checked
       - errors
       - unjudged
+      - unresolvedByStatus
       - unresolved
       title: TargetTally
     TaskListItem:
@@ -11577,6 +11717,46 @@ components:
       - NONCANONICAL
       - RETAINED
       - UNEXPLAINED
+    Unresolved:
+      properties:
+        screened:
+          type: integer
+          minimum: 0.0
+          title: Screened
+          default: 0
+        unsampled:
+          type: integer
+          minimum: 0.0
+          title: Unsampled
+          default: 0
+        trying:
+          type: integer
+          minimum: 0.0
+          title: Trying
+          default: 0
+        failed:
+          type: integer
+          minimum: 0.0
+          title: Failed
+          default: 0
+        unreached:
+          type: integer
+          minimum: 0.0
+          title: Unreached
+          default: 0
+        unread:
+          type: integer
+          minimum: 0.0
+          title: Unread
+          default: 0
+        total:
+          type: integer
+          title: Total
+          readOnly: true
+      type: object
+      required:
+      - total
+      title: Unresolved
     UpdateCombineOperatorOp:
       properties:
         kind:
@@ -12022,6 +12202,10 @@ components:
           $ref: '#/components/schemas/Importance'
         use:
           $ref: '#/components/schemas/GenomeUse'
+        certaintyWeight:
+          type: number
+          title: Certaintyweight
+          readOnly: true
         impact:
           type: number
           title: Impact
@@ -12031,6 +12215,7 @@ components:
       - certainty
       - importance
       - use
+      - certaintyWeight
       - impact
       title: Weighing
     WindowLabel:

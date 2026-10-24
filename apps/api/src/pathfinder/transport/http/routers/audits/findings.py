@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Query
 
-from pathfinder.services.audit.views import (
+from pathfinder.services.audit.finding_views import (
     MAX_ROW_ID,
     FindingDetail,
     FindingPage,

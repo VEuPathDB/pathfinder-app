@@ -49,11 +49,11 @@ from pathfinder.persistence.repositories.audit_findings import (
     SettledFinding,
 )
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.audit.finding_views import FindingQuery
 from pathfinder.services.audit.job import start_run
 from pathfinder.services.audit.planning import propose_scope
 from pathfinder.services.audit.queue import AUDIT_JOB
 from pathfinder.services.audit.runs import RunOwner, create_run
-from pathfinder.services.audit.views import FindingQuery
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests._support.audit_planning import (

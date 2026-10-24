@@ -57,6 +57,32 @@
 
 ## 2026-10-23
 
+* **An audit finding names the verdict its check gave and whether it is a gene target.**
+  `domain/audit/confirmations.py::FindingVerdict` is the union of the library's verdict
+  literals, intron verdicts included, and each confirmation's `verdict` returns its own one.
+  `FindingView.verdict` is the stored confirmation's verdict (null when none is stored) and
+  `FindingView.fromTarget` is true for a finding of one of the run's gene targets. The finding
+  reads move to `services/audit/finding_views.py`, which builds each view field by field;
+  `services/audit/views.py` keeps the run views.
+* **An audit run's read names its phase, its next action and the units it left.** Every run
+  summary carries its `conversationId` and `phase`; `GET /api/v1/audits/{run_id}` adds `action`
+  (`resume`, `retry` or null), `reviewsRunning`, `halt` (`{kind, detail}` or null), `left` (the
+  genomes, findings and evidence left `unreached` or `unread`, with their total) and `evidence`,
+  the run's evidence counted by kind and status
+  (`persistence/repositories/audit_tallies.py::evidence_tally`).
+* **An audit rate splits what it left unresolved by status.** `domain/audit/rates.py::Unresolved`
+  counts the findings of a rate or a target tally that are `screened`, `unsampled`, `trying`,
+  `failed`, `unreached` or `unread`, and `GenomeRate.unresolved` and `TargetTally.unresolved`
+  are its computed total; the wire keeps `unresolved` and adds `unresolvedByStatus`.
+  `Weighing.certaintyWeight` states the certainty factor of an impact, so a reader shows the
+  three factors without a second copy of the weights.
+* **An audit run reads as one phase with one next action.** `domain/audit/run_state.py` names a
+  stored run's phase (`not_started` with no deadline, `queued`, `running`, `halted`,
+  `finished`), the units it left (`unreached` or `unread` genomes, findings and evidence) and
+  the action its page may take: `resume` for a halted run, `retry` for a finished run with units
+  left, and none while its reviews wait or run, because the review job holds the run's lock.
+  `RunStages.halt_reason` reads the stored halt as a kind (`sign_in` or `task_failed`) and its
+  detail; `SIGN_IN_NEEDED` moves to `domain/audit/stages.py`.
 * **Every log line names the work and the user.** `platform/log_ids.py::LogIds` holds the ids a
   line may name and refuses any other value: a site or assistant id is a lowercase id, the
   method an HTTP verb, the route a template. A chat turn binds `conversation_id`, `turn_id`,

@@ -8,7 +8,7 @@ import pytest
 from assistant_core.platform.db import async_session_factory
 from veupathdb_mcp.audit import SideVerdict, StrainModelAudit
 
-from pathfinder.domain.audit.rates import TargetTally
+from pathfinder.domain.audit.rates import TargetTally, Unresolved
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -97,7 +97,7 @@ async def test_each_strain_pair_counts_in_both_genomes_and_its_error_where_it_li
             checked=4,
             errors=2,
             unjudged=0,
-            unresolved=0,
+            unresolved_by_status=Unresolved(),
         ),
         TargetTally(
             genome=DD2,
@@ -105,7 +105,7 @@ async def test_each_strain_pair_counts_in_both_genomes_and_its_error_where_it_li
             checked=4,
             errors=1,
             unjudged=0,
-            unresolved=0,
+            unresolved_by_status=Unresolved(),
         ),
     ]
     assert view.targets.unplaced == 0

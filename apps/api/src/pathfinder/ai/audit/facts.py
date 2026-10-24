@@ -18,12 +18,8 @@ from pathfinder.domain.statistic_facts import (
     StatisticRowFact,
     statistic_id,
 )
-from pathfinder.services.audit.views import (
-    AuditRunSummary,
-    AuditRunView,
-    FindingDetail,
-    FindingPage,
-)
+from pathfinder.services.audit.finding_views import FindingDetail, FindingPage
+from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 from pathfinder.services.gene_records.read import gene_record_url
 
 _JSON: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)

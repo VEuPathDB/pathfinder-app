@@ -19,11 +19,11 @@ from veupathdb.errors import (
 )
 from veupathdb.jbrowse import GenomeIndexError, JBrowseError, TrackReadError
 
+from pathfinder.domain.audit.stages import SIGN_IN_NEEDED
 from pathfinder.services.audit import units
 from pathfinder.services.audit.units import (
     FIRST_WAIT_SECONDS,
     LONGEST_WAIT_SECONDS,
-    SIGN_IN_NEEDED,
     ContinueLaterError,
     SignInNeededError,
     Waits,

@@ -20,7 +20,7 @@ from veupathdb_mcp.search_line import told_while_waiting
 
 from pathfinder.domain.audit.findings import AuditOutcome, counts_of
 from pathfinder.domain.audit.scope import AuditScope
-from pathfinder.domain.audit.stages import RunStatus, StageName
+from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
@@ -44,7 +44,6 @@ from pathfinder.services.audit.sign_in import (
 )
 from pathfinder.services.audit.tie_break import run_tie_break_stage
 from pathfinder.services.audit.units import (
-    SIGN_IN_NEEDED,
     ContinueLaterError,
     SignInNeededError,
     Waits,
