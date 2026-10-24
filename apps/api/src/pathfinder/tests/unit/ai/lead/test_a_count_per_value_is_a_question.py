@@ -4,10 +4,18 @@ a build."""
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
-from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.classification_gate import held_as_question
+from pathfinder.ai.lead.intent import (
+    ClassifiedIntent,
+    IntentClassification,
+    UserIntent,
+)
 from pathfinder.ai.lead.intent_gate import UNCLASSIFIED_TOOLS, tools_the_turn_offers
 from pathfinder.ai.lead.lead_tools import classify_user_intent
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -63,8 +71,52 @@ def test_the_classifier_names_where_a_count_per_value_is_answered() -> None:
         "search's whole result, unchanged, answered by ``count_by_column``" in doc
     )
     assert (
-        "When no step holds those records and no one search's whole result is them, "
-        "it asks for a build" in doc
+        "A count per value that needs a build first, because no step holds those "
+        "records and no one search's whole result is them, is a build: "
+        "``new_strategy`` with no strategy, and on a conversation with one "
+        "``extend_strategy`` with ``asks_a_change`` set, so the request is never "
+        "held as a question." in doc
+    )
+    assert "counts records per value of a column, or" not in doc
+
+
+_COUNT = "How many records of the result does each value of that column hold?"
+
+
+def _count_intent(classification: IntentClassification, *, change: bool) -> UserIntent:
+    return UserIntent(
+        classification=classification,
+        inferred_goal="The result's records counted by each value of a column.",
+        asks=[_COUNT],
+        asks_a_change=change,
+    )
+
+
+async def test_a_count_that_needs_a_build_is_a_build_with_no_strategy() -> None:
+    state = pipeline_state("plasmodb", user_prompt=_COUNT, user_message_id=uuid4())
+    deps = lead_deps(state)
+    ctx = run_context_for(deps, tool_call_id="call_classify")
+
+    returned = await classify_user_intent(
+        ctx, _count_intent(IntentClassification.NEW_STRATEGY, change=False)
+    )
+
+    held = ClassifiedIntent.model_validate(returned.return_value)
+    assert held.intent.classification is IntentClassification.NEW_STRATEGY
+    assert tools_the_turn_offers(deps, ["frame_problem", "build_strategy"]) == {
+        "frame_problem",
+        "build_strategy",
+    }
+
+
+def test_a_count_that_asks_a_change_on_a_strategy_is_not_held_as_a_question() -> None:
+    state = pipeline_state("plasmodb", user_prompt=_COUNT, user_message_id=uuid4())
+    marked = _count_intent(IntentClassification.EXTEND_STRATEGY, change=True)
+    unmarked = _count_intent(IntentClassification.EXTEND_STRATEGY, change=False)
+
+    assert (held_as_question(state, marked), held_as_question(state, unmarked)) == (
+        None,
+        unmarked.as_question(),
     )
 
 

@@ -15,10 +15,9 @@ URL = (
     "https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript?format=expanded"
 )
 RECORD = (
-    "On cedar, with the QA token outside the shell history: "
-    f'curl -s -o /tmp/transcript.json -H "Authorization: Bearer $(cat ~/proto/.qa_token)" '
-    f'-b "Authorization=$(cat ~/proto/.qa_token)" "{URL}"; then scp '
-    "cedar:/tmp/transcript.json here and run this script on it."
+    "Fetch the record type with one GET under a registered QA token: "
+    f'curl -s -o transcript.json -H "Authorization: Bearer <token>" "{URL}". '
+    "Then run this script on transcript.json."
 )
 
 

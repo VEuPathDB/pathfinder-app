@@ -134,8 +134,7 @@ async def classify_user_intent(
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something the conversation already holds. A question whose answer is
     a count, a list or a membership is a build however it is phrased, unless it
-    compares counts, counts records per value of a column, or asks about the
-    strategy the conversation holds: "did my
+    compares counts or asks about the strategy the conversation holds: "did my
     change go through?", "what is the count now?" is a ``follow_up_question``,
     and a request classification of a message that states nothing outside its
     asks is refused.
@@ -160,9 +159,11 @@ async def classify_user_intent(
     ``follow_up_question`` when a step of the strategy holds those records,
     answered by ``count_step_by_column``, or when the records are one catalog
     search's whole result, unchanged, answered by ``count_by_column``, also on
-    a conversation with no strategy. When no step holds those records and no
-    one search's whole result is them, it asks for a build: ``new_strategy``
-    with no strategy and ``extend_strategy`` on one.
+    a conversation with no strategy. A count per value that needs a build
+    first, because no step holds those records and no one search's whole
+    result is them, is a build: ``new_strategy`` with no strategy, and on a
+    conversation with one ``extend_strategy`` with ``asks_a_change`` set, so the
+    request is never held as a question.
 
     Three classifications ask for no strategy at all:
 

@@ -35,13 +35,22 @@ def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
     return columns, f"No column of step {wdk_step_id}"
 
 
+def _unread_reason(wdk_step_id: int, fit: ColumnFit) -> str:
+    column = f"{fit.display_name} ({fit.column})"
+    if fit.refused_status is not None:
+        return (
+            f"The site refused the report of {column} on step {wdk_step_id} "
+            f"(HTTP {fit.refused_status})."
+        )
+    return f"No record of step {wdk_step_id} holds a value of {column}."
+
+
 def unread_note(wdk_step_id: int, unread: list[ColumnFit]) -> str:
-    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
+    reasons = " ".join(_unread_reason(wdk_step_id, fit) for fit in unread)
     names = ", ".join(fit.column for fit in unread)
     return (
-        f"No record of step {wdk_step_id} shows a value of {columns}. Sample step "
-        f"{wdk_step_id} with get_sample_records and read {names} on its records "
-        "for this criterion."
+        f"{reasons} Sample step {wdk_step_id} with get_sample_records and read "
+        f"{names} on its records for this criterion."
     )
 
 

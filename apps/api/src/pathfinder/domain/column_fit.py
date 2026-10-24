@@ -7,7 +7,8 @@ import re
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue, model_validator
+from pydantic_core import PydanticCustomError
 
 from pathfinder.domain.clipped import number_at_least
 
@@ -53,6 +54,16 @@ class ThresholdSides(CamelModel):
         )
 
 
+UNREADABLE_COLUMN_FIT = "unreadable_column_fit"
+
+
+class _StoredShown(CamelModel):
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
+    shown: bool = True
+    refused_status: int | None = None
+
+
 class ColumnFit(CamelModel):
     """One column of a step's search, read over the whole step against the
     values its criterion binds."""
@@ -74,6 +85,18 @@ class ColumnFit(CamelModel):
     no_value: Annotated[int, number_at_least(0)] = 0
     refused_status: int | None = None
     sides: list[ThresholdSides] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _a_stored_unshown_fit_names_its_refusal(cls, data: JsonValue) -> JsonValue:
+        stored = _StoredShown.model_validate(data)
+        if not stored.shown and stored.refused_status is None:
+            raise PydanticCustomError(
+                UNREADABLE_COLUMN_FIT,
+                "a stored column fit the site did not show names no refusal "
+                "status, so its verdict cannot be read",
+            )
+        return data
 
     @computed
     def shown(self) -> bool:
@@ -144,6 +167,7 @@ class ColumnFit(CamelModel):
 
 __all__ = [
     "COLUMN_FIT_COUNTS",
+    "UNREADABLE_COLUMN_FIT",
     "ColumnFit",
     "ColumnFitState",
     "CountedIn",

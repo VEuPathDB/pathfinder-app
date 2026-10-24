@@ -45,10 +45,14 @@ def _tm_report(
     )
 
 
-_NO_TM_VALUE = (
-    f"No record of step {TM_STEP} shows a value of # TM Domains (tm_count). "
+_SAMPLE_TM = (
     f"Sample step {TM_STEP} with get_sample_records and read tm_count on its "
     "records for this criterion."
+)
+_NO_TM_VALUE = f"No record of step {TM_STEP} holds a value of # TM Domains (tm_count). {_SAMPLE_TM}"
+_REFUSED_TM = (
+    f"The site refused the report of # TM Domains (tm_count) on step {TM_STEP} "
+    f"(HTTP 422). {_SAMPLE_TM}"
 )
 
 
@@ -143,7 +147,7 @@ async def test_a_column_the_site_refuses_is_an_unread_fit(
         (f.fits, f.refused_status, f.sentence)
         for f in ctx.deps.turn_markers.column_fits
     ] == [refused]
-    assert answer.note == _NO_TM_VALUE
+    assert answer.note == _REFUSED_TM
     assert site.asked == [f"{TM_STEP}/columns/tm_count"]
 
 
@@ -195,10 +199,10 @@ async def test_a_refused_rival_column_leaves_the_others_read(
         ),
     ]
     assert answer.note == (
-        f"No record of step {PERCENTILE_STEP} shows a value of Max %ile (Within "
-        f"Chosen Samples) (max_percentile_chosen). Sample step {PERCENTILE_STEP} "
-        "with get_sample_records and read max_percentile_chosen on its records for "
-        "this criterion."
+        "The site refused the report of Max %ile (Within Chosen Samples) "
+        f"(max_percentile_chosen) on step {PERCENTILE_STEP} (HTTP 400). Sample step "
+        f"{PERCENTILE_STEP} with get_sample_records and read max_percentile_chosen "
+        "on its records for this criterion."
     )
     assert sorted(site.asked) == [
         f"{PERCENTILE_STEP}/reports/max_percentile_chosen-histogram",

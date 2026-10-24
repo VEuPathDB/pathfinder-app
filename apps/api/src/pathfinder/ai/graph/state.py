@@ -13,6 +13,7 @@ from pydantic import BeforeValidator, ConfigDict, Field, ValidationError
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
+from pathfinder.ai.graph.stored_verdicts import Stored
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import (
     TurnMarkers,
@@ -201,13 +202,13 @@ class StrategyDomainState(ThreadRequirements):
     # dispositions against it, and a refusal puts it back.
     spec_before_dispatch: OperationalSpec | None = None
     discovered_searches: dict[str, SearchOverview] = Field(default_factory=dict)
-    verification_digest: VerificationDigest | None = None
+    verification_digest: Stored[VerificationDigest] = None
     # The revision of the strategy the digest judged. The digest is the verdict
     # only while the strategy holds that revision.
     verified_revision: str = ""
     # The evidence card of the thread's last check. A later message restates
     # its control results from it while the strategy holds the revision it checked.
-    last_evidence_card: EvidenceCard | None = None
+    last_evidence_card: Stored[EvidenceCard] = None
     last_build_outcome: BuildOutcome | None = None
     # Recomputed at the start of every Lead turn by comparing the live
     # strategy against ``last_build_outcome``. Never persisted: an edit that

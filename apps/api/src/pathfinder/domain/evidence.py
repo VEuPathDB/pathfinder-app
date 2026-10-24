@@ -268,7 +268,7 @@ class VerificationReview(CamelModel):
         default_factory=list,
         description="One row per requirement the researcher stated, in any message.",
     )
-    column_fits: list[ColumnFit] = Field(
+    column_fits: Annotated[list[ColumnFit], OmittedFromInput] = Field(
         default_factory=list,
         description=(
             "Filled by the runtime from this turn's read_step_columns calls; "
