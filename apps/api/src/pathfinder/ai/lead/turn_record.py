@@ -18,6 +18,7 @@ from pathfinder.ai.lead.intent import (
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
+    turn_is_an_audit,
     turn_is_classified,
     turn_is_off_topic,
 )
@@ -86,6 +87,7 @@ class TurnRecord(CamelModel):
     looked_up_the_catalog: bool = False
     chosen_readings: tuple[ChosenReading, ...] = ()
     audit_runs: tuple[UUID, ...] = ()
+    audit_turn: bool = False
 
     @property
     def check_could_not_finish(self) -> bool:
@@ -198,4 +200,5 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         looked_up_the_catalog=markers.catalog_looked_up,
         chosen_readings=tuple(markers.chosen_readings),
         audit_runs=tuple(markers.audit_runs),
+        audit_turn=turn_is_an_audit(deps),
     )

@@ -195,7 +195,7 @@ def _answered_card(deps: LeadDeps) -> frozenset[str]:
     return frozenset({parked.tool_name})
 
 
-def _audit_turn(deps: LeadDeps) -> bool:
+def turn_is_an_audit(deps: LeadDeps) -> bool:
     intent = deps.intent
     return (
         turn_is_classified(deps)
@@ -207,11 +207,11 @@ def _audit_turn(deps: LeadDeps) -> bool:
 def turn_reads_audits(deps: LeadDeps) -> bool:
     answers_a_start = bool(_answered_card(deps) & AUDIT_START_TOOLS)
     held = deps.state.turn_markers.audit_runs_held
-    return _audit_turn(deps) or held or answers_a_start
+    return turn_is_an_audit(deps) or held or answers_a_start
 
 
 def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
-    if _audit_turn(deps):
+    if turn_is_an_audit(deps):
         return frozenset()
     return AUDIT_START_TOOLS - _answered_card(deps)
 
@@ -277,6 +277,7 @@ __all__ = [
     "bare_assent_refusal",
     "tools_the_turn_offers",
     "turn_builds",
+    "turn_is_an_audit",
     "turn_is_off_topic",
     "turn_reads_audits",
     "unmet_preconditions",

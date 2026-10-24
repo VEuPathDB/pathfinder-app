@@ -235,6 +235,7 @@ async def read_audit_run_tool(
     fact = audit_run_fact(view)
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(run_id)
+    ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
     read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
     return with_summary(read, f"Audit run {view.run.status}", ctx=ctx)
 
@@ -254,6 +255,7 @@ async def review_audit_run_tool(
     fact = audit_run_fact(view)
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(run_id)
+    ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
     read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
     state = "not started" if view.review is None else view.review.status
     return with_summary(read, f"Review {state}", ctx=ctx)

@@ -117,6 +117,15 @@ class AuditRunView(CamelModel):
     review_state: ReviewState | None
     agreement: AgreementView | None
 
+    def named_genes(self) -> list[str]:
+        lines = [
+            *self.headline,
+            *(f for kind in self.error_types for f in kind.reviewed),
+        ]
+        targets = (gene for target in self.scope.targets for gene in target.genes)
+        found = (gene for line in lines for gene in line.genes)
+        return list(dict.fromkeys([*targets, *found]))
+
 
 def _summary(run: AuditRunRecord) -> AuditRunSummary:
     return AuditRunSummary(
