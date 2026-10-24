@@ -352,8 +352,8 @@ def unstated_ids_message(ids: list[str]) -> str:
     """The refusal of named gene ids the researcher's message does not hold."""
     return (
         f"The researcher's message does not hold {', '.join(ids)}. Name only the "
-        "ids the message types, or the ids of this site a file it attaches "
-        "shows, spelled as it spells them."
+        "ids the message types, the records the conversation showed last, or "
+        "the ids of this site a file it attaches shows, spelled as it spells them."
     )
 
 
