@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **An audit run's findings filter by certainty and by gene target.** `GET
+  /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
+  (`true` reads only the run's gene targets, `false` only the screened candidates).
+  `FindingQuery.where` takes the run's target keys and fills `FindingFilter.certainties`,
+  `FindingFilter.keys` and `FindingFilter.excluded_keys`; a run with no target and `target=true`
+  lists no finding. The audit assistant's `list_audit_findings` reads the same two filters.
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`
