@@ -9,6 +9,7 @@ import pytest
 from assistant_core.platform.db import async_session_factory
 from fastmcp.exceptions import ToolError
 from veupathdb.errors import DataParsingError
+from veupathdb_mcp.audit import rate_with_bounds
 
 from pathfinder.domain.audit.confirmations import LengthConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
@@ -18,6 +19,7 @@ from pathfinder.persistence.repositories.audit_findings import (
     NewFinding,
 )
 from pathfinder.services.audit import confirm
+from pathfinder.services.audit.views import run_view
 from pathfinder.tests._support.audit import (
     NF54,
     NF54_PIGA,
@@ -90,9 +92,21 @@ async def test_confirm_settles_each_sampled_finding_and_stores_its_answer(
         "truncated_model",
         "high",
     )
-    assert (found["NF54_TYPICAL"].status, found["NF54_TYPICAL"].error_type) == (
+    typical = found["NF54_TYPICAL"]
+    assert (typical.status, typical.error_type, typical.judged, typical.message) == (
         "confirmed",
         None,
+        False,
+        (
+            "NOT_CHECKED: the ortholog group does not class the gene as short, so "
+            "the check reads no DNA"
+        ),
+    )
+    (rate,) = (await run_view(run.id, run.user_id)).rates
+    assert (rate.bounds, rate.unjudged, rate.unresolved) == (
+        rate_with_bounds(1, 1, 1),
+        1,
+        1,
     )
     assert found["NF54_LEFT"].status == "unsampled"
     assert [(e.kind, e.status, e.payload) for e in evidence] == [

@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+* **A length check that read no DNA is an unjudged finding.** A `gene_length` or `gene_split`
+  answer of `NOT_CHECKED` classifies as not judged (`domain/audit/findings.py`, `_LENGTH_UNREAD`),
+  so the confirm stage stores it confirmed with `judged` false and its reason, and the run view's
+  rates count it under `unjudged` beside the rate instead of as a clean model.
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`

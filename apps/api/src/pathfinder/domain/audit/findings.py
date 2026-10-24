@@ -13,7 +13,6 @@ from veupathdb_mcp.audit import (
     FusionVerdict,
     GeneEvidence,
     GeneFusionAudit,
-    GeneLengthAudit,
     IntronVerdict,
     MissingVerdict,
     OrganelleVerdict,
@@ -99,12 +98,27 @@ def _unjudged(verdict: str, reason: str) -> Classification:
     return Classification(message=f"{verdict}: {reason}")
 
 
-def _length(result: GeneLengthAudit) -> Classification:
+_LENGTH_UNREAD: dict[Literal["gene_length", "gene_split"], Classification] = {
+    "gene_length": _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group does not class the gene as short, so the check reads no DNA",
+    ),
+    "gene_split": _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group does not call the pair a split, so the check reads no DNA",
+    ),
+}
+
+
+def _length(confirmation: LengthConfirmation) -> Classification:
+    result = confirmation.result
     match (result.length_class, result.verdict):
         case ("SHORT", "GENOME_ENCODES"):
             return _named("truncated_model", "high")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
+        case (_, "NOT_CHECKED"):
+            return _LENGTH_UNREAD[confirmation.check]
         case _:
             return NO_ERROR
 
@@ -277,8 +291,8 @@ def classify_confirmation(
         case SelenoproteinConfirmation(result=result):
             stops = result.verdict == "STOPS_AT_SEC"
             return _named("sec_read_as_stop", "high") if stops else NO_ERROR
-        case LengthConfirmation(result=result):
-            return _length(result)
+        case LengthConfirmation():
+            return _length(confirmation)
         case (
             FusionConfirmation()
             | StrainConfirmation()

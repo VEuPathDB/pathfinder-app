@@ -48,6 +48,18 @@ _PAYLOAD: TypeAdapter[EvidencePayload] = TypeAdapter(EvidencePayload)
 _TRUNCATED = Classification(error_type="truncated_model", certainty="high")
 _SPLIT = Classification(error_type="split_model", certainty="medium")
 _SEC_STOP = Classification(error_type="sec_read_as_stop", certainty="high")
+_LENGTH_UNREAD = Classification(
+    message=(
+        "NOT_CHECKED: the ortholog group does not class the gene as short, so the "
+        "check reads no DNA"
+    )
+)
+_SPLIT_UNREAD = Classification(
+    message=(
+        "NOT_CHECKED: the ortholog group does not call the pair a split, so the "
+        "check reads no DNA"
+    )
+)
 _PSEUDOGENE_ANSWERS = {
     "INTACT": Classification(
         error_type="intact_gene_called_pseudogene", certainty="high"
@@ -233,21 +245,21 @@ def test_each_selenoprotein_verdict_names_its_answer(
                 check="gene_length",
                 result=not_checked_audit(["G1"], "LONG", reference_gene="R1"),
             ),
-            NO_ERROR,
+            _LENGTH_UNREAD,
         ),
         (
             LengthConfirmation(
                 check="gene_length",
                 result=not_checked_audit(["G1"], "TYPICAL", reference_gene="R1"),
             ),
-            NO_ERROR,
+            _LENGTH_UNREAD,
         ),
         (
             LengthConfirmation(
                 check="gene_length",
                 result=not_checked_audit(["G1"], "UNQUALIFIED", reference_gene="R1"),
             ),
-            NO_ERROR,
+            _LENGTH_UNREAD,
         ),
         (
             LengthConfirmation(
@@ -256,7 +268,7 @@ def test_each_selenoprotein_verdict_names_its_answer(
                     ["G1", "G2"], "UNQUALIFIED", reference_gene="R1"
                 ),
             ),
-            NO_ERROR,
+            _SPLIT_UNREAD,
         ),
     ],
 )
@@ -273,7 +285,10 @@ def test_only_two_length_answers_name_an_error(length_class: str, verdict: str) 
     answer = _length_answer(length_class, verdict)
     check = "gene_split" if len(answer.genes) == 2 else "gene_length"
     named = classify_confirmation(LengthConfirmation(check=check, result=answer))
-    assert named == _LENGTH_ERRORS.get((length_class, verdict), NO_ERROR)
+    unread = _SPLIT_UNREAD if check == "gene_split" else _LENGTH_UNREAD
+    expected = unread if verdict == "NOT_CHECKED" else NO_ERROR
+    assert named == _LENGTH_ERRORS.get((length_class, verdict), expected)
+    assert named.judged is (verdict != "NOT_CHECKED")
 
 
 def test_an_error_type_is_never_stored_without_its_certainty() -> None:
