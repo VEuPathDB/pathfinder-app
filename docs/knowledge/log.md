@@ -5,17 +5,20 @@
 * **The audit pages format numbers and text in one module.** `features/audit/format.ts` holds
   `percent`, `shareText`, `rateText` (the rate and its Wilson interval), `rangeText` (the floor
   and ceiling the unresolved findings allow), `plural`, `joinWords`, `dayText` (the UTC day),
-  `impactText`, `scopeText` and `unresolvedText` (the unresolved count by status). `percent`
+  `impactText`, `scopeText` and `unresolvedText` (the unresolved count by status, in the words
+  the API serves). `percent`
   rounds a half to the even percent, as `domain/audit/words.py::percent` does, so a page and the
   API state one rate in one number.
-* **The web names every value the audit routes send in plain words.**
-  `features/audit/words.ts` holds one table per generated enum (checks, error types, certainty,
-  the finding, genome and evidence statuses, the evidence kinds, the stages, the genome roles, the
-  run phases, the halt kinds, and the importance and use sources) plus `ORIGIN_WORDS`, each a
-  `Record` over the enum's key type, so a value the API adds fails `yarn typecheck` until it has
-  words. `CHECK_WORDS` and `ERROR_TYPE_WORDS` repeat `CHECK_TITLES` and `ERROR_TYPE_TITLES`,
-  because the run list, the rates and the filters name a check with no finding at hand; a verdict
-  sentence or a fact is read from the API and never written here.
+* **The API serves the audit words, and the web holds only words no backend table holds.**
+  `GET /api/v1/audits/words` answers `AuditWords` (`services/audit/words.py`), built from
+  `domain/audit/words.py`'s tables: the checks, the error types and their descriptions, a
+  finding's status, the unresolved count by status (`UNRESOLVED_WORDS`, new), why a run halted
+  (`HALT_SENTENCES`, new; `RunHalt.detail` stays the raw reason), and a review's verdict,
+  literature and progress. `packages/spec/audit_words.json` is its recorded body, held to the
+  route by an api test; the web reads it through `lib/api/audits.ts::auditWordsOptions`.
+  `features/audit/words.ts` keeps words only for values with no backend table: certainty, the
+  genome and evidence statuses, the evidence kinds, the stages, the genome roles, the run phases,
+  the importance and use sources, and `ORIGIN_WORDS`.
 * **The web names the audit addresses in one place and the nav rail links them.**
   `lib/routes.ts` holds `auditsUrl()` (`/audits`), `auditRunUrl(runId, search)` and
   `auditFindingUrl(runId, findingId, search)`, where `search` is empty or starts with `?`; the nav

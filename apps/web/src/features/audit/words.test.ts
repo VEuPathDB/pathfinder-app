@@ -4,35 +4,22 @@ import {
   evidenceViewKindEnum,
   evidenceViewStatusEnum,
 } from "@pathfinder/shared/generated/types/EvidenceView";
-import {
-  findingViewCertaintyEnum,
-  findingViewCheckEnum,
-  findingViewErrorTypeEnum,
-  findingViewStatusEnum,
-} from "@pathfinder/shared/generated/types/FindingView";
+import { findingViewCertaintyEnum } from "@pathfinder/shared/generated/types/FindingView";
 import { genomeUseSourceEnum } from "@pathfinder/shared/generated/types/GenomeUse";
 import {
   genomeViewRoleEnum,
   genomeViewStatusEnum,
 } from "@pathfinder/shared/generated/types/GenomeView";
 import { importanceSourceEnum } from "@pathfinder/shared/generated/types/Importance";
-import { runHaltKindEnum } from "@pathfinder/shared/generated/types/RunHalt";
 import { stageRecordNameEnum } from "@pathfinder/shared/generated/types/StageRecord";
 
 import * as words from "./words";
 
 describe("audit words", () => {
-  it("has a phrase with no internal name for every value the API sends", () => {
+  it("has a phrase with no internal name for every value the page names", () => {
     const phrases = [
-      ...Object.values(findingViewCheckEnum).map((key) => words.CHECK_WORDS[key]),
-      ...Object.values(findingViewErrorTypeEnum).map(
-        (key) => words.ERROR_TYPE_WORDS[key],
-      ),
       ...Object.values(findingViewCertaintyEnum).map(
         (key) => words.CERTAINTY_WORDS[key],
-      ),
-      ...Object.values(findingViewStatusEnum).map(
-        (key) => words.FINDING_STATUS_WORDS[key],
       ),
       ...Object.values(genomeViewStatusEnum).map(
         (key) => words.GENOME_STATUS_WORDS[key],
@@ -48,65 +35,32 @@ describe("audit words", () => {
       ...Object.values(importanceSourceEnum).map((key) => words.IMPORTANCE_WORDS[key]),
       ...Object.values(genomeUseSourceEnum).map((key) => words.USE_WORDS[key]),
       ...Object.values(auditRunSummaryPhaseEnum).map((key) => words.PHASE_WORDS[key]),
-      ...Object.values(runHaltKindEnum).map((key) => words.HALT_WORDS[key]),
       ...Object.values(words.ORIGIN_WORDS),
     ];
-    expect(phrases.length).toBe(69);
+    expect(phrases.length).toBe(39);
     for (const phrase of phrases) expect(phrase).toMatch(/^[^_]+$/);
   });
 
-  it("names an error type and a stopped run in plain words", () => {
-    expect(words.ERROR_TYPE_WORDS.intact_gene_called_pseudogene).toBe(
-      "Intact gene called a pseudogene",
-    );
-    expect(words.PHASE_WORDS.halted).toBe("Stopped");
+  it("holds no table the API serves", () => {
+    expect(Object.keys(words).sort()).toEqual([
+      "CERTAINTY_WORDS",
+      "EVIDENCE_KIND_WORDS",
+      "EVIDENCE_STATUS_WORDS",
+      "GENOME_STATUS_WORDS",
+      "IMPORTANCE_WORDS",
+      "ORIGIN_WORDS",
+      "PHASE_WORDS",
+      "ROLE_WORDS",
+      "STAGE_WORDS",
+      "USE_WORDS",
+    ]);
   });
 
-  it("names each check by the title the API gives it", () => {
-    expect(words.CHECK_WORDS).toEqual({
-      pseudogene_call: "Pseudogene calls on intact genes",
-      selenoprotein_end: "Selenoproteins cut at their selenocysteine",
-      gene_length: "Gene length against orthologs",
-      gene_split: "One gene split into two models",
-      gene_fusion: "Neighbouring genes fused into one model",
-      strain_model: "Strain model against its reference",
-      missing_gene: "Genes missing from the annotation",
-      organelle_join: "Organelle genes at the circular join",
-      intron_support: "Exon structure against RNA-seq",
-    });
-  });
-
-  it("names each error type by the title the API gives it", () => {
-    expect(words.ERROR_TYPE_WORDS).toEqual({
-      intact_gene_called_pseudogene: "Intact gene called a pseudogene",
-      sec_read_as_stop: "Selenocysteine codon read as a stop",
-      truncated_model: "Model too short",
-      split_model: "One gene split into two models",
-      over_extended_model: "Model too long",
-      fused_model: "Two genes fused into one model",
-      missing_gene: "Gene missing from the annotation",
-      organelle_split_at_join: "Organelle gene split at the circular join",
-      missing_exon: "Exon missing from the model",
-      shifted_splice_site: "Splice site shifted",
-      spurious_intron: "Intron the RNA-seq does not splice",
-      unsupported_intron: "Intron with no RNA-seq support",
-    });
-  });
-
-  it("names a certainty and a finding's status", () => {
+  it("names a certainty", () => {
     expect(words.CERTAINTY_WORDS).toEqual({
       high: "High certainty",
       medium: "Medium certainty",
       low: "Low certainty",
-    });
-    expect(words.FINDING_STATUS_WORDS).toEqual({
-      screened: "Waiting to be checked",
-      unsampled: "Not in the random sample",
-      trying: "Being checked",
-      confirmed: "Checked",
-      failed: "Could not be checked",
-      unreached: "Couldn't reach the site",
-      unread: "Not read before the deadline",
     });
   });
 
@@ -141,7 +95,7 @@ describe("audit words", () => {
     });
   });
 
-  it("names a stage, a run's phase and why it stopped", () => {
+  it("names a stage and a run's phase", () => {
     expect(words.STAGE_WORDS).toEqual({
       collect: "Read the genomes",
       screen: "Find candidates",
@@ -154,12 +108,6 @@ describe("audit words", () => {
       running: "Running",
       halted: "Stopped",
       finished: "Finished",
-    });
-    expect(words.HALT_WORDS).toEqual({
-      sign_in:
-        "The audit needs your VEuPathDB sign-in. Sign in on the site, then resume it.",
-      task_failed:
-        "The audit task stopped on an error. Resume it to go on from the last unit it finished.",
     });
   });
 

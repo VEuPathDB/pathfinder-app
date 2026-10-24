@@ -1,6 +1,7 @@
 import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
 import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
 import type { Unresolved } from "@pathfinder/shared/generated/types/Unresolved";
+import type { UnresolvedWords } from "@pathfinder/shared/generated/types/UnresolvedWords";
 
 const DAY = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -9,13 +10,13 @@ const DAY = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-const UNRESOLVED_PARTS: readonly [Exclude<keyof Unresolved, "total">, string][] = [
-  ["screened", "waiting to be checked"],
-  ["unsampled", "not in the sample"],
-  ["trying", "being checked"],
-  ["failed", "could not be checked"],
-  ["unreached", "couldn't reach the site"],
-  ["unread", "not read before the deadline"],
+const UNRESOLVED_ORDER: readonly (keyof UnresolvedWords)[] = [
+  "screened",
+  "unsampled",
+  "trying",
+  "failed",
+  "unreached",
+  "unread",
 ];
 
 function roundHalfEven(value: number): number {
@@ -63,11 +64,11 @@ export function scopeText(run: Pick<AuditRunSummary, "genomes" | "targets">): st
   ]);
 }
 
-export function unresolvedText(unresolved: Unresolved): string {
+export function unresolvedText(unresolved: Unresolved, words: UnresolvedWords): string {
   if (unresolved.total === 0) return "0";
-  const parts = UNRESOLVED_PARTS.flatMap(([key, words]) => {
+  const parts = UNRESOLVED_ORDER.flatMap((key) => {
     const count = unresolved[key] ?? 0;
-    return count > 0 ? [`${String(count)} ${words}`] : [];
+    return count > 0 ? [`${String(count)} ${words[key]}`] : [];
   });
   return `${String(unresolved.total)} (${parts.join(", ")})`;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
 
+import served from "../../../../../packages/spec/audit_words.json";
+
 import {
   dayText,
   impactText,
@@ -74,28 +76,34 @@ describe("audit formats", () => {
       "Plasmodium falciparum NF54 and 2 gene targets",
     );
     expect(
-      unresolvedText({
-        screened: 0,
-        unsampled: 1,
-        trying: 0,
-        failed: 0,
-        unreached: 1,
-        unread: 1,
-        total: 3,
-      }),
+      unresolvedText(
+        {
+          screened: 0,
+          unsampled: 1,
+          trying: 0,
+          failed: 0,
+          unreached: 1,
+          unread: 1,
+          total: 3,
+        },
+        served.unresolved,
+      ),
     ).toBe(
-      "3 (1 not in the sample, 1 couldn't reach the site, 1 not read before the deadline)",
+      "3 (1 not in the random sample, 1 where the site did not answer, 1 not read before the run's deadline)",
     );
     expect(
-      unresolvedText({
-        screened: 0,
-        unsampled: 0,
-        trying: 0,
-        failed: 0,
-        unreached: 0,
-        unread: 0,
-        total: 0,
-      }),
+      unresolvedText(
+        {
+          screened: 0,
+          unsampled: 0,
+          trying: 0,
+          failed: 0,
+          unreached: 0,
+          unread: 0,
+          total: 0,
+        },
+        served.unresolved,
+      ),
     ).toBe("0");
   });
 
@@ -108,21 +116,26 @@ describe("audit formats", () => {
 
   it("names every unresolved status, in the order a finding moves through them", () => {
     expect(
-      unresolvedText({
-        screened: 4,
-        unsampled: 5,
-        trying: 1,
-        failed: 2,
-        unreached: 3,
-        unread: 6,
-        total: 21,
-      }),
+      unresolvedText(
+        {
+          screened: 4,
+          unsampled: 5,
+          trying: 1,
+          failed: 2,
+          unreached: 3,
+          unread: 6,
+          total: 21,
+        },
+        served.unresolved,
+      ),
     ).toBe(
-      "21 (4 waiting to be checked, 5 not in the sample, 1 being checked, 2 could not be checked, 3 couldn't reach the site, 6 not read before the deadline)",
+      "21 (4 not checked yet, 5 not in the random sample, 1 being checked, 2 where the check failed, 3 where the site did not answer, 6 not read before the run's deadline)",
     );
   });
 
   it("reads a status the API leaves out as none", () => {
-    expect(unresolvedText({ failed: 2, total: 2 })).toBe("2 (2 could not be checked)");
+    expect(unresolvedText({ failed: 2, total: 2 }, served.unresolved)).toBe(
+      "2 (2 where the check failed)",
+    );
   });
 });
