@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from veupathdb_mcp.audit import (
     Anatomy,
     GeneEvidence,
@@ -12,6 +14,7 @@ from veupathdb_mcp.audit import (
     RateBounds,
     SelenoproteinEndAudit,
     StrainModelAudit,
+    gene_organism,
     rate_with_bounds,
 )
 from veupathdb_mcp.tools import (
@@ -73,3 +76,7 @@ async def genome_provenance(site_id: str, organism: str) -> GenomeProvenance:
 
 def rate_with_interval(confirmed: int, checked: int, unresolved: int) -> RateBounds:
     return rate_with_bounds(confirmed, checked, unresolved)
+
+
+async def gene_genomes(site_id: str, genes: Iterable[str]) -> dict[str, str]:
+    return {gene: await gene_organism(site_id, gene) for gene in dict.fromkeys(genes)}

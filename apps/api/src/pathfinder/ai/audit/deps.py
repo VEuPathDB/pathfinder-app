@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from typing import Any
 from uuid import UUID
 
@@ -11,7 +12,7 @@ from pydantic import Field, SkipValidation
 from pydantic_ai.toolsets import AbstractToolset
 
 from pathfinder.ai.graph.turn_records import ReadRecord
-from pathfinder.domain.audit.verdicts import VerdictOrigin
+from pathfinder.domain.audit.verdicts import GeneModelVerdict, VerdictOrigin
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.audit.verdicts import AuditCaller
@@ -29,6 +30,24 @@ class AuditDeps(AssistantDeps):
     records: list[ReadRecord] = Field(default_factory=list)
     recorded: list[int] = Field(default_factory=list)
     runs: list[UUID] = Field(default_factory=list)
+    gene_genomes: dict[str, frozenset[str]] = Field(default_factory=dict)
+
+    def hold_genomes(self, genomes: Mapping[str, Iterable[str]]) -> None:
+        for gene, named in genomes.items():
+            held = self.gene_genomes.setdefault(gene, frozenset())
+            self.gene_genomes[gene] = held | frozenset(named)
+
+    def misplaced_genome(self, verdict: GeneModelVerdict) -> str | None:
+        unread = [gene for gene in verdict.genes if gene not in self.gene_genomes]
+        if unread:
+            return f"no read of this turn names the genome of {', '.join(unread)}"
+        named = sorted({g for gene in verdict.genes for g in self.gene_genomes[gene]})
+        if verdict.model_genome in named:
+            return None
+        return (
+            f"{verdict.model_genome} is not the genome of {', '.join(verdict.genes)}, "
+            f"which the reads place in {', '.join(named)}"
+        )
 
     @property
     def caller(self) -> AuditCaller:

@@ -21,7 +21,6 @@ from pathfinder.domain.audit.verdicts import read_cite
 INVESTIGATOR = "investigator"
 PSEUDOGENE_CALL = "audit_pseudogene_call"
 PSEUDOGENE_QUESTION = "pseudogene call"
-MOCK_GENOME = "Plasmodium falciparum 3D7"
 _GENE = re.compile(r"\b[A-Za-z0-9]+_\d+\b")
 
 
@@ -37,6 +36,7 @@ class CheckRead(CamelModel):
 
     answer: _Verdict
     fact_id: str
+    genomes: dict[str, str]
 
 
 def gene_pair(text: str) -> tuple[str, str] | None:
@@ -67,7 +67,7 @@ def pseudogene_verdict(
     intact = read.answer.verdict == "INTACT"
     return {
         "genes": [strain],
-        "modelGenome": MOCK_GENOME,
+        "modelGenome": read.genomes[strain],
         "verdict": "error" if intact else "undecided",
         "errorType": "intact_gene_called_pseudogene" if intact else None,
         "certainty": "high" if intact else None,

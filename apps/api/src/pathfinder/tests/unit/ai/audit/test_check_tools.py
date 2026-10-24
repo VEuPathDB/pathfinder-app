@@ -82,6 +82,21 @@ def _intact() -> PseudogeneCallAudit:
     )
 
 
+_GENOMES = {"EXA": "Examplea alpha A", "EXR": "Examplea alpha R"}
+
+
+@pytest.fixture(autouse=True)
+def organism_reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    reads: list[tuple[str, str]] = []
+
+    async def organism(site_id: str, gene: str) -> str:
+        reads.append((site_id, gene))
+        return _GENOMES[gene[:3]]
+
+    monkeypatch.setattr(investigation, "gene_organism", organism)
+    return reads
+
+
 def _deps() -> AuditDeps:
     return AuditDeps(site_id="plasmodb", user_id=uuid4(), conversation_id=uuid4())
 
@@ -157,13 +172,19 @@ async def test_a_check_read_records_the_given_and_resolved_ids(
         "audit_pseudogene_call:EXA_0001:pseudogene:EXR_0001",
     }
     assert (fact.kind, fact.value("strainCdsLength")) == ("gene_check", "900")
-    assert [(r.record_id, r.url) for r in deps.records] == [
-        (_STRAIN, gene_record_url("plasmodb", _STRAIN)),
-        (_RESOLVED, gene_record_url("plasmodb", _RESOLVED)),
-        (_REFERENCE, gene_record_url("plasmodb", _REFERENCE)),
+    assert [(r.record_id, r.url, r.organism) for r in deps.records] == [
+        (_STRAIN, gene_record_url("plasmodb", _STRAIN), "Examplea alpha A"),
+        (_RESOLVED, gene_record_url("plasmodb", _RESOLVED), "Examplea alpha A"),
+        (_REFERENCE, gene_record_url("plasmodb", _REFERENCE), "Examplea alpha R"),
     ]
     assert _summary(returned) == "EXA_0001 against EXR_0001: INTACT"
     assert _read(returned).fact_id == fact.id
+    assert returned.model_response_object()["genomes"] == {
+        _STRAIN: "Examplea alpha A",
+        _RESOLVED: "Examplea alpha A",
+        _REFERENCE: "Examplea alpha R",
+    }
+    assert deps.gene_genomes[_REFERENCE] == frozenset({"Examplea alpha R"})
 
 
 async def test_a_refused_check_reaches_the_model_as_a_refusal(
@@ -233,7 +254,9 @@ def test_no_check_tool_asks_the_model_for_a_site() -> None:
     } == dict.fromkeys(CHECK_TOOL_NAMES, False)
 
 
-async def test_a_check_runs_on_the_turns_site(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_a_check_runs_on_the_turns_site(
+    monkeypatch: pytest.MonkeyPatch, organism_reads: list[tuple[str, str]]
+) -> None:
     asked: list[str] = []
 
     async def answer(
@@ -249,6 +272,7 @@ async def test_a_check_runs_on_the_turns_site(monkeypatch: pytest.MonkeyPatch) -
     await _run("audit_pseudogene_call", _PAIR_ARGS, deps)
 
     assert asked == ["toxodb"]
+    assert organism_reads == [("toxodb", _RESOLVED), ("toxodb", _REFERENCE)]
     assert [r.url for r in deps.records] == [
         gene_record_url("toxodb", gene) for gene in (_STRAIN, _RESOLVED, _REFERENCE)
     ]

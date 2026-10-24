@@ -52,14 +52,14 @@ class GeneModelInvestigation(CamelModel):
     runs: SkipJsonSchema[tuple[UUID, ...]] = ()
 
 
-async def _cites_held(
+def _cites_held(
     ctx: RunContext[AuditDeps], output: GeneModelInvestigation
 ) -> GeneModelInvestigation:
     held = ctx.deps.held_reads()
     unheld = [cite for v in output.verdicts for cite in v.unheld_cites(held)]
     if unheld:
         raise ModelRetry(unheld_cites_message(unheld))
-    genomes = await unheld_genomes(ctx.deps.site_id, output.verdicts)
+    genomes = unheld_genomes(ctx.deps, output.verdicts)
     if genomes:
         raise ModelRetry(unheld_genomes_message(genomes))
     return output

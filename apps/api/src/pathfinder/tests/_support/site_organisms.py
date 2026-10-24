@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 from veupathdb.model import CamelModel
 
-from pathfinder.ai.audit import verdict_tool
 from pathfinder.ai.lead import classification_gate
 from pathfinder.tests._support.qa_recording import qa_recording
 
@@ -37,12 +36,3 @@ def serve_recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
     return reads
-
-
-def serve_recorded_verdict_genomes(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Hold each stored verdict's genome to the site's recording."""
-
-    async def _organisms(site_id: str) -> list[str]:
-        return recorded_organisms(site_id)
-
-    monkeypatch.setattr(verdict_tool, "list_organisms", _organisms)

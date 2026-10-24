@@ -44,6 +44,7 @@ from pathfinder.services.audit.finding_views import (
     FindingDetail,
     FindingPage,
     FindingQuery,
+    FindingView,
     finding_detail,
     finding_page,
 )
@@ -274,9 +275,17 @@ async def list_audit_findings_tool(
     ctx.deps.runs.append(run_id)
     genes = (gene for finding in page.findings for gene in finding.target.genes)
     ctx.deps.records.extend(gene_records(page.site_id, genes))
+    for finding in page.findings:
+        ctx.deps.hold_genomes(finding_genomes(finding))
     read = AuditRead[FindingPage](answer=page, fact_id=fact.id)
     summary = f"{len(page.findings)} of {count_noun(page.total, 'finding')}"
     return with_summary(read, summary, ctx=ctx)
+
+
+def finding_genomes(finding: FindingView) -> dict[str, frozenset[str]]:
+    named = {finding.genome, finding.screened_genome, finding.paired_genome}
+    genomes = frozenset(g for g in named if g is not None)
+    return dict.fromkeys(finding.target.genes, genomes)
 
 
 def _held(
@@ -292,6 +301,7 @@ def _held(
         *(evidence_cite(finding_id, kind) for kind in stored),
     }
     deps.records.extend(gene_records(detail.site_id, detail.finding.target.genes))
+    deps.hold_genomes(finding_genomes(detail.finding))
     return AuditRead[FindingDetail](answer=detail, fact_id=fact.id)
 
 

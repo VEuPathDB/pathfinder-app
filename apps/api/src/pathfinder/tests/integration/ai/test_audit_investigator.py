@@ -11,7 +11,7 @@ from pathfinder.services.audit import investigation
 from pathfinder.services.audit.verdicts import conversation_verdicts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit import seed_thread
-from pathfinder.tests._support.site_organisms import serve_recorded_verdict_genomes
+from pathfinder.tests._support.audit_planning import serve_gene_genomes
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
@@ -46,7 +46,7 @@ async def test_an_investigation_stores_its_verdicts(
         return _intact()
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
-    serve_recorded_verdict_genomes(monkeypatch)
+    serve_gene_genomes(monkeypatch)
     owner = await seed_thread()
     deps = AuditDeps(
         site_id="plasmodb",

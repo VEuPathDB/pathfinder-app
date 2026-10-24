@@ -13,7 +13,7 @@ from veupathdb_mcp.audit import BuscoScore, GenomePriority
 from pathfinder.domain.audit.planning import PlanRequest
 from pathfinder.domain.audit.scope import GenePairTarget, GeneTarget, SingleGeneTarget
 from pathfinder.platform.config import get_settings
-from pathfinder.services.audit import planning
+from pathfinder.services.audit import investigation, planning
 
 SITE = "plasmodb"
 SITE_NAME = "PlasmoDB"
@@ -142,3 +142,14 @@ def setting(monkeypatch: pytest.MonkeyPatch, name: str, value: str) -> Iterator[
 
 def plan_request(*genomes: str, targets: tuple[GeneTarget, ...] = ()) -> PlanRequest:
     return PlanRequest(site_id=SITE, genomes=genomes, targets=targets)
+
+
+def serve_gene_genomes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Place each synthetic gene in the genome of the synthetic site its prefix names."""
+    placed = {"EXA": STRAINS[0], "EXR": ALPHA_R}
+
+    async def organism(site_id: str, gene: str) -> str:
+        del site_id
+        return placed[gene[:3]]
+
+    monkeypatch.setattr(investigation, "gene_organism", organism)
