@@ -76,9 +76,10 @@ beside the reply in the default thread.
 
 The reply writes no fact itself. `LeadResponse.prose` and a card's `reply` hold references,
 and `domain/reply_references.py::render_reply` replaces each with the fact it names; a
-reference that names nothing the facts hold, which only a reply let through past
+reference that names nothing the facts hold, which only a card's reply let through past
 [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)
-carries, is shown as its plain words:
+carries, is shown as its plain words (a typed reply that still cannot render past the bound
+is withheld):
 
 | reference | renders |
 |---|---|
@@ -123,10 +124,12 @@ parameter's published initial value, never more than four significant digits, an
 significant digits where those decimals show zero (`BoundValue.rounded`,
 `domain/strategy/number_precision.py`); the facts row and the `[value:]` reference show the same
 text. The check reads a number word only where the grammar places a reference
-(`domain/reference_placement.py`): a number word (one to twelve, "twice", a "<word>-fold") in the
-clause of a `[value:]`, `[count:]`, `[before:]`, `[root]`, `[root_before]`, `[last_change:]` or
-`[diff:]` reference is refused, since the reference stands in place of the number; "both" names two
-inputs and stands. A count noun ("gene", "record", their plurals, the strategy's record noun)
+(`domain/reference_placement.py`): in the clause of a `[value:]`, `[count:]`, `[before:]`,
+`[root]`, `[root_before]`, `[last_change:]` or `[diff:]` reference, a number word from one to
+twelve is refused when it reads as a number one of those references renders, and a share word
+("twice", "half", "third", "quarter", "fifth", "percent", a "<word>-fold") is refused always,
+since the reference stands in place of the number; a number word that is no number the clause
+renders ("groups containing exactly one protein and returns [count:...]") and "both" stand. A count noun ("gene", "record", their plurals, the strategy's record noun)
 next after a count reference, or after only continuation words ("more", "fewer", "additional",
 "matching"), is refused, since the reference renders with its
 noun. Elsewhere a small count of steps in words is structure. Its correction

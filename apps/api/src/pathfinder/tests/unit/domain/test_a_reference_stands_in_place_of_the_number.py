@@ -96,9 +96,7 @@ def test_a_fold_word_beside_a_value_reference_is_refused() -> None:
 @pytest.mark.parametrize(
     "prose",
     [
-        "Two steps keep [count:step_5c5aea5d].",
         "The result [root] is twice smaller.",
-        "It removed [diff:step_5c5aea5d,root] in three passes.",
         "The subset [count:step_5c5aea5d] is about a third of [root].",
         "Roughly half of [root] carry it, [count:step_5c5aea5d].",
     ],
@@ -114,10 +112,53 @@ def test_a_number_word_in_the_clause_of_a_count_reference_is_refused(
     [
         "The strategy has two steps; the result is [root].",
         "The intersect keeps [count:step_5c5aea5d] in both searches.",
+        "Two steps keep [count:step_5c5aea5d].",
+        "It removed [diff:step_5c5aea5d,root] in three passes.",
     ],
 )
 def test_a_number_word_in_another_clause_or_both_stands(prose: str) -> None:
     assert prose_faults(prose, _PLASMO) == []
+
+
+_GROUPS = TurnFacts(
+    record_noun="group",
+    steps=[
+        StepFact(
+            step_id="step_88b8197d",
+            display_name="Number of Sequences",
+            count=523795,
+            record_noun="group",
+        ),
+        StepFact(
+            step_id="step_pair",
+            display_name="Phyletic Pattern",
+            count=2,
+            record_noun="group",
+        ),
+    ],
+    root_count=523795,
+)
+
+
+def test_a_number_word_that_is_not_the_rendered_count_stands() -> None:
+    prose = (
+        "The strategy correctly defines singleton groups as groups containing "
+        "exactly one protein and returns [count:step_88b8197d]."
+    )
+
+    assert prose_faults(prose, _GROUPS) == []
+
+
+def test_a_number_word_that_spells_the_rendered_count_is_refused() -> None:
+    prose = "The pattern keeps two [count:step_pair] in all."
+
+    assert prose_faults(prose, _GROUPS) == [
+        ProseFault(
+            token="The pattern keeps two [count:step_pair] in all",
+            kind="number_word",
+            references=("[count:step_pair]",),
+        )
+    ]
 
 
 def test_a_count_noun_after_a_difference_is_refused() -> None:

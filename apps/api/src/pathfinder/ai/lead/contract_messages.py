@@ -310,7 +310,8 @@ def _placement_sentence(fault: ProseFault) -> str | None:
     if fault.kind == "number_word":
         return (
             f"``{fault.token}``: ``{fault.references[0]}`` stands in place of the "
-            "number, so the clause writes no number word: write 'at least "
+            "number, so the clause spells it in no word and states no share of "
+            "it: write 'at least "
             "[value:step_x.min_tm] transmembrane domains', not 'at least one "
             "transmembrane domain [value:step_x.min_tm]'."
         )

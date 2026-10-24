@@ -4,7 +4,7 @@ and with no noun after a count it renders with its noun."""
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -13,9 +13,9 @@ from pathfinder.domain.reference_grammar import (
     COUNTED_REFERENCES,
     reference_kind,
 )
+from pathfinder.domain.strategy.words import numeral
 
-# "both" names two inputs, as in the genes an intersect keeps in both.
-_NUMBER_WORDS = (
+_CARDINALS = (
     "one",
     "two",
     "three",
@@ -28,17 +28,15 @@ _NUMBER_WORDS = (
     "ten",
     "eleven",
     "twelve",
-    "twice",
-    # A share of a count is a number the facts hold or a difference renders.
-    "half",
-    "third",
-    "quarter",
-    "fifth",
-    "percent",
 )
+# A share of a count is a number the facts hold or a difference renders.
+_SHARES = ("twice", "half", "third", "quarter", "fifth", "percent")
 _A_NUMBER_WORD = re.compile(
-    rf"\b(?:[a-z]+-fold|{'|'.join(_NUMBER_WORDS)})\b", re.IGNORECASE
+    rf"\b(?:[a-z]+-fold|{'|'.join((*_CARDINALS, *_SHARES))})\b", re.IGNORECASE
 )
+_A_RENDERED_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+type Rendered = Callable[[re.Match[str]], str | None]
 # The references whose clause writes no number word.
 _IN_PLACE_OF_A_NUMBER = frozenset(
     {"value", "count", "before", "diff", "root", "root_before", "last_change"}
@@ -103,13 +101,31 @@ def _noun_after(masked: str, end: int, stop: int, nouns: frozenset[str]) -> int:
     return -1
 
 
+def _numbers(text: str | None) -> frozenset[float]:
+    found = _A_RENDERED_NUMBER.findall(text or "")
+    return frozenset(float(number.replace(",", "")) for number in found)
+
+
+def _spells(word: str, rendered: frozenset[float]) -> bool:
+    said = word.casefold()
+    if said not in _CARDINALS:
+        return True
+    return float(numeral(said)) in rendered
+
+
 def _in_clause(
-    prose: str, masked: str, span: tuple[int, int], nouns: frozenset[str]
+    prose: str,
+    masked: str,
+    span: tuple[int, int],
+    nouns: frozenset[str],
+    rendered: Rendered,
 ) -> Iterator[Misplacement]:
     start, stop = span
     references = [m for m in A_REFERENCE.finditer(prose) if start <= m.start() < stop]
     numbered = [m for m in references if reference_kind(m) in _IN_PLACE_OF_A_NUMBER]
-    if numbered and _A_NUMBER_WORD.search(masked, start, stop):
+    shown = frozenset(n for m in numbered for n in _numbers(rendered(m)))
+    words = (m.group() for m in _A_NUMBER_WORD.finditer(masked, start, stop))
+    if numbered and any(_spells(word, shown) for word in words):
         clause = prose[start:stop].strip()
         yield Misplacement("number_word", clause, numbered[0].group())
     for match in references:
@@ -121,15 +137,17 @@ def _in_clause(
             yield Misplacement("noun_after_count", token, match.group())
 
 
-def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]:
-    """Each clause that writes a number word beside a count or value reference,
-    and each count reference with a count noun after it."""
+def misplacements(
+    prose: str, record_nouns: Sequence[str], rendered: Rendered
+) -> list[Misplacement]:
+    """Each clause that spells a number its count or value reference renders,
+    or a share of it, and each count reference with a count noun after it."""
     masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
     nouns = _count_nouns(record_nouns)
     return [
         found
         for span in _clauses(masked)
-        for found in _in_clause(prose, masked, span, nouns)
+        for found in _in_clause(prose, masked, span, nouns, rendered)
     ]
 
 

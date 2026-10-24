@@ -11,9 +11,10 @@ PROSE_MAX_CHARS = 4000
 # A reply shorter than a sentence answers nothing.
 _REPLY_MIN_CHARS = 20
 PLACEMENT_RULES = (
-    "A count reference renders with its noun, so no noun follows it. A number "
-    "word (one to twelve, twice, two-fold) never stands in the clause of "
-    "a count or value reference, which stands in place of the number."
+    "A count reference renders with its noun, so no noun follows it. A count "
+    "or value reference stands in place of the number, so its clause never "
+    "spells that number in words (one to twelve) and never states a share of "
+    "it (twice, half, two-fold)."
 )
 # The records a record reference cites. The schema and the Lead's instruction
 # both state it.
