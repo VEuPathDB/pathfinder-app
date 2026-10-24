@@ -135,8 +135,8 @@ async def test_each_unanswered_target_pass_is_counted_on_screen_and_reported(
     owner = await seed_thread()
     lane = RecordedLane()
     run_id = await _screen(owner, lane)
-    assert (await _stage_requests(run_id, owner))["screen"] == 4
-    assert len(site.uploads) == 1
+    assert (await _stage_requests(run_id, owner))["screen"] == 3
+    assert len(site.list_reads) == 3
     assert lane.messages == [
         "plasmodb: gene targets unreached (connection refused)",
         "waiting 30 s for plasmodb, gene targets unanswered",
@@ -156,7 +156,7 @@ async def test_a_refused_target_read_reports_its_reason(site: FakeSite) -> None:
             run_id, FindingFilter()
         )
     assert (finding.genome, finding.status, finding.message) == ("", "screened", None)
-    assert (await _stage_requests(run_id, owner))["screen"] == 2
+    assert (await _stage_requests(run_id, owner))["screen"] == 1
     assert lane.messages == [
         "plasmodb: gene targets failed (VEuPathDB service error: bad locus tag)",
         SUMMARY,

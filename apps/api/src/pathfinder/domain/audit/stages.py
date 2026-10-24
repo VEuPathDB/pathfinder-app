@@ -6,7 +6,6 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, model_validator
-from veupathdb_mcp.audit import GeneListDataset
 
 StageName = Literal["collect", "screen", "confirm", "tie_break"]
 RunStatus = Literal["planned", "running", "finished"]
@@ -44,7 +43,6 @@ class RunStages(CamelModel):
     stages: tuple[StageRecord, ...] = Field(default_factory=_fresh)
     halted: str | None = None
     target_failure: str | None = None
-    target_list: GeneListDataset | None = None
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
@@ -124,6 +122,3 @@ class RunStages(CamelModel):
 
     def note_target_failure(self, message: str) -> RunStages:
         return self._with(target_failure=message)
-
-    def keep_target_list(self, listed: GeneListDataset) -> RunStages:
-        return self._with(target_list=listed)

@@ -131,7 +131,6 @@ class RunEstimate(CamelModel):
     hours: float = Field(ge=0)
     hours_at_most: float = Field(gt=0)
     model_reviews: int = Field(ge=0)
-    datasets: int = Field(ge=0, le=1)
 
 
 def _unnamed(field: str, held: Collection[str], keys: tuple[str, ...]) -> list[str]:
@@ -143,7 +142,7 @@ class UnitCosts(CamelModel):
 
     collect_requests: Mapping[GenomeRole, int]
     run_requests: int = Field(ge=0)
-    list_requests: int = Field(ge=0)
+    reads_per_listed_gene: int = Field(ge=0)
     confirm_requests: Mapping[CheckName, int]
     evidence_requests: Mapping[EvidenceKind, int]
     collect_seconds: Mapping[GenomeRole, float]
@@ -209,7 +208,6 @@ class AuditStartCard(CamelModel):
     hours: float
     hours_at_most: float
     model_reviews: int
-    datasets: int
 
 
 def _by_name(genomes: Sequence[SiteGenome]) -> dict[str, SiteGenome]:
@@ -314,18 +312,17 @@ def _finding_seconds(check: CheckName, costs: UnitCosts) -> float:
     return costs.confirm_seconds[check] + evidence
 
 
-def lists_targets(scope: AuditScope) -> bool:
-    return any(target.genome is None for target in scope.targets)
+def listed_genes(scope: AuditScope) -> int:
+    return len({g for t in scope.targets if t.genome is None for g in t.genes})
 
 
 def estimate(scope: AuditScope, *, run_hours: float, costs: UnitCosts) -> RunEstimate:
     units = _units(scope)
-    listed = lists_targets(scope)
     roles: list[GenomeRole] = [role for _, role in scope.roles]
     requests = (
         sum(costs.collect_requests[role] for role in roles)
         + costs.run_requests
-        + (costs.list_requests if listed else 0)
+        + costs.reads_per_listed_gene * listed_genes(scope)
         + sum(n * _finding_requests(check, costs) for check, n in units)
     )
     seconds = sum(costs.collect_seconds[role] for role in roles) + sum(
@@ -337,7 +334,6 @@ def estimate(scope: AuditScope, *, run_hours: float, costs: UnitCosts) -> RunEst
         hours=seconds / 3600,
         hours_at_most=run_hours,
         model_reviews=MAX_REVIEWS_PER_RUN + AGREEMENT_SAMPLE,
-        datasets=int(listed),
     )
 
 
@@ -361,7 +357,6 @@ def start_card(proposal: ScopeProposal, *, tool_call_id: str) -> AuditStartCard:
         hours=cost.hours,
         hours_at_most=cost.hours_at_most,
         model_reviews=cost.model_reviews,
-        datasets=cost.datasets,
     )
 
 

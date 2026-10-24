@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
-from veupathdb_mcp.audit import GeneListDataset
 
 from pathfinder.domain.audit.stages import STAGES, RunStages
 
@@ -118,19 +117,15 @@ def test_the_last_target_failure_rides_every_change_of_the_stages() -> None:
     )
 
 
-def test_the_kept_target_list_rides_every_change_and_round_trips() -> None:
-    listed = GeneListDataset(site_id="plasmodb", dataset_id=9, size=300)
-    kept = RunStages().keep_target_list(listed).note_target_failure("refused")
-    changed = (
-        kept.count("collect", 1)
-        .progress("collect", done=1, total=1, message="m")
-        .finish("collect")
-        .reopen("collect")
-        .halt("sign-in needed")
+def test_a_stored_row_that_kept_a_target_list_loads_without_it() -> None:
+    stored = (
+        RunStages()
+        .note_target_failure("refused")
+        .model_dump(by_alias=True, mode="json")
     )
-    stored = changed.model_dump(by_alias=True, mode="json")
-    assert (changed.target_list, stored["targetList"]) == (
-        listed,
-        {"siteId": "plasmodb", "datasetId": 9, "size": 300},
-    )
-    assert RunStages.model_validate(stored) == changed
+    stored["targetList"] = {"siteId": "plasmodb", "datasetId": 9, "size": 300}
+
+    loaded = RunStages.model_validate(stored)
+
+    assert loaded == RunStages().note_target_failure("refused")
+    assert "targetList" not in loaded.model_dump(by_alias=True, mode="json")

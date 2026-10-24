@@ -111,7 +111,6 @@ async def test_planning_never_uploads_a_dataset(
 ) -> None:
     monkeypatch.setattr(veupathdb_mcp.audit, "proteins_of", _refusing)
     monkeypatch.setattr(veupathdb_mcp.audit, "locus_tag_answers", _refusing)
-    monkeypatch.setattr(veupathdb_mcp.audit, "upload_gene_list", _refusing)
     monkeypatch.setattr(StrategyAPI, "create_dataset", _refusing)
 
     proposal = await propose_scope(

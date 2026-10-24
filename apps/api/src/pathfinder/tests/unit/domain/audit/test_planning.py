@@ -96,7 +96,7 @@ def _costs(*, model_reads: int = 0) -> UnitCosts:
     return UnitCosts(
         collect_requests={"audited": 2, "comparison": 2},
         run_requests=3,
-        list_requests=1,
+        reads_per_listed_gene=1,
         confirm_requests=dict.fromkeys(checks, 4),
         evidence_requests={"confirmation": 0, "relatives": 1, "gene_evidence": 2},
         collect_seconds={"audited": 2.0, "comparison": 2.0},
@@ -185,13 +185,23 @@ def test_a_pseudogene_screen_needs_a_reference() -> None:
 
 def test_the_estimate_is_the_cost_of_its_units() -> None:
     assert estimate(SCOPE, run_hours=6.0, costs=_costs()) == RunEstimate(
-        wdk_requests=128,
+        wdk_requests=133,
         store_reads=5,
         hours=102 / 3600,
         hours_at_most=6.0,
         model_reviews=60,
-        datasets=1,
     )
+
+
+def test_each_listed_gene_is_priced_as_one_record_read() -> None:
+    listed = AuditScope(site_id="exampledb", targets=LIST_TARGETS)
+    one = AuditScope(site_id="exampledb", targets=LIST_TARGETS[1:2])
+
+    many = estimate(listed, run_hours=6.0, costs=_costs()).wdk_requests
+    single = estimate(one, run_hours=6.0, costs=_costs()).wdk_requests
+
+    assert (many, single) == (3 + 6 + 4 * (4 + 2), 3 + 1 + 4 + 2)
+    assert "datasets" not in RunEstimate.model_fields
 
 
 def test_model_reads_per_finding_is_added_per_sampled_finding() -> None:
@@ -201,18 +211,12 @@ def test_model_reads_per_finding_is_added_per_sampled_finding() -> None:
     assert read.wdk_requests - plain.wdk_requests == 3 * (5 * 2 + 6)
 
 
-def test_a_scope_without_targets_keeps_no_dataset() -> None:
-    bare = AuditScope(site_id="exampledb", genomes=STRAINS[:1], checks=("gene_length",))
-
-    assert estimate(bare, run_hours=6.0, costs=_costs()).datasets == 0
-
-
-def test_a_scope_of_missing_gene_targets_keeps_no_dataset_and_no_list_read() -> None:
+def test_a_scope_of_missing_gene_targets_reads_no_listed_gene() -> None:
     missing = AuditScope(site_id="exampledb", targets=(MISSING,))
 
     cost = estimate(missing, run_hours=6.0, costs=_costs())
 
-    assert (cost.datasets, cost.wdk_requests) == (0, 3 + 4 + 2)
+    assert cost.wdk_requests == 3 + 4 + 2
 
 
 def test_unit_costs_name_every_check() -> None:
@@ -259,12 +263,11 @@ def test_the_card_carries_the_proposal_fields() -> None:
         refused_targets=(
             RefusedTarget(key="intron_support:EXB_0001", reason="no junction track"),
         ),
-        wdk_requests=128,
+        wdk_requests=133,
         store_reads=5,
         hours=102 / 3600,
         hours_at_most=6.0,
         model_reviews=60,
-        datasets=1,
     )
 
 

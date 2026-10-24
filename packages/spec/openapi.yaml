@@ -6790,25 +6790,6 @@ components:
       - code
       - codeInferred
       title: GeneLengthAudit
-    GeneListDataset:
-      properties:
-        siteId:
-          type: string
-          title: Siteid
-        datasetId:
-          type: integer
-          title: Datasetid
-        size:
-          type: integer
-          maximum: 400.0
-          minimum: 1.0
-          title: Size
-      type: object
-      required:
-      - siteId
-      - datasetId
-      - size
-      title: GeneListDataset
     GeneModelVerdict:
       properties:
         genes:
@@ -9704,10 +9685,6 @@ components:
           - type: string
           - type: 'null'
           title: Targetfailure
-        targetList:
-          anyOf:
-          - $ref: '#/components/schemas/GeneListDataset'
-          - type: 'null'
       type: object
       title: RunStages
     SaveSubstrategyRequest:
@@ -12759,9 +12736,6 @@ components:
         modelReviews:
           title: Modelreviews
           type: integer
-        datasets:
-          title: Datasets
-          type: integer
       required:
       - toolCallId
       - siteId
@@ -12777,7 +12751,6 @@ components:
       - hours
       - hoursAtMost
       - modelReviews
-      - datasets
       title: AuditStartCard
       type: object
     BackgroundTaskStarted:

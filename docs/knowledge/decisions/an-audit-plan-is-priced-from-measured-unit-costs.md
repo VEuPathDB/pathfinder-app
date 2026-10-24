@@ -52,8 +52,9 @@ to five suggestions that hold all of its words.
 **The estimate is a sum of measured unit costs.** `MEASURED_COSTS` holds the
 per-unit means of one cost run (QA plasmodb and toxodb, build 71, 2026-10-23),
 with request and store-read counts rounded up. A run reads its build once and,
-when a target enters the run's gene list, three more requests and one dataset;
-a scope whose only targets are missing-gene or organelle targets uploads none.
+one gene record read for each distinct gene of the targets that enter the run's
+gene list (`reads_per_listed_gene`); a run leaves no dataset in the account, and
+a scope whose only targets are missing-gene or organelle targets lists no gene.
 Each screened check costs `confirm_limit` findings per audited genome, so the
 request count is an upper bound. `model_reviews` is the review cap plus the
 agreement sample.
