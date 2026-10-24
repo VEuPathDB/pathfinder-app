@@ -6,6 +6,7 @@ from enum import StrEnum
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, model_validator
 
+from pathfinder.domain.audit.words import CHECK_TITLES
 from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.strategy.constraints import (
@@ -95,6 +96,14 @@ _ANSWERS: frozenset[IntentClassification] = frozenset(
 )
 
 
+AUDIT_CLASSIFICATION = (
+    "gene_model_audit is a request to check the gene models of a genome or of "
+    "named genes for errors, whatever its verb: "
+    f"{'; '.join(title.lower() for title in CHECK_TITLES.values())}. Such a "
+    "request is never a build, also when it names an organism and a gene class."
+)
+
+
 class NamedControls(CamelModel):
     """The gene ids a message names as the researcher's positive and negative controls."""
 
@@ -121,7 +130,8 @@ class UserIntent(CamelModel):
             "talk. A message that pastes sequences, or asks about genes, proteins, "
             "ortholog groups, organisms or any other data a site holds, is never "
             "off_topic, also when you do not know which search answers it: FRAME "
-            "finds the search in the site's catalog."
+            "finds the search in the site's catalog. "
+            f"{AUDIT_CLASSIFICATION}"
         )
     )
     inferred_goal: str = Field(max_length=500)
