@@ -87,7 +87,7 @@ carries, is shown as its plain words:
 | `[root]`, `[root_before]` | the root's count now and before the edit |
 | `[last_change:before]`, `[last_change:after]` | the root's count before and after the strategy's most recent change, made by this turn or an earlier one |
 | `[diff:<a>,<b>]` | the difference of two counts; a side is a step id, `root`, `root_before`, `before:<step_id>`, `last_change:before`, `last_change:after` or `compare:<variant>`, and the two sides differ |
-| `[value:<step_id>.<param>]` | the bound value with its label (`ParameterFact.shown`); a label that repeats the value is dropped on the type |
+| `[value:<step_id>.<param>]` | the bound value with its label (`ParameterFact.shown`); a label that repeats the value is dropped on the type, and a range reads as its bounds, one number when they are equal (`value_binding.plain_value`) |
 | `[source:<step_id>.<param>]` | who set it: "you stated", "your answer on a card", "the site's default", "chosen", "held by the strategy" |
 | `[compare:<variant>]` | the variant's genes; `:unique`, `:result`, and `[compare:<a>,<b>:shared]` |
 | `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread or an audit read returned: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`); `[cite:<id>.<row>]` renders a numbered note after words that state the value ([a value is placed by stat and cited by cite](a-value-is-placed-by-stat-and-cited-by-cite.md)) |

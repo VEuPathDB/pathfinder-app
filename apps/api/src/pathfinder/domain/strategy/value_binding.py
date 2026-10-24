@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
 
+from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
@@ -29,6 +30,7 @@ def _at_default(value: ParamValue, published: str | None) -> bool:
     return to_wire(initial) == to_wire(value)
 
 
+_RANGES = frozenset({"number-range", "date-range"})
 # The kinds of parameter a long decimal can bind: a number, or a pick of terms.
 _NUMBER_KINDS = frozenset({"number", "single-pick-vocabulary"})
 
@@ -118,6 +120,38 @@ def parents_moved(
     )
 
 
+class _Range(BaseModel):
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    min: float | str | None = None
+    max: float | str | None = None
+
+
+def _bound_text(bound: float | str) -> str:
+    match bound:
+        case float() if bound.is_integer():
+            return str(int(bound))
+        case _:
+            return str(bound)
+
+
+def _range_text(wire: str) -> str:
+    shown = _Range.model_validate_json(wire)
+    low = None if shown.min is None else _bound_text(shown.min)
+    high = None if shown.max is None else _bound_text(shown.max)
+    match low, high:
+        case None, None:
+            return "any"
+        case _, None:
+            return f"at least {low}"
+        case None, _:
+            return f"at most {high}"
+        case _ if low == high:
+            return f"{low}"
+        case _:
+            return f"{low} to {high}"
+
+
 def plain_value(value: ParamValue) -> str:
     """A vocabulary term in readable form instead of its JSON wire form."""
     match value:
@@ -125,5 +159,7 @@ def plain_value(value: ParamValue) -> str:
             return ", ".join(terms)
         case SinglePickValue(value=term):
             return term
+        case _ if value.type in _RANGES:
+            return _range_text(to_wire(value))
         case _:
             return to_wire(value)
