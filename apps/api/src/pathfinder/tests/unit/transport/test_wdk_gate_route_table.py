@@ -31,6 +31,7 @@ SPEC_GATED: dict[tuple[str, str], str] = {
 
 GATED: frozenset[tuple[str, str]] = frozenset(
     {
+        ("POST", "/api/v1/audits/{run_id}/start"),
         # Conversations: the subroutes that act on the user's WDK strategies.
         ("POST", "/api/v1/conversations/step-counts"),
         ("POST", "/api/v1/conversations/open"),

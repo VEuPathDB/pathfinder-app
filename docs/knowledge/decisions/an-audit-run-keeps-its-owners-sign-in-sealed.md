@@ -43,7 +43,9 @@ the run halts for its sign-in, and when a job raises. A purge
 (`DELETE /api/v1/user/data`) deletes the run and the token with it; deleting
 the user deletes both too. Deleting the conversation keeps the run: it goes on
 under its sealed token until it finishes or halts, its owner still reads it at
-`/api/v1/audits`, and no thread can start it again.
+`/api/v1/audits`, and neither a thread nor its page can start it again: the
+page's `POST /api/v1/audits/{run_id}/start` refuses it with 409
+`AUDIT_NOT_STARTABLE`.
 
 **What a refused read means.** A 401 on any read halts the run. A 403 halts it
 when the kept token no longer holds when read locally (expired, a guest's, or
