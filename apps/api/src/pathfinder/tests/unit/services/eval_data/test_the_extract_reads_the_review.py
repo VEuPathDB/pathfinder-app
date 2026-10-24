@@ -16,8 +16,8 @@ from pathfinder.domain.caveats import ControlsCaveat, WordGap
 from pathfinder.domain.citations import (
     Citation,
 )
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.evidence import (
-    ColumnFit,
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
@@ -48,6 +48,7 @@ _REVIEW = VerificationReview(
             column="tm_count",
             display_name="# TM Domains",
             bound_value="2 to 99",
+            counted_in="transcripts",
             total=840,
             fitting=840,
             fitting_at_most=840,

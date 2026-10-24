@@ -10,10 +10,10 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
 from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.evidence import ColumnFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import ListedFact, SourceFact

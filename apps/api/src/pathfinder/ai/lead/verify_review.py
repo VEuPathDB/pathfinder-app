@@ -12,12 +12,8 @@ from dataclasses import dataclass
 from functools import partial
 
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
-from pathfinder.domain.evidence import (
-    ColumnFit,
-    RequirementCheck,
-    SampledGene,
-    VerificationReview,
-)
+from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.evidence import RequirementCheck, SampledGene, VerificationReview
 from pathfinder.domain.strategy.combination_check import (
     first_combination_violation,
     match_terms,

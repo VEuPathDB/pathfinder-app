@@ -54,6 +54,8 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "read_step_ids",
         "count_search",
         "count_by_column",
+        "step_columns",
+        "count_step_by_column",
         "genes_in_search",
         "export_gene_set",
     }

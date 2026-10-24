@@ -15,10 +15,10 @@ def test_the_columns_are_read_before_any_sample() -> None:
     assert columns < sample
 
 
-def test_the_runtime_states_a_column_short_of_every_gene() -> None:
+def test_the_runtime_states_a_column_short_of_every_transcript() -> None:
     assert (
-        "states every column that falls short of all genes, or that the site "
-        "does not show, as a caveat"
+        "states every column that falls short of all transcripts, or that the "
+        "site refused, as a caveat"
     ) in _TEXT
 
 

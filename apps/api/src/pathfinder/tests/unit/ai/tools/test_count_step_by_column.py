@@ -9,9 +9,9 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.toolsets import FunctionToolset, WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree, get_site
 
-from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
@@ -70,6 +70,9 @@ class _Ran:
         if column == "length":
             msg = "protein records cannot be counted by length."
             raise ColumnTallyRefusedError(msg)
+        if column == "taxon_name":
+            msg = "Request failed after retries: "
+            raise WDKError(msg, status=504)
         tally = ColumnTally(
             id="tally_5e6f7a8b",
             title="Proteins by Taxon Code",
@@ -177,6 +180,20 @@ async def test_the_count_and_the_link_name_the_strategys_site(ran: _Ran) -> None
     )
 
 
+async def test_a_server_error_fails_the_count_and_refuses_no_column(
+    ran: _Ran,
+) -> None:
+    ctx = lead_run_context(
+        site_id="orthomcl", strategy_session=_singletons_then_proteins()
+    )
+
+    with pytest.raises(WDKError):
+        await count_step_by_column(ctx, _PROTEINS_STEP, "taxon_name")
+    await count_step_by_column(ctx, _PROTEINS_STEP, "abbreviation")
+
+    assert [step.refused for step, _ in ran.asked] == [frozenset(), frozenset()]
+
+
 async def test_a_column_the_site_cannot_count_goes_back_to_the_model(
     ran: _Ran,
 ) -> None:
@@ -260,13 +277,3 @@ def test_each_way_the_step_count_is_refused_keeps_a_retry() -> None:
     assert isinstance(base, FunctionToolset)
 
     assert base.tools["count_step_by_column"].max_retries == 6
-
-
-def test_the_lead_counts_a_results_members_through_the_transform() -> None:
-    rules = " ".join(LEAD_INSTRUCTIONS.split())
-
-    assert (
-        "A count of a result's members by a column (proteins of groups by organism, "
-        "genes of a list by organism) is the transform to the members, then "
-        "``count_step_by_column`` on that step." in rules
-    )

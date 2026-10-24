@@ -156,11 +156,13 @@ async def classify_user_intent(
     runs as an anonymous report and no step is added. Its sides go in
     ``differential_sides``, never in ``explicit_constraints``.
 
-    A question that counts records per value of a column - "which genome
-    assembly has the most RNA-Seq datasets", "how many datasets per organism"
-    - is a ``follow_up_question`` answered by ``count_by_column``, also on a
-    conversation with no strategy: one search's whole result is counted by
-    each value and no step is added.
+    A question that counts records per value of a column is a
+    ``follow_up_question`` when a step of the strategy holds those records,
+    answered by ``count_step_by_column``, or when the records are one catalog
+    search's whole result, unchanged, answered by ``count_by_column``, also on
+    a conversation with no strategy. When no step holds those records and no
+    one search's whole result is them, it asks for a build: ``new_strategy``
+    with no strategy and ``extend_strategy`` on one.
 
     Two classifications ask for no strategy at all:
 

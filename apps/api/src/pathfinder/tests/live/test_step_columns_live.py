@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import read_search_definition
 
 from pathfinder.ai.tools.standalone._step_columns import column_bounds, settled
 from pathfinder.ai.tools.standalone.results import read_column_fit
-from pathfinder.domain.evidence import ColumnFit
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
 )

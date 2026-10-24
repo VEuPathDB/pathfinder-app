@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathfinder.domain.evidence import ColumnFit
+from pathfinder.domain.column_fit import ColumnFit
 
 TM_CRITERION = "two or more transmembrane domains"
 
@@ -16,6 +16,7 @@ def tm_fit(fitting: int, total: int, *, wdk_step_id: int = 441031663) -> ColumnF
         column="tm_count",
         display_name="# TM Domains",
         bound_value="2 to 99",
+        counted_in="transcripts",
         total=total,
         fitting=fitting,
         fitting_at_most=fitting,

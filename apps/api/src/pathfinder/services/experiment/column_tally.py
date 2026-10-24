@@ -50,7 +50,6 @@ class ColumnTally(CamelModel):
     only_label: str = ""
     total: int
     distinct: int
-    missing: int = 0
     rows: list[TallyRow] = Field(default_factory=list)
     site_id: str
     step_url: str | None = None
@@ -183,7 +182,6 @@ async def run_column_tally(
         only_label=only_label,
         total=stats.subset_size,
         distinct=stats.num_distinct_values or len(rows),
-        missing=stats.num_missing_cases,
         rows=rows[:KEPT_ROWS],
         site_id=site_id,
     )

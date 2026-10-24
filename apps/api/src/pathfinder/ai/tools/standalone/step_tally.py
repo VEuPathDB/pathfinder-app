@@ -38,8 +38,6 @@ COLUMN_PAGE = 100
 
 
 class StepColumnPage(CamelModel):
-    """One page of a built step's columns, each with whether it can be counted."""
-
     wdk_step_id: int
     record_type: str
     search_name: str
@@ -60,9 +58,18 @@ def _require_strategy_step(session: StrategySession, wdk_step_id: int) -> None:
     raise ModelRetry(msg)
 
 
+def _matches(column: StepColumn, name: str, countable_only: bool) -> bool:
+    if countable_only and not column.countable:
+        return False
+    needle = name.casefold()
+    return needle in column.name.casefold() or needle in column.display_name.casefold()
+
+
 async def step_columns(
     ctx: RunContext[LeadDeps],
     wdk_step_id: int,
+    name: str = "",
+    countable_only: bool = False,
     offset: Annotated[int, Field(ge=0)] = 0,
 ) -> ToolReturn[StepColumnPage]:
     """List the columns of one built step of this strategy and which can be counted.
@@ -73,24 +80,29 @@ async def step_columns(
     and ``countable``. Only a column marked ``countable`` can be counted. Any step
     of the strategy can be listed, a transform or a combine included; its columns
     are those of the records it holds. A step lists up to thousands of columns,
-    100 per page in the site's order; ``total`` is the number of columns and
+    so narrow the list with ``name`` and ``countable_only``; it answers 100 per
+    page in the site's order, ``total`` is the number of columns that match and
     ``offset`` reads the next page.
 
     Args:
         wdk_step_id: The WDK step ID of a built step of this strategy.
+        name: Text the column's name or display name contains, any case; empty
+            lists every column.
+        countable_only: List only the columns that can be counted.
         offset: The first column of the page, 0 for the first page.
     """
     session = ctx.deps.strategy_session
     _require_strategy_step(session, wdk_step_id)
     listed = await countable_columns(session.site_id, wdk_step_id)
+    matching = [c for c in listed.columns if _matches(c, name, countable_only)]
     page = StepColumnPage(
         wdk_step_id=wdk_step_id,
         record_type=listed.record_type,
         search_name=listed.search_name,
-        total=len(listed.columns),
-        countable=len(listed.countable_names()),
+        total=len(matching),
+        countable=sum(c.countable for c in matching),
         offset=offset,
-        columns=list(listed.columns[offset : offset + COLUMN_PAGE]),
+        columns=matching[offset : offset + COLUMN_PAGE],
     )
     summary = (
         f"{page.countable:,} of {page.total:,} columns of step {wdk_step_id} "

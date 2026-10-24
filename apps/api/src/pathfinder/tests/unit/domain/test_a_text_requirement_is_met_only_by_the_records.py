@@ -5,8 +5,8 @@ judged not to fit, or a column some record falls outside, shows it missing."""
 from __future__ import annotations
 
 from pathfinder.domain.caveats import check_gaps
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.evidence import (
-    ColumnFit,
     GeneFit,
     RequirementCheck,
     SampledGene,
@@ -143,6 +143,7 @@ def _product_fit(fitting: int, total: int) -> ColumnFit:
         column="gene_product",
         display_name="Product Description",
         bound_value="names a Gal/GalNAc lectin subunit",
+        counted_in="transcripts",
         total=total,
         fitting=fitting,
         fitting_at_most=fitting,

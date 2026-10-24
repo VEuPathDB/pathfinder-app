@@ -22,13 +22,16 @@ def sorted_rows(rows: Iterable[TallyRow]) -> list[TallyRow]:
     return sorted(rows, key=lambda row: (-row.count, row.value))
 
 
+def shown_text(value: str) -> str:
+    return strip_html_tags(value).strip()
+
+
 def shown_value(bin_: WDKHistogramBin) -> str:
-    return strip_html_tags(bin_.bin_label or bin_.bin_start).strip()
+    return shown_text(bin_.bin_label or bin_.bin_start)
 
 
 def counted_rows(counts: Iterable[tuple[str, int]]) -> list[TallyRow]:
-    """Each value as the site shows it, without markup, with its records."""
-    shown = ((strip_html_tags(value).strip(), count) for value, count in counts)
+    shown = ((shown_text(value), count) for value, count in counts)
     return sorted_rows(TallyRow(value=v, count=n) for v, n in shown if v)
 
 

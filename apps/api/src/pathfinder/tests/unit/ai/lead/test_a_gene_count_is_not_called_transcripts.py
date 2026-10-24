@@ -4,7 +4,7 @@ the reading the eval's ``countsInGenes`` column takes."""
 from __future__ import annotations
 
 from pathfinder.ai.lead.reply_claims import counts_in_the_wrong_unit, counts_named_as
-from pathfinder.domain.evidence import ColumnFit, ThresholdSides
+from pathfinder.domain.column_fit import ColumnFit, ThresholdSides
 
 _TRANSCRIPT_COUNT_REPLY = (
     "Their intersection contains **78 Toxoplasma gondii ME49 transcripts**, and "

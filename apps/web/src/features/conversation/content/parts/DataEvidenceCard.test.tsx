@@ -254,13 +254,13 @@ describe("DataEvidenceCard", () => {
       column: "tm_count",
       displayName: "# TM Domains",
       boundValue: "2 to 99",
-      countedIn: "genes" as const,
+      countedIn: "transcripts" as const,
       total: 840,
       fitting: 840,
       fittingAtMost: 840,
       shown: true,
       fits: "all" as const,
-      sentence: "840 of 840 genes fit # TM Domains (2 to 99)",
+      sentence: "840 of 840 transcripts fit # TM Domains (2 to 99)",
     };
     render(
       <DataEvidenceCard
@@ -287,6 +287,7 @@ describe("DataEvidenceCard", () => {
                 total: 0,
                 fitting: 0,
                 fittingAtMost: 0,
+                refusedStatus: 400,
                 shown: false,
                 fits: "not_shown" as const,
                 sentence: "",
@@ -299,9 +300,9 @@ describe("DataEvidenceCard", () => {
 
     const rows = screen.getAllByTestId("evidence-column-fit");
     expect(rows.map((row) => row.textContent)).toEqual([
-      "at least 2 transmembrane domains# TM Domains2 to 99840 of 840 genes",
-      "at least 2 transmembrane domainsMolecular Weight0 to 200000708 to 756 of 840 genes",
-      "at least 2 transmembrane domainsSignalP2 to 99The site refused this column",
+      "at least 2 transmembrane domains# TM Domains2 to 99840 of 840 transcripts",
+      "at least 2 transmembrane domainsMolecular Weight0 to 200000708 to 756 of 840 transcripts",
+      "at least 2 transmembrane domainsSignalP2 to 99The site refused this column (HTTP 400)",
     ]);
     const body = screen.getByTestId("evidence-review");
     const sections = Array.from(body.children).map((node) =>
@@ -334,7 +335,7 @@ describe("DataEvidenceCard", () => {
 
   it("states a threshold the step holds on neither side with both counts", () => {
     const sentence =
-      "840 of 840 genes fit # TM Domains (99 or fewer); 242 to 294 of 840 genes " +
+      "840 of 840 transcripts fit # TM Domains (99 or fewer); 242 to 294 of 840 transcripts " +
       "hold # TM Domains 5 or more and 546 to 598 hold 5 or fewer";
     render(
       <DataEvidenceCard
@@ -350,7 +351,7 @@ describe("DataEvidenceCard", () => {
                 column: "tm_count",
                 displayName: "# TM Domains",
                 boundValue: "5",
-                countedIn: "genes" as const,
+                countedIn: "transcripts" as const,
                 total: 840,
                 fitting: 840,
                 fittingAtMost: 840,

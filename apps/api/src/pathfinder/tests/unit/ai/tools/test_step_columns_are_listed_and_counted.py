@@ -56,7 +56,8 @@ def _listed() -> StepColumns:
                 name=a.name,
                 display_name=a.display_name or a.name,
                 data_type=a.column_data_type,
-                countable=a.column_data_type in ("STRING", "NUMBER"),
+                countable=a.column_data_type in ("STRING", "NUMBER")
+                and "byValue" in a.tools.reports,
             )
             for a in column_catalog().attributes or []
         ),
@@ -176,6 +177,35 @@ async def test_a_steps_columns_are_listed_a_page_at_a_time(
         "transcript",
         "GenesByTransmembraneDomains",
     )
+
+
+async def test_a_steps_columns_are_found_by_name_and_countable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch, ToolServer(listed=_listed()))
+    ctx = lead_run_context(site_id="plasmodb", strategy_session=_membrane_genes())
+
+    found = returned(
+        await step_columns(ctx, TM_STEP, name="ORGANISM", countable_only=True),
+        StepColumnPage,
+    )
+    links = returned(await step_columns(ctx, TM_STEP, name="jbrowse"), StepColumnPage)
+
+    assert [(c.name, c.display_name) for c in found.columns] == [
+        ("organism", "Organism"),
+        ("organism_text", "Organism (Internal)"),
+        ("organism_full", "Organism"),
+        ("organismAbbrev", "organismAbbrev"),
+    ]
+    assert (found.total, found.countable) == (4, 4)
+    assert [(c.name, c.data_type, c.countable) for c in links.columns] == [
+        ("JBrowse", "OTHER", False),
+    ]
+    counted_links = returned(
+        await step_columns(ctx, TM_STEP, name="jbrowse", countable_only=True),
+        StepColumnPage,
+    )
+    assert (counted_links.total, counted_links.columns) == (0, [])
 
 
 async def test_a_step_the_strategy_does_not_hold_is_not_listed(

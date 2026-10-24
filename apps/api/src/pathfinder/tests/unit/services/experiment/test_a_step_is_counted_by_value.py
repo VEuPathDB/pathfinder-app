@@ -81,7 +81,7 @@ async def test_a_column_is_counted_by_its_ranked_values(
         ("Plasmodium falciparum 3D7", 306, ""),
         ("Plasmodium vivax P01", 103, ""),
     ]
-    assert (tally.total, tally.distinct, tally.missing) == (412, 2, 0)
+    assert (tally.total, tally.distinct) == (412, 2)
     assert (tally.title, tally.column_label) == ("Genes by Organism", "Organism")
     assert tally.id == tally_id("orthomcl", f"step {STEP}", "organism", None)
 
@@ -109,7 +109,7 @@ async def test_a_column_of_the_steps_own_search_is_counted(
     assert (tally.title, tally.column_label) == ("Genes by E-Value", "E-Value")
 
 
-async def test_a_number_column_is_counted_by_its_bins(
+async def test_a_number_column_is_counted_by_every_bin_in_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     counts = ColumnCounts(
@@ -120,8 +120,10 @@ async def test_a_number_column_is_counted_by_its_bins(
         total_records=840,
         distinct_values=12,
         bins=(
-            WDKHistogramBin(value=600, bin_start="2", bin_end="7", bin_label="[2, 7)"),
-            WDKHistogramBin(value=40, bin_start="7", bin_end="12", bin_label="[7, 12)"),
+            WDKHistogramBin(value=40, bin_start="2", bin_end="7", bin_label="[2, 7)"),
+            WDKHistogramBin(
+                value=600, bin_start="7", bin_end="12", bin_label="[7, 12)"
+            ),
         ),
         statistics=WDKHistogramStatistics(
             subset_size=840, num_distinct_values=12, num_missing_cases=200
@@ -132,14 +134,14 @@ async def test_a_number_column_is_counted_by_its_bins(
     tally = await run_step_tally(
         counted_step("transcript", "GenesByTransmembraneDomains", "gene"),
         "tm_count",
-        20,
+        1,
     )
 
     assert [(row.value, row.count) for row in tally.rows] == [
-        ("[2, 7)", 600),
-        ("[7, 12)", 40),
+        ("[2, 7)", 40),
+        ("[7, 12)", 600),
     ]
-    assert (tally.total, tally.distinct, tally.missing) == (840, 12, 200)
+    assert (tally.total, tally.distinct) == (840, 2)
 
 
 async def test_a_report_the_site_refuses_is_a_refusal_naming_its_status(
@@ -157,6 +159,20 @@ async def test_a_report_the_site_refuses_is_a_refusal_naming_its_status(
         "The site refused to count organism on step 227284080 (HTTP 422). The "
         "step_columns tool lists the columns this step can be counted by."
     )
+
+
+async def test_a_server_error_is_no_refusal_and_fails_the_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server = ToolServer(refusal=WDKError("Request failed after retries: ", status=504))
+    _genes(server, monkeypatch)
+
+    with pytest.raises(WDKError) as failed:
+        await run_step_tally(
+            counted_step("transcript", "GenesByTaxon", "gene"), "organism", 20
+        )
+
+    assert failed.value.status == 504
 
 
 async def test_an_unknown_column_names_the_columns_that_can_be_counted(

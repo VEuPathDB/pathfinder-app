@@ -11,10 +11,11 @@ from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
-from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
+from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact

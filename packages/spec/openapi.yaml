@@ -13587,7 +13587,6 @@ components:
           type: string
         countedIn:
           $ref: '#/components/schemas/CountedIn'
-          default: genes
         total:
           title: Total
           type: integer
@@ -13597,15 +13596,24 @@ components:
         fittingAtMost:
           title: Fittingatmost
           type: integer
-        shown:
-          default: true
-          title: Shown
-          type: boolean
+        noValue:
+          default: 0
+          title: Novalue
+          type: integer
+        refusedStatus:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Refusedstatus
         sides:
           items:
             $ref: '#/components/schemas/ThresholdSides'
           title: Sides
           type: array
+        shown:
+          readOnly: true
+          title: Shown
+          type: boolean
         fits:
           $ref: '#/components/schemas/ColumnFitState'
           description: How many records of the step hold a value inside every bound.
@@ -13624,9 +13632,11 @@ components:
       - column
       - displayName
       - boundValue
+      - countedIn
       - total
       - fitting
       - fittingAtMost
+      - shown
       - fits
       - sentence
       title: ColumnFit
@@ -13674,10 +13684,6 @@ components:
           type: integer
         distinct:
           title: Distinct
-          type: integer
-        missing:
-          default: 0
-          title: Missing
           type: integer
         rows:
           items:

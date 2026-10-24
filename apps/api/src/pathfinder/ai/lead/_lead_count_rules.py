@@ -19,14 +19,15 @@ COUNT_RULES = """\
   states the count with ``[compare:<label>]``. A name the \
   catalog does not list comes back with the searches the catalog lookup finds for it, so a \
   search is absent only when that lookup finds none.
-- **A count per value is ``count_by_column``.** "Which genome has the most RNA-Seq \
-datasets", "how many datasets per organism", "how many of these genes per chromosome": one \
-search's whole result counted by each value of one column, after keeping only the rows \
-another column holds a value for (the RNA-Seq datasets: ``record_type`` ``dataset``, \
-``only_column`` ``newcategory``, ``only_values`` ``RNASeq``). It adds no step. The table shows every count; name the value with \
-the most and its count with ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and the \
-number of values with ``[tally:<id>:values]``; never a value's count for another number. A \
-column the site cannot count comes back with the columns it can.
+- **A count per value of a column is counted on the step that holds the records.** \
+  ``step_columns`` names the step's columns, then ``count_step_by_column`` counts one marked \
+  countable. When no step holds those records, the question is a build (``new_strategy`` \
+  with no strategy, ``extend_strategy`` on one), and the count follows the build, through a \
+  transform when the records are a result's members. ``count_by_column`` counts only one \
+  catalog search's whole result, unchanged, with no step, and only by a search name the \
+  catalog lists. Name the value with the most and its count with \
+  ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and the number of values with \
+  ``[tally:<id>:values]``; never a value's count for another number.
 - **"Which of these genes also ..." is ``genes_in_search``.** It runs the search over the \
   gene ids, by default the records this conversation showed last, and changes nothing. A \
   record read never answers it. State each gene with ``[record:<id>]`` and the genes held with \

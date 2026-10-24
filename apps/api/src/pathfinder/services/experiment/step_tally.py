@@ -14,7 +14,7 @@ from veupathdb.wdk import (
     WDKAttributeField,
     get_strategy_api,
 )
-from veupathdb_mcp.catalog import genome_names
+from veupathdb_mcp.catalog import genome_names, get_raw_record_types
 from veupathdb_mcp.wdk import (
     ColumnCounts,
     ColumnNotCountedError,
@@ -34,6 +34,7 @@ from pathfinder.services.experiment.column_tally import (
 from pathfinder.services.experiment.tally_rows import (
     TallyRow,
     counted_rows,
+    shown_text,
     sorted_rows,
 )
 
@@ -42,6 +43,7 @@ _GENOME_CODE_COLUMNS = frozenset({"abbreviation"})
 _NAMED_COLUMNS = 20
 _LISTED = "The step_columns tool lists the columns this step can be counted by."
 _NONE_OTHER = "No other column of these records can be counted."
+_SERVER_ERROR = 500
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,6 @@ class _Counts:
     total: int
     distinct: int
     label: str
-    missing: int = 0
 
 
 def _by_value_report(field: WDKAttributeField) -> bool:
@@ -73,7 +74,6 @@ def _by_value_report(field: WDKAttributeField) -> bool:
 
 
 def _by_codes(fields: Sequence[WDKAttributeField]) -> frozenset[str]:
-    """The columns of genome codes the site counts only by their word cloud."""
     return frozenset(
         f.name
         for f in fields
@@ -101,7 +101,10 @@ def _labelled(rows: list[TallyRow], names: dict[str, str]) -> list[TallyRow]:
 
 def _counted_rows(counted: ColumnCounts) -> list[TallyRow]:
     if counted.kind == "number":
-        return counted_rows((b.bin_label or b.bin_start, b.value) for b in counted.bins)
+        return [
+            TallyRow(value=shown_text(b.bin_label or b.bin_start), count=b.value)
+            for b in counted.bins
+        ]
     return counted_rows((v.value, v.count) for v in counted.values)
 
 
@@ -123,6 +126,8 @@ async def _counted(
         )
         raise ColumnTallyRefusedError(msg) from refused
     except WDKError as refused:
+        if refused.status >= _SERVER_ERROR:
+            raise
         msg = (
             f"The site refused to count {column} on {step.name} "
             f"(HTTP {refused.status}). {_LISTED}"
@@ -143,18 +148,21 @@ async def _by_value(
         )
         raise ColumnTallyRefusedError(msg)
     names = await genome_names(step.site_id) if rows else {}
-    statistics = counted.statistics
+    distinct = len(rows) if counted.kind == "number" else counted.distinct_values
     return _Counts(
         rows=_labelled(rows, names),
         total=counted.total_records,
-        distinct=counted.distinct_values or len(rows),
+        distinct=distinct or len(rows),
         label=counted.display_name,
-        missing=0 if statistics is None else statistics.num_missing_cases,
     )
 
 
 async def _by_words(
-    api: StrategyAPI, step: CountedStep, field: WDKAttributeField, reporter: str
+    api: StrategyAPI,
+    step: CountedStep,
+    field: WDKAttributeField,
+    reporter: str,
+    top: int,
 ) -> _Counts:
     label = f"{field.name} ({field_label(field)})"
     try:
@@ -188,17 +196,21 @@ async def _by_words(
         raise ColumnTallyRefusedError(msg) from refused
     rows = sorted_rows(TallyRow(value=w, count=n) for w, n in by_word.items())
     return _Counts(
-        rows=_labelled(rows, names),
+        rows=_labelled(rows, names)[:top],
         total=total,
         distinct=len(rows),
         label=field_label(field),
     )
 
 
+async def _record_fields(site_id: str, record_type: str) -> list[WDKAttributeField]:
+    held = await get_raw_record_types(site_id)
+    info = next((r for r in held if record_type in (r.url_segment, r.full_name)), None)
+    return [] if info is None else info.attributes or []
+
+
 async def run_step_tally(step: CountedStep, column: str, top: int) -> ColumnTally:
-    """The step's records by each value of the column, at most ``top`` values."""
-    api = get_strategy_api(step.site_id)
-    fields = (await api.get_record_type_info(step.record_type)).attributes or []
+    fields = await _record_fields(step.site_id, step.record_type)
     field = next((f for f in fields if f.name == column), None)
     reporter = None if field is None else field.format_named(_WORD_CLOUD)
     by_codes = _by_codes(fields)
@@ -211,7 +223,8 @@ async def run_step_tally(step: CountedStep, column: str, top: int) -> ColumnTall
                 f"codes is counted that way. {_LISTED}"
             )
             raise ColumnTallyRefusedError(msg)
-        counts = await _by_words(api, step, field, reporter)
+        api = get_strategy_api(step.site_id)
+        counts = await _by_words(api, step, field, reporter, top)
     else:
         counts = await _by_value(step, column, top, by_codes)
     return ColumnTally(
@@ -224,19 +237,15 @@ async def run_step_tally(step: CountedStep, column: str, top: int) -> ColumnTall
         column_label=counts.label,
         total=counts.total,
         distinct=counts.distinct,
-        missing=counts.missing,
-        rows=counts.rows[:top],
+        rows=counts.rows,
         site_id=step.site_id,
         step_url=step.step_url,
     )
 
 
 async def countable_columns(site_id: str, wdk_step_id: int) -> StepColumns:
-    """The step's columns, a column of genome codes its word cloud counts
-    among those that can be counted."""
     listed = await list_step_columns(site_id, wdk_step_id)
-    info = await get_strategy_api(site_id).get_record_type_info(listed.record_type)
-    by_codes = _by_codes(info.attributes or [])
+    by_codes = _by_codes(await _record_fields(site_id, listed.record_type))
     columns = tuple(
         c.model_copy(update={"countable": True}) if c.name in by_codes else c
         for c in listed.columns

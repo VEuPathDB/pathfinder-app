@@ -65,10 +65,6 @@ class TallySite:
         self.words = words
         self.reports: list[tuple[int, str]] = []
 
-    async def get_record_type_info(self, record_type: str) -> WDKRecordType:
-        assert record_type == self.record_type.url_segment
-        return self.record_type
-
     async def get_step_word_counts(self, step_id: int, reporter: str) -> WDKWordCounts:
         self.reports.append((step_id, reporter))
         return validate_response(
@@ -82,8 +78,6 @@ class TallySite:
 
 @dataclass
 class ToolServer:
-    """The tool server's column reads: one answer or one refusal for each."""
-
     counts: ColumnCounts | None = None
     refusal: Exception | None = None
     listed: StepColumns | None = None
@@ -122,8 +116,13 @@ def serve(
         del site_id
         return names
 
+    async def record_types(site_id: str) -> list[WDKRecordType]:
+        del site_id
+        return [site.record_type]
+
     monkeypatch.setattr(step_tally, "get_strategy_api", lambda _site_id: site)
     monkeypatch.setattr(step_tally, "genome_names", genome_names)
+    monkeypatch.setattr(step_tally, "get_raw_record_types", record_types)
     monkeypatch.setattr(step_tally, "count_by_column", server.count_by_column)
     monkeypatch.setattr(step_tally, "list_step_columns", server.list_step_columns)
     return site

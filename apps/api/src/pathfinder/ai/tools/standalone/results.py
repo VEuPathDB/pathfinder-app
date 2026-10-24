@@ -31,6 +31,7 @@ from pathfinder.ai.tools.standalone._result_models import (
     StepColumns,
     _validate_sample_inputs,
     no_column,
+    unread_note,
 )
 from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
 from pathfinder.ai.tools.standalone._sample_page import (
@@ -53,7 +54,7 @@ from pathfinder.ai.tools.standalone._step_read import (
     own_class,
     read_as,
 )
-from pathfinder.domain.evidence import ColumnFit, CountedIn
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
@@ -62,6 +63,7 @@ from pathfinder.domain.strategy.types import SyncStateProtocol
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
 READ_DEADLINE_SECONDS = 20.0
+_SERVER_ERROR = 500
 
 
 def sample_seed(wdk_step_id: int, answer: str) -> str:
@@ -236,15 +238,15 @@ async def _column_bounds(site_id: str, target: _SearchStep) -> list[ColumnBound]
 
 async def _column_bins(
     site_id: str, wdk_step_id: int, bound: ColumnBound
-) -> tuple[list[ValueBin], CountedIn]:
+) -> list[ValueBin]:
     api = get_strategy_api(site_id)
     if bound.histogram is not None:
         report = await api.run_step_report(wdk_step_id, bound.histogram)
-        return AttributeHistogram.model_validate(report).bins(), "transcripts"
+        return AttributeHistogram.model_validate(report).bins()
     distribution = await api.get_column_distribution(
         wdk_step_id, bound.column, budget_seconds=READ_DEADLINE_SECONDS
     )
-    return by_value_bins(distribution), "genes"
+    return by_value_bins(distribution)
 
 
 async def read_column_fit(
@@ -259,24 +261,25 @@ async def read_column_fit(
         column=bound.column,
         display_name=bound.display_name,
         bound_value="",
+        counted_in="transcripts",
         total=0,
         fitting=0,
         fitting_at_most=0,
-        shown=False,
     )
     try:
-        bins, counted_in = await _column_bins(site_id, wdk_step_id, bound)
-    except WDKError:
-        return unread
+        bins = await _column_bins(site_id, wdk_step_id, bound)
+    except WDKError as refused:
+        if refused.status >= _SERVER_ERROR:
+            raise
+        return unread.model_copy(update={"refused_status": refused.status})
     read = measured(bound, bins)
     return unread.model_copy(
         update={
             "bound_value": read.bound_value,
-            "counted_in": counted_in,
             "total": read.total,
             "fitting": read.fitting,
             "fitting_at_most": read.fitting_at_most,
-            "shown": True,
+            "no_value": read.no_value,
             "sides": list(read.sides),
         }
     )
@@ -320,9 +323,13 @@ async def _read_columns(
             "values and they do not all hold every gene inside them.",
         )
     ctx.deps.turn_markers.record_column_fits(fits)
-    return StepColumns(wdk_step_id=wdk_step_id, fits=fits), "; ".join(
-        fit.sentence for fit in fits
+    unread = [fit for fit in read if not fit.shown or fit.holds_no_value]
+    columns = StepColumns(
+        wdk_step_id=wdk_step_id,
+        fits=fits,
+        note=unread_note(wdk_step_id, unread) if unread else "",
     )
+    return columns, "; ".join(fit.sentence for fit in fits)
 
 
 async def read_step_columns(

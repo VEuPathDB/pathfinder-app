@@ -6,7 +6,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.domain.evidence import ColumnFit
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.expression_fit import ExpressionFit
 
 
@@ -33,6 +33,16 @@ def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
         note=f"{why} Sample the root with get_sample_records for this criterion.",
     )
     return columns, f"No column of step {wdk_step_id}"
+
+
+def unread_note(wdk_step_id: int, unread: list[ColumnFit]) -> str:
+    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
+    names = ", ".join(fit.column for fit in unread)
+    return (
+        f"No record of step {wdk_step_id} shows a value of {columns}. Sample step "
+        f"{wdk_step_id} with get_sample_records and read {names} on its records "
+        "for this criterion."
+    )
 
 
 MAX_SAMPLE_LIMIT = 100
