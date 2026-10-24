@@ -66,10 +66,10 @@ async def _recorded[T: BaseModel](
     summary: str,
 ) -> ToolReturn[GeneRead[T]]:
     resolved = tuple(gene_id.resolved for gene_id in gene_ids) or subjects
-    of = await investigation.gene_genomes(
-        ctx.deps.site_id, (i.resolved for i in gene_ids)
-    )
-    genomes = {g: of[i.resolved] for i in gene_ids for g in (i.given, i.resolved)}
+    known = ctx.deps.record_genomes
+    unread = [i.resolved for i in gene_ids if i.resolved not in known]
+    known.update(await investigation.gene_genomes(ctx.deps.site_id, unread))
+    genomes = {g: known[i.resolved] for i in gene_ids for g in (i.given, i.resolved)}
     ctx.deps.reads |= {read_cite(name, *subjects), read_cite(name, *resolved)}
     ctx.deps.hold_genomes({gene: [genome] for gene, genome in genomes.items()})
     fact = check_fact(name, subjects, answer)

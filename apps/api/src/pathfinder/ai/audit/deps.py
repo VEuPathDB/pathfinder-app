@@ -31,6 +31,7 @@ class AuditDeps(AssistantDeps):
     recorded: list[int] = Field(default_factory=list)
     runs: list[UUID] = Field(default_factory=list)
     gene_genomes: dict[str, frozenset[str]] = Field(default_factory=dict)
+    record_genomes: dict[str, str] = Field(default_factory=dict)
 
     def hold_genomes(self, genomes: Mapping[str, Iterable[str]]) -> None:
         for gene, named in genomes.items():

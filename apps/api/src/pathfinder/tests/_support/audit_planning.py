@@ -14,6 +14,8 @@ from pathfinder.domain.audit.planning import PlanRequest
 from pathfinder.domain.audit.scope import GenePairTarget, GeneTarget, SingleGeneTarget
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit import investigation, planning
+from pathfinder.services.gene_records.genome import genome_of
+from pathfinder.tests._support.audit_model_wire import recorded_gene_record
 
 SITE = "plasmodb"
 SITE_NAME = "PlasmoDB"
@@ -145,11 +147,11 @@ def plan_request(*genomes: str, targets: tuple[GeneTarget, ...] = ()) -> PlanReq
 
 
 def serve_gene_genomes(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Place each synthetic gene in the genome of the synthetic site its prefix names."""
+    """Place each synthetic gene as the recorded gene record names its genome."""
     placed = {"EXA": STRAINS[0], "EXR": ALPHA_R}
 
-    async def organism(site_id: str, gene: str) -> str:
+    async def genome(site_id: str, gene: str) -> str:
         del site_id
-        return placed[gene[:3]]
+        return genome_of(recorded_gene_record(placed[gene[:3]]))
 
-    monkeypatch.setattr(investigation, "gene_organism", organism)
+    monkeypatch.setattr(investigation, "read_gene_genome", genome)

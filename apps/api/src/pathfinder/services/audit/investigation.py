@@ -14,7 +14,6 @@ from veupathdb_mcp.audit import (
     RateBounds,
     SelenoproteinEndAudit,
     StrainModelAudit,
-    gene_organism,
     rate_with_bounds,
 )
 from veupathdb_mcp.tools import (
@@ -28,6 +27,8 @@ from veupathdb_mcp.tools import (
     audit_selenoprotein_end,
     audit_strain_model,
 )
+
+from pathfinder.services.gene_records.genome import read_gene_genome
 
 
 async def gene_length(site_id: str, gene: str) -> GeneLengthAudit:
@@ -79,4 +80,6 @@ def rate_with_interval(confirmed: int, checked: int, unresolved: int) -> RateBou
 
 
 async def gene_genomes(site_id: str, genes: Iterable[str]) -> dict[str, str]:
-    return {gene: await gene_organism(site_id, gene) for gene in dict.fromkeys(genes)}
+    return {
+        gene: await read_gene_genome(site_id, gene) for gene in dict.fromkeys(genes)
+    }
