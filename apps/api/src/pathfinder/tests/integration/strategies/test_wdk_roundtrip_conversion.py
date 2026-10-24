@@ -95,11 +95,12 @@ async def test_organism_multipick_survives_wdk_roundtrip(
         ast, wire_by_step_id = build_snapshot_from_wdk(saved)
 
         leaf_wire = next(
-            params for params in wire_by_step_id.values() if "organism" in params
+            wire for wire in wire_by_step_id.values() if "organism" in wire.parameters
         )
-        assert leaf_wire["organism"] != "", (
-            f"WDK returned an empty organism wire value: {leaf_wire!r}"
-        )
+        assert (leaf_wire.record_class, leaf_wire.parameters["organism"] != "") == (
+            "transcript",
+            True,
+        ), f"WDK returned an empty organism wire value: {leaf_wire!r}"
 
         await canonicalize_synced_parameters(ast, api, wire_by_step_id)
         leaf = next(s for s in walk(ast.root) if s.search_name == "GenesByTaxon")

@@ -13,6 +13,7 @@ from veupathdb.domain.parameters import PhyleticTree, TaxonEntry
 from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.difference import CaseDifference
+from pathfinder.evals.distance import COMBINE_LABEL, ComparisonNode
 from pathfinder.evals.run_directory import (
     UnobservedFieldError,
     observed_from_run_directory,
@@ -316,3 +317,56 @@ def test_a_root_count_on_a_newer_build_drifts_as_the_database_path_judges(
         ("re-measure", 2000),
         ("fail", 1800),
     ]
+
+
+def _intersected(dest: Path) -> None:
+    captured = json.loads((dest / "wdk" / _STRATEGY).read_text())
+    held = captured["response_json"]
+    leaf = held["steps"][_STEP]
+    other = {
+        **leaf,
+        "id": 227284111,
+        "searchConfig": {
+            **leaf["searchConfig"],
+            "parameters": {"phyletic_expression": "cand=1T"},
+        },
+    }
+    combine = {
+        **leaf,
+        "id": 227284112,
+        "searchName": "boolean_question_GroupRecordClasses_GroupRecordClass",
+        "searchConfig": {
+            **leaf["searchConfig"],
+            "parameters": {"bq_operator": "INTERSECT"},
+        },
+    }
+    held["steps"] = {_STEP: leaf, "227284111": other, "227284112": combine}
+    held["rootStepId"] = 227284112
+    held["stepTree"] = {
+        "stepId": 227284112,
+        "primaryInput": {"stepId": int(_STEP)},
+        "secondaryInput": {"stepId": 227284111},
+    }
+    (dest / "wdk" / _STRATEGY).write_text(json.dumps(captured))
+
+
+def test_the_observed_tree_holds_each_leafs_wire_values(tmp_path: Path) -> None:
+    _intersected(_part(tmp_path / "turn-1", _Edit(expression="cbov=1T")))
+
+    tree = observed_from_run_directory(tmp_path).tree
+
+    assert tree == ComparisonNode(
+        search_name=COMBINE_LABEL,
+        operator="INTERSECT",
+        parameters={},
+        children=(
+            ComparisonNode(
+                search_name="GroupsByPhyleticPattern",
+                parameters={"phyletic_expression": "cbov=1T"},
+            ),
+            ComparisonNode(
+                search_name="GroupsByPhyleticPattern",
+                parameters={"phyletic_expression": "cand=1T"},
+            ),
+        ),
+    )

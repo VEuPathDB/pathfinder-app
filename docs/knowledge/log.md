@@ -2,6 +2,24 @@
 
 ## 2026-10-24
 
+* **A site read decodes each step under the class WDK states for it.** veupathdb-mcp
+  0.2.0b43 returns the snapshot's wire sidecar as `WireStep`s (`record_class`, the
+  `recordClassName` WDK states for the step, `None` for a step whose search is retired,
+  and `parameters`). The site-change read (`services/strategies/site_changes.py`) builds
+  a `WireStep` from each WDK step and decodes its values under that class, where it fell
+  back to the class the catalog lists the graph step's search under; a step with no class
+  keeps the values the graph holds, and a step the site added with no class or no values
+  is placed undecoded and does not refuse the site's tree. The parameter sweep
+  (`jobs/impls/optimize_params_impl.py`) reads its step under the class WDK states and
+  refuses a step that names none, where it fell back to the catalog. A `GenesBySnps` (transcript) root over a
+  `SnpsByLocation` (snp) leaf reads `[('snp', 'SnpsByLocation')]`, for a value the site
+  moved and for a leaf the site added. The eval run directory reads a leaf's wire values as
+  `wire[step_id].parameters`. A gene set taken from a strategy records the class WDK
+  states for its root step, which also decides whether the root holds genes:
+  `read_strategy_genes` and `create_from_strategy` take no
+  `record_type`, so a class the set held before no longer wins a refresh, and the context
+  is PathFinder's own `StrategyRootContext` (`services/gene_sets/types.py`).
+
 * **One phyletic builder, and an expression is shown by its handle.** veupathdb-mcp
   0.2.0b42 (now pinned) replaces the three OrthoMCL builders with
   `build_phyletic_expression(site_id, pattern)`, bounds a pattern at 8 levels and 128 terms

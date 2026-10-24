@@ -13,6 +13,7 @@ from assistant_core.persistence.models import Conversation
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.operations import (
     GraphOperation,
@@ -89,6 +90,7 @@ def site_step(
         "searchConfig": {"parameters": params},
         "estimatedSize": size,
         "customName": name,
+        "recordClassName": "transcript",
     }
 
 
@@ -155,13 +157,12 @@ class SiteAPI(StubAPI):
 
 
 async def decode_numbers(
-    payload: StrategyAst, api: StrategyAPI, wire: dict[str, dict[str, str]]
+    payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
 ) -> None:
     """Decode every wire value the way a number or a single pick decodes."""
     del api
     for node in walk(payload.root):
-        held = wire.get(node.id)
-        if held is None:
+        if node.id not in wire:
             continue
         node.parameters = {
             name: (
@@ -169,7 +170,7 @@ async def decode_numbers(
                 if value.isdigit()
                 else StringValue(value=value)
             )
-            for name, value in held.items()
+            for name, value in wire[node.id].parameters.items()
         }
 
 

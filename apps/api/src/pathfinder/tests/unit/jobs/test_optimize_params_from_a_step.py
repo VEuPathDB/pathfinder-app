@@ -289,30 +289,31 @@ def _serve_a_step(
 
 @pytest.mark.parametrize(
     ("search_name", "record_class_name"),
-    [("GroupsByPhyleticPattern", "group"), ("GenesWithSignalPeptide", None)],
+    [("GroupsByPhyleticPattern", "group"), ("GenesWithSignalPeptide", "transcript")],
 )
 async def test_the_sweep_reads_the_step_under_its_own_class(
-    monkeypatch: pytest.MonkeyPatch, search_name: str, record_class_name: str | None
+    monkeypatch: pytest.MonkeyPatch, search_name: str, record_class_name: str
 ) -> None:
     read_under = _serve_a_step(monkeypatch, search_name, record_class_name)
 
     await _run(parameters=["scope"])
 
-    assert read_under[:1] == [record_class_name or "transcript"]
+    assert read_under[:1] == [record_class_name]
 
 
-async def test_a_step_of_no_class_is_refused_by_its_search(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("search_name", ["GenesWithSignalPeptide", "Unlisted"])
+async def test_a_step_wdk_names_no_class_for_is_refused_by_its_search(
+    monkeypatch: pytest.MonkeyPatch, search_name: str
 ) -> None:
-    read_under = _serve_a_step(monkeypatch, "Unlisted", None)
+    read_under = _serve_a_step(monkeypatch, search_name, None)
 
     with pytest.raises(ValueError, match="cannot be swept") as refused:
         await _run(parameters=["scope"])
 
     assert (str(refused.value), read_under) == (
         (
-            f"The site lists no record type for Unlisted, so step {STEP_ID} cannot "
-            "be swept."
+            f"The site names no record class for step {STEP_ID} ({search_name}), "
+            "so it cannot be swept."
         ),
         [],
     )

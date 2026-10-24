@@ -7,6 +7,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree, walk
 from veupathdb.wdk import StrategyAPI, WDKStepTree, WDKStrategyDetails
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -57,11 +58,13 @@ def _site() -> WDKStrategyDetails:
             "steps": {
                 str(_TAXON_WDK): {
                     "id": _TAXON_WDK,
+                    "recordClassName": "transcript",
                     "searchName": "GenesByTaxon",
                     "searchConfig": {"parameters": {"organism": "Pf3D7"}},
                 },
                 str(_DESEQ_WDK): {
                     "id": _DESEQ_WDK,
+                    "recordClassName": "transcript",
                     "searchName": DESEQ_SEARCH,
                     "searchConfig": {
                         "parameters": {
@@ -72,6 +75,7 @@ def _site() -> WDKStrategyDetails:
                 },
                 str(_COMBINE_WDK): {
                     "id": _COMBINE_WDK,
+                    "recordClassName": "transcript",
                     "searchName": "boolean_question_transcript",
                     "searchConfig": {"parameters": {"bq_operator": "INTERSECT"}},
                 },
@@ -81,13 +85,14 @@ def _site() -> WDKStrategyDetails:
 
 
 async def _as_strings(
-    payload: StrategyAst, api: StrategyAPI, wire: dict[str, dict[str, str]]
+    payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
 ) -> None:
     del api
     for node in walk(payload.root):
         if node.id in wire:
             node.parameters = {
-                name: StringValue(value=value) for name, value in wire[node.id].items()
+                name: StringValue(value=value)
+                for name, value in wire[node.id].parameters.items()
             }
 
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 import pytest
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.homes import StepGenes
@@ -19,6 +18,7 @@ from pathfinder.services.gene_sets.types import (
     ResultAboveTheCap,
     ResultNotGenes,
     ResultWithoutGenes,
+    StrategyRootContext,
 )
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
@@ -54,14 +54,16 @@ async def _resync(store: InMemoryGeneSetStore) -> GeneSet | None:
 
 
 def _answering(gene_ids: list[str]) -> Callable[..., Awaitable[StrategyGenes]]:
-    async def _read(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
+    async def _read(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
         del site_id
         return StrategyGenes(
             genes=StepGenes(gene_ids=gene_ids, homes={}, record_class="sequence"),
-            context=GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            context=StrategyRootContext(
+                wdk_strategy_id=wdk_strategy_id,
+                wdk_step_id=227284190,
+                search_name=None,
+                record_type="sequence",
+                parameters=None,
             ),
             step_count=2,
         )

@@ -13,7 +13,6 @@ import pytest
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import (
@@ -26,7 +25,7 @@ from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import GeneSetStore, get_gene_set_store
 from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, StrategyRootContext
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -105,14 +104,16 @@ async def thread(db_session: AsyncSession, patch_app_db_engine: None) -> UUID:
 def _serve_roots(monkeypatch: pytest.MonkeyPatch, roots: list[list[str]]) -> None:
     """Each read of the strategy's root answers the next result in ``roots``."""
 
-    async def _read(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
+    async def _read(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
         del site_id
         return StrategyGenes(
             genes=StepGenes(gene_ids=roots.pop(0), homes={}, record_class="transcript"),
-            context=GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            context=StrategyRootContext(
+                wdk_strategy_id=wdk_strategy_id,
+                wdk_step_id=439858931,
+                search_name=None,
+                record_type="transcript",
+                parameters=None,
             ),
             step_count=3,
         )
@@ -292,9 +293,7 @@ async def test_a_rename_during_the_import_names_the_set(
     )
     await db_session.commit()
 
-    async def _renamed_while_read(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
+    async def _renamed_while_read(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
         del site_id
         async with strategy_write_lock(created.id, async_session_factory) as locked:
             await name_the_thread(
@@ -307,8 +306,12 @@ async def test_a_rename_during_the_import_names_the_set(
             genes=StepGenes(
                 gene_ids=list(_FIRST_COMMIT), homes={}, record_class="transcript"
             ),
-            context=GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            context=StrategyRootContext(
+                wdk_strategy_id=wdk_strategy_id,
+                wdk_step_id=439858931,
+                search_name=None,
+                record_type="transcript",
+                parameters=None,
             ),
             step_count=3,
         )
