@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A transform the site lists for its input is an edit the message asks for.** An edit pass that
+  adds a criterion no requirement of the message states is still refused, unless the criterion
+  is a transform whose search the site's catalog lists as taking the record class of the input it
+  maps (`listed_transform_ids`, `domain/strategy/listed_transforms.py`, over
+  `services/strategies/record_classes.py::site_transforms`); the refusal moved to
+  `ai/lead/added_criteria.py`. The classifier's typed `UserIntent.asks_a_change` marks a message
+  that asks the strategy to change however it is worded: the gate refuses a `follow_up_question`
+  so marked, and `held_as_question` keeps such a request a request, so it reaches FRAME.
 * **A builder's own refusal is not a site failure.** `build_phyletic_expression` reads the
   library's `ValidationError` (its guard: unknown codes, the term and depth caps, the count-read
   ceiling) as the builder's limit: the retry says so and the pass records it in

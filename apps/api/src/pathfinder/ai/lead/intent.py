@@ -139,6 +139,14 @@ class UserIntent(CamelModel):
             "for any other message."
         ),
     )
+    asks_a_change: bool = Field(
+        default=False,
+        description=(
+            "The message asks the strategy to change: a step added, removed or "
+            "replaced, its records carried to another record type, or a value "
+            "changed. True whether it is worded as a request or as a question."
+        ),
+    )
     undo: bool = Field(
         default=False,
         description="The message asks to undo, revert or put back the last change.",
@@ -351,6 +359,16 @@ def nothing_to_answer_message() -> str:
         "No question of yours is open on this conversation and no card waits, "
         "so this message answers none. Classify it as what it asks for: one "
         f"of {applies}."
+    )
+
+
+def question_asks_a_change_message() -> str:
+    """The refusal of a question classification that marks a change."""
+    return (
+        "The classification marks the message as asking for a change to the "
+        "strategy, and a follow_up_question changes nothing. Classify it as the "
+        "request it is: extend_strategy or edit_strategy over a strategy, "
+        "new_strategy over none, and keep its question in asks."
     )
 
 

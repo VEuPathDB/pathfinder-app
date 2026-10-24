@@ -96,6 +96,7 @@ def test_the_classifier_takes_no_message_text_from_the_model() -> None:
     """The classified message is the turn's own, so no text is passed in."""
     assert sorted(UserIntent.model_fields) == [
         "asks",
+        "asks_a_change",
         "classification",
         "differential_sides",
         "edit_direction",

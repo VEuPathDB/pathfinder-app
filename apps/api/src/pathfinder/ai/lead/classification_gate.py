@@ -24,6 +24,7 @@ from pathfinder.ai.lead.intent import (
     named_ids,
     nothing_to_answer_message,
     occurs_in,
+    question_asks_a_change_message,
     question_withdraws_message,
     unstated_ids_message,
     unstated_operator_refusal,
@@ -254,13 +255,15 @@ def held_as_question(state: PipelineState, intent: UserIntent) -> UserIntent | N
 
     The message states nothing outside its asks: no word of a requirement the
     intent records, or no word at all when it records none. An ask that names
-    a check keeps the request.
+    a check keeps the request, and so does an intent marked as asking a change.
     """
     if intent.classification not in _REQUESTS or not intent.asks:
         return None
     if any(_CHECK_WORDS.intersection(words_of(ask)) for ask in intent.asks):
         return None
     if intent.edit_direction != "other" or intent.withdrawn:
+        return None
+    if intent.asks_a_change:
         return None
     outside = _words_outside_the_asks(state, intent)
     stated = {
@@ -281,6 +284,10 @@ def classification_refusal(
     operator = unstated_operator_refusal(intent, message)
     if operator is not None:
         return operator
+    if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
+        intent.asks_a_change
+    ):
+        return question_asks_a_change_message()
     if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
         intent.withdrawn
     ):

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pydantic_ai import RunContext
 
+from pathfinder.ai.lead.added_criteria import (
+    refuse_an_added_criterion_the_message_does_not_state,
+)
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -13,7 +16,6 @@ from pathfinder.ai.lead.dispatch_context import (
     framing_goal,
     message_asks,
     record_the_spec_the_dispatch_found,
-    refuse_and_keep_what_it_bound,
     refuse_and_restore,
     the_edit_the_strategy_owes,
 )
@@ -48,7 +50,6 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     criteria_floor,
 )
-from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.named_groups import merged_scopes
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.requirement_reports import (
@@ -225,12 +226,6 @@ async def run_frame(
     return result
 
 
-def _names_the_requirement(text: str, requirement: Constraint) -> bool:
-    """Whether the words carry each other: one requirement, in either phrasing."""
-    value = requirement.requested_value
-    return message_states(text, value) or message_states(value, text)
-
-
 async def _run_frame(
     *,
     deps: LeadDeps,
@@ -275,7 +270,7 @@ async def _run_frame(
         return frame_result_from_draft(
             deps.state.domain.operational_spec, deps.last_phase_stop
         )
-    return _accepted(
+    return await _accepted(
         deps,
         delta,
         agent_deps.agent_state.operational_spec_draft,
@@ -305,7 +300,7 @@ def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:
     )
 
 
-def _accepted(
+async def _accepted(
     deps: LeadDeps, delta: FrameResult, draft: OperationalSpec, route: str
 ) -> FrameResult:
     """The result the Lead reads from a pass that answered, its changes read
@@ -325,7 +320,7 @@ def _accepted(
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
     draft = _without_what_an_unbound_question_moved(deps, delta, draft)
     delta = delta.model_copy(update={"changes": derived_changes(found, draft)})
-    _refuse_an_added_criterion_the_message_does_not_state(deps, found, draft)
+    await refuse_an_added_criterion_the_message_does_not_state(deps, found, draft)
     return delta
 
 
@@ -377,38 +372,6 @@ def derived_changes(
         for change in diff_specs(found, draft).changes
         if change.criterion_id in texts
     ]
-
-
-def _refuse_an_added_criterion_the_message_does_not_state(
-    deps: LeadDeps, found: OperationalSpec | None, draft: OperationalSpec
-) -> None:
-    """Refuse an edit pass that adds a criterion no requirement of the message
-    states. An edit changes what the message asks for, and a question is
-    answered without a step."""
-    intent = deps.intent
-    if intent is None or found is None or deps.step_count == 0:
-        return
-    message = deps.state.user_prompt
-    rest = message.casefold()
-    for ask in intent.researcher_asks(message):
-        rest = rest.replace(ask.text.casefold(), " ")
-    held = {c.id for c in found.criteria}
-    for criterion in draft.criteria:
-        if criterion.id in held or message_states(rest, criterion.text):
-            continue
-        if any(
-            _names_the_requirement(criterion.text, c)
-            for c in intent.explicit_constraints
-        ):
-            continue
-        refuse_and_keep_what_it_bound(
-            deps,
-            f"The pass adds '{criterion.id}' ('{criterion.text}'), which no "
-            "requirement of the message states; a question is answered with "
-            "compare_search_variants, not with a step. Drop it, or name the "
-            "requirement the message states for it.",
-            refused={criterion.id},
-        )
 
 
 async def frame_problem(
