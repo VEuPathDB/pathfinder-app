@@ -1,62 +1,123 @@
-"""A range value reads as its bounds: one number when they are equal, else the span."""
+"""Every parameter value reads as words: a range as its bounds, a filter as its clauses, never as its JSON wire text."""
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, get_args
 
 import pytest
-from veupathdb.domain.parameters import from_wire
+from veupathdb.domain.parameters import ParamKind, from_wire
 
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
+
+_SHOWN: dict[str, tuple[str, str]] = {
+    "string": ("kinase", "kinase"),
+    "number": ("5", "5"),
+    "number-range": ('{"min": 1, "max": 5}', "1 to 5"),
+    "date": ("2020-01-01", "2020-01-01"),
+    "date-range": (
+        '{"min": "2020-01-01", "max": "2021-06-30"}',
+        "2020-01-01 to 2021-06-30",
+    ),
+    "timestamp": ("1700000000", "1700000000"),
+    "single-pick-vocabulary": ("Pf3D7", "Pf3D7"),
+    "multi-pick-vocabulary": ('["Pf3D7", "PvP01"]', "Pf3D7, PvP01"),
+    "filter": (
+        (
+            '{"filters": [{"field": "sex", "value": ["female"]}, {"field": "maf", '
+            '"type": "number", "isRange": true, "value": {"max": 0.05}}]}'
+        ),
+        "sex: female; maf: at most 0.05",
+    ),
+    "input-dataset": ("123456", "123456"),
+    "input-step": ("227288240", "227288240"),
+}
+
+
+def test_every_parameter_kind_reads_as_words() -> None:
+    kinds: tuple[ParamKind, ...] = get_args(ParamKind)
+
+    assert set(kinds) == set(_SHOWN)
+    assert {kind: plain_value(from_wire(kind, _SHOWN[kind][0])) for kind in kinds} == {
+        kind: shown for kind, (_, shown) in _SHOWN.items()
+    }
 
 
 @pytest.mark.parametrize(
     ("kind", "wire", "shown"),
     [
         ("number-range", '{"min": 1, "max": 1}', "1"),
-        ("number-range", '{"min": 1, "max": 5}', "1 to 5"),
         ("number-range", '{"min": 0.5, "max": 2.25}', "0.5 to 2.25"),
         ("number-range", '{"min": 3}', "at least 3"),
         ("number-range", '{"max": 3}', "at most 3"),
+        ("filter", '{"filters": []}', "no filter"),
         (
-            "date-range",
-            '{"min": "2020-01-01", "max": "2021-06-30"}',
-            "2020-01-01 to 2021-06-30",
+            "filter",
+            (
+                '{"filters": [{"field": "sex", "value": ["female", "male"], '
+                '"includeUnknown": true}]}'
+            ),
+            "sex: female, male or unknown",
+        ),
+        (
+            "filter",
+            (
+                '{"filters": [{"field": "variants_per_kb", "type": "number", '
+                '"isRange": true, "value": {"min": 0, "max": 0}}]}'
+            ),
+            "variants_per_kb: 0",
         ),
     ],
 )
-def test_a_range_reads_as_its_bounds(
-    kind: Literal["number-range", "date-range"], wire: str, shown: str
+def test_a_range_and_a_filter_read_as_their_bounds(
+    kind: Literal["number-range", "filter"], wire: str, shown: str
 ) -> None:
     assert plain_value(from_wire(kind, wire)) == shown
 
 
-def test_a_singleton_range_renders_in_its_clause_as_one_number() -> None:
-    value = plain_value(from_wire("number-range", '{"min": 1, "max": 1}'))
+_RSQUO = chr(0x2019)
+_SINGLETONS = (
+    "The strategy correctly defines singleton groups as groups containing exactly "
+    "[value:step_88b8197d.all_count] protein and returns [count:step_88b8197d]. "
+    "However, it does not restrict the records to Plasmodium or provide "
+    "species-level counts, so it cannot determine which Plasmodium species has "
+    f"the most singleton genes. The site{_RSQUO}s available result fields did not "
+    "expose the ranking needed for that comparison. The strategy link is "
+    "available beside this reply if you want to inspect the singleton-group result."
+)
+
+
+def test_the_recorded_singleton_clause_renders_one_number() -> None:
     facts = TurnFacts(
+        record_noun="group",
         steps=[
             StepFact(
-                step_id="step_ortho",
-                display_name="Orthology phylogenetic profile",
-                count=412,
+                step_id="step_88b8197d",
+                display_name="Number of Sequences",
+                count=523795,
+                record_noun="group",
                 parameters=[
                     ParameterFact(
                         name="all_count",
-                        display_name="Number of genes in each organism",
-                        value=value,
-                        source="stated",
+                        display_name="Number of All Proteins",
+                        value=plain_value(
+                            from_wire("number-range", '{"min": 1.0, "max": 1.0}')
+                        ),
+                        source="chosen",
                     )
                 ],
             )
-        ]
-    )
-    prose = (
-        "The profile keeps genes with exactly [value:step_ortho.all_count] copy in "
-        "each organism."
+        ],
     )
 
-    assert render_reply(prose, facts) == (
-        "The profile keeps genes with exactly 1 copy in each organism."
+    assert prose_faults(_SINGLETONS, facts) == []
+    assert render_reply(_SINGLETONS, facts) == (
+        "The strategy correctly defines singleton groups as groups containing exactly "
+        "1 protein and returns 523,795 groups. However, it does not restrict the "
+        "records to Plasmodium or provide species-level counts, so it cannot "
+        "determine which Plasmodium species has the most singleton genes. The "
+        f"site{_RSQUO}s available result fields did not expose the ranking needed "
+        "for that comparison. The strategy link is available beside this reply if "
+        "you want to inspect the singleton-group result."
     )
