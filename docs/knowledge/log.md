@@ -2,14 +2,15 @@
 
 ## 2026-10-24
 
-* **A stored value renders in the form its type gives it, and a word reference that closes a
-  clause is a note.** An audit read's rows come from the answer's serialization schema
-  (`domain/statistic_rows.py`): a number and a one-word identifier render in place, an enum
-  as plain words, a boolean as yes or no, and a leaf with no display form is refused. A `stat`
-  reference to a word or a sentence renders the word inside its clause and a numbered note
-  below the reply where it closes the clause (`domain/reply_notes.py`), so a reply that cites
-  a word it wrote shows it once. The Lead's audit rule and the shared placement rule state it.
-  See [a word reference that closes a clause is a note](decisions/a-word-reference-that-closes-a-clause-is-a-note.md).
+* **A stored value renders in the form its type gives it; `stat` places it and `cite`
+  cites it.** An audit read's rows come from the answer's serialization schema
+  (`domain/statistic_rows.py`): a number and a share render as numbers, an enum as its
+  words, a boolean as Yes or No, a string of two or more words as a sentence. Every source
+  answer is registered once and its schema read when an audit toolset is built. `[stat:]`
+  renders a value in place, the new `[cite:]` a numbered note after the reply's own words,
+  and each is refused on a row of the other form. The notes join the reply only where it is
+  emitted, under labels of its own. A synthesis summary is stored as written. See
+  [a value is placed by stat and cited by cite](decisions/a-value-is-placed-by-stat-and-cited-by-cite.md).
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a

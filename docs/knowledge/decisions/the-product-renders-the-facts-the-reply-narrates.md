@@ -90,7 +90,7 @@ carries, is shown as its plain words:
 | `[value:<step_id>.<param>]` | the bound value with its label (`ParameterFact.shown`); a label that repeats the value is dropped on the type |
 | `[source:<step_id>.<param>]` | who set it: "you stated", "your answer on a card", "the site's default", "chosen", "held by the strategy" |
 | `[compare:<variant>]` | the variant's genes; `:unique`, `:result`, and `[compare:<a>,<b>:shared]` |
-| `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread or an audit read returned: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`); a word or a sentence renders in place inside its clause and as a numbered note where the reference closes the clause ([a word reference that closes a clause is a note](a-word-reference-that-closes-a-clause-is-a-note.md)) |
+| `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread or an audit read returned: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`); `[cite:<id>.<row>]` renders a numbered note after words that state the value ([a value is placed by stat and cited by cite](a-value-is-placed-by-stat-and-cited-by-cite.md)) |
 | `[record:<record_id>]` | a read, listed, checked or resolved record's id, or one the conversation showed last, linked to its page, with its product (`TurnFacts.citable_records`) |
 | `[url]` | the strategy's link |
 
