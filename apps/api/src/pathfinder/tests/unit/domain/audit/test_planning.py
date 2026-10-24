@@ -358,18 +358,26 @@ def test_a_genome_a_target_reads_whole_stays_audited_and_the_cut_falls_on_the_ot
             },
             "an audit checks at most 200 gene targets, not 201",
         ),
-        (
-            {"checks": ()},
-            "an audit request names at least one check, or leaves the checks to the planner",
-        ),
     ],
-    ids=["confirm_limit_low", "confirm_limit_high", "targets", "no_checks"],
+    ids=["confirm_limit_low", "confirm_limit_high", "targets"],
 )
 def test_a_request_out_of_bounds_is_refused_in_words(
     change: dict[str, object], message: str
 ) -> None:
     with pytest.raises(ValueError, match=message):
         PlanRequest.model_validate({"siteId": "exampledb", **change})
+
+
+def test_an_empty_check_list_leaves_the_checks_to_the_planner() -> None:
+    sent = PlanRequest.model_validate({"siteId": "exampledb", "checks": []})
+    schema = PlanRequest.model_json_schema(by_alias=True)["properties"]["checks"]
+
+    assert (sent.checks, PlanRequest(site_id="exampledb").checks) == ((), ())
+    assert "null" not in str(schema)
+    assert schema["description"] == (
+        "The screens to run over every named genome. An empty list lets the "
+        "planner choose them."
+    )
 
 
 def test_a_request_at_the_bounds_is_taken() -> None:

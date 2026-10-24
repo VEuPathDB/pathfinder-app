@@ -122,7 +122,7 @@ def _asked(request: PlanRequest) -> list[str]:
     return [
         request.site_id,
         *request.genomes,
-        *(request.checks or ()),
+        *request.checks,
         *(target.key for target in request.targets),
         str(request.confirm_limit),
     ]
