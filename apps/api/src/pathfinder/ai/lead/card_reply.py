@@ -13,12 +13,9 @@ _REPLY_MIN_CHARS = 20
 PLACEMENT_RULES = (
     "A count reference renders with its noun, so no noun follows it. A number "
     "word (one to twelve, twice, two-fold) never stands in the clause of "
-    "a count or value reference, which stands in place of the number. A [stat:] "
-    "reference to a word or a sentence, such as a certainty, a verdict, a yes or "
-    "no or a stored text, stands in place of the word inside its clause. Where "
-    "it closes the clause, it renders as a numbered note that quotes the stored "
-    "value, so the clause states the word before it and never copies a stored "
-    "sentence."
+    "a count or value reference, which stands in place of the number. "
+    "[stat:<id>.<row>] is the value written in place, and [cite:<id>.<row>] "
+    "follows your own words for it."
 )
 # The records a record reference cites. The schema and the Lead's instruction
 # both state it.

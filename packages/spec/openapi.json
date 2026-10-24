@@ -5871,13 +5871,12 @@
           "share": {
             "anyOf": [
               {
-                "type": "number"
+                "$ref": "#/components/schemas/Share"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Share"
+            ]
           },
           "text": {
             "type": "string",
@@ -15643,13 +15642,12 @@
           "share": {
             "anyOf": [
               {
-                "type": "number"
+                "$ref": "#/components/schemas/Share"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Share",
             "readOnly": true
           }
         },
@@ -16413,6 +16411,10 @@
             "type": "null"
           }
         ]
+      },
+      "Share": {
+        "type": "number",
+        "format": "share"
       },
       "SideVerdict": {
         "type": "string",
@@ -25414,8 +25416,9 @@
       },
       "RowForm": {
         "enum": [
-          "value",
-          "word"
+          "number",
+          "word",
+          "sentence"
         ],
         "type": "string"
       },
@@ -26286,7 +26289,18 @@
           },
           "form": {
             "$ref": "#/components/schemas/RowForm",
-            "default": "value"
+            "default": "number"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           }
         },
         "required": [

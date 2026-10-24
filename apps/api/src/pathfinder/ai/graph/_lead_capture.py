@@ -37,7 +37,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_references import note_label, shown_reply
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
@@ -270,7 +270,10 @@ def _emit_residual_prose(
     emit_chunk(writer, TextStartChunk(id=chunk_id))
     emit_chunk(
         writer,
-        TextDeltaChunk(id=chunk_id, delta=render_reply(response.prose, capture.facts)),
+        TextDeltaChunk(
+            id=chunk_id,
+            delta=shown_reply(response.prose, capture.facts, note_label()),
+        ),
     )
     emit_chunk(writer, TextEndChunk(id=chunk_id))
 

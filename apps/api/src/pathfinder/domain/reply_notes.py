@@ -1,54 +1,67 @@
-"""The numbered notes a reply's word references render as where they close a clause."""
+"""The numbered notes a reply's ``cite`` references render as, below the reply."""
 
 from __future__ import annotations
 
-import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
+from typing import Literal
 
-from pathfinder.domain.reference_grammar import A_REFERENCE
+from pathfinder.domain.reference_grammar import A_REFERENCE, reference_kind
 from pathfinder.domain.statistic_facts import (
     StatisticFact,
     StatisticRowFact,
     statistic_row,
 )
 
-_A_MARKER_GAP = re.compile(r"(?<=[\w*)\]])[ \t]+(?=\[\^\d+\])")
+type KindMismatch = Literal["sentence_in_place", "cited_number"]
 
 
-def closes_clause(prose: str, end: int) -> bool:
-    index = end
-    while index < len(prose):
-        if prose[index] in " \t":
-            index += 1
+@dataclass(frozen=True)
+class MisusedReference:
+    kind: KindMismatch
+    token: str
+    reference: str
+
+
+def misused_references(
+    prose: str, statistics: Sequence[StatisticFact]
+) -> Iterator[MisusedReference]:
+    for match in A_REFERENCE.finditer(prose):
+        body = match.group("body") or ""
+        row = statistic_row(statistics, body)
+        if row is None:
             continue
-        reference = A_REFERENCE.match(prose, index)
-        if reference is None:
-            return not prose[index].isalnum()
-        index = reference.end()
-    return True
+        match reference_kind(match), row.form:
+            case "stat", "sentence":
+                yield MisusedReference(
+                    "sentence_in_place", match.group(), f"[cite:{body}]"
+                )
+            case "cite", "number":
+                yield MisusedReference("cited_number", match.group(), f"[stat:{body}]")
+            case _:
+                continue
 
 
 @dataclass
 class ReplyNotes:
     statistics: Sequence[StatisticFact]
+    label: str = ""
     numbered: dict[str, tuple[int, StatisticRowFact]] = field(default_factory=dict)
 
-    def marker(self, match: re.Match[str]) -> str | None:
-        body = match.group("body") or ""
+    def marker(self, body: str) -> str | None:
         row = statistic_row(self.statistics, body)
-        if row is None or row.form != "word" or match.group("noun"):
-            return None
-        if not closes_clause(match.string, match.end()):
+        if row is None:
             return None
         number, _ = self.numbered.setdefault(body, (len(self.numbered) + 1, row))
-        return f"[^{number}]"
+        return f"[^{self.label}{number}]"
 
-    def appended(self, text: str) -> str:
+    def block(self) -> str:
         if not self.numbered:
-            return text
-        notes = "\n".join(f"[^{n}]: {row.note()}" for n, row in self.numbered.values())
-        return f"{_A_MARKER_GAP.sub('', text)}\n\n{notes}"
+            return ""
+        notes = "\n".join(
+            f"[^{self.label}{n}]: {row.note()}" for n, row in self.numbered.values()
+        )
+        return f"\n\n{notes}"
 
 
-__all__ = ["ReplyNotes", "closes_clause"]
+__all__ = ["KindMismatch", "MisusedReference", "ReplyNotes", "misused_references"]

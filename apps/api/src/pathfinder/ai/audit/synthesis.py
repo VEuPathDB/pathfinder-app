@@ -21,7 +21,7 @@ from pathfinder.domain.audit.verdicts import (
     SynthesisDraft,
     review_agreement,
 )
-from pathfinder.domain.reply_references import prose_faults, render_reply
+from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
 from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.domain.turn_facts import TurnFacts
@@ -226,6 +226,6 @@ async def synthesize(
     return Synthesis(
         sections=draft.sections,
         headline=draft.headline,
-        summary=render_reply(draft.summary, facts),
+        summary=draft.summary,
         agreement=agreement,
     )

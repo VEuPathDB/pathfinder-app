@@ -246,9 +246,9 @@ async def test_an_approved_audit_starts_and_reads_its_progress(
     async with async_session_factory() as session:
         (run,) = await AuditRepository(session).runs(user_id=owner.id)
     assert len(audit_jobs(in_memory_jobs)) == 1
-    assert _text(started) == f"Audit run {run.id} is planned now."
+    assert _text(started) == f"Audit run {run.id} is planned."
     assert _called(progress) == ["list_audit_runs", "read_audit_run"]
-    assert _text(progress).startswith(f"Audit run {run.id} is planned now.")
+    assert _text(progress).startswith(f"Audit run {run.id} is planned.")
 
 
 @pytest.mark.usefixtures("pseudogene_call")
@@ -383,7 +383,7 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     assert _called(chunks) == ["list_audit_runs", "read_audit_run"]
     assert seen == [[]]
     assert _text(chunks) == (
-        f"Audit run {run_id} is planned now. Its confirmation stage has checked 7 of "
+        f"Audit run {run_id} is planned. Its confirmation stage has checked 7 of "
         f"10 candidates. The first rate is at least {json.dumps(rate.bounds.low)}."
     )
 

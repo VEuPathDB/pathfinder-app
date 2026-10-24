@@ -93,7 +93,7 @@ def investigator_script(messages: list[ModelMessage]) -> ScriptedPart:
         {
             "answer": (
                 f"The check reads the model of [record:{strain}] as "
-                f"[stat:{read.fact_id}.verdict] against its reference."
+                f"[stat:{read.fact_id}.verdict]."
             ),
             "verdicts": [pseudogene_verdict(strain, reference, read)],
         }

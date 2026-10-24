@@ -131,7 +131,7 @@ def audit_start(messages: list[ModelMessage]) -> list[ToolCallPart]:
     if started is None:
         return [*head, start, lead_final(NOT_STARTED, "await_user")]
     fact = started.fact_id
-    said = f"Audit run [stat:{fact}.runId] is [stat:{fact}.status] now."
+    said = f"Audit run [stat:{fact}.runId] is [stat:{fact}.status]."
     return [*head, start, lead_final(said, "complete")]
 
 
@@ -143,7 +143,7 @@ def audit_plan(messages: list[ModelMessage]) -> list[ToolCallPart]:
     fact = planned.fact_id
     said = (
         f"The run reads the site [stat:{fact}.estimate.wdkRequests] times, and the "
-        f"plan leaves out [stat:{fact}.leftOut.0] from its scope."
+        f"plan leaves out a genome [cite:{fact}.leftOut.0]."
     )
     return [*head, lead_final(said, "await_user")]
 

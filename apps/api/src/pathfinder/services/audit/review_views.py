@@ -29,6 +29,7 @@ from pathfinder.domain.audit.words import (
     agreement_sentence,
     paper_sentence,
 )
+from pathfinder.domain.statistic_facts import Share
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -67,7 +68,7 @@ class AgreementView(CamelModel):
 
     sampled: int
     agreed: int
-    share: float | None
+    share: Share | None
     text: str
 
 

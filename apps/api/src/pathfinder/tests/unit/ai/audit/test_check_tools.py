@@ -449,7 +449,7 @@ def test_finding_rows_are_dotted_paths() -> None:
     assert fact.value("finding.target.check") == "pseudogene call"
     assert (fact.value("finding.verdict"), fact.value("finding.fromTarget")) == (
         "intact",
-        "yes",
+        "Yes",
     )
     assert (
         statistic_value(

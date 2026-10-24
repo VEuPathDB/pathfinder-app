@@ -119,7 +119,7 @@ def _audit(turn: list[ModelMessage], genome: str) -> ScriptedPart:
         return terminal_call({"prose": "The audit was not started, as you answered."})
     fact = _Read.model_validate(started.content, from_attributes=True).fact_id
     return terminal_call(
-        {"prose": f"Audit run [stat:{fact}.runId] is [stat:{fact}.status] now."}
+        {"prose": f"Audit run [stat:{fact}.runId] is [stat:{fact}.status]."}
     )
 
 
@@ -152,7 +152,7 @@ class _RunRead(_Read):
 def _progress_reply(read: _RunRead) -> str:
     fact = read.fact_id
     said = (
-        f"Audit run [stat:{fact}.run.id] is [stat:{fact}.run.status] now. Its "
+        f"Audit run [stat:{fact}.run.id] is [stat:{fact}.run.status]. Its "
         f"confirmation stage has checked [stat:{fact}.stages.stages.2.done] of "
         f"[stat:{fact}.stages.stages.2.total] candidates."
     )

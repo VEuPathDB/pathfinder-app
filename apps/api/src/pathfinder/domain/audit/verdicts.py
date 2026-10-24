@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, model_validator
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
+from pathfinder.domain.statistic_facts import Share
 
 VerdictKind = Literal["error", "no_error", "undecided"]
 VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
@@ -115,7 +116,7 @@ class ReviewAgreement(CamelModel):
         return self
 
     @computed
-    def share(self) -> float | None:
+    def share(self) -> Share | None:
         return None if self.sampled == 0 else round(self.agreed / self.sampled, 3)
 
 

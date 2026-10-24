@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.exchanges import Exchange
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_references import note_label, shown_reply
 
 
 class _OptionWords(CamelModel):
@@ -63,7 +63,7 @@ def turn_exchange(state: PipelineState, capture: _LeadRunCapture) -> Exchange:
     card = capture.pending_approval
     words = _CardWords.model_validate(card.tool_args) if card else _CardWords()
     prose = capture.response.prose if capture.response else words.reply
-    shown = render_reply(prose, capture.facts) if prose else ""
+    shown = shown_reply(prose, capture.facts, note_label()) if prose else ""
     asked = words.asked(card.tool_name) if card else ""
     answered = capture.answered_call
     if answered is None:

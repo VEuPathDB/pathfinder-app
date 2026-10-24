@@ -3626,9 +3626,8 @@ components:
           title: Agreed
         share:
           anyOf:
-          - type: number
+          - $ref: '#/components/schemas/Share'
           - type: 'null'
-          title: Share
         text:
           type: string
           title: Text
@@ -10295,9 +10294,8 @@ components:
           title: Agreed
         share:
           anyOf:
-          - type: number
+          - $ref: '#/components/schemas/Share'
           - type: 'null'
-          title: Share
           readOnly: true
       type: object
       required:
@@ -10819,6 +10817,9 @@ components:
       anyOf:
       - type: string
       - type: 'null'
+    Share:
+      type: number
+      format: share
     SideVerdict:
       type: string
       enum:
@@ -17014,8 +17015,9 @@ components:
       type: string
     RowForm:
       enum:
-      - value
+      - number
       - word
+      - sentence
       type: string
     SampleCaveat:
       description: 'A column of a step whose values do not all fit the bound, or that the
@@ -17650,7 +17652,12 @@ components:
           type: string
         form:
           $ref: '#/components/schemas/RowForm'
-          default: value
+          default: number
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
       required:
       - name
       - value

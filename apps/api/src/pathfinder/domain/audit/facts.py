@@ -28,6 +28,10 @@ _CODES: dict[GeneticCode, str] = {
     GeneticCode.YEAST_MITOCHONDRIAL: "Yeast mitochondrial",
     GeneticCode.INVERTEBRATE_MITOCHONDRIAL: "Invertebrate mitochondrial",
 }
+CODE_WORDS: dict[str, dict[str, str]] = {
+    GeneticCode.__name__: {code.value: words for code, words in _CODES.items()},
+    "RelativeTier": {str(tier): words for tier, words in TIER_WORDS.items()},
+}
 
 
 class Fact(CamelModel):

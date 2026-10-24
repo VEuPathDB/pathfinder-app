@@ -396,16 +396,8 @@ def test_a_saved_set_the_researcher_names_is_attached() -> None:
     ) in _flat(LEAD_INSTRUCTIONS)
 
 
-def test_a_stored_word_is_said_once_by_its_reference_or_beside_its_note() -> None:
-    instructions = _flat(LEAD_INSTRUCTIONS)
-
+def test_a_stat_is_written_in_place_and_a_cite_follows_the_words() -> None:
     assert (
-        "A word or a sentence it stored, such as a certainty, a verdict, a yes or "
-        "no or a reviewer's text, is said once: the reference stands in place of "
-        'the word ("a [stat:<fact id>.finding.certainty] certainty error"), or you '
-        "say it in your words and the reference closes the clause as its note"
-    ) in instructions
-    assert (
-        "Where it closes the clause, it renders as a numbered note that quotes the "
-        "stored value"
-    ) in instructions
+        "[stat:<id>.<row>] is the value written in place, and [cite:<id>.<row>] "
+        "follows your own words for it."
+    ) in _flat(LEAD_INSTRUCTIONS)

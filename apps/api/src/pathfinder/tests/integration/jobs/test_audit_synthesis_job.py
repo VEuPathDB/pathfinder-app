@@ -182,7 +182,10 @@ async def test_the_job_ends_with_the_runs_synthesis_stored(
             }
         ],
         "headline": ids,
-        "summary": "The review kept 3 findings as errors and rejected 0.",
+        "summary": (
+            f"The review kept [stat:{_counts(run_id)}.kept] findings as errors and "
+            f"rejected [stat:{_counts(run_id)}.rejected]."
+        ),
         "agreement": {"sampled": 3, "agreed": 3, "share": 1.0},
     }
 
@@ -198,7 +201,6 @@ async def test_the_synthesis_carries_the_review_agreement(
     )
     retries: list[RetryPromptPart] = []
     ids = list(stored.values())
-    kept = "The review kept 3 findings as errors and rejected 0."
     counts = _counts(run_id)
     written = (
         f"The review kept [stat:{counts}.kept] findings as errors and rejected "
@@ -229,7 +231,10 @@ async def test_the_synthesis_carries_the_review_agreement(
     assert "80" in str(retry.content)
     run = await _read_run(app, owner, run_id)
     assert run["synthesis"]["agreement"] == {"sampled": 3, "agreed": 2, "share": 0.667}
-    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (kept, ids)
+    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (
+        written,
+        ids,
+    )
     assert run["review"]["status"] == "synthesized"
 
 

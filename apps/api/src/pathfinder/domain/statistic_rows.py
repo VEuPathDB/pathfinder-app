@@ -17,9 +17,10 @@ from pydantic import (
     field_validator,
 )
 
-from pathfinder.domain.statistic_facts import StatisticRowFact, plain_words
+from pathfinder.domain.audit.facts import CODE_WORDS, YES_NO
+from pathfinder.domain.statistic_facts import StatisticRowFact
 
-type LeafKind = Literal["number", "boolean", "words", "string"]
+type LeafKind = Literal["number", "share", "boolean", "words", "string"]
 
 _JSON: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 _SCALARS: Mapping[str, LeafKind] = {
@@ -44,6 +45,8 @@ class SchemaNode(BaseModel):
 
     ref: str | None = Field(default=None, alias="$ref")
     kind: str | None = Field(default=None, alias="type")
+    title: str | None = None
+    format: str | None = None
     enum: tuple[JsonValue, ...] = ()
     const: JsonValue = None
     properties: dict[str, SchemaNode] = Field(default_factory=dict)
@@ -62,11 +65,18 @@ class SchemaNode(BaseModel):
         return None if value is True or value is False else value
 
     @property
-    def fixed(self) -> bool:
-        return "const" in self.model_fields_set
+    def codes(self) -> tuple[JsonValue, ...]:
+        return (self.const,) if "const" in self.model_fields_set else self.enum
 
     def names(self, value: JsonValue) -> bool:
-        return value in self.enum or (self.fixed and value == self.const)
+        return value in self.codes
+
+    def words(self, code: str) -> str:
+        if self.title in CODE_WORDS and code in CODE_WORDS[self.title]:
+            return CODE_WORDS[self.title][code]
+        spaced = code.replace("_", " ")
+        coded = any("_" in str(member) for member in self.codes)
+        return spaced.lower() if coded and code.isupper() else spaced
 
     def members(self) -> tuple[SchemaNode, ...]:
         return (*self.any_of, *self.one_of)
@@ -90,32 +100,41 @@ class SchemaNode(BaseModel):
         return [*named, *mapped]
 
     def leaf_kind(self, path: str) -> LeafKind | None:
-        if self.enum or self.fixed:
+        if self.codes:
             return "words"
         if self.kind == "null":
             return None
         if self.kind is None or self.kind not in _SCALARS:
             schema = self.model_dump_json(by_alias=True, exclude_defaults=True)
             raise NoDisplayFormError(path, f"the schema {schema}")
-        return _SCALARS[self.kind]
+        return "share" if self.format == "share" else _SCALARS[self.kind]
+
+
+_UNTYPED = SchemaNode()
+
+
+def _number(value: float, branches: Sequence[SchemaNode]) -> str:
+    if any(branch.format == "share" for branch in branches):
+        return f"{round(value * 100, 1):g}%"
+    return json.dumps(value)
 
 
 def _scalar(
     path: str, branches: Sequence[SchemaNode], value: JsonValue
 ) -> StatisticRowFact:
+    named = next((b for b in branches if b.names(value)), None)
     match value:
         case bool():
-            return StatisticRowFact(
-                name=path, value="yes" if value else "no", form="word"
-            )
+            return StatisticRowFact(name=path, value=YES_NO[value], form="word")
         case int() | float():
-            return StatisticRowFact(name=path, value=json.dumps(value))
-        case str() if any(branch.names(value) for branch in branches):
-            return StatisticRowFact(name=path, value=plain_words(value), form="word")
+            return StatisticRowFact(name=path, value=_number(value, branches))
+        case str() if named is not None:
+            words = named.words(value)
+            return StatisticRowFact(name=path, value=words, form="word", code=value)
         case str() if len(value.split()) > 1:
-            return StatisticRowFact(name=path, value=value, form="word")
+            return StatisticRowFact(name=path, value=value, form="sentence")
         case _:
-            return StatisticRowFact(name=path, value=str(value))
+            return StatisticRowFact(name=path, value=str(value), form="word")
 
 
 @dataclass(frozen=True)
@@ -139,38 +158,25 @@ class FactSchema:
         if not branch.properties or not set(value) <= set(branch.properties):
             return False
         held = {key: self._resolved(branch.properties[key]) for key in value}
-        return all(
-            node.names(value[key])
-            for key, node in held.items()
-            if node.enum or node.fixed
-        )
+        return all(node.names(value[key]) for key, node in held.items() if node.codes)
 
     def _object(
-        self, branches: Sequence[SchemaNode], value: Mapping[str, JsonValue], path: str
+        self, branches: Sequence[SchemaNode], value: Mapping[str, JsonValue]
     ) -> SchemaNode:
         fitting = [b for b in branches if self._fits(b, value)]
-        mapped = [b for b in branches if b.additional_properties is not None]
-        held = [*fitting, *mapped]
-        if not held:
-            raise NoDisplayFormError(path, "the object")
-        return held[0]
+        held = [*fitting, *branches]
+        return held[0] if held else _UNTYPED
 
-    def _field(self, branch: SchemaNode, key: str, path: str) -> SchemaNode:
+    def _field(self, branch: SchemaNode, key: str) -> SchemaNode:
         if key in branch.properties:
             return branch.properties[key]
-        if branch.additional_properties is None:
-            raise NoDisplayFormError(_path(path, key), "the value")
-        return branch.additional_properties
+        return branch.additional_properties or _UNTYPED
 
-    def _item(
-        self, branches: Sequence[SchemaNode], index: int, path: str
-    ) -> SchemaNode:
-        array = next((b for b in branches if b.kind == "array"), None)
-        if array is not None and index < len(array.prefix_items):
+    def _item(self, branches: Sequence[SchemaNode], index: int) -> SchemaNode:
+        array = next((b for b in branches if b.kind == "array"), _UNTYPED)
+        if index < len(array.prefix_items):
             return array.prefix_items[index]
-        if array is None or array.items is None:
-            raise NoDisplayFormError(_path(path, str(index)), "the item")
-        return array.items
+        return array.items or _UNTYPED
 
     def rows(
         self, node: SchemaNode, value: JsonValue, path: str
@@ -180,14 +186,16 @@ class FactSchema:
             case None:
                 return
             case dict():
-                branch = self._object(branches, value, path)
+                branch = self._object(branches, value)
                 for key, item in value.items():
-                    field = self._field(branch, key, path)
-                    yield from self.rows(field, item, _path(path, key))
+                    yield from self.rows(
+                        self._field(branch, key), item, _path(path, key)
+                    )
             case list():
                 for index, item in enumerate(value):
-                    element = self._item(branches, index, path)
-                    yield from self.rows(element, item, _path(path, str(index)))
+                    yield from self.rows(
+                        self._item(branches, index), item, _path(path, str(index))
+                    )
             case _:
                 yield _scalar(path, branches, value)
 

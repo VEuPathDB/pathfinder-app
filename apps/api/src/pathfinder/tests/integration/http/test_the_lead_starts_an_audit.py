@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 
 import httpx
@@ -113,7 +114,7 @@ async def test_the_lead_asks_before_an_audit_starts(
         (run,) = await AuditRepository(session).runs(user_id=owner.user_id)
     assert run.conversation_id == thread
     assert len(audit_jobs(in_memory_jobs)) == 1
-    assert text(started).endswith(f"Audit run {run.id} is planned now.")
+    assert text(started).endswith(f"Audit run {run.id} is planned.")
 
 
 @pytest.mark.usefixtures("signed_in")
@@ -222,10 +223,13 @@ async def test_the_lead_answers_with_the_plans_request_count(
     )
 
     assert called(chunks) == ["classify_user_intent", "plan_gene_model_audit"]
-    assert text(chunks) == (
-        f"The run reads the site {proposal.estimate.wdk_requests} times, and the "
-        f"plan leaves out {proposal.left_out[0]} from its scope."
+    said = re.fullmatch(
+        rf"The run reads the site {proposal.estimate.wdk_requests} times, and the "
+        r"plan leaves out a genome\[\^(?P<label>n[0-9a-f]{8}-)1\]\.\n\n"
+        rf"\[\^(?P=label)1\]: left out: {re.escape(proposal.left_out[0])}",
+        text(chunks),
     )
+    assert said is not None, text(chunks)
     assert corrections == [0]
 
 

@@ -8,11 +8,11 @@ import re
 from collections.abc import Callable, Iterator, Sequence
 from itertools import combinations
 from statistics import fmean
-from typing import Literal
+from typing import Annotated, Literal
 
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, WithJsonSchema
 
 from pathfinder.domain.eda_parts import (
     EdaBoxplotBox,
@@ -53,7 +53,8 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
     }
 )
 
-type RowForm = Literal["value", "word"]
+type RowForm = Literal["number", "word", "sentence"]
+type Share = Annotated[float, WithJsonSchema({"type": "number", "format": "share"})]
 
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -72,18 +73,18 @@ class StatisticRowFact(CamelModel):
 
     name: str
     value: str
-    form: RowForm = "value"
+    form: RowForm = "number"
+    code: str | None = None
 
     def numbers(self) -> list[str]:
         """Each number the value writes, without its digit separators."""
         return [found.replace(",", "") for found in _DIGITS.findall(self.value)]
 
     def note(self) -> str:
-        field = next(
-            (part for part in reversed(self.name.split(".")) if not part.isdigit()),
-            self.name,
-        )
-        return f"{_A_CAPITAL.sub(' ', field).lower()}: {self.value}"
+        parts = [part for part in self.name.split(".") if not part.isdigit()]
+        named = [p for i, p in enumerate(parts) if i == 0 or p != parts[i - 1]]
+        words = " ".join(_A_CAPITAL.sub(" ", part).lower() for part in named[-2:])
+        return f"{words or self.name}: {self.value}"
 
 
 class StatisticFact(CamelModel):
@@ -110,11 +111,6 @@ class StatisticFact(CamelModel):
 
     def redacted(self, redact: Callable[[str], str]) -> StatisticFact:
         return self.model_copy(update={"title": redact(self.title)})
-
-
-def plain_words(code: str) -> str:
-    words = code.replace("_", " ")
-    return words.lower() if code.isupper() else words
 
 
 def statistic_row(
@@ -167,8 +163,7 @@ def statistic_word_references(
             f"[stat:{statistic.id}.{row.name}]"
             for statistic in statistics
             for row in statistic.rows
-            if row.value == token
-            or (row.form == "word" and row.value == plain_words(token))
+            if token in (row.value, row.code)
         )
     )
 
@@ -282,11 +277,11 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 __all__ = [
     "TURN_STATISTICS",
     "RowForm",
+    "Share",
     "StatisticFact",
     "StatisticKind",
     "StatisticRowFact",
     "pca_fact",
-    "plain_words",
     "statistic_id",
     "statistic_references",
     "statistic_row",

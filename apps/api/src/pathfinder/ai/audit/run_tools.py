@@ -18,6 +18,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb.errors import WDKLoginRequiredError
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
+from pathfinder.ai.audit.fact_sources import warm_fact_schemas
 from pathfinder.ai.audit.facts import (
     AuditRead,
     audit_finding_fact,
@@ -300,10 +301,12 @@ def _read_tools() -> list[Tool[AuditDeps]]:
 
 
 def build_read_toolset() -> FunctionToolset[AuditDeps]:
+    warm_fact_schemas()
     return FunctionToolset(_read_tools(), max_retries=3)
 
 
 def build_run_toolset() -> FunctionToolset[AuditDeps]:
+    warm_fact_schemas()
     return FunctionToolset(
         [
             Tool(plan_gene_model_audit_tool, name="plan_gene_model_audit"),

@@ -39,6 +39,7 @@ from veupathdb_mcp.tools import (
 )
 
 from pathfinder.ai.audit.deps import AuditDeps
+from pathfinder.ai.audit.fact_sources import warm_fact_schemas
 from pathfinder.ai.audit.facts import AuditRead, check_fact, gene_records, rate_fact
 from pathfinder.domain.audit.verdicts import read_cite
 from pathfinder.services.audit import investigation
@@ -243,6 +244,7 @@ def _library_tool[**P, R](
 
 
 def build_check_toolset() -> FunctionToolset[AuditDeps]:
+    warm_fact_schemas()
     return FunctionToolset(
         [
             _library_tool(audit_gene_length_tool, audit_gene_length),

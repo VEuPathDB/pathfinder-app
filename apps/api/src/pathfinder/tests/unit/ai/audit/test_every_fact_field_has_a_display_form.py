@@ -10,6 +10,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.audit.check_tools import build_check_toolset
 from pathfinder.ai.audit.deps import AuditDeps
+from pathfinder.ai.audit.fact_sources import FACT_SOURCES
 from pathfinder.ai.audit.facts import AuditRead
 from pathfinder.ai.audit.run_tools import build_run_toolset
 from pathfinder.ai.audit.synthesis import SynthesisCounts
@@ -19,7 +20,7 @@ from pathfinder.domain.statistic_rows import fact_schema
 _HAND_BUILT: frozenset[StatisticKind] = frozenset(
     {"pca", "two_by_two", "contingency", "boxplot", "trend"}
 )
-_DISPLAY_KINDS = {"number", "boolean", "words", "string"}
+_DISPLAY_KINDS = {"number", "share", "boolean", "words", "string"}
 
 
 def _answers(annotation: object) -> Iterator[type[BaseModel]]:
@@ -41,13 +42,6 @@ def _tool_answers(toolset: FunctionToolset[AuditDeps]) -> set[type[BaseModel]]:
     }
 
 
-_SOURCES: set[type[BaseModel]] = {
-    *_tool_answers(build_run_toolset()),
-    *_tool_answers(build_check_toolset()),
-    SynthesisCounts,
-}
-
-
 def test_every_statistic_kind_is_hand_built_or_read_from_an_audit_answer() -> None:
     kinds = set(get_args(StatisticKind.__value__))
 
@@ -55,32 +49,16 @@ def test_every_statistic_kind_is_hand_built_or_read_from_an_audit_answer() -> No
     assert _HAND_BUILT.isdisjoint(TURN_STATISTICS)
 
 
-def test_every_audit_answer_is_read_by_a_tool() -> None:
-    names = {source.__name__ for source in _SOURCES}
+def test_the_registry_holds_every_answer_a_tool_returns_and_the_synthesis() -> None:
+    read = {*_tool_answers(build_run_toolset()), *_tool_answers(build_check_toolset())}
 
-    assert names == {
-        "Anatomy",
-        "AuditOutcome",
-        "AuditRunSummary",
-        "AuditRunView",
-        "FindingDetail",
-        "FindingPage",
-        "GeneEvidence",
-        "GeneLengthAudit",
-        "GenomeProvenance",
-        "IntronAudit",
-        "PseudogeneCallAudit",
-        "RateBounds",
-        "ScopeProposal",
-        "SelenoproteinEndAudit",
-        "StrainModelAudit",
-        "SynthesisCounts",
-    }
+    assert set(FACT_SOURCES) == {*read, SynthesisCounts}
+    assert len(FACT_SOURCES) == len(set(FACT_SOURCES)) == 16
 
 
-def test_every_field_of_every_audit_answer_has_a_display_form() -> None:
-    for source in _SOURCES:
-        leaves = fact_schema(source).leaves
+def test_every_field_of_every_registered_answer_has_a_display_form() -> None:
+    for source in FACT_SOURCES:
+        kinds = {kind for _, kind in fact_schema(source).leaves}
 
-        assert leaves, source.__name__
-        assert {kind for _, kind in leaves} <= _DISPLAY_KINDS, source.__name__
+        assert len(kinds) >= 1, source.__name__
+        assert kinds <= _DISPLAY_KINDS, source.__name__

@@ -124,7 +124,7 @@ async def test_the_lead_answers_a_gene_model_question_with_the_investigation(
     assert called(chunks) == ["classify_user_intent", "investigate_gene_models"]
     assert text(chunks) == (
         f"The check reads the model of [{STRAIN}]"
-        f"({gene_record_url('plasmodb', STRAIN)}) as intact against its reference."
+        f"({gene_record_url('plasmodb', STRAIN)}) as intact."
     )
     assert corrections == [0]
     (stored,) = await conversation_verdicts(owner.conversation_id, owner.user_id)

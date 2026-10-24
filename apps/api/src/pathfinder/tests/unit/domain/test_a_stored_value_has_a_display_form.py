@@ -8,12 +8,16 @@ from typing import Literal
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import JsonValue
+from veupathdb_mcp.audit import GeneticCode
 
-from pathfinder.domain.statistic_facts import StatisticRowFact
+from pathfinder.ai.audit import fact_sources
+from pathfinder.ai.audit.check_tools import build_check_toolset
+from pathfinder.domain.statistic_facts import Share, StatisticRowFact
 from pathfinder.domain.statistic_rows import (
     NoDisplayFormError,
     fact_schema,
     model_rows,
+    schema_rows,
 )
 
 
@@ -24,12 +28,12 @@ class Verdict(StrEnum):
 
 class Junction(CamelModel):
     reads: int
-    share: float
+    share: Share
 
 
 class Answer(CamelModel):
     verdict: Verdict
-    certainty: Literal["high", "medium", "low"]
+    region: Literal["CDS", "UTR"]
     already_known: Literal["known", "not_searched"]
     frame_kept: bool
     junctions: list[Junction]
@@ -37,6 +41,7 @@ class Answer(CamelModel):
     genome: str
     cause: str | None
     span: tuple[int, int]
+    code: GeneticCode
 
 
 class Loose(CamelModel):
@@ -45,32 +50,50 @@ class Loose(CamelModel):
 
 _ANSWER = Answer(
     verdict=Verdict.SHIFTED,
-    certainty="high",
+    region="CDS",
     already_known="not_searched",
     frame_kept=False,
-    junctions=[Junction(reads=1226, share=0.25)],
+    junctions=[Junction(reads=1226, share=0.889)],
     transcript="PcyM_0736700-t36_1",
-    genome="Plasmodium cynomolgi strain M",
+    genome="Examplea alpha",
     cause=None,
     span=(4793693, 4793790),
+    code=GeneticCode.CTG_SERINE,
 )
 
 
 def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
     assert model_rows(_ANSWER) == [
-        StatisticRowFact(name="verdict", value="unsupported shifted", form="word"),
-        StatisticRowFact(name="certainty", value="high", form="word"),
-        StatisticRowFact(name="alreadyKnown", value="not searched", form="word"),
-        StatisticRowFact(name="frameKept", value="no", form="word"),
-        StatisticRowFact(name="junctions.0.reads", value="1226"),
-        StatisticRowFact(name="junctions.0.share", value="0.25"),
-        StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1"),
         StatisticRowFact(
-            name="genome", value="Plasmodium cynomolgi strain M", form="word"
+            name="verdict",
+            value="unsupported shifted",
+            form="word",
+            code="UNSUPPORTED_SHIFTED",
         ),
+        StatisticRowFact(name="region", value="CDS", form="word", code="CDS"),
+        StatisticRowFact(
+            name="alreadyKnown", value="not searched", form="word", code="not_searched"
+        ),
+        StatisticRowFact(name="frameKept", value="No", form="word"),
+        StatisticRowFact(name="junctions.0.reads", value="1226"),
+        StatisticRowFact(name="junctions.0.share", value="88.9%"),
+        StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
+        StatisticRowFact(name="genome", value="Examplea alpha", form="sentence"),
         StatisticRowFact(name="span.0", value="4793693"),
         StatisticRowFact(name="span.1", value="4793790"),
+        StatisticRowFact(
+            name="code", value="CTG read as serine", form="word", code="ctg_serine"
+        ),
     ]
+
+
+def test_one_word_is_a_word_and_two_words_are_a_sentence() -> None:
+    rows = [
+        schema_rows(Answer, {"genome": genome})[0].form
+        for genome in ("Examplea", "Examplea alpha")
+    ]
+
+    assert rows == ["word", "sentence"]
 
 
 def test_a_prefix_names_the_rows_under_it() -> None:
@@ -79,33 +102,38 @@ def test_a_prefix_names_the_rows_under_it() -> None:
     assert names == ["runs.2.reads", "runs.2.share"]
 
 
-def test_a_word_row_is_noted_with_the_words_of_its_field() -> None:
+def test_a_note_names_the_field_and_the_field_that_holds_it() -> None:
     rows = {row.name: row for row in model_rows(_ANSWER)}
 
-    assert (rows["frameKept"].note(), rows["alreadyKnown"].note()) == (
-        "frame kept: no",
-        "already known: not searched",
-    )
+    assert (
+        rows["frameKept"].note(),
+        rows["junctions.0.reads"].note(),
+    ) == ("frame kept: No", "junctions reads: 1226")
 
 
-def test_the_schema_names_the_display_kind_of_every_leaf() -> None:
-    assert fact_schema(Answer).leaves == (
-        ("verdict", "words"),
-        ("certainty", "words"),
-        ("alreadyKnown", "words"),
-        ("frameKept", "boolean"),
-        ("junctions.*.reads", "number"),
-        ("junctions.*.share", "number"),
-        ("transcript", "string"),
-        ("genome", "string"),
-        ("cause", "string"),
-        ("span.*", "number"),
-        ("span.*", "number"),
-    )
+def test_a_key_the_schema_does_not_hold_still_renders() -> None:
+    rows = schema_rows(Answer, {"frameKept": True, "added": "two words", "count": 3})
+
+    assert rows == [
+        StatisticRowFact(name="frameKept", value="Yes", form="word"),
+        StatisticRowFact(name="added", value="two words", form="sentence"),
+        StatisticRowFact(name="count", value="3"),
+    ]
 
 
 def test_a_leaf_with_no_display_form_is_refused() -> None:
     with pytest.raises(NoDisplayFormError) as refused:
         fact_schema(Loose)
+
+    assert str(refused.value) == "payload.*: no display form for the schema {}"
+
+
+def test_a_toolset_with_an_answer_of_no_display_form_is_refused_when_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(fact_sources, "FACT_SOURCES", (Loose,))
+
+    with pytest.raises(NoDisplayFormError) as refused:
+        build_check_toolset()
 
     assert str(refused.value) == "payload.*: no display form for the schema {}"
