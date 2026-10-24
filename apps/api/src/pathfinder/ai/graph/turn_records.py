@@ -423,6 +423,10 @@ class TurnMarkers(CamelModel):
     def record_tally(self, tally: TallyFact) -> None:
         self.tallies.append(tally)
 
+    @property
+    def started_an_audit(self) -> bool:
+        return any(fact.kind == "audit_start" for fact in self.audit_facts)
+
     def record_audit_runs(self, run_ids: Iterable[UUID]) -> None:
         self.audit_runs = list(dict.fromkeys([*self.audit_runs, *run_ids]))
 

@@ -218,6 +218,8 @@ def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
 
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
+    if deps.state.turn_markers.started_an_audit:
+        return frozenset()
     if not turn_is_classified(deps):
         reachable = UNCLASSIFIED_TOOLS | _answered_card(deps)
         return frozenset(name for name in names if name in reachable)

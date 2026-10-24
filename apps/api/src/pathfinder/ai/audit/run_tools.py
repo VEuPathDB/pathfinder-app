@@ -189,7 +189,9 @@ async def start_gene_model_audit_tool(
 
     Give the request you planned with and the scope the planner returned for
     it, unchanged. The researcher sees the planner's scope and cost on a card
-    and approves or declines it. A declined card starts nothing.
+    and approves or declines it. A declined card starts nothing. An approved
+    run works in the background, so the reply says it started and the turn
+    ends; the run is read when the researcher asks.
     """
     del request
     outcome = await start_gene_model_audit(ctx.deps.caller, scope)
