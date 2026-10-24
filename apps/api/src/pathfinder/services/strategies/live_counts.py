@@ -50,17 +50,26 @@ async def read_the_live_strategy(
 async def the_site_dropped_the_strategy(
     sync_state: SyncStateProtocol, site_id: str
 ) -> bool:
-    """Whether the site answers that it holds the synced strategy no more."""
+    """Whether the site refuses the synced strategy and lists the user's
+    strategies without it, which a site that is down cannot do."""
     strategy_id = sync_state.wdk_strategy_id
     if strategy_id is None:
         return False
+    api = get_strategy_api(site_id)
     try:
-        await get_strategy_api(site_id).get_strategy(strategy_id)
+        await api.get_strategy(strategy_id)
     except WDKError as refused:
-        return refused.status == _GONE
+        if refused.status != _GONE:
+            return False
     except VEuPathDBError, OSError:
         return False
-    return False
+    else:
+        return False
+    try:
+        listed = await api.list_strategies()
+    except VEuPathDBError, OSError:
+        return False
+    return all(summary.strategy_id != strategy_id for summary in listed)
 
 
 def counts_the_site_holds(
