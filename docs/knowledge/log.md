@@ -140,6 +140,31 @@
   `ChatEmptyState` are a button. The Settings modal's open state and tab live in
   `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav
   rail's gear read and write it, and a focused memory still holds the modal on the memory tab.
+* **The audit pages format numbers and text in one module.** `features/audit/format.ts` holds
+  `percent`, `shareText`, `rateText` (the rate and its Wilson interval), `rangeText` (the floor
+  and ceiling the unresolved findings allow), `plural`, `joinWords`, `dayText` (the UTC day),
+  `impactText`, `scopeText` and `unresolvedText` (the unresolved count by status, in the words
+  the API serves). `percent`
+  rounds a half to the even percent, as `domain/audit/words.py::percent` does, so a page and the
+  API state one rate in one number.
+* **The API serves the audit words, and the web holds only words no backend table holds.**
+  `GET /api/v1/audits/words` answers `AuditWords` (`services/audit/words.py`), built from
+  `domain/audit/words.py`'s tables: the checks, the error types and their descriptions, a
+  finding's status, the unresolved count by status (`UNRESOLVED_WORDS`, new), why a run halted
+  (`HALT_SENTENCES`, new; `RunHalt.detail` stays the raw reason), and a review's verdict,
+  literature and progress. `packages/spec/audit_words.json` is its recorded body, held to the
+  route by an api test; the web reads it through `lib/api/audits.ts::auditWordsOptions`.
+  `features/audit/words.ts` keeps words only for values with no backend table: certainty, the
+  genome and evidence statuses, the evidence kinds, the stages, the genome roles, the run phases,
+  the importance and use sources, and `ORIGIN_WORDS`.
+* **A declined finding counts among the unresolved under its own words.** `UnresolvedStatus`
+  holds `declined` beside `Unresolved.declined`, `UNRESOLVED_WORDS["declined"]` reads "that the
+  check does not take", and the served `FindingStatusWords` and `UnresolvedWords` name it, so
+  `unresolvedText` states a declined count.
+* **The web names the audit addresses in one place and the nav rail links them.**
+  `lib/routes.ts` holds `auditsUrl()` (`/audits`), `auditRunUrl(runId, search)` and
+  `auditFindingUrl(runId, findingId, search)`, where `search` is empty or starts with `?`; the nav
+  rail's third entry, `Audits`, links `/audits` and is current on every path under it.
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
   (`true` reads only the run's gene targets, `false` only the screened candidates).

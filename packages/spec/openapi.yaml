@@ -2443,6 +2443,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/audits/words:
+    get:
+      tags:
+      - audits
+      summary: The words an audit page names each value the audit routes send by.
+      operationId: get_audit_words_api_v1_audits_words_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditWords'
   /api/v1/audits:
     get:
       tags:
@@ -4046,6 +4059,38 @@ components:
       required:
       - siteId
       title: AuditScope
+    AuditWords:
+      properties:
+        checks:
+          $ref: '#/components/schemas/CheckWords'
+        errorTypes:
+          $ref: '#/components/schemas/ErrorTypeWords'
+        errorDescriptions:
+          $ref: '#/components/schemas/ErrorTypeWords'
+        findingStatuses:
+          $ref: '#/components/schemas/FindingStatusWords'
+        unresolved:
+          $ref: '#/components/schemas/UnresolvedWords'
+        halts:
+          $ref: '#/components/schemas/HaltWords'
+        verdictKinds:
+          $ref: '#/components/schemas/VerdictKindWords'
+        literature:
+          $ref: '#/components/schemas/LiteratureWords'
+        reviewStatuses:
+          $ref: '#/components/schemas/ReviewStatusWords'
+      type: object
+      required:
+      - checks
+      - errorTypes
+      - errorDescriptions
+      - findingStatuses
+      - unresolved
+      - halts
+      - verdictKinds
+      - literature
+      - reviewStatuses
+      title: AuditWords
     AuthStatusResponse:
       properties:
         signedIn:
@@ -4292,6 +4337,48 @@ components:
         ``UIMessage`` so deferred-tool approval-responded parts deserialize into
 
         the discriminated union and ``iter_tool_approval_responses`` works.'
+    CheckWords:
+      properties:
+        pseudogene_call:
+          type: string
+          title: Pseudogene Call
+        selenoprotein_end:
+          type: string
+          title: Selenoprotein End
+        gene_length:
+          type: string
+          title: Gene Length
+        gene_split:
+          type: string
+          title: Gene Split
+        gene_fusion:
+          type: string
+          title: Gene Fusion
+        strain_model:
+          type: string
+          title: Strain Model
+        missing_gene:
+          type: string
+          title: Missing Gene
+        organelle_join:
+          type: string
+          title: Organelle Join
+        intron_support:
+          type: string
+          title: Intron Support
+      additionalProperties: false
+      type: object
+      required:
+      - pseudogene_call
+      - selenoprotein_end
+      - gene_length
+      - gene_split
+      - gene_fusion
+      - strain_model
+      - missing_gene
+      - organelle_join
+      - intron_support
+      title: CheckWords
     ColocationParams:
       properties:
         operation:
@@ -5928,6 +6015,60 @@ components:
       - confirmedBy
       - reviewed
       title: ErrorTypeView
+    ErrorTypeWords:
+      properties:
+        intact_gene_called_pseudogene:
+          type: string
+          title: Intact Gene Called Pseudogene
+        sec_read_as_stop:
+          type: string
+          title: Sec Read As Stop
+        truncated_model:
+          type: string
+          title: Truncated Model
+        split_model:
+          type: string
+          title: Split Model
+        over_extended_model:
+          type: string
+          title: Over Extended Model
+        fused_model:
+          type: string
+          title: Fused Model
+        missing_gene:
+          type: string
+          title: Missing Gene
+        organelle_split_at_join:
+          type: string
+          title: Organelle Split At Join
+        missing_exon:
+          type: string
+          title: Missing Exon
+        shifted_splice_site:
+          type: string
+          title: Shifted Splice Site
+        spurious_intron:
+          type: string
+          title: Spurious Intron
+        unsupported_intron:
+          type: string
+          title: Unsupported Intron
+      additionalProperties: false
+      type: object
+      required:
+      - intact_gene_called_pseudogene
+      - sec_read_as_stop
+      - truncated_model
+      - split_model
+      - over_extended_model
+      - fused_model
+      - missing_gene
+      - organelle_split_at_join
+      - missing_exon
+      - shifted_splice_site
+      - spurious_intron
+      - unsupported_intron
+      title: ErrorTypeWords
     EventsSnapshot:
       properties:
         chunks:
@@ -6369,6 +6510,44 @@ components:
       - alreadyKnown
       - cardText
       title: FindingReview
+    FindingStatusWords:
+      properties:
+        screened:
+          type: string
+          title: Screened
+        unsampled:
+          type: string
+          title: Unsampled
+        trying:
+          type: string
+          title: Trying
+        confirmed:
+          type: string
+          title: Confirmed
+        failed:
+          type: string
+          title: Failed
+        declined:
+          type: string
+          title: Declined
+        unreached:
+          type: string
+          title: Unreached
+        unread:
+          type: string
+          title: Unread
+      additionalProperties: false
+      type: object
+      required:
+      - screened
+      - unsampled
+      - trying
+      - confirmed
+      - failed
+      - declined
+      - unreached
+      - unread
+      title: FindingStatusWords
     FindingTally:
       properties:
         genome:
@@ -7503,6 +7682,20 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HaltWords:
+      properties:
+        sign_in:
+          type: string
+          title: Sign In
+        task_failed:
+          type: string
+          title: Task Failed
+      additionalProperties: false
+      type: object
+      required:
+      - sign_in
+      - task_failed
+      title: HaltWords
     HealthResponse:
       properties:
         status:
@@ -7965,6 +8158,24 @@ components:
       - database
       - externalId
       title: Linkout
+    LiteratureWords:
+      properties:
+        known:
+          type: string
+          title: Known
+        not_found:
+          type: string
+          title: Not Found
+        not_searched:
+          type: string
+          title: Not Searched
+      additionalProperties: false
+      type: object
+      required:
+      - known
+      - not_found
+      - not_searched
+      title: LiteratureWords
     Located:
       properties:
         windows:
@@ -9972,6 +10183,28 @@ components:
       - total
       - message
       title: ReviewState
+    ReviewStatusWords:
+      properties:
+        waiting:
+          type: string
+          title: Waiting
+        reviewing:
+          type: string
+          title: Reviewing
+        synthesized:
+          type: string
+          title: Synthesized
+        stopped:
+          type: string
+          title: Stopped
+      additionalProperties: false
+      type: object
+      required:
+      - waiting
+      - reviewing
+      - synthesized
+      - stopped
+      title: ReviewStatusWords
     ReviewText:
       properties:
         verdictText:
@@ -12184,6 +12417,40 @@ components:
       required:
       - total
       title: Unresolved
+    UnresolvedWords:
+      properties:
+        screened:
+          type: string
+          title: Screened
+        unsampled:
+          type: string
+          title: Unsampled
+        trying:
+          type: string
+          title: Trying
+        failed:
+          type: string
+          title: Failed
+        declined:
+          type: string
+          title: Declined
+        unreached:
+          type: string
+          title: Unreached
+        unread:
+          type: string
+          title: Unread
+      additionalProperties: false
+      type: object
+      required:
+      - screened
+      - unsampled
+      - trying
+      - failed
+      - declined
+      - unreached
+      - unread
+      title: UnresolvedWords
     UpdateCombineOperatorOp:
       properties:
         kind:
@@ -12487,6 +12754,24 @@ components:
       - controlled
       title: VdiVisibility
       description: Who may see a dataset once it is installed.
+    VerdictKindWords:
+      properties:
+        error:
+          type: string
+          title: Error
+        no_error:
+          type: string
+          title: No Error
+        undecided:
+          type: string
+          title: Undecided
+      additionalProperties: false
+      type: object
+      required:
+      - error
+      - no_error
+      - undecided
+      title: VerdictKindWords
     WDKDatasetParser:
       properties:
         name:

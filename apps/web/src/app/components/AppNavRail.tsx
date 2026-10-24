@@ -5,6 +5,7 @@ import { siteShortName } from "@pathfinder/shared";
 import {
   AlertTriangle,
   Bookmark,
+  ClipboardCheck,
   MessageCircle,
   PanelLeft,
   Settings,
@@ -52,7 +53,7 @@ interface AppNavRailProps {
 }
 
 interface NavSpec {
-  slug: "conversation" | "saved";
+  slug: "conversation" | "saved" | "audits";
   icon: LucideIcon;
   label: string;
 }
@@ -60,6 +61,7 @@ interface NavSpec {
 const NAV: NavSpec[] = [
   { slug: "conversation", icon: MessageCircle, label: "Conversation" },
   { slug: "saved", icon: Bookmark, label: "Saved strategies" },
+  { slug: "audits", icon: ClipboardCheck, label: "Audits" },
 ];
 
 export function AppNavRail({

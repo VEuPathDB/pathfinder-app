@@ -52,3 +52,15 @@ export function yourDataUrl(section?: YourDataSection): string {
   const base = `${helpUrl()}/your-data`;
   return section === undefined ? base : `${base}#${section}`;
 }
+
+export function auditsUrl(): string {
+  return "/audits";
+}
+
+export function auditRunUrl(runId: string, search = ""): string {
+  return `${auditsUrl()}/${runId}${search}`;
+}
+
+export function auditFindingUrl(runId: string, findingId: number, search = ""): string {
+  return `${auditRunUrl(runId)}/findings/${String(findingId)}${search}`;
+}
