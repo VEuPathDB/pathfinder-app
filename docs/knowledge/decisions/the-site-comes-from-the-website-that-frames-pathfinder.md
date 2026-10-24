@@ -10,8 +10,8 @@ status: stable
 
 **An address names a page, never a site.** Every PathFinder route is site-less:
 `/conversation`, `/conversation/<id>`, `/conversation/<id>/eda`,
-`/conversation/<id>/strategy`, `/conversation/<id>/strategy/step/<stepId>` and
-`/saved`; `/` redirects to `/conversation` (`apps/web/src/lib/routes.ts`). Once every
+`/conversation/<id>/strategy`, `/conversation/<id>/strategy/step/<stepId>`,
+`/saved` and `/audits`; `/` redirects to `/conversation` (`apps/web/src/lib/routes.ts`). Once every
 VEuPathDB website frames its own PathFinder, the website is the site, and a site in
 the address would only repeat it or contradict it.
 
@@ -29,6 +29,12 @@ compares the page's origin with each site's `siteOrigin` in `GET /api/v1/sites`
   conversation works on its own site, and a new conversation on the picked site,
   which the session store persists (`pickedSite`) and an opened conversation of
   another site replaces.
+
+A list of a researcher's own records follows the same rule. On a component site's
+website, `/audits` asks `GET /api/v1/audits?siteId=<site>`, so the server lists only
+that site's runs; the table drops its Site column, and an empty list reads "No audits
+on <site> yet". On the portal's website, the page lists every site's runs with a Site
+column (`apps/web/src/features/audit/AuditRunsPage.tsx`).
 
 The app shell mirrors the resolved site into the session store's `selectedSite`,
 which the chat runtime and the composer read outside the route.
@@ -50,3 +56,5 @@ would exist twice until the portal stops offering the switcher.
 `apps/web/src/app/(app)/layout.test.tsx` requires no switcher on a component site's
 website, the notice for another site's conversation, and the switch on a website that
 offers it.
+`apps/web/src/app/(app)/audits/page.test.tsx` requires the locked site's `siteId` on
+the audits read, and none on the portal.

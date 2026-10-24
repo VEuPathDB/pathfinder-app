@@ -13,6 +13,7 @@ from pathfinder.services.audit.views import (
 )
 from pathfinder.transport.http.deps import (
     CurrentUser,
+    SiteIdQuery,
     require_registered_wdk_identity,
 )
 from pathfinder.transport.http.schemas.audits import AuditStart
@@ -23,10 +24,12 @@ router = APIRouter()
 @router.get(
     "",
     response_model=list[AuditRunSummary],
-    summary="The current user's audit runs, newest first.",
+    summary="The current user's audit runs, newest first, on one site when siteId names it.",
 )
-async def list_audit_runs(user_id: CurrentUser) -> list[AuditRunSummary]:
-    return await list_runs(user_id)
+async def list_audit_runs(
+    user_id: CurrentUser, site_id: SiteIdQuery = None
+) -> list[AuditRunSummary]:
+    return await list_runs(user_id, site_id)
 
 
 @router.get(

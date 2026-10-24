@@ -13,9 +13,10 @@ status: proposed
 `audit_genomes`, `audit_findings`, `audit_evidence`), carries it through collect,
 screen, confirm and tie-break in jobs on the `audit` queue, and serves it
 at `GET /api/v1/audits` and its findings routes, starts a stored run again at
-`POST /api/v1/audits/{run_id}/start`; no agent tool starts a
-run yet. A standalone prototype outside this repository measures the tools and the
-model first.
+`POST /api/v1/audits/{run_id}/start`, and lists a researcher's runs on the web's
+`/audits` page. The audit assistant plans a run with `plan_gene_model_audit` and
+starts it with `start_gene_model_audit` once the researcher approves the card. A
+standalone prototype outside this repository measures the tools and the model first.
 
 ## The question
 

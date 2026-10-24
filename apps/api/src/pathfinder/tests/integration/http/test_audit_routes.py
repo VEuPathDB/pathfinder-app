@@ -76,6 +76,27 @@ async def _started_genome_run() -> tuple[RunOwner, UUID]:
     return owner, run_id
 
 
+async def test_the_list_holds_only_the_named_sites_runs(app: FastAPI) -> None:
+    owner = await seed_thread()
+    plasmo = await create_run(
+        owner=owner, scope=AuditScope(site_id="plasmodb", targets=(SHORT,))
+    )
+    toxo = await create_run(
+        owner=owner, scope=AuditScope(site_id="toxodb", targets=(SHORT,))
+    )
+    async with client_for(app, owner.user_id) as client:
+        on_toxo = await client.get("/api/v1/audits", params={"siteId": "toxodb"})
+        on_plasmo = await client.get("/api/v1/audits", params={"siteId": "plasmodb"})
+        on_giardia = await client.get("/api/v1/audits", params={"siteId": "giardiadb"})
+        every = await client.get("/api/v1/audits")
+    assert [(r["id"], r["siteId"]) for r in on_toxo.json()] == [(str(toxo), "toxodb")]
+    assert [(r["id"], r["siteId"]) for r in on_plasmo.json()] == [
+        (str(plasmo), "plasmodb")
+    ]
+    assert on_giardia.json() == []
+    assert [r["id"] for r in every.json()] == [str(toxo), str(plasmo)]
+
+
 async def test_the_owner_lists_and_reads_a_run(app: FastAPI) -> None:
     owner, run_id, _ = await stored_pair_run()
     newer = await create_run(
