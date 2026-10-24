@@ -19,16 +19,14 @@
   stored before the library returned models read `models` as null; nothing is read again and no
   column is added. The review prompt leaves `models` out.
 
-* **An audit plan prices the gene model reads per check (veupathdb-mcp 0.2.0b47).**
-  `UnitCosts.model_reads` names every check: one read for `strain_model` and `selenoprotein_end`,
-  two for `gene_fusion`, none for the rest, each held at most the library's
-  `MODEL_READS_PER_FINDING`. The confirm stage counts the model reads with the check's other
-  requests, on the finding and on the stage, as
+* **An audit run counts a check's gene model reads with its other requests (veupathdb-mcp
+  0.2.0b47).** The confirm stage counts them on the finding and on the stage, as
   `tests/integration/services/test_audit_model_reads_counted.py` proves over the recorded GT1
-  SelK wire. `tests/fixtures/audit_models/` adds the recorded DMAW intron, PKAC strain, RPT6
-  fusion and GT1 SelK results with their models, and the list of unpublished tool server modules
-  matches the b47 published surface. See
-  `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md` and
+  SelK wire (9 requests). The plan adds no charge for them: the measured confirm cost of each
+  check already holds them, and `UnitCosts` names no model reads.
+  `tests/fixtures/audit_models/` adds the recorded DMAW intron, PKAC strain, RPT6 fusion and GT1
+  SelK results with their models, and the list of unpublished tool server modules matches the
+  b47 published surface. See `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md` and
   `conventions/recording-the-audit-models.md`.
 
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body

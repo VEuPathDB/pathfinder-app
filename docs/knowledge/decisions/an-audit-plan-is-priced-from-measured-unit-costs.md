@@ -57,12 +57,10 @@ gene list (`LIBRARY_READS_PER_LISTED_GENE`, the library's stated cost and not
 part of `MEASURED_COSTS`); a run leaves no dataset in the account, and
 a scope whose only targets are missing-gene or organelle targets lists no gene.
 Each screened check costs `confirm_limit` findings per audited genome, so the
-request count is an upper bound. A finding also costs the gene model reads its
-check makes beside its own reads, counted per check in `UnitCosts.model_reads`:
-one for a strain or selenoprotein check (the reference model) and two for a
-fusion check (the reference and the partner); every other check reads none.
-Each count is held at most the library's `MODEL_READS_PER_FINDING`, the ceiling
-its reader refuses past. `model_reviews` is the review cap plus the
+request count is an upper bound. A check's measured confirm cost already holds the gene
+model reads it makes beside its own reads (one for a strain or selenoprotein
+check, two for a fusion check), because the cost run took a release that makes
+them, so the estimate adds no separate charge for them. `model_reviews` is the review cap plus the
 agreement sample.
 
 # Rejected
@@ -72,8 +70,8 @@ agreement sample.
 - **Prices from the library's read ceilings.** The intron ceiling is several
   times the measured reads, so every estimate with an intron target would
   overstate the cost by the same factor.
-- **The library's per-finding model ceiling on every finding.** It would add
-  `MODEL_READS_PER_FINDING` requests for each sampled finding of a check that
-  reads no model, so the card would overstate the cost of every screen.
+- **A separate charge for the gene model reads.** The measured confirm cost
+  already counts them, so a second charge prices each strain, fusion and
+  selenoprotein finding above the requests it sends.
 - **A Sec pre-filter through an id-list upload.** It would leave a dataset in
   the researcher's account for every plan, and no plan may write.
