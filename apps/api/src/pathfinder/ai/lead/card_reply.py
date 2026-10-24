@@ -16,7 +16,8 @@ PLACEMENT_RULES = (
     "number word (one to twelve, a dozen, twice, three times, half, two-fold). "
     "A number a step sets, such as the protein count of a group, is its "
     "[value:<step_id>.<param>]. [stat:<id>.<row>] is the value written in place, "
-    "and [cite:<id>.<row>] follows your own words for it."
+    "and [cite:<id>.<row>] follows your own words for it. In a list of placed "
+    'values, separate the values with "; ", since a number may hold a comma.'
 )
 # The records a record reference cites. The schema and the Lead's instruction
 # both state it.

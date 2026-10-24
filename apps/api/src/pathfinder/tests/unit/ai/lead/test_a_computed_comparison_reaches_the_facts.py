@@ -78,6 +78,10 @@ async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
         "left.leadingSpeciesShare",
         "probeRequests",
         "computeRequests",
+        "bothHeldShare",
+        "leftOnlyShare",
+        "rightOnlyShare",
+        "residualGroupsShare",
     )
     prefix = f"  - [stat:{fact}."
     shown = {
@@ -97,9 +101,18 @@ async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
         "left.leadingSpeciesShare": "100%",
         "probeRequests": "17",
         "computeRequests": "6",
+        "bothHeldShare": "25.6%",
+        "leftOnlyShare": "74.4%",
+        "rightOnlyShare": "0%",
+        "residualGroupsShare": "26.7%",
     }
     assert [s.statements[1:] for s in deps.state.domain.statistics] == [
         [
+            (
+                "ties counts the 371 groups whose two sides are equal among every "
+                "group either set holds, selected or not; it is no part of the "
+                "selected groups."
+            ),
             "Every genome of the left set is Toxoplasma gondii (15 genomes).",
             (
                 "Plasmodium falciparum is 20 of the 61 genomes of the right set "

@@ -67,14 +67,22 @@ def _writing(monkeypatch: pytest.MonkeyPatch, error: Exception) -> None:
     monkeypatch.setattr(orthomcl_expressions, "answer_phyletic_pattern", _write)
 
 
-_COMPUTED_LIMITS: list[ValidationError] = [
-    AbsentGroupsCompareError("at_least", Fraction(1)),
-    NestedCompareTooLargeError(ValidationError(title="Too large", detail=_LIMIT)),
-    PerGenomeNeedsTaskError(76, 228),
-    ComparisonRequestsError(30, [("tgon", "tgca")]),
-    GenomePastCloudCapError("hsap", 12000),
-    ComparisonOutOfTimeError(9),
-    GroupCloudCappedError(["tgon", "tgca"]),
+_REFUSED = "build_phyletic_expression refused the pattern before the site ran it"
+_STOPPED = (
+    "build_phyletic_expression stopped the comparison after it sent requests the "
+    "site answered"
+)
+_COMPUTED_LIMITS: list[tuple[ValidationError, str]] = [
+    (AbsentGroupsCompareError("at_least", Fraction(1)), _REFUSED),
+    (
+        NestedCompareTooLargeError(ValidationError(title="Too large", detail=_LIMIT)),
+        _REFUSED,
+    ),
+    (PerGenomeNeedsTaskError(76, 228), _REFUSED),
+    (ComparisonRequestsError(30, [("tgon", "tgca")]), _STOPPED),
+    (GenomePastCloudCapError("hsap", 12000), _REFUSED),
+    (ComparisonOutOfTimeError(9), _STOPPED),
+    (GroupCloudCappedError(["tgon", "tgca"]), _STOPPED),
 ]
 _UNREADABLE: list[DataParsingError] = [
     GroupTagError(["not-a-group"]),
@@ -82,9 +90,13 @@ _UNREADABLE: list[DataParsingError] = [
 ]
 
 
-@pytest.mark.parametrize("limit", _COMPUTED_LIMITS, ids=lambda e: type(e).__name__)
+@pytest.mark.parametrize(
+    ("limit", "lead"),
+    _COMPUTED_LIMITS,
+    ids=[type(limit).__name__ for limit, _ in _COMPUTED_LIMITS],
+)
 async def test_a_computed_route_limit_is_the_builders_own(
-    monkeypatch: pytest.MonkeyPatch, limit: ValidationError
+    monkeypatch: pytest.MonkeyPatch, limit: ValidationError, lead: str
 ) -> None:
     _writing(monkeypatch, limit)
     state = AgentToolState()
@@ -95,10 +107,9 @@ async def test_a_computed_route_limit_is_the_builders_own(
         )
 
     assert str(refused.value) == (
-        f"build_phyletic_expression refused the pattern before the site ran it: "
-        f"{limit.detail} This is the builder's own limit, not a site failure: correct "
-        "or narrow the pattern and build it again. A requirement no pattern within "
-        "the limit states is never site_refused_the_search."
+        f"{lead}: {limit.detail} This is the builder's own limit, not a site "
+        "failure: correct or narrow the pattern and build it again. A requirement "
+        "no pattern within the limit states is never site_refused_the_search."
     )
     assert (state.builder_refusals, state.refused_searches) == (
         {PHYLETIC_EXPRESSION_SEARCH: limit.detail},

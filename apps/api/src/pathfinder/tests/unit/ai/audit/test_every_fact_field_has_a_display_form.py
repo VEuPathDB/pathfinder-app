@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from typing import get_args, get_type_hints
 
@@ -76,3 +77,21 @@ def test_every_field_of_every_registered_answer_has_a_display_form() -> None:
 
         assert len(kinds) >= 1, source.__name__
         assert kinds <= _DISPLAY_KINDS, source.__name__
+
+
+_ID_NAME = re.compile(r"^(?:id|.+Id|.+Ids|headline)$")
+
+
+def _named(path: str) -> str:
+    return next(part for part in reversed(path.split(".")) if part != "*")
+
+
+def test_every_id_leaf_of_every_registered_answer_is_an_identifier() -> None:
+    numbered = [
+        f"{source.__name__}.{path}"
+        for source in FACT_SOURCES
+        for path, kind in fact_schema(source).leaves
+        if kind == "number" and _ID_NAME.match(_named(path))
+    ]
+
+    assert numbered == []

@@ -163,15 +163,21 @@ class Counted(CamelModel):
     id: Identifier
     groups: int
     few: int
+    edge: int
     mean: float
+    low: float
 
 
-def test_a_whole_number_of_a_thousand_or_more_is_separated_and_an_id_is_not() -> None:
-    rows = model_rows(Counted(id=52_314, groups=7364, few=999, mean=1234.5))
+def test_a_number_of_a_thousand_or_more_is_separated_and_an_id_is_not() -> None:
+    rows = model_rows(
+        Counted(id=52_314, groups=7364, few=999, edge=1000, mean=1234.5, low=999.5)
+    )
 
     assert [(row.name, row.value) for row in rows] == [
         ("id", "52314"),
         ("groups", "7,364"),
         ("few", "999"),
-        ("mean", "1234.5"),
+        ("edge", "1,000"),
+        ("mean", "1,234.5"),
+        ("low", "999.5"),
     ]

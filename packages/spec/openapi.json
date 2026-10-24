@@ -9326,7 +9326,8 @@
           },
           "findingIds": {
             "items": {
-              "type": "integer"
+              "type": "integer",
+              "format": "identifier"
             },
             "type": "array",
             "minItems": 1,
@@ -18064,7 +18065,8 @@
           },
           "headline": {
             "items": {
-              "type": "integer"
+              "type": "integer",
+              "format": "identifier"
             },
             "type": "array",
             "title": "Headline"

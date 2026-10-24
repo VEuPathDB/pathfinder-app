@@ -69,3 +69,10 @@ def test_a_digit_no_fact_holds_keeps_its_sentence() -> None:
 def test_the_schema_and_the_instruction_state_the_placement_rules() -> None:
     assert REPLY_REFERENCES[-len(PLACEMENT_RULES) :] == PLACEMENT_RULES
     assert " ".join(LEAD_INSTRUCTIONS.split()).count(PLACEMENT_RULES) == 1
+
+
+def test_a_list_of_placed_values_is_separated_by_semicolons() -> None:
+    assert PLACEMENT_RULES.endswith(
+        'In a list of placed values, separate the values with "; ", since a '
+        "number may hold a comma."
+    )

@@ -45,7 +45,7 @@ from pathfinder.domain.audit.verdicts import (
     StoredSynthesis,
 )
 from pathfinder.domain.reply_references import nested_text
-from pathfinder.domain.statistic_facts import Sentence
+from pathfinder.domain.statistic_facts import Identifier, Sentence
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
@@ -103,7 +103,7 @@ class SynthesisView(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     sections: tuple[ErrorTypeSection, ...]
-    headline: tuple[int, ...]
+    headline: tuple[Identifier, ...]
     summary: Sentence
     agreement: ReviewAgreement
 

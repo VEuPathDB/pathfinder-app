@@ -6031,6 +6031,7 @@ components:
         findingIds:
           items:
             type: integer
+            format: identifier
           type: array
           minItems: 1
           title: Findingids
@@ -11853,6 +11854,7 @@ components:
         headline:
           items:
             type: integer
+            format: identifier
           type: array
           title: Headline
         summary:

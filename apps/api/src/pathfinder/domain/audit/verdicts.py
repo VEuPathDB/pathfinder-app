@@ -11,7 +11,7 @@ from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
-from pathfinder.domain.statistic_facts import Sentence, Share, StatisticFact
+from pathfinder.domain.statistic_facts import Identifier, Sentence, Share, StatisticFact
 
 VerdictKind = Literal["error", "no_error", "undecided"]
 VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
@@ -128,7 +128,7 @@ class ErrorTypeSection(CamelModel):
     error_type: ErrorType
     cause: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     confirmed_by: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
-    finding_ids: tuple[int, ...] = Field(min_length=1)
+    finding_ids: tuple[Identifier, ...] = Field(min_length=1)
 
 
 class ReviewAgreement(CamelModel):

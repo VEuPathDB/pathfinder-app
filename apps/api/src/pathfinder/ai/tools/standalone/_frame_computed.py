@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import ModelRetry, RunContext, ToolFailed
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import InputDatasetValue
 from veupathdb.wdk import get_site, get_strategy_api
@@ -50,10 +50,12 @@ async def _saved_step(site_id: str, held: HeldComparison, name: str) -> int:
         )
     except IdListStepCountError as exc:
         msg = (
-            f"{exc.detail} The computed groups were not saved and nothing was "
-            "recorded. Build the comparison again and save the new answer."
+            f"set_criterion cannot hold the computed groups as a list step: "
+            f"{exc.detail} Nothing was recorded and no step was saved. The counted "
+            "answer stands: state its counts, and do not build the comparison "
+            "again to save it."
         )
-        raise ModelRetry(msg) from exc
+        raise ToolFailed(msg) from exc
     if step_id is None:
         msg = f"The computed comparison {held.handle} holds no group id to save."
         raise ModelRetry(msg)

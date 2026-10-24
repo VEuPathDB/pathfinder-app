@@ -16,6 +16,7 @@ from veupathdb.domain.parameters import (
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 
+from pathfinder.domain.strategy.computed_groups import COMPARISON_PREFIX
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
 
@@ -23,6 +24,7 @@ READING_LIMIT = 2_000
 _PREFIX = "expr:"
 _DIGITS = 12
 _HANDLE = re.compile(rf"{_PREFIX}[0-9a-f]{{{_DIGITS}}}")
+_NAMED = re.compile(rf"(?:{_PREFIX}|{COMPARISON_PREFIX})[0-9a-f]{{{_DIGITS}}}")
 
 
 class BuiltPattern(CamelModel):
@@ -49,7 +51,7 @@ def is_handle(text: str) -> bool:
 
 
 def handles_in(text: str) -> set[str]:
-    return set(_HANDLE.findall(text))
+    return set(_NAMED.findall(text))
 
 
 def spec_handles(spec: OperationalSpec | None) -> set[str]:

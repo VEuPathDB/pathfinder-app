@@ -127,11 +127,9 @@ def _number(value: float, branches: Sequence[SchemaNode]) -> str:
     formats = {branch.format for branch in branches}
     if "share" in formats:
         return f"{round(value * 100, 1):g}%"
-    match value:
-        case int() if "identifier" not in formats and abs(value) >= _SEPARATED:
-            return f"{value:,}"
-        case _:
-            return json.dumps(value)
+    if "identifier" not in formats and abs(value) >= _SEPARATED:
+        return f"{value:,}"
+    return json.dumps(value)
 
 
 def _scalar(

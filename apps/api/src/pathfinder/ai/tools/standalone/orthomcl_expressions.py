@@ -14,8 +14,11 @@ from veupathdb_mcp.catalog import (
     ortho_taxonomy,
 )
 from veupathdb_mcp.wdk import (
+    ComparisonOutOfTimeError,
+    ComparisonRequestsError,
     ComputedComparisonResult,
     ComputedSet,
+    GroupCloudCappedError,
     answer_phyletic_pattern,
 )
 
@@ -82,12 +85,26 @@ class ComputedComparison(CamelModel):
         )
 
 
-def _builder_limit(limit: str) -> str:
+def _builder_limit(refused: ValidationError) -> str:
+    limit = refused.detail or refused.title
+    match refused:
+        case (
+            ComparisonOutOfTimeError()
+            | ComparisonRequestsError()
+            | GroupCloudCappedError()
+        ):
+            stopped = (
+                "build_phyletic_expression stopped the comparison after it sent "
+                "requests the site answered"
+            )
+        case _:
+            stopped = (
+                "build_phyletic_expression refused the pattern before the site ran it"
+            )
     return (
-        f"build_phyletic_expression refused the pattern before the site ran it: "
-        f"{limit} This is the builder's own limit, not a site failure: correct or narrow "
-        "the pattern and build it again. A requirement no pattern within the limit "
-        "states is never site_refused_the_search."
+        f"{stopped}: {limit} This is the builder's own limit, not a site failure: "
+        "correct or narrow the pattern and build it again. A requirement no pattern "
+        "within the limit states is never site_refused_the_search."
     )
 
 
@@ -180,8 +197,9 @@ async def build_phyletic_expression(
     24 requests. It gives groups, bothHeld, leftOnly, rightOnly, ties,
     residualGroups, each set's genomes, species, groups and proteins, the
     requests spent and factId, and holds the group ids under a "groups:"
-    handle: pass it to set_criterion as computed_groups to save them as a step,
-    a snapshot of today's data the site does not re-run. The computed route
+    handle. Saving them as a step uploads them to the researcher's account:
+    pass the handle to set_criterion as computed_groups only when the
+    researcher asks for that, else offer it on a question. The computed route
     refuses at_least, at_most and exactly (they hold at 0 against 0); state
     more_than or fewer_than. A per_genome compare that reads more than 24
     requests needs a background task and is refused; compare averages or totals.
@@ -205,7 +223,7 @@ async def build_phyletic_expression(
     except ValidationError as exc:
         limit = exc.detail or exc.title
         ctx.deps.agent_state.builder_refusals[PHYLETIC_EXPRESSION_SEARCH] = limit
-        raise ModelRetry(_builder_limit(limit)) from exc
+        raise ModelRetry(_builder_limit(exc)) from exc
     match built:
         case ComputedComparisonResult():
             return _computed(ctx, pattern, built)
@@ -218,4 +236,4 @@ async def build_phyletic_expression(
         codes=built.codes,
         sets=() if tree is None else set_sizes(pattern, tree),
     )
-    return with_summary(held, f"{held.groups} groups", ctx=ctx)
+    return with_summary(held, count_noun(held.groups, "group"), ctx=ctx)

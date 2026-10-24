@@ -21,7 +21,7 @@ from pathfinder.domain.statistic_facts import (
 from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
-_PREFIX = "groups:"
+COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
 
@@ -30,7 +30,7 @@ type Route = Literal["computed snapshot"]
 
 def comparison_handle(group_ids: Sequence[str]) -> str:
     digest = hashlib.sha256("\n".join(sorted(group_ids)).encode()).hexdigest()
-    return f"{_PREFIX}{digest[:_DIGITS]}"
+    return f"{COMPARISON_PREFIX}{digest[:_DIGITS]}"
 
 
 def _share(part: int, whole: int) -> float:
@@ -63,7 +63,7 @@ class SetFacts(CamelModel):
             genomes=held.genomes,
             groups=held.groups,
             proteins=held.proteins,
-            leading_species=leading.species,
+            leading_species=_named(_leaders(held)),
             leading_species_genomes=leading.genomes,
             leading_species_share=_share(leading.genomes, held.genomes),
             species=tuple(
@@ -99,6 +99,17 @@ class ComparisonFacts(CamelModel):
     right: SetFacts
 
 
+def _leaders(held: ComputedSet) -> list[str]:
+    most = held.species[0].genomes
+    return [one.species for one in held.species if one.genomes == most]
+
+
+def _named(names: Sequence[str]) -> str:
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
 def _leading(side: str, held: ComputedSet) -> str:
     leading = held.species[0]
     if len(held.species) == 1:
@@ -107,6 +118,13 @@ def _leading(side: str, held: ComputedSet) -> str:
             f"({count_noun(held.genomes, 'genome')})."
         )
     shown = f"{round(100 * _share(leading.genomes, held.genomes), 1):g}%"
+    leaders = _leaders(held)
+    if len(leaders) > 1:
+        return (
+            f"{_named(leaders)} each hold {leading.genomes:,} of the "
+            f"{held.genomes:,} genomes of the {side} set ({shown}), the most of its "
+            f"{len(held.species)} species; no one species leads it."
+        )
     return (
         f"{leading.species} is {leading.genomes:,} of the {held.genomes:,} genomes "
         f"of the {side} set ({shown}), the most of its {len(held.species)} species."
@@ -133,8 +151,8 @@ class HeldComparison(CamelModel):
             f"A {COMPUTED_ROUTE} of {site_name}'s data on "
             f"{self.computed_on.isoformat()}: the "
             f"{count_noun(self.answer.groups, 'group')} the comparison selected, "
-            "uploaded as a list. The site does not re-run the comparison, so a "
-            "later release of its data does not change this step."
+            "uploaded as a list. The ids are fixed; a later release maps each id "
+            "to the groups it became, so the count can change."
         )
 
     def label(self) -> str:
@@ -175,6 +193,11 @@ class HeldComparison(CamelModel):
                     f"The groups are a {COMPUTED_ROUTE} of the site's data on "
                     f"{self.computed_on.isoformat()}, not a search the site re-runs."
                 ),
+                (
+                    f"ties counts the {count_noun(self.answer.ties, 'group')} whose "
+                    "two sides are equal among every group either set holds, "
+                    "selected or not; it is no part of the selected groups."
+                ),
                 _leading("left", left),
                 _leading("right", right),
             ],
@@ -202,6 +225,7 @@ def bound_comparisons(
 
 
 __all__ = [
+    "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
     "ComparisonFacts",
     "HeldComparison",

@@ -104,7 +104,7 @@ async def test_a_comparison_reads_the_largest_count_and_counts_the_recorded_grou
     )
     assert state.built_expressions[built.handle].expression == replay.sent[-1]
     assert sorted(built.codes) == ["pfal", "tgon"]
-    assert summary_of(result).data["summary"] == "3896 groups"
+    assert summary_of(result).data["summary"] == "3,896 groups"
 
 
 async def test_presence_only_in_a_clade_is_one_count_read() -> None:
