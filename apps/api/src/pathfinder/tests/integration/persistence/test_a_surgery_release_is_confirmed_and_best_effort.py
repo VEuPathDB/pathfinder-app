@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 
 import pytest
@@ -12,6 +13,7 @@ from structlog.testing import capture_logs
 from veupathdb.wdk import WDKStrategyDetails
 
 from pathfinder.platform.config import get_settings
+from pathfinder.services.conversations import surgery_commit
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.services.strategies import abandoned_mint
 from pathfinder.tests.integration.persistence._failed_surgery import (
@@ -175,3 +177,35 @@ async def test_both_releases_run_when_each_fails(
         "a release after a failed surgery raised",
         "kept an EDA document the surgery opened: the study service refused",
     ]
+
+
+async def test_a_confirmation_that_hangs_keeps_what_the_surgery_made(
+    monkeypatch: pytest.MonkeyPatch,
+    site: FakeStrategyApi,
+) -> None:
+    thread, user_id, _, eda = await thread_with_a_study(monkeypatch)
+
+    async def _hangs(*_args: object) -> bool:
+        await asyncio.Event().wait()
+        return False
+
+    monkeypatch.setattr(surgery_commit, "a_projection_names", _hangs)
+    monkeypatch.setattr(surgery_commit, "CONFIRM_SECONDS", 0.2)
+
+    async with db.async_session_factory() as session:
+        monkeypatch.setattr(session, "commit", refuse)
+        with capture_logs() as logs, pytest.raises(RuntimeError, match=REFUSED):
+            await asyncio.wait_for(
+                ConversationService(session).fork(
+                    thread.conversation_id,
+                    user_id,
+                    thread.answer_two,
+                ),
+                timeout=2.0,
+            )
+
+    assert (site.deleted, eda.deleted) == ([], [])
+    assert "kept what a surgery made: its commit could not be confirmed" in [
+        entry["event"] for entry in logs
+    ]
+    assert surgery_commit.CONFIRM_SECONDS == 0.2

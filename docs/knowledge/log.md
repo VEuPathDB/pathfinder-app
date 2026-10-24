@@ -18,10 +18,11 @@
   refuses a thread of another caller first, then holds the same lock as a transaction lock on a
   connection of its own until the job is deferred, and refuses with `ThreadBusyError` after 45
   seconds of waiting; that transaction ends after 120 idle seconds, and it takes its connection
-  from a pool of its own (`LOCK_POOL_SIZE` 10 plus `LOCK_POOL_OVERFLOW` 10), so dispatches never
-  wait on the request pool for their own locks. A branch or a revert that does not commit
-  deletes the WDK strategy and the EDA document it made, after a fresh session confirms that no
-  committed row names them (`services/conversations/surgery_commit.py`). A branch pushes its
+  from a pool of its own (`LOCK_POOL_SIZE` 2 plus `LOCK_POOL_OVERFLOW` 18), so dispatches never
+  wait on the request pool for their own locks; the 45-second wait covers the pool checkout and
+  the lock attempts together. A branch or a revert that does not commit
+  deletes the WDK strategy and the EDA document it made, after a fresh session confirms within
+  5 seconds that no committed row names them (and keeps them when it cannot) (`services/conversations/surgery_commit.py`). A branch pushes its
   strategy as its last VEuPathDB write and deletes that mint when anything after the push
   fails, the commit included. An EDA document a surgery opened is deleted when its subset or
   its binding fails. The checkpoint tables are named once, in

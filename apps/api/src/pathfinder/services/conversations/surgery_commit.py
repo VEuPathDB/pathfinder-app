@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable
 from dataclasses import dataclass
 
@@ -20,9 +21,11 @@ from pathfinder.services.strategies.abandoned_mint import (
     delete_released_mint,
 )
 
-__all__ = ["SurgeryMade", "commit_or_release"]
+__all__ = ["CONFIRM_SECONDS", "SurgeryMade", "commit_or_release"]
 
 logger = get_logger(__name__)
+
+CONFIRM_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
@@ -38,7 +41,7 @@ class _Unnamed:
 
 
 async def _unnamed_by_committed_rows(made: SurgeryMade) -> _Unnamed:
-    async with async_session_factory() as session:
+    async with asyncio.timeout(CONFIRM_SECONDS), async_session_factory() as session:
         mint_named = made.mint is not None and await a_projection_names(
             session,
             made.mint.wdk_strategy_id,

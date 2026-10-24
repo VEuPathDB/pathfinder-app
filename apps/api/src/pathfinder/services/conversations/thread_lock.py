@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from uuid import UUID
@@ -34,8 +33,8 @@ logger = get_logger(__name__)
 
 HOLD_WAIT_SECONDS = 45.0
 HOLD_IDLE_SECONDS = 120.0
-LOCK_POOL_SIZE = 10
-LOCK_POOL_OVERFLOW = 10
+LOCK_POOL_SIZE = 2
+LOCK_POOL_OVERFLOW = 18
 _RETRY_SECONDS = 0.1
 _IDLE_BOUND = text(
     "SELECT set_config('idle_in_transaction_session_timeout', :bound, true)",
@@ -74,14 +73,13 @@ def _key(conversation_id: UUID) -> str:
 async def _take(
     connection: AsyncConnection,
     conversation_id: UUID,
-    wait_seconds: float,
+    deadline: float,
 ) -> None:
-    deadline = time.monotonic() + wait_seconds
     while not await connection.scalar(
         _TRY_FOR_THE_TRANSACTION,
         {"key": _key(conversation_id)},
     ):
-        if time.monotonic() >= deadline:
+        if asyncio.get_running_loop().time() >= deadline:
             raise ThreadBusyError
         await asyncio.sleep(_RETRY_SECONDS)
 
@@ -107,11 +105,12 @@ async def _release(
 
 
 @asynccontextmanager
-async def _lock_connection() -> AsyncIterator[AsyncConnection]:
+async def _lock_connection(deadline: float) -> AsyncIterator[AsyncConnection]:
     connection = lock_engine().connect()
     try:
-        await connection.start()
-    except sqlalchemy.exc.TimeoutError as exhausted:
+        async with asyncio.timeout_at(deadline):
+            await connection.start()
+    except (TimeoutError, sqlalchemy.exc.TimeoutError) as exhausted:
         raise ThreadBusyError from exhausted
     try:
         yield connection
@@ -126,14 +125,15 @@ async def hold_thread(
     wait_seconds: float = HOLD_WAIT_SECONDS,
     idle_seconds: float = HOLD_IDLE_SECONDS,
 ) -> AsyncIterator[None]:
-    async with _lock_connection() as connection:
+    deadline = asyncio.get_running_loop().time() + wait_seconds
+    async with _lock_connection(deadline) as connection:
         transaction = await connection.begin()
         try:
             await connection.execute(
                 _IDLE_BOUND,
                 {"bound": f"{round(idle_seconds * 1000)}ms"},
             )
-            await _take(connection, conversation_id, wait_seconds)
+            await _take(connection, conversation_id, deadline)
             yield
         except BaseException:
             await _release(connection, transaction.rollback, conversation_id)
