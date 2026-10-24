@@ -16,14 +16,16 @@ def _facts(*fits_read: int) -> TurnFacts:
     )
 
 
-def test_a_column_the_site_does_not_show_is_one_row() -> None:
+def test_a_column_the_site_refuses_is_one_row() -> None:
     unshown = tm_fit(0, 0).model_copy(update={"shown": False, "total": 0})
     facts = TurnFacts(
         caveats=measured_caveats(build=None, controls=[], column_fits=[unshown]),
         column_fits=[unshown],
     )
 
-    assert facts.lines() == [f"the site shows no column for '{TM_CRITERION}'"]
+    assert facts.lines() == [
+        f"the site refused the # TM Domains (tm_count) column for '{TM_CRITERION}'"
+    ]
 
 
 def test_a_column_short_of_the_bound_is_one_row() -> None:

@@ -31,21 +31,20 @@ _BY_BLAST = WDKSearch(
         "evalue",
     ],
     dynamic_attributes=[
-        WDKAttributeField(name=n)
-        for n in (
-            "evalue_mant",
-            "evalue_exp",
-            "score",
-            "summary",
-            "alignment",
-            "evalue",
-        )
+        WDKAttributeField(name="evalue_mant", column_data_type="NUMBER"),
+        WDKAttributeField(name="evalue_exp", column_data_type="NUMBER"),
+        WDKAttributeField(name="score", column_data_type="NUMBER"),
+        WDKAttributeField(name="summary", column_data_type="STRING"),
+        WDKAttributeField(name="alignment", column_data_type="OTHER"),
+        WDKAttributeField(name="evalue", column_data_type="STRING"),
     ],
 )
 _GROUPS_FROM_SEQUENCES = WDKSearch(
     url_segment="GroupsFromSequences",
     default_attributes=["primary_key", "number_of_members", "keywords", "descriptions"],
-    dynamic_attributes=[WDKAttributeField(name="wdk_weight")],
+    dynamic_attributes=[
+        WDKAttributeField(name="wdk_weight", column_data_type="STRING")
+    ],
 )
 _SEARCHES = {"sequence": [_BY_BLAST], "group": [_GROUPS_FROM_SEQUENCES]}
 

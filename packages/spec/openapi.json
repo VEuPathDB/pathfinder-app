@@ -20760,7 +20760,7 @@
             "readOnly": true
           },
           "sentence": {
-            "description": "The records that fit out of the step, the records on each side of a\nthreshold with no stated direction, or that the site shows no column.",
+            "description": "The records that fit out of the step, the records on each side of a\nthreshold with no stated direction, or that the site refused the column.",
             "readOnly": true,
             "title": "Sentence",
             "type": "string"

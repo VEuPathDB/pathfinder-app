@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic import JsonValue
-from veupathdb.errors import validate_response
+from veupathdb.errors import WDKError, validate_response
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
 from veupathdb.wdk import WDKColumnDistribution, WDKRecordType, WDKWordCounts
 
@@ -87,10 +87,13 @@ class _Site:
         return self.step_count
 
     async def get_column_distribution(
-        self, step_id: int, column_name: str
+        self, step_id: int, column_name: str, *, budget_seconds: float | None = None
     ) -> WDKColumnDistribution:
+        del budget_seconds
         self.distributions.append((step_id, column_name))
-        assert self.distribution is not None
+        if self.distribution is None:
+            msg = "Unknown column report"
+            raise WDKError(msg, status=422)
         return self.distribution
 
 
@@ -248,6 +251,7 @@ async def test_a_record_type_with_no_countable_column_says_so(
                 {
                     "name": "length",
                     "displayName": "Length",
+                    "columnDataType": "NUMBER",
                     "formats": [{"name": "length-histogram", "type": "histogram"}],
                 }
             ],
@@ -326,6 +330,7 @@ async def test_a_column_with_a_by_value_report_is_counted_by_it(
                 {
                     "name": "organism",
                     "displayName": "Organism",
+                    "columnDataType": "STRING",
                     "tools": {"reports": ["byValue"], "filters": ["byValue"]},
                     "formats": [
                         {"name": "organism-wordCloud", "type": "wordCloud"},
@@ -372,11 +377,13 @@ _ORGANISM = WDKRecordType.model_validate(
             {
                 "name": "organism",
                 "displayName": "Organism",
+                "columnDataType": "STRING",
                 "tools": {"reports": ["byValue"], "filters": ["byValue"]},
             },
             {
                 "name": "gene_type",
                 "displayName": "Gene Type",
+                "columnDataType": "STRING",
                 "tools": {"reports": ["byValue"], "filters": ["byValue"]},
             },
         ],
@@ -384,13 +391,10 @@ _ORGANISM = WDKRecordType.model_validate(
 )
 
 
-async def test_the_clients_reply_to_a_site_error_is_refused_and_not_a_count_of_0(
+async def test_a_report_the_site_refuses_is_a_refusal_naming_its_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _serve(
-        monkeypatch,
-        _Site(_ORGANISM, step_count=412, distribution=WDKColumnDistribution()),
-    )
+    site = _serve(monkeypatch, _Site(_ORGANISM, step_count=412))
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
@@ -398,10 +402,10 @@ async def test_the_clients_reply_to_a_site_error_is_refused_and_not_a_count_of_0
         )
 
     assert str(refused.value) == (
-        "The site answered no counts for organism (Organism) on step 227284080, "
-        "which holds 412 gene records."
+        "The site refused to count organism (Organism) on step 227284080 "
+        "(HTTP 422). The columns the site counts by value: gene_type (Gene Type)."
     )
-    assert site.reports == []
+    assert (site.distributions, site.reports) == ([(_STEP, "organism")], [])
 
 
 async def test_a_step_of_no_records_counts_nothing(

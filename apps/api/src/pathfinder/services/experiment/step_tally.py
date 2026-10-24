@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from veupathdb.errors import DataParsingError
+from veupathdb.errors import DataParsingError, WDKError
 from veupathdb.wdk import (
     ColumnNotCountableError,
     StrategyAPI,
@@ -103,19 +103,20 @@ async def _by_value(
     api: StrategyAPI, step: CountedStep, field: WDKAttributeField, offered: str
 ) -> _Counts:
     label = f"{field.name} ({field_label(field)})"
-    distribution = await api.get_column_distribution(step.wdk_step_id, field.name)
+    try:
+        distribution = await api.get_column_distribution(step.wdk_step_id, field.name)
+    except WDKError as refused:
+        msg = (
+            f"The site refused to count {label} on {step.name} "
+            f"(HTTP {refused.status}). {offered}"
+        )
+        raise ColumnTallyRefusedError(msg) from refused
     rows = distribution_rows(distribution)
     stats = distribution.statistics
     if not rows and stats.subset_size > 0:
         msg = (
             f"None of the {stats.subset_size:,} {step.record_noun} records of "
             f"{step.name} has a value for {label}, so it counts nothing. {offered}"
-        )
-        raise ColumnTallyRefusedError(msg)
-    if not rows and (held := await api.get_step_count(step.wdk_step_id)) > 0:
-        msg = (
-            f"The site answered no counts for {label} on {step.name}, which holds "
-            f"{held:,} {step.record_noun} records."
         )
         raise ColumnTallyRefusedError(msg)
     names = await genome_names(step.site_id) if rows else {}

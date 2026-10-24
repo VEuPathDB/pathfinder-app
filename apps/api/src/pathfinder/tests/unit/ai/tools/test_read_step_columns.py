@@ -7,7 +7,7 @@ from collections.abc import Mapping
 
 import pytest
 from pydantic import JsonValue
-from pydantic_ai import RunContext, ToolFailed
+from pydantic_ai import RunContext
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
@@ -58,11 +58,13 @@ class _Site:
         self.columns = columns
         self.reports = reports
         self.asked: list[str] = []
+        self.budgets: list[float | None] = []
 
     async def get_column_distribution(
-        self, step_id: int, column_name: str
+        self, step_id: int, column_name: str, *, budget_seconds: float | None = None
     ) -> WDKColumnDistribution:
         self.asked.append(f"{step_id}/columns/{column_name}")
+        self.budgets.append(budget_seconds)
         return self.columns.get(column_name, WDKColumnDistribution())
 
     async def run_step_report(self, step_id: int, report_name: str) -> JsonValue:
@@ -122,7 +124,6 @@ def _context(
     search_name: str,
     wdk_step_id: int,
     params: Mapping[str, ParamValue],
-    counted: int | None = None,
 ) -> RunContext[AgentDeps]:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Membrane", site_id="plasmodb")
@@ -130,9 +131,7 @@ def _context(
     graph.steps = flatten_tree(StrategyStepNode(id="c_one", search_name=search_name))
     graph.recompute_roots()
     session.graph = graph
-    session.sync_state = WDKSyncState(
-        wdk_step_ids={"c_one": wdk_step_id}, step_counts={"c_one": counted}
-    )
+    session.sync_state = WDKSyncState(wdk_step_ids={"c_one": wdk_step_id})
     criterion = Criterion(
         id="c_one",
         text=_TM_TEXT,
@@ -170,10 +169,16 @@ async def test_the_tm_count_column_fits_every_gene_of_the_step(
         fitting=840,
         fitting_at_most=840,
     )
-    assert (answer.fits, ctx.deps.turn_markers.column_fits, site.asked) == (
+    assert (
+        answer.fits,
+        ctx.deps.turn_markers.column_fits,
+        site.asked,
+        site.budgets,
+    ) == (
         [expected],
         [expected],
         [f"{TM_STEP}/columns/tm_count"],
+        [results.READ_DEADLINE_SECONDS],
     )
 
 
@@ -277,7 +282,7 @@ async def test_rival_search_columns_that_disagree_name_the_sample_instead(
     ]
 
 
-async def test_a_column_the_site_does_not_report_is_not_shown(
+async def test_an_empty_report_is_a_step_of_no_records(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch, _Site({}, {}))
@@ -285,37 +290,9 @@ async def test_a_column_the_site_does_not_report_is_not_shown(
 
     answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
 
-    assert [(f.fits, f.sentence) for f in answer.fits] == [
-        ("not_shown", f"the site shows no column for '{_TM_TEXT}'")
+    assert [(f.fits, f.total, f.sentence) for f in answer.fits] == [
+        ("none", 0, "0 of 0 genes fit # TM Domains (2 to 99)")
     ]
-
-
-async def test_a_read_with_no_rows_on_a_counted_step_names_the_step_sample(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The column the search publishes is not reported as absent."""
-    site = _Site({}, {})
-    _serve(monkeypatch, site)
-    ctx = _context(
-        "GenesByTransmembraneDomains",
-        TM_STEP,
-        {"min_tm": StringValue(value="0"), "max_tm": StringValue(value="0")},
-        counted=5041,
-    )
-
-    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
-
-    assert (answer.fits, answer.note, ctx.deps.turn_markers.column_fits) == (
-        [],
-        (
-            f"Step {TM_STEP} counts 5041 on the site and its read of "
-            "# TM Domains (tm_count) returned no rows. Sample step "
-            f"{TM_STEP} with get_sample_records and read tm_count on its "
-            "records for this criterion."
-        ),
-        [],
-    )
-    assert site.asked == [f"{TM_STEP}/columns/tm_count"]
 
 
 async def test_a_search_with_no_column_names_the_sample_instead(
@@ -339,29 +316,73 @@ async def test_a_search_with_no_column_names_the_sample_instead(
     )
 
 
-class _BrokenSite(_Site):
-    """A site that breaks off every column report."""
+class _RefusingSite(_Site):
+    """A site that refuses every column report and the step reports it names."""
+
+    def __init__(
+        self,
+        columns: Mapping[str, WDKColumnDistribution],
+        reports: Mapping[str, JsonValue],
+        refused: frozenset[str],
+    ) -> None:
+        super().__init__(columns, reports)
+        self.refused = refused
 
     async def get_column_distribution(
-        self, step_id: int, column_name: str
+        self, step_id: int, column_name: str, *, budget_seconds: float | None = None
     ) -> WDKColumnDistribution:
-        del step_id, column_name
+        del budget_seconds
+        self.asked.append(f"{step_id}/columns/{column_name}")
         msg = "Request failed after retries: "
         raise WDKError(msg, status=504)
 
+    async def run_step_report(self, step_id: int, report_name: str) -> JsonValue:
+        if report_name in self.refused:
+            self.asked.append(f"{step_id}/reports/{report_name}")
+            msg = "Unknown report"
+            raise WDKError(msg, status=400)
+        return await super().run_step_report(step_id, report_name)
 
-async def test_a_column_read_the_site_breaks_off_fails_the_call(
+
+async def test_a_column_the_site_refuses_is_an_unread_fit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A failed call is not held as answered and names the site's status."""
-    _serve(monkeypatch, _BrokenSite({}, {}))
+    site = _RefusingSite({}, {}, frozenset())
+    _serve(monkeypatch, site)
     ctx = _context("GenesByTransmembraneDomains", TM_STEP, _TM)
 
-    with pytest.raises(ToolFailed) as failed:
-        await results.read_step_columns(ctx, TM_STEP)
+    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
 
-    assert failed.value.message.startswith(
-        "read_step_columns got no answer from the site (HTTP 504: VEuPathDB service "
-        "error: Request failed after retries:)."
+    refused = (
+        "not_shown",
+        0,
+        f"the site refused the # TM Domains (tm_count) column for '{_TM_TEXT}'",
     )
-    assert ctx.deps.turn_markers.column_fits == []
+    assert [(f.fits, f.total, f.sentence) for f in answer.fits] == [refused]
+    assert [
+        (f.fits, f.total, f.sentence) for f in ctx.deps.turn_markers.column_fits
+    ] == [refused]
+    assert site.asked == [f"{TM_STEP}/columns/tm_count"]
+
+
+async def test_a_refused_rival_column_leaves_the_others_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base = _percentile_site()
+    site = _RefusingSite(
+        base.columns, base.reports, frozenset({"max_percentile_chosen-histogram"})
+    )
+    _serve(monkeypatch, site)
+
+    answer = returned(
+        await results.read_step_columns(_percentile_context("80"), PERCENTILE_STEP),
+        StepColumns,
+    )
+
+    assert [(f.column, f.fits) for f in answer.fits] == [
+        ("max_percentile_chosen", "not_shown")
+    ]
+    assert sorted(site.asked) == [
+        f"{PERCENTILE_STEP}/reports/max_percentile_chosen-histogram",
+        f"{PERCENTILE_STEP}/reports/min_percentile_chosen-histogram",
+    ]

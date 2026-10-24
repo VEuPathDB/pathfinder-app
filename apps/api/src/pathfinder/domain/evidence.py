@@ -305,7 +305,7 @@ class ColumnFit(CamelModel):
     # The records inside ``bound_value``; a bin across a bound raises the most.
     fitting: Annotated[int, number_at_least(0)]
     fitting_at_most: Annotated[int, number_at_least(0)]
-    # False when the site reports no value of the column for the step.
+    # False when the site refuses the column's report for the step.
     shown: bool = True
     sides: list[ThresholdSides] = Field(default_factory=list)
 
@@ -319,7 +319,7 @@ class ColumnFit(CamelModel):
         ):
             return "a side of a threshold holds at most the step's records"
         if not self.shown and (self.total or self.sides):
-            return "a column the site does not show carries no count"
+            return "a column the site refused carries no count"
         return next((p for side in self.sides if (p := side.nesting_problem)), "")
 
     @computed
@@ -334,9 +334,12 @@ class ColumnFit(CamelModel):
     @computed
     def sentence(self) -> str:
         """The records that fit out of the step, the records on each side of a
-        threshold with no stated direction, or that the site shows no column."""
+        threshold with no stated direction, or that the site refused the column."""
         if not self.shown:
-            return f"the site shows no column for '{self.criterion_text}'"
+            return (
+                f"the site refused the {self.display_name} ({self.column}) column "
+                f"for '{self.criterion_text}'"
+            )
         inside = (
             [
                 (

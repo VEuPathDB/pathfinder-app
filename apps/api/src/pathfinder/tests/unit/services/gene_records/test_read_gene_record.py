@@ -23,15 +23,16 @@ from pathfinder.services.gene_records.read import (
 )
 from pathfinder.tests._support.qa_recording import qa_recording
 
-TOXO_ATTRIBUTES = (
-    "organism",
-    "product",
-    "name",
-    "chromosome",
-    "exon_count",
-    "transcript_count",
-    "sequence_id",
-)
+_COLUMN_TYPES = {
+    "organism": "STRING",
+    "product": "STRING",
+    "name": "STRING",
+    "chromosome": "STRING",
+    "exon_count": "NUMBER",
+    "transcript_count": "NUMBER",
+    "sequence_id": "STRING",
+}
+TOXO_ATTRIBUTES = tuple(_COLUMN_TYPES)
 
 _SRS29B = {
     "organism": "Toxoplasma gondii ME49",
@@ -74,7 +75,9 @@ def _record_type(names: tuple[str, ...]) -> WDKRecordType:
         {
             "urlSegment": "gene",
             "primaryKeyColumnRefs": ["source_id", "project_id"],
-            "attributes": [{"name": name} for name in names],
+            "attributes": [
+                {"name": name, "columnDataType": _COLUMN_TYPES[name]} for name in names
+            ],
         }
     )
 

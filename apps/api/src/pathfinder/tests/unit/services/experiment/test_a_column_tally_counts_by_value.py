@@ -33,14 +33,20 @@ _RECORD_TYPE = WDKRecordType.model_validate(
             {
                 "name": "organism_prefix",
                 "displayName": "Organism(s)",
+                "columnDataType": "STRING",
                 "tools": {"reports": ["byValue"], "filters": ["byValue"]},
             },
             {
                 "name": "newcategory",
                 "displayName": "Category",
+                "columnDataType": "STRING",
                 "tools": {"reports": ["byValue"], "filters": ["byValue"]},
             },
-            {"name": "overview", "displayName": "Overview"},
+            {
+                "name": "overview",
+                "displayName": "Overview",
+                "columnDataType": "STRING",
+            },
         ],
     }
 )

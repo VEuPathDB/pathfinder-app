@@ -301,7 +301,7 @@ describe("DataEvidenceCard", () => {
     expect(rows.map((row) => row.textContent)).toEqual([
       "at least 2 transmembrane domains# TM Domains2 to 99840 of 840 genes",
       "at least 2 transmembrane domainsMolecular Weight0 to 200000708 to 756 of 840 genes",
-      "at least 2 transmembrane domainsSignalP2 to 99The site shows no column",
+      "at least 2 transmembrane domainsSignalP2 to 99The site refused this column",
     ]);
     const body = screen.getByTestId("evidence-review");
     const sections = Array.from(body.children).map((node) =>

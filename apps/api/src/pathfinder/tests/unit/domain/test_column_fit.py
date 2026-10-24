@@ -9,6 +9,11 @@ from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.caveats import SampleCaveat, measured_caveats, sample_caveat
 from pathfinder.domain.evidence import ColumnFit, VerificationReview
 
+_REFUSED = (
+    "the site refused the # TM Domains (tm_count) column for "
+    "'two or more transmembrane domains'"
+)
+
 
 def _fit(
     fitting: int, total: int, *, at_most: int | None = None, shown: bool = True
@@ -49,12 +54,12 @@ def test_no_gene_in_the_bound_fits_none() -> None:
     assert _fit(0, 840).fits == "none"
 
 
-def test_a_column_the_site_does_not_report_is_not_shown() -> None:
+def test_a_column_the_site_refuses_is_not_shown() -> None:
     fit = _fit(0, 0, shown=False)
 
     assert (fit.fits, fit.sentence) == (
         "not_shown",
-        "the site shows no column for 'two or more transmembrane domains'",
+        _REFUSED,
     )
 
 
@@ -64,9 +69,9 @@ def test_the_counts_cannot_exceed_each_other() -> None:
     )
 
 
-def test_a_column_not_shown_carries_no_count() -> None:
+def test_a_refused_column_carries_no_count() -> None:
     assert _fit(3, 8, shown=False).nesting_problem == (
-        "a column the site does not show carries no count"
+        "a column the site refused carries no count"
     )
 
 
@@ -92,7 +97,7 @@ def test_the_sample_caveat_is_worded_by_its_fit_and_never_unclear() -> None:
     )
 
     assert [c.sentence for c in caveats] == [
-        "the site shows no column for 'two or more transmembrane domains'",
+        _REFUSED,
         "12 of 40 genes fit # TM Domains (2 to 99)",
     ]
 

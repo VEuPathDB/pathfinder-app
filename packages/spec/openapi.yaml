@@ -13613,7 +13613,7 @@ components:
         sentence:
           description: 'The records that fit out of the step, the records on each side of a
 
-            threshold with no stated direction, or that the site shows no column.'
+            threshold with no stated direction, or that the site refused the column.'
           readOnly: true
           title: Sentence
           type: string
