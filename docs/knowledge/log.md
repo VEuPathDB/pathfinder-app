@@ -7,12 +7,14 @@
   tuple, never null). A plan with no scope is refused to the Lead with its reason, and a genome
   the site does not hold is refused with the organisms its words name and the rule that a
   request of gene targets names no genome. A stored verdict names a genome the reads of its
-  genes placed it in: each check read now reads the organism of each gene it names and hands it
-  to the model, and a finding read places its genes in the finding's genomes
+  genes placed it in: each check read now reads the full organism name of each gene it names
+  (the gene record's `organism_full`, never the `organismAbbrev` the library reads, once per gene
+  in an investigation, `services/gene_records/genome.py`) and hands it to the model, and a finding read places its genes in the finding's genomes
   (`AuditDeps.misplaced_genome`), for the investigator and the auditor alike. A run's state
   reaches a reply only through a reference to a run the turn started or read by id; a listed
   run is not held. The failed-check rule does not ask an audit turn about the strategy, and a
-  digest whose strategy the site no longer holds is dropped when the turn arrives. The
+  digest whose strategy the site no longer holds is dropped when the turn arrives, once a 404 on
+  the strategy and a listing without it agree. The
   classification gate holds a gene id the conversation showed last. A turn that started an
   audit reaches no tool after the start, so the reply says it started and the turn ends, and a
   budget stop says what an audit turn started or read and names only the limit it spent. A run

@@ -46,8 +46,10 @@ that reports what the pass never wrote.
 
 `failed_check` asks a reply over a standing failed check to state it, and an audit turn
 (`TurnRecord.audit_turn`) owes it nothing: an audit turn reaches no building tool and answers
-about the audit, not the strategy. A digest whose strategy the site no longer holds (a 404 when
-the turn arrives) is dropped by `pre_turn.forget_the_verdict_of_a_dropped_strategy`.
+about the audit, not the strategy. A digest whose strategy the site no longer holds is dropped by
+`pre_turn.forget_the_verdict_of_a_dropped_strategy`: the read of the strategy answers 404 and a
+listing of the user's strategies succeeds without it. A 404 alone is no proof, because a site
+that is redeploying answers 404 too.
 
 An audit run's state has no prose rule. It reaches the reply only through a reference to the
 `audit_start` or `audit_run` fact the turn read, and a reference to a fact the turn does not
