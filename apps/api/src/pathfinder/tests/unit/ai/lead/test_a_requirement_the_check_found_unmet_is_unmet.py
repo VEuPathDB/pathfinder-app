@@ -3,12 +3,16 @@ ledger, leaves the tree to the build, and never ends the turn complete."""
 
 from __future__ import annotations
 
+from pydantic_ai import DeferredToolRequests
+from pydantic_ai.messages import ToolCallPart
+
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
     PipelineState,
     StrategyDomainState,
     VerificationDigest,
 )
+from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.limit_messages import unmet_requirement_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -33,8 +37,10 @@ ORGANISM = Constraint(
     label="organism scope",
     source=ConstraintSource.USER_EXPLICIT,
 )
-UNMET = RequirementGap(text="Plasmodium species", status="unmet")
-UNSHOWN = RequirementGap(text="Plasmodium species", status="unshown")
+UNMET = RequirementGap(text="Plasmodium species", status="unmet", key=ORGANISM.key)
+UNSHOWN = RequirementGap(text="Plasmodium species", status="unshown", key=ORGANISM.key)
+UNNAMED = RequirementGap(text="Plasmodium species", status="unmet")
+RENAMED = RequirementGap(text="species of Plasmodium", status="unmet", key=ORGANISM.key)
 SPEC = OperationalSpec(
     goal="Which Plasmodium species has the most singleton genes?",
     constraints=[ORGANISM],
@@ -90,6 +96,14 @@ def test_a_requirement_the_check_found_unmet_blocks_in_the_ledger() -> None:
     assert (after.blocking, after.unmet_count) == (True, 1)
 
 
+def test_the_ledger_and_the_tree_read_the_same_gaps() -> None:
+    renamed = derive_ledger(_checked(_groups_state(), [RENAMED]), None).constraints
+    unnamed = derive_ledger(_checked(_groups_state(), [UNNAMED]), None).constraints
+
+    assert (renamed.blocking, _digest([RENAMED]).blames_the_tree) == (True, True)
+    assert (unnamed.blocking, _digest([UNNAMED]).blames_the_tree) == (False, False)
+
+
 def test_a_requirement_no_record_shows_stays_grounded() -> None:
     held = derive_ledger(_checked(_groups_state(), [UNSHOWN]), None).constraints
 
@@ -136,3 +150,23 @@ def test_a_reply_that_waits_on_the_researcher_over_it_stands() -> None:
     found = [m.kind for m in reconcile(reply(TURN_ONE_REPLY), record)]
 
     assert "unmet_requirement" not in found
+
+
+def test_a_card_over_an_unmet_requirement_is_not_refused() -> None:
+    deps = _unmet_deps()
+    card = DeferredToolRequests(
+        approvals=[
+            ToolCallPart(
+                tool_name="consult_user",
+                args={
+                    "questions": [],
+                    "reply": "Nothing in the strategy restricts the groups to "
+                    "Plasmodium species yet.",
+                },
+                tool_call_id="call_card",
+            )
+        ]
+    )
+
+    assert hold_the_contract_on_a_card(run_context_for(deps), card) is None
+    assert deps.state.turn_markers.refused_rules == []

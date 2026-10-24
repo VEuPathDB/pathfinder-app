@@ -45,9 +45,7 @@ def test_a_noun_after_a_step_reference_is_misplaced_in_any_noun_the_facts_count(
     None
 ):
     found = misplacements(
-        "The pattern keeps [count:step_pattern] groups.",
-        _ORTHO.counted_nouns(),
-        lambda _: None,
+        "The pattern keeps [count:step_pattern] groups.", _ORTHO.counted_nouns()
     )
 
     assert [m.token for m in found] == ["[count:step_pattern] groups"]

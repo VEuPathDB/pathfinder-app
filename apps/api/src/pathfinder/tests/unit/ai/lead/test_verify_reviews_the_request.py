@@ -236,7 +236,13 @@ async def test_an_unmet_requirement_refuses_the_success(
 
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
-        [RequirementGap(text="at least 2 transmembrane domains", status="unmet")],
+        [
+            RequirementGap(
+                text="at least 2 transmembrane domains",
+                status="unmet",
+                key="other:at least 2 transmembrane domains",
+            )
+        ],
     )
 
 

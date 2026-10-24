@@ -260,9 +260,7 @@ def _reached(column: StepColumn) -> ReachedColumn:
     return ReachedColumn(name=column.name, display_name=column.display_name)
 
 
-async def _transform_reach(
-    site_id: str, transform: TransformColumns, name: str
-) -> TransformReach:
+async def _transform_reach(site_id: str, transform: TransformColumns) -> TransformReach:
     fields = await _record_fields(site_id, transform.record_type)
     held = {c.name for c in transform.columns}
     coded = [
@@ -271,29 +269,21 @@ async def _transform_reach(
         if f.name in _by_codes(fields) and f.name not in held
     ]
     countable = [*(_reached(c) for c in transform.columns), *coded]
-    needle = name.casefold()
-    named = [
-        c
-        for c in countable
-        if needle in c.name.casefold() or needle in c.display_name.casefold()
-    ]
     return TransformReach(
         search_name=transform.search_name,
         display_name=transform.display_name,
         record_type=transform.record_type,
         countable=len(countable),
-        columns=(named or countable)[:_NAMED_COLUMNS],
+        columns=countable[:_NAMED_COLUMNS],
     )
 
 
 async def step_reach(
-    site_id: str, listed: StepColumns, name: str, tallies_before: int
+    site_id: str, listed: StepColumns, tallies_before: int
 ) -> StepReach:
     return StepReach(
         wdk_step_id=listed.step_id,
         record_type=listed.record_type,
-        transforms=[
-            await _transform_reach(site_id, t, name) for t in listed.transforms
-        ],
+        transforms=[await _transform_reach(site_id, t) for t in listed.transforms],
         tallies_before=tallies_before,
     )

@@ -331,9 +331,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
     ]
     placed = [
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
-        for m in misplacements(
-            prose, held.counted_nouns(), lambda match: _rendered(match, held)
-        )
+        for m in misplacements(prose, held.counted_nouns())
     ]
     return list(dict.fromkeys([*brackets, *links, *tokens, *placed]))
 

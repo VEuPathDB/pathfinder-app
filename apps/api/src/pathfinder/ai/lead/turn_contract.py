@@ -55,6 +55,7 @@ from pathfinder.domain.reply_references import (
     unheld_references,
 )
 from pathfinder.domain.strategy.questions import AskedQuestion
+from pathfinder.domain.turn_facts import TurnFacts
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -64,9 +65,15 @@ _ASKED_LIMIT = 8
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
-WITHHELD_REPLY = (
+WITHHELD_ALONE = (
     "I could not write this answer in facts the product renders from the result, "
-    "so it is not shown. The facts beside this reply show what this turn found."
+    "so it is not shown."
+)
+WITHHELD_REPLY = (
+    f"{WITHHELD_ALONE} The facts beside this reply show what this turn found."
+)
+WITHHELD_FAULTS = frozenset(
+    {"number", "identifier", "product_text", "unheld_reference"}
 )
 
 
@@ -334,7 +341,7 @@ def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
 
 def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
     unmet = record.unmet_requirements
-    if not unmet or report.next_state != "complete" or record.ends_on_a_card:
+    if not unmet or report.next_state != "complete" or record.audit_turn:
         return None
     return unmet_requirement_message(unmet)
 
@@ -410,21 +417,33 @@ def to_correct(
     replies: Sequence[str],
 ) -> list[Mismatch]:
     """The mismatches one answer is corrected for. Each of ``replies`` is read
-    whole and refused while it cannot render; every other mismatch is
-    corrected once per message. An answer let through with a mismatch marks
-    the turn's reply as unchecked."""
+    whole and refused while it cannot render, on a bound of its own; every other
+    mismatch is corrected once per turn. An answer let through with a mismatch
+    marks the turn's reply as unchecked."""
     markers = ctx.deps.state.turn_markers
     prose = unrendered_prose(replies, record)
-    latched = markers.contract_refused
-    found = [] if latched else reconcile(report, record)
-    asked = [*([] if prose is None else [prose]), *found]
-    if asked and may_refuse(ctx, markers.output_refusals):
-        markers.output_refusals += 1
-        markers.contract_refused = latched or bool(found)
-        return asked
+    found = [
+        m for m in reconcile(report, record) if m.kind not in markers.refused_rules
+    ]
+    prose_asked = prose is not None and may_refuse(ctx, markers.prose_refusals)
+    rules_asked = bool(found) and may_refuse(ctx, markers.output_refusals)
+    asked = [*([prose] if prose is not None and prose_asked else []), *found]
+    if prose_asked or rules_asked:
+        if prose_asked:
+            markers.prose_refusals += 1
+        if rules_asked:
+            markers.output_refusals += 1
+            markers.refused_rules.extend(m.kind for m in found)
+            markers.contract_refused = True
+        return asked if rules_asked else asked[:1]
     if prose is not None or reconcile(as_the_record_holds(report, record), record):
         markers.unchecked_reply = True
     return []
+
+
+def _withheld(report: LeadResponse, facts: TurnFacts) -> LeadResponse:
+    prose = WITHHELD_ALONE if facts.empty() else WITHHELD_REPLY
+    return report.model_copy(update={"prose": prose})
 
 
 def hold_the_turn_contract(
@@ -434,9 +453,10 @@ def hold_the_turn_contract(
     """Refuse an answer of a turn that does not match the turn's record.
 
     One correction carries every mismatch. Prose the product cannot render is
-    refused up to the refusal bound and withheld past it; every other mismatch
-    is asked once per turn. An answer let through states the strategy change the
-    record holds.
+    refused up to its own bound; past it, a reply that writes a number or names
+    a fact the facts lack is withheld, and any other fault goes through
+    unchecked. Every other mismatch is asked once per turn. An answer let
+    through states the strategy change the record holds.
     """
     if not isinstance(output, LeadResponse):
         return output
@@ -444,10 +464,12 @@ def hold_the_turn_contract(
     mismatches = to_correct(ctx, output, record, [output.prose])
     if mismatches:
         raise ModelRetry(correction_for(mismatches))
-    if unrendered_prose([output.prose], record) is None:
-        return as_the_record_holds(output, record)
+    shown = as_the_record_holds(output, record)
+    faults = prose_faults(output.prose, record.facts)
+    if not any(f.kind in WITHHELD_FAULTS for f in faults):
+        return shown
     ctx.deps.state.turn_markers.unchecked_reply = False
-    return LeadResponse(prose=WITHHELD_REPLY, strategy_changed=record.changed_strategy)
+    return _withheld(shown, record.facts)
 
 
 def correction_for(mismatches: Sequence[Mismatch]) -> str:

@@ -5,13 +5,13 @@ from collections.abc import Sequence
 from pathfinder.domain.caveats import Gap, RequirementGap
 
 
-def unmet_requirements(gaps: Sequence[Gap]) -> list[str]:
+def unmet_requirement_keys(gaps: Sequence[Gap]) -> list[str]:
     unmet: list[str] = []
     for gap in gaps:
         match gap:
-            case RequirementGap(status="unmet"):
-                unmet.append(gap.text)
+            case RequirementGap(status="unmet", key=key) if key:
+                unmet.append(key)
     return unmet
 
 
-__all__ = ["unmet_requirements"]
+__all__ = ["unmet_requirement_keys"]

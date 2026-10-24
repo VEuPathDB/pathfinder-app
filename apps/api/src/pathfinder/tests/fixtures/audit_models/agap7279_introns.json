@@ -199,5 +199,6 @@
     "organism_abbrev": "agamPEST",
     "listed": 1,
     "read": 1
-  }
+  },
+  "corrected_exons": null
 }

@@ -96,28 +96,22 @@ def test_a_fold_word_beside_a_value_reference_is_refused() -> None:
 @pytest.mark.parametrize(
     "prose",
     [
+        "Two steps keep [count:step_5c5aea5d].",
         "The result [root] is twice smaller.",
+        "It removed [diff:step_5c5aea5d,root] in three passes.",
         "The subset [count:step_5c5aea5d] is about a third of [root].",
         "Roughly half of [root] carry it, [count:step_5c5aea5d].",
+        "Genes with one or more TM domains number [count:step_5c5aea5d].",
+        "It keeps [count:step_5c5aea5d] from three genomes.",
+        "It keeps [count:step_5c5aea5d] across five Plasmodium species.",
+        "It keeps [count:step_9c74f378] which is three times [count:step_5c5aea5d].",
+        "It keeps a dozen of [root].",
     ],
 )
 def test_a_number_word_in_the_clause_of_a_count_reference_is_refused(
     prose: str,
 ) -> None:
     assert [f.kind for f in prose_faults(prose, _PLASMO)] == ["number_word"]
-
-
-@pytest.mark.parametrize(
-    "prose",
-    [
-        "The strategy has two steps; the result is [root].",
-        "The intersect keeps [count:step_5c5aea5d] in both searches.",
-        "Two steps keep [count:step_5c5aea5d].",
-        "It removed [diff:step_5c5aea5d,root] in three passes.",
-    ],
-)
-def test_a_number_word_in_another_clause_or_both_stands(prose: str) -> None:
-    assert prose_faults(prose, _PLASMO) == []
 
 
 _GROUPS = TurnFacts(
@@ -128,37 +122,43 @@ _GROUPS = TurnFacts(
             display_name="Number of Sequences",
             count=523795,
             record_noun="group",
-        ),
-        StepFact(
-            step_id="step_pair",
-            display_name="Phyletic Pattern",
-            count=2,
-            record_noun="group",
-        ),
+            parameters=[
+                ParameterFact(
+                    name="all_count",
+                    display_name="Number of All Proteins",
+                    value='{"min": 1.0, "max": 1.0}',
+                    source="chosen",
+                )
+            ],
+        )
     ],
     root_count=523795,
 )
 
 
-def test_a_number_word_that_is_not_the_rendered_count_stands() -> None:
-    prose = (
-        "The strategy correctly defines singleton groups as groups containing "
-        "exactly one protein and returns [count:step_88b8197d]."
+def test_a_group_size_the_step_sets_is_its_value_reference() -> None:
+    spelled = (
+        "The strategy defines singleton groups as groups containing exactly one "
+        "protein and returns [count:step_88b8197d]."
+    )
+    referenced = (
+        "The strategy keeps groups whose protein count is "
+        "[value:step_88b8197d.all_count], and it returns [count:step_88b8197d]."
     )
 
-    assert prose_faults(prose, _GROUPS) == []
+    assert [f.kind for f in prose_faults(spelled, _GROUPS)] == ["number_word"]
+    assert prose_faults(referenced, _GROUPS) == []
 
 
-def test_a_number_word_that_spells_the_rendered_count_is_refused() -> None:
-    prose = "The pattern keeps two [count:step_pair] in all."
-
-    assert prose_faults(prose, _GROUPS) == [
-        ProseFault(
-            token="The pattern keeps two [count:step_pair] in all",
-            kind="number_word",
-            references=("[count:step_pair]",),
-        )
-    ]
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "The strategy has two steps; the result is [root].",
+        "The intersect keeps [count:step_5c5aea5d] in both searches.",
+    ],
+)
+def test_a_number_word_in_another_clause_or_both_stands(prose: str) -> None:
+    assert prose_faults(prose, _PLASMO) == []
 
 
 def test_a_count_noun_after_a_difference_is_refused() -> None:

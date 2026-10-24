@@ -3,15 +3,21 @@
 ## 2026-10-24
 
 * **A step with no countable column names the transform that reaches one.** veupathdb-mcp
-  0.2.0b50 (`StepColumns.transforms`, `transforms_from`) is prepared. `step_columns` answers
-  `reach` (`step`, `transform`, `none`) and `transforms`; a read that named a transform and
-  that no tally followed refuses a reply that neither asks nor offers a card
-  (`unfollowed_reach`); a requirement gap the check found `unmet` makes the ledger's
-  constraint `ungroundable`, makes `blames_the_tree` true and refuses a reply that ends the
-  turn `complete` (`unmet_requirement`). A number word in the clause of a count or value
-  reference is refused only when it reads as a number that clause's references render, or
-  states a share; a typed reply that still cannot render past the refusal bound is withheld
-  (`turn_contract.WITHHELD_REPLY`) instead of let through.
+  0.2.0b50 (`StepColumns.transforms`, `transforms_from`, `Share`) is taken. `step_columns`
+  answers `reach` (`step`, `transform`, `none`) and `transforms`, each a transform to
+  another record type with its countable columns, never narrowed by the asked name; a read
+  that named one and that no tally followed refuses, once per turn, a reply that neither
+  asks nor offers a card (`unfollowed_reach`), and the refusal makes no claim about the
+  site. A requirement gap the check found `unmet` carries its requirement's key, makes the
+  ledger's constraint `ungroundable`, makes `blames_the_tree` true and refuses a reply that
+  ends the turn `complete` (`unmet_requirement`). Each rule of the contract is asked once
+  per turn (`refused_rules`) and prose faults hold a bound of their own (`prose_refusals`);
+  past it a reply that writes a number or names a fact the facts lack is withheld with its
+  questions, state and reason kept, and a shape fault goes through unchecked. A number word
+  in a reference's clause is refused as a digit is, "times" and "dozen" among them, and a
+  number a step sets is its `[value:]`. An intron finding's corrected model reads b49's
+  `IntronAudit.corrected_exons`, so an audit stored before it proposes no corrected model,
+  and the stored intron results carry the field.
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a

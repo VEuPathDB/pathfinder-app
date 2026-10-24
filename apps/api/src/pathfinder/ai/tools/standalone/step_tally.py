@@ -90,11 +90,11 @@ async def step_columns(
 
     ``reach`` says where a countable column is. ``step``: on this step.
     ``transform``: no column of this step that matches can be counted, and
-    ``transforms`` names each transform the site offers for these records, the
-    record type it turns them into and that record type's countable columns;
-    add the transform with ``edit_strategy`` and count the new step with
-    ``count_step_by_column``. ``none``: no transform reaches a countable
-    column, and only then can the count not be made on this site.
+    ``transforms`` names each transform the site offers that turns these
+    records into another record type, with that record type's countable
+    columns; when one of them answers the question, add the transform with
+    ``edit_strategy`` and count the new step with ``count_step_by_column``.
+    ``none``: no transform reaches another record type with a countable column.
 
     Args:
         wdk_step_id: The WDK step ID of a built step of this strategy.
@@ -112,7 +112,7 @@ async def step_columns(
     reached = (
         None
         if countable
-        else await step_reach(session.site_id, listed, name, len(markers.tallies))
+        else await step_reach(session.site_id, listed, len(markers.tallies))
     )
     if reached is not None:
         markers.column_reaches.append(reached)

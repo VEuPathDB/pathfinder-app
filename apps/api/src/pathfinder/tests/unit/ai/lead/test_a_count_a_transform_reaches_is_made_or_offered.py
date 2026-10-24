@@ -3,9 +3,20 @@ by it, offers it or asks; only a read that names none leaves the count unmade.""
 
 from __future__ import annotations
 
+import pytest
+from pydantic_ai import DeferredToolRequests
+from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import ToolCallPart
+
+from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
 from pathfinder.ai.lead.limit_messages import unfollowed_reach_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import reconcile
+from pathfinder.ai.lead.turn_contract import (
+    Mismatch,
+    correction_for,
+    hold_the_turn_contract,
+    reconcile,
+)
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -52,11 +63,13 @@ def test_a_reply_that_leaves_a_reached_count_unmade_is_refused() -> None:
             "unfollowed_reach",
             (
                 "step_columns found no countable column on step 227288240 (group "
-                "records), and a transform reaches one: FromGroups (Transform "
-                "Groups to Proteins) turns them into sequence records, which count "
-                "by abbreviation (Taxon Code). Add the transform with edit_strategy "
-                "and count the new step with count_step_by_column, or offer the "
-                "transform on a card. The site does not lack this count."
+                "records) for this count. FromGroups (Transform Groups to Proteins) "
+                "reaches sequence records, which count by abbreviation (Taxon "
+                "Code). If one of these columns answers the question, add the "
+                "transform with edit_strategy and count the new step with "
+                "count_step_by_column, or offer the transform on a card. If none "
+                "does, say in the reply which column the question needs and that "
+                "none of these is it."
             ),
         )
     ]
@@ -96,3 +109,55 @@ def test_a_reply_that_asks_about_the_transform_stands() -> None:
     assert "unfollowed_reach" not in kinds(
         _read([FROM_GROUPS]), reply(TURN_TWO_REPLY, questions=[question])
     )
+
+
+PFAM_REPLY = (
+    "The question needs a Pfam domain column on the proteins, and none of the "
+    "columns the transform reaches is it."
+)
+
+
+def test_a_pfam_question_is_corrected_once_and_its_honest_answer_stands() -> None:
+    deps = _read([FROM_GROUPS])
+    ctx = run_context_for(deps)
+
+    with pytest.raises(ModelRetry) as refused:
+        hold_the_turn_contract(ctx, reply(PFAM_REPLY))
+    stood = hold_the_turn_contract(ctx, reply(PFAM_REPLY))
+
+    assert str(refused.value) == correction_for(
+        [
+            Mismatch(
+                kind="unfollowed_reach",
+                sentence=unfollowed_reach_message(
+                    StepReach(
+                        wdk_step_id=GROUP_STEP,
+                        record_type="group",
+                        transforms=[FROM_GROUPS],
+                    )
+                ),
+            )
+        ]
+    )
+    assert stood == reply(PFAM_REPLY)
+    assert deps.state.turn_markers.refused_rules == ["unfollowed_reach"]
+
+
+def _card(reply_text: str) -> DeferredToolRequests:
+    return DeferredToolRequests(
+        approvals=[
+            ToolCallPart(
+                tool_name="consult_user",
+                args={"questions": [], "reply": reply_text},
+                tool_call_id="call_card",
+            )
+        ]
+    )
+
+
+def test_a_card_that_offers_the_transform_is_not_refused() -> None:
+    deps = _read([FROM_GROUPS])
+    offer = "The groups can be turned into proteins and counted by taxon code."
+
+    assert hold_the_contract_on_a_card(run_context_for(deps), _card(offer)) is None
+    assert deps.state.turn_markers.refused_rules == []

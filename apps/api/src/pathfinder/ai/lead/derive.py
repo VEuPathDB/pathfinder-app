@@ -27,7 +27,7 @@ from pathfinder.domain.strategy.constraints import (
     merge_constraints,
     provisional_constraints,
 )
-from pathfinder.domain.unmet_requirements import unmet_requirements
+from pathfinder.domain.unmet_requirements import unmet_requirement_keys
 
 _TRANSIENT_MARKERS: frozenset[str] = frozenset(
     {
@@ -126,7 +126,7 @@ def _carried_requirements(
 def _as_checked(grounded: GroundedConstraint, unmet: set[str]) -> GroundedConstraint:
     if grounded.status is not ConstraintStatus.GROUNDED:
         return grounded
-    if grounded.constraint.requested_value not in unmet:
+    if grounded.constraint.key not in unmet:
         return grounded
     return grounded.model_copy(
         update={
@@ -172,7 +172,7 @@ def _derive_constraint_section(
         )
     held_open = {g.constraint.key for g in unexpressed}
     verdict = state.turn_verdict
-    unmet = set() if verdict is None else set(unmet_requirements(verdict.gaps))
+    unmet = set() if verdict is None else set(unmet_requirement_keys(verdict.gaps))
     return ConstraintSection(
         grounded=[
             *(

@@ -84,6 +84,15 @@ def test_an_intron_finding_holds_the_annotated_and_the_proposed_model() -> None:
     )
 
 
+def test_an_intron_audit_stored_before_its_corrected_exons_proposes_none() -> None:
+    stored = PKAC_INTRONS.model_copy(update={"corrected_exons": None})
+
+    models = finding_models(IntronConfirmation(result=stored))
+
+    assert models is not None
+    assert (models.kind, models.proposed) == ("intron", None)
+
+
 def test_a_shifted_and_a_replaced_intron_propose_the_junction_they_were_read_by() -> (
     None
 ):
@@ -159,6 +168,7 @@ def test_a_retained_intron_with_no_correction_read_proposes_the_exon_alone() -> 
     unread = AGAP3685_INTRONS.model_copy(
         update={
             "corrected_cds": None,
+            "corrected_exons": None,
             "corrected_protein": None,
             "frame_kept": None,
             "code": None,

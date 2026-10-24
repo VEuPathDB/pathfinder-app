@@ -49,7 +49,9 @@ in one place (`ai/lead/sub_agent_stops.py::spent_its_output_retries`).
 **One budget per pass.** `ai/agents/refusal_bound.py::may_refuse` holds
 `REFUSALS_PER_CHECK = 2`, one count shared by every check of a pass
 (`AgentToolState.refusals` for FRAME and VERIFY, `TurnMarkers.output_refusals`
-for the Lead). No check refuses when the run context reports the last retry the
+for the Lead's rules). The Lead's prose faults hold a bound of their own
+(`TurnMarkers.prose_refusals`), so rules refused first never leave a reply that
+cannot render without its correction. No check refuses when the run context reports the last retry the
 agent allows (`ctx.retry >= ctx.max_retries`), so the last answer always stands.
 
 **Past the budget, a check degrades and records a typed gap.** FRAME's gaps are
@@ -60,11 +62,14 @@ card with its text and options alone, the site's first sentence in the gap. A
 question whose readings name no stated requirement keeps them, and a pick of one
 carries `names_no_requirement`: its caveat and the line VERIFY and the Lead read
 say the pick replaces none, so each requirement is judged on its words. A typed
-reply of the Lead whose prose still writes a fact outside a reference, or a
-reference the facts cannot render, is withheld: the turn answers with
-`turn_contract.WITHHELD_REPLY` beside the facts part, so the same prose gets the
-same verdict on every answer and nothing the product cannot render reaches the
-researcher. A card's reply goes through with every reference it cannot render
+reply of the Lead whose prose still writes a number, an identifier or a record's
+product text outside a reference, or a reference the facts cannot render
+(`turn_contract.WITHHELD_FAULTS`), is withheld: its prose becomes
+`WITHHELD_REPLY`, or `WITHHELD_ALONE` on a turn with no facts, and it keeps its
+questions, its state and its unverified reason, so the same prose gets the same
+verdict on every answer. A reply whose only fault is its shape (a number word in
+a reference's clause, a noun after a count, a malformed bracket) goes through
+unchecked. A card's reply goes through with every reference it cannot render
 shown as its plain words, and the facts part carries a note that the reply holds
 statements not checked against the result (`TurnFacts.unchecked`). Past the budget, or on a second answer
 after the one correction, the contract still runs `reconcile` and marks any

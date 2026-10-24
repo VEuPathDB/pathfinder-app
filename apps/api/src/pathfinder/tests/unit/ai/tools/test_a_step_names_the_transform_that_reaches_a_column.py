@@ -140,19 +140,19 @@ async def test_the_recorded_reply_over_the_read_is_refused_naming_the_transform(
 
     assert served == [GROUP_STEP]
     assert found["unfollowed_reach"].startswith(
-        "step_columns found no countable column on step 227288240 (group records), "
-        "and a transform reaches one: FromGroups (Transform Groups to Proteins) "
-        "turns them into sequence records, which count by abbreviation (Taxon Code)."
+        "step_columns found no countable column on step 227288240 (group records) "
+        "for this count. FromGroups (Transform Groups to Proteins) reaches sequence "
+        "records, which count by abbreviation (Taxon Code)."
     )
 
 
-async def test_a_column_named_on_the_transform_is_the_one_shown(
+async def test_the_asked_name_does_not_narrow_what_a_transform_reaches(
     served: list[int],
 ) -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_singleton_groups())
 
     page = returned(
-        await step_columns(ctx, GROUP_STEP, name="taxon", countable_only=True),
+        await step_columns(ctx, GROUP_STEP, name="pfam", countable_only=True),
         StepColumnPage,
     )
 
