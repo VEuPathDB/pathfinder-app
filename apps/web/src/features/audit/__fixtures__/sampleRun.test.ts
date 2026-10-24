@@ -7,8 +7,39 @@ import {
   SAMPLE_FINDINGS,
   SAMPLE_RUN,
   SAMPLE_RUN_ID,
+  errorDetail,
   sampleDetail,
 } from "./sampleRun";
+
+describe("errorDetail", () => {
+  it("skips a clean finding of the check for the errored one after it", () => {
+    const clean = SAMPLE_DETAILS[2];
+    const errored = SAMPLE_DETAILS[1];
+    expect([clean?.finding.check, clean?.finding.errorType]).toEqual([
+      "gene_length",
+      null,
+    ]);
+    expect([errored?.finding.check, errored?.finding.errorType]).toEqual([
+      "gene_length",
+      "truncated_model",
+    ]);
+    const details = [clean, errored].flatMap((detail) =>
+      detail === undefined ? [] : [detail],
+    );
+    expect(errorDetail(details, "gene_length").finding.id).toBe(2);
+  });
+
+  it("refuses a list that holds only clean findings of the check", () => {
+    const clean = SAMPLE_DETAILS.filter(
+      (detail) =>
+        detail.finding.check === "gene_length" && detail.finding.errorType === null,
+    );
+    expect(clean.map((detail) => detail.finding.id)).toEqual([3, 4, 5, 6, 7]);
+    expect(() => errorDetail(clean, "gene_length")).toThrow(
+      "the sample run holds no gene_length error",
+    );
+  });
+});
 
 describe("the sample run", () => {
   it("parses the API's own bodies through the generated schemas", () => {

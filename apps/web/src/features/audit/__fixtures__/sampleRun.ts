@@ -14,7 +14,14 @@ export const SAMPLE_DETAILS: FindingDetail[] = recorded.details.map((detail) =>
 );
 
 export function sampleDetail(check: FindingViewCheckEnumKey): FindingDetail {
-  const found = SAMPLE_DETAILS.find(
+  return errorDetail(SAMPLE_DETAILS, check);
+}
+
+export function errorDetail(
+  details: readonly FindingDetail[],
+  check: FindingViewCheckEnumKey,
+): FindingDetail {
+  const found = details.find(
     (detail) => detail.finding.check === check && detail.finding.errorType !== null,
   );
   if (found === undefined) throw new Error(`the sample run holds no ${check} error`);
