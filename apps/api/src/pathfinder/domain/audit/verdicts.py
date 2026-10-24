@@ -7,6 +7,7 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
@@ -88,6 +89,22 @@ class FindingReview(CamelModel):
             raise ValueError(msg)
         if (self.impact is None) != (self.impact_reason is None):
             msg = "a changed impact states why"
+            raise ValueError(msg)
+        return self
+
+
+class UnsearchedReview(FindingReview):
+    already_known: SkipJsonSchema[LiteratureStatus] = "not_searched"
+    known_from: SkipJsonSchema[tuple[str, ...]] = ()
+    paper_depends: SkipJsonSchema[bool | None] = None
+
+    @model_validator(mode="after")
+    def _not_searched(self) -> Self:
+        if (self.already_known, self.paper_depends) != ("not_searched", None):
+            msg = (
+                "no literature source is open for this review, so it states "
+                "nothing about the literature"
+            )
             raise ValueError(msg)
         return self
 

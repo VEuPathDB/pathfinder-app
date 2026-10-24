@@ -78,11 +78,16 @@ confirmation already holds the spans the figure draws. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each
 stored piece of evidence, and the references its own research reads returned.
 The output validator retries a review whose verdict or `known_from` names
-anything else, whose verdict names a gene the finding's target does not, or
-that claims a literature status when no research source was open. A run under
-`REVIEW_LIMITS` that stops at its limit, or spends its retries, is stored as a
-stopped review (`FindingReview.stopped`, verdict `undecided`, the cause in its
-text), so the loop moves on and a stopped review is never read as a judgement.
+anything else, or whose verdict names a gene the finding's target does not.
+A review with no research source open is offered no literature field and no
+literature instruction: its output type is `UnsearchedReview`, which fixes
+`already_known` to `not_searched` and refuses a literature status sent anyway.
+A run under `REVIEW_LIMITS` that stops at its limit, or spends its retries, is
+stored as a stopped review (`FindingReview.stopped`, verdict `undecided`, the
+cause in its text), so the loop moves on and a stopped review is never read as
+a judgement. A run that spends its retries stores the last refusal in plain
+words after `OUT_OF_RETRIES`: each field that failed with its message, or the
+validator's words.
 The reviewer runs on the review role's model settings, its reasoning effort
 included, as the auditor runs on its own.
 

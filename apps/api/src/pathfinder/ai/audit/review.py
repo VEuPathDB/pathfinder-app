@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from textwrap import shorten
 from time import monotonic
 from typing import Any
 
@@ -9,15 +10,24 @@ from assistant_core.models.capture import maybe_wrap_model
 from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.db import async_session_factory
 from pydantic_ai import Agent, ModelRetry, RunContext
-from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.exceptions import (
+    ToolRetryError,
+    UnexpectedModelBehavior,
+    UsageLimitExceeded,
+)
+from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.models import Model, infer_model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
+from pydantic_core import ErrorDetails, ValidationError
 
 from pathfinder.ai.audit.charges import charge_run
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.instructions import REVIEWER_INSTRUCTIONS
+from pathfinder.ai.audit.instructions import (
+    LITERATURE_INSTRUCTIONS,
+    REVIEWER_INSTRUCTIONS,
+)
 from pathfinder.ai.audit.mock import build_review_mock, build_synthesis_mock
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
 from pathfinder.ai.audit.synthesis import (
@@ -28,8 +38,10 @@ from pathfinder.ai.audit.synthesis import (
 from pathfinder.ai.audit.verdict_tool import unheld_cites_message
 from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.domain.audit.verdicts import (
+    MAX_CAUSE,
     FindingReview,
     GeneModelVerdict,
+    UnsearchedReview,
     evidence_cite,
     finding_cite,
 )
@@ -66,10 +78,30 @@ BUDGET_USED = "the monthly budget is used"
 SYNTHESIS_STOPPED = (
     "The synthesis stopped before it wrote a valid synthesis of the reviews."
 )
-NOT_SEARCHED = (
-    "No literature source was open for this review, so already_known is "
-    "not_searched and known_from is empty."
-)
+
+
+def _plain_error(error: ErrorDetails) -> str:
+    where = ".".join(map(str, error["loc"]))
+    return f"{where}: {error['msg']}" if where else error["msg"]
+
+
+def _plain(content: str | list[ErrorDetails]) -> str:
+    match content:
+        case str():
+            return content
+        case errors:
+            return "; ".join(map(_plain_error, errors))
+
+
+def _out_of_retries(cause: BaseException | None) -> str:
+    match cause:
+        case ToolRetryError(tool_retry=part):
+            refusal = _plain(part.content)
+        case ModelRetry() | ValidationError():
+            refusal = _plain(RetryPromptPart.from_error(cause).content)
+        case _:
+            return OUT_OF_RETRIES
+    return shorten(f"{OUT_OF_RETRIES} The last refusal: {refusal}", MAX_CAUSE)
 
 
 class ReviewDeps(AuditDeps):
@@ -95,16 +127,24 @@ def _reviewable(ctx: RunContext[ReviewDeps], output: FindingReview) -> FindingRe
             f"the genes of its target: {', '.join(sorted(ctx.deps.genes))}."
         )
         raise ModelRetry(msg)
-    if ctx.deps.tool_sources is None and output.already_known != "not_searched":
-        raise ModelRetry(NOT_SEARCHED)
     return output
 
 
-def build_reviewer_agent() -> Agent[ReviewDeps, FindingReview]:
+def _literature(ctx: RunContext[ReviewDeps]) -> str | None:
+    return None if ctx.deps.tool_sources is None else LITERATURE_INSTRUCTIONS
+
+
+def _review_type(deps: ReviewDeps) -> type[FindingReview]:
+    return UnsearchedReview if deps.tool_sources is None else FindingReview
+
+
+def build_reviewer_agent(
+    output_type: type[FindingReview] = FindingReview,
+) -> Agent[ReviewDeps, FindingReview]:
     agent = Agent(
-        output_type=FindingReview,
+        output_type=output_type,
         deps_type=ReviewDeps,
-        instructions=REVIEWER_INSTRUCTIONS,
+        instructions=[REVIEWER_INSTRUCTIONS, _literature],
         toolsets=[_review_sources],
         capabilities=agent_capabilities([]),
         retries=3,
@@ -159,7 +199,7 @@ async def review_finding(
     usage: RunUsage,
 ) -> FindingReview:
     try:
-        result = await build_reviewer_agent().run(
+        result = await build_reviewer_agent(_review_type(deps)).run(
             detail.model_dump_json(by_alias=True, exclude={"models"}),
             deps=deps,
             model=model,
@@ -169,8 +209,8 @@ async def review_finding(
         )
     except UsageLimitExceeded:
         return _stopped(detail, OUT_OF_LIMITS)
-    except UnexpectedModelBehavior:
-        return _stopped(detail, OUT_OF_RETRIES)
+    except UnexpectedModelBehavior as spent:
+        return _stopped(detail, _out_of_retries(spent.__cause__))
     return result.output
 
 
