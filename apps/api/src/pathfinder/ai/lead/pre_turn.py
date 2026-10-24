@@ -13,7 +13,7 @@ from __future__ import annotations
 from veupathdb.domain.strategy import StrategyAst, walk
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.analysis_readings import read_every_unread_analysis
 from pathfinder.ai.lead.answered_strategy import (
     analyses_of,
@@ -29,7 +29,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     structure_criteria,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_hydration import (
     Analyses,
     analysis_criteria_stated,
@@ -51,7 +51,10 @@ from pathfinder.services.conversations.thread_activity import (
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.data_marks import read_data_marks
-from pathfinder.services.strategies.live_counts import counts_the_site_holds
+from pathfinder.services.strategies.live_counts import (
+    counts_the_site_holds,
+    the_site_dropped_the_strategy,
+)
 from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.record_classes import (
     fill_record_classes,
@@ -176,6 +179,10 @@ async def refresh_live_strategy_state(
         conversation_id=state.conversation_id,
         db_session_factory=context.db_session_factory,
     )
+    if live is None:
+        await forget_the_verdict_of_a_dropped_strategy(
+            working_state.domain, context.strategy_session
+        )
     sync_state = context.strategy_session.sync_state
     live_counts = (
         {}
@@ -204,6 +211,17 @@ async def refresh_live_strategy_state(
         ],
     )
     return working_state
+
+
+async def forget_the_verdict_of_a_dropped_strategy(
+    domain: StrategyDomainState, session: StrategySession
+) -> None:
+    sync_state = session.sync_state
+    if domain.verification_digest is None or sync_state is None:
+        return
+    if await the_site_dropped_the_strategy(sync_state, session.site_id):
+        domain.verification_digest = None
+        domain.verified_revision = ""
 
 
 def _record_the_strategy_at_arrival(state: PipelineState, context: Context) -> None:

@@ -285,7 +285,7 @@ def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
     digest = record.verification_section.digest
     if digest is None or digest.success:
         return None
-    if record.audit_turn and not record.changed_strategy:
+    if record.audit_turn:
         return None
     if report.asked_questions or record.ends_on_a_card:
         return None

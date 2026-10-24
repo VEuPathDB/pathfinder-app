@@ -8,7 +8,7 @@ counts has to be checked against the server to mean anything.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.errors import VEuPathDBError
+from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import WDKStrategyDetails, get_strategy_api
 
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -17,12 +17,15 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
 
+_GONE = 404
+
 __all__ = [
     "counts_the_site_holds",
     "read_the_live_strategy",
     "read_wdk_step_counts",
     "replace_counts_with_wdks",
     "take_the_sites_counts",
+    "the_site_dropped_the_strategy",
 ]
 
 
@@ -42,6 +45,22 @@ async def read_the_live_strategy(
     except VEuPathDBError, OSError:
         logger.warning("Live strategy read failed", strategy_id=strategy_id)
         return None
+
+
+async def the_site_dropped_the_strategy(
+    sync_state: SyncStateProtocol, site_id: str
+) -> bool:
+    """Whether the site answers that it holds the synced strategy no more."""
+    strategy_id = sync_state.wdk_strategy_id
+    if strategy_id is None:
+        return False
+    try:
+        await get_strategy_api(site_id).get_strategy(strategy_id)
+    except WDKError as refused:
+        return refused.status == _GONE
+    except VEuPathDBError, OSError:
+        return False
+    return False
 
 
 def counts_the_site_holds(
