@@ -9,7 +9,9 @@
   active, or a dispatch holds the lock (`services/conversations/thread_busy.py`). The dispatcher
   refuses a thread of another caller first, then holds the same lock as a transaction lock on a
   connection of its own until the job is deferred, and refuses with `ThreadBusyError` after 45
-  seconds of waiting. A branch pushes its strategy as
+  seconds of waiting; that transaction ends after 120 idle seconds. A branch or a revert that
+  does not commit deletes the WDK strategy and the EDA document it made
+  (`services/conversations/surgery_commit.py`). A branch pushes its strategy as
   its last write and deletes that mint when anything after the push fails, the commit
   included. The checkpoint tables are named once, in
   `persistence/repositories/checkpoint_rows.py`, which a schema test holds equal to what the

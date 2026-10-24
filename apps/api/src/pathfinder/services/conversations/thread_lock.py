@@ -12,10 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from pathfinder.platform.errors import ThreadBusyError
 
-__all__ = ["HOLD_WAIT_SECONDS", "hold_thread", "try_lock_thread"]
+__all__ = ["HOLD_IDLE_SECONDS", "HOLD_WAIT_SECONDS", "hold_thread", "try_lock_thread"]
 
 HOLD_WAIT_SECONDS = 45.0
+HOLD_IDLE_SECONDS = 120.0
 _RETRY_SECONDS = 0.1
+_IDLE_BOUND = text(
+    "SELECT set_config('idle_in_transaction_session_timeout', :bound, true)",
+)
 _TRY_FOR_THE_TRANSACTION = text(
     "SELECT pg_try_advisory_xact_lock(hashtextextended(:key, 0))",
 )
@@ -56,10 +60,15 @@ async def hold_thread(
     conversation_id: UUID,
     *,
     wait_seconds: float = HOLD_WAIT_SECONDS,
+    idle_seconds: float = HOLD_IDLE_SECONDS,
 ) -> AsyncIterator[None]:
     async with get_engine().connect() as connection:
         transaction = await connection.begin()
         try:
+            await connection.execute(
+                _IDLE_BOUND,
+                {"bound": f"{round(idle_seconds * 1000)}ms"},
+            )
             await _take(connection, conversation_id, wait_seconds)
             yield
         except BaseException:

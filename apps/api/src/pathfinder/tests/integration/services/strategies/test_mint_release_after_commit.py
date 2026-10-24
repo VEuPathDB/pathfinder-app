@@ -137,7 +137,7 @@ async def test_a_revert_asks_the_site_for_nothing_before_its_caller_commits(
     await add_message(session_maker, conv_id, "assistant")
 
     async with session_maker() as session:
-        release = await revert_conversation_to_message(
+        outcome = await revert_conversation_to_message(
             session,
             conversation_id=conv_id,
             target_message_id=first_turn,
@@ -146,6 +146,7 @@ async def test_a_revert_asks_the_site_for_nothing_before_its_caller_commits(
         assert site.attempted == []
         await session.commit()
 
+    release = outcome.released
     assert release is not None
     assert release.wdk_strategy_id == MINTED
     assert site.attempted == []

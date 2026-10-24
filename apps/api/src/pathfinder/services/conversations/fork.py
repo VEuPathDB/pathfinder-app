@@ -24,7 +24,10 @@ from pathfinder.services.conversations.thread_busy import (
     ThreadBusy,
     claim_settled_thread,
 )
-from pathfinder.services.eda.thread_surgery import branch_thread_binding
+from pathfinder.services.eda.thread_surgery import (
+    branch_thread_binding,
+    delete_released_document,
+)
 
 
 class ForkError(ValueError):
@@ -164,8 +167,10 @@ async def fork_conversation(
         cutoff=next_message_ts,
     )
     # The copied log carries the binding states of the turns it holds.
-    await branch_thread_binding(session, conversation_id=new_conv_id)
-    if snapshot is not None and source_strategy_row is not None:
+    document = await branch_thread_binding(session, conversation_id=new_conv_id)
+    if snapshot is None or source_strategy_row is None:
+        return fork
+    try:
         await write_forked_strategy(
             session,
             branch=fork,
@@ -174,4 +179,7 @@ async def fork_conversation(
             new_conversation_id=new_conv_id,
             anchor_message_id=UUID(messages.of(str(anchor.id))),
         )
+    except Exception:
+        await delete_released_document(document)
+        raise
     return fork

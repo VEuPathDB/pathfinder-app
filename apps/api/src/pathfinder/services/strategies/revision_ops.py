@@ -22,6 +22,8 @@ from pathfinder.persistence.repositories.strategy_revision import (
 from pathfinder.services.strategies.abandoned_mint import (
     ReleasableMint,
     abandoned_mint_to_release,
+    delete_released_mint,
+    fresh_mint,
 )
 from pathfinder.services.strategies.materialize import (
     MaterializedStrategy,
@@ -170,25 +172,38 @@ async def materialize_revision(
     *,
     conversation: Conversation,
     revision: StrategyRevisionView,
-) -> None:
+) -> ReleasableMint | None:
     """Adopt a snapshot as a strategy of the thread's own on WDK.
 
     The steps the snapshot names may have moved since it was written, and a
     copied snapshot names none at all, so the tree is pushed again. A refusal
-    leaves the thread holding the plan.
+    leaves the thread holding the plan. Reports the strategy the push minted,
+    which the caller deletes when it does not commit.
     """
-    await _write_strategy_state(
-        session,
-        conversation_id=revision.conversation_id,
-        state=await materialize_strategy_snapshot(
-            site_id=conversation.site_id,
-            conversation_id=conversation.id,
-            name=conversation.name,
-            strategy_ast=revision.strategy_ast,
-            record_type=revision.record_type,
-            step_count=revision.step_count,
-        ),
+    state = await materialize_strategy_snapshot(
+        site_id=conversation.site_id,
+        conversation_id=conversation.id,
+        name=conversation.name,
+        strategy_ast=revision.strategy_ast,
+        record_type=revision.record_type,
+        step_count=revision.step_count,
     )
+    minted = fresh_mint(
+        conversation_id=conversation.id,
+        site_id=conversation.site_id,
+        wdk_strategy_id=state.wdk_strategy_id,
+        created=state.created_wdk_strategy,
+    )
+    try:
+        await _write_strategy_state(
+            session,
+            conversation_id=revision.conversation_id,
+            state=state,
+        )
+    except Exception:
+        await delete_released_mint(minted)
+        raise
+    return minted
 
 
 async def discard_turn_strategy_writes(

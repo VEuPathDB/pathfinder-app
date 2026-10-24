@@ -25,7 +25,12 @@ from pathfinder.services.conversations.strategy_ops import (
 
 logger = get_logger(__name__)
 
-__all__ = ["ReleasableMint", "abandoned_mint_to_release", "delete_released_mint"]
+__all__ = [
+    "ReleasableMint",
+    "abandoned_mint_to_release",
+    "delete_released_mint",
+    "fresh_mint",
+]
 
 
 @dataclass(frozen=True)
@@ -35,6 +40,22 @@ class ReleasableMint:
     conversation_id: UUID
     site_id: str
     wdk_strategy_id: int
+
+
+def fresh_mint(
+    *,
+    conversation_id: UUID,
+    site_id: str,
+    wdk_strategy_id: int | None,
+    created: bool,
+) -> ReleasableMint | None:
+    if wdk_strategy_id is None or not created:
+        return None
+    return ReleasableMint(
+        conversation_id=conversation_id,
+        site_id=site_id,
+        wdk_strategy_id=wdk_strategy_id,
+    )
 
 
 async def _reference_to(

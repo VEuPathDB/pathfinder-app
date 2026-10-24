@@ -49,11 +49,15 @@ from pathfinder.services.conversations.responses import (
     build_conversation_summaries,
     build_conversation_summary,
 )
+from pathfinder.services.conversations.surgery_commit import (
+    SurgeryMade,
+    commit_or_release,
+)
 from pathfinder.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
 )
-from pathfinder.services.strategies.abandoned_mint import delete_released_mint
+from pathfinder.services.eda.thread_surgery import bound_document
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -211,13 +215,13 @@ class ConversationService:
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title=str(exc),
             ) from exc
-        mint = await branch_mint(self._session, fork)
-        try:
-            await self._session.commit()
-        except Exception:
-            await self._session.rollback()
-            await delete_released_mint(mint)
-            raise
+        await commit_or_release(
+            self._session,
+            SurgeryMade(
+                mint=await branch_mint(self._session, fork),
+                document=await bound_document(self._session, conversation_id=fork.id),
+            ),
+        )
         refreshed = await self._repo.get_with_strategy(fork.id)
         if refreshed is None:
             raise NotFoundError(

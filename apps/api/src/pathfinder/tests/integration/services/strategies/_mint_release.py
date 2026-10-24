@@ -220,14 +220,14 @@ async def revert(
     user: User,
 ) -> None:
     async with session_maker() as session:
-        release = await revert_conversation_to_message(
+        outcome = await revert_conversation_to_message(
             session,
             conversation_id=conv_id,
             target_message_id=target,
             user_id=user.id,
         )
         await session.commit()
-    await delete_released_mint(release)
+    await delete_released_mint(outcome.released)
 
 
 async def add_gene_set(

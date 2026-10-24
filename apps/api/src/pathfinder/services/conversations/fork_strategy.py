@@ -19,6 +19,7 @@ from pathfinder.platform.errors import ForkRefusedError
 from pathfinder.services.strategies.abandoned_mint import (
     ReleasableMint,
     delete_released_mint,
+    fresh_mint,
 )
 from pathfinder.services.strategies.materialize import (
     materialize_strategy_snapshot,
@@ -56,21 +57,6 @@ async def anchor_snapshot(
     raise ForkRefusedError(msg)
 
 
-def _mint(
-    branch: Conversation,
-    *,
-    wdk_strategy_id: int | None,
-    created: bool,
-) -> ReleasableMint | None:
-    if wdk_strategy_id is None or not created:
-        return None
-    return ReleasableMint(
-        conversation_id=branch.id,
-        site_id=branch.site_id,
-        wdk_strategy_id=wdk_strategy_id,
-    )
-
-
 async def branch_mint(
     session: AsyncSession,
     branch: Conversation,
@@ -78,8 +64,9 @@ async def branch_mint(
     row = await session.get(ConversationStrategy, branch.id)
     if row is None:
         return None
-    return _mint(
-        branch,
+    return fresh_mint(
+        conversation_id=branch.id,
+        site_id=branch.site_id,
         wdk_strategy_id=row.wdk_strategy_id,
         created=row.wdk_strategy_created_here,
     )
@@ -110,8 +97,9 @@ async def write_forked_strategy(
         record_type=snapshot.record_type,
         step_count=snapshot.step_count,
     )
-    release = _mint(
-        branch,
+    release = fresh_mint(
+        conversation_id=branch.id,
+        site_id=branch.site_id,
         wdk_strategy_id=materialized.wdk_strategy_id,
         created=materialized.created_wdk_strategy,
     )

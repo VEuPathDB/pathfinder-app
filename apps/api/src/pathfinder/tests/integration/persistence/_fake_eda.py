@@ -27,6 +27,7 @@ class FakeEda:
     documents: dict[str, list[EdaFilter]] = field(default_factory=dict)
     created: list[tuple[str, str]] = field(default_factory=list)
     patched: list[tuple[str, list[EdaFilter]]] = field(default_factory=list)
+    deleted: list[str] = field(default_factory=list)
     refuse_create: bool = False
     fresh: int = 0
     user_study: bool = True
@@ -83,6 +84,12 @@ class FakeEda:
         self.patched.append((analysis_id, list(filters)))
         return self._detail(analysis_id)
 
+    async def delete_analysis(self, site_id: str, *, analysis_id: str) -> None:
+        del site_id
+        self._detail(analysis_id)
+        del self.documents[analysis_id]
+        self.deleted.append(analysis_id)
+
     async def read_analysis(
         self,
         site_id: str,
@@ -105,5 +112,6 @@ def install_fake_eda(monkeypatch: pytest.MonkeyPatch) -> FakeEda:
     monkeypatch.setattr(thread_surgery, "open_analysis", fake.open_analysis)
     monkeypatch.setattr(thread_surgery, "patch_subset", fake.patch_subset)
     monkeypatch.setattr(thread_surgery, "read_analysis", fake.read_analysis)
+    monkeypatch.setattr(thread_surgery, "delete_analysis", fake.delete_analysis)
     monkeypatch.setattr(thread_surgery, "resolve_dataset", fake.resolve_dataset)
     return fake

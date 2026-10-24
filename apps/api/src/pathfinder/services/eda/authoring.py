@@ -335,6 +335,13 @@ async def open_analysis(
     return created.analysis_id
 
 
+async def delete_analysis(site_id: str, *, analysis_id: str) -> None:
+    await get_eda_analyses_client(site_id).delete(
+        user_id=await resolve_eda_user_id(site_id),
+        analysis_id=analysis_id,
+    )
+
+
 async def patch_subset(
     site_id: str,
     *,

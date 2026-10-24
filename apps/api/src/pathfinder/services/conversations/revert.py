@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
@@ -24,6 +25,7 @@ from pathfinder.persistence.repositories.strategy_revision import (
 )
 from pathfinder.persistence.rows import rows_changed
 from pathfinder.platform.errors import RevertRefusedError
+from pathfinder.services.conversations.surgery_commit import SurgeryMade
 from pathfinder.services.conversations.thread_busy import (
     ThreadBusy,
     claim_settled_thread,
@@ -35,6 +37,7 @@ from pathfinder.services.eda.thread_surgery import (
 from pathfinder.services.strategies.abandoned_mint import (
     ReleasableMint,
     abandoned_mint_to_release,
+    delete_released_mint,
 )
 from pathfinder.services.strategies.revision_ops import (
     materialize_revision,
@@ -42,6 +45,12 @@ from pathfinder.services.strategies.revision_ops import (
 )
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class RevertOutcome:
+    released: ReleasableMint | None = None
+    made: SurgeryMade = field(default_factory=SurgeryMade)
 
 
 class RevertError(ValueError):
@@ -89,10 +98,11 @@ async def revert_conversation_to_message(
     conversation_id: UUID,
     target_message_id: UUID,
     user_id: UUID,
-) -> ReleasableMint | None:
-    """Cut the thread back to one message and report the mint it abandons.
+) -> RevertOutcome:
+    """Cut the thread back to one message and report what it abandons and makes.
 
-    The caller deletes that strategy on VEuPathDB once it has committed.
+    The caller deletes the abandoned strategy on VEuPathDB once it has
+    committed, and deletes what the revert made when it does not commit.
     """
     conv = await session.scalar(
         select(Conversation).where(Conversation.id == conversation_id),
@@ -140,7 +150,7 @@ async def revert_conversation_to_message(
             conversation_id=str(conversation_id),
             target_message_id=str(target_message_id),
         )
-        return None
+        return RevertOutcome()
     if target.role != "user":
         logger.warning(
             "revert: target is not user-authored",
@@ -200,24 +210,32 @@ async def revert_conversation_to_message(
         moment=cutoff_ts,
     )
     restored = _strategy_state(snapshot, cutoff_ts=cutoff_ts, had_history=had_history)
+    minted = None
     if restored == "snapshot" and snapshot is not None:
-        await materialize_revision(session, conversation=conv, revision=snapshot)
+        minted = await materialize_revision(
+            session,
+            conversation=conv,
+            revision=snapshot,
+        )
     elif restored == "cleared":
         await conversations.clear_strategy(conversation_id)
-    held_now = await conversations.get_strategy(conversation_id)
-    release = await abandoned_mint_to_release(
-        session,
-        conversation_id=conversation_id,
-        abandoned=abandoned,
-        restored_wdk_strategy_id=held_now.wdk_strategy_id,
-    )
-
-    # The surviving log names the binding the remaining transcript describes.
-    await restore_thread_binding(
-        session,
-        conversation_id=conversation_id,
-        logged=logged_a_binding,
-    )
+    try:
+        held_now = await conversations.get_strategy(conversation_id)
+        release = await abandoned_mint_to_release(
+            session,
+            conversation_id=conversation_id,
+            abandoned=abandoned,
+            restored_wdk_strategy_id=held_now.wdk_strategy_id,
+        )
+        # The surviving log names the binding the remaining transcript describes.
+        document = await restore_thread_binding(
+            session,
+            conversation_id=conversation_id,
+            logged=logged_a_binding,
+        )
+    except Exception:
+        await delete_released_mint(minted)
+        raise
 
     logger.info(
         "conversation reverted to message",
@@ -233,4 +251,7 @@ async def revert_conversation_to_message(
         deleted_strategy_revisions=deleted_revisions,
         strategy=restored,
     )
-    return release
+    return RevertOutcome(
+        released=release,
+        made=SurgeryMade(mint=minted, document=document),
+    )

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.errors import ConversationNotFoundError
 from assistant_core.platform import db
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -39,6 +40,25 @@ pytestmark = pytest.mark.usefixtures("patch_app_db_engine")
 async def _advisory_locks() -> int:
     async with db.async_session_factory() as session:
         return int((await session.execute(_ADVISORY_LOCKS)).scalar_one())
+
+
+async def _idle_inside_the_hold(conversation_id: UUID, seen: list[int]) -> None:
+    async with hold_thread(conversation_id, idle_seconds=0.5):
+        seen.append(await _advisory_locks())
+        await asyncio.sleep(1.5)
+        seen.append(await _advisory_locks())
+
+
+async def test_a_hold_idle_past_its_bound_ends_and_frees_the_thread() -> None:
+    conversation_id = uuid4()
+    seen: list[int] = []
+    with pytest.raises(DBAPIError):
+        await _idle_inside_the_hold(conversation_id, seen)
+
+    assert seen == [1, 0]
+    assert thread_lock.HOLD_IDLE_SECONDS == 120.0
+    async with hold_thread(conversation_id, wait_seconds=0.3):
+        assert await _advisory_locks() == 1
 
 
 async def test_a_wait_past_the_deadline_is_refused() -> None:
