@@ -9,7 +9,7 @@ from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
 from pydantic import BaseModel, ConfigDict, TypeAdapter
-from pydantic_ai import Agent, DeferredToolRequests
+from pydantic_ai import Agent, DeferredToolRequests, ModelRetry
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -35,11 +35,16 @@ from pathfinder.ai.audit.run_tools import (
     read_audit_run_tool,
     start_gene_model_audit,
 )
+from pathfinder.ai.audit.verdict_tool import record_gene_model_verdicts
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.planning import PlanAsk
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
-from pathfinder.domain.audit.verdicts import evidence_cite, finding_cite
+from pathfinder.domain.audit.verdicts import (
+    GeneModelVerdict,
+    evidence_cite,
+    finding_cite,
+)
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_findings import (
@@ -335,6 +340,26 @@ async def test_reading_a_finding_records_its_facts() -> None:
     assert [(r.record_id, r.url) for r in ctx.deps.records] == [
         (gene, gene_record_url("plasmodb", gene)) for gene in (_STRAIN, _REFERENCE)
     ]
+
+
+async def test_a_batch_with_an_unknown_finding_holds_no_cite() -> None:
+    owner = await seed_thread()
+    run_id, finding_id = await _stored_finding(owner)
+    ctx = _context(owner)
+    verdict = GeneModelVerdict(
+        genes=(_STRAIN,),
+        model_genome=_GENOME,
+        verdict="undecided",
+        cause="The stored finding does not settle it.",
+        cites=(finding_cite(finding_id),),
+    )
+
+    with pytest.raises(CallRefused):
+        await read_audit_findings_tool(ctx, run_id, [finding_id, finding_id + 1])
+    with pytest.raises(ModelRetry, match=finding_cite(finding_id)):
+        await record_gene_model_verdicts(ctx, [verdict])
+
+    assert (ctx.deps.reads, ctx.deps.facts, ctx.deps.records) == (set(), [], [])
 
 
 async def test_every_audit_read_records_its_fact(

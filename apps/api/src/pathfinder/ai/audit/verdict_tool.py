@@ -31,7 +31,7 @@ async def record_gene_model_verdicts(
 ) -> ToolReturn[list[int]]:
     """Store your verdicts on gene models, each with the reads of this turn it rests on.
 
-    Give one verdict for each gene model you judged, up to 25 in one call.
+    Give one verdict for each gene model you judged, many in one call.
     verdict is error, no_error or undecided. An error names its error type and
     certainty. cause states why in one or two sentences. cites lists the reads
     of this turn the verdict rests on, as the judging rules write them. Nothing

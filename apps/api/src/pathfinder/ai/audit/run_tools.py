@@ -278,11 +278,15 @@ async def read_audit_findings_tool(
         list[int], Field(min_length=1, max_length=FINDINGS_PER_CALL)
     ],
 ) -> ToolReturn[list[AuditRead[FindingDetail]]]:
-    """Read findings of an audit run, up to 25 in one call, each with every piece of evidence the run stored for it."""
-    reads = [
-        _held(ctx.deps, run_id, await read_audit_finding(ctx.deps.caller, run_id, k))
+    """Read findings of an audit run, each with every piece of evidence the run stored for it.
+
+    A call that names a finding the run does not hold reads none of them.
+    """
+    details = [
+        await read_audit_finding(ctx.deps.caller, run_id, k)
         for k in dict.fromkeys(finding_ids)
     ]
+    reads = [_held(ctx.deps, run_id, detail) for detail in details]
     return with_summary(reads, count_noun(len(reads), "finding"), ctx=ctx)
 
 
