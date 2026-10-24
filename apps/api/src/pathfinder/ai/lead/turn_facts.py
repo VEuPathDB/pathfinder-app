@@ -18,6 +18,7 @@ from pathfinder.ai.lead.facts_reads import (
     listed_ids,
     named_genes,
     read_sources,
+    saved_sets,
     with_counts_before,
 )
 from pathfinder.ai.lead.ledger import InvestigationLedger
@@ -62,7 +63,6 @@ from pathfinder.domain.turn_facts import (
     UNVERIFIED_BUILD,
     ParameterFact,
     RetiredFact,
-    SavedSetFact,
     StepFact,
     StrategyLinkFact,
     TurnFacts,
@@ -398,21 +398,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         gaps=_gaps(deps, ledger),
         column_fits=[] if verdict is None else list(verdict.review.column_fits),
         retired=_retired_rows(domain),
-        saved=[
-            *(
-                SavedSetFact(
-                    kind="gene_set",
-                    name=s.name,
-                    count=s.gene_count,
-                    record_noun=counted_noun(s.record_type or genes),
-                )
-                for s in markers.created_gene_sets
-            ),
-            *(
-                SavedSetFact(kind="control_set", name=s.name)
-                for s in markers.created_control_sets
-            ),
-        ],
+        saved=saved_sets(markers, genes),
         unsaved=result_not_saved(deps.runtime.site_id, graph, session.sync_state)
         if markers.changed_strategy
         else None,
@@ -432,7 +418,8 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         shown_before=list(domain.shown_records),
         comparisons=list(markers.comparisons),
         memberships=list(markers.memberships),
-        statistics=[*domain.statistics, *markers.audit_facts],
+        statistics=list(domain.statistics),
+        audit_statistics=list(markers.audit_facts),
         tallies=list(markers.tallies),
         stopped_check=""
         if stop is None or stop.role != "verification"

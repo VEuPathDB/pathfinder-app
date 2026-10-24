@@ -74,7 +74,7 @@ def number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
         for p in step.parameters
         if p.value == number
     )
-    held.extend(statistic_references(facts.statistics, number))
+    held.extend(statistic_references(facts.cited_statistics(), number))
     held.extend(tally_references(facts.tallies, number))
     return tuple(dict.fromkeys(held))
 

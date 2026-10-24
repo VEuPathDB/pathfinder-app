@@ -12,7 +12,7 @@ from collections.abc import Callable, Collection, Sequence
 
 from pydantic_ai import RunContext
 
-from pathfinder.ai.audit.run_tools import START_TOOL
+from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, START_TOOL
 from pathfinder.ai.graph._lead_answers import is_pure_approval
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
@@ -61,6 +61,15 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
 )
 
 AUDIT_START_TOOLS: frozenset[str] = frozenset({START_TOOL})
+AUDIT_TOOLS: frozenset[str] = frozenset(
+    {
+        *AUDIT_START_TOOLS,
+        *READ_TOOL_NAMES,
+        "plan_gene_model_audit",
+        "review_audit_run",
+        "investigate_gene_models",
+    }
+)
 
 DECLINED_OFFER_REFUSAL = (
     "You declined the last offer. Say what to change, or ask me to offer it again."
@@ -184,12 +193,23 @@ def _answered_card(deps: LeadDeps) -> frozenset[str]:
     return frozenset({parked.tool_name})
 
 
-def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
+def _audit_turn(deps: LeadDeps) -> bool:
     intent = deps.intent
-    if (
-        intent is not None
+    return (
+        turn_is_classified(deps)
+        and intent is not None
         and intent.classification is IntentClassification.GENE_MODEL_AUDIT
-    ):
+    )
+
+
+def turn_reads_audits(deps: LeadDeps) -> bool:
+    answers_a_start = bool(_answered_card(deps) & AUDIT_START_TOOLS)
+    held = deps.state.turn_markers.audit_runs_held
+    return _audit_turn(deps) or held or answers_a_start
+
+
+def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
+    if _audit_turn(deps):
         return frozenset()
     return AUDIT_START_TOOLS - _answered_card(deps)
 
@@ -227,7 +247,12 @@ def withheld_tools_pin(
     known = sorted(names)
 
     def pinned_withheld_tools(ctx: RunContext[LeadDeps]) -> str | None:
-        withheld = sorted(withhold_by_turn_state(ctx, known))
+        listed = (
+            known
+            if turn_reads_audits(ctx.deps)
+            else [name for name in known if name not in AUDIT_TOOLS]
+        )
+        withheld = sorted(withhold_by_turn_state(ctx, listed))
         if not withheld:
             return None
         return (
@@ -240,6 +265,7 @@ def withheld_tools_pin(
 
 __all__ = [
     "AUDIT_START_TOOLS",
+    "AUDIT_TOOLS",
     "BUILDING_TOOLS",
     "DECLINED_OFFER_REFUSAL",
     "UNCLASSIFIED_TOOLS",
@@ -248,6 +274,7 @@ __all__ = [
     "tools_the_turn_offers",
     "turn_builds",
     "turn_is_off_topic",
+    "turn_reads_audits",
     "unmet_preconditions",
     "withheld_tools_pin",
     "withhold_by_turn_state",

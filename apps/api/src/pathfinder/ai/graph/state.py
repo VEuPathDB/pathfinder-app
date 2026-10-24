@@ -18,7 +18,7 @@ from pathfinder.ai.graph.turn_records import (
     TurnMarkers,
     ZeroResultStep,
 )
-from pathfinder.ai.lead.intent import REQUEST_INTENTS, UserIntent
+from pathfinder.ai.lead.intent import REQUEST_INTENTS, UNRECORDED_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
@@ -41,9 +41,7 @@ from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.statistic_facts import StatisticFact
-from pathfinder.domain.strategy.build_outcome import (
-    BuildOutcome,
-)
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.operational_spec import (
@@ -51,9 +49,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.spec_tree import (
-    renumber_criteria,
-)
+from pathfinder.domain.strategy.spec_tree import renumber_criteria
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 PhaseName = Literal[
@@ -309,6 +305,8 @@ class StrategyDomainState(ThreadRequirements):
 
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
         """Take what this turn states and withdraws, and the request."""
+        if intent.classification in UNRECORDED_INTENTS:
+            return
         self.record(
             intent, [request_text, self.original_request, *self.request_messages]
         )

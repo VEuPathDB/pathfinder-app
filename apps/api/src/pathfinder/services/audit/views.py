@@ -8,6 +8,7 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.audit import GenomePriority
 
 from pathfinder.domain.audit.findings import (
@@ -46,6 +47,7 @@ from pathfinder.persistence.repositories.audit_findings import (
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
+from pathfinder.persistence.repositories.audit_threads import AuditThreadRepository
 from pathfinder.services.audit.review_views import (
     AgreementView,
     ErrorTypeView,
@@ -147,6 +149,13 @@ def _target(finding: AuditFindingRecord) -> TargetFinding:
         model_genome=finding.genome,
         judged_genomes=tuple(dict.fromkeys(judged)),
     )
+
+
+async def conversation_holds_runs(
+    session: AsyncSession, *, conversation_id: UUID
+) -> bool:
+    threads = AuditThreadRepository(session)
+    return await threads.holds_runs(conversation_id=conversation_id)
 
 
 async def list_runs(user_id: UUID) -> list[AuditRunSummary]:

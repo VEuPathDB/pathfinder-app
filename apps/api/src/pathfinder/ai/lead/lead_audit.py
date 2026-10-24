@@ -7,7 +7,7 @@ from langgraph.config import get_stream_writer
 from pydantic import Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.messages import ToolReturn
-from pydantic_ai.tools import DeferredToolResults, Tool
+from pydantic_ai.tools import DeferredToolResults, Tool, ToolDefinition
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
 from pathfinder.ai.audit.facts import AuditRead
@@ -27,6 +27,7 @@ from pathfinder.ai.audit.run_tools import (
 from pathfinder.ai.audit.start_card import ask_about_the_audits
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.dispatch_context import inner_context
+from pathfinder.ai.lead.intent_gate import turn_reads_audits
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import gene_model_investigation
 from pathfinder.domain.audit.findings import AuditOutcome
@@ -59,7 +60,8 @@ def _audit_context(ctx: RunContext[LeadDeps]) -> RunContext[AuditDeps]:
 def _keep(ctx: RunContext[LeadDeps], audit: RunContext[AuditDeps]) -> None:
     markers = ctx.deps.state.turn_markers
     markers.record_audit_facts(audit.deps.facts)
-    markers.record_resolved_genes(audit.deps.records)
+    for record in audit.deps.records:
+        markers.record_read(record)
 
 
 async def plan_gene_model_audit(
@@ -163,6 +165,12 @@ async def ask_about_the_audits_on_the_lead(
     )
 
 
+async def offered_on_audit_turns(
+    ctx: RunContext[LeadDeps], tool_def: ToolDefinition
+) -> ToolDefinition | None:
+    return tool_def if turn_reads_audits(ctx.deps) else None
+
+
 def lead_audit_tools() -> list[Tool[LeadDeps]]:
     described = build_run_toolset().tools
 
@@ -170,20 +178,46 @@ def lead_audit_tools() -> list[Tool[LeadDeps]]:
         return described[name].description
 
     return [
-        Tool(plan_gene_model_audit, description=about("plan_gene_model_audit")),
-        Tool(list_audit_runs, description=about("list_audit_runs")),
-        Tool(read_audit_run, description=about("read_audit_run")),
-        Tool(review_audit_run, description=about("review_audit_run")),
-        Tool(list_audit_findings, description=about("list_audit_findings")),
-        Tool(read_audit_findings, description=about("read_audit_findings")),
+        Tool(
+            plan_gene_model_audit,
+            prepare=offered_on_audit_turns,
+            description=about("plan_gene_model_audit"),
+        ),
+        Tool(
+            list_audit_runs,
+            prepare=offered_on_audit_turns,
+            description=about("list_audit_runs"),
+        ),
+        Tool(
+            read_audit_run,
+            prepare=offered_on_audit_turns,
+            description=about("read_audit_run"),
+        ),
+        Tool(
+            review_audit_run,
+            prepare=offered_on_audit_turns,
+            description=about("review_audit_run"),
+        ),
+        Tool(
+            list_audit_findings,
+            prepare=offered_on_audit_turns,
+            description=about("list_audit_findings"),
+        ),
+        Tool(
+            read_audit_findings,
+            prepare=offered_on_audit_turns,
+            description=about("read_audit_findings"),
+        ),
         Tool(
             start_gene_model_audit,
             requires_approval=True,
             args_validator=lead_audit_can_start,
+            prepare=offered_on_audit_turns,
             description=about(START_TOOL),
         ),
         Tool(
             investigate_gene_models,
+            prepare=offered_on_audit_turns,
             description=gene_model_investigation.INVESTIGATION_DESCRIPTION,
         ),
     ]

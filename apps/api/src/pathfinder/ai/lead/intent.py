@@ -61,6 +61,10 @@ REQUEST_INTENTS: frozenset[IntentClassification] = frozenset(
     }
 )
 
+UNRECORDED_INTENTS: frozenset[IntentClassification] = frozenset(
+    {IntentClassification.GENE_MODEL_AUDIT}
+)
+
 ANSWERING_INTENTS: frozenset[IntentClassification] = frozenset(
     {
         IntentClassification.CLARIFICATION_RESPONSE,

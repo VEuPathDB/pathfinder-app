@@ -240,6 +240,7 @@ class TurnMarkers(CamelModel):
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)
     audit_facts: list[StatisticFact] = Field(default_factory=list)
+    audit_runs_held: bool = False
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
