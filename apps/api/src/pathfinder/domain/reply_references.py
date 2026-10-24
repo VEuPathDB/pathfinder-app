@@ -68,6 +68,7 @@ type FaultKind = Literal[
     "number_word",
     "noun_after_count",
     "product_text",
+    "standalone_count",
 ]
 
 
@@ -446,14 +447,34 @@ def unheld_references(prose: str, facts: TurnFacts) -> list[str]:
     ]
 
 
+def standalone_counts(prose: str, facts: TurnFacts) -> list[ProseFault]:
+    """Each variant size alone the prose quotes without the variant's count in
+    the strategy, where the size alone is larger than that count."""
+    written = {match.group() for match in A_REFERENCE.finditer(prose)}
+    return [
+        ProseFault(
+            token=alone,
+            kind="standalone_count",
+            references=(f"[compare:{v.label}:result]",),
+        )
+        for c in facts.comparisons
+        for v in c.variants
+        if v.larger_alone
+        and (alone := f"[compare:{v.label}]") in written
+        and f"[compare:{v.label}:result]" not in written
+    ]
+
+
 def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
-    """Each reference that names nothing the facts hold, then each fact the
-    prose writes outside a reference."""
+    """Each reference that names nothing the facts hold, each variant size alone
+    quoted without its count in the strategy, then each fact the prose writes
+    outside a reference."""
     unheld = [
         ProseFault(token=reference, kind="unheld_reference")
         for reference in unheld_references(prose, facts)
     ]
-    return list(dict.fromkeys([*unheld, *shape_faults(prose, facts)]))
+    alone = standalone_counts(prose, facts)
+    return list(dict.fromkeys([*unheld, *alone, *shape_faults(prose, facts)]))
 
 
 __all__ = [

@@ -320,6 +320,12 @@ def _placement_sentence(fault: ProseFault) -> str | None:
             "so write no noun after it: 'returns [count:step_a], the overall "
             "result', not 'returns [count:step_a] genes'."
         )
+    if fault.kind == "standalone_count":
+        return (
+            f"``{fault.token}`` is that variant's size on its own, larger than the "
+            "strategy's result with it in place, so it is no share of the result: "
+            f"write ``{fault.references[0]}``, its count in the strategy."
+        )
     if fault.kind == "product_text":
         return (
             f"``{fault.token}``: the product of {fault.record_id} renders from "

@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **A share of a result is quoted as the count inside the strategy.** A variant that
+  `compare_search_variants` counted in place shows both counts in the facts part
+  (`ComparedVariant.row`: its size alone and its count in the strategy's result). A reply that
+  quotes `[compare:<variant>]`, the size alone, for a variant larger alone than the strategy's
+  result with it in place, and never `[compare:<variant>:result]`, is refused
+  (`standalone_counts` in `domain/reply_references.py`, fault kind `standalone_count`) with the
+  reference that renders the count in the strategy.
 * **An off-topic classification is held to the site's own record types.** The classification
   gate (`ai/lead/classification_gate.py`) reads the record types of the site's loaded catalog
   (`held_record_types`, no request) when a message is classified `off_topic`, and refuses that
