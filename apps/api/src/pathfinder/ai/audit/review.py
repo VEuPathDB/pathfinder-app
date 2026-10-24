@@ -107,6 +107,10 @@ def _out_of_retries(cause: BaseException | None) -> str:
 class ReviewDeps(AuditDeps):
     genes: frozenset[str] = frozenset()
 
+    @property
+    def searches_literature(self) -> bool:
+        return self.tool_sources is not None
+
 
 def _review_sources(ctx: RunContext[ReviewDeps]) -> AbstractToolset[Any] | None:
     return ctx.deps.tool_sources
@@ -131,15 +135,11 @@ def _reviewable(ctx: RunContext[ReviewDeps], output: FindingReview) -> FindingRe
 
 
 def _literature(ctx: RunContext[ReviewDeps]) -> str | None:
-    return None if ctx.deps.tool_sources is None else LITERATURE_INSTRUCTIONS
+    return LITERATURE_INSTRUCTIONS if ctx.deps.searches_literature else None
 
 
-def _review_type(deps: ReviewDeps) -> type[FindingReview]:
-    return UnsearchedReview if deps.tool_sources is None else FindingReview
-
-
-def build_reviewer_agent(
-    output_type: type[FindingReview] = FindingReview,
+def _reviewer_agent(
+    output_type: type[FindingReview],
 ) -> Agent[ReviewDeps, FindingReview]:
     agent = Agent(
         output_type=output_type,
@@ -153,6 +153,14 @@ def build_reviewer_agent(
     )
     agent.output_validator(_reviewable)
     return agent
+
+
+def build_reviewer_agent() -> Agent[ReviewDeps, FindingReview]:
+    return _reviewer_agent(FindingReview)
+
+
+def build_unsearched_reviewer_agent() -> Agent[ReviewDeps, FindingReview]:
+    return _reviewer_agent(UnsearchedReview)
 
 
 def review_deps(
@@ -199,7 +207,12 @@ async def review_finding(
     usage: RunUsage,
 ) -> FindingReview:
     try:
-        result = await build_reviewer_agent(_review_type(deps)).run(
+        build = (
+            build_reviewer_agent
+            if deps.searches_literature
+            else build_unsearched_reviewer_agent
+        )
+        result = await build().run(
             detail.model_dump_json(by_alias=True, exclude={"models"}),
             deps=deps,
             model=model,

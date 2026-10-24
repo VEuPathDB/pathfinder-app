@@ -11,6 +11,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     RetryPromptPart,
+    ThinkingPart,
     ToolCallPart,
     UserPromptPart,
 )
@@ -348,6 +349,32 @@ async def test_a_review_its_validator_refuses_to_the_end_stores_that_refusal() -
     assert found.verdict.cause == (
         f"{OUT_OF_RETRIES} The last refusal: These genes are not the finding's: "
         "EXA_0009. Judge only the genes of its target: EXA_0001."
+    )
+    assert usage.requests == 4
+
+
+async def test_a_review_naming_a_paper_with_no_source_open_is_refused() -> None:
+    model = _always(_review(paperDepends=True))
+
+    found, usage = await _reviewed(model)
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: Value error, no literature source "
+        "is open for this review, so it states nothing about the literature"
+    )
+    assert usage.requests == 4
+
+
+async def test_a_review_that_only_thinks_stores_the_retry_it_was_sent() -> None:
+    def think(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        return ModelResponse(parts=[ThinkingPart(content="Still weighing it.")])
+
+    found, usage = await _reviewed(FunctionModel(think))
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: Please return text or include your "
+        "response in a tool call."
     )
     assert usage.requests == 4
 
