@@ -11,6 +11,7 @@ from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.stored_verdicts import StoredList
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
@@ -214,7 +215,7 @@ class TurnMarkers(CamelModel):
     # Every control result this turn read, in the order each one answered.
     control_tests: list[ControlTestRun] = Field(default_factory=list)
     # Every column a check of this turn read, the latest read of each.
-    column_fits: list[ColumnFit] = Field(default_factory=list)
+    column_fits: StoredList[ColumnFit] = Field(default_factory=list)
     expression_fits: list[ExpressionFit] = Field(default_factory=list)
     # The study-step checks this turn computed, the latest read of each step.
     study_checks: dict[str, list[ConstraintCheck]] = Field(default_factory=dict)
