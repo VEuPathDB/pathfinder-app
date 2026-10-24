@@ -14,15 +14,23 @@ import { auditRunUrl } from "@/lib/routes";
 import { dayText, scopeText } from "./format";
 import { PHASE_WORDS } from "./words";
 
-export function AuditRunsPage() {
+export function AuditRunsPage({ lockedSite }: { lockedSite: string | null }) {
   return (
     <QueryBoundary>
-      <RunsList />
+      <RunsList lockedSite={lockedSite} />
     </QueryBoundary>
   );
 }
 
-function RunRow({ run, checks }: { run: AuditRunSummary; checks: CheckWords }) {
+function RunRow({
+  run,
+  checks,
+  showSite,
+}: {
+  run: AuditRunSummary;
+  checks: CheckWords;
+  showSite: boolean;
+}) {
   return (
     <tr className="border-t border-border">
       <td className="py-2 pr-4">
@@ -34,7 +42,7 @@ function RunRow({ run, checks }: { run: AuditRunSummary; checks: CheckWords }) {
           {dayText(run.createdAt)}
         </Link>
       </td>
-      <td className="py-2 pr-4">{siteShortName(run.siteId)}</td>
+      {showSite ? <td className="py-2 pr-4">{siteShortName(run.siteId)}</td> : null}
       <td className="py-2 pr-4">{scopeText(run)}</td>
       <td className="py-2 pr-4">
         {run.checks.map((check) => checks[check]).join("; ")}
@@ -44,8 +52,15 @@ function RunRow({ run, checks }: { run: AuditRunSummary; checks: CheckWords }) {
   );
 }
 
-function RunsList() {
-  const { data: runs } = useSuspenseQuery(listAuditRunsSuspenseQueryOptions());
+function emptyText(lockedSite: string | null): string {
+  const where = lockedSite === null ? "" : ` on ${siteShortName(lockedSite)}`;
+  return `No audits${where} yet. Ask the audit assistant in a conversation to audit a genome.`;
+}
+
+function RunsList({ lockedSite }: { lockedSite: string | null }) {
+  const { data: runs } = useSuspenseQuery(
+    listAuditRunsSuspenseQueryOptions({ siteId: lockedSite }),
+  );
   const { data: words } = useSuspenseQuery(auditWordsOptions());
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -59,7 +74,7 @@ function RunsList() {
       <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
         {runs.length === 0 ? (
           <p className="rounded border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            No audits yet. Ask the audit assistant in a conversation to audit a genome.
+            {emptyText(lockedSite)}
           </p>
         ) : (
           <table className="w-full text-left text-sm">
@@ -67,7 +82,7 @@ function RunsList() {
             <thead>
               <tr>
                 <th scope="col">Started</th>
-                <th scope="col">Site</th>
+                {lockedSite === null ? <th scope="col">Site</th> : null}
                 <th scope="col">What it examines</th>
                 <th scope="col">Checks</th>
                 <th scope="col">Status</th>
@@ -75,7 +90,12 @@ function RunsList() {
             </thead>
             <tbody>
               {runs.map((run) => (
-                <RunRow key={run.id} run={run} checks={words.checks} />
+                <RunRow
+                  key={run.id}
+                  run={run}
+                  checks={words.checks}
+                  showSite={lockedSite === null}
+                />
               ))}
             </tbody>
           </table>

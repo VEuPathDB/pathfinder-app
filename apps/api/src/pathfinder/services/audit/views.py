@@ -149,9 +149,9 @@ def _target(finding: AuditFindingRecord) -> TargetFinding:
     )
 
 
-async def list_runs(user_id: UUID) -> list[AuditRunSummary]:
+async def list_runs(user_id: UUID, site_id: str | None = None) -> list[AuditRunSummary]:
     async with async_session_factory() as session:
-        runs = await AuditRepository(session).runs(user_id=user_id)
+        runs = await AuditRepository(session).runs(user_id=user_id, site_id=site_id)
     return [_summary(run) for run in runs]
 
 

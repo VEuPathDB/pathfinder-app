@@ -2,6 +2,11 @@
 
 ## 2026-10-24
 
+* **The audits list follows the site the website locks.** `GET /api/v1/audits` takes an
+  optional `siteId` (`SiteIdQuery`), and `AuditRepository.runs` filters on it. On a component
+  site's website `/audits` reads only that site's runs, drops the Site column and reads "No audits
+  on <site> yet"; on the portal it lists every site's runs. The rule is in
+  `decisions/the-site-comes-from-the-website-that-frames-pathfinder.md`.
 * **The web lists a researcher's audits at `/audits`.** `features/audit/AuditRunsPage.tsx` reads
   `GET /api/v1/audits` and the served words, and shows one row per run in the order the API
   lists them: the day it started, linked to the run's page, its site, what it examines, its

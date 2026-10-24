@@ -4004,24 +4004,8 @@
         "tags": [
           "audits"
         ],
-        "summary": "The current user's audit runs, newest first.",
+        "summary": "The current user's audit runs, newest first, on one site when siteId names it.",
         "operationId": "list_audit_runs_api_v1_audits_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AuditRunSummary"
-                  },
-                  "type": "array",
-                  "title": "Response List Audit Runs Api V1 Audits Get"
-                }
-              }
-            }
-          }
-        },
         "security": [
           {
             "APIKeyCookie": []
@@ -4032,7 +4016,58 @@
           {
             "APIKeyHeader": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditRunSummary"
+                  },
+                  "title": "Response List Audit Runs Api V1 Audits Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/audits/{run_id}": {

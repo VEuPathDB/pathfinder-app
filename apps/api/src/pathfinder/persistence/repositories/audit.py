@@ -62,6 +62,14 @@ def _read_once(genome: CollectedGenome) -> dict[str, JSONObject | bool]:
     return kept
 
 
+def _ownership(user_id: UUID, site_id: str | None = None) -> list[ColumnElement[bool]]:
+    owned = [
+        AuditRun.user_id == user_id,
+        AuditRun.application_id == calling_application(),
+    ]
+    return owned if site_id is None else [*owned, AuditRun.site_id == site_id]
+
+
 class UnitNotOpenError(LookupError):
     @classmethod
     def unless(cls, changed: object | None, unit: str, wanted: str) -> None:
@@ -101,15 +109,9 @@ class AuditRepository:
         await self.session.flush()
         return run.id
 
-    def _owned(self, user_id: UUID) -> Select[tuple[AuditRun]]:
-        return select(AuditRun).where(
-            AuditRun.user_id == user_id,
-            AuditRun.application_id == calling_application(),
-        )
-
     async def run(self, run_id: UUID, *, user_id: UUID) -> AuditRunRecord | None:
         found = await self.session.scalar(
-            self._owned(user_id).where(AuditRun.id == run_id)
+            select(AuditRun).where(*_ownership(user_id), AuditRun.id == run_id)
         )
         return None if found is None else AuditRunRecord.model_validate(found)
 
@@ -130,9 +132,13 @@ class AuditRepository:
         )
         return [AuditRunRecord.model_validate(run) for run in found]
 
-    async def runs(self, *, user_id: UUID) -> list[AuditRunRecord]:
+    async def runs(
+        self, *, user_id: UUID, site_id: str | None = None
+    ) -> list[AuditRunRecord]:
         found = await self.session.scalars(
-            self._owned(user_id).order_by(AuditRun.created_at.desc(), AuditRun.id)
+            select(AuditRun)
+            .where(*_ownership(user_id, site_id))
+            .order_by(AuditRun.created_at.desc(), AuditRun.id)
         )
         return [AuditRunRecord.model_validate(run) for run in found]
 
@@ -439,13 +445,8 @@ class AuditRepository:
         return [] if genes is None else _GENES.validate_python(genes)
 
     async def delete_runs(self, *, user_id: UUID, site_id: str | None) -> int:
-        statement = delete(AuditRun).where(
-            AuditRun.user_id == user_id,
-            AuditRun.application_id == calling_application(),
-        )
         if site_id == "":
             msg = "a purge names a site, or None for every site"
             raise ValueError(msg)
-        if site_id is not None:
-            statement = statement.where(AuditRun.site_id == site_id)
+        statement = delete(AuditRun).where(*_ownership(user_id, site_id))
         return rows_changed(await self.session.execute(statement))

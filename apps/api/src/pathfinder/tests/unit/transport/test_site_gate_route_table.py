@@ -111,6 +111,7 @@ IDENTITY_SITE_GATED: frozenset[tuple[str, str]] = frozenset(
 # Routes that carry a site id and touch only this deployment's own rows.
 LOCAL_READ_UNGATED: frozenset[tuple[str, str]] = frozenset(
     {
+        ("GET", "/api/v1/audits"),
         ("GET", "/api/v1/conversations"),
         ("GET", "/api/v1/conversations/dismissed"),
         ("GET", "/api/v1/conversations/saved-strategy-consumers"),
