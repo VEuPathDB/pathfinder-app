@@ -6,18 +6,24 @@
   `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
   `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,
   `list_audit_findings`, `read_audit_findings`, `review_audit_run`) by running the auditor's own
-  tool bodies under an `AuditDeps` of the turn, then keeping each read's facts on
-  `TurnMarkers.audit_facts` and its genes on `resolved_genes`, so a reply cites
-  `[stat:<fact id>.<row>]` and `[record:<gene>]` under the turn contract as it stands. The start
-  card is drawn by a second deferred-call handler, after the contract one, so a replan that fails
-  denies the call inside the run. `investigate_gene_models`
-  (`ai/tools/standalone/gene_model_investigation.py`) is the first production caller of
-  `investigate`: it runs on a fresh usage and meters it once through `AgentDeps.meter`, which
-  `agent_deps_for` points at the Lead's `record_sub_agent_usage` under the calling tool's id; the
-  pass is marked `billed`, since `investigate` already charged it, so the turn counts it and the
-  residual quota write leaves it out. A new classification, `gene_model_audit`, asks for no
-  strategy and becomes no strategy request; the start tool is withheld on every other turn
-  unless the turn answers its card. See `decisions/building-is-a-response-to-a-request.md`.
+  tool bodies under an `AuditDeps` of the turn. Each read's facts go to `TurnMarkers.audit_facts`
+  and its genes to the records the turn read, so a reply cites `[stat:<fact id>.<row>]` and
+  `[record:<gene>]` under the turn contract as it stands and the facts part lists the genes
+  under "Records read". The audit facts ride `TurnFacts.audit_statistics`, which references read
+  and the wire leaves out. The audit tools' schemas reach the model only on a `gene_model_audit`
+  turn, a turn that answers the start card, or a thread that already holds a run
+  (`TurnMarkers.audit_runs_held`, read at turn start), so a strategy turn's tool list is the
+  one it had before. The start card is drawn by a second deferred-call handler, after the
+  contract one, so a replan that fails denies the call inside the run.
+  `investigate_gene_models` (`ai/tools/standalone/gene_model_investigation.py`) is the first
+  production caller of `investigate`: it owns the run's usage and meters it in a `finally`
+  through `AgentDeps.meter`, which `agent_deps_for` points at the Lead's `record_sub_agent_usage`
+  under the calling tool's id (every dispatch now names its call id). The pass is `billed`,
+  since `investigate` already charged it, so the turn counts it and the residual quota write
+  leaves it out; both price a run through `RunPricing`. A new classification,
+  `gene_model_audit`, records no requirement, no request text and no withdrawal on the thread,
+  and the start tool is withheld on every other turn unless the turn answers its card. See
+  `decisions/building-is-a-response-to-a-request.md`.
 
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
   `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted

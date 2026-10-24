@@ -39,7 +39,12 @@ earlier message unlocks nothing.
 (`start_gene_model_audit`) is withheld on every classified turn whose
 classification is not `gene_model_audit`, unless the turn answers that card. The
 audit reads and `investigate_gene_models` follow the rule for tools that are not
-building tools: any classified turn that is not off topic reaches them.
+building tools: any classified turn that is not off topic reaches them. Their
+schemas are on the request only when the turn reads audits: a `gene_model_audit`
+turn, a turn that answers the start card, or a thread that holds a run
+(`intent_gate.turn_reads_audits`). A `gene_model_audit` message records no
+requirement, no withdrawal and no request text on the thread
+(`intent.UNRECORDED_INTENTS`).
 
 **Once building**, each phase tool answers for its own precondition
 (`unmet_preconditions`):
