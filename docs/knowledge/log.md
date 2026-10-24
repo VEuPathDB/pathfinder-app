@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **The auditor judges a large run within its budget and stops plainly at it.** `read_audit_findings`
+  reads up to `FINDINGS_PER_CALL` (25) findings in one call and `record_gene_model_verdicts` stores
+  up to 25 verdicts in one, all or none, so a run of 29 findings costs five tool calls, not 59
+  (`AUDITOR_LIMITS` stays 40). A turn that reaches its request or tool-call limit ends on
+  `StopAtTheBudget` (`ai/audit/budget_stop.py`): the reply names the stop and the verdicts the turn
+  already stored, which stay stored, and the history is repaired so the next turn runs on it. No
+  pydantic-ai error text reaches the researcher.
 * **A finding's fact names each value by its path in the answer.** `audit_finding_fact` holds one
   row per scalar of the `FindingDetail` the tool returned, so
   `[stat:<id>.evidence.0.payload.confirmation.result.<field>]` renders the value the auditor read.

@@ -15,6 +15,8 @@ from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.audit.verdicts import AuditCaller
 
+FINDINGS_PER_CALL = 25
+
 
 class AuditDeps(AssistantDeps):
     origin: VerdictOrigin = "auditor"
@@ -24,6 +26,7 @@ class AuditDeps(AssistantDeps):
     reads: set[str] = Field(default_factory=set)
     facts: list[StatisticFact] = Field(default_factory=list)
     records: list[ReadRecord] = Field(default_factory=list)
+    recorded: list[int] = Field(default_factory=list)
 
     @property
     def caller(self) -> AuditCaller:

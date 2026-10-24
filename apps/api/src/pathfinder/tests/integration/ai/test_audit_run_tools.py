@@ -8,7 +8,7 @@ import pytest
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 from pydantic_ai import Agent, DeferredToolRequests
 from pydantic_ai.messages import (
     ModelMessage,
@@ -30,7 +30,7 @@ from pathfinder.ai.audit.run_tools import (
     list_audit_runs_tool,
     plan_gene_model_audit_tool,
     read_audit_finding,
-    read_audit_finding_tool,
+    read_audit_findings_tool,
     read_audit_run,
     read_audit_run_tool,
     start_gene_model_audit,
@@ -85,6 +85,25 @@ class _Read(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     fact_id: str
+
+
+class _FindingId(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class _Answer(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    finding: _FindingId
+
+
+class _FindingRead(_Read):
+    answer: _Answer
+
+
+_READS: TypeAdapter[list[_FindingRead]] = TypeAdapter(list[_FindingRead])
 
 
 def _fact_id(returned: ToolReturn[Any]) -> str:
@@ -299,16 +318,18 @@ async def test_reading_a_finding_records_its_facts() -> None:
     run_id, finding_id = await _stored_finding(owner)
     ctx = _context(owner)
 
-    returned = await read_audit_finding_tool(ctx, run_id, finding_id)
+    returned = await read_audit_findings_tool(ctx, run_id, [finding_id])
 
     (fact,) = ctx.deps.facts
+    (read,) = _READS.validate_python(returned.return_value)
     assert ctx.deps.reads == {
         finding_cite(finding_id),
         evidence_cite(finding_id, "confirmation"),
     }
-    assert (fact.kind, _fact_id(returned)) == (
+    assert (fact.kind, read.fact_id, read.answer.finding.id) == (
         "audit_finding",
         fact.id,
+        finding_id,
     )
     assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert [(r.record_id, r.url) for r in ctx.deps.records] == [

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from pathfinder.ai.audit import reply
+from pathfinder.ai.audit.budget_stop import budget_stop_prose
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES
 from pathfinder.ai.audit.mock import AUDITOR_GREETING
 from pathfinder.ai.audit.run_tools import START_TOOL
@@ -262,7 +263,7 @@ async def test_the_auditor_investigates_one_gene(
     )
 
     (stored,) = await conversation_verdicts(thread, owner.id)
-    assert _called(chunks) == ["audit_pseudogene_call", "record_gene_model_verdict"]
+    assert _called(chunks) == ["audit_pseudogene_call", "record_gene_model_verdicts"]
     assert (stored.origin, stored.verdict.verdict, stored.verdict.error_type) == (
         "auditor",
         "error",
@@ -400,4 +401,5 @@ async def test_an_auditor_turn_stops_at_its_usage_limit(
     assert set(called) <= CHECK_TOOL_NAMES
     assert len(called) == 40
     assert [c["type"] for c in chunks][-2:] == ["finish", "done"]
-    assert len(_of_type(chunks, "error")) == 1
+    assert _of_type(chunks, "error") == []
+    assert _text(chunks) == budget_stop_prose(0)

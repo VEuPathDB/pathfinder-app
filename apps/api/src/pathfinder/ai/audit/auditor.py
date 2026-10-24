@@ -15,6 +15,7 @@ from pydantic_ai.tools import DeferredToolResults, Tool
 from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.usage import UsageLimits
 
+from pathfinder.ai.audit.budget_stop import StopAtTheBudget
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolset
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import AUDITOR_INSTRUCTIONS
@@ -22,7 +23,7 @@ from pathfinder.ai.audit.mock import build_audit_mock
 from pathfinder.ai.audit.reply import AuditReply, HoldTheReply
 from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, build_run_toolset
 from pathfinder.ai.audit.start_card import ask_about_the_audits
-from pathfinder.ai.audit.verdict_tool import record_gene_model_verdict
+from pathfinder.ai.audit.verdict_tool import record_gene_model_verdicts
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
@@ -86,7 +87,7 @@ def build_auditor_agent() -> AuditorAgent:
         output_type=[AuditReply, DeferredToolRequests],
         deps_type=AuditDeps,
         instructions=AUDITOR_INSTRUCTIONS,
-        tools=[Tool(record_gene_model_verdict, max_retries=3)],
+        tools=[Tool(record_gene_model_verdicts, max_retries=3)],
         toolsets=[build_run_toolset(), build_check_toolset(), turn_tool_sources],
         capabilities=agent_capabilities(
             [
@@ -95,6 +96,7 @@ def build_auditor_agent() -> AuditorAgent:
                     handler=ask_about_the_audits_handler
                 ),
                 HoldTheReply(),
+                StopAtTheBudget(),
             ]
         ),
         retries=3,

@@ -28,7 +28,7 @@ from pathfinder.ai.audit.investigator import (
 )
 from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES
 from pathfinder.ai.audit.verdict_tool import (
-    record_gene_model_verdict,
+    record_gene_model_verdicts,
     unheld_cites_message,
 )
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -213,12 +213,15 @@ async def test_the_verdict_tool_refuses_an_unmade_read(
     stored = _storing(monkeypatch, verdict_tool)
     deps = _deps()
 
+    held = GeneModelVerdict.model_validate({**_VERDICT, "cites": ["finding:1"]})
+    deps.reads.add("finding:1")
+
     with pytest.raises(ModelRetry, match=_UNMADE):
-        await record_gene_model_verdict(
-            run_context_for(deps), GeneModelVerdict.model_validate(_VERDICT)
+        await record_gene_model_verdicts(
+            run_context_for(deps), [held, GeneModelVerdict.model_validate(_VERDICT)]
         )
 
-    assert stored == []
+    assert (stored, deps.recorded) == ([], [])
 
 
 async def test_the_verdict_tool_stores_a_verdict_under_the_turns_origin(
@@ -227,13 +230,16 @@ async def test_the_verdict_tool_stores_a_verdict_under_the_turns_origin(
     stored = _storing(monkeypatch, verdict_tool)
     deps = _deps().model_copy(update={"origin": "verification", "reads": {_UNMADE}})
 
-    returned = await record_gene_model_verdict(
-        run_context_for(deps, "c1"), GeneModelVerdict.model_validate(_VERDICT)
+    other = GeneModelVerdict.model_validate({**_VERDICT, "genes": ["EXA_0004"]})
+
+    returned = await record_gene_model_verdicts(
+        run_context_for(deps, "c1"), [GeneModelVerdict.model_validate(_VERDICT), other]
     )
 
-    assert [origin for origin, _ in stored] == ["verification"]
+    assert [origin for origin, _ in stored] == ["verification", "verification"]
+    assert (returned.return_value, deps.recorded) == ([1, 2], [1, 2])
     (chunk,) = returned.metadata
-    assert chunk.data["summary"] == "EXA_0003: error"
+    assert chunk.data["summary"] == "EXA_0003: error; EXA_0004: error"
 
 
 def test_an_investigation_holds_no_facts_in_its_model_schema() -> None:

@@ -48,12 +48,14 @@ start_gene_model_audit with the same request and the scope the planner \
 returned. The researcher approves or declines it on a card. Nothing starts \
 before that answer.
 - Answer a question about a run from read_audit_run, list_audit_findings and \
-read_audit_finding. List the runs with list_audit_runs when you do not know \
-the run.
+read_audit_findings. List the runs with list_audit_runs when you do not know \
+the run. Read many findings in one read_audit_findings call, never one call \
+for each finding.
 - A finished run's findings are reviewed by a job of their own. Call \
 review_audit_run only when the researcher asks to review a run or to resume \
 its stopped review.
-- Store each judgement of a gene model with record_gene_model_verdict.
+- Store your judgements of gene models with record_gene_model_verdicts, many \
+verdicts in one call.
 """
 
 REVIEWER_INSTRUCTIONS = f"""\
