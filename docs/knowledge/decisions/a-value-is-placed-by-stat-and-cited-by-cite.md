@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A value is placed by stat and cited by cite
-description: Every value a statistic fact holds has a display form read from its type; `[stat:]` always renders the value in place and `[cite:]` always renders a numbered note after words that already state it, a sentence is refused under `stat` and a number under `cite`. Inferring the kind from where a reference stands, rendering every reference in place, and comparing the reply's words with the value were rejected.
+description: Every value a statistic fact holds has a display form read from its type; `[stat:]` always renders the value in place and `[cite:]` always renders a numbered note after words that already state it, a field typed `Sentence` is refused under `stat` and a number under `cite`. Inferring the kind from where a reference stands, rendering every reference in place, and comparing the reply's words with the value were rejected.
 tags: [agents, lead, reply, facts, references, audit]
 generated: { by: claude-code/opus-5.5, at: 2026-10-24T00:00:00Z }
 status: stable
@@ -23,8 +23,8 @@ hold still renders, by its JSON type.
 | a number | the number as the answer writes it; a `Share` as a percentage (`88.9%`) | `number` |
 | an enum or a constant | its words: a code table where `domain/audit/facts.py::CODE_WORDS` holds one, else underscores as spaces and, for an enum whose members are underscored capitals, lower case; `code` keeps the wire value | `word` |
 | a boolean | `YES_NO` (`Yes`, `No`) | `word` |
-| a string of one word | the string | `word` |
-| a string of two or more words | the string | `sentence` |
+| a field typed `Sentence` (free text: a cause, a description, a card or review text, a message) | the string | `sentence` |
+| any other string (a name, a genome, a product, an id) | the string | `word` |
 
 Two reference kinds name a row (`domain/reference_grammar.py`):
 
@@ -40,7 +40,24 @@ a `cite` on a `number` row with its `stat`; neither reads a word of the reply. T
 contract's rules read `render_reply`, the reply with its markers and no notes; the
 notes are joined only where the reply is emitted (`shown_reply`, in `_lead_capture`,
 `_lead_card_hold`, `_lead_exchange` and the audit assistant's `reply_text`). A
-synthesis summary is stored as the synthesis wrote it, with its references.
+synthesis summary is stored as the synthesis wrote it, with its references, beside the
+rows they name (`StoredSynthesis.facts`, from `reply_notes.referenced_facts`); every read
+renders it (`services/audit/views.py::_shown` through `reply_references.nested_text`), so
+`GET /api/v1/audits/{id}` and the Lead's `read_audit_run` fact both hold text: a `stat`
+renders in place and a `cite` as its value in parentheses, since nested text carries no
+notes.
+
+`Sentence` and `Share` are `Annotated` markers (`statistic_facts.SchemaFormat`) that add
+a `format` to the field's schema, which `fact_schema` reads. A name the gate refuses as a
+token when written out ("17X" in a genome name, refused by `_token_faults` as a number with
+a glued unit) is never refused when a `stat` places it, since the gate reads the prose
+outside references, and the refusal of the written name names that `stat`.
+
+The tool server's answer types are not marked here. Of their string fields,
+`IntronAudit.correction_reason`, `IntronJudgement.reason` and `OrthologSupport.reason` are
+free text and would take `Sentence`; every other one (genes, transcripts, organisms,
+products, titles, tracks, versions, ids, sequences) is a word. Until the tool server marks
+them, those three render as words.
 
 The placement rule (`card_reply.PLACEMENT_RULES`, in the Lead's instructions and every
 schema that lists the references) is one sentence: `[stat:]` is the value written in
@@ -70,9 +87,11 @@ it means, and the type of the row decides which kind may name it.
 - **Removing the reply's word that equals the value.** It reads the model's free text for
   facts, the guess [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)
   retired.
-- **A display form declared for each field.** The 16 registered answers hold 193 string
-  leaves, many in the tool server's distribution; the schema type and the word count
-  decide the form for every one, and the startup check refuses a leaf neither decides.
+- **A sentence decided by its word count.** It made every name of two words (a genome, a
+  product) impossible to place, the most common placement.
+- **A display form declared for each field.** The 16 registered answers hold 147 string
+  fields, 77 of them in the tool server's distribution; the schema type decides the form,
+  one marker names the free text, and the startup check refuses a leaf no type decides.
 
 # What would prove this wrong
 
@@ -80,10 +99,10 @@ it means, and the type of the row decides which kind may name it.
 replies. `tests/unit/ai/audit/test_every_fact_field_has_a_display_form.py` holds the
 registry against every answer an audit tool returns.
 `tests/unit/domain/test_a_stored_value_has_a_display_form.py` holds each form, the
-two-word threshold, an unknown key and the startup refusal;
+`Sentence` marker, an unknown key and the startup refusal;
 `tests/unit/domain/test_a_cite_reference_is_a_note.py` the two kinds, their refusals and
 the labels; `tests/unit/ai/lead/test_a_cited_question_still_ends_the_reply.py` the
 contract over a cited question; and `apps/web/src/features/conversation/content/replyNotes.test.tsx`
-the notes of two replies in the thread and in the export. A genome name of two words is a
-`sentence` and so only cited; replies that need a name in place prove the threshold
-wrong.
+the notes of two replies in the thread and in the export;
+`tests/integration/jobs/test_audit_synthesis_job.py` the stored summary and its two
+rendered reads.

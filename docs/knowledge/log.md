@@ -5,11 +5,12 @@
 * **A stored value renders in the form its type gives it; `stat` places it and `cite`
   cites it.** An audit read's rows come from the answer's serialization schema
   (`domain/statistic_rows.py`): a number and a share render as numbers, an enum as its
-  words, a boolean as Yes or No, a string of two or more words as a sentence. Every source
+  words, a boolean as Yes or No, a field typed `Sentence` as a sentence. Every source
   answer is registered once and its schema read when an audit toolset is built. `[stat:]`
   renders a value in place, the new `[cite:]` a numbered note after the reply's own words,
   and each is refused on a row of the other form. The notes join the reply only where it is
-  emitted, under labels of its own. A synthesis summary is stored as written. See
+  emitted, under labels of its own. A synthesis summary is stored with its references
+  and rendered on every read. See
   [a value is placed by stat and cited by cite](decisions/a-value-is-placed-by-stat-and-cited-by-cite.md).
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
