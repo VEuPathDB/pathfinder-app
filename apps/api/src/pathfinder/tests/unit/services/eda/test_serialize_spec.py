@@ -144,6 +144,7 @@ _ALLOWED: tuple[tuple[str, int, str], ...] = (
     (_AUTHORING, 1, "serialize_spec, the one eda_analysis_spec call site"),
     (f"{_PACKAGE}/ai/agents/state.py", 1, "an agent context value, not an analysis"),
     (f"{_PACKAGE}/ai/audit/review.py", 1, "a stored audit finding as the prompt"),
+    (f"{_PACKAGE}/ai/audit/synthesis.py", 1, "a reviewed audit run as the prompt"),
 )
 
 

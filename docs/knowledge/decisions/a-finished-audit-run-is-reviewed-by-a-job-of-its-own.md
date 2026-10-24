@@ -26,8 +26,51 @@ A finding's review is one row, so a finding is never reviewed twice: a retried
 run reviews only its new findings, and a run already `synthesized` with nothing
 left defers nothing (`start_review`). The progress (`done`, `total`, the status
 and a message) is on `audit_runs.review` after every review. With nothing left
-the job hands over to the synthesis; until that exists it stores `synthesized`
-with no synthesis.
+the job writes the run's synthesis and then stores `synthesized`.
+
+**The synthesis.** `ai/audit/synthesis.py::synthesize` reads the run view, the
+stored reviews and the stored impacts, and one bounded run under
+`SYNTHESIS_LIMITS` writes a `SynthesisDraft`: one section per error type with
+its cause and how the checks confirmed it, the headline finding ids and a
+summary. The code attaches `agreement=review_agreement(<the stored reviews>)`;
+the model never writes it, so no rate rests on one judgement. The output
+validator retries a draft that names a finding no review keeps as an `error`, a
+section whose findings' reviews name another error type, a headline out of
+descending impact (the review's impact when set, else the stored one, a
+finding with none last), or a summary that states a fact no fact holds. The
+summary is held like the auditor's reply: its numbers are `[stat:...]`
+references to the run fact (`audit_run_fact`) or to the counts fact, which
+holds the kept, rejected and undecided counts, the genomes and the agreement;
+`prose_faults` refuses any other number, so a share of kept findings has no
+fact to render from, and `render_reply` stores the rendered text. With no kept
+finding the job makes no model call, reads no budget, and stores
+`NO_FINDING_KEPT` with no section. `AuditReviewRepository.reopen_review` sets
+the review to waiting and clears the run's synthesis in one write; a review pass
+(`defer_review`), a finished run and a retry that reopens a finished run all
+call it, so a pass that stops never shows an earlier synthesis beside its state. A synthesis that spends its retries or its limit
+stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget stops
+it before the call; a later start reruns only the synthesis. The run is
+charged in a `finally`, like a reviewer run, so a provider error after paid
+requests is charged once.
+
+**What the report reads.** `services/audit/review_views.py` states the stored
+reviews and the synthesis in the words of `domain/audit/words.py`. Each finding
+on a page carries its `review_line` and the finding detail its `review_text`;
+a finding read joins its review row, so `reviewed` is `review is not None` and
+the page reads both in one query. The run view carries `error_types`, one per
+error type its findings name, in `ERROR_TYPE_TITLES` order, with the count,
+the model genomes, the highest certainty and, from the synthesis section, the
+cause, how it was confirmed and its findings. A review supersedes the stored
+type: each finding counts once, under the error type and certainty of the
+review that names one, and under the stored ones otherwise
+(`AuditTallyRepository.error_type_tally`). A finding the review rejects
+(`no_error`) is left out of the counts, genomes and certainty; an undecided one
+stays under its stored type. Its line still shows the review. A finding line shows the error type and certainty
+of the review that keeps it, and the stored ones otherwise; `headline`;
+`review_state`; and `agreement`, the synthesis's or else the one the stored
+reviews give, with its sentence. A finding's reviewed impact is shown beside
+the stored impact, which keeps the page order. No share of kept findings is
+shown.
 
 **One reviewer run.** The prompt is the stored `FindingDetail` as JSON. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each

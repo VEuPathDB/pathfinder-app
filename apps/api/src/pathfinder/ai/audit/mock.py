@@ -30,7 +30,12 @@ from pathfinder.ai.audit.mock_run import JUDGE_REQUEST, judge_the_run
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.lead.retrieval_toolset import ResearchAnswer
 from pathfinder.domain.audit.scope import AuditScope
-from pathfinder.domain.audit.verdicts import MAX_CITES, finding_cite, read_cite
+from pathfinder.domain.audit.verdicts import (
+    MAX_CITES,
+    MAX_HEADLINES,
+    finding_cite,
+    read_cite,
+)
 
 AUDITOR = "auditor"
 INVESTIGATOR = "investigator"
@@ -46,6 +51,7 @@ CHECK_FOREVER = "check every gene"
 SPELL_OUT = "spell out"
 LITERATURE_TOOL = "research_literature_search"
 MOCK_REVIEWER_MODEL_ID = "mock:reviewer"
+MOCK_SYNTHESIS_MODEL_ID = "mock:synthesis"
 AUDITOR_GREETING = "I plan, start and read audits of the gene models on this site."
 _GENE = re.compile(r"\b[A-Za-z0-9]+_\d+\b")
 _AUDIT_REQUEST = re.compile(
@@ -354,5 +360,67 @@ def build_review_mock() -> FunctionModel:
     return FunctionModel(
         _review_part,
         model_name=MOCK_REVIEWER_MODEL_ID,
+        profile=ModelProfile(supports_inline_system_prompts=True),
+    )
+
+
+class _KeptVerdict(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    error_type: str
+    cause: str
+
+
+class _Kept(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    finding_id: int
+    verdict: _KeptVerdict
+    impact: float | None
+
+
+class _SynthesisPrompt(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    kept_findings: list[_Kept]
+    counts_fact: str
+
+
+def _impact_rank(kept: _Kept) -> float:
+    return -1.0 if kept.impact is None else kept.impact
+
+
+def _synthesis_section(kept: list[_Kept]) -> dict[str, object]:
+    ids = ", ".join(str(k.finding_id) for k in kept)
+    return {
+        "errorType": kept[0].verdict.error_type,
+        "cause": kept[0].verdict.cause,
+        "confirmedBy": f"The stored evidence of findings {ids} confirms it.",
+        "findingIds": [k.finding_id for k in kept],
+    }
+
+
+def _synthesis_part(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    del info
+    prompt = _SynthesisPrompt.model_validate_json(user_texts(current_turn(messages))[0])
+    ranked = sorted(prompt.kept_findings, key=_impact_rank, reverse=True)
+    grouped: dict[str, list[_Kept]] = {}
+    for kept in ranked:
+        grouped.setdefault(kept.verdict.error_type, []).append(kept)
+    draft = {
+        "sections": [_synthesis_section(group) for group in grouped.values()],
+        "headline": [k.finding_id for k in ranked[:MAX_HEADLINES]],
+        "summary": (
+            f"The review kept [stat:{prompt.counts_fact}.kept] findings as errors and "
+            f"rejected [stat:{prompt.counts_fact}.rejected]."
+        ),
+    }
+    return ModelResponse(parts=[terminal_call(draft)])
+
+
+def build_synthesis_mock() -> FunctionModel:
+    return FunctionModel(
+        _synthesis_part,
+        model_name=MOCK_SYNTHESIS_MODEL_ID,
         profile=ModelProfile(supports_inline_system_prompts=True),
     )

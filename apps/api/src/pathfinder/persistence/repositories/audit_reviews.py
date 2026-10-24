@@ -94,14 +94,6 @@ class AuditReviewRepository:
         )
         return [AuditVerdictRecord.model_validate(row) for row in found]
 
-    async def review_of(self, finding_id: int) -> FindingReview | None:
-        found = await self.session.scalar(
-            select(AuditVerdict).where(AuditVerdict.finding_id == finding_id)
-        )
-        return (
-            None if found is None else AuditVerdictRecord.model_validate(found).review
-        )
-
     async def of_conversation(
         self, conversation_id: UUID, user_id: UUID
     ) -> list[AuditVerdictRecord]:
@@ -151,6 +143,16 @@ class AuditReviewRepository:
             update(AuditRun)
             .where(AuditRun.id == run_id)
             .values(synthesis=synthesis.model_dump(by_alias=True, mode="json"))
+        )
+
+    async def reopen_review(self, run_id: UUID) -> None:
+        waiting = ReviewProgress(status="waiting")
+        await self.session.execute(
+            update(AuditRun)
+            .where(AuditRun.id == run_id)
+            .values(
+                review=waiting.model_dump(by_alias=True, mode="json"), synthesis=None
+            )
         )
 
     async def pending_reviews(self) -> list[UUID]:

@@ -71,7 +71,14 @@ SYNTHESIS_INSTRUCTIONS = f"""\
 {JUDGING_RULES}
 You write the one synthesis of an audit run from its reviewed findings: one \
 section for each error type, with its cause and what confirms it, a headline \
-of the findings a curator reads first, and a summary. A count of findings the \
+of the findings a curator reads first, and a summary.
+- A section names only findings a review keeps as an error, and each of them \
+under the error type its review names.
+- The headline lists findings in descending order of impact: the review's \
+impact when the review set one, else the stored impact, and a finding with no \
+impact last.
+- The summary writes each number as a reference to the run fact or the counts \
+fact the prompt names, as [stat:<fact id>.<row>]. A count of findings the \
 reviews kept or rejected is stated only beside the agreement of the two \
 independent judgements. A rate that one review alone judged is never stated.
 """

@@ -18,9 +18,9 @@ from pathfinder.domain.audit.scope import (
     GeneTarget,
     SingleGeneTarget,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )

@@ -417,6 +417,7 @@ def test_finding_rows_are_dotted_paths() -> None:
             reviewed=False,
             verdict="INTACT",
             from_target=True,
+            review_line=None,
             genes=[],
         ),
         evidence=[
@@ -434,6 +435,7 @@ def test_finding_rows_are_dotted_paths() -> None:
         ],
         facts=[],
         review=None,
+        review_text=None,
         genes=[],
     )
 

@@ -22,9 +22,9 @@ from pathfinder.domain.audit.verdicts import (
     Synthesis,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.services.audit.finding_views import FindingDetail, finding_detail
@@ -122,7 +122,9 @@ async def queue_review(run_id: UUID) -> None:
 
 
 async def defer_review(run_id: UUID) -> None:
-    await set_progress(run_id, ReviewProgress(status="waiting"))
+    async with async_session_factory() as session:
+        await AuditReviewRepository(session).reopen_review(run_id)
+        await session.commit()
     await continue_review(run_id)
 
 
@@ -179,6 +181,12 @@ async def stored_reviews(run_id: UUID) -> list[VerdictView]:
     async with async_session_factory() as session:
         found = await AuditReviewRepository(session).of_run(run_id)
     return [VerdictView.model_validate(record) for record in found]
+
+
+async def stored_impacts(run_id: UUID) -> dict[int, float | None]:
+    async with async_session_factory() as session:
+        found = await AuditFindingRepository(session).findings(run_id, _NAMED)
+    return {finding.id: finding.impact for finding in found}
 
 
 async def store_synthesis(run_id: UUID, synthesis: Synthesis) -> None:

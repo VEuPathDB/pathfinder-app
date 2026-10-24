@@ -16,9 +16,9 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.metrics import PathfinderObserver
 from pathfinder.services.audit.job import outcome, start_run

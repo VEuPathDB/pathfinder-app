@@ -8,15 +8,20 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
+from assistant_core.models.scripted import terminal_call
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
+from pydantic_ai.messages import ModelMessage, ModelResponse
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb.wdk import VEuPathDBClaims
 
+from pathfinder.ai.audit import review
+from pathfinder.domain.audit.verdicts import ReviewProgress
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services import wdk_identity
@@ -246,6 +251,52 @@ async def test_a_retry_that_fails_before_its_deadline_is_written_reopens_nothing
 
     assert (await owned_run(run_id, owner)).status == "finished"
     assert (await split_finding(run_id)).status == "unreached"
+
+
+def _refusing(called: list[int]) -> FunctionModel:
+    def refuse(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        called.append(1)
+        return ModelResponse(parts=[terminal_call({})])
+
+    return FunctionModel(refuse)
+
+
+async def test_a_retry_clears_the_synthesis_and_a_stopped_one_leaves_none(
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wired.split_failures.append(unanswered())
+    short_runs(monkeypatch)
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    with holding(TOKEN):
+        await start_run(run_id, owner)
+    await work_through(jobs)
+    await work_reviews(jobs)
+    assert (await owned_run(run_id, owner)).synthesis is not None
+
+    with holding(TOKEN):
+        await start_run(run_id, owner, retry_unreached=True)
+    retrying = await owned_run(run_id, owner)
+    assert (retrying.status, retrying.synthesis, retrying.review) == (
+        "running",
+        None,
+        ReviewProgress(status="waiting"),
+    )
+
+    called: list[int] = []
+    monkeypatch.setattr(review, "synthesis_model", lambda model_id: _refusing(called))
+    await work_through(jobs)
+    await work_reviews(jobs)
+
+    run = await owned_run(run_id, owner)
+    assert run.review is not None
+    assert (run.status, run.synthesis, run.review.status, bool(called)) == (
+        "finished",
+        None,
+        "stopped",
+        True,
+    )
 
 
 async def test_an_unanswered_check_near_the_deadline_waits_to_the_deadline_unread(

@@ -14,9 +14,9 @@ from pathfinder.ai.audit import mock_run
 from pathfinder.ai.audit.budget_stop import budget_stop_prose
 from pathfinder.ai.audit.mock import AUDITOR_GREETING
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )

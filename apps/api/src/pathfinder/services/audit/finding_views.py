@@ -31,12 +31,17 @@ from pathfinder.domain.audit.words import (
     verdict_sentence,
 )
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
-from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.audit.review_views import (
+    ReviewLine,
+    ReviewText,
+    review_line,
+    review_text,
+)
 from pathfinder.services.audit.runs import readable_run
 from pathfinder.services.record_pages import record_page_url
 
@@ -82,6 +87,7 @@ class FindingView(CamelModel):
     reviewed: bool
     verdict: FindingVerdict | None
     from_target: bool
+    review_line: ReviewLine | None
     genes: list[GeneLink]
 
     @computed
@@ -132,6 +138,7 @@ class FindingDetail(CamelModel):
     evidence: list[EvidenceView]
     facts: list[EvidenceFacts]
     review: FindingReview | None
+    review_text: ReviewText | None
     genes: list[GeneLink]
 
 
@@ -190,6 +197,7 @@ def _view(
         reviewed=record.reviewed,
         verdict=None if confirmation is None else confirmation.verdict,
         from_target=from_target,
+        review_line=None if record.review is None else review_line(record.review),
         genes=_links(site_id, named_genes(record.target, confirmation)),
     )
 
@@ -270,7 +278,7 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
                 detail=f"no finding {finding_id} in run {run_id}",
             )
         evidence = await repo.evidence(run_id, [finding_id])
-        review = await AuditReviewRepository(session).review_of(finding_id)
+    review = found.review
     (finding,) = _views(
         run.site_id, [found], evidence, {t.key for t in run.scope.targets}
     )
@@ -282,5 +290,6 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
         evidence=[EvidenceView.model_validate(record) for record in evidence],
         facts=stored_facts(evidence),
         review=review,
+        review_text=None if review is None else review_text(review),
         genes=_links(run.site_id, dict.fromkeys([*named, *evidence_genes(payloads)])),
     )

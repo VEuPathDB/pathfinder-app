@@ -12,9 +12,9 @@ from pathfinder.domain.audit.findings import FindingTally
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit import STOPPED_MESSAGE, UnitNotOpenError
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
@@ -131,6 +131,8 @@ async def test_filters_select_by_check_genome_error_naming_and_page(
         PAIR.key
     ]
     assert await keys(FindingFilter(sampled=False)) == []
+    assert await keys(FindingFilter(ids=(pair.id, short.id))) == [SHORT.key, PAIR.key]
+    assert await keys(FindingFilter(ids=())) == []
 
 
 async def test_a_finding_left_trying_reopens_until_its_third_stop(

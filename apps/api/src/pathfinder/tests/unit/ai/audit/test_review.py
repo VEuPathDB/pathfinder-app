@@ -80,6 +80,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
             reviewed=False,
             verdict=None,
             from_target=True,
+            review_line=None,
             genes=[],
         ),
         evidence=[
@@ -104,6 +105,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
         ],
         facts=[evidence_facts(_RELATIVES)],
         review=None,
+        review_text=None,
         genes=[],
     )
 

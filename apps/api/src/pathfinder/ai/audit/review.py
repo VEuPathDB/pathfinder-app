@@ -18,8 +18,13 @@ from pydantic_ai.usage import RunUsage, UsageLimits
 from pathfinder.ai.audit.charges import charge_run
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import REVIEWER_INSTRUCTIONS
-from pathfinder.ai.audit.mock import build_review_mock
+from pathfinder.ai.audit.mock import build_review_mock, build_synthesis_mock
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
+from pathfinder.ai.audit.synthesis import (
+    SynthesisStoppedError,
+    kept_findings,
+    synthesize,
+)
 from pathfinder.ai.audit.verdict_tool import unheld_cites_message
 from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.domain.audit.verdicts import (
@@ -43,7 +48,11 @@ from pathfinder.services.audit.reviews import (
     next_unreviewed,
     record_progress,
     store_review,
+    store_synthesis,
+    stored_impacts,
+    stored_reviews,
 )
+from pathfinder.services.audit.views import run_view
 from pathfinder.services.turn_payment import turn_payment
 
 REVIEW_LIMITS = UsageLimits(request_limit=6, tool_calls_limit=4)
@@ -54,6 +63,9 @@ OUT_OF_RETRIES = (
     "The review stopped when its retries were spent before it wrote a valid review."
 )
 BUDGET_USED = "the monthly budget is used"
+SYNTHESIS_STOPPED = (
+    "The synthesis stopped before it wrote a valid synthesis of the reviews."
+)
 NOT_SEARCHED = (
     "No literature source was open for this review, so already_known is "
     "not_searched and known_from is empty."
@@ -168,6 +180,12 @@ def review_model(model_id: str) -> Model:
     return infer_model(maybe_wrap_model(keyed_model(model_id), REVIEW_ROLE))
 
 
+def synthesis_model(model_id: str) -> Model:
+    if is_mock_deployment():
+        return build_synthesis_mock()
+    return infer_model(maybe_wrap_model(keyed_model(model_id), REVIEW_ROLE))
+
+
 def review_settings(model_id: str) -> ModelSettings:
     config = deployment_role_config(AUDIT_ASSISTANT_ID, REVIEW_ROLE)
     effort = None if config is None else config.reasoning_effort
@@ -228,6 +246,34 @@ async def _review_all(reviewer: _Reviewer, started: float) -> None:
         if monotonic() - started >= units.SLICE_SECONDS:
             await continue_review(run.run_id)
             return
+    await _synthesize(reviewer)
+
+
+async def _synthesize(reviewer: _Reviewer) -> None:
+    run = reviewer.run
+    found = await stored_reviews(run.run_id)
+    impacts = await stored_impacts(run.run_id)
+    if kept_findings(found, impacts) and await reviewer.budget_used():
+        await record_progress(run, "stopped", BUDGET_USED)
+        return
+    view = await run_view(run.run_id, run.user_id)
+    model = synthesis_model(reviewer.model_id)
+    usage = RunUsage()
+    try:
+        synthesis = await synthesize(
+            view,
+            found,
+            impacts=impacts,
+            model=model,
+            usage=usage,
+            settings=reviewer.settings,
+        )
+    except SynthesisStoppedError:
+        await record_progress(run, "stopped", SYNTHESIS_STOPPED)
+        return
+    finally:
+        await charge_run(run.user_id, usage, model, model_id=reviewer.model_id)
+    await store_synthesis(run.run_id, synthesis)
     await record_progress(run, "synthesized")
 
 

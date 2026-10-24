@@ -22,9 +22,9 @@ from pathfinder.domain.audit.scope import (
     OrganelleTarget,
     SingleGeneTarget,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
 )
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository

@@ -11,9 +11,9 @@ from pathfinder.domain.audit.findings import RelativesEvidence
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget, SingleGeneTarget
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
 )
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

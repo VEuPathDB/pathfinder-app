@@ -965,7 +965,11 @@ class AuditFindingRecord(BaseModel):
     attempts: int
     stopped: int
     message: str | None
-    reviewed: bool = False
+    review: FindingReview | None = None
+
+    @property
+    def reviewed(self) -> bool:
+        return self.review is not None
 
 
 class AuditEvidenceRecord(BaseModel):

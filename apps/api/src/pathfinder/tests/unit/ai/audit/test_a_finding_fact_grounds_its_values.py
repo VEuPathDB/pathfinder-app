@@ -73,6 +73,7 @@ def _fact() -> StatisticFact:
                 reviewed=False,
                 verdict="INTACT",
                 from_target=True,
+                review_line=None,
                 genes=[],
             ),
             evidence=[
@@ -90,6 +91,7 @@ def _fact() -> StatisticFact:
             ],
             facts=[],
             review=None,
+            review_text=None,
             genes=[],
         ),
     )

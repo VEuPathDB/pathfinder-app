@@ -23,9 +23,9 @@ from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.jobs.impls.audit_run_impl import run_audit_job
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services import wdk_identity

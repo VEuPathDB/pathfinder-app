@@ -8,9 +8,9 @@ from veupathdb_mcp.audit import rate_with_bounds
 
 from pathfinder.domain.audit.findings import counts_of
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
