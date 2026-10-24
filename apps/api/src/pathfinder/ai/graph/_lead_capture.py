@@ -102,8 +102,6 @@ class _LeadRunCapture:
     cost_usd: Decimal = field(default_factory=lambda: Decimal(0))
     charged_input_tokens: int = 0
     charged_output_tokens: int = 0
-    charged_cache_read_tokens: int = 0
-    charged_cache_write_tokens: int = 0
     charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
@@ -298,9 +296,7 @@ async def _charge_token_delta(
         return
     delta_input = usage.input_tokens - capture.charged_input_tokens
     delta_output = usage.output_tokens - capture.charged_output_tokens
-    delta_cache_read = usage.cache_read_tokens - capture.charged_cache_read_tokens
-    delta_cache_write = usage.cache_write_tokens - capture.charged_cache_write_tokens
-    delta_tokens = delta_input + delta_output + delta_cache_read + delta_cache_write
+    delta_tokens = delta_input + delta_output
     if delta_tokens <= 0:
         return
     provider_name, model_name = _split_agent_model(agent_model)
@@ -331,8 +327,6 @@ async def _charge_token_delta(
         return
     capture.charged_input_tokens += delta_input
     capture.charged_output_tokens += delta_output
-    capture.charged_cache_read_tokens += delta_cache_read
-    capture.charged_cache_write_tokens += delta_cache_write
     capture.charged_cost += delta_cost
     if delta_input > 0:
         # ``input_tokens`` accumulates over the run, so one request's input

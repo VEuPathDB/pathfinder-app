@@ -433,7 +433,9 @@
             "errorTitle": "Intact gene called a pseudogene",
             "certainty": "high",
             "impact": 0.5,
-            "reviewedImpact": 0.8
+            "reviewedImpact": 0.8,
+            "reviewsDisagree": false,
+            "disagreementText": null
           }
         ]
       },
@@ -455,7 +457,9 @@
             "errorTitle": "Model too short",
             "certainty": "high",
             "impact": 0.25,
-            "reviewedImpact": null
+            "reviewedImpact": null,
+            "reviewsDisagree": false,
+            "disagreementText": null
           }
         ]
       },
@@ -477,7 +481,9 @@
             "errorTitle": "Organelle gene split at the circular join",
             "certainty": "high",
             "impact": 0.25,
-            "reviewedImpact": null
+            "reviewedImpact": null,
+            "reviewsDisagree": false,
+            "disagreementText": null
           }
         ]
       },
@@ -499,7 +505,9 @@
             "errorTitle": "Exon missing from the model",
             "certainty": "high",
             "impact": 0.25,
-            "reviewedImpact": null
+            "reviewedImpact": null,
+            "reviewsDisagree": false,
+            "disagreementText": null
           }
         ]
       }
@@ -513,7 +521,9 @@
         "errorTitle": "Intact gene called a pseudogene",
         "certainty": "high",
         "impact": 0.5,
-        "reviewedImpact": 0.8
+        "reviewedImpact": 0.8,
+        "reviewsDisagree": false,
+        "disagreementText": null
       },
       {
         "id": 8,
@@ -523,7 +533,9 @@
         "errorTitle": "Model too short",
         "certainty": "high",
         "impact": 0.25,
-        "reviewedImpact": null
+        "reviewedImpact": null,
+        "reviewsDisagree": false,
+        "disagreementText": null
       },
       {
         "id": 9,
@@ -533,7 +545,9 @@
         "errorTitle": "Organelle gene split at the circular join",
         "certainty": "high",
         "impact": 0.25,
-        "reviewedImpact": null
+        "reviewedImpact": null,
+        "reviewsDisagree": false,
+        "disagreementText": null
       },
       {
         "id": 10,
@@ -543,7 +557,9 @@
         "errorTitle": "Exon missing from the model",
         "certainty": "high",
         "impact": 0.25,
-        "reviewedImpact": null
+        "reviewedImpact": null,
+        "reviewsDisagree": false,
+        "disagreementText": null
       }
     ],
     "reviewState": {

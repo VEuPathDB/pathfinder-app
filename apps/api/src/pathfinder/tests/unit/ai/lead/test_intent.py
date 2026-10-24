@@ -5,7 +5,11 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.lead.intent import (
+    AUDIT_CLASSIFICATION,
+    IntentClassification,
+    UserIntent,
+)
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 
@@ -224,5 +228,5 @@ def test_the_classifier_is_told_a_message_about_site_data_is_never_off_topic() -
         "talk. A message that pastes sequences, or asks about genes, proteins, "
         "ortholog groups, organisms or any other data a site holds, is never "
         "off_topic, also when you do not know which search answers it: FRAME "
-        "finds the search in the site's catalog."
+        f"finds the search in the site's catalog. {AUDIT_CLASSIFICATION}"
     )

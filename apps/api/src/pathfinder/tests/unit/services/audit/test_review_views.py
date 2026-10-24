@@ -212,7 +212,53 @@ def test_a_kept_finding_line_shows_the_reviews_type_beside_the_stored_impact() -
         certainty="high",
         impact=0.4,
         reviewed_impact=0.9,
+        reviews_disagree=False,
+        disagreement_text=None,
     )
+
+
+_DISAGREE = "The two independent reviews disagree"
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "text"),
+    [
+        (
+            "error",
+            "no_error",
+            f"{_DISAGREE}: the first keeps the error, the second finds no error",
+        ),
+        (
+            "error",
+            "undecided",
+            f"{_DISAGREE}: the first keeps the error, the second could not decide",
+        ),
+        (
+            "no_error",
+            "error",
+            f"{_DISAGREE}: the first finds no error, the second keeps the error",
+        ),
+    ],
+)
+def test_a_finding_line_whose_reviews_disagree_says_so(
+    first: VerdictKind, second: VerdictKind, text: str
+) -> None:
+    review = _review(first, second_verdict=second)
+
+    line = finding_line(_record(7, "split_model", "medium", 0.15, review))
+
+    assert (line.reviews_disagree, line.disagreement_text) == (True, text)
+
+
+@pytest.mark.parametrize("second", ["error", None])
+def test_a_finding_line_whose_reviews_agree_states_no_disagreement(
+    second: VerdictKind | None,
+) -> None:
+    review = _review("error", second_verdict=second)
+
+    line = finding_line(_record(7, "split_model", "medium", 0.15, review))
+
+    assert (line.reviews_disagree, line.disagreement_text) == (False, None)
 
 
 @pytest.mark.parametrize("verdict", ["no_error", "undecided"])

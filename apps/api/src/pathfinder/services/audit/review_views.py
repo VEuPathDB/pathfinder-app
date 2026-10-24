@@ -27,6 +27,7 @@ from pathfinder.domain.audit.words import (
     REVIEW_STATUS_SENTENCES,
     VERDICT_KIND_SENTENCES,
     agreement_sentence,
+    disagreement_sentence,
     paper_sentence,
 )
 from pathfinder.domain.statistic_facts import Sentence, Share
@@ -83,6 +84,8 @@ class FindingLine(CamelModel):
     certainty: Certainty | None
     impact: float | None
     reviewed_impact: float | None
+    reviews_disagree: bool
+    disagreement_text: str | None
 
 
 class ErrorTypeView(CamelModel):
@@ -170,6 +173,7 @@ def finding_line(record: AuditFindingRecord) -> FindingLine:
     review = record.review
     kept = _kept_as(review)
     error_type = record.error_type if kept is None else kept.error_type
+    disagreement = None if review is None else review.disagreement
     return FindingLine(
         id=record.id,
         genes=list(record.target.genes),
@@ -179,6 +183,10 @@ def finding_line(record: AuditFindingRecord) -> FindingLine:
         certainty=record.certainty if kept is None else kept.certainty,
         impact=record.impact,
         reviewed_impact=None if review is None else review.impact,
+        reviews_disagree=disagreement is not None,
+        disagreement_text=None
+        if disagreement is None
+        else disagreement_sentence(*disagreement),
     )
 
 

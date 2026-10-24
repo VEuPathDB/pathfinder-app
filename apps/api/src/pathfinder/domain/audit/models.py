@@ -122,39 +122,21 @@ def _kept_intron(intron: UnreadIntron) -> KeptIntron | None:
             return None
 
 
-def _cut(spans: Iterable[Span], cuts: Iterable[Span]) -> tuple[Span, ...]:
-    kept = _merged(spans)
-    for cut_start, cut_end in cuts:
-        kept = tuple(
-            piece
-            for start, end in kept
-            for piece in (
-                (start, min(end, cut_start - 1)),
-                (max(start, cut_end + 1), end),
-            )
-            if piece[0] <= piece[1]
-        )
-    return kept
-
-
 def _kept(unread: Sequence[UnreadIntron]) -> tuple[KeptIntron, ...]:
     return tuple(k for k in map(_kept_intron, unread) if k is not None)
 
 
 def _corrected(
-    result: IntronAudit, model: ModelSpans, unread: Sequence[UnreadIntron]
+    result: IntronAudit, unread: Sequence[UnreadIntron]
 ) -> ProposedModel | None:
-    if result.corrected_cds is None:
+    if result.corrected_cds is None or result.corrected_exons is None:
         return None
     replacements = [j for intron in unread for j in intron.replacement]
     kept = _kept(unread)
     return ProposedModel(
         kind="corrected",
         gene=result.gene,
-        exons=_cut(
-            [*model.exons, *((intron.start, intron.end) for intron in unread)],
-            [(j.start, j.end) for j in replacements],
-        ),
+        exons=tuple(result.corrected_exons),
         cds=tuple(result.corrected_cds),
         removed_introns=tuple((intron.start, intron.end) for intron in unread),
         junctions=tuple((j.start, j.end) for j in replacements),
@@ -185,7 +167,9 @@ def _retained(
 
 def _proposed(result: IntronAudit, model: ModelSpans) -> ProposedModel | None:
     unread = result.unread or []
-    return _corrected(result, model, unread) or _retained(result, model, unread)
+    if result.corrected_cds is not None and result.corrected_exons is None:
+        return None
+    return _corrected(result, unread) or _retained(result, model, unread)
 
 
 def stop_codon(model: ModelSpans) -> StopCodon:

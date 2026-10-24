@@ -66,7 +66,11 @@ review that names one, and under the stored ones otherwise
 (`AuditTallyRepository.error_type_tally`). A finding the review rejects
 (`no_error`) is left out of the counts, genomes and certainty; an undecided one
 stays under its stored type. Its line still shows the review. A finding line shows the error type and certainty
-of the review that keeps it, and the stored ones otherwise; `headline`;
+of the review that keeps it, and the stored ones otherwise, and whether its two
+reviews disagree (`reviewsDisagree`, with `disagreementText` naming both
+verdicts), read from the stored review row and never from the synthesis prose.
+A finding whose reviews disagree may stay in a section and in the headline,
+because every line of both carries the disagreement; `headline`;
 `review_state`; and `agreement`, the synthesis's or else the one the stored
 reviews give, with its sentence. A finding's reviewed impact is shown beside
 the stored impact, which keeps the page order. No share of kept findings is
@@ -78,11 +82,16 @@ confirmation already holds the spans the figure draws. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each
 stored piece of evidence, and the references its own research reads returned.
 The output validator retries a review whose verdict or `known_from` names
-anything else, whose verdict names a gene the finding's target does not, or
-that claims a literature status when no research source was open. A run under
-`REVIEW_LIMITS` that stops at its limit, or spends its retries, is stored as a
-stopped review (`FindingReview.stopped`, verdict `undecided`, the cause in its
-text), so the loop moves on and a stopped review is never read as a judgement.
+anything else, or whose verdict names a gene the finding's target does not.
+A review with no research source open is offered no literature field and no
+literature instruction: its output type is `UnsearchedReview`, which fixes
+`already_known` to `not_searched` and refuses a literature status sent anyway.
+A run under `REVIEW_LIMITS` that stops at its limit, or spends its retries, is
+stored as a stopped review (`FindingReview.stopped`, verdict `undecided`, the
+cause in its text), so the loop moves on and a stopped review is never read as
+a judgement. A run that spends its retries stores the last refusal in plain
+words after `OUT_OF_RETRIES`: each field that failed with its message, or the
+validator's words.
 The reviewer runs on the review role's model settings, its reasoning effort
 included, as the auditor runs on its own.
 

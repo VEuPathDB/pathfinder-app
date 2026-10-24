@@ -23,6 +23,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._step_read import graph_step_id, read_as
 from pathfinder.ai.tools.standalone.column_tally import tally_line
 from pathfinder.ai.tools.standalone.graph_helpers import record_noun
+from pathfinder.domain.column_reach import ColumnReach, TransformReach
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment.column_tally import (
     ColumnTally,
@@ -32,6 +33,7 @@ from pathfinder.services.experiment.step_tally import (
     CountedStep,
     countable_columns,
     run_step_tally,
+    step_reach,
 )
 
 COLUMN_PAGE = 100
@@ -45,6 +47,8 @@ class StepColumnPage(CamelModel):
     countable: int
     offset: int
     columns: list[StepColumn]
+    reach: ColumnReach
+    transforms: list[TransformReach]
 
 
 def _require_strategy_step(session: StrategySession, wdk_step_id: int) -> None:
@@ -84,6 +88,14 @@ async def step_columns(
     page in the site's order, ``total`` is the number of columns that match and
     ``offset`` reads the next page.
 
+    ``reach`` says where a countable column is. ``step``: on this step.
+    ``transform``: no column of this step that matches can be counted, and
+    ``transforms`` names each transform the site offers that turns these
+    records into another record type, with that record type's countable
+    columns; when one of them answers the question, add the transform with
+    ``edit_strategy`` and count the new step with ``count_step_by_column``.
+    ``none``: no transform reaches another record type with a countable column.
+
     Args:
         wdk_step_id: The WDK step ID of a built step of this strategy.
         name: Text the column's name or display name contains, any case; empty
@@ -95,20 +107,39 @@ async def step_columns(
     _require_strategy_step(session, wdk_step_id)
     listed = await countable_columns(session.site_id, wdk_step_id)
     matching = [c for c in listed.columns if _matches(c, name, countable_only)]
+    countable = sum(c.countable for c in matching)
+    markers = ctx.deps.state.turn_markers
+    reached = (
+        None
+        if countable
+        else await step_reach(session.site_id, listed, len(markers.tallies))
+    )
+    if reached is not None:
+        markers.column_reaches.append(reached)
     page = StepColumnPage(
         wdk_step_id=wdk_step_id,
         record_type=listed.record_type,
         search_name=listed.search_name,
         total=len(matching),
-        countable=sum(c.countable for c in matching),
+        countable=countable,
         offset=offset,
         columns=matching[offset : offset + COLUMN_PAGE],
+        reach="step" if reached is None else reached.reach,
+        transforms=[] if reached is None else reached.transforms,
     )
-    summary = (
-        f"{page.countable:,} of {page.total:,} columns of step {wdk_step_id} "
+    return with_summary(page, _page_line(page), ctx=ctx)
+
+
+def _page_line(page: StepColumnPage) -> str:
+    line = (
+        f"{page.countable:,} of {page.total:,} columns of step {page.wdk_step_id} "
         "can be counted"
     )
-    return with_summary(page, summary, ctx=ctx)
+    reaching = [t for t in page.transforms if t.countable]
+    if not reaching:
+        return line
+    named = ", ".join(f"{t.search_name} to {t.record_type}" for t in reaching)
+    return f"{line}; a transform reaches countable columns: {named}"
 
 
 async def count_step_by_column(

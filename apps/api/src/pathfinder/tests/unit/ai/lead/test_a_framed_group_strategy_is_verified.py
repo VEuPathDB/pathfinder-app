@@ -172,4 +172,6 @@ async def test_a_request_for_proteins_on_a_group_strategy_keeps_its_gap(
         "the strategy returns groups",
     )
     assert delta.digest.success is False
-    assert delta.digest.gaps == [RequirementGap(text="proteins", status="unmet")]
+    assert delta.digest.gaps == [
+        RequirementGap(text="proteins", status="unmet", key="record_type:proteins")
+    ]

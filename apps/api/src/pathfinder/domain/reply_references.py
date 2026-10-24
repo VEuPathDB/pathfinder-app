@@ -427,6 +427,7 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
 
 
 __all__ = [
+    "FaultKind",
     "ProseFault",
     "linked_records",
     "nested_text",

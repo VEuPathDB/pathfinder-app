@@ -6519,6 +6519,14 @@ components:
           - type: number
           - type: 'null'
           title: Reviewedimpact
+        reviewsDisagree:
+          type: boolean
+          title: Reviewsdisagree
+        disagreementText:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disagreementtext
       type: object
       required:
       - id
@@ -6529,6 +6537,8 @@ components:
       - certainty
       - impact
       - reviewedImpact
+      - reviewsDisagree
+      - disagreementText
       title: FindingLine
     FindingModels:
       properties:
@@ -7360,6 +7370,7 @@ components:
           maxLength: 255
           minLength: 1
           title: Modelgenome
+          description: The full organism name of the genome whose model the verdict judges, as the site names it.
         verdict:
           type: string
           enum:
@@ -7990,6 +8001,7 @@ components:
         reason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Reason
         geneIds:
@@ -8053,8 +8065,16 @@ components:
         correctionReason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Correctionreason
+        correctedExons:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Span'
+            type: array
+          - type: 'null'
+          title: Correctedexons
         model:
           anyOf:
           - $ref: '#/components/schemas/ModelSpans'
@@ -8107,6 +8127,7 @@ components:
           type: number
           maximum: 1.0
           minimum: 0.0
+          format: share
           title: Coveredshare
         track:
           type: string
@@ -8389,6 +8410,7 @@ components:
           title: Ns
         share:
           type: number
+          format: share
           title: Share
           readOnly: true
       type: object
@@ -9213,6 +9235,7 @@ components:
         reason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Reason
       type: object
@@ -9951,22 +9974,27 @@ components:
           title: Unresolved
         rate:
           type: number
+          format: share
           title: Rate
           readOnly: true
         low:
           type: number
+          format: share
           title: Low
           readOnly: true
         high:
           type: number
+          format: share
           title: High
           readOnly: true
         floor:
           type: number
+          format: share
           title: Floor
           readOnly: true
         ceiling:
           type: number
+          format: share
           title: Ceiling
           readOnly: true
       additionalProperties: false
@@ -16986,6 +17014,10 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/RequirementGapStatus'
+        key:
+          default: ''
+          title: Key
+          type: string
         sentence:
           description: The requirement, in the researcher's words, and what is missing.
           readOnly: true
@@ -18568,7 +18600,13 @@ components:
           description: 'What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such
             as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins,
             ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which
-            search answers it: FRAME finds the search in the site''s catalog.'
+            search answers it: FRAME finds the search in the site''s catalog. gene_model_audit is a request to check the gene
+            models of a genome or of named genes for errors, whatever its verb: pseudogene calls on intact genes; selenoproteins
+            cut at their selenocysteine; gene length against orthologs; one gene split into two models; neighbouring genes
+            fused into one model; strain model against its reference; genes missing from the annotation; organelle genes at
+            the circular join; exon structure against RNA-seq. A request to find or list genes by a property of their models
+            asks for no error check and is a build: "Find pseudogenes in P. falciparum NF54" and "List genes longer than 10
+            kb in 3D7" are new_strategy.'
         inferredGoal:
           maxLength: 500
           title: Inferredgoal

@@ -12,6 +12,57 @@
   emitted, under labels of its own. A synthesis summary is stored with its references
   and rendered on every read. See
   [a value is placed by stat and cited by cite](decisions/a-value-is-placed-by-stat-and-cited-by-cite.md).
+* **A finding line states when its two reviews disagree.** `FindingLine` carries
+  `reviewsDisagree` and `disagreementText`, from `FindingReview.disagreement` on the stored
+  review row, so a disputed finding in a synthesis section or in the headline always shows
+  both verdicts. The agreement count reads the same property.
+* **A review is offered literature fields only with a source open, and a spent review keeps
+  its last refusal.** With no research source the reviewer writes `UnsearchedReview` and
+  reads no literature instruction. A review that spends its retries stores the last refusal
+  in plain words after `OUT_OF_RETRIES`.
+* **A usage row counts a cached token once.** pydantic-ai's `input_tokens` already holds
+  the cache reads and writes, so `_charge_token_delta` charges input plus output tokens
+  only. The dollar amount was already right: `genai_prices` prices the cache tokens as
+  parts of the input. The current period's `monthly_usage` token totals written before
+  this fix overstate tokens by about 2x; the dollars and every quota decision were always
+  right, and no reader decides anything from the token totals. No backfill is possible,
+  because the Lead's cache tokens are not stored.
+* **A step with no countable column names the transform that reaches one.** veupathdb-mcp
+  0.2.0b50 (`StepColumns.transforms`, `transforms_from`, `Share`) is taken. `step_columns`
+  answers `reach` (`step`, `transform`, `none`) and `transforms`, each a transform to
+  another record type with its countable columns, never narrowed by the asked name; a read
+  that named one and that no tally followed refuses, once per turn, a reply that neither
+  asks nor offers a card (`unfollowed_reach`), and the refusal makes no claim about the
+  site. A requirement gap the check found `unmet` carries its requirement's key, makes the
+  ledger's constraint `ungroundable`, makes `blames_the_tree` true and refuses a reply that
+  ends the turn `complete` (`unmet_requirement`). Each rule of the contract is asked once
+  per turn (`refused_rules`) and prose faults hold a bound of their own (`prose_refusals`);
+  past it a reply that writes a number or names a fact the facts lack is withheld with its
+  questions, state and reason kept, and a shape fault goes through unchecked. A number word
+  in a reference's clause is refused as a digit is, "times" and "dozen" among them, and a
+  number a step sets is its `[value:]`. An intron finding's corrected model reads b49's
+  `IntronAudit.corrected_exons`, so an audit stored before it proposes no corrected model,
+  and the stored intron results carry the field.
+* **The Lead plans, starts and reads a gene-model audit on typed grounds.** An empty
+  `checks` list in a plan request lets the planner choose the screens (`PlanAsk.checks` is a
+  tuple, never null). A plan with no scope is refused to the Lead with its reason, and a genome
+  the site does not hold is refused with the organisms its words name and the rule that a
+  request of gene targets names no genome. A stored verdict names a genome the reads of its
+  genes placed it in: each check read now reads the full organism name of each gene it names
+  (the gene record's `organism_full`, never the `organismAbbrev` the library reads, once per gene
+  in an investigation, `services/gene_records/genome.py`) and hands it to the model, and a finding read places its genes in the finding's genomes
+  (`AuditDeps.misplaced_genome`), for the investigator and the auditor alike. A run's state
+  reaches a reply only through a reference to a run the turn started or read by id; a listed
+  run is not held. The failed-check rule does not ask an audit turn about the strategy, and a
+  digest whose strategy the site no longer holds is dropped when the turn arrives, once a 404 on
+  the strategy and a listing without it agree. The
+  classification gate holds a gene id the conversation showed last. A turn that started an
+  audit reaches no tool after the start, so the reply says it started and the turn ends, and a
+  budget stop says what an audit turn started or read and names only the limit it spent. A run
+  read and a review hold the genes of the run's targets, headline and reviewed findings as
+  records a reply cites. The classifier defines `gene_model_audit` once, as a check of gene
+  models for errors, and names a find or list request by a model property a build.
+
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a

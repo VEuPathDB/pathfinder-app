@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree
 
@@ -25,7 +26,7 @@ URL = (
 OBJECTION = "The step keeps genes higher at 24 h than at 36 h, not at 18 h."
 QUESTION = "Should the comparison use 18 h alone as the reference?"
 BUDGET = (
-    "I stopped this turn at its budget of 80 model calls and 600000 tokens. "
+    "I stopped this turn at its budget of 80 model calls. "
     "Narrow the request and send it again, and I will start a fresh turn on it."
 )
 WORDS = "genes higher at 24 h than at 18 h and 36 h"
@@ -89,3 +90,6 @@ def objection() -> VerificationDigest:
         reason="reference group differs from the request",
         success=False,
     )
+
+
+AT_THE_CALLS = RunUsage(requests=80)

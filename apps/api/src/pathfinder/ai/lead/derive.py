@@ -22,9 +22,12 @@ from pathfinder.domain.strategy.constraint_grounding import ground_against_spec
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintSource,
+    ConstraintStatus,
+    GroundedConstraint,
     merge_constraints,
     provisional_constraints,
 )
+from pathfinder.domain.unmet_requirements import unmet_requirement_keys
 
 _TRANSIENT_MARKERS: frozenset[str] = frozenset(
     {
@@ -120,6 +123,19 @@ def _carried_requirements(
     ]
 
 
+def _as_checked(grounded: GroundedConstraint, unmet: set[str]) -> GroundedConstraint:
+    if grounded.status is not ConstraintStatus.GROUNDED:
+        return grounded
+    if grounded.constraint.key not in unmet:
+        return grounded
+    return grounded.model_copy(
+        update={
+            "status": ConstraintStatus.UNGROUNDABLE,
+            "note": "the check found nothing in the strategy answers it",
+        }
+    )
+
+
 def _derive_constraint_section(
     state: PipelineState, intent: UserIntent | None
 ) -> ConstraintSection:
@@ -155,10 +171,12 @@ def _derive_constraint_section(
             composed=composed,
         )
     held_open = {g.constraint.key for g in unexpressed}
+    verdict = state.turn_verdict
+    unmet = set() if verdict is None else set(unmet_requirement_keys(verdict.gaps))
     return ConstraintSection(
         grounded=[
             *(
-                g
+                _as_checked(g, unmet)
                 for g in ground_against_spec(
                     merged, spec, marks=state.domain.data_marks
                 )

@@ -267,6 +267,7 @@ def test_a_proposal_without_a_scope_draws_no_card() -> None:
     refused = ScopeProposal(
         request=PlanRequest(site_id="exampledb", genomes=("alpha",)),
         unresolved=("alpha",),
+        suggestions={"alpha": ()},
     )
 
     with pytest.raises(ValueError, match="no scope"):
@@ -358,18 +359,38 @@ def test_a_genome_a_target_reads_whole_stays_audited_and_the_cut_falls_on_the_ot
             },
             "an audit checks at most 200 gene targets, not 201",
         ),
-        (
-            {"checks": ()},
-            "an audit request names at least one check, or leaves the checks to the planner",
-        ),
     ],
-    ids=["confirm_limit_low", "confirm_limit_high", "targets", "no_checks"],
+    ids=["confirm_limit_low", "confirm_limit_high", "targets"],
 )
 def test_a_request_out_of_bounds_is_refused_in_words(
     change: dict[str, object], message: str
 ) -> None:
     with pytest.raises(ValueError, match=message):
         PlanRequest.model_validate({"siteId": "exampledb", **change})
+
+
+def test_a_proposal_holds_suggestions_for_every_unresolved_genome() -> None:
+    request = PlanRequest(site_id="exampledb", genomes=("alpha", "beta"))
+
+    with pytest.raises(ValueError, match="a proposal suggests for every unresolved"):
+        ScopeProposal(
+            request=request, unresolved=("alpha", "beta"), suggestions={"alpha": ()}
+        )
+    assert ScopeProposal(
+        request=request, unresolved=("alpha",), suggestions={"alpha": ()}
+    ).suggestions == {"alpha": ()}
+
+
+def test_an_empty_check_list_leaves_the_checks_to_the_planner() -> None:
+    sent = PlanRequest.model_validate({"siteId": "exampledb", "checks": []})
+    schema = PlanRequest.model_json_schema(by_alias=True)["properties"]["checks"]
+
+    assert (sent.checks, PlanRequest(site_id="exampledb").checks) == ((), ())
+    assert "null" not in str(schema)
+    assert schema["description"] == (
+        "The screens to run over every named genome. An empty list lets the "
+        "planner choose them."
+    )
 
 
 def test_a_request_at_the_bounds_is_taken() -> None:

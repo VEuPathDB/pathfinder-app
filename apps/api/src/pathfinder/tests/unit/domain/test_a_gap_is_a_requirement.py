@@ -63,7 +63,11 @@ def test_a_row_that_names_a_held_requirement_is_a_gap() -> None:
 
     gaps = check_gaps(structure=None, words=[], review=review, requirements=_HELD)
 
-    assert gaps == [RequirementGap(text="RNA-binding domain", status="unshown")]
+    assert gaps == [
+        RequirementGap(
+            text="RNA-binding domain", status="unshown", key="other:RNA-binding domain"
+        )
+    ]
 
 
 _APICOPLAST = "predicted apicoplast targeting signal"
@@ -152,7 +156,9 @@ def test_a_row_no_record_judged_is_a_gap_of_its_own() -> None:
 
 
 def test_an_unmet_row_fails_the_check() -> None:
-    gap = RequirementGap(text="RNA-binding domain", status="unmet")
+    gap = RequirementGap(
+        text="RNA-binding domain", status="unmet", key="other:RNA-binding domain"
+    )
 
     assert (gap.sentence, gap.fails_the_check) == (
         "'RNA-binding domain': nothing in the strategy answers it",

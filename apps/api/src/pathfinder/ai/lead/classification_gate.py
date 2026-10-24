@@ -202,11 +202,17 @@ def _context_refusal(
 def _unheld_ids(
     state: PipelineState, intent: UserIntent, site: SiteReading
 ) -> list[str]:
-    """The named ids neither the text types nor an attached file can show.
+    """The named ids neither the text types, the records the conversation
+    showed last nor an attached file can show.
 
     The gate does not read a file; an id it may show is held when the site has it.
     """
-    untyped = untyped_ids(intent, state.user_prompt)
+    shown = {record.record_id.casefold() for record in state.domain.shown_records}
+    untyped = [
+        gene_id
+        for gene_id in untyped_ids(intent, state.user_prompt)
+        if gene_id.casefold() not in shown
+    ]
     if not _carries_a_file(state):
         return untyped
     return [gene_id for gene_id in untyped if not site.holds(gene_id)]

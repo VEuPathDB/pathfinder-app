@@ -247,11 +247,23 @@ ERROR_TYPE_DESCRIPTIONS: dict[ErrorType, str] = {
     ),
 }
 
-VERDICT_KIND_SENTENCES: dict[VerdictKind, str] = {
-    "error": "The review keeps the error",
-    "no_error": "The review finds no error",
-    "undecided": "The review could not decide",
+REVIEW_FINDS: dict[VerdictKind, str] = {
+    "error": "keeps the error",
+    "no_error": "finds no error",
+    "undecided": "could not decide",
 }
+
+VERDICT_KIND_SENTENCES: dict[VerdictKind, str] = {
+    kind: f"The review {finds}" for kind, finds in REVIEW_FINDS.items()
+}
+
+
+def disagreement_sentence(first: VerdictKind, second: VerdictKind) -> str:
+    return (
+        f"The two independent reviews disagree: the first {REVIEW_FINDS[first]}, "
+        f"the second {REVIEW_FINDS[second]}"
+    )
+
 
 LITERATURE_SENTENCES: dict[LiteratureStatus, str] = {
     "known": "Already reported",

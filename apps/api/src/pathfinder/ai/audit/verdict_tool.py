@@ -23,6 +23,19 @@ def unheld_cites_message(unheld: Sequence[str]) -> str:
     )
 
 
+def unheld_genomes_message(misplaced: Sequence[str]) -> str:
+    return (
+        f"These verdicts name a genome the reads do not hold: {'; '.join(misplaced)}. "
+        "model_genome is the genome of a gene the verdict judges, as the read of "
+        "that gene names it. Nothing was stored."
+    )
+
+
+def unheld_genomes(deps: AuditDeps, verdicts: Sequence[GeneModelVerdict]) -> list[str]:
+    found = (deps.misplaced_genome(verdict) for verdict in verdicts)
+    return list(dict.fromkeys(m for m in found if m is not None))
+
+
 async def record_gene_model_verdicts(
     ctx: RunContext[AuditDeps],
     verdicts: Annotated[
@@ -42,6 +55,9 @@ async def record_gene_model_verdicts(
     unheld = [cite for verdict in verdicts for cite in verdict.unheld_cites(held)]
     if unheld:
         raise ModelRetry(unheld_cites_message(unheld))
+    genomes = unheld_genomes(ctx.deps, verdicts)
+    if genomes:
+        raise ModelRetry(unheld_genomes_message(genomes))
     stored: list[int] = []
     for verdict in verdicts:
         stored.append(

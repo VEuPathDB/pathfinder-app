@@ -76,9 +76,10 @@ beside the reply in the default thread.
 
 The reply writes no fact itself. `LeadResponse.prose` and a card's `reply` hold references,
 and `domain/reply_references.py::render_reply` replaces each with the fact it names; a
-reference that names nothing the facts hold, which only a reply let through past
+reference that names nothing the facts hold, which only a card's reply let through past
 [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)
-carries, is shown as its plain words:
+carries, is shown as its plain words (a typed reply that still names one past the bound is
+withheld):
 
 | reference | renders |
 |---|---|
@@ -123,10 +124,18 @@ parameter's published initial value, never more than four significant digits, an
 significant digits where those decimals show zero (`BoundValue.rounded`,
 `domain/strategy/number_precision.py`); the facts row and the `[value:]` reference show the same
 text. The check reads a number word only where the grammar places a reference
-(`domain/reference_placement.py`): a number word (one to twelve, "twice", a "<word>-fold") in the
-clause of a `[value:]`, `[count:]`, `[before:]`, `[root]`, `[root_before]`, `[last_change:]` or
-`[diff:]` reference is refused, since the reference stands in place of the number; "both" names two
-inputs and stands. A count noun ("gene", "record", their plurals, the strategy's record noun)
+(`domain/reference_placement.py`): a number word (one to twelve, "twice", "times", "dozen",
+"half", "third", "quarter", "fifth", "percent", a "<word>-fold") in the clause of a `[value:]`,
+`[count:]`, `[before:]`, `[root]`, `[root_before]`, `[last_change:]` or `[diff:]` reference is
+refused, since a number claim comes from a reference as a digit does; "both" names two inputs
+and stands. A number a step sets, such as the protein count of a group, is written as its
+`[value:<step_id>.<param>]`. A number word outside a reference's clause is not refused: treating
+it as a digit would refuse "one of", "no one" and "two steps" unless a word exemption were added,
+which is a heuristic. The cost is that an unbacked claim outside a clause, such as "across five
+species", goes through; its guard is the Lead's instruction "A count or value reference stands in
+place of the number, so its clause writes no number word ... A number a step sets, such as the
+protein count of a group, is its [value:<step_id>.<param>]" (`ai/lead/_lead_instructions.py`,
+`card_reply.PLACEMENT_RULES`). A count noun ("gene", "record", their plurals, the strategy's record noun)
 next after a count reference, or after only continuation words ("more", "fewer", "additional",
 "matching"), is refused, since the reference renders with its
 noun. Elsewhere a small count of steps in words is structure. Its correction

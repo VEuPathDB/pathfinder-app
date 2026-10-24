@@ -7,6 +7,7 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
@@ -40,7 +41,12 @@ class GeneModelVerdict(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     genes: tuple[GeneName, ...] = Field(min_length=1, max_length=4)
-    model_genome: OrganismName
+    model_genome: OrganismName = Field(
+        description=(
+            "The full organism name of the genome whose model the verdict "
+            "judges, as the site names it."
+        )
+    )
     verdict: VerdictKind
     error_type: ErrorType | None = None
     certainty: Certainty | None = None
@@ -92,6 +98,29 @@ class FindingReview(CamelModel):
             raise ValueError(msg)
         return self
 
+    @property
+    def disagreement(self) -> tuple[VerdictKind, VerdictKind] | None:
+        first, second = self.verdict.verdict, self.second_verdict
+        if second is None or second == first:
+            return None
+        return first, second
+
+
+class UnsearchedReview(FindingReview):
+    already_known: SkipJsonSchema[LiteratureStatus] = "not_searched"
+    known_from: SkipJsonSchema[tuple[str, ...]] = ()
+    paper_depends: SkipJsonSchema[bool | None] = None
+
+    @model_validator(mode="after")
+    def _not_searched(self) -> Self:
+        if (self.already_known, self.paper_depends) != ("not_searched", None):
+            msg = (
+                "no literature source is open for this review, so it states "
+                "nothing about the literature"
+            )
+            raise ValueError(msg)
+        return self
+
 
 class ErrorTypeSection(CamelModel):
     model_config = ConfigDict(frozen=True)
@@ -124,7 +153,7 @@ def review_agreement(reviews: Sequence[FindingReview]) -> ReviewAgreement:
     paired = [r for r in reviews if r.second_verdict is not None]
     return ReviewAgreement(
         sampled=len(paired),
-        agreed=sum(r.verdict.verdict == r.second_verdict for r in paired),
+        agreed=sum(r.disagreement is None for r in paired),
     )
 
 

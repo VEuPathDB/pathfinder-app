@@ -222,7 +222,13 @@ async def test_a_first_run_that_stops_is_stored_stopped_and_not_judged_again(
 
     (found,) = await stored_reviews(run_id)
     assert found.review is not None
-    assert (found.review.stopped, found.verdict.cause) == (True, review.OUT_OF_RETRIES)
+    reason = (
+        f"{review.OUT_OF_RETRIES} The last refusal: verdict.genes: Field required; "
+        "verdict.modelGenome: Field required; verdict.verdict: Field required; "
+        "verdict.cause: Field required; verdict.cites: Field required; "
+        "cardText: Field required"
+    )
+    assert (found.review.stopped, found.verdict.cause) == (True, reason)
     assert len(recorder.runs()) == 1
 
 

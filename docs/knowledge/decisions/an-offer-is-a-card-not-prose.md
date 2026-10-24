@@ -100,7 +100,8 @@ Lead asks in prose.
   `ends_on_a_card` set: the count claims, the named searches and every other rule of a typed reply
   apply, and `unrecorded_question` and `unfinished_work` stand because a card asks its own
   question. On a mismatch every card of the response is denied with the correction and the Lead
-  answers again in the same run; the latch is `contract_refused`, shared with the typed reply.
+  answers again in the same run; each rule is asked once per turn (`TurnMarkers.refused_rules`),
+  shared with the typed reply.
   `ai/graph/_lead_card_hold.py::CardHold` holds every chunk of each new card until the cards are
   denied (all dropped) or the run ends; each card is then written after its reply as text, and
   any free text beside a card is dropped, so the reply the contract read is the only one the

@@ -64,7 +64,11 @@ def test_the_plasmodb_row_names_the_ring_stage_in_either_order(
     )
 
     assert gaps == [
-        RequirementGap(text="expressed in the ring stage", status="unexpressed")
+        RequirementGap(
+            text="expressed in the ring stage",
+            status="unexpressed",
+            key="other:expressed in the ring stage",
+        )
     ]
 
 

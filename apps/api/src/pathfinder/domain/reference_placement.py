@@ -29,6 +29,8 @@ _NUMBER_WORDS = (
     "eleven",
     "twelve",
     "twice",
+    "times",
+    "dozen",
     # A share of a count is a number the facts hold or a difference renders.
     "half",
     "third",

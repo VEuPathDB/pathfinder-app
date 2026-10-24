@@ -52,11 +52,11 @@ class PlanAsk(CamelModel):
             "the site does not hold comes back unresolved, with suggestions."
         ),
     )
-    checks: tuple[ScreenedCheck, ...] | None = Field(
-        default=None,
+    checks: tuple[ScreenedCheck, ...] = Field(
+        default=(),
         description=(
-            "The screens to run over every named genome. Null lets the planner "
-            "choose them; an empty list is refused."
+            "The screens to run over every named genome. An empty list lets the "
+            "planner choose them."
         ),
     )
     targets: tuple[GeneTarget, ...] = Field(
@@ -73,19 +73,6 @@ class PlanAsk(CamelModel):
             f"confirms, from 1 to {MAX_CONFIRM_LIMIT}. Null keeps the default."
         ),
     )
-
-    @field_validator("checks")
-    @classmethod
-    def _some_check(
-        cls, checks: tuple[ScreenedCheck, ...] | None
-    ) -> tuple[ScreenedCheck, ...] | None:
-        if checks == ():
-            msg = (
-                "an audit request names at least one check, or leaves the checks "
-                "to the planner"
-            )
-            raise ValueError(msg)
-        return checks
 
     @field_validator("targets")
     @classmethod
@@ -186,6 +173,17 @@ class ScopeProposal(CamelModel):
     def _scope_and_estimate_together(self) -> Self:
         if (self.scope is None) != (self.estimate is None):
             msg = "a proposal carries a scope and its estimate together"
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _suggestions_for_the_unresolved(self) -> Self:
+        unsuggested = [n for n in self.unresolved if n not in self.suggestions]
+        if unsuggested:
+            msg = (
+                "a proposal suggests for every unresolved genome, and not for "
+                f"{', '.join(unsuggested)}"
+            )
             raise ValueError(msg)
         return self
 

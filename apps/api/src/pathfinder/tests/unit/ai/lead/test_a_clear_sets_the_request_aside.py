@@ -15,7 +15,7 @@ from pathfinder.ai.lead.dispatch_context import agent_deps_for, framing_goal
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_budget import budget_stop_report
+from pathfinder.ai.lead.turn_budget import budget_stop_report, lead_usage_limits
 from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.tools.standalone import conversation
 from pathfinder.domain.evidence import NamedControlSet
@@ -27,6 +27,7 @@ from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead._answered_draft import QUESTION, framed
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    AT_THE_CALLS,
     BUDGET,
     TITLE,
     URL,
@@ -132,6 +133,8 @@ async def test_a_budget_stop_after_a_clear_cites_no_cleared_link() -> None:
         deps.runtime.strategy_session,
         deps.state.turn_markers,
         [],
+        AT_THE_CALLS,
+        lead_usage_limits(),
     )
 
     assert URL not in report

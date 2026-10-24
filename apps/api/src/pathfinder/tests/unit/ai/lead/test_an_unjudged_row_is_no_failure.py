@@ -43,7 +43,11 @@ def test_an_unjudged_row_is_a_gap_and_no_failure() -> None:
     findings = _findings(_deps(), review, [])
 
     assert (findings.gaps, findings.sentence()) == (
-        [RequirementGap(text="signal peptide", status="unjudged")],
+        [
+            RequirementGap(
+                text="signal peptide", status="unjudged", key="other:signal peptide"
+            )
+        ],
         _NO_BUILD,
     )
 

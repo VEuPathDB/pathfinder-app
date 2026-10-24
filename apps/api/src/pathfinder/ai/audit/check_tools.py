@@ -40,7 +40,12 @@ from veupathdb_mcp.tools import (
 
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.fact_sources import warm_fact_schemas
-from pathfinder.ai.audit.facts import AuditRead, check_fact, gene_records, rate_fact
+from pathfinder.ai.audit.facts import (
+    AuditRead,
+    check_fact,
+    genome_records,
+    rate_fact,
+)
 from pathfinder.domain.audit.verdicts import read_cite
 from pathfinder.services.audit import investigation
 from pathfinder.services.audit.planning import plain_problems
@@ -48,7 +53,11 @@ from pathfinder.services.audit.planning import plain_problems
 type Count = Annotated[int, Field(ge=0)]
 
 
-def _recorded[T: BaseModel](
+class GeneRead[T](AuditRead[T]):
+    genomes: dict[str, str]
+
+
+async def _recorded[T: BaseModel](
     ctx: RunContext[AuditDeps],
     name: str,
     subjects: tuple[str, ...],
@@ -56,21 +65,26 @@ def _recorded[T: BaseModel](
     *,
     gene_ids: Sequence[GeneId],
     summary: str,
-) -> ToolReturn[AuditRead[T]]:
+) -> ToolReturn[GeneRead[T]]:
     resolved = tuple(gene_id.resolved for gene_id in gene_ids) or subjects
-    named = (gene for gene_id in gene_ids for gene in (gene_id.given, gene_id.resolved))
+    known = ctx.deps.record_genomes
+    unread = [i.resolved for i in gene_ids if i.resolved not in known]
+    known.update(await investigation.gene_genomes(ctx.deps.site_id, unread))
+    genomes = {g: known[i.resolved] for i in gene_ids for g in (i.given, i.resolved)}
     ctx.deps.reads |= {read_cite(name, *subjects), read_cite(name, *resolved)}
+    ctx.deps.hold_genomes({gene: [genome] for gene, genome in genomes.items()})
     fact = check_fact(name, subjects, answer)
     ctx.deps.facts.append(fact)
-    ctx.deps.records.extend(gene_records(ctx.deps.site_id, named))
-    return with_summary(AuditRead(answer=answer, fact_id=fact.id), summary, ctx=ctx)
+    ctx.deps.records.extend(genome_records(ctx.deps.site_id, genomes))
+    read = GeneRead[T](answer=answer, fact_id=fact.id, genomes=genomes)
+    return with_summary(read, summary, ctx=ctx)
 
 
 async def audit_gene_length_tool(
     ctx: RunContext[AuditDeps], gene: str
-) -> ToolReturn[AuditRead[GeneLengthAudit]]:
+) -> ToolReturn[GeneRead[GeneLengthAudit]]:
     answer = await investigation.gene_length(ctx.deps.site_id, gene)
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_gene_length",
         (gene,),
@@ -82,9 +96,9 @@ async def audit_gene_length_tool(
 
 async def audit_gene_split_tool(
     ctx: RunContext[AuditDeps], gene_a: str, gene_b: str
-) -> ToolReturn[AuditRead[GeneLengthAudit]]:
+) -> ToolReturn[GeneRead[GeneLengthAudit]]:
     answer = await investigation.gene_split(ctx.deps.site_id, gene_a, gene_b)
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_gene_split",
         (gene_a, gene_b),
@@ -96,11 +110,11 @@ async def audit_gene_split_tool(
 
 async def audit_strain_model_tool(
     ctx: RunContext[AuditDeps], strain_gene: str, reference_gene: str
-) -> ToolReturn[AuditRead[StrainModelAudit]]:
+) -> ToolReturn[GeneRead[StrainModelAudit]]:
     answer = await investigation.strain_model(
         ctx.deps.site_id, strain_gene, reference_gene
     )
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_strain_model",
         (strain_gene, reference_gene),
@@ -112,11 +126,11 @@ async def audit_strain_model_tool(
 
 async def audit_pseudogene_call_tool(
     ctx: RunContext[AuditDeps], strain_gene: str, reference_gene: str
-) -> ToolReturn[AuditRead[PseudogeneCallAudit]]:
+) -> ToolReturn[GeneRead[PseudogeneCallAudit]]:
     answer = await investigation.pseudogene_call(
         ctx.deps.site_id, strain_gene, reference_gene
     )
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_pseudogene_call",
         (strain_gene, reference_gene),
@@ -128,11 +142,11 @@ async def audit_pseudogene_call_tool(
 
 async def audit_pseudogene_anatomy_tool(
     ctx: RunContext[AuditDeps], strain_gene: str, reference_gene: str
-) -> ToolReturn[AuditRead[Anatomy]]:
+) -> ToolReturn[GeneRead[Anatomy]]:
     answer = await investigation.pseudogene_anatomy(
         ctx.deps.site_id, strain_gene, reference_gene
     )
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_pseudogene_anatomy",
         (strain_gene, reference_gene),
@@ -144,11 +158,11 @@ async def audit_pseudogene_anatomy_tool(
 
 async def audit_selenoprotein_end_tool(
     ctx: RunContext[AuditDeps], gene: str, reference_gene: str
-) -> ToolReturn[AuditRead[SelenoproteinEndAudit]]:
+) -> ToolReturn[GeneRead[SelenoproteinEndAudit]]:
     answer = await investigation.selenoprotein_end(
         ctx.deps.site_id, gene, reference_gene
     )
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_selenoprotein_end",
         (gene, reference_gene),
@@ -160,9 +174,9 @@ async def audit_selenoprotein_end_tool(
 
 async def audit_intron_support_tool(
     ctx: RunContext[AuditDeps], gene: str
-) -> ToolReturn[AuditRead[IntronAudit]]:
+) -> ToolReturn[GeneRead[IntronAudit]]:
     answer = await investigation.intron_support(ctx.deps.site_id, gene)
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_intron_support",
         (gene,),
@@ -174,9 +188,9 @@ async def audit_intron_support_tool(
 
 async def audit_gene_evidence_tool(
     ctx: RunContext[AuditDeps], gene: str
-) -> ToolReturn[AuditRead[GeneEvidence]]:
+) -> ToolReturn[GeneRead[GeneEvidence]]:
     answer = await investigation.gene_evidence(ctx.deps.site_id, gene)
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_gene_evidence",
         (gene,),
@@ -188,9 +202,9 @@ async def audit_gene_evidence_tool(
 
 async def audit_genome_provenance_tool(
     ctx: RunContext[AuditDeps], organism: str
-) -> ToolReturn[AuditRead[GenomeProvenance]]:
+) -> ToolReturn[GeneRead[GenomeProvenance]]:
     answer = await investigation.genome_provenance(ctx.deps.site_id, organism)
-    return _recorded(
+    return await _recorded(
         ctx,
         "audit_genome_provenance",
         (organism,),

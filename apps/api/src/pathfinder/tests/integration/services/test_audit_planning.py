@@ -85,6 +85,16 @@ async def test_a_named_genome_resolves_and_takes_its_species_reference() -> None
 
 
 @pytest.mark.usefixtures("site")
+async def test_an_empty_check_list_screens_what_the_planner_chooses() -> None:
+    request = PlanRequest(site_id=SITE, genomes=("examplea alpha a",), checks=())
+
+    proposal = await propose_scope(request)
+
+    assert proposal.scope is not None
+    assert proposal.scope.checks == ("gene_length", "gene_split", "pseudogene_call")
+
+
+@pytest.mark.usefixtures("site")
 async def test_the_words_of_one_organism_resolve_it() -> None:
     proposal = await propose_scope(plan_request("beta s"))
 
