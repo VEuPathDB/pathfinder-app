@@ -11426,6 +11426,16 @@
                 "type": "null"
               }
             ]
+          },
+          "junctionTracks": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JunctionTracks"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -11552,6 +11562,31 @@
         "type": "object"
       },
       "JsonValue": {},
+      "JunctionTracks": {
+        "properties": {
+          "organismAbbrev": {
+            "type": "string",
+            "title": "Organismabbrev"
+          },
+          "listed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Listed"
+          },
+          "read": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Read"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organismAbbrev",
+          "listed",
+          "read"
+        ],
+        "title": "JunctionTracks"
+      },
       "KeyRefusal": {
         "type": "string",
         "enum": [
@@ -13749,6 +13784,11 @@
           "residueDifferences": {
             "type": "integer",
             "title": "Residuedifferences"
+          },
+          "prematureStopsTruncated": {
+            "type": "boolean",
+            "title": "Prematurestopstruncated",
+            "default": false
           },
           "geneIds": {
             "items": {
