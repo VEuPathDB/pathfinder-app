@@ -33,11 +33,12 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.ai.capabilities.metering import RunPricing, SpendMeter
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.reply_references import note_label, shown_reply
+from pathfinder.domain.reply_references import shown_reply
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by

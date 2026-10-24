@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterator
 from typing import Literal
-from uuid import uuid4
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
@@ -263,9 +262,8 @@ def _rendered_with_notes(
 
     def replaced(match: re.Match[str]) -> str:
         body = match.group("body") or ""
-        noted = notes.marker(body) if reference_kind(match) == "cite" else None
-        if noted is not None:
-            return noted + (match.group("noun") or "")
+        if reference_kind(match) == "cite":
+            return (notes.marker(body) or "") + (match.group("noun") or "")
         rendered = _rendered(match, facts)
         noun = match.group("noun") or ""
         shown = _unheld_words(match) if rendered is None else rendered
@@ -290,10 +288,6 @@ def nested_text(prose: str, facts: TurnFacts) -> str:
         return "" if value is None else f" ({value})"
 
     return render_reply(_A_CITE.sub(cited, prose), facts)
-
-
-def note_label() -> str:
-    return f"n{uuid4().hex[:8]}-"
 
 
 def shown_reply(prose: str, facts: TurnFacts, label: str) -> str:
@@ -436,7 +430,6 @@ __all__ = [
     "ProseFault",
     "linked_records",
     "nested_text",
-    "note_label",
     "prose_faults",
     "render_reply",
     "shape_faults",

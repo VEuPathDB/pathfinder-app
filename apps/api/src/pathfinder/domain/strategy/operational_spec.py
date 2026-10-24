@@ -72,6 +72,8 @@ class BoundValue(CamelModel):
     decimals: int | None = None
     # The taxon a message names whose organisms the pick takes, else None.
     taxon: NamedTaxon | None = None
+    # A filter value in words, each field by the name the sheet shows.
+    words: str = ""
 
     @property
     def unset(self) -> bool:

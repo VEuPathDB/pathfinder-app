@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import re
-
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.reply_references import (
     ProseFault,
     nested_text,
-    note_label,
     prose_faults,
     render_reply,
     shown_reply,
@@ -22,7 +19,7 @@ _FACT = StatisticFact(
     title="Finding 1 of audit run 0b6f3a52-6a1e-4c55-9a62-1f1d2a3b4c5d",
     rows=[
         StatisticRowFact(name="finding.certainty", value="high", form="word"),
-        StatisticRowFact(name="finding.frameKept", value="Yes", form="word"),
+        StatisticRowFact(name="finding.frameKept", value="yes", form="word"),
         StatisticRowFact(
             name="review.cause", value="The junction has no reads.", form="sentence"
         ),
@@ -51,7 +48,7 @@ def test_a_cite_reference_is_a_note_after_the_words_before_it() -> None:
 
     assert shown_reply(prose, _FACTS, "a-") == (
         "Confidence is high[^a-1], and the frame is kept[^a-2].\n\n"
-        "[^a-1]: finding certainty: high\n[^a-2]: finding frame kept: Yes"
+        "[^a-1]: finding certainty: high\n[^a-2]: finding frame kept: yes"
     )
 
 
@@ -77,8 +74,8 @@ def test_two_labels_give_two_replies_notes_of_their_own() -> None:
     prose = "Kept [cite:stat_0a1b2c3d.finding.frameKept]."
 
     assert (shown_reply(prose, _FACTS, "m1-"), shown_reply(prose, _FACTS, "m2-")) == (
-        "Kept[^m1-1].\n\n[^m1-1]: finding frame kept: Yes",
-        "Kept[^m2-1].\n\n[^m2-1]: finding frame kept: Yes",
+        "Kept[^m1-1].\n\n[^m1-1]: finding frame kept: yes",
+        "Kept[^m2-1].\n\n[^m2-1]: finding frame kept: yes",
     )
 
 
@@ -128,13 +125,6 @@ def test_a_word_may_be_written_in_place_or_cited() -> None:
     assert prose_faults(prose, _FACTS) == []
 
 
-def test_each_reply_takes_a_note_label_of_its_own() -> None:
-    labels = {note_label() for _ in range(50)}
-
-    assert len(labels) == 50
-    assert all(re.fullmatch(r"n[0-9a-f]{8}-", label) for label in labels)
-
-
 def test_nested_text_places_values_and_cites_in_parentheses() -> None:
     prose = (
         "The run kept [stat:stat_0a1b2c3d.finding.reads] reads, and the review "
@@ -181,3 +171,9 @@ def test_a_held_name_written_out_names_the_reference_that_places_it() -> None:
             references=("[stat:stat_9e8d7c6b.finding.genome]",),
         )
     ]
+
+
+def test_a_cite_that_names_nothing_held_leaves_no_gap() -> None:
+    prose = "The review kept the error [cite:stat_0a1b2c3d.review.missing]."
+
+    assert shown_reply(prose, _FACTS, "c-") == "The review kept the error."

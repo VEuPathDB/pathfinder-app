@@ -21,10 +21,11 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolOutputErrorChunk,
 )
 
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.ai.lead.card_reply import CardCallReply
 from pathfinder.ai.lead.recorded_cards import completed_consult_input
-from pathfinder.domain.reply_references import note_label, shown_reply
+from pathfinder.domain.reply_references import shown_reply
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.turn_facts import TurnFacts
 

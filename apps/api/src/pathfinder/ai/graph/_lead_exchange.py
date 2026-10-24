@@ -8,9 +8,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.exchanges import Exchange
-from pathfinder.domain.reply_references import note_label, shown_reply
+from pathfinder.domain.reply_references import shown_reply
 
 
 class _OptionWords(CamelModel):

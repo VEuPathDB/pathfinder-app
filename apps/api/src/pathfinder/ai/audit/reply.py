@@ -13,10 +13,10 @@ from pydantic_ai.output import OutputContext
 
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.audit.deps import AuditDeps
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.reply_references import (
-    note_label,
     prose_faults,
     shown_reply,
 )

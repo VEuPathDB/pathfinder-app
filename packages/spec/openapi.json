@@ -6413,7 +6413,7 @@
           "synthesis": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Synthesis"
+                "$ref": "#/components/schemas/SynthesisView"
               },
               {
                 "type": "null"
@@ -18009,7 +18009,7 @@
         "title": "SubsystemStatus",
         "description": "Per-subsystem readiness record."
       },
-      "Synthesis": {
+      "SynthesisView": {
         "properties": {
           "sections": {
             "items": {
@@ -18023,13 +18023,10 @@
               "type": "integer"
             },
             "type": "array",
-            "maxItems": 10,
             "title": "Headline"
           },
           "summary": {
             "type": "string",
-            "maxLength": 1200,
-            "minLength": 1,
             "format": "sentence",
             "title": "Summary"
           },
@@ -18044,7 +18041,7 @@
           "summary",
           "agreement"
         ],
-        "title": "Synthesis"
+        "title": "SynthesisView"
       },
       "SystemConfigResponse": {
         "properties": {
@@ -20981,6 +20978,11 @@
                 "type": "null"
               }
             ]
+          },
+          "words": {
+            "default": "",
+            "title": "Words",
+            "type": "string"
           }
         },
         "required": [

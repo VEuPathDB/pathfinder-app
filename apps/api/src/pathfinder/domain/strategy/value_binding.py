@@ -36,6 +36,26 @@ _RANGES = frozenset({"number-range", "date-range"})
 _NUMBER_KINDS = frozenset({"number", "single-pick-vocabulary"})
 
 
+def _filter_words(value: ParamValue, info: ParameterInfo) -> str:
+    match value:
+        case FilterValue(filters=clauses):
+            shown = {c.field: c.field for c in clauses} | {
+                field.term: field.display for field in info.filter_fields
+            }
+            return filter_text(
+                [
+                    clause_text(
+                        shown[c.field],
+                        c.value,
+                        unknown=c.include_unknown,
+                    )
+                    for c in clauses
+                ]
+            )
+        case _:
+            return ""
+
+
 def _bound(
     value: ParamValue,
     source: ValueSource,
@@ -56,6 +76,7 @@ def _bound(
         visible=info.is_visible,
         number=info.is_number or info.param_kind in _NUMBER_KINDS,
         decimals=shown_decimals(info.default_value),
+        words=_filter_words(value, info),
     )
 
 

@@ -15,6 +15,7 @@ from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.verdicts import (
+    MAX_CARD,
     GeneModelVerdict,
     ReviewAgreement,
     StoredSynthesis,
@@ -22,7 +23,7 @@ from pathfinder.domain.audit.verdicts import (
     review_agreement,
 )
 from pathfinder.domain.reply_notes import referenced_facts
-from pathfinder.domain.reply_references import prose_faults
+from pathfinder.domain.reply_references import nested_text, prose_faults
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
 from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.domain.turn_facts import TurnFacts
@@ -155,6 +156,13 @@ def _synthesizable(
     faults = prose_faults(output.summary, ctx.deps.facts)
     if faults:
         raise ModelRetry(unrendered_prose_message(faults))
+    shown = len(nested_text(output.summary, ctx.deps.facts))
+    if shown > MAX_CARD:
+        msg = (
+            f"The summary reads {shown} characters once its references render, "
+            f"more than {MAX_CARD}: shorten it, or cite fewer stored sentences."
+        )
+        raise ModelRetry(msg)
     return output
 
 

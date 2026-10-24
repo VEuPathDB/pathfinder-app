@@ -3994,7 +3994,7 @@ components:
           - type: 'null'
         synthesis:
           anyOf:
-          - $ref: '#/components/schemas/Synthesis'
+          - $ref: '#/components/schemas/SynthesisView'
           - type: 'null'
         reviewed:
           type: integer
@@ -11813,7 +11813,7 @@ components:
       type: object
       title: SubsystemStatus
       description: Per-subsystem readiness record.
-    Synthesis:
+    SynthesisView:
       properties:
         sections:
           items:
@@ -11824,12 +11824,9 @@ components:
           items:
             type: integer
           type: array
-          maxItems: 10
           title: Headline
         summary:
           type: string
-          maxLength: 1200
-          minLength: 1
           format: sentence
           title: Summary
         agreement:
@@ -11840,7 +11837,7 @@ components:
       - headline
       - summary
       - agreement
-      title: Synthesis
+      title: SynthesisView
     SystemConfigResponse:
       properties:
         chatProvider:
@@ -13774,6 +13771,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/NamedTaxon'
           - type: 'null'
+        words:
+          default: ''
+          title: Words
+          type: string
       required:
       - value
       - source

@@ -29,7 +29,6 @@ from pathfinder.domain.audit.verdicts import (
     ReviewAgreement,
     ReviewProgress,
     StoredSynthesis,
-    Synthesis,
     finding_cite,
 )
 from pathfinder.domain.provider_keys import KeyRefusal
@@ -47,7 +46,7 @@ from pathfinder.services.audit.reviews import (
     stored_reviews,
 )
 from pathfinder.services.audit.runs import create_run, owned_run
-from pathfinder.services.audit.views import run_view
+from pathfinder.services.audit.views import SynthesisView, run_view
 from pathfinder.services.provider_keys import record_refusals, store_key
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
@@ -421,7 +420,7 @@ async def test_a_stored_synthesis_is_read_back_on_the_run(
 
     await store_synthesis(run_id, synthesis)
 
-    assert (await run_view(run_id, owner.user_id)).synthesis == Synthesis(
+    assert (await run_view(run_id, owner.user_id)).synthesis == SynthesisView(
         sections=(),
         headline=(),
         summary="No synthetic finding was kept.",

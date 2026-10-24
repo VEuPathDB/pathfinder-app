@@ -18,7 +18,6 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
 from pathfinder.ai.audit import review
-from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.mock import MOCK_SYNTHESIS_MODEL_ID, build_synthesis_mock
 from pathfinder.ai.audit.synthesis import NO_FINDING_KEPT
 from pathfinder.domain.audit.verdicts import (
@@ -28,7 +27,9 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
-from pathfinder.domain.statistic_facts import statistic_id
+from pathfinder.domain.statistic_facts import (
+    statistic_id,
+)
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.reviews import (
@@ -37,8 +38,7 @@ from pathfinder.services.audit.reviews import (
     start_review,
     store_review,
 )
-from pathfinder.services.audit.runs import RunOwner, owned_run, readable_run
-from pathfinder.services.audit.views import run_view
+from pathfinder.services.audit.runs import RunOwner, owned_run
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests.integration.http.conftest import client_for
 from pathfinder.tests.integration.jobs._audit_jobs import TOKEN, holding, registered
@@ -187,26 +187,6 @@ async def test_the_job_ends_with_the_runs_synthesis_stored(
         "summary": "The review kept 3 findings as errors and rejected 0.",
         "agreement": {"sampled": 3, "agreed": 3, "share": 1.0},
     }
-
-
-async def test_the_summary_is_stored_with_its_references_and_read_rendered(
-    jobs: InMemoryConnector,
-) -> None:
-    owner, run_id, _ = await finished_run({n: high(n) for n in (1, 2, 3)})
-    await defer_review(run_id)
-
-    await work_reviews(jobs)
-
-    record = await readable_run(run_id, owner.user_id)
-    read = audit_run_fact(await run_view(run_id, owner.user_id))
-    assert record.synthesis is not None
-    assert (record.synthesis.summary, read.value("synthesis.summary")) == (
-        (
-            f"The review kept [stat:{_counts(run_id)}.kept] findings as errors and "
-            f"rejected [stat:{_counts(run_id)}.rejected]."
-        ),
-        "The review kept 3 findings as errors and rejected 0.",
-    )
 
 
 async def test_the_synthesis_carries_the_review_agreement(

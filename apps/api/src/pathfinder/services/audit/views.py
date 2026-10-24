@@ -38,7 +38,12 @@ from pathfinder.domain.audit.scope import (
     GenomeStatus,
 )
 from pathfinder.domain.audit.stages import RunHalt, RunStages, RunStatus, StageName
-from pathfinder.domain.audit.verdicts import ReviewProgress, StoredSynthesis, Synthesis
+from pathfinder.domain.audit.verdicts import (
+    ErrorTypeSection,
+    ReviewAgreement,
+    ReviewProgress,
+    StoredSynthesis,
+)
 from pathfinder.domain.reply_references import nested_text
 from pathfinder.domain.statistic_facts import Sentence
 from pathfinder.domain.turn_facts import TurnFacts
@@ -94,6 +99,15 @@ class GenomeView(CamelModel):
     reference_strain: bool | None
 
 
+class SynthesisView(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    sections: tuple[ErrorTypeSection, ...]
+    headline: tuple[int, ...]
+    summary: Sentence
+    agreement: ReviewAgreement
+
+
 class AuditRunView(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -108,7 +122,7 @@ class AuditRunView(CamelModel):
     rates: list[GenomeRate]
     targets: TargetReport
     review: ReviewProgress | None
-    synthesis: Synthesis | None
+    synthesis: SynthesisView | None
     reviewed: int
     action: RunAction | None
     reviews_running: bool
@@ -121,9 +135,9 @@ class AuditRunView(CamelModel):
     agreement: AgreementView | None
 
 
-def _shown(stored: StoredSynthesis) -> Synthesis:
+def shown_synthesis(stored: StoredSynthesis) -> SynthesisView:
     facts = TurnFacts(audit_statistics=list(stored.facts))
-    return Synthesis(
+    return SynthesisView(
         sections=stored.sections,
         headline=stored.headline,
         summary=nested_text(stored.summary, facts),
@@ -206,7 +220,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         rates=genome_rates(sample),
         targets=target_report(_target(finding) for finding in targets),
         review=run.review,
-        synthesis=None if run.synthesis is None else _shown(run.synthesis),
+        synthesis=None if run.synthesis is None else shown_synthesis(run.synthesis),
         reviewed=reviewed,
         action=run_action(summary.phase, left, reviews_running=running),
         reviews_running=running,

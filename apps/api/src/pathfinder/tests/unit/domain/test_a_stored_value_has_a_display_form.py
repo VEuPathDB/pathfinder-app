@@ -7,7 +7,7 @@ from typing import Literal
 
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import JsonValue
+from pydantic import Field, JsonValue
 from veupathdb_mcp.audit import GeneticCode
 
 from pathfinder.ai.audit import fact_sources
@@ -74,7 +74,7 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
         StatisticRowFact(
             name="alreadyKnown", value="not searched", form="word", code="not_searched"
         ),
-        StatisticRowFact(name="frameKept", value="No", form="word"),
+        StatisticRowFact(name="frameKept", value="no", form="word"),
         StatisticRowFact(name="junctions.0.reads", value="1226"),
         StatisticRowFact(name="junctions.0.share", value="88.9%"),
         StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
@@ -111,14 +111,14 @@ def test_a_note_names_the_field_and_the_field_that_holds_it() -> None:
     assert (
         rows["frameKept"].note(),
         rows["junctions.0.reads"].note(),
-    ) == ("frame kept: No", "junctions reads: 1226")
+    ) == ("frame kept: no", "junctions reads: 1226")
 
 
 def test_a_key_the_schema_does_not_hold_still_renders() -> None:
     rows = schema_rows(Answer, {"frameKept": True, "added": "two words", "count": 3})
 
     assert rows == [
-        StatisticRowFact(name="frameKept", value="Yes", form="word"),
+        StatisticRowFact(name="frameKept", value="yes", form="word"),
         StatisticRowFact(name="added", value="two words", form="word"),
         StatisticRowFact(name="count", value="3"),
     ]
@@ -140,3 +140,15 @@ def test_a_toolset_with_an_answer_of_no_display_form_is_refused_when_built(
         build_check_toolset()
 
     assert str(refused.value) == "payload.*: no display form for the schema {}"
+
+
+class Marked(CamelModel):
+    reason: str = Field(json_schema_extra={"format": "sentence"})
+
+
+def test_a_field_the_library_marks_through_its_schema_is_a_sentence() -> None:
+    assert model_rows(Marked(reason="No junction track was read.")) == [
+        StatisticRowFact(
+            name="reason", value="No junction track was read.", form="sentence"
+        )
+    ]
