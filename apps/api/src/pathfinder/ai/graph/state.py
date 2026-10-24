@@ -52,6 +52,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.spec_tree import renumber_criteria
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.unmet_requirements import unmet_requirements
 
 PhaseName = Literal[
     "frame",
@@ -164,10 +165,10 @@ class VerificationDigest(CamelModel):
 
     @property
     def blames_the_tree(self) -> bool:
-        """True when the check failed on the strategy's own structure."""
-        return (
-            not self.success and self.failure_cause is FailureCause.STRUCTURE_VIOLATION
-        )
+        """True when the check failed on the strategy's own structure, or found a
+        requirement no step of the strategy answers."""
+        tree = self.failure_cause is FailureCause.STRUCTURE_VIOLATION
+        return not self.success and (tree or bool(unmet_requirements(self.gaps)))
 
     @property
     def unanswered(self) -> list[str]:

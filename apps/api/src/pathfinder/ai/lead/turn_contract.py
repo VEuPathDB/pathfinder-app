@@ -33,6 +33,10 @@ from pathfinder.ai.lead.contract_messages import (
     unverified_build_message,
 )
 from pathfinder.ai.lead.ledger import blamed_the_site
+from pathfinder.ai.lead.limit_messages import (
+    unfollowed_reach_message,
+    unmet_requirement_message,
+)
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
     claims,
@@ -126,6 +130,8 @@ MismatchKind = Literal[
     "unmade_change",
     "unbacked_absence",
     "unstated_reading",
+    "unfollowed_reach",
+    "unmet_requirement",
 ]
 
 
@@ -319,6 +325,20 @@ def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:
     return UNBACKED_ABSENCE
 
 
+def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
+    reach = record.unfollowed_reach
+    if reach is None or report.asked_questions or record.ends_on_a_card:
+        return None
+    return unfollowed_reach_message(reach)
+
+
+def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
+    unmet = record.unmet_requirements
+    if not unmet or report.next_state != "complete" or record.ends_on_a_card:
+        return None
+    return unmet_requirement_message(unmet)
+
+
 def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
     unstated = [r for r in record.chosen_readings if r.unstated_in(report.prose)]
     return unstated_reading_message(unstated[0]) if unstated else None
@@ -344,6 +364,8 @@ _RULES: tuple[
     ("unmade_change", _unmade_change),
     ("unbacked_absence", _unbacked_absence),
     ("unstated_reading", _unstated_reading),
+    ("unfollowed_reach", _unfollowed_reach),
+    ("unmet_requirement", _unmet_requirement),
 )
 
 

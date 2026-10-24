@@ -2,6 +2,16 @@
 
 ## 2026-10-24
 
+* **A step with no countable column names the transform that reaches one.** veupathdb-mcp
+  0.2.0b50 (`StepColumns.transforms`, `transforms_from`) is prepared. `step_columns` answers
+  `reach` (`step`, `transform`, `none`) and `transforms`; a read that named a transform and
+  that no tally followed refuses a reply that neither asks nor offers a card
+  (`unfollowed_reach`); a requirement gap the check found `unmet` makes the ledger's
+  constraint `ungroundable`, makes `blames_the_tree` true and refuses a reply that ends the
+  turn `complete` (`unmet_requirement`). A number word in the clause of a count or value
+  reference is refused only when it reads as a number that clause's references render, or
+  states a share; a typed reply that still cannot render past the refusal bound is withheld
+  (`turn_contract.WITHHELD_REPLY`) instead of let through.
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
