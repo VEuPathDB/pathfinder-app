@@ -111,17 +111,18 @@ function requirementRow(row: RequirementCheck, index: number): ExhibitRow {
   };
 }
 
-/** The records inside the bound out of the step, or that the site shows no column. */
+/** The records inside the bound out of the step, or that the site refused the column. */
 /** A threshold the step holds on neither side is stated with the count on each
  * side, which the fit's own sentence carries. */
 function fitCount(fit: ColumnFit): string {
-  if (fit.fits === "not_shown") return "The site shows no column";
+  if (fit.fits === "not_shown")
+    return `The site refused this column (HTTP ${fit.refusedStatus})`;
   if ((fit.sides ?? []).length > 0) return fit.sentence;
   const inside =
     fit.fitting === fit.fittingAtMost
       ? `${fit.fitting}`
       : `${fit.fitting} to ${fit.fittingAtMost}`;
-  return `${inside} of ${fit.total} ${fit.countedIn ?? "genes"}`;
+  return `${inside} of ${fit.total} ${fit.countedIn}`;
 }
 
 /** Every record inside the known bounds; an open side is a count, not a misfit. */

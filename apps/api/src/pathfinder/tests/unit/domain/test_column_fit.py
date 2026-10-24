@@ -7,11 +7,22 @@ import pytest
 
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.caveats import SampleCaveat, measured_caveats, sample_caveat
-from pathfinder.domain.evidence import ColumnFit, VerificationReview
+from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.evidence import VerificationReview
+
+_REFUSED = (
+    "the site refused the # TM Domains (tm_count) column (HTTP 400) for "
+    "'two or more transmembrane domains'"
+)
 
 
 def _fit(
-    fitting: int, total: int, *, at_most: int | None = None, shown: bool = True
+    fitting: int,
+    total: int,
+    *,
+    at_most: int | None = None,
+    refused: int | None = None,
+    no_value: int = 0,
 ) -> ColumnFit:
     return ColumnFit(
         criterion_id="c_tm",
@@ -20,10 +31,12 @@ def _fit(
         column="tm_count",
         display_name="# TM Domains",
         bound_value="2 to 99",
+        counted_in="transcripts",
         total=total,
         fitting=fitting,
         fitting_at_most=fitting if at_most is None else at_most,
-        shown=shown,
+        no_value=no_value,
+        refused_status=refused,
     )
 
 
@@ -32,7 +45,7 @@ def test_every_gene_in_the_bound_fits_all() -> None:
 
     assert (fit.fits, fit.sentence) == (
         "all",
-        "840 of 840 genes fit # TM Domains (2 to 99)",
+        "840 of 840 transcripts fit # TM Domains (2 to 99)",
     )
 
 
@@ -41,7 +54,7 @@ def test_a_bin_across_a_bound_is_stated_as_a_range_of_counts() -> None:
 
     assert (fit.fits, fit.sentence) == (
         "some",
-        "476 to 618 of 840 genes fit # TM Domains (2 to 99)",
+        "476 to 618 of 840 transcripts fit # TM Domains (2 to 99)",
     )
 
 
@@ -49,12 +62,35 @@ def test_no_gene_in_the_bound_fits_none() -> None:
     assert _fit(0, 840).fits == "none"
 
 
-def test_a_column_the_site_does_not_report_is_not_shown() -> None:
-    fit = _fit(0, 0, shown=False)
+def test_a_column_the_site_refuses_is_not_shown() -> None:
+    fit = _fit(0, 0, refused=400)
 
-    assert (fit.fits, fit.sentence) == (
-        "not_shown",
-        "the site shows no column for 'two or more transmembrane domains'",
+    assert (fit.fits, fit.shown, fit.sentence) == ("not_shown", False, _REFUSED)
+
+
+def test_records_with_no_value_are_stated_beside_the_fit() -> None:
+    fit = _fit(740, 840, no_value=100)
+
+    assert (fit.fits, fit.holds_no_value, fit.sentence) == (
+        "some",
+        False,
+        "740 of 840 transcripts fit # TM Domains (2 to 99); 100 hold no value",
+    )
+
+
+def test_a_column_no_record_holds_a_value_of_is_stated_so() -> None:
+    fit = _fit(0, 840, no_value=840)
+
+    assert (fit.fits, fit.holds_no_value, fit.sentence) == (
+        "none",
+        True,
+        "0 of 840 transcripts fit # TM Domains (2 to 99); 840 hold no value",
+    )
+
+
+def test_a_fit_and_its_records_with_no_value_fit_inside_the_step() -> None:
+    assert _fit(800, 840, no_value=100).nesting_problem == (
+        "a column fit holds fitting_at_most + no_value <= total"
     )
 
 
@@ -64,9 +100,9 @@ def test_the_counts_cannot_exceed_each_other() -> None:
     )
 
 
-def test_a_column_not_shown_carries_no_count() -> None:
-    assert _fit(3, 8, shown=False).nesting_problem == (
-        "a column the site does not show carries no count"
+def test_a_refused_column_carries_no_count() -> None:
+    assert _fit(3, 8, refused=400).nesting_problem == (
+        "a column the site refused carries no count"
     )
 
 
@@ -88,12 +124,12 @@ def test_the_sample_caveat_is_worded_by_its_fit_and_never_unclear() -> None:
     caveats = measured_caveats(
         build=None,
         controls=[],
-        column_fits=[_fit(840, 840), _fit(0, 0, shown=False), _fit(12, 40)],
+        column_fits=[_fit(840, 840), _fit(0, 0, refused=400), _fit(12, 40)],
     )
 
     assert [c.sentence for c in caveats] == [
-        "the site shows no column for 'two or more transmembrane domains'",
-        "12 of 40 genes fit # TM Domains (2 to 99)",
+        _REFUSED,
+        "12 of 40 transcripts fit # TM Domains (2 to 99)",
     ]
 
 

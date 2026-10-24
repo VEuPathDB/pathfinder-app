@@ -12,6 +12,7 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
 )
 from pathfinder.domain.audit.words import SIDE_SENTENCES
+from pathfinder.domain.statistic_facts import Sentence
 
 NOT_READ = "Not read"
 NONE = "None found"
@@ -28,13 +29,17 @@ _CODES: dict[GeneticCode, str] = {
     GeneticCode.YEAST_MITOCHONDRIAL: "Yeast mitochondrial",
     GeneticCode.INVERTEBRATE_MITOCHONDRIAL: "Invertebrate mitochondrial",
 }
+CODE_WORDS: dict[str, dict[str, str]] = {
+    GeneticCode.__name__: {code.value: words for code, words in _CODES.items()},
+    "RelativeTier": {str(tier): words for tier, words in TIER_WORDS.items()},
+}
 
 
 class Fact(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     label: str
-    value: str
+    value: Sentence
 
 
 class EvidenceFacts(CamelModel):

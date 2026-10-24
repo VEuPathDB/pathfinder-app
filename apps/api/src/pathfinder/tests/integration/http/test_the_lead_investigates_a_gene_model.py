@@ -18,6 +18,7 @@ from pathfinder.services.audit.runs import RunOwner
 from pathfinder.services.audit.verdicts import conversation_verdicts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit import seed_thread
+from pathfinder.tests._support.audit_planning import serve_gene_genomes
 from pathfinder.tests._support.run_context import run_context_for, turn_runtime
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -47,6 +48,7 @@ def pseudogene_call(monkeypatch: pytest.MonkeyPatch) -> None:
         return intact()
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
+    serve_gene_genomes(monkeypatch)
 
 
 @pytest.fixture
@@ -124,7 +126,7 @@ async def test_the_lead_answers_a_gene_model_question_with_the_investigation(
     assert called(chunks) == ["classify_user_intent", "investigate_gene_models"]
     assert text(chunks) == (
         f"The check reads the model of [{STRAIN}]"
-        f"({gene_record_url('plasmodb', STRAIN)}) as INTACT."
+        f"({gene_record_url('plasmodb', STRAIN)}) as intact."
     )
     assert corrections == [0]
     (stored,) = await conversation_verdicts(owner.conversation_id, owner.user_id)

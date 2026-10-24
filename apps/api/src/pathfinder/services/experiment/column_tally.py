@@ -50,7 +50,6 @@ class ColumnTally(CamelModel):
     only_label: str = ""
     total: int
     distinct: int
-    missing: int = 0
     rows: list[TallyRow] = Field(default_factory=list)
     site_id: str
     step_url: str | None = None
@@ -96,10 +95,8 @@ def field_label(field: WDKAttributeField) -> str:
     return field.display_name or field.name
 
 
-def tally_title(
-    noun: str, column: WDKAttributeField, kept: str, only: TallyOnly | None
-) -> str:
-    title = f"{noun.capitalize()}s by {field_label(column)}"
+def tally_title(noun: str, column: str, kept: str, only: TallyOnly | None) -> str:
+    title = f"{noun.capitalize()}s by {column}"
     if only is None:
         return title
     return f"{title}, where {kept} is {' or '.join(only.values)}"
@@ -175,7 +172,7 @@ async def run_column_tally(
             column,
             None if only is None else (only.column, tuple(only.values)),
         ),
-        title=tally_title(record_noun, counted, only_label, only),
+        title=tally_title(record_noun, field_label(counted), only_label, only),
         search_name=spec.search_name,
         record_type=spec.record_type,
         record_noun=record_noun,
@@ -185,7 +182,6 @@ async def run_column_tally(
         only_label=only_label,
         total=stats.subset_size,
         distinct=stats.num_distinct_values or len(rows),
-        missing=stats.num_missing_cases,
         rows=rows[:KEPT_ROWS],
         site_id=site_id,
     )

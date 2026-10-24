@@ -236,6 +236,7 @@ _JUDGEMENTS: list[tuple[type[BaseModel], dict[str, object]]] = [
                         "column": "c",
                         "displayName": "d",
                         "boundValue": "1",
+                        "countedIn": "transcripts",
                         "total": 1,
                         "fitting": 5,
                         "fittingAtMost": -1,

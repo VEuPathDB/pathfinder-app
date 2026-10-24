@@ -3,7 +3,7 @@ type: Decision
 title: VERIFY reviews the intent, the genes and the sources
 description: A check writes one typed row per requirement the researcher stated in any message of the request, reads each search step's columns over the whole step and samples only where no column shows, and may search the literature or the web; the code adds the rows the checker cannot omit, keeps only the genes and sources the turn read, refuses a success over an unmet row, and the evidence card shows all three. A model-only "looks right" verdict and a literature search on every turn were rejected.
 tags: [verification, evidence, turn-contract, requirements, genes, literature]
-generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
 status: stable
 ---
@@ -39,10 +39,21 @@ three typed lists, and the evidence card carries the same review.
   histogram of, and that at most half the record type's searches carry. Each is one report over
   the whole step, the byValue column reporter for a record type column and the
   column's attribute histogram for a search's own column, and the answer is a
-  `ColumnFit` ("840 of 840 genes fit # TM Domains (2 to 99)"). A sole such
-  column's fit stands; several such columns stand only when every one holds
-  every record inside the bounds, since no site data says which of them the
-  bounds read (`ai/tools/standalone/_step_columns.py`). No column is chosen by
+  `ColumnFit` ("840 of 840 transcripts fit # TM Domains (2 to 99)"). Both
+  reports count one row per primary key of the answer, which on a transcript
+  step is one row per transcript (WDK's `AbstractByValueReporter` and
+  `AbstractAttributeReporter.getAttributeSql`; the histogram's "# of Genes" label
+  is only the record class's plural name), so every fit names transcripts. The
+  byValue total is the report's `subsetSize`, and the records with no value of
+  the column, `subsetSize` less `numVarValues`, are stated beside the fit ("740 of
+  840 transcripts fit ...; 100 hold no value"); WDK's grouping counts no NULL, so
+  its `numMissingCases` is always 0 and is not read. A 4xx refusal of a report is a
+  fit with `refused_status` set that names the status, and the step's other
+  columns are still read; a 5xx, a timeout or a connect error fails the call. A
+  refused column, or one no record holds a value of, adds the note that names the
+  step to sample. A sole such column's fit stands; several such columns stand
+  only when every one read holds every record inside the bounds, since no site
+  data says which of them the bounds read (`ai/tools/standalone/_step_columns.py`). No column is chosen by
   its words. Only for a step whose search shows no such column, or whose
   columns disagree, does VERIFY sample the root
   (`get_sample_records`, one record at each of N offsets spread over the

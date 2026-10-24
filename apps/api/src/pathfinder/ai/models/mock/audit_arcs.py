@@ -143,7 +143,7 @@ def audit_plan(messages: list[ModelMessage]) -> list[ToolCallPart]:
     fact = planned.fact_id
     said = (
         f"The run reads the site [stat:{fact}.estimate.wdkRequests] times, and the "
-        f"plan leaves out [stat:{fact}.leftOut.0]."
+        f"plan leaves out a genome [cite:{fact}.leftOut.0]."
     )
     return [*head, lead_final(said, "await_user")]
 

@@ -11,6 +11,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     RetryPromptPart,
+    ThinkingPart,
     ToolCallPart,
     UserPromptPart,
 )
@@ -22,10 +23,10 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.audit import review
+from pathfinder.ai.audit.instructions import LITERATURE_INSTRUCTIONS
 from pathfinder.ai.audit.mock import build_review_mock
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
 from pathfinder.ai.audit.review import (
-    NOT_SEARCHED,
     OUT_OF_LIMITS,
     OUT_OF_RETRIES,
     review_deps,
@@ -210,8 +211,11 @@ def test_a_review_holds_the_finding_and_its_stored_evidence_only() -> None:
 async def test_a_review_naming_a_source_it_did_not_retrieve_is_retried() -> None:
     retries: list[RetryPromptPart] = []
     model = _first_then(_review(alreadyKnown="known", knownFrom=[_DOI]), retries)
+    research = AuditRetrievalToolset(
+        FunctionToolset([literature_search]).prefixed("research")
+    )
 
-    found, _ = await _reviewed(model)
+    found, _ = await _reviewed(model, research)
 
     assert _DOI in str(retries[0].content)
     assert (found.already_known, found.known_from) == ("not_searched", ())
@@ -227,17 +231,88 @@ async def test_a_verdict_on_a_gene_outside_the_target_is_retried() -> None:
     assert found.verdict.genes == (_GENE,)
 
 
-async def test_a_review_with_no_source_open_says_not_searched() -> None:
+def _offered(seen: list[tuple[list[str], str | None]]) -> FunctionModel:
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        (output,) = info.output_tools
+        seen.append(
+            (list(output.parameters_json_schema["properties"]), info.instructions)
+        )
+        return ModelResponse(parts=[terminal_call(_review())])
+
+    return FunctionModel(answer)
+
+
+async def test_a_review_with_no_source_open_is_offered_no_literature_field() -> None:
+    seen: list[tuple[list[str], str | None]] = []
+
+    found, _ = await _reviewed(_offered(seen))
+
+    ((fields, instructions),) = seen
+    assert fields == [
+        "verdict",
+        "cardText",
+        "impact",
+        "impactReason",
+        "secondVerdict",
+        "stopped",
+    ]
+    assert instructions is not None
+    assert "literature" not in instructions
+    assert "already known" not in instructions
+    assert (found.already_known, found.known_from, found.paper_depends) == (
+        "not_searched",
+        (),
+        None,
+    )
+
+
+async def test_a_review_with_a_source_open_is_offered_the_literature_fields() -> None:
+    seen: list[tuple[list[str], str | None]] = []
+    research = AuditRetrievalToolset(
+        FunctionToolset([literature_search]).prefixed("research")
+    )
+
+    await _reviewed(_offered(seen), research)
+
+    ((fields, instructions),) = seen
+    assert fields == [
+        "verdict",
+        "alreadyKnown",
+        "knownFrom",
+        "paperDepends",
+        "cardText",
+        "impact",
+        "impactReason",
+        "secondVerdict",
+        "stopped",
+    ]
+    assert instructions is not None
+    assert instructions.endswith(LITERATURE_INSTRUCTIONS.strip())
+
+
+async def test_a_review_claiming_known_with_no_source_open_is_refused() -> None:
     retries: list[RetryPromptPart] = []
-    model = _first_then(_review(alreadyKnown="not_found"), retries)
+    model = _first_then(
+        _review(alreadyKnown="known", knownFrom=[finding_cite(7)]), retries
+    )
 
     found, _ = await _reviewed(model)
 
-    assert retries[0].content == NOT_SEARCHED
+    match retries[0].content:
+        case str() as refusal:
+            pytest.fail(refusal)
+        case errors:
+            refused = [(e["loc"], e["msg"]) for e in errors]
+    unsearched = (
+        "Value error, no literature source is open for this review, so it "
+        "states nothing about the literature"
+    )
+    assert refused == [((), unsearched)]
     assert found.already_known == "not_searched"
 
 
-async def test_a_review_whose_retries_are_spent_is_stored_stopped() -> None:
+async def test_a_review_whose_retries_are_spent_stores_its_last_refusal() -> None:
     def answer_malformed(
         messages: list[ModelMessage], info: AgentInfo
     ) -> ModelResponse:
@@ -246,9 +321,73 @@ async def test_a_review_whose_retries_are_spent_is_stored_stopped() -> None:
 
     found, usage = await _reviewed(FunctionModel(answer_malformed))
 
+    reason = (
+        f"{OUT_OF_RETRIES} The last refusal: verdict.genes: Field required; "
+        "verdict.modelGenome: Field required; verdict.verdict: Field required; "
+        "verdict.cause: Field required; verdict.cites: Field required; "
+        "cardText: Field required"
+    )
     assert (found.stopped, found.verdict.verdict) == (True, "undecided")
-    assert (found.card_text, found.verdict.cause) == (OUT_OF_RETRIES, OUT_OF_RETRIES)
+    assert (found.card_text, found.verdict.cause) == (reason, reason)
     assert found.verdict.cites == (finding_cite(7),)
+    assert usage.requests == 4
+
+
+def _always(answer: dict[str, Any]) -> FunctionModel:
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        return ModelResponse(parts=[terminal_call(answer)])
+
+    return FunctionModel(respond)
+
+
+async def test_a_review_its_validator_refuses_to_the_end_stores_that_refusal() -> None:
+    model = _always(_review(verdict={"genes": ["EXA_0009"]}))
+
+    found, usage = await _reviewed(model)
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: These genes are not the finding's: "
+        "EXA_0009. Judge only the genes of its target: EXA_0001."
+    )
+    assert usage.requests == 4
+
+
+async def test_a_review_naming_a_paper_with_no_source_open_is_refused() -> None:
+    model = _always(_review(paperDepends=True))
+
+    found, usage = await _reviewed(model)
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: Value error, no literature source "
+        "is open for this review, so it states nothing about the literature"
+    )
+    assert usage.requests == 4
+
+
+async def test_a_review_that_only_thinks_stores_the_retry_it_was_sent() -> None:
+    def think(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        return ModelResponse(parts=[ThinkingPart(content="Still weighing it.")])
+
+    found, usage = await _reviewed(FunctionModel(think))
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: Please return text or include your "
+        "response in a tool call."
+    )
+    assert usage.requests == 4
+
+
+async def test_a_review_that_keeps_claiming_known_stores_why_it_was_refused() -> None:
+    model = _always(_review(alreadyKnown="known", knownFrom=[finding_cite(7)]))
+
+    found, usage = await _reviewed(model)
+
+    assert found.verdict.cause == (
+        f"{OUT_OF_RETRIES} The last refusal: Value error, no literature source "
+        "is open for this review, so it states nothing about the literature"
+    )
     assert usage.requests == 4
 
 

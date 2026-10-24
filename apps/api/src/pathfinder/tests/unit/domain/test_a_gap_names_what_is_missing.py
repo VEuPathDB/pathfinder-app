@@ -73,6 +73,12 @@ def test_each_gap_is_listed_once_with_its_sentence() -> None:
     ]
     assert gaps[1:] == [
         WordGap(word="exported"),
-        RequirementGap(text="at least 2 transmembrane domains", status="unmet"),
-        RequirementGap(text="in the host cell", status="unexpressed"),
+        RequirementGap(
+            text="at least 2 transmembrane domains",
+            status="unmet",
+            key="other:at least 2 transmembrane domains",
+        ),
+        RequirementGap(
+            text="in the host cell", status="unexpressed", key="other:in the host cell"
+        ),
     ]

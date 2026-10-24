@@ -36,6 +36,7 @@ class CheckRead(CamelModel):
 
     answer: _Verdict
     fact_id: str
+    genomes: dict[str, str]
 
 
 def gene_pair(text: str) -> tuple[str, str] | None:
@@ -66,7 +67,7 @@ def pseudogene_verdict(
     intact = read.answer.verdict == "INTACT"
     return {
         "genes": [strain],
-        "modelGenome": f"the genome of {strain}",
+        "modelGenome": read.genomes[strain],
         "verdict": "error" if intact else "undecided",
         "errorType": "intact_gene_called_pseudogene" if intact else None,
         "certainty": "high" if intact else None,

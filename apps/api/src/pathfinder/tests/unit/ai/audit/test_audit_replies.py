@@ -61,7 +61,7 @@ def test_a_run_id_and_a_check_name_by_reference_pass_the_checker() -> None:
 
     assert prose_faults(prose, facts) == []
     assert render_reply(prose, facts) == (
-        f"Audit run {_RUN} runs the gene_length check."
+        f"Audit run {_RUN} runs the gene length check."
     )
 
 

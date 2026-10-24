@@ -60,18 +60,17 @@ _GENERIC = [
     for index in range(10)
 ]
 _SEARCHES = [_SIGNAL_PEPTIDE, _TRANSMEMBRANE, *_GENERIC]
-_RECORD_ATTRIBUTES = frozenset(
-    {
-        "primary_key",
-        "organism",
-        "gene_location_text",
-        "gene_product",
-        "signalp_41_probability",
-        "signalp_50_probability",
-        "signalp_60_probability",
-        "tm_count",
-    }
-)
+_COLUMN_TYPES = {
+    "primary_key": "STRING",
+    "organism": "STRING",
+    "gene_location_text": "STRING",
+    "gene_product": "STRING",
+    "signalp_41_probability": "NUMBER",
+    "signalp_50_probability": "NUMBER",
+    "signalp_60_probability": "NUMBER",
+    "tm_count": "NUMBER",
+}
+_RECORD_ATTRIBUTES = frozenset(_COLUMN_TYPES)
 
 
 def test_the_attributes_are_what_few_other_searches_show() -> None:
@@ -136,7 +135,10 @@ async def test_the_root_sample_asks_for_the_leaves_attributes(
             WDKRecordType.model_validate(
                 {
                     "urlSegment": "transcript",
-                    "attributes": [{"name": n} for n in sorted(_RECORD_ATTRIBUTES)],
+                    "attributes": [
+                        {"name": n, "columnDataType": _COLUMN_TYPES[n]}
+                        for n in sorted(_RECORD_ATTRIBUTES)
+                    ],
                 }
             )
         ]

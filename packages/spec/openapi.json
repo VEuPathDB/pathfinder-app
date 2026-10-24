@@ -5871,7 +5871,8 @@
           "share": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "number",
+                "format": "share"
               },
               {
                 "type": "null"
@@ -5881,6 +5882,7 @@
           },
           "text": {
             "type": "string",
+            "format": "sentence",
             "title": "Text"
           }
         },
@@ -6411,7 +6413,7 @@
           "synthesis": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Synthesis"
+                "$ref": "#/components/schemas/SynthesisView"
               },
               {
                 "type": "null"
@@ -9312,12 +9314,14 @@
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cause"
           },
           "confirmedBy": {
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Confirmedby"
           },
           "findingIds": {
@@ -9364,6 +9368,7 @@
           },
           "description": {
             "type": "string",
+            "format": "sentence",
             "title": "Description"
           },
           "count": {
@@ -9390,7 +9395,8 @@
           "cause": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9401,7 +9407,8 @@
           "confirmedBy": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9663,7 +9670,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -9724,6 +9732,7 @@
           },
           "value": {
             "type": "string",
+            "format": "sentence",
             "title": "Value"
           }
         },
@@ -10023,6 +10032,21 @@
               }
             ],
             "title": "Reviewedimpact"
+          },
+          "reviewsDisagree": {
+            "type": "boolean",
+            "title": "Reviewsdisagree"
+          },
+          "disagreementText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disagreementtext"
           }
         },
         "type": "object",
@@ -10034,7 +10058,9 @@
           "errorTitle",
           "certainty",
           "impact",
-          "reviewedImpact"
+          "reviewedImpact",
+          "reviewsDisagree",
+          "disagreementText"
         ],
         "title": "FindingLine"
       },
@@ -10167,6 +10193,7 @@
             "type": "string",
             "maxLength": 1200,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cardtext"
           },
           "impact": {
@@ -10186,7 +10213,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 600
+                "maxLength": 600,
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -10545,7 +10573,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -10607,7 +10636,8 @@
           "verdictText": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -11277,7 +11307,8 @@
             "type": "string",
             "maxLength": 255,
             "minLength": 1,
-            "title": "Modelgenome"
+            "title": "Modelgenome",
+            "description": "The full organism name of the genome whose model the verdict judges, as the site names it."
           },
           "verdict": {
             "type": "string",
@@ -11333,6 +11364,7 @@
             "type": "string",
             "maxLength": 600,
             "minLength": 1,
+            "format": "sentence",
             "title": "Cause"
           },
           "cites": {
@@ -11905,7 +11937,8 @@
           "message": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -12192,7 +12225,8 @@
           "reason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -12317,13 +12351,28 @@
           "correctionReason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Correctionreason"
+          },
+          "correctedExons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Span"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correctedexons"
           },
           "model": {
             "anyOf": [
@@ -12399,6 +12448,7 @@
             "type": "number",
             "maximum": 1.0,
             "minimum": 0.0,
+            "format": "share",
             "title": "Coveredshare"
           },
           "track": {
@@ -12802,6 +12852,7 @@
           },
           "share": {
             "type": "number",
+            "format": "share",
             "title": "Share",
             "readOnly": true
           }
@@ -13985,7 +14036,8 @@
           "reason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15107,26 +15159,31 @@
           },
           "rate": {
             "type": "number",
+            "format": "share",
             "title": "Rate",
             "readOnly": true
           },
           "low": {
             "type": "number",
+            "format": "share",
             "title": "Low",
             "readOnly": true
           },
           "high": {
             "type": "number",
+            "format": "share",
             "title": "High",
             "readOnly": true
           },
           "floor": {
             "type": "number",
+            "format": "share",
             "title": "Floor",
             "readOnly": true
           },
           "ceiling": {
             "type": "number",
+            "format": "share",
             "title": "Ceiling",
             "readOnly": true
           }
@@ -15643,7 +15700,8 @@
           "share": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "number",
+                "format": "share"
               },
               {
                 "type": "null"
@@ -15674,6 +15732,7 @@
           },
           "verdictText": {
             "type": "string",
+            "format": "sentence",
             "title": "Verdicttext"
           },
           "secondVerdict": {
@@ -15706,7 +15765,8 @@
           "impactReason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15725,6 +15785,7 @@
           },
           "literatureText": {
             "type": "string",
+            "format": "sentence",
             "title": "Literaturetext"
           }
         },
@@ -15766,6 +15827,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message",
             "default": ""
           }
@@ -15790,6 +15852,7 @@
           },
           "text": {
             "type": "string",
+            "format": "sentence",
             "title": "Text"
           },
           "done": {
@@ -15802,6 +15865,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message"
           }
         },
@@ -15848,20 +15912,24 @@
         "properties": {
           "verdictText": {
             "type": "string",
+            "format": "sentence",
             "title": "Verdicttext"
           },
           "literatureText": {
             "type": "string",
+            "format": "sentence",
             "title": "Literaturetext"
           },
           "paperText": {
             "type": "string",
+            "format": "sentence",
             "title": "Papertext"
           },
           "secondText": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15904,6 +15972,7 @@
           },
           "detail": {
             "type": "string",
+            "format": "sentence",
             "title": "Detail"
           }
         },
@@ -15926,7 +15995,8 @@
           "halted": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15937,7 +16007,8 @@
           "targetFailure": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -16748,6 +16819,7 @@
           },
           "message": {
             "type": "string",
+            "format": "sentence",
             "title": "Message",
             "default": ""
           }
@@ -17979,7 +18051,7 @@
         "title": "SubsystemStatus",
         "description": "Per-subsystem readiness record."
       },
-      "Synthesis": {
+      "SynthesisView": {
         "properties": {
           "sections": {
             "items": {
@@ -17993,13 +18065,11 @@
               "type": "integer"
             },
             "type": "array",
-            "maxItems": 10,
             "title": "Headline"
           },
           "summary": {
             "type": "string",
-            "maxLength": 1200,
-            "minLength": 1,
+            "format": "sentence",
             "title": "Summary"
           },
           "agreement": {
@@ -18013,7 +18083,7 @@
           "summary",
           "agreement"
         ],
-        "title": "Synthesis"
+        "title": "SynthesisView"
       },
       "SystemConfigResponse": {
         "properties": {
@@ -20951,6 +21021,11 @@
                 "type": "null"
               }
             ]
+          },
+          "words": {
+            "default": "",
+            "title": "Words",
+            "type": "string"
           }
         },
         "required": [
@@ -21396,8 +21471,7 @@
             "type": "string"
           },
           "countedIn": {
-            "$ref": "#/components/schemas/CountedIn",
-            "default": "genes"
+            "$ref": "#/components/schemas/CountedIn"
           },
           "total": {
             "title": "Total",
@@ -21411,10 +21485,21 @@
             "title": "Fittingatmost",
             "type": "integer"
           },
-          "shown": {
-            "default": true,
-            "title": "Shown",
-            "type": "boolean"
+          "noValue": {
+            "default": 0,
+            "title": "Novalue",
+            "type": "integer"
+          },
+          "refusedStatus": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refusedstatus"
           },
           "sides": {
             "items": {
@@ -21423,13 +21508,18 @@
             "title": "Sides",
             "type": "array"
           },
+          "shown": {
+            "readOnly": true,
+            "title": "Shown",
+            "type": "boolean"
+          },
           "fits": {
             "$ref": "#/components/schemas/ColumnFitState",
             "description": "How many records of the step hold a value inside every bound.",
             "readOnly": true
           },
           "sentence": {
-            "description": "The records that fit out of the step, the records on each side of a\nthreshold with no stated direction, or that the site shows no column.",
+            "description": "The records that fit out of the step, the records on each side of a\nthreshold with no stated direction, or that the site refused the column.",
             "readOnly": true,
             "title": "Sentence",
             "type": "string"
@@ -21442,9 +21532,11 @@
           "column",
           "displayName",
           "boundValue",
+          "countedIn",
           "total",
           "fitting",
           "fittingAtMost",
+          "shown",
           "fits",
           "sentence"
         ],
@@ -21511,11 +21603,6 @@
           },
           "distinct": {
             "title": "Distinct",
-            "type": "integer"
-          },
-          "missing": {
-            "default": 0,
-            "title": "Missing",
             "type": "integer"
           },
           "rows": {
@@ -25222,6 +25309,7 @@
             "type": "string"
           },
           "reason": {
+            "format": "sentence",
             "title": "Reason",
             "type": "string"
           }
@@ -25323,6 +25411,11 @@
           "status": {
             "$ref": "#/components/schemas/RequirementGapStatus"
           },
+          "key": {
+            "default": "",
+            "title": "Key",
+            "type": "string"
+          },
           "sentence": {
             "description": "The requirement, in the researcher's words, and what is missing.",
             "readOnly": true,
@@ -25398,6 +25491,14 @@
         "enum": [
           "withdrawn",
           "replaced"
+        ],
+        "type": "string"
+      },
+      "RowForm": {
+        "enum": [
+          "number",
+          "word",
+          "sentence"
         ],
         "type": "string"
       },
@@ -26265,6 +26366,21 @@
           "value": {
             "title": "Value",
             "type": "string"
+          },
+          "form": {
+            "$ref": "#/components/schemas/RowForm",
+            "default": "number"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           }
         },
         "required": [
@@ -27493,7 +27609,7 @@
         "properties": {
           "classification": {
             "$ref": "#/components/schemas/IntentClassification",
-            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog."
+            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog. gene_model_audit is a request to check the gene models of a genome or of named genes for errors, whatever its verb: pseudogene calls on intact genes; selenoproteins cut at their selenocysteine; gene length against orthologs; one gene split into two models; neighbouring genes fused into one model; strain model against its reference; genes missing from the annotation; organelle genes at the circular join; exon structure against RNA-seq. A request to find or list genes by a property of their models asks for no error check and is a build: \"Find pseudogenes in P. falciparum NF54\" and \"List genes longer than 10 kb in 3D7\" are new_strategy."
           },
           "inferredGoal": {
             "maxLength": 500,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 from pydantic.json_schema import SkipJsonSchema
@@ -15,7 +17,11 @@ from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolse
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import INVESTIGATOR_INSTRUCTIONS
 from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, build_read_toolset
-from pathfinder.ai.audit.verdict_tool import unheld_cites_message
+from pathfinder.ai.audit.verdict_tool import (
+    unheld_cites_message,
+    unheld_genomes,
+    unheld_genomes_message,
+)
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.turn_records import ReadRecord
@@ -43,6 +49,7 @@ class GeneModelInvestigation(CamelModel):
     )
     facts: SkipJsonSchema[tuple[StatisticFact, ...]] = ()
     records: SkipJsonSchema[tuple[ReadRecord, ...]] = ()
+    runs: SkipJsonSchema[tuple[UUID, ...]] = ()
 
 
 def _cites_held(
@@ -52,6 +59,9 @@ def _cites_held(
     unheld = [cite for v in output.verdicts for cite in v.unheld_cites(held)]
     if unheld:
         raise ModelRetry(unheld_cites_message(unheld))
+    genomes = unheld_genomes(ctx.deps, output.verdicts)
+    if genomes:
+        raise ModelRetry(unheld_genomes_message(genomes))
     return output
 
 
@@ -85,7 +95,11 @@ def _with_reads(
     found: GeneModelInvestigation, deps: AuditDeps
 ) -> GeneModelInvestigation:
     return found.model_copy(
-        update={"facts": tuple(deps.facts), "records": tuple(deps.records)}
+        update={
+            "facts": tuple(deps.facts),
+            "records": tuple(deps.records),
+            "runs": tuple(deps.runs),
+        }
     )
 
 

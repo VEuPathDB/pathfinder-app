@@ -203,11 +203,11 @@ caveat is a caveat, never an unmet row.
 
 Read the columns first: call ``read_step_columns`` for each search step the \
 work order names. Each column is one report over the whole step against the \
-bound its criterion sets ("840 of 840 genes fit # TM Domains (2 to 99)"), so \
-it states how many genes fit, never a guess from a few records. The runtime \
-records each fit on the evidence card and states every column that falls \
-short of all genes, or that the site does not show, as a caveat; you write no \
-column row yourself.
+bound its criterion sets ("840 of 840 transcripts fit # TM Domains (2 to 99)"), \
+so it states how many of the step's transcripts fit, never a guess from a few \
+records. The runtime records each fit on the evidence card and states every \
+column that falls short of all transcripts, or that the site refused, as a \
+caveat; you write no column row yourself.
 
 On a group step bound by a phyletic expression, ``read_step_columns`` \
 judges the step's first groups, with their proteins per genome, against the \

@@ -33,11 +33,12 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.ai.capabilities.metering import RunPricing, SpendMeter
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_references import shown_reply
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
@@ -101,8 +102,6 @@ class _LeadRunCapture:
     cost_usd: Decimal = field(default_factory=lambda: Decimal(0))
     charged_input_tokens: int = 0
     charged_output_tokens: int = 0
-    charged_cache_read_tokens: int = 0
-    charged_cache_write_tokens: int = 0
     charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
@@ -270,7 +269,10 @@ def _emit_residual_prose(
     emit_chunk(writer, TextStartChunk(id=chunk_id))
     emit_chunk(
         writer,
-        TextDeltaChunk(id=chunk_id, delta=render_reply(response.prose, capture.facts)),
+        TextDeltaChunk(
+            id=chunk_id,
+            delta=shown_reply(response.prose, capture.facts, note_label()),
+        ),
     )
     emit_chunk(writer, TextEndChunk(id=chunk_id))
 
@@ -294,9 +296,7 @@ async def _charge_token_delta(
         return
     delta_input = usage.input_tokens - capture.charged_input_tokens
     delta_output = usage.output_tokens - capture.charged_output_tokens
-    delta_cache_read = usage.cache_read_tokens - capture.charged_cache_read_tokens
-    delta_cache_write = usage.cache_write_tokens - capture.charged_cache_write_tokens
-    delta_tokens = delta_input + delta_output + delta_cache_read + delta_cache_write
+    delta_tokens = delta_input + delta_output
     if delta_tokens <= 0:
         return
     provider_name, model_name = _split_agent_model(agent_model)
@@ -327,8 +327,6 @@ async def _charge_token_delta(
         return
     capture.charged_input_tokens += delta_input
     capture.charged_output_tokens += delta_output
-    capture.charged_cache_read_tokens += delta_cache_read
-    capture.charged_cache_write_tokens += delta_cache_write
     capture.charged_cost += delta_cost
     if delta_input > 0:
         # ``input_tokens`` accumulates over the run, so one request's input

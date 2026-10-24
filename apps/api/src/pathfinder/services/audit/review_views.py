@@ -27,8 +27,10 @@ from pathfinder.domain.audit.words import (
     REVIEW_STATUS_SENTENCES,
     VERDICT_KIND_SENTENCES,
     agreement_sentence,
+    disagreement_sentence,
     paper_sentence,
 )
+from pathfinder.domain.statistic_facts import Sentence, Share
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -45,21 +47,21 @@ class ReviewLine(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     verdict: VerdictKind
-    verdict_text: str
+    verdict_text: Sentence
     second_verdict: VerdictKind | None
     impact: float | None
-    impact_reason: str | None
+    impact_reason: Sentence | None
     literature: LiteratureStatus
-    literature_text: str
+    literature_text: Sentence
 
 
 class ReviewText(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    verdict_text: str
-    literature_text: str
-    paper_text: str
-    second_text: str | None
+    verdict_text: Sentence
+    literature_text: Sentence
+    paper_text: Sentence
+    second_text: Sentence | None
 
 
 class AgreementView(CamelModel):
@@ -67,8 +69,8 @@ class AgreementView(CamelModel):
 
     sampled: int
     agreed: int
-    share: float | None
-    text: str
+    share: Share | None
+    text: Sentence
 
 
 class FindingLine(CamelModel):
@@ -82,6 +84,8 @@ class FindingLine(CamelModel):
     certainty: Certainty | None
     impact: float | None
     reviewed_impact: float | None
+    reviews_disagree: bool
+    disagreement_text: str | None
 
 
 class ErrorTypeView(CamelModel):
@@ -89,12 +93,12 @@ class ErrorTypeView(CamelModel):
 
     error_type: ErrorType
     title: str
-    description: str
+    description: Sentence
     count: int = Field(ge=0)
     genomes: list[str]
     certainty: Certainty
-    cause: str | None
-    confirmed_by: str | None
+    cause: Sentence | None
+    confirmed_by: Sentence | None
     reviewed: list[FindingLine]
 
 
@@ -102,10 +106,10 @@ class ReviewState(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     status: ReviewStatus
-    text: str
+    text: Sentence
     done: int
     total: int
-    message: str
+    message: Sentence
 
 
 def review_line(review: FindingReview) -> ReviewLine:
@@ -169,6 +173,7 @@ def finding_line(record: AuditFindingRecord) -> FindingLine:
     review = record.review
     kept = _kept_as(review)
     error_type = record.error_type if kept is None else kept.error_type
+    disagreement = None if review is None else review.disagreement
     return FindingLine(
         id=record.id,
         genes=list(record.target.genes),
@@ -178,6 +183,10 @@ def finding_line(record: AuditFindingRecord) -> FindingLine:
         certainty=record.certainty if kept is None else kept.certainty,
         impact=record.impact,
         reviewed_impact=None if review is None else review.impact,
+        reviews_disagree=disagreement is not None,
+        disagreement_text=None
+        if disagreement is None
+        else disagreement_sentence(*disagreement),
     )
 
 

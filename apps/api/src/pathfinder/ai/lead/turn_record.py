@@ -16,6 +16,7 @@ from pathfinder.ai.lead.intent import (
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
+    turn_is_an_audit,
     turn_is_classified,
     turn_is_off_topic,
 )
@@ -28,8 +29,10 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
+from pathfinder.domain.strategy.constraints import is_blocking
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
@@ -83,6 +86,9 @@ class TurnRecord(CamelModel):
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
     chosen_readings: tuple[ChosenReading, ...] = ()
+    unfollowed_reach: StepReach | None = None
+    unmet_requirements: tuple[str, ...] = ()
+    audit_turn: bool = False
 
     @property
     def check_could_not_finish(self) -> bool:
@@ -194,4 +200,11 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         ),
         looked_up_the_catalog=markers.catalog_looked_up,
         chosen_readings=tuple(markers.chosen_readings),
+        unfollowed_reach=markers.unfollowed_reach(),
+        unmet_requirements=tuple(
+            g.constraint.requested_value
+            for g in ledger.constraints.grounded
+            if is_blocking(g)
+        ),
+        audit_turn=turn_is_an_audit(deps),
     )

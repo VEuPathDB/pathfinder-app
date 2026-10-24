@@ -87,7 +87,7 @@ def test_a_column_short_of_every_gene_is_a_sample_caveat() -> None:
     caveat = SampleCaveat(fit=tm_fit(12, 40))
 
     assert sample_caveat(tm_fit(12, 40)) == caveat
-    assert caveat.sentence == "12 of 40 genes fit # TM Domains (2 to 99)"
+    assert caveat.sentence == "12 of 40 transcripts fit # TM Domains (2 to 99)"
 
 
 def test_a_column_every_gene_fits_is_no_caveat() -> None:

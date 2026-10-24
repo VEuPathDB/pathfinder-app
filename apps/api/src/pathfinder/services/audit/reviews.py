@@ -19,7 +19,7 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     ReviewProgress,
     ReviewStatus,
-    Synthesis,
+    StoredSynthesis,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -189,7 +189,7 @@ async def stored_impacts(run_id: UUID) -> dict[int, float | None]:
     return {finding.id: finding.impact for finding in found}
 
 
-async def store_synthesis(run_id: UUID, synthesis: Synthesis) -> None:
+async def store_synthesis(run_id: UUID, synthesis: StoredSynthesis) -> None:
     async with async_session_factory() as session:
         await AuditReviewRepository(session).set_synthesis(run_id, synthesis)
         await session.commit()

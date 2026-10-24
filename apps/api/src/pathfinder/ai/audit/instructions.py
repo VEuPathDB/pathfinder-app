@@ -60,11 +60,15 @@ verdicts in one call.
 
 REVIEWER_INSTRUCTIONS = f"""\
 {JUDGING_RULES}
-You review one stored finding of an audit run. Read the finding, its stored \
-evidence and the literature this review retrieved. Judge whether the finding \
-is an error, name its error type and certainty, and say whether it is \
-already known and where from. Cite only the finding, its stored evidence and \
-what this review retrieved.
+You review one stored finding of an audit run. Read the finding and its \
+stored evidence. Judge whether the finding is an error, and name its error \
+type and certainty. Cite only the finding, its stored evidence and what this \
+review retrieved.
+"""
+
+LITERATURE_INSTRUCTIONS = """\
+Search the literature for the finding, and say whether it is already known \
+and where from. Name as a source only what this review retrieved.
 """
 
 SYNTHESIS_INSTRUCTIONS = f"""\

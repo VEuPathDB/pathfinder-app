@@ -55,6 +55,8 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "read_step_ids",
         "count_search",
         "count_by_column",
+        "step_columns",
+        "count_step_by_column",
         "genes_in_search",
         "export_gene_set",
     }
@@ -193,7 +195,7 @@ def _answered_card(deps: LeadDeps) -> frozenset[str]:
     return frozenset({parked.tool_name})
 
 
-def _audit_turn(deps: LeadDeps) -> bool:
+def turn_is_an_audit(deps: LeadDeps) -> bool:
     intent = deps.intent
     return (
         turn_is_classified(deps)
@@ -205,17 +207,19 @@ def _audit_turn(deps: LeadDeps) -> bool:
 def turn_reads_audits(deps: LeadDeps) -> bool:
     answers_a_start = bool(_answered_card(deps) & AUDIT_START_TOOLS)
     held = deps.state.turn_markers.audit_runs_held
-    return _audit_turn(deps) or held or answers_a_start
+    return turn_is_an_audit(deps) or held or answers_a_start
 
 
 def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
-    if _audit_turn(deps):
+    if turn_is_an_audit(deps):
         return frozenset()
     return AUDIT_START_TOOLS - _answered_card(deps)
 
 
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
+    if deps.state.turn_markers.started_an_audit:
+        return frozenset()
     if not turn_is_classified(deps):
         reachable = UNCLASSIFIED_TOOLS | _answered_card(deps)
         return frozenset(name for name in names if name in reachable)
@@ -273,6 +277,7 @@ __all__ = [
     "bare_assent_refusal",
     "tools_the_turn_offers",
     "turn_builds",
+    "turn_is_an_audit",
     "turn_is_off_topic",
     "turn_reads_audits",
     "unmet_preconditions",

@@ -111,6 +111,8 @@ def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str
             return bound.taxon.name, bound.taxon.label()
         case _ if name == PHYLETIC_EXPRESSION_PARAM:
             return bound.label, ""
+        case _ if bound.words:
+            return bound.words, ""
         case _:
             return (
                 bound.rounded() or plain_value(bound.value),

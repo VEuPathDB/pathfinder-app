@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping, Sequence
 
 from veupathdb.domain.parameters import (
+    FilterValue,
     MultiPickValue,
     ParamValue,
     SinglePickValue,
@@ -16,6 +17,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.domain.strategy.number_precision import shown_decimals
 from pathfinder.domain.strategy.operational_spec import BoundValue, ValueSource
 from pathfinder.domain.strategy.value_label import value_label
+from pathfinder.domain.strategy.value_text import clause_text, filter_text, range_text
 
 
 def _at_default(value: ParamValue, published: str | None) -> bool:
@@ -29,8 +31,29 @@ def _at_default(value: ParamValue, published: str | None) -> bool:
     return to_wire(initial) == to_wire(value)
 
 
+_RANGES = frozenset({"number-range", "date-range"})
 # The kinds of parameter a long decimal can bind: a number, or a pick of terms.
 _NUMBER_KINDS = frozenset({"number", "single-pick-vocabulary"})
+
+
+def _filter_words(value: ParamValue, info: ParameterInfo) -> str:
+    match value:
+        case FilterValue(filters=clauses):
+            shown = {c.field: c.field for c in clauses} | {
+                field.term: field.display for field in info.filter_fields
+            }
+            return filter_text(
+                [
+                    clause_text(
+                        shown[c.field],
+                        c.value,
+                        unknown=c.include_unknown,
+                    )
+                    for c in clauses
+                ]
+            )
+        case _:
+            return ""
 
 
 def _bound(
@@ -53,6 +76,7 @@ def _bound(
         visible=info.is_visible,
         number=info.is_number or info.param_kind in _NUMBER_KINDS,
         decimals=shown_decimals(info.default_value),
+        words=_filter_words(value, info),
     )
 
 
@@ -125,5 +149,14 @@ def plain_value(value: ParamValue) -> str:
             return ", ".join(terms)
         case SinglePickValue(value=term):
             return term
+        case FilterValue(filters=clauses):
+            return filter_text(
+                [
+                    clause_text(c.field, c.value, unknown=c.include_unknown)
+                    for c in clauses
+                ]
+            )
+        case _ if value.type in _RANGES:
+            return range_text(to_wire(value))
         case _:
             return to_wire(value)

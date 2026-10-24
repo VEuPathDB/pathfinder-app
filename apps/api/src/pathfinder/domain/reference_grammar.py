@@ -17,6 +17,7 @@ REFERENCE_KINDS = (
     "record",
     "last_change",
     "stat",
+    "cite",
     "tally",
 )
 BARE_REFERENCES = ("root_before", "root", "url")
@@ -49,11 +50,12 @@ def reference_kind(match: re.Match[str]) -> str:
 
 
 def reference_and_its_noun(nouns: Sequence[str]) -> re.Pattern[str]:
-    """A reference, and a record noun written after it in any case, with the
-    spaces, hyphens or colons between them."""
+    """A reference with the spaces before it, and a record noun written after
+    it in any case, with the spaces, hyphens or colons between them."""
     named = "|".join(re.escape(noun) for noun in nouns)
     return re.compile(
-        rf"{A_REFERENCE.pattern}(?P<noun>(?i:[ \t:-]*\b(?:{named})s?\b))?"
+        rf"(?P<gap>[ \t]*){A_REFERENCE.pattern}"
+        rf"(?P<noun>(?i:[ \t:-]*\b(?:{named})s?\b))?"
     )
 
 

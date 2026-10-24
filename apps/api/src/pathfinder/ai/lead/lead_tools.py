@@ -124,7 +124,8 @@ async def classify_user_intent(
     a conversation with no open question and no waiting card answers none, so
     ``clarification_response`` is refused there.
 
-    Any other imperative asks for a build. "Run it", "rerun the compute",
+    Any other imperative asks for a build, except a ``gene_model_audit`` as
+    the ``classification`` field defines it. "Run it", "rerun the compute",
     "build the strategy", "add those genes as a step", "create the step" -
     and a bare "yes, do it" typed while a card of yours waits - are
     ``extend_strategy`` when the conversation already has a strategy, a framed
@@ -134,8 +135,7 @@ async def classify_user_intent(
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something the conversation already holds. A question whose answer is
     a count, a list or a membership is a build however it is phrased, unless it
-    compares counts, counts records per value of a column, or asks about the
-    strategy the conversation holds: "did my
+    compares counts or asks about the strategy the conversation holds: "did my
     change go through?", "what is the count now?" is a ``follow_up_question``,
     and a request classification of a message that states nothing outside its
     asks is refused.
@@ -156,11 +156,15 @@ async def classify_user_intent(
     runs as an anonymous report and no step is added. Its sides go in
     ``differential_sides``, never in ``explicit_constraints``.
 
-    A question that counts records per value of a column - "which genome
-    assembly has the most RNA-Seq datasets", "how many datasets per organism"
-    - is a ``follow_up_question`` answered by ``count_by_column``, also on a
-    conversation with no strategy: one search's whole result is counted by
-    each value and no step is added.
+    A question that counts records per value of a column is a
+    ``follow_up_question`` when a step of the strategy holds those records,
+    answered by ``count_step_by_column``, or when the records are one catalog
+    search's whole result, unchanged, answered by ``count_by_column``, also on
+    a conversation with no strategy. A count per value that needs a build
+    first, because no step holds those records and no one search's whole
+    result is them, is a build: ``new_strategy`` with no strategy, and on a
+    conversation with one ``extend_strategy`` with ``asks_a_change`` set, so the
+    request is never held as a question.
 
     Three classifications ask for no strategy at all:
 
@@ -171,9 +175,10 @@ async def classify_user_intent(
       Example: "Please remember for future conversations: I always work with
       P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
 
-    - ``gene_model_audit``: an audit request, a question about an audit's
-      progress, or a question whether a gene's model is right. It states no
-      requirement and becomes no strategy request.
+    - ``gene_model_audit``: an audit request as the ``classification`` field
+      defines it, a question about an audit's progress, or a question whether
+      a gene's model is right. It states no requirement and becomes no
+      strategy request.
 
     The first two are answered in prose, and ``memory_request`` with one
     ``remember`` call per thing to keep. None of them is a request to build.

@@ -210,7 +210,7 @@ def test_the_reply_names_each_fact_by_a_reference_the_product_renders() -> None:
         in instructions
     )
     assert "The reply explains, recommends and asks" in instructions
-    assert "which stands in place of the number" in instructions
+    assert "its clause writes no number word (one to twelve, a dozen" in instructions
     assert (
         'A name that mixes letters and digits ("PfEMP1", "3D7", "SignalP-6.0") is prose.'
         in instructions
@@ -393,4 +393,11 @@ def test_a_saved_set_the_researcher_names_is_attached() -> None:
     assert (
         "A saved set the researcher names is attached with ``use_control_set``: a "
         "test runs only on a set attached to this conversation."
+    ) in _flat(LEAD_INSTRUCTIONS)
+
+
+def test_a_stat_is_written_in_place_and_a_cite_follows_the_words() -> None:
+    assert (
+        "[stat:<id>.<row>] is the value written in place, and [cite:<id>.<row>] "
+        "follows your own words for it."
     ) in _flat(LEAD_INSTRUCTIONS)

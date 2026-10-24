@@ -31,6 +31,103 @@
   revert deletes the blobs no surviving checkpoint names. Message upserts are scoped to their
   conversation in assistant-core 0.3.0b13. See
   `conventions/thread-surgery-invariants.md` (F11 to F14, R9 to R11, S1 to S3).
+* **A stored value renders in the form its type gives it; `stat` places it and `cite`
+  cites it.** An audit read's rows come from the answer's serialization schema
+  (`domain/statistic_rows.py`): a number and a share render as numbers, an enum as its
+  words, a boolean as Yes or No, a field typed `Sentence` as a sentence. Every source
+  answer is registered once and its schema read when an audit toolset is built. `[stat:]`
+  renders a value in place, the new `[cite:]` a numbered note after the reply's own words,
+  and each is refused on a row of the other form. The notes join the reply only where it is
+  emitted, under labels of its own. A synthesis summary is stored with its references
+  and rendered on every read. See
+  [a value is placed by stat and cited by cite](decisions/a-value-is-placed-by-stat-and-cited-by-cite.md).
+* **A finding line states when its two reviews disagree.** `FindingLine` carries
+  `reviewsDisagree` and `disagreementText`, from `FindingReview.disagreement` on the stored
+  review row, so a disputed finding in a synthesis section or in the headline always shows
+  both verdicts. The agreement count reads the same property.
+* **A review is offered literature fields only with a source open, and a spent review keeps
+  its last refusal.** With no research source the reviewer writes `UnsearchedReview` and
+  reads no literature instruction. A review that spends its retries stores the last refusal
+  in plain words after `OUT_OF_RETRIES`.
+* **A usage row counts a cached token once.** pydantic-ai's `input_tokens` already holds
+  the cache reads and writes, so `_charge_token_delta` charges input plus output tokens
+  only. The dollar amount was already right: `genai_prices` prices the cache tokens as
+  parts of the input. The current period's `monthly_usage` token totals written before
+  this fix overstate tokens by about 2x; the dollars and every quota decision were always
+  right, and no reader decides anything from the token totals. No backfill is possible,
+  because the Lead's cache tokens are not stored.
+* **A step with no countable column names the transform that reaches one.** veupathdb-mcp
+  0.2.0b50 (`StepColumns.transforms`, `transforms_from`, `Share`) is taken. `step_columns`
+  answers `reach` (`step`, `transform`, `none`) and `transforms`, each a transform to
+  another record type with its countable columns, never narrowed by the asked name; a read
+  that named one and that no tally followed refuses, once per turn, a reply that neither
+  asks nor offers a card (`unfollowed_reach`), and the refusal makes no claim about the
+  site. A requirement gap the check found `unmet` carries its requirement's key, makes the
+  ledger's constraint `ungroundable`, makes `blames_the_tree` true and refuses a reply that
+  ends the turn `complete` (`unmet_requirement`). Each rule of the contract is asked once
+  per turn (`refused_rules`) and prose faults hold a bound of their own (`prose_refusals`);
+  past it a reply that writes a number or names a fact the facts lack is withheld with its
+  questions, state and reason kept, and a shape fault goes through unchecked. A number word
+  in a reference's clause is refused as a digit is, "times" and "dozen" among them, and a
+  number a step sets is its `[value:]`. An intron finding's corrected model reads b49's
+  `IntronAudit.corrected_exons`, so an audit stored before it proposes no corrected model,
+  and the stored intron results carry the field.
+* **The Lead plans, starts and reads a gene-model audit on typed grounds.** An empty
+  `checks` list in a plan request lets the planner choose the screens (`PlanAsk.checks` is a
+  tuple, never null). A plan with no scope is refused to the Lead with its reason, and a genome
+  the site does not hold is refused with the organisms its words name and the rule that a
+  request of gene targets names no genome. A stored verdict names a genome the reads of its
+  genes placed it in: each check read now reads the full organism name of each gene it names
+  (the gene record's `organism_full`, never the `organismAbbrev` the library reads, once per gene
+  in an investigation, `services/gene_records/genome.py`) and hands it to the model, and a finding read places its genes in the finding's genomes
+  (`AuditDeps.misplaced_genome`), for the investigator and the auditor alike. A run's state
+  reaches a reply only through a reference to a run the turn started or read by id; a listed
+  run is not held. The failed-check rule does not ask an audit turn about the strategy, and a
+  digest whose strategy the site no longer holds is dropped when the turn arrives, once a 404 on
+  the strategy and a listing without it agree. The
+  classification gate holds a gene id the conversation showed last. A turn that started an
+  audit reaches no tool after the start, so the reply says it started and the turn ends, and a
+  budget stop says what an audit turn started or read and names only the limit it spent. A run
+  read and a review hold the genes of the run's targets, headline and reviewed findings as
+  records a reply cites. The classifier defines `gene_model_audit` once, as a check of gene
+  models for errors, and names a find or list request by a model property a build.
+
+* **A step is listed and counted by any column through the tool server.** veupathdb-py
+  0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
+  step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
+  genome code column its word cloud counts marked countable), and `count_step_by_column`
+  counts by value through `count_by_column`, so a search's own column is counted too. It takes
+  `top` (20, at most 200), keeps a number column's bins in order, and names a tally in the
+  step's own records, so a transcript step counts transcripts. Only a 4xx is a refusal; a 5xx,
+  a timeout or a connect error fails the call and refuses no column. Both step tools are
+  reached before the turn is classified, and one Lead rule now routes a count per value: on
+  the step that holds the records, else a build, and `count_by_column` only for one catalog
+  search's whole result. `ColumnTally.missing` is gone.
+* **A stored verdict this build cannot read is refused at load.** A column fit saved with
+  `shown` false and no `refusedStatus` fails validation with the error type
+  `unreadable_column_fit` (`domain/column_fit.py`), and `StrategyDomainState` loads a
+  `verification_digest` or `last_evidence_card` that fails with it as no verdict, so a stored
+  refusal never reads as a fit of none; the next check writes the verdict again. The turn's
+  own `TurnMarkers.column_fits` loads such a list as empty, so the conversation still
+  continues, and a test walks every type a conversation keeps and finds no column fit
+  outside that refusal (`ai/graph/stored_verdicts.py`). A record that fails for any other
+  reason as well still fails. The sample
+  note states each column's reason: the site's refusal with its status, or no record holding a
+  value. The classifier names a count per value that needs a build a build, with
+  `asks_a_change` set on a strategy so it is never held as a question.
+* **A column fit counts transcripts and states the records with no value.** Both reports a
+  column fit reads count one row per transcript (WDK's `AbstractByValueReporter` and
+  `AbstractAttributeReporter.getAttributeSql`), so `ColumnFit.counted_in` has no default and
+  every fit names transcripts. The byValue total is `subsetSize`, and `subsetSize` less
+  `numVarValues` is the fit's `no_value` ("740 of 840 transcripts fit ...; 100 hold no
+  value"); `numMissingCases` is always 0 in WDK's SQL and is not read. A 4xx refusal is a fit
+  with `refused_status`, the other columns are still read, and a refused column or one no
+  record holds a value of adds the note that names the step to sample. The trimmed
+  `transcript_search_columns` recording is taken again with `columnDataType` and `tools` on its
+  record columns, by `apps/api/scripts/trim_transcript_search_columns.py`. See
+  `decisions/a-step-is-counted-by-its-word-cloud-only-when-the-words-are-its-records.md` and
+  `decisions/verify-reviews-the-intent-the-genes-and-the-sources.md`.
+
 * **The Lead starts and reads gene-model audits and calls the investigator.**
   `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
   `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,

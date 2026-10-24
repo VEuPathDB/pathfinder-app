@@ -75,7 +75,7 @@ def test_the_full_section_lists_the_review() -> None:
         "by nothing): no step reads transmembrane domains"
     )
     assert rendered.split("\n### Columns\n")[1].split("\n\n")[0] == (
-        "- [all] c_tm: 840 of 840 genes fit # TM Domains (2 to 99)"
+        "- [all] c_tm: 840 of 840 transcripts fit # TM Domains (2 to 99)"
     )
     assert rendered.split("\n### Sampled genes\n")[1].split("\n\n")[0] == (
         "- PF3D7_0100200, histone H3 (Plasmodium falciparum 3D7): fits no - a "
@@ -116,7 +116,7 @@ def test_two_sets_on_one_step_are_two_caveat_lines_that_name_their_set() -> None
         "- 3 of 5 positive controls returned (control set Kinases, id set-a)\n"
         "- 3 of 5 positive controls returned (control set Exported, id set-b)\n"
         "- 1 of 2 positive controls returned\n"
-        "- 12 of 40 genes fit # TM Domains (2 to 99)"
+        "- 12 of 40 transcripts fit # TM Domains (2 to 99)"
     )
 
 

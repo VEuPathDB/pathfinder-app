@@ -30,11 +30,15 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
     ReviewAgreement,
-    Synthesis,
+    StoredSynthesis,
     VerdictKind,
     finding_cite,
 )
-from pathfinder.domain.statistic_facts import statistic_id
+from pathfinder.domain.statistic_facts import (
+    StatisticFact,
+    StatisticRowFact,
+    statistic_id,
+)
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
@@ -168,7 +172,7 @@ async def _synthesized(
     reviews: list[VerdictView],
     model: FunctionModel,
     view: AuditRunView | None = None,
-) -> Synthesis:
+) -> StoredSynthesis:
     return await synthesize(
         view or _view(), reviews, impacts=_IMPACTS, model=model, usage=RunUsage()
     )
@@ -292,35 +296,24 @@ async def test_a_summary_that_states_a_fact_no_fact_holds_is_retried(
 
 
 @pytest.mark.parametrize(
-    ("summary", "rendered"),
+    "summary",
     [
         (
-            (
-                f"The kept errors lie in [stat:{_COUNTS}.keptGenomes] of "
-                f"[stat:{_COUNTS}.genomes] genomes."
-            ),
-            "The kept errors lie in 2 of 3 genomes.",
+            f"The kept errors lie in [stat:{_COUNTS}.keptGenomes] of "
+            f"[stat:{_COUNTS}.genomes] genomes."
         ),
         (
-            (
-                "Two independent reviews agreed on "
-                f"[stat:{_COUNTS}.agreement.agreed] of "
-                f"[stat:{_COUNTS}.agreement.sampled] sampled findings."
-            ),
-            "Two independent reviews agreed on 1 of 2 sampled findings.",
+            "Two independent reviews agreed on "
+            f"[stat:{_COUNTS}.agreement.agreed] of "
+            f"[stat:{_COUNTS}.agreement.sampled] sampled findings."
         ),
         (
-            (
-                f"The review kept [stat:{_COUNTS}.kept] findings and rejected "
-                f"[stat:{_COUNTS}.rejected], over [stat:{_RUN_FACT}.run.targets] target."
-            ),
-            "The review kept 2 findings and rejected 1, over 1 target.",
+            f"The review kept [stat:{_COUNTS}.kept] findings and rejected "
+            f"[stat:{_COUNTS}.rejected], over [stat:{_RUN_FACT}.run.targets] target."
         ),
     ],
 )
-async def test_a_summary_of_held_facts_is_stored_rendered(
-    summary: str, rendered: str
-) -> None:
+async def test_a_summary_of_held_facts_is_stored_as_written(summary: str) -> None:
     retries: list[RetryPromptPart] = []
     reviews = [
         _stored(1, second="error"),
@@ -332,7 +325,7 @@ async def test_a_summary_of_held_facts_is_stored_rendered(
 
     found = await _synthesized(reviews, _first_then(right, retries), view)
 
-    assert (retries, found.summary) == ([], rendered)
+    assert (retries, found.summary) == ([], summary)
 
 
 async def test_the_agreement_is_computed_from_the_reviews() -> None:
@@ -387,7 +380,7 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
         _view(), reviews, impacts=_IMPACTS, model=FunctionModel(refuse), usage=usage
     )
 
-    assert found == Synthesis(
+    assert found == StoredSynthesis(
         sections=(),
         headline=(),
         summary=NO_FINDING_KEPT,
@@ -426,7 +419,7 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
 
     found = await _synthesized(reviews, build_synthesis_mock())
 
-    assert found == Synthesis(
+    assert found == StoredSynthesis(
         sections=(
             ErrorTypeSection(
                 error_type=_TRUNCATED,
@@ -442,6 +435,20 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
             ),
         ),
         headline=(3, 2, 4, 1),
-        summary="The review kept 4 findings as errors and rejected 1.",
+        summary=(
+            f"The review kept [stat:{_COUNTS}.kept] findings as errors and "
+            f"rejected [stat:{_COUNTS}.rejected]."
+        ),
         agreement=ReviewAgreement(sampled=0, agreed=0),
+        facts=(
+            StatisticFact(
+                id=_COUNTS,
+                kind="audit_synthesis",
+                title=f"The reviews of audit run {_RUN}",
+                rows=[
+                    StatisticRowFact(name="kept", value="4"),
+                    StatisticRowFact(name="rejected", value="1"),
+                ],
+            ),
+        ),
     )

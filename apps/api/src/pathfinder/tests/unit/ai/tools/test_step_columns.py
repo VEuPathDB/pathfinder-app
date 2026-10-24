@@ -27,7 +27,7 @@ from pathfinder.ai.tools.standalone._step_columns import (
     measured,
     settled,
 )
-from pathfinder.domain.evidence import ColumnFit, ThresholdSides
+from pathfinder.domain.column_fit import ColumnFit, ThresholdSides
 from pathfinder.tests._support.recorded_columns import (
     PERCENTILE_SEARCH,
     attribute_histogram,
@@ -209,13 +209,14 @@ def _exon_fit(column: str, fitting: int) -> ColumnFit:
         column=column,
         display_name=column,
         bound_value="2 to 20",
+        counted_in="transcripts",
         total=500,
         fitting=fitting,
         fitting_at_most=fitting,
     )
 
 
-def test_rival_columns_stand_only_together() -> None:
+def test_rival_columns_read_stand_only_when_they_agree() -> None:
     bounds = _bounds(
         "GenesByExonCount",
         _EXONS,
@@ -230,7 +231,8 @@ def test_rival_columns_stand_only_together() -> None:
 
     assert settled(list(zip(bounds, split, strict=True))) == []
     assert settled(list(zip(bounds, agreed, strict=True))) == agreed
-    assert settled(list(zip(bounds[:2], agreed[:2], strict=True))) == []
+    assert settled(list(zip(bounds[:2], agreed[:2], strict=True))) == agreed[:2]
+    assert settled(list(zip(bounds[1:], split[1:], strict=True))) == []
 
 
 def test_the_sole_column_of_a_search_stands_whatever_it_counts() -> None:

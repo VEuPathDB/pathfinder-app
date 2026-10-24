@@ -17,8 +17,8 @@ from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.citations import (
     Citation,
 )
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.evidence import (
-    ColumnFit,
     EvidenceCard,
     RequirementCheck,
     SampledGene,

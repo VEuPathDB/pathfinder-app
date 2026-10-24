@@ -11,10 +11,13 @@ from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.stored_verdicts import StoredList
+from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
-from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
+from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
@@ -205,6 +208,8 @@ class TurnMarkers(CamelModel):
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
     output_refusals: int = 0
+    prose_refusals: int = 0
+    refused_rules: list[str] = Field(default_factory=list)
     unchecked_reply: bool = False
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
@@ -213,7 +218,7 @@ class TurnMarkers(CamelModel):
     # Every control result this turn read, in the order each one answered.
     control_tests: list[ControlTestRun] = Field(default_factory=list)
     # Every column a check of this turn read, the latest read of each.
-    column_fits: list[ColumnFit] = Field(default_factory=list)
+    column_fits: StoredList[ColumnFit] = Field(default_factory=list)
     expression_fits: list[ExpressionFit] = Field(default_factory=list)
     # The study-step checks this turn computed, the latest read of each step.
     study_checks: dict[str, list[ConstraintCheck]] = Field(default_factory=dict)
@@ -239,8 +244,10 @@ class TurnMarkers(CamelModel):
     # Which of the asked genes each membership check of this turn found held.
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)
+    column_reaches: list[StepReach] = Field(default_factory=list)
     audit_facts: list[StatisticFact] = Field(default_factory=list)
     audit_runs_held: bool = False
+    audit_runs: list[UUID] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -419,6 +426,23 @@ class TurnMarkers(CamelModel):
 
     def record_tally(self, tally: TallyFact) -> None:
         self.tallies.append(tally)
+
+    def unfollowed_reach(self) -> StepReach | None:
+        return next(
+            (
+                r
+                for r in reversed(self.column_reaches)
+                if r.unfollowed(len(self.tallies))
+            ),
+            None,
+        )
+
+    @property
+    def started_an_audit(self) -> bool:
+        return any(fact.kind == "audit_start" for fact in self.audit_facts)
+
+    def record_audit_runs(self, run_ids: Iterable[UUID]) -> None:
+        self.audit_runs = list(dict.fromkeys([*self.audit_runs, *run_ids]))
 
     def record_audit_facts(self, facts: Iterable[StatisticFact]) -> None:
         read = {fact.id: fact for fact in self.audit_facts}

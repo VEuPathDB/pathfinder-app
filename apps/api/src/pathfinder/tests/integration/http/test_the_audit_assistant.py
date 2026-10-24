@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from collections.abc import Iterator
 from typing import Any
 from uuid import UUID, uuid4
@@ -36,7 +35,11 @@ from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.services.audit.verdicts import conversation_verdicts
 from pathfinder.services.audit.views import run_view
 from pathfinder.services.gene_records.read import gene_record_url
-from pathfinder.tests._support.audit_planning import STRAINS, faked_site
+from pathfinder.tests._support.audit_planning import (
+    STRAINS,
+    faked_site,
+    serve_gene_genomes,
+)
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -99,6 +102,7 @@ def pseudogene_call(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
+    serve_gene_genomes(monkeypatch)
 
 
 async def _post(
@@ -384,7 +388,7 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     assert seen == [[]]
     assert _text(chunks) == (
         f"Audit run {run_id} is planned. Its confirmation stage has checked 7 of "
-        f"10 candidates. The first rate is at least {json.dumps(rate.bounds.low)}."
+        f"10 candidates. The first rate is at least {round(rate.bounds.low * 100, 1):g}%."
     )
 
 

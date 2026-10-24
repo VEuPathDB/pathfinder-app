@@ -3,7 +3,6 @@ the references of each criterion, and the review VERIFY wrote."""
 
 from __future__ import annotations
 
-import re
 from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
@@ -15,6 +14,7 @@ from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.citations import Citation
 from pathfinder.domain.clipped import list_clipped_to, number_at_least, text_clipped_to
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.omitted_from_input import OmittedFromInput
@@ -34,10 +34,6 @@ type RequirementStatus = Literal["met", "unmet", "unexpressed"]
 # unjudged: no record the check read judged a met row either way.
 type ShownStatus = RequirementStatus | Literal["unshown", "unjudged"]
 type GeneFit = Literal["yes", "no", "unclear"]
-type ColumnFitState = Literal["all", "some", "none", "not_shown"]
-# A column reporter counts the step's genes; an attribute histogram counts its
-# transcript rows.
-type CountedIn = Literal["genes", "transcripts"]
 
 
 class ControlSetEvidence(CamelModel):
@@ -249,119 +245,6 @@ class SampledGene(CamelModel):
     )
 
 
-def _counted(surely: int, at_most: int) -> str:
-    return str(surely) if surely == at_most else f"{surely} to {at_most}"
-
-
-# The counts a column fit row opens with: "569 of 569 transcripts fit" or
-# "300 of 569 transcripts hold". A row counts records in the column's own unit.
-COLUMN_FIT_COUNTS = re.compile(
-    r"\b\d[\d,]*(?: to \d[\d,]*)? of \d[\d,]* (?:genes|transcripts) (?:fit|hold)\b"
-)
-
-
-class ThresholdSides(CamelModel):
-    """The records on each side of one threshold whose direction the site does
-    not state, when the step does not hold every record on one side."""
-
-    model_config = ConfigDict(frozen=True)
-
-    value: str
-    # The records at the threshold or above it; a bin across it raises the most.
-    above: Annotated[int, number_at_least(0)]
-    above_at_most: Annotated[int, number_at_least(0)]
-    below: Annotated[int, number_at_least(0)]
-    below_at_most: Annotated[int, number_at_least(0)]
-
-    @property
-    def nesting_problem(self) -> str:
-        if self.above > self.above_at_most or self.below > self.below_at_most:
-            return "each side of a threshold holds surely <= at_most"
-        return ""
-
-    def sentence(self, total: int, counted_in: CountedIn, display_name: str) -> str:
-        return (
-            f"{_counted(self.above, self.above_at_most)} of {total} {counted_in} "
-            f"hold {display_name} {self.value} or more and "
-            f"{_counted(self.below, self.below_at_most)} hold {self.value} or fewer"
-        )
-
-
-class ColumnFit(CamelModel):
-    """One column of a step's search, read over the whole step against the
-    values its criterion binds."""
-
-    model_config = ConfigDict(frozen=True)
-
-    criterion_id: str
-    criterion_text: str
-    wdk_step_id: int
-    column: str
-    display_name: str
-    # The bounds whose side is known, as one range; empty when none is.
-    bound_value: str
-    counted_in: CountedIn = "genes"
-    total: Annotated[int, number_at_least(0)]
-    # The records inside ``bound_value``; a bin across a bound raises the most.
-    fitting: Annotated[int, number_at_least(0)]
-    fitting_at_most: Annotated[int, number_at_least(0)]
-    # False when the site reports no value of the column for the step.
-    shown: bool = True
-    sides: list[ThresholdSides] = Field(default_factory=list)
-
-    @property
-    def nesting_problem(self) -> str:
-        if not self.fitting <= self.fitting_at_most <= self.total:
-            return "a column fit holds fitting <= fitting_at_most <= total"
-        if any(
-            max(side.above_at_most, side.below_at_most) > self.total
-            for side in self.sides
-        ):
-            return "a side of a threshold holds at most the step's records"
-        if not self.shown and (self.total or self.sides):
-            return "a column the site does not show carries no count"
-        return next((p for side in self.sides if (p := side.nesting_problem)), "")
-
-    @computed
-    def fits(self) -> ColumnFitState:
-        """How many records of the step hold a value inside every bound."""
-        if not self.shown:
-            return "not_shown"
-        if self.fitting_at_most == 0:
-            return "none"
-        return "all" if self.fitting == self.total and not self.sides else "some"
-
-    @computed
-    def sentence(self) -> str:
-        """The records that fit out of the step, the records on each side of a
-        threshold with no stated direction, or that the site shows no column."""
-        if not self.shown:
-            return f"the site shows no column for '{self.criterion_text}'"
-        inside = (
-            [
-                (
-                    f"{_counted(self.fitting, self.fitting_at_most)} of {self.total} "
-                    f"{self.counted_in} fit {self.display_name} ({self.bound_value})"
-                )
-            ]
-            if self.bound_value
-            else []
-        )
-        sides = [
-            side.sentence(self.total, self.counted_in, self.display_name)
-            for side in self.sides
-        ]
-        return "; ".join([*inside, *sides])
-
-    @property
-    def column_key(self) -> tuple[int, str]:
-        """The step and the column this fit reads."""
-        return self.wdk_step_id, self.column
-
-    def texts(self) -> list[str]:
-        return [self.criterion_text, self.display_name, self.bound_value]
-
-
 WithheldKind = Literal[
     "sampled_gene", "source", "requirement_row", "answer", "status", "claim"
 ]
@@ -385,7 +268,7 @@ class VerificationReview(CamelModel):
         default_factory=list,
         description="One row per requirement the researcher stated, in any message.",
     )
-    column_fits: list[ColumnFit] = Field(
+    column_fits: Annotated[list[ColumnFit], OmittedFromInput] = Field(
         default_factory=list,
         description=(
             "Filled by the runtime from this turn's read_step_columns calls; "
@@ -473,11 +356,8 @@ class EvidenceCard(CamelModel):
 __all__ = [
     "SAMPLED_GENE_LIMIT",
     "CheckedStepCount",
-    "ColumnFit",
-    "ColumnFitState",
     "ControlSetEvidence",
     "ControlTestEvidence",
-    "CountedIn",
     "CriterionCitations",
     "EvidenceCard",
     "GeneFit",
@@ -488,6 +368,5 @@ __all__ = [
     "SampledGene",
     "ShownStatus",
     "SiteRead",
-    "ThresholdSides",
     "VerificationReview",
 ]

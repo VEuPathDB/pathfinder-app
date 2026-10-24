@@ -27,7 +27,9 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
-from pathfinder.domain.statistic_facts import statistic_id
+from pathfinder.domain.statistic_facts import (
+    statistic_id,
+)
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.reviews import (
@@ -198,7 +200,6 @@ async def test_the_synthesis_carries_the_review_agreement(
     )
     retries: list[RetryPromptPart] = []
     ids = list(stored.values())
-    kept = "The review kept 3 findings as errors and rejected 0."
     counts = _counts(run_id)
     written = (
         f"The review kept [stat:{counts}.kept] findings as errors and rejected "
@@ -229,7 +230,10 @@ async def test_the_synthesis_carries_the_review_agreement(
     assert "80" in str(retry.content)
     run = await _read_run(app, owner, run_id)
     assert run["synthesis"]["agreement"] == {"sampled": 3, "agreed": 2, "share": 0.667}
-    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (kept, ids)
+    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (
+        "The review kept 3 findings as errors and rejected 0.",
+        ids,
+    )
     assert run["review"]["status"] == "synthesized"
 
 

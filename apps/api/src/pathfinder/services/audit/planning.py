@@ -238,7 +238,7 @@ def _target_genomes(targets: Sequence[GeneTarget]) -> frozenset[str]:
 
 def _screened(request: PlanRequest, found: str | None) -> tuple[ScreenedCheck, ...]:
     asked = request.checks
-    return tuple(c for c in screened_checks(found) if asked is None or c in asked)
+    return tuple(c for c in screened_checks(found) if not asked or c in asked)
 
 
 def _genome_plan(

@@ -190,13 +190,15 @@ const VERIFY_WITH_DIGEST = {
           column: "tm_count",
           displayName: "# TM Domains",
           boundValue: "2 to 99",
+          countedIn: "transcripts" as const,
           total: 40,
           fitting: 12,
           fittingAtMost: 12,
+          shown: true,
           fits: "some" as const,
-          sentence: "12 of 40 genes fit # TM Domains (2 to 99)",
+          sentence: "12 of 40 transcripts fit # TM Domains (2 to 99)",
         },
-        sentence: "12 of 40 genes fit # TM Domains (2 to 99)",
+        sentence: "12 of 40 transcripts fit # TM Domains (2 to 99)",
       },
     ],
     gaps: [
@@ -265,7 +267,7 @@ describe("VerificationSection detail", () => {
     );
     expect(screen.getByText(/61 genes overlap the gold set/)).toBeInTheDocument();
     expect(
-      screen.getByText("12 of 40 genes fit # TM Domains (2 to 99)"),
+      screen.getByText("12 of 40 transcripts fit # TM Domains (2 to 99)"),
     ).toBeInTheDocument();
     expect(
       screen.getByText("'exported': no search the strategy runs states it"),

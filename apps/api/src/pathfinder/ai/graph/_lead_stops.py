@@ -10,6 +10,7 @@ from assistant_core.platform.logging import get_logger
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
@@ -227,7 +228,10 @@ def unwritten_reply(state: PipelineState) -> LeadResponse:
 
 
 def run_stop_reply(
-    exc: UsageLimitExceeded | UnexpectedModelBehavior, deps: LeadDeps
+    exc: UsageLimitExceeded | UnexpectedModelBehavior,
+    deps: LeadDeps,
+    spent: RunUsage,
+    limits: UsageLimits,
 ) -> LeadResponse:
     state = deps.state
     conversation_id = str(state.conversation_id)
@@ -244,6 +248,8 @@ def run_stop_reply(
                     deps.runtime.strategy_session,
                     state.turn_markers,
                     state.domain.open_questions,
+                    spent,
+                    limits,
                 ),
                 changed=state.turn_markers.changed_strategy,
             )

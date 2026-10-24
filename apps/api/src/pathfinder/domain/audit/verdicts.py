@@ -7,9 +7,11 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
+from pathfinder.domain.statistic_facts import Sentence, Share, StatisticFact
 
 VerdictKind = Literal["error", "no_error", "undecided"]
 VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
@@ -39,11 +41,16 @@ class GeneModelVerdict(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     genes: tuple[GeneName, ...] = Field(min_length=1, max_length=4)
-    model_genome: OrganismName
+    model_genome: OrganismName = Field(
+        description=(
+            "The full organism name of the genome whose model the verdict "
+            "judges, as the site names it."
+        )
+    )
     verdict: VerdictKind
     error_type: ErrorType | None = None
     certainty: Certainty | None = None
-    cause: str = Field(min_length=1, max_length=MAX_CAUSE)
+    cause: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     cites: tuple[str, ...] = Field(min_length=1, max_length=MAX_CITES)
 
     @model_validator(mode="after")
@@ -69,9 +76,9 @@ class FindingReview(CamelModel):
     already_known: LiteratureStatus
     known_from: tuple[str, ...] = Field(default=(), max_length=MAX_CITES)
     paper_depends: bool | None = None
-    card_text: str = Field(min_length=1, max_length=MAX_CARD)
+    card_text: Sentence = Field(min_length=1, max_length=MAX_CARD)
     impact: float | None = Field(default=None, ge=0.0, le=1.0)
-    impact_reason: str | None = Field(default=None, max_length=MAX_CAUSE)
+    impact_reason: Sentence | None = Field(default=None, max_length=MAX_CAUSE)
     second_verdict: VerdictKind | None = None
     stopped: bool = False
 
@@ -91,13 +98,36 @@ class FindingReview(CamelModel):
             raise ValueError(msg)
         return self
 
+    @property
+    def disagreement(self) -> tuple[VerdictKind, VerdictKind] | None:
+        first, second = self.verdict.verdict, self.second_verdict
+        if second is None or second == first:
+            return None
+        return first, second
+
+
+class UnsearchedReview(FindingReview):
+    already_known: SkipJsonSchema[LiteratureStatus] = "not_searched"
+    known_from: SkipJsonSchema[tuple[str, ...]] = ()
+    paper_depends: SkipJsonSchema[bool | None] = None
+
+    @model_validator(mode="after")
+    def _not_searched(self) -> Self:
+        if (self.already_known, self.paper_depends) != ("not_searched", None):
+            msg = (
+                "no literature source is open for this review, so it states "
+                "nothing about the literature"
+            )
+            raise ValueError(msg)
+        return self
+
 
 class ErrorTypeSection(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     error_type: ErrorType
-    cause: str = Field(min_length=1, max_length=MAX_CAUSE)
-    confirmed_by: str = Field(min_length=1, max_length=MAX_CAUSE)
+    cause: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
+    confirmed_by: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     finding_ids: tuple[int, ...] = Field(min_length=1)
 
 
@@ -115,7 +145,7 @@ class ReviewAgreement(CamelModel):
         return self
 
     @computed
-    def share(self) -> float | None:
+    def share(self) -> Share | None:
         return None if self.sampled == 0 else round(self.agreed / self.sampled, 3)
 
 
@@ -123,7 +153,7 @@ def review_agreement(reviews: Sequence[FindingReview]) -> ReviewAgreement:
     paired = [r for r in reviews if r.second_verdict is not None]
     return ReviewAgreement(
         sampled=len(paired),
-        agreed=sum(r.verdict.verdict == r.second_verdict for r in paired),
+        agreed=sum(r.disagreement is None for r in paired),
     )
 
 
@@ -132,7 +162,7 @@ class SynthesisDraft(CamelModel):
 
     sections: tuple[ErrorTypeSection, ...]
     headline: tuple[int, ...] = Field(max_length=MAX_HEADLINES)
-    summary: str = Field(min_length=1, max_length=MAX_CARD)
+    summary: Sentence = Field(min_length=1, max_length=MAX_CARD)
 
     @model_validator(mode="after")
     def _headline_in_sections(self) -> Self:
@@ -152,10 +182,14 @@ class Synthesis(SynthesisDraft):
     agreement: ReviewAgreement
 
 
+class StoredSynthesis(Synthesis):
+    facts: tuple[StatisticFact, ...] = ()
+
+
 class ReviewProgress(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     status: ReviewStatus
     done: int = Field(default=0, ge=0)
     total: int = Field(default=0, ge=0)
-    message: str = ""
+    message: Sentence = ""

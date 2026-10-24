@@ -21,10 +21,11 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolOutputErrorChunk,
 )
 
+from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.ai.lead.card_reply import CardCallReply
 from pathfinder.ai.lead.recorded_cards import completed_consult_input
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_references import shown_reply
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.turn_facts import TurnFacts
 
@@ -56,7 +57,7 @@ def _reply_of(call_id: str, card: list[BaseChunk], facts: TurnFacts) -> list[Bas
     text_id = f"reply-{call_id}"
     return [
         TextStartChunk(id=text_id),
-        TextDeltaChunk(id=text_id, delta=render_reply(reply, facts)),
+        TextDeltaChunk(id=text_id, delta=shown_reply(reply, facts, note_label())),
         TextEndChunk(id=text_id),
     ]
 

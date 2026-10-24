@@ -11,18 +11,21 @@ from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage, UsageLimits
 
-from pathfinder.ai.audit.facts import audit_run_fact, json_rows
+from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.verdicts import (
+    MAX_CARD,
     GeneModelVerdict,
     ReviewAgreement,
-    Synthesis,
+    StoredSynthesis,
     SynthesisDraft,
     review_agreement,
 )
-from pathfinder.domain.reply_references import prose_faults, render_reply
+from pathfinder.domain.reply_notes import referenced_facts
+from pathfinder.domain.reply_references import nested_text, prose_faults
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
+from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
@@ -93,7 +96,7 @@ def synthesis_counts_fact(view: AuditRunView, counts: SynthesisCounts) -> Statis
         id=statistic_id("audit_synthesis", [str(view.run.id)]),
         kind="audit_synthesis",
         title=f"The reviews of audit run {view.run.id}",
-        rows=json_rows("", counts.model_dump(mode="json", by_alias=True)),
+        rows=model_rows(counts),
     )
 
 
@@ -153,6 +156,13 @@ def _synthesizable(
     faults = prose_faults(output.summary, ctx.deps.facts)
     if faults:
         raise ModelRetry(unrendered_prose_message(faults))
+    shown = len(nested_text(output.summary, ctx.deps.facts))
+    if shown > MAX_CARD:
+        msg = (
+            f"The summary reads {shown} characters once its references render, "
+            f"more than {MAX_CARD}: shorten it, or cite fewer stored sentences."
+        )
+        raise ModelRetry(msg)
     return output
 
 
@@ -202,11 +212,11 @@ async def synthesize(
     model: Model,
     usage: RunUsage,
     settings: ModelSettings | None = None,
-) -> Synthesis:
+) -> StoredSynthesis:
     agreement = review_agreement([v.review for v in reviews if v.review is not None])
     kept = kept_findings(reviews, impacts)
     if not kept:
-        return Synthesis(
+        return StoredSynthesis(
             sections=(), headline=(), summary=NO_FINDING_KEPT, agreement=agreement
         )
     prompt, facts = _prompt(view, reviews, kept)
@@ -222,9 +232,10 @@ async def synthesize(
     except (UsageLimitExceeded, UnexpectedModelBehavior) as stopped:
         raise SynthesisStoppedError from stopped
     draft = result.output
-    return Synthesis(
+    return StoredSynthesis(
         sections=draft.sections,
         headline=draft.headline,
-        summary=render_reply(draft.summary, facts),
+        summary=draft.summary,
         agreement=agreement,
+        facts=referenced_facts(draft.summary, facts.cited_statistics()),
     )

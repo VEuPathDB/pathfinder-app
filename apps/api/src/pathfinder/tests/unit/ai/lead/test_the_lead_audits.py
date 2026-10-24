@@ -208,6 +208,37 @@ def test_an_unclassified_answer_to_the_start_card_reaches_it() -> None:
     assert _offered(_answering(None)) == AUDIT_START_TOOLS
 
 
+def _started(deps: LeadDeps) -> LeadDeps:
+    started = StatisticFact(
+        id="stat_start", kind="audit_start", title="Audit run started", rows=[]
+    )
+    deps.state.turn_markers.record_audit_facts([started])
+    return deps
+
+
+def test_a_turn_that_started_an_audit_reaches_no_tool() -> None:
+    deps = _started(_answering(IntentClassification.APPROVAL))
+
+    assert tools_the_turn_offers(deps, _names()) == frozenset()
+
+
+def test_a_turn_that_started_an_audit_withholds_every_read() -> None:
+    names = _names()
+    deps = _started(_classified(IntentClassification.GENE_MODEL_AUDIT))
+
+    withheld = withhold_by_turn_state(run_context_for(deps), sorted(names))
+
+    assert withheld == names
+
+
+def test_a_turn_that_only_read_an_audit_keeps_its_reads() -> None:
+    deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
+    read = StatisticFact(id="stat_run", kind="audit_run", title="Audit run", rows=[])
+    deps.state.turn_markers.record_audit_facts([read])
+
+    assert _offered(deps) == _AUDIT_TOOLS
+
+
 def test_a_start_cards_reply_is_held_to_the_references() -> None:
     deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
     call = ToolCallPart(

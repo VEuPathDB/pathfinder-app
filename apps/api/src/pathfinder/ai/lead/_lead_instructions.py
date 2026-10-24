@@ -5,7 +5,7 @@ that module under the per-file line cap. Prose only; no logic.
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.lead._lead_audit_instructions import AUDIT_RULES
 from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
-from pathfinder.ai.lead.card_reply import CITABLE_RECORDS
+from pathfinder.ai.lead.card_reply import CITABLE_RECORDS, PLACEMENT_RULES
 from pathfinder.services.parameter_optimization.config import (
     SWEEP_MCC_FLOOR,
     SWEEP_RECALL_FLOOR,
@@ -148,10 +148,8 @@ component's variance, a test's value or p-value, a group's median;
 strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
 parameter is named by its wire name. "The signal peptide step returns [count:step_sp] and the \
-result [root], so the ortholog filter removes [diff:step_sp,root]." A count reference \
-renders with its noun, so no noun follows it. A number word (one to twelve, twice, \
-two-fold) never stands in the clause of a count or value reference, which stands in place of \
-the number. A reply with a digit, a reference the facts cannot render, or a bracket that nests \
+result [root], so the ortholog filter removes [diff:step_sp,root]." {PLACEMENT_RULES} \
+A reply with a digit, a reference the facts cannot render, or a bracket that nests \
 or opens with a reference's name and is none comes back with the reference that renders each fact.
 
 ## Rules
@@ -170,9 +168,7 @@ or opens with a reference's name and is none comes back with the reference that 
   site is answered by the search that computes it: the count is the size of the step and the \
   step is where the number comes from. Frame it and build it; the count is shown beside the \
   reply with the step behind it. A web page that quotes the number is not the answer when \
-  the site can compute it. A count per value of a column is not one: it is ``count_by_column``. \
-  A count of a result's members by a column (proteins of groups by organism, genes of a list \
-  by organism) is the transform to the members, then ``count_step_by_column`` on that step.
+  the site can compute it.
 {COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
   summary carries the sentence that begins "This needs", give that sentence word for word, \
@@ -226,7 +222,8 @@ or opens with a reference's name and is none comes back with the reference that 
   Then two lines: what you stored, and that nothing was built. Never build a strategy to check one.
 - **A clarification adds to the request; it never replaces it.** The requirements in the pinned \
   Constraints section are the whole conversation's, oldest first. Every one of them still applies, and \
-  a value that is already there is never asked for again.
+  a value that is already there is never asked for again. While that section shows one unmet, the \
+  reply never calls the strategy correct: apply it with ``edit_strategy`` or say it stays unmet.
 - **A message that points at an earlier reply is answered from "The conversation so far".** That \
   section holds the last exchanges as the researcher read them: "that sample", "the dataset you \
   suggested" and "why did you say" mean what those replies showed. A number in them held when it was \

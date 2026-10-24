@@ -141,7 +141,10 @@ def test_the_classifier_reads_an_answer_as_a_clarification() -> None:
 def test_the_classifier_calls_an_imperative_a_building_intent() -> None:
     guidance = _flat(classify_user_intent.__doc__ or "")
 
-    assert "Any other imperative asks for a build" in guidance
+    assert (
+        "Any other imperative asks for a build, except a ``gene_model_audit`` as "
+        "the ``classification`` field defines it."
+    ) in guidance
     assert "rerun" in guidance
     assert "yes, do it" in guidance
     assert "None of them is a ``follow_up_question``" in guidance

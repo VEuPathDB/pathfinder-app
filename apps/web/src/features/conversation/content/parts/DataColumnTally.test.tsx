@@ -36,7 +36,6 @@ const TALLY: ColumnTally = {
   onlyLabel: "Category",
   total: 379,
   distinct: 58,
-  missing: 0,
   rows: ORGANISMS.map((value, index) => ({ value, count: 67 - index * 5, label: "" })),
   siteId: "vectorbase",
   stepUrl: null,
@@ -56,7 +55,6 @@ const PROTEINS: ColumnTally = {
   onlyLabel: "",
   total: 523795,
   distinct: 840,
-  missing: 0,
   rows: [
     { value: "bpli", count: 18260, label: "Brachionus plicatilis" },
     { value: "osat", count: 9365, label: "Oryza sativa Japonica Group" },

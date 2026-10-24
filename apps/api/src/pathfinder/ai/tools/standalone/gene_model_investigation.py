@@ -47,6 +47,7 @@ async def investigate_gene_models(
         if ctx.deps.meter is not None and usage.requests:
             ctx.deps.meter(usage, model)
     ctx.deps.turn_markers.record_audit_facts(found.facts)
+    ctx.deps.turn_markers.record_audit_runs(found.runs)
     for record in found.records:
         ctx.deps.turn_markers.record_read(record)
     summary = count_noun(len(found.verdicts), "verdict")

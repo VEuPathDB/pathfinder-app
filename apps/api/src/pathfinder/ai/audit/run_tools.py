@@ -18,6 +18,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb.errors import WDKLoginRequiredError
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
+from pathfinder.ai.audit.fact_sources import warm_fact_schemas
 from pathfinder.ai.audit.facts import (
     AuditRead,
     audit_finding_fact,
@@ -32,6 +33,7 @@ from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import (
     PlanAsk,
     PlanRequest,
+    RunEstimate,
     ScopeProposal,
     same_scope,
 )
@@ -43,6 +45,7 @@ from pathfinder.services.audit.finding_views import (
     FindingDetail,
     FindingPage,
     FindingQuery,
+    FindingView,
     finding_detail,
     finding_page,
 )
@@ -127,17 +130,29 @@ async def review_audit_run(caller: AuditCaller, run_id: UUID) -> AuditRunView:
         return await run_view(run_id, caller.user_id)
 
 
+GENOME_RULE = (
+    "A genome is one of the site's organism names, written in full, and a "
+    "request that checks only gene targets names no genome."
+)
+
+
+def _unheld_genome(name: str, suggested: tuple[str, ...]) -> str:
+    unheld = f"the site holds no genome named {name}"
+    if not suggested:
+        return unheld
+    return f"{unheld}; the organisms its words name are {', '.join(suggested)}"
+
+
 def planner_refusal(proposal: ScopeProposal) -> str:
-    reason = proposal.refusal or (
-        f"the site holds no genome named {', '.join(proposal.unresolved)}"
+    if proposal.refusal is not None:
+        return f"The planner starts no audit: {proposal.refusal}. {NOTHING_STARTED}"
+    unheld = "; ".join(
+        _unheld_genome(name, proposal.suggestions[name]) for name in proposal.unresolved
     )
-    return f"The planner starts no audit: {reason}. {NOTHING_STARTED}"
+    return f"The planner starts no audit: {unheld}. {GENOME_RULE} {NOTHING_STARTED}"
 
 
-def _planned(proposal: ScopeProposal) -> str:
-    scope, cost = proposal.scope, proposal.estimate
-    if scope is None or cost is None:
-        return "No audit can start from this request"
+def _planned(scope: AuditScope, cost: RunEstimate) -> str:
     return (
         f"{count_noun(len(scope.genomes), 'genome')} and "
         f"{count_noun(len(scope.targets), 'gene target')}, at most "
@@ -152,19 +167,21 @@ async def plan_gene_model_audit_tool(
 
     The planner resolves the named genomes, picks the comparison genomes and the
     species reference, keeps the gene targets the site can judge, and estimates
-    the run. scope is null when no audit can start, and refusal says why;
-    unresolved names the genomes the site does not hold, with suggestions.
-    Nothing is written and nothing starts. To start the audit, call
-    start_gene_model_audit with this request and the scope returned here.
+    the run. A request no audit can start from is refused with the reason,
+    and a genome the site does not hold is refused with the organisms its
+    words name. Nothing is written and nothing starts. To start the audit,
+    call start_gene_model_audit with this request and the scope returned here.
     """
     proposal = await plan_gene_model_audit(ctx.deps.caller, request)
+    scope, cost = proposal.scope, proposal.estimate
+    if scope is None or cost is None:
+        raise CallRefused(planner_refusal(proposal))
     fact = plan_fact(proposal)
     ctx.deps.facts.append(fact)
-    targets = () if proposal.scope is None else proposal.scope.targets
-    genes = (gene for target in targets for gene in target.genes)
+    genes = (gene for target in scope.targets for gene in target.genes)
     ctx.deps.records.extend(gene_records(ctx.deps.site_id, genes))
     read = AuditRead[ScopeProposal](answer=proposal, fact_id=fact.id)
-    return with_summary(read, _planned(proposal), ctx=ctx)
+    return with_summary(read, _planned(scope, cost), ctx=ctx)
 
 
 async def start_gene_model_audit_tool(
@@ -174,12 +191,15 @@ async def start_gene_model_audit_tool(
 
     Give the request you planned with and the scope the planner returned for
     it, unchanged. The researcher sees the planner's scope and cost on a card
-    and approves or declines it. A declined card starts nothing.
+    and approves or declines it. A declined card starts nothing. An approved
+    run works in the background, so the reply says it started and the turn
+    ends; the run is read when the researcher asks.
     """
     del request
     outcome = await start_gene_model_audit(ctx.deps.caller, scope)
     fact = start_fact(outcome)
     ctx.deps.facts.append(fact)
+    ctx.deps.runs.append(outcome.run_id)
     read = AuditRead[AuditOutcome](answer=outcome, fact_id=fact.id)
     return with_summary(read, f"Audit run {outcome.status}", ctx=ctx)
 
@@ -215,6 +235,8 @@ async def read_audit_run_tool(
     view = await read_audit_run(ctx.deps.caller, run_id)
     fact = audit_run_fact(view)
     ctx.deps.facts.append(fact)
+    ctx.deps.runs.append(run_id)
+    ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
     read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
     return with_summary(read, f"Audit run {view.run.status}", ctx=ctx)
 
@@ -233,6 +255,8 @@ async def review_audit_run_tool(
     view = await review_audit_run(ctx.deps.caller, run_id)
     fact = audit_run_fact(view)
     ctx.deps.facts.append(fact)
+    ctx.deps.runs.append(run_id)
+    ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
     read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
     state = "not started" if view.review is None else view.review.status
     return with_summary(read, f"Review {state}", ctx=ctx)
@@ -249,11 +273,20 @@ async def list_audit_findings_tool(
     page = await list_audit_findings(ctx.deps.caller, run_id, query)
     fact = findings_fact(run_id, page)
     ctx.deps.facts.append(fact)
+    ctx.deps.runs.append(run_id)
     genes = (gene for finding in page.findings for gene in finding.target.genes)
     ctx.deps.records.extend(gene_records(page.site_id, genes))
+    for finding in page.findings:
+        ctx.deps.hold_genomes(finding_genomes(finding))
     read = AuditRead[FindingPage](answer=page, fact_id=fact.id)
     summary = f"{len(page.findings)} of {count_noun(page.total, 'finding')}"
     return with_summary(read, summary, ctx=ctx)
+
+
+def finding_genomes(finding: FindingView) -> dict[str, frozenset[str]]:
+    named = {finding.genome, finding.screened_genome, finding.paired_genome}
+    genomes = frozenset(g for g in named if g is not None)
+    return dict.fromkeys(finding.target.genes, genomes)
 
 
 def _held(
@@ -262,12 +295,14 @@ def _held(
     finding_id = detail.finding.id
     fact = audit_finding_fact(run_id, detail)
     deps.facts.append(fact)
+    deps.runs.append(run_id)
     stored = (e.kind for e in detail.evidence if e.status == "stored")
     deps.reads |= {
         finding_cite(finding_id),
         *(evidence_cite(finding_id, kind) for kind in stored),
     }
     deps.records.extend(gene_records(detail.site_id, detail.finding.target.genes))
+    deps.hold_genomes(finding_genomes(detail.finding))
     return AuditRead[FindingDetail](answer=detail, fact_id=fact.id)
 
 
@@ -300,10 +335,12 @@ def _read_tools() -> list[Tool[AuditDeps]]:
 
 
 def build_read_toolset() -> FunctionToolset[AuditDeps]:
+    warm_fact_schemas()
     return FunctionToolset(_read_tools(), max_retries=3)
 
 
 def build_run_toolset() -> FunctionToolset[AuditDeps]:
+    warm_fact_schemas()
     return FunctionToolset(
         [
             Tool(plan_gene_model_audit_tool, name="plan_gene_model_audit"),

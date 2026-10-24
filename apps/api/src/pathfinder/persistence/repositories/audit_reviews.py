@@ -12,7 +12,7 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
     ReviewProgress,
-    Synthesis,
+    StoredSynthesis,
     VerdictOrigin,
 )
 from pathfinder.persistence.models import (
@@ -138,7 +138,7 @@ class AuditReviewRepository:
             .values(review=progress.model_dump(by_alias=True, mode="json"))
         )
 
-    async def set_synthesis(self, run_id: UUID, synthesis: Synthesis) -> None:
+    async def set_synthesis(self, run_id: UUID, synthesis: StoredSynthesis) -> None:
         await self.session.execute(
             update(AuditRun)
             .where(AuditRun.id == run_id)

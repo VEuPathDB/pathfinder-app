@@ -310,7 +310,7 @@ async def _drive_lead_stream(
                     if _stream_ends_after(event, guard, capture):
                         return
         except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
-            capture.response = run_stop_reply(exc, deps)
+            capture.response = run_stop_reply(exc, deps, usage_acc, limits)
         finally:
             capture.record_run_spend(usage_acc)
 

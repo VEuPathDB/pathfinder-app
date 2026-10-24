@@ -38,7 +38,15 @@ from pathfinder.domain.audit.scope import (
     GenomeStatus,
 )
 from pathfinder.domain.audit.stages import RunHalt, RunStages, RunStatus, StageName
-from pathfinder.domain.audit.verdicts import ReviewProgress, Synthesis
+from pathfinder.domain.audit.verdicts import (
+    ErrorTypeSection,
+    ReviewAgreement,
+    ReviewProgress,
+    StoredSynthesis,
+)
+from pathfinder.domain.reply_references import nested_text
+from pathfinder.domain.statistic_facts import Sentence
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -86,9 +94,18 @@ class GenomeView(CamelModel):
     requests: int
     attempts: int
     stopped: int
-    message: str | None
+    message: Sentence | None
     priority: GenomePriority | None
     reference_strain: bool | None
+
+
+class SynthesisView(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    sections: tuple[ErrorTypeSection, ...]
+    headline: tuple[int, ...]
+    summary: Sentence
+    agreement: ReviewAgreement
 
 
 class AuditRunView(CamelModel):
@@ -105,7 +122,7 @@ class AuditRunView(CamelModel):
     rates: list[GenomeRate]
     targets: TargetReport
     review: ReviewProgress | None
-    synthesis: Synthesis | None
+    synthesis: SynthesisView | None
     reviewed: int
     action: RunAction | None
     reviews_running: bool
@@ -116,6 +133,25 @@ class AuditRunView(CamelModel):
     headline: list[FindingLine]
     review_state: ReviewState | None
     agreement: AgreementView | None
+
+    def named_genes(self) -> list[str]:
+        lines = [
+            *self.headline,
+            *(f for kind in self.error_types for f in kind.reviewed),
+        ]
+        targets = (gene for target in self.scope.targets for gene in target.genes)
+        found = (gene for line in lines for gene in line.genes)
+        return list(dict.fromkeys([*targets, *found]))
+
+
+def shown_synthesis(stored: StoredSynthesis) -> SynthesisView:
+    facts = TurnFacts(audit_statistics=list(stored.facts))
+    return SynthesisView(
+        sections=stored.sections,
+        headline=stored.headline,
+        summary=nested_text(stored.summary, facts),
+        agreement=stored.agreement,
+    )
 
 
 def _summary(run: AuditRunRecord) -> AuditRunSummary:
@@ -193,7 +229,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         rates=genome_rates(sample),
         targets=target_report(_target(finding) for finding in targets),
         review=run.review,
-        synthesis=run.synthesis,
+        synthesis=None if run.synthesis is None else shown_synthesis(run.synthesis),
         reviewed=reviewed,
         action=run_action(summary.phase, left, reviews_running=running),
         reviews_running=running,

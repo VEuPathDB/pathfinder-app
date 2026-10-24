@@ -9,13 +9,14 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.toolsets import FunctionToolset, WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree, get_site
 
-from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.tally_facts import tally_count
 from pathfinder.services.experiment.column_tally import (
     ColumnTally,
     ColumnTallyRefusedError,
@@ -60,13 +61,18 @@ def _singletons_then_proteins() -> StrategySession:
 class _Ran:
     def __init__(self) -> None:
         self.asked: list[tuple[CountedStep, str]] = []
+        self.tops: list[int] = []
         self.returned: list[ColumnTally] = []
 
-    async def __call__(self, step: CountedStep, column: str) -> ColumnTally:
+    async def __call__(self, step: CountedStep, column: str, top: int) -> ColumnTally:
         self.asked.append((step, column))
+        self.tops.append(top)
         if column == "length":
             msg = "protein records cannot be counted by length."
             raise ColumnTallyRefusedError(msg)
+        if column == "taxon_name":
+            msg = "Request failed after retries: "
+            raise WDKError(msg, status=504)
         tally = ColumnTally(
             id="tally_5e6f7a8b",
             title="Proteins by Taxon Code",
@@ -117,6 +123,7 @@ async def test_a_transform_step_is_counted_and_linked_on_the_site(ran: _Ran) -> 
             "abbreviation",
         )
     ]
+    assert ran.tops == [20]
     (tally,) = ran.returned
     assert ctx.deps.state.turn_markers.tallies == [tally.fact()]
     chunks = [
@@ -173,6 +180,20 @@ async def test_the_count_and_the_link_name_the_strategys_site(ran: _Ran) -> None
     )
 
 
+async def test_a_server_error_fails_the_count_and_refuses_no_column(
+    ran: _Ran,
+) -> None:
+    ctx = lead_run_context(
+        site_id="orthomcl", strategy_session=_singletons_then_proteins()
+    )
+
+    with pytest.raises(WDKError):
+        await count_step_by_column(ctx, _PROTEINS_STEP, "taxon_name")
+    await count_step_by_column(ctx, _PROTEINS_STEP, "abbreviation")
+
+    assert [step.refused for step, _ in ran.asked] == [frozenset(), frozenset()]
+
+
 async def test_a_column_the_site_cannot_count_goes_back_to_the_model(
     ran: _Ran,
 ) -> None:
@@ -203,6 +224,50 @@ async def test_a_refused_column_is_not_offered_again_on_that_step(ran: _Ran) -> 
     ]
 
 
+def _transcripts() -> StrategySession:
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph("g1", "kinases", "plasmodb")
+    graph.record_type = "transcript"
+    graph.steps = flatten_tree(
+        StrategyStepNode(id="kinases", search_name="GenesByText")
+    )
+    graph.steps["kinases"].record_class = "transcript"
+    graph.recompute_roots()
+    session.graph = graph
+    session.sync_state = WDKSyncState(wdk_step_ids={"kinases": 441031663})
+    return session
+
+
+async def test_a_transcript_step_is_counted_in_transcripts(ran: _Ran) -> None:
+    ctx = lead_run_context(site_id="plasmodb", strategy_session=_transcripts())
+
+    await count_step_by_column(ctx, 441031663, "organism", top=5)
+
+    ((step, column),) = ran.asked
+    assert (step.record_type, step.record_noun, column, ran.tops) == (
+        "transcript",
+        "transcript",
+        "organism",
+        [5],
+    )
+    assert step.step_url is None
+
+
+async def test_the_counts_are_facts_a_reply_quotes(ran: _Ran) -> None:
+    ctx = lead_run_context(
+        site_id="orthomcl", strategy_session=_singletons_then_proteins()
+    )
+
+    await count_step_by_column(ctx, _PROTEINS_STEP, "abbreviation")
+
+    tallies = ctx.deps.state.turn_markers.tallies
+    assert [
+        tally_count(tallies, body)
+        for body in ("tally_5e6f7a8b", "tally_5e6f7a8b.bpli", "tally_5e6f7a8b:values")
+    ] == ["523,795 proteins", "18,260 proteins", "840 values"]
+    assert tally_count(tallies, "tally_5e6f7a8b.pfal") is None
+
+
 def test_each_way_the_step_count_is_refused_keeps_a_retry() -> None:
     read_once = build_lead_toolset()
     assert isinstance(read_once, WrapperToolset)
@@ -212,13 +277,3 @@ def test_each_way_the_step_count_is_refused_keeps_a_retry() -> None:
     assert isinstance(base, FunctionToolset)
 
     assert base.tools["count_step_by_column"].max_retries == 6
-
-
-def test_the_lead_counts_a_results_members_through_the_transform() -> None:
-    rules = " ".join(LEAD_INSTRUCTIONS.split())
-
-    assert (
-        "A count of a result's members by a column (proteins of groups by organism, "
-        "genes of a list by organism) is the transform to the members, then "
-        "``count_step_by_column`` on that step." in rules
-    )

@@ -36,11 +36,13 @@ from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     CONTRACT_HEADING,
+    LeadResponse,
     hold_the_turn_contract,
     reconcile,
     to_correct,
 )
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.ai.lead.withheld_reply import WITHHELD_REPLY
 from pathfinder.domain.caveats import RequirementGap
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -170,17 +172,40 @@ def test_prose_is_refused_up_to_the_bound_after_the_messages_one_correction() ->
         with pytest.raises(ModelRetry, match="57"):
             hold_the_turn_contract(ctx, answer)
 
-    assert hold_the_turn_contract(ctx, answer) == answer
-    assert deps.state.turn_markers.unchecked_reply is True
+    assert hold_the_turn_contract(ctx, answer) == LeadResponse(
+        prose=WITHHELD_REPLY, strategy_changed=False
+    )
+    assert deps.state.turn_markers.unchecked_reply is False
 
 
-def test_prose_is_let_through_on_the_last_answer_the_run_allows() -> None:
+def test_prose_is_withheld_on_the_last_answer_the_run_allows() -> None:
     deps = _micro()
     ctx = run_context_for(deps)
     answer = reply(_WRITTEN)
 
-    assert hold_the_turn_contract(replace(ctx, retry=ctx.max_retries), answer) == answer
-    assert deps.state.turn_markers.unchecked_reply is True
+    assert hold_the_turn_contract(
+        replace(ctx, retry=ctx.max_retries), answer
+    ) == LeadResponse(prose=WITHHELD_REPLY, strategy_changed=False)
+    assert deps.state.turn_markers.unchecked_reply is False
+
+
+def test_the_same_prose_gets_the_same_verdict_on_every_answer() -> None:
+    deps = _micro()
+    ctx = run_context_for(deps)
+    answer = reply(_WRITTEN)
+
+    verdicts: list[object] = []
+    for _ in range(REFUSALS_PER_CHECK + 1):
+        try:
+            verdicts.append(hold_the_turn_contract(ctx, answer))
+        except ModelRetry:
+            verdicts.append("refused")
+
+    assert verdicts == [
+        "refused",
+        "refused",
+        LeadResponse(prose=WITHHELD_REPLY, strategy_changed=False),
+    ]
 
 
 def test_a_rendered_reply_let_through_is_not_marked_unchecked() -> None:

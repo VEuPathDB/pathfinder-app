@@ -7,9 +7,9 @@ answer. A question about an audit's progress is answered from ``read_audit_run``
 ``list_audit_runs`` first when you do not know the run.
 - **A question about a finding is answered from its stored evidence.** Read the finding with \
 ``read_audit_findings`` and answer from what it stored: each value is \
-``[stat:<fact id>.<row>]``, where the fact id is the factId the read returned and the row the \
-dotted path of the value in its answer, and each gene is ``[record:<gene id>]``. Call \
-``list_audit_findings`` first when you do not know the finding's id.
+``[stat:<fact id>.<row>]`` or ``[cite:<fact id>.<row>]``, where the fact id is the factId the \
+read returned and the row the dotted path of the value in its answer, and each gene is \
+``[record:<gene id>]``. Call ``list_audit_findings`` first when you do not know the finding's id.
 - **A question whether one gene's model is right goes to the investigator.** Call \
 ``investigate_gene_models`` with the question in the researcher's words, and answer from its \
 answer and its verdicts.

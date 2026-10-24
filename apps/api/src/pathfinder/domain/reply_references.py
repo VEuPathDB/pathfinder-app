@@ -21,6 +21,7 @@ from pathfinder.domain.reference_grammar import (
     reference_kind,
 )
 from pathfinder.domain.reference_placement import misplacements
+from pathfinder.domain.reply_notes import ReplyNotes, misused_references
 from pathfinder.domain.reply_suggestions import (
     A_TOKEN,
     EDGE_MARKS,
@@ -53,6 +54,7 @@ _A_NUMBER = re.compile(rf"[+-]?{_NUM}(?:[-/]{_NUM})*(?:%|-?[A-Za-z]{{1,4}})?|log
 # The count a comparison reference names after its variant.
 _COMPARED = ("unique", "result", "shared")
 _GROUP_SHOWN = 6
+_A_CITE = re.compile(r"[ \t]*\[cite:(?P<body>[^\[\]\n]+)\]")
 # The link a record reference renders: the record's id, then its page.
 _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
@@ -74,6 +76,8 @@ type FaultKind = Literal[
     "noun_after_count",
     "product_text",
     "standalone_count",
+    "sentence_in_place",
+    "cited_number",
 ]
 
 
@@ -227,6 +231,7 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "source": _source,
     "record": _record,
     "stat": lambda facts, body: statistic_value(facts.cited_statistics(), body),
+    "cite": lambda facts, body: statistic_value(facts.cited_statistics(), body),
     "tally": lambda facts, body: tally_count(facts.tallies, body),
 }
 
@@ -244,22 +249,50 @@ def _unheld_words(match: re.Match[str]) -> str:
             return "a link not shown"
         case "value" | "source" | "stat":
             return "a value not shown"
+        case "cite":
+            return ""
         case _:
             return "a count not shown"
 
 
-def render_reply(prose: str, facts: TurnFacts) -> str:
-    """The reply with each reference replaced by the fact it names. A count
-    reference carries the record noun, so the noun written after it is absorbed.
-    A reference that names nothing the facts hold is shown as its plain words."""
+def _rendered_with_notes(
+    prose: str, facts: TurnFacts, label: str
+) -> tuple[str, ReplyNotes]:
+    notes = ReplyNotes(facts.cited_statistics(), label)
 
     def replaced(match: re.Match[str]) -> str:
+        body = match.group("body") or ""
+        if reference_kind(match) == "cite":
+            return (notes.marker(body) or "") + (match.group("noun") or "")
         rendered = _rendered(match, facts)
         noun = match.group("noun") or ""
         shown = _unheld_words(match) if rendered is None else rendered
-        return shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
+        kept = shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
+        return match.group("gap") + kept
 
-    return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
+    return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose), notes
+
+
+def render_reply(prose: str, facts: TurnFacts, label: str = "") -> str:
+    """The reply with each reference replaced by the fact it names. A count
+    reference carries the record noun, so the noun written after it is absorbed.
+    A ``cite`` reference is a note marker after the word before it.
+    A reference that names nothing the facts hold is shown as its plain words."""
+    text, _ = _rendered_with_notes(prose, facts, label)
+    return text
+
+
+def nested_text(prose: str, facts: TurnFacts) -> str:
+    def cited(match: re.Match[str]) -> str:
+        value = statistic_value(facts.cited_statistics(), match.group("body"))
+        return "" if value is None else f" ({value})"
+
+    return render_reply(_A_CITE.sub(cited, prose), facts)
+
+
+def shown_reply(prose: str, facts: TurnFacts, label: str) -> str:
+    text, notes = _rendered_with_notes(prose, facts, label)
+    return text + notes.block()
 
 
 def _words(text: str) -> set[str]:
@@ -385,14 +418,22 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         for match in _unheld(prose, facts)
     ]
     alone = standalone_counts(prose, facts)
-    return list(dict.fromkeys([*unheld, *alone, *shape_faults(prose, facts)]))
+    misused = [
+        ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
+        for m in misused_references(prose, facts.cited_statistics())
+    ]
+    found = [*unheld, *alone, *misused, *shape_faults(prose, facts)]
+    return list(dict.fromkeys(found))
 
 
 __all__ = [
+    "FaultKind",
     "ProseFault",
     "linked_records",
+    "nested_text",
     "prose_faults",
     "render_reply",
     "shape_faults",
+    "shown_reply",
     "unheld_references",
 ]

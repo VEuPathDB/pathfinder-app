@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
-from pathfinder.domain.evidence import COLUMN_FIT_COUNTS
+from pathfinder.domain.column_fit import COLUMN_FIT_COUNTS
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
 

@@ -15,7 +15,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
     ReviewProgress,
-    Synthesis,
+    StoredSynthesis,
     VerdictKind,
     finding_cite,
 )
@@ -77,7 +77,11 @@ def _weighing(name: str) -> Weighing:
 
 
 def _review(
-    finding_id: int, name: str, verdict: VerdictKind, impact: float | None
+    finding_id: int,
+    name: str,
+    verdict: VerdictKind,
+    impact: float | None,
+    second: VerdictKind = "error",
 ) -> FindingReview:
     genome = _NAMED[name][0]
     error_type, certainty = _REVIEWED_AS[name]
@@ -96,7 +100,7 @@ def _review(
         card_text=SAMPLE_FIX,
         impact=impact,
         impact_reason=None if impact is None else "A published screen uses it.",
-        second_verdict="error",
+        second_verdict=second,
     )
 
 
@@ -157,12 +161,12 @@ async def reviewed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
         await reviews.add_review(
             run_id=run_id,
             finding_id=ids["kinase"],
-            review=_review(ids["kinase"], "kinase", "error", None),
+            review=_review(ids["kinase"], "kinase", "error", None, "no_error"),
             model_id="test:reviewer",
         )
         await reviews.set_synthesis(
             run_id,
-            Synthesis(
+            StoredSynthesis(
                 sections=(
                     ErrorTypeSection(
                         error_type="intact_gene_called_pseudogene",
@@ -179,7 +183,7 @@ async def reviewed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
                 ),
                 headline=(ids["piga"], ids["kinase"]),
                 summary="The review kept 1 finding as an error and rejected 1.",
-                agreement=ReviewAgreement(sampled=2, agreed=1),
+                agreement=ReviewAgreement(sampled=3, agreed=1),
             ),
         )
         await reviews.set_review(
@@ -216,10 +220,10 @@ async def test_the_run_reads_its_headline_and_error_type_sections(app: FastAPI) 
     )
     assert [line["reviewedImpact"] for line in section["reviewed"]] == [0.8]
     assert run["agreement"] == {
-        "sampled": 2,
+        "sampled": 3,
         "agreed": 1,
-        "share": 0.5,
-        "text": "Two independent reviews agreed on 1 of 2 sampled findings (50%)",
+        "share": 0.333,
+        "text": "Two independent reviews agreed on 1 of 3 sampled findings (33%)",
     }
     assert (
         kept["reviewText"]["secondText"]
@@ -260,6 +264,8 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
         "certainty": "high",
         "impact": _weighing("piga").impact,
         "reviewedImpact": 0.8,
+        "reviewsDisagree": False,
+        "disagreementText": None,
     }
     kinase = {
         "id": ids["kinase"],
@@ -270,6 +276,11 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
         "certainty": "low",
         "impact": _weighing("kinase").impact,
         "reviewedImpact": None,
+        "reviewsDisagree": True,
+        "disagreementText": (
+            "The two independent reviews disagree: the first keeps the error, "
+            "the second finds no error"
+        ),
     }
     assert run["headline"] == [piga, kinase]
     assert run["errorTypes"] == [

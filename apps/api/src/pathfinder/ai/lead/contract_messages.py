@@ -305,12 +305,27 @@ _WRITE_REFERENCES = (
 )
 
 
+def _kind_sentence(fault: ProseFault) -> str | None:
+    if fault.kind == "sentence_in_place":
+        return (
+            f"``{fault.token}`` names a stored sentence, which never stands in the "
+            f"reply: say it in your words and write ``{fault.references[0]}`` after them."
+        )
+    if fault.kind == "cited_number":
+        return (
+            f"``{fault.token}`` names a number, which the reply writes in place: "
+            f"write ``{fault.references[0]}``."
+        )
+    return None
+
+
 def _placement_sentence(fault: ProseFault) -> str | None:
     """The rewrite for a misplaced reference or a record's product text."""
     if fault.kind == "number_word":
         return (
             f"``{fault.token}``: ``{fault.references[0]}`` stands in place of the "
-            "number, so the clause writes no number word: write 'at least "
+            "number, so the clause writes no number word, and a number a step sets "
+            "is its [value:<step_id>.<param>]: write 'at least "
             "[value:step_x.min_tm] transmembrane domains', not 'at least one "
             "transmembrane domain [value:step_x.min_tm]'."
         )
@@ -349,7 +364,7 @@ def _fault_sentence(fault: ProseFault) -> str:
             f"``{fault.token}`` is no reference the product reads: write one of "
             "the references above, or take the brackets out."
         )
-    placed = _placement_sentence(fault)
+    placed = _kind_sentence(fault) or _placement_sentence(fault)
     if placed is not None:
         return placed
     if fault.references:

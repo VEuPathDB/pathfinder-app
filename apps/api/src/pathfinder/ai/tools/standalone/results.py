@@ -12,6 +12,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
 from veupathdb.domain.strategy import walk
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     get_strategy_api,
 )
@@ -30,7 +31,7 @@ from pathfinder.ai.tools.standalone._result_models import (
     StepColumns,
     _validate_sample_inputs,
     no_column,
-    no_rows,
+    unread_note,
 )
 from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
 from pathfinder.ai.tools.standalone._sample_page import (
@@ -41,6 +42,7 @@ from pathfinder.ai.tools.standalone._sample_page import (
 from pathfinder.ai.tools.standalone._step_columns import (
     AttributeHistogram,
     ColumnBound,
+    ValueBin,
     bound_param_value,
     by_value_bins,
     column_bounds,
@@ -52,7 +54,7 @@ from pathfinder.ai.tools.standalone._step_read import (
     own_class,
     read_as,
 )
-from pathfinder.domain.evidence import ColumnFit, CountedIn
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
@@ -61,6 +63,7 @@ from pathfinder.domain.strategy.types import SyncStateProtocol
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
 READ_DEADLINE_SECONDS = 20.0
+_SERVER_ERROR = 500
 
 
 def sample_seed(wdk_step_id: int, answer: str) -> str:
@@ -182,8 +185,6 @@ class _SearchStep:
     criterion: Criterion
     search_name: str
     record_type: str | None
-    # The records the site counts in the step, None before it counts them.
-    count: int | None = None
 
 
 async def _search_step(
@@ -204,7 +205,6 @@ async def _search_step(
         criterion=criterion,
         search_name=step.search_name,
         record_type=await own_class(session, step),
-        count=sync.step_counts.get(criterion.id),
     )
 
 
@@ -236,35 +236,52 @@ async def _column_bounds(site_id: str, target: _SearchStep) -> list[ColumnBound]
     )
 
 
+async def _column_bins(
+    site_id: str, wdk_step_id: int, bound: ColumnBound
+) -> list[ValueBin]:
+    api = get_strategy_api(site_id)
+    if bound.histogram is not None:
+        report = await api.run_step_report(wdk_step_id, bound.histogram)
+        return AttributeHistogram.model_validate(report).bins()
+    distribution = await api.get_column_distribution(
+        wdk_step_id, bound.column, budget_seconds=READ_DEADLINE_SECONDS
+    )
+    return by_value_bins(distribution)
+
+
 async def read_column_fit(
     site_id: str, wdk_step_id: int, criterion: Criterion, bound: ColumnBound
 ) -> ColumnFit:
-    """One report over the whole step, counted against the bound's thresholds."""
-    api = get_strategy_api(site_id)
-    counted_in: CountedIn = "genes"
-    if bound.histogram is not None:
-        report = await api.run_step_report(wdk_step_id, bound.histogram)
-        bins, counted_in = (
-            AttributeHistogram.model_validate(report).bins(),
-            "transcripts",
-        )
-    else:
-        distribution = await api.get_column_distribution(wdk_step_id, bound.column)
-        bins = by_value_bins(distribution)
-    read = measured(bound, bins)
-    return ColumnFit(
+    """One report over the whole step, counted against the bound's thresholds;
+    a report the site refuses is a fit it does not show."""
+    unread = ColumnFit(
         criterion_id=criterion.id,
         criterion_text=criterion.text,
         wdk_step_id=wdk_step_id,
         column=bound.column,
         display_name=bound.display_name,
-        bound_value=read.bound_value,
-        counted_in=counted_in,
-        total=read.total,
-        fitting=read.fitting,
-        fitting_at_most=read.fitting_at_most,
-        shown=bool(bins),
-        sides=list(read.sides),
+        bound_value="",
+        counted_in="transcripts",
+        total=0,
+        fitting=0,
+        fitting_at_most=0,
+    )
+    try:
+        bins = await _column_bins(site_id, wdk_step_id, bound)
+    except WDKError as refused:
+        if refused.status >= _SERVER_ERROR:
+            raise
+        return unread.model_copy(update={"refused_status": refused.status})
+    read = measured(bound, bins)
+    return unread.model_copy(
+        update={
+            "bound_value": read.bound_value,
+            "total": read.total,
+            "fitting": read.fitting,
+            "fitting_at_most": read.fitting_at_most,
+            "no_value": read.no_value,
+            "sides": list(read.sides),
+        }
     )
 
 
@@ -295,10 +312,10 @@ async def _read_columns(
         ),
         deadline=READ_DEADLINE_SECONDS,
     )
-    unread = [fit for fit in read if not fit.shown]
-    if unread and target.count:
-        return no_rows(wdk_step_id, target.count, unread)
-    fits = settled(list(zip(bounds, read, strict=True)))
+    fits = [
+        *settled([(b, fit) for b, fit in zip(bounds, read, strict=True) if fit.shown]),
+        *(fit for fit in read if not fit.shown),
+    ]
     if not fits:
         return no_column(
             wdk_step_id,
@@ -306,9 +323,13 @@ async def _read_columns(
             "values and they do not all hold every gene inside them.",
         )
     ctx.deps.turn_markers.record_column_fits(fits)
-    return StepColumns(wdk_step_id=wdk_step_id, fits=fits), "; ".join(
-        fit.sentence for fit in fits
+    unread = [fit for fit in read if not fit.shown or fit.holds_no_value]
+    columns = StepColumns(
+        wdk_step_id=wdk_step_id,
+        fits=fits,
+        note=unread_note(wdk_step_id, unread) if unread else "",
     )
+    return columns, "; ".join(fit.sentence for fit in fits)
 
 
 async def read_step_columns(
@@ -321,8 +342,8 @@ async def read_step_columns(
     a value inside the bounds, such as ``tm_count`` 2 to 99, and for a threshold
     whose direction the site does not state, how many lie on each side. A step
     whose search shows no such column, or several that do not all hold every
-    gene, says so, and only then is the root sampled. A column whose read
-    returns no rows for a step the site counts names the step to sample.
+    gene, says so, and only then is the root sampled. A column whose report
+    the site refuses is stated as refused, and the other columns are still read.
 
     On an OrthoMCL group step whose criterion binds ``phyletic_expression``,
     the answer is ``expression_fit`` alone: the step's first groups, with their

@@ -16,19 +16,23 @@ def _facts(*fits_read: int) -> TurnFacts:
     )
 
 
-def test_a_column_the_site_does_not_show_is_one_row() -> None:
-    unshown = tm_fit(0, 0).model_copy(update={"shown": False, "total": 0})
+def test_a_column_the_site_refuses_is_one_row() -> None:
+    unshown = tm_fit(0, 0).model_copy(update={"refused_status": 400})
     facts = TurnFacts(
         caveats=measured_caveats(build=None, controls=[], column_fits=[unshown]),
         column_fits=[unshown],
     )
 
-    assert facts.lines() == [f"the site shows no column for '{TM_CRITERION}'"]
+    refused = (
+        "the site refused the # TM Domains (tm_count) column (HTTP 400) for "
+        f"'{TM_CRITERION}'"
+    )
+    assert facts.lines() == [refused]
 
 
 def test_a_column_short_of_the_bound_is_one_row() -> None:
-    assert _facts(12).lines() == ["12 of 40 genes fit # TM Domains (2 to 99)"]
+    assert _facts(12).lines() == ["12 of 40 transcripts fit # TM Domains (2 to 99)"]
 
 
 def test_a_column_read_twice_is_one_row() -> None:
-    assert _facts(40, 40).lines() == ["40 of 40 genes fit # TM Domains (2 to 99)"]
+    assert _facts(40, 40).lines() == ["40 of 40 transcripts fit # TM Domains (2 to 99)"]

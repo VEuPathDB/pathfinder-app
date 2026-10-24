@@ -63,7 +63,7 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
     ReviewProgress,
-    Synthesis,
+    StoredSynthesis,
     VerdictOrigin,
 )
 from pathfinder.domain.message_rating import Rating, WithheldCase
@@ -925,7 +925,7 @@ class AuditRunRecord(BaseModel):
     stages: RunStages
     deadline_at: datetime | None
     review: ReviewProgress | None
-    synthesis: Synthesis | None
+    synthesis: StoredSynthesis | None
     created_at: datetime
     finished_at: datetime | None
 

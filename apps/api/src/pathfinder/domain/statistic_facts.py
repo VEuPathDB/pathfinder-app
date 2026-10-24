@@ -6,13 +6,16 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from itertools import combinations
 from statistics import fmean
-from typing import Literal
+from typing import Annotated, Literal
 
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 
 from pathfinder.domain.eda_parts import (
     EdaBoxplotBox,
@@ -53,7 +56,24 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
     }
 )
 
+type RowForm = Literal["number", "word", "sentence"]
+
+
+@dataclass(frozen=True)
+class SchemaFormat:
+    name: str
+
+    def __get_pydantic_json_schema__(
+        self, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        return {**handler(core_schema), "format": self.name}
+
+
+Share = Annotated[float, SchemaFormat("share")]
+Sentence = Annotated[str, SchemaFormat("sentence")]
+
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
+_A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
 
 def statistic_id(kind: StatisticKind, variables: Sequence[str]) -> str:
@@ -69,10 +89,18 @@ class StatisticRowFact(CamelModel):
 
     name: str
     value: str
+    form: RowForm = "number"
+    code: str | None = None
 
     def numbers(self) -> list[str]:
         """Each number the value writes, without its digit separators."""
         return [found.replace(",", "") for found in _DIGITS.findall(self.value)]
+
+    def note(self) -> str:
+        parts = [part for part in self.name.split(".") if not part.isdigit()]
+        named = [p for i, p in enumerate(parts) if i == 0 or p != parts[i - 1]]
+        words = " ".join(_A_CAPITAL.sub(" ", part).lower() for part in named[-2:])
+        return f"{words or self.name}: {self.value}"
 
 
 class StatisticFact(CamelModel):
@@ -101,10 +129,20 @@ class StatisticFact(CamelModel):
         return self.model_copy(update={"title": redact(self.title)})
 
 
+def statistic_row(
+    statistics: Sequence[StatisticFact], body: str
+) -> StatisticRowFact | None:
+    held_id, _, name = body.partition(".")
+    held = next((s for s in reversed(statistics) if s.id == held_id), None)
+    return (
+        None if held is None else next((r for r in held.rows if r.name == name), None)
+    )
+
+
 def statistic_value(statistics: Sequence[StatisticFact], body: str) -> str | None:
     """The value a ``stat`` reference names as ``<id>.<row name>``."""
-    held_id, _, name = body.partition(".")
-    return next((s.value(name) for s in reversed(statistics) if s.id == held_id), None)
+    row = statistic_row(statistics, body)
+    return None if row is None else row.value
 
 
 def statistic_group_references(
@@ -141,7 +179,7 @@ def statistic_word_references(
             f"[stat:{statistic.id}.{row.name}]"
             for statistic in statistics
             for row in statistic.rows
-            if row.value == token
+            if token in (row.value, row.code)
         )
     )
 
@@ -254,12 +292,17 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 
 __all__ = [
     "TURN_STATISTICS",
+    "RowForm",
+    "SchemaFormat",
+    "Sentence",
+    "Share",
     "StatisticFact",
     "StatisticKind",
     "StatisticRowFact",
     "pca_fact",
     "statistic_id",
     "statistic_references",
+    "statistic_row",
     "statistic_value",
     "statistic_word_references",
     "statistics_fact",

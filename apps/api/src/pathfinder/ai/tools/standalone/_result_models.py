@@ -6,7 +6,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.domain.evidence import ColumnFit
+from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.expression_fit import ExpressionFit
 
 
@@ -35,18 +35,23 @@ def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
     return columns, f"No column of step {wdk_step_id}"
 
 
-def no_rows(
-    wdk_step_id: int, count: int, unread: list[ColumnFit]
-) -> tuple[StepColumns, str]:
-    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
+def _unread_reason(wdk_step_id: int, fit: ColumnFit) -> str:
+    column = f"{fit.display_name} ({fit.column})"
+    if fit.refused_status is not None:
+        return (
+            f"The site refused the report of {column} on step {wdk_step_id} "
+            f"(HTTP {fit.refused_status})."
+        )
+    return f"No record of step {wdk_step_id} holds a value of {column}."
+
+
+def unread_note(wdk_step_id: int, unread: list[ColumnFit]) -> str:
+    reasons = " ".join(_unread_reason(wdk_step_id, fit) for fit in unread)
     names = ", ".join(fit.column for fit in unread)
-    note = (
-        f"Step {wdk_step_id} counts {count} on the site and its read of "
-        f"{columns} returned no rows. Sample step {wdk_step_id} with "
-        f"get_sample_records and read {names} on its records for this criterion."
+    return (
+        f"{reasons} Sample step {wdk_step_id} with get_sample_records and read "
+        f"{names} on its records for this criterion."
     )
-    read = StepColumns(wdk_step_id=wdk_step_id, note=note)
-    return read, f"No rows in the columns of step {wdk_step_id}"
 
 
 MAX_SAMPLE_LIMIT = 100

@@ -76,7 +76,9 @@ def test_an_open_requirement_gap_carries_the_requirement_words() -> None:
         requirements=[_requirement("exported", OpenLifecycle())],
     )
 
-    assert gaps == [RequirementGap(text="exported", status="unexpressed")]
+    assert gaps == [
+        RequirementGap(text="exported", status="unexpressed", key="other:exported")
+    ]
 
 
 def test_a_row_that_names_two_requirements_keeps_its_own_words() -> None:

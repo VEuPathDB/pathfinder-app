@@ -18,7 +18,7 @@ from veupathdb.wdk import (
     WDKSearch,
 )
 
-from pathfinder.domain.evidence import ColumnFit, ThresholdSides
+from pathfinder.domain.column_fit import ColumnFit, ThresholdSides
 from pathfinder.domain.strategy.operational_spec import Criterion
 
 # A column more than half the record type's searches carry, such as the
@@ -162,10 +162,8 @@ def column_bounds(
 
 def settled(read: Sequence[tuple[ColumnBound, ColumnFit]]) -> list[ColumnFit]:
     """The fits that stand. A sole column's fit always stands; rival columns'
-    fits stand only when every rival holds every record inside the bounds."""
-    agreed = all(fit.fits == "all" for _, fit in read) and all(
-        bound.rivals == len(read) for bound, _ in read
-    )
+    fits stand only when every rival read holds every record inside the bounds."""
+    agreed = all(fit.fits == "all" for _, fit in read)
     return [fit for bound, fit in read if bound.rivals == 1 or agreed]
 
 
@@ -176,6 +174,10 @@ class ValueBin:
     start: str
     end: str
     count: int
+
+    @property
+    def holds_no_value(self) -> bool:
+        return not self.start and not self.end
 
 
 class AttributeHistogram(BaseModel):
@@ -191,10 +193,11 @@ class AttributeHistogram(BaseModel):
 
 def by_value_bins(distribution: WDKColumnDistribution) -> list[ValueBin]:
     """The byValue histogram, with the records that hold no value as one bin."""
-    missing = distribution.statistics.num_missing_cases
+    stats = distribution.statistics
+    missing = stats.subset_size - stats.num_var_values
     return [
         *(ValueBin(b.bin_start, b.bin_end, b.value) for b in distribution.histogram),
-        *([ValueBin("", "", missing)] if missing else []),
+        *([ValueBin("", "", missing)] if missing > 0 else []),
     ]
 
 
@@ -233,6 +236,7 @@ class Measured:
     fitting_at_most: int
     total: int
     bound_value: str
+    no_value: int = 0
     sides: tuple[ThresholdSides, ...] = ()
 
 
@@ -316,11 +320,12 @@ def measured(bound: ColumnBound, bins: Sequence[ValueBin]) -> Measured:
     """The bounds read over one histogram: the known sides as one range, and
     every other threshold's count on each side."""
     total = sum(b.count for b in bins)
+    no_value = sum(b.count for b in bins if b.holds_no_value)
     known: list[Threshold] = []
     either: list[Threshold] = []
     sides: list[ThresholdSides] = []
     for threshold in bound.thresholds:
-        match threshold.side or _held_side(threshold, bins, total):
+        match threshold.side or _held_side(threshold, bins, total - no_value):
             case None:
                 sides.append(_both_sides(threshold, bins))
             case "either":
@@ -334,6 +339,7 @@ def measured(bound: ColumnBound, bins: Sequence[ValueBin]) -> Measured:
         fitting_at_most=at_most,
         total=total,
         bound_value=bounds.text,
+        no_value=no_value,
         sides=tuple(sides),
     )
 
