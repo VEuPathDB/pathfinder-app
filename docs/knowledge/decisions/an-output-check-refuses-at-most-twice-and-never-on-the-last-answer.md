@@ -59,10 +59,14 @@ problem, or whose readings the site refuses down to fewer than two, reaches the
 card with its text and options alone, the site's first sentence in the gap. A
 question whose readings name no stated requirement keeps them, and a pick of one
 carries `names_no_requirement`: its caveat and the line VERIFY and the Lead read
-say the pick replaces none, so each requirement is judged on its words. The Lead's
-reply goes through with every reference it cannot render shown as its plain words,
-and the facts part carries a note that the reply holds statements not checked
-against the result (`TurnFacts.unchecked`). Past the budget, or on a second answer
+say the pick replaces none, so each requirement is judged on its words. A typed
+reply of the Lead whose prose still writes a fact outside a reference, or a
+reference the facts cannot render, is withheld: the turn answers with
+`turn_contract.WITHHELD_REPLY` beside the facts part, so the same prose gets the
+same verdict on every answer and nothing the product cannot render reaches the
+researcher. A card's reply goes through with every reference it cannot render
+shown as its plain words, and the facts part carries a note that the reply holds
+statements not checked against the result (`TurnFacts.unchecked`). Past the budget, or on a second answer
 after the one correction, the contract still runs `reconcile` and marks any
 mismatch it finds; the reply's `strategy_changed` is set to what the record holds.
 A reply to a build no check saw is not a mismatch when it states the reason in

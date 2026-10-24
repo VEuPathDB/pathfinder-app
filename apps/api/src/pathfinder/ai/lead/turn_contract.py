@@ -60,6 +60,10 @@ _ASKED_LIMIT = 8
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
+WITHHELD_REPLY = (
+    "I could not write this answer in facts the product renders from the result, "
+    "so it is not shown. The facts beside this reply show what this turn found."
+)
 
 
 class LeadResponse(CamelModel):
@@ -408,16 +412,20 @@ def hold_the_turn_contract(
     """Refuse an answer of a turn that does not match the turn's record.
 
     One correction carries every mismatch. Prose the product cannot render is
-    refused up to the refusal bound; every other mismatch is asked once per turn.
-    An answer let through states the strategy change the record holds.
+    refused up to the refusal bound and withheld past it; every other mismatch
+    is asked once per turn. An answer let through states the strategy change the
+    record holds.
     """
     if not isinstance(output, LeadResponse):
         return output
     record = turn_record(ctx)
     mismatches = to_correct(ctx, output, record, [output.prose])
-    if not mismatches:
+    if mismatches:
+        raise ModelRetry(correction_for(mismatches))
+    if unrendered_prose([output.prose], record) is None:
         return as_the_record_holds(output, record)
-    raise ModelRetry(correction_for(mismatches))
+    ctx.deps.state.turn_markers.unchecked_reply = False
+    return LeadResponse(prose=WITHHELD_REPLY, strategy_changed=record.changed_strategy)
 
 
 def correction_for(mismatches: Sequence[Mismatch]) -> str:
