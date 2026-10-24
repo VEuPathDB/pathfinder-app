@@ -143,6 +143,7 @@ _AUTHORING = f"{_PACKAGE}/services/eda/authoring.py"
 _ALLOWED: tuple[tuple[str, int, str], ...] = (
     (_AUTHORING, 1, "serialize_spec, the one eda_analysis_spec call site"),
     (f"{_PACKAGE}/ai/agents/state.py", 1, "an agent context value, not an analysis"),
+    (f"{_PACKAGE}/ai/audit/review.py", 1, "a stored audit finding as the prompt"),
 )
 
 

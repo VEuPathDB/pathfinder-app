@@ -16,16 +16,20 @@ from assistant_core.models.scripted import (
     scripted_call,
     scripted_text,
     terminal_call,
+    tool_names,
     tool_return_parts,
+    user_texts,
 )
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
-from pydantic_ai.messages import ModelMessage, ToolReturnPart
-from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.profiles import ModelProfile
 
 from pathfinder.ai.audit.run_tools import START_TOOL
+from pathfinder.ai.lead.retrieval_toolset import ResearchAnswer
 from pathfinder.domain.audit.scope import AuditScope
-from pathfinder.domain.audit.verdicts import read_cite
+from pathfinder.domain.audit.verdicts import MAX_CITES, finding_cite, read_cite
 
 AUDITOR = "auditor"
 INVESTIGATOR = "investigator"
@@ -39,6 +43,8 @@ PSEUDOGENE_QUESTION = "pseudogene call"
 PROGRESS_QUESTIONS = ("how is the audit", "how far is the audit")
 CHECK_FOREVER = "check every gene"
 SPELL_OUT = "spell out"
+LITERATURE_TOOL = "research_literature_search"
+MOCK_REVIEWER_MODEL_ID = "mock:reviewer"
 AUDITOR_GREETING = "I plan, start and read audits of the gene models on this site."
 _GENE = re.compile(r"\b[A-Za-z0-9]+_\d+\b")
 _AUDIT_REQUEST = re.compile(
@@ -272,3 +278,77 @@ _SCRIPT = ScriptedModel(
 
 def build_audit_mock() -> FunctionModel:
     return _SCRIPT.as_function_model()
+
+
+class _ReviewTarget(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    genes: list[str]
+
+
+class _ReviewedFinding(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    genome: str
+    target: _ReviewTarget
+    error_type: str | None = None
+    certainty: str | None = None
+
+
+class _ReviewPrompt(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    finding: _ReviewedFinding
+
+
+def _literature(turn: list[ModelMessage]) -> list[str] | None:
+    returned = _returned(turn, LITERATURE_TOOL)
+    if returned is None:
+        return None
+    return ResearchAnswer.model_validate(returned.content).references()[:MAX_CITES]
+
+
+def _known(found: list[str] | None) -> str:
+    if found is None:
+        return "not_searched"
+    return "known" if found else "not_found"
+
+
+def _review_args(
+    finding: _ReviewedFinding, found: list[str] | None
+) -> dict[str, object]:
+    named = finding.error_type is not None
+    genes = ", ".join(finding.target.genes)
+    return {
+        "verdict": {
+            "genes": finding.target.genes,
+            "modelGenome": finding.genome,
+            "verdict": "error" if named else "undecided",
+            "errorType": finding.error_type,
+            "certainty": finding.certainty,
+            "cause": f"The stored checks of {genes} confirm the finding.",
+            "cites": [finding_cite(finding.id)],
+        },
+        "alreadyKnown": _known(found),
+        "knownFrom": found or [],
+        "cardText": f"The model of {genes} disagrees with the stored evidence.",
+    }
+
+
+def _review_part(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    turn = current_turn(messages)
+    finding = _ReviewPrompt.model_validate_json(user_texts(turn)[0]).finding
+    found = _literature(turn)
+    if found is None and LITERATURE_TOOL in tool_names(info):
+        query = f"{' '.join(finding.target.genes)} gene model"
+        return ModelResponse(parts=[scripted_call(LITERATURE_TOOL, {"query": query})])
+    return ModelResponse(parts=[terminal_call(_review_args(finding, found))])
+
+
+def build_review_mock() -> FunctionModel:
+    return FunctionModel(
+        _review_part,
+        model_name=MOCK_REVIEWER_MODEL_ID,
+        profile=ModelProfile(supports_inline_system_prompts=True),
+    )

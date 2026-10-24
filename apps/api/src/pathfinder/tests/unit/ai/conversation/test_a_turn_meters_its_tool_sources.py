@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from pathfinder.ai.capabilities import screened_sources
 from pathfinder.ai.conversation import turn_runner
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.platform.tool_sources import metered_mcp_toolset
@@ -47,7 +48,7 @@ async def test_the_turn_builds_each_source_through_the_metered_builder(
         raise _StopAtResolutionError
 
     monkeypatch.setattr(turn_runner, "load_conversation", _no_conversation)
-    monkeypatch.setattr(turn_runner, "ResolvedToolSources", resolved)
+    monkeypatch.setattr(screened_sources, "ResolvedToolSources", resolved)
     writer = _Writer()
     body = ChatRequestBody.model_validate(
         {

@@ -51,6 +51,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     work,
     work_through,
 )
+from pathfinder.tests.integration.jobs._audit_reviews import work_reviews
 
 _TOLERANCE = timedelta(seconds=5)
 
@@ -279,6 +280,7 @@ async def test_unreached_units_are_retried_only_when_asked(
 
     await start_run(run_id, owner)
     assert queued(jobs) == []
+    await work_reviews(jobs)
 
     await start_run(run_id, owner, retry_unreached=True)
 
@@ -308,6 +310,7 @@ async def test_a_genome_read_late_leaves_the_first_sample_alone(
     assert (await outcome(run_id, owner)).unreached_genomes == (late,)
     async with async_session_factory() as session:
         before = await AuditFindingRepository(session).findings(run_id, FindingFilter())
+    await work_reviews(jobs)
 
     await start_run(run_id, owner, retry_unreached=True)
     await work_through(jobs)

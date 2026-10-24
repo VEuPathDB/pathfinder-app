@@ -47,6 +47,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     work,
     work_through,
 )
+from pathfinder.tests.integration.jobs._audit_reviews import work_reviews
 
 SIGN_IN_NEEDED = "sign-in needed"
 _OUTAGE = ExternalServiceError(
@@ -171,6 +172,7 @@ async def test_a_refused_start_erases_the_kept_sign_in_and_leaves_a_finished_run
     with holding(TOKEN):
         await start_run(finished, owner)
     await work_through(jobs)
+    await work_reviews(jobs)
     with holding(None), pytest.raises(WDKLoginRequiredError):
         await start_run(finished, owner, retry_unreached=True)
     assert (await outcome(finished, owner)).halted is None
@@ -228,6 +230,7 @@ async def test_a_retry_that_fails_before_its_deadline_is_written_reopens_nothing
     with holding(TOKEN):
         await start_run(run_id, owner)
     await work_through(jobs)
+    await work_reviews(jobs)
     assert (await split_finding(run_id)).status == "unreached"
 
     async def _broken(
