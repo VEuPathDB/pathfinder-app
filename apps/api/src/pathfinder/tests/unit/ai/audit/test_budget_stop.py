@@ -77,6 +77,33 @@ async def test_without_the_stop_the_limit_raises() -> None:
         await _agent(stopped=False).run("judge", deps=_deps(), usage_limits=_LIMITS)
 
 
+async def test_an_error_that_is_not_a_usage_limit_still_raises() -> None:
+    agent = Agent(
+        FunctionModel(_three_calls, model_name="judge"),
+        deps_type=AuditDeps,
+        output_type=[AuditReply, str],
+        capabilities=[StopAtTheBudget()],
+    )
+
+    @agent.tool_plain
+    def look() -> str:
+        msg = "the read broke"
+        raise RuntimeError(msg)
+
+    with pytest.raises(RuntimeError, match="the read broke"):
+        await agent.run(
+            "judge", deps=_deps(), usage_limits=UsageLimits(request_limit=5)
+        )
+
+
+def test_a_stop_with_no_verdict_says_none_was_stored() -> None:
+    assert budget_stop_prose(0) == (
+        "I stopped this turn at its limit of model requests and tool calls, before I "
+        "finished, and I stored no verdict in this turn. Ask me again and I start "
+        "from the findings."
+    )
+
+
 def test_the_stop_reply_counts_the_verdicts_it_kept() -> None:
     assert budget_stop_prose(1) == (
         "I stopped this turn at its limit of model requests and tool calls, before I "

@@ -5,12 +5,7 @@ from dataclasses import dataclass
 from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai.capabilities.abstract import AbstractCapability, AgentNode, NodeResult
 from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelResponse,
-    TextPart,
-    repair_messages,
-)
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.result import FinalResult
 from pydantic_ai.tools import RunContext
 from pydantic_graph import End
@@ -20,11 +15,19 @@ from pathfinder.ai.audit.reply import AuditReply
 
 
 def budget_stop_prose(recorded: int) -> str:
-    return (
+    stopped = (
         "I stopped this turn at its limit of model requests and tool calls, before I "
-        f"finished. I stored {count_noun(recorded, 'verdict')} in this turn, and each "
-        "one is kept. Ask me to go on and I judge the findings that have no verdict "
-        "yet."
+        "finished"
+    )
+    if recorded == 0:
+        return (
+            f"{stopped}, and I stored no verdict in this turn. Ask me again and I "
+            "start from the findings."
+        )
+    return (
+        f"{stopped}. I stored {count_noun(recorded, 'verdict')} in this turn, and "
+        "each one is kept. Ask me to go on and I judge the findings that have no "
+        "verdict yet."
     )
 
 
@@ -46,7 +49,7 @@ def _stopped(messages: list[ModelMessage], prose: str) -> list[ModelMessage]:
         provider_name=last.provider_name,
         provider_url=last.provider_url,
     )
-    return [*repair_messages(messages), reply]
+    return [*messages, reply]
 
 
 @dataclass

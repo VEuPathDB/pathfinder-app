@@ -14,7 +14,7 @@
   up to 25 verdicts in one, all or none, so a run of 29 findings costs five tool calls, not 59
   (`AUDITOR_LIMITS` stays 40). A turn that reaches its request or tool-call limit ends on
   `StopAtTheBudget` (`ai/audit/budget_stop.py`): the reply names the stop and the verdicts the turn
-  already stored, which stay stored, and the history is repaired so the next turn runs on it. No
+  already stored, which stay stored, and the history ends on that reply so the next turn runs on it. No
   pydantic-ai error text reaches the researcher.
 * **A finding's fact names each value by its path in the answer.** `audit_finding_fact` holds one
   row per scalar of the `FindingDetail` the tool returned, so
