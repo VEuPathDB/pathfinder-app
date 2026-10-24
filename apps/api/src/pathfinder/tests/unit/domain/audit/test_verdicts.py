@@ -117,6 +117,18 @@ def test_agreement_is_a_count_and_a_share() -> None:
         ReviewAgreement(sampled=1, agreed=2)
 
 
+def test_a_stopped_review_judges_nothing_and_is_never_a_sampled_pair() -> None:
+    stopped = _review("undecided", stopped=True)
+
+    assert review_agreement([stopped, _review("error", "error")]) == ReviewAgreement(
+        sampled=1, agreed=1
+    )
+    with pytest.raises(ValidationError, match="a stopped review judges nothing"):
+        _review("undecided", "error", stopped=True)
+    with pytest.raises(ValidationError, match="a stopped review judges nothing"):
+        _review("error", stopped=True)
+
+
 def _section(error_type: str, *finding_ids: int) -> ErrorTypeSection:
     return ErrorTypeSection.model_validate(
         {

@@ -7,11 +7,13 @@ from typing import Any
 
 from assistant_core.cost import cost_for_run
 from assistant_core.models.capture import maybe_wrap_model
+from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.db import async_session_factory
 from assistant_core.quota import accumulate
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.models import Model, infer_model
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
 
@@ -24,15 +26,14 @@ from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
-    ReviewProgress,
-    ReviewStatus,
     evidence_cite,
     finding_cite,
 )
 from pathfinder.platform.errors import ProviderKeyError
+from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
 from pathfinder.platform.model_keys import is_mock_deployment, keyed_model, turn_paid_by
 from pathfinder.platform.refusals import agent_capabilities
-from pathfinder.platform.tiers import REVIEW_ROLE
+from pathfinder.platform.tiers import REVIEW_ROLE, deployment_role_config
 from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.services.audit import units
 from pathfinder.services.audit.finding_views import FindingDetail
@@ -41,14 +42,18 @@ from pathfinder.services.audit.reviews import (
     agreement_sample,
     continue_review,
     next_unreviewed,
-    reviewed_count,
-    set_progress,
+    record_progress,
     store_review,
 )
 from pathfinder.services.turn_payment import turn_payment
 
 REVIEW_LIMITS = UsageLimits(request_limit=6, tool_calls_limit=4)
-REVIEW_STOPPED = "The review stopped at its budget before it reached a verdict."
+OUT_OF_LIMITS = (
+    "The review stopped at its request or tool-call limit before it reached a verdict."
+)
+OUT_OF_RETRIES = (
+    "The review stopped when its retries were spent before it wrote a valid review."
+)
 BUDGET_USED = "the monthly budget is used"
 NOT_SEARCHED = (
     "No literature source was open for this review, so already_known is "
@@ -118,42 +123,56 @@ def review_deps(
     )
 
 
-def _stopped(detail: FindingDetail) -> FindingReview:
+def _stopped(detail: FindingDetail, cause: str) -> FindingReview:
     finding = detail.finding
     return FindingReview(
         verdict=GeneModelVerdict(
             genes=finding.target.genes,
             model_genome=finding.genome,
             verdict="undecided",
-            cause=REVIEW_STOPPED,
+            cause=cause,
             cites=(finding_cite(finding.id),),
         ),
         already_known="not_searched",
-        card_text=REVIEW_STOPPED,
+        card_text=cause,
+        stopped=True,
     )
 
 
 async def review_finding(
-    detail: FindingDetail, *, deps: ReviewDeps, model: Model
-) -> tuple[FindingReview, RunUsage]:
-    usage = RunUsage()
+    detail: FindingDetail,
+    *,
+    deps: ReviewDeps,
+    model: Model,
+    settings: ModelSettings | None,
+    usage: RunUsage,
+) -> FindingReview:
     try:
         result = await build_reviewer_agent().run(
             detail.model_dump_json(by_alias=True),
             deps=deps,
             model=model,
+            model_settings=settings,
             usage=usage,
             usage_limits=REVIEW_LIMITS,
         )
-    except UsageLimitExceeded, UnexpectedModelBehavior:
-        return _stopped(detail), usage
-    return result.output, usage
+    except UsageLimitExceeded:
+        return _stopped(detail, OUT_OF_LIMITS)
+    except UnexpectedModelBehavior:
+        return _stopped(detail, OUT_OF_RETRIES)
+    return result.output
 
 
 def review_model(model_id: str) -> Model:
     if is_mock_deployment():
         return build_review_mock()
     return infer_model(maybe_wrap_model(keyed_model(model_id), REVIEW_ROLE))
+
+
+def review_settings(model_id: str) -> ModelSettings:
+    config = deployment_role_config(AUDIT_ASSISTANT_ID, REVIEW_ROLE)
+    effort = None if config is None else config.reasoning_effort
+    return build_model_settings(model_id, thinking=effort)
 
 
 async def _charge(
@@ -165,6 +184,8 @@ async def _charge(
         provider_name=model.system,
         provider_url=model.base_url,
     )
+    if usage.total_tokens == 0 and cost == 0:
+        return
     async with async_session_factory() as session:
         await accumulate(
             session,
@@ -183,29 +204,35 @@ class _Reviewer:
         self.run = run
         self.model_id = model_id
         self.model = review_model(model_id)
+        self.settings = review_settings(model_id)
         self.research = research
 
     async def judged(self, detail: FindingDetail) -> FindingReview:
-        review, usage = await review_finding(
-            detail,
-            deps=review_deps(self.run, detail, self.research),
-            model=self.model,
-        )
-        await _charge(self.run, usage, self.model, self.model_id)
-        return review
+        usage = RunUsage()
+        try:
+            return await review_finding(
+                detail,
+                deps=review_deps(self.run, detail, self.research),
+                model=self.model,
+                settings=self.settings,
+                usage=usage,
+            )
+        finally:
+            await _charge(self.run, usage, self.model, self.model_id)
 
     async def budget_used(self) -> bool:
         async with async_session_factory() as session:
             payment = await turn_payment(session, self.run.user_id, [self.model_id])
         return payment.budget is not None
 
-
-async def _progress(run: ReviewedRun, status: ReviewStatus, message: str = "") -> None:
-    done = await reviewed_count(run.run_id)
-    await set_progress(
-        run.run_id,
-        ReviewProgress(status=status, done=done, total=run.total, message=message),
-    )
+    async def reviewed(self, detail: FindingDetail, *, twice: bool) -> FindingReview:
+        first = await self.judged(detail)
+        if first.stopped or not twice:
+            return first
+        second = await self.judged(detail)
+        if second.stopped:
+            return first
+        return first.model_copy(update={"second_verdict": second.verdict.verdict})
 
 
 async def _review_all(reviewer: _Reviewer, started: float) -> None:
@@ -213,20 +240,16 @@ async def _review_all(reviewer: _Reviewer, started: float) -> None:
     sample = await agreement_sample(run)
     while (detail := await next_unreviewed(run.run_id, run.user_id)) is not None:
         if await reviewer.budget_used():
-            await _progress(run, "stopped", BUDGET_USED)
+            await record_progress(run, "stopped", BUDGET_USED)
             return
-        review = await reviewer.judged(detail)
-        if detail.finding.id in sample:
-            second = await reviewer.judged(detail)
-            review = review.model_copy(
-                update={"second_verdict": second.verdict.verdict}
-            )
-        await store_review(run, detail.finding.id, review, reviewer.model.model_name)
-        await _progress(run, "reviewing")
+        finding_id = detail.finding.id
+        review = await reviewer.reviewed(detail, twice=finding_id in sample)
+        await store_review(run, finding_id, review, reviewer.model.model_name)
+        await record_progress(run, "reviewing")
         if monotonic() - started >= units.SLICE_SECONDS:
             await continue_review(run.run_id)
             return
-    await _progress(run, "synthesized")
+    await record_progress(run, "synthesized")
 
 
 async def review_until_done(run: ReviewedRun, *, model_id: str, started: float) -> None:
@@ -236,4 +259,4 @@ async def review_until_done(run: ReviewedRun, *, model_id: str, started: float) 
         try:
             await _review_all(_Reviewer(run, model_id, research), started)
         except ProviderKeyError as refused:
-            await _progress(run, "stopped", refused.title)
+            await record_progress(run, "stopped", refused.title)

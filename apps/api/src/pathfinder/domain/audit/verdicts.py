@@ -73,9 +73,16 @@ class FindingReview(CamelModel):
     impact: float | None = Field(default=None, ge=0.0, le=1.0)
     impact_reason: str | None = Field(default=None, max_length=MAX_CAUSE)
     second_verdict: VerdictKind | None = None
+    stopped: bool = False
 
     @model_validator(mode="after")
     def _sourced(self) -> Self:
+        if self.stopped and (self.verdict.verdict, self.second_verdict) != (
+            "undecided",
+            None,
+        ):
+            msg = "a stopped review judges nothing and holds no second verdict"
+            raise ValueError(msg)
         if (self.already_known == "known") != bool(self.known_from):
             msg = "a finding already known names where it is known from, and only then"
             raise ValueError(msg)

@@ -261,7 +261,7 @@ async def test_a_refused_key_stops_the_reviews_with_its_reason(
 
     refused = refused_key_error("OpenAI", KeyRefusal.INVALID)
     assert await _progress(run_id) == ReviewProgress(
-        status="stopped", message=refused.title
+        status="stopped", done=0, total=1, message=refused.title
     )
     assert await stored_reviews(run_id) == []
 

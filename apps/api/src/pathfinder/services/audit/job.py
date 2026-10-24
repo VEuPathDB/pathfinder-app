@@ -21,8 +21,10 @@ from veupathdb_mcp.search_line import told_while_waiting
 from pathfinder.domain.audit.findings import AuditOutcome, counts_of
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
+from pathfinder.domain.audit.verdicts import ReviewProgress
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
@@ -35,7 +37,7 @@ from pathfinder.services.audit.progress import (
     waiting_for_sign_in,
 )
 from pathfinder.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE, audit_lock, working
-from pathfinder.services.audit.reviews import defer_review
+from pathfinder.services.audit.reviews import queue_review
 from pathfinder.services.audit.runs import RunOwner, create_run, owned_run
 from pathfinder.services.audit.screen import run_screen_stage
 from pathfinder.services.audit.sign_in import (
@@ -175,9 +177,12 @@ async def _set_status(run_id: UUID, status: RunStatus) -> None:
         await repo.set_status(run_id, status)
         if status == "finished":
             await repo.set_token(run_id, None)
+            await AuditReviewRepository(session).set_review(
+                run_id, ReviewProgress(status="waiting")
+            )
         await session.commit()
     if status == "finished":
-        await defer_review(run_id)
+        await queue_review(run_id)
 
 
 async def _finish_stage(run_id: UUID, stage: StageName) -> None:

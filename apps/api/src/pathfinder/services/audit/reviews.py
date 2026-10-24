@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from assistant_core.tasks.app import task_app
 from procrastinate.exceptions import AlreadyEnqueued
@@ -17,6 +18,7 @@ from pathfinder.domain.audit.verdicts import (
     MAX_REVIEWS_PER_RUN,
     FindingReview,
     ReviewProgress,
+    ReviewStatus,
     Synthesis,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
@@ -34,6 +36,8 @@ from pathfinder.services.audit.queue import (
 )
 from pathfinder.services.audit.runs import RunOwner, owned_run
 from pathfinder.services.audit.verdicts import VerdictView
+
+logger = get_logger(__name__)
 
 _NAMED = FindingFilter(statuses=("confirmed",), named=True)
 
@@ -98,6 +102,25 @@ async def continue_review(run_id: UUID) -> None:
         return
 
 
+async def record_progress(
+    run: ReviewedRun, status: ReviewStatus, message: str = ""
+) -> None:
+    done = await reviewed_count(run.run_id)
+    await set_progress(
+        run.run_id,
+        ReviewProgress(status=status, done=done, total=run.total, message=message),
+    )
+
+
+async def queue_review(run_id: UUID) -> None:
+    try:
+        await continue_review(run_id)
+    except Exception:
+        logger.exception(
+            "The review of a finished run was not queued; the resume pass queues it"
+        )
+
+
 async def defer_review(run_id: UUID) -> None:
     await set_progress(run_id, ReviewProgress(status="waiting"))
     await continue_review(run_id)
@@ -127,16 +150,19 @@ async def next_unreviewed(run_id: UUID, user_id: UUID) -> FindingDetail | None:
 async def agreement_sample(run: ReviewedRun) -> frozenset[int]:
     async with async_session_factory() as session:
         repo = AuditReviewRepository(session)
-        reviewed = [
-            verdict.finding_id
-            for verdict in await repo.of_run(run.run_id)
-            if verdict.finding_id is not None
-        ]
+        reviewed = await repo.of_run(run.run_id)
+        paired = sum(
+            verdict.review is not None and verdict.review.second_verdict is not None
+            for verdict in reviewed
+        )
         left = await repo.unreviewed(
             run.run_id, max(MAX_REVIEWS_PER_RUN - len(reviewed), 0)
         )
-    keys = (str(finding_id) for finding_id in [*reviewed, *left])
-    return frozenset(int(key) for key in sampled(keys, AGREEMENT_SAMPLE, run.seed))
+    if paired >= AGREEMENT_SAMPLE or not left:
+        return frozenset()
+    keys = (str(finding_id) for finding_id in left)
+    picked = sampled(keys, AGREEMENT_SAMPLE - paired, run.seed)
+    return frozenset(int(key) for key in picked)
 
 
 async def store_review(
@@ -161,12 +187,13 @@ async def store_synthesis(run_id: UUID, synthesis: Synthesis) -> None:
         await session.commit()
 
 
-async def start_review(run_id: UUID, owner: RunOwner) -> ReviewProgress:
+async def start_review(run_id: UUID, owner: RunOwner) -> ReviewProgress | None:
     run = await owned_run(run_id, owner)
-    stored = run.review or ReviewProgress(status="waiting")
+    stored = run.review
     if run.status != "finished" or await working(run_id):
         return stored
-    if stored.status == "synthesized" and await _unreviewed(run_id) is None:
+    synthesized = stored is not None and stored.status == "synthesized"
+    if synthesized and await _unreviewed(run_id) is None:
         return stored
     await defer_review(run_id)
     return ReviewProgress(status="waiting")

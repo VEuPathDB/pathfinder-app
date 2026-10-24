@@ -6111,6 +6111,10 @@ components:
             - undecided
           - type: 'null'
           title: Secondverdict
+        stopped:
+          type: boolean
+          title: Stopped
+          default: false
       type: object
       required:
       - verdict

@@ -10,7 +10,6 @@ from pydantic import JsonValue
 
 from pathfinder.ai.audit.review import review_until_done
 from pathfinder.assistants.registry import assistant_role_models
-from pathfinder.domain.audit.verdicts import ReviewProgress
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.platform.errors import ProviderKeyError
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
@@ -21,29 +20,39 @@ from pathfinder.services.audit.queue import audit_lock
 from pathfinder.services.audit.reviews import (
     ReviewedRun,
     ReviewJob,
+    record_progress,
     reviewed_run,
-    set_progress,
 )
 from pathfinder.services.provider_keys import load_keyring, record_refusals
 from pathfinder.services.turn_payment import turn_payment
 
+REVIEW_FAILED = "the review job failed"
 
-async def _review(run: ReviewedRun) -> None:
+
+async def _reviewed(run: ReviewedRun) -> None:
     model_id = assistant_role_models(AUDIT_ASSISTANT_ID, {})[REVIEW_ROLE]
     keyring = await load_keyring(run.user_id)
     try:
         async with async_session_factory() as session:
             await turn_payment(session, run.user_id, [model_id])
     except ProviderKeyError as refused:
-        await set_progress(
-            run.run_id, ReviewProgress(status="stopped", message=refused.title)
-        )
+        await record_progress(run, "stopped", refused.title)
         return
     with attach_keyring(keyring) as keys:
         try:
             await review_until_done(run, model_id=model_id, started=monotonic())
         finally:
             await record_refusals(run.user_id, keys.refusals)
+
+
+async def _review(run: ReviewedRun) -> None:
+    try:
+        await _reviewed(run)
+    except Exception as error:
+        await record_progress(
+            run, "stopped", f"{REVIEW_FAILED}: {type(error).__name__}"
+        )
+        raise
 
 
 async def run_review_job(payload: dict[str, JsonValue]) -> None:
