@@ -39,6 +39,7 @@ import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";
 import { conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { RailQuotaMeter } from "./RailQuotaMeter";
 
@@ -46,7 +47,6 @@ interface AppNavRailProps {
   siteId: string;
   siteSwitchable: boolean;
   onSiteChange: (siteId: string) => void;
-  onOpenSettings: () => void;
   onToggleSidebar: () => void;
   sidebarExpanded: boolean;
 }
@@ -66,11 +66,11 @@ export function AppNavRail({
   siteId,
   siteSwitchable,
   onSiteChange,
-  onOpenSettings,
   onToggleSidebar,
   sidebarExpanded,
 }: AppNavRailProps) {
   const pathname = usePathname();
+  const openSettings = useSettingsModalStore((s) => s.open);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -140,7 +140,7 @@ export function AppNavRail({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onOpenSettings}
+                onClick={() => openSettings()}
                 aria-label="Settings"
                 data-testid="nav-rail-settings-button"
               >

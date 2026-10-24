@@ -4,10 +4,14 @@
 import { afterEach, describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { useModalState } from "./useModalState";
 
 afterEach(() => {
-  act(() => useMemoryFocusStore.getState().clearFocus());
+  act(() => {
+    useMemoryFocusStore.getState().clearFocus();
+    useSettingsModalStore.setState({ isOpen: false, tab: "model" });
+  });
 });
 
 describe("useModalState", () => {
@@ -83,7 +87,35 @@ describe("the settings modal", () => {
   });
 });
 
+describe("the settings store", () => {
+  it("is the state the hook reads", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => useSettingsModalStore.getState().open("keys"));
+    expect(result.current.showSettings).toBe(true);
+    expect(result.current.settingsTab).toBe("keys");
+  });
+
+  it("is the state the hook writes", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => result.current.openSettings("data"));
+    expect(useSettingsModalStore.getState()).toMatchObject({
+      isOpen: true,
+      tab: "data",
+    });
+    act(() => result.current.closeSettings());
+    expect(useSettingsModalStore.getState().isOpen).toBe(false);
+  });
+});
+
 describe("a focused memory", () => {
+  it("holds the memory tab over the tab the store names", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => useSettingsModalStore.getState().open("keys"));
+    act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
+    expect(result.current.settingsTab).toBe("memory");
+    expect(useSettingsModalStore.getState().tab).toBe("keys");
+  });
+
   it("opens the settings modal on the memory tab", () => {
     const { result } = renderHook(() => useModalState());
     act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
