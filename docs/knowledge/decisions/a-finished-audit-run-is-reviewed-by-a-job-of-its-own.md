@@ -44,9 +44,10 @@ holds the kept, rejected and undecided counts, the genomes and the agreement;
 `prose_faults` refuses any other number, so a share of kept findings has no
 fact to render from, and `render_reply` stores the rendered text. With no kept
 finding the job makes no model call, reads no budget, and stores
-`NO_FINDING_KEPT` with no section. Every review pass starts by clearing the
-run's synthesis (`defer_review`), so a pass that stops never shows an earlier
-synthesis beside its state. A synthesis that spends its retries or its limit
+`NO_FINDING_KEPT` with no section. `AuditReviewRepository.reopen_review` sets
+the review to waiting and clears the run's synthesis in one write; a review pass
+(`defer_review`), a finished run and a retry that reopens a finished run all
+call it, so a pass that stops never shows an earlier synthesis beside its state. A synthesis that spends its retries or its limit
 stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget stops
 it before the call; a later start reruns only the synthesis. The run is
 charged in a `finally`, like a reviewer run, so a provider error after paid
@@ -57,11 +58,12 @@ reviews and the synthesis in the words of `domain/audit/words.py`. Each finding
 on a page carries its `review_line` and the finding detail its `review_text`;
 a finding read joins its review row, so `reviewed` is `review is not None` and
 the page reads both in one query. The run view carries `error_types`, one per
-error type its confirmed findings name or a synthesis section names, in
-`ERROR_TYPE_TITLES` order, with the count, the model genomes, the highest
-certainty and, from the synthesis section, the cause, how it was confirmed and
-its findings. A type that only a review gave counts the section's findings and
-takes the reviews' certainty. A finding line shows the error type and certainty
+error type its findings name, in `ERROR_TYPE_TITLES` order, with the count,
+the model genomes, the highest certainty and, from the synthesis section, the
+cause, how it was confirmed and its findings. A review supersedes the stored
+type: each finding counts once, under the error type and certainty of the
+review that names one, and under the stored ones otherwise
+(`AuditTallyRepository.error_type_tally`). A finding line shows the error type and certainty
 of the review that keeps it, and the stored ones otherwise; `headline`;
 `review_state`; and `agreement`, the synthesis's or else the one the stored
 reviews give, with its sentence. A finding's reviewed impact is shown beside

@@ -247,17 +247,16 @@ def _line(finding_id: int, error_type: ErrorType = "truncated_model") -> Finding
     return finding_line(_record(finding_id, error_type, "high", 0.5))
 
 
-def _split(finding_id: int, certainty: Certainty, genome: str = _GENOME) -> FindingLine:
+def _split(finding_id: int, certainty: Certainty) -> FindingLine:
     verdict = _review().verdict.model_copy(
         update={"error_type": "split_model", "certainty": certainty}
     )
     review = _review().model_copy(update={"verdict": verdict})
-    record = _record(finding_id, "truncated_model", "high", 0.5, review)
-    return finding_line(record.model_copy(update={"genome": genome}))
+    return finding_line(_record(finding_id, "truncated_model", "low", 0.5, review))
 
 
-def test_a_section_of_a_type_the_review_gave_has_its_own_entry() -> None:
-    lines = {1: _split(1, "medium")}
+def test_a_reviewed_type_holds_its_section_beside_the_stored_findings_of_it() -> None:
+    lines = {1: _split(1, "high")}
     synthesis = Synthesis(
         sections=(
             ErrorTypeSection(
@@ -271,48 +270,31 @@ def test_a_section_of_a_type_the_review_gave_has_its_own_entry() -> None:
         summary="One kept.",
         agreement=ReviewAgreement(sampled=0, agreed=0),
     )
-
-    found = error_type_views([("truncated_model", "G", "high", 1)], synthesis, lines)
-
-    assert [(v.error_type, v.count, v.reviewed) for v in found] == [
-        ("truncated_model", 1, []),
-        ("split_model", 1, [lines[1]]),
+    tally: list[tuple[ErrorType, str, Certainty, int]] = [
+        ("split_model", _GENOME, "high", 1),
+        ("split_model", _OTHER, "low", 1),
     ]
-    split = found[1]
-    assert (split.genomes, split.certainty, split.cause, split.confirmed_by) == (
-        [_GENOME],
-        "medium",
+
+    (split,) = error_type_views(tally, synthesis, lines)
+
+    assert (
+        split.error_type,
+        split.count,
+        split.genomes,
+        split.certainty,
+        split.cause,
+        split.reviewed,
+    ) == (
+        "split_model",
+        2,
+        [_GENOME, _OTHER],
+        "high",
         "The two models are one gene.",
-        "The relatives hold one protein.",
+        [lines[1]],
     )
     assert (lines[1].error_type, lines[1].error_title) == (
         "split_model",
         "One gene split into two models",
-    )
-
-
-def test_a_reviewed_type_counts_its_section_genomes_and_highest_certainty() -> None:
-    lines = {1: _split(1, "low"), 2: _split(2, "high", _OTHER), 3: _split(3, "medium")}
-    synthesis = Synthesis(
-        sections=(
-            ErrorTypeSection(
-                error_type="split_model",
-                cause="The models are one gene.",
-                confirmed_by="The relatives hold one protein.",
-                finding_ids=(2, 1, 3),
-            ),
-        ),
-        headline=(2,),
-        summary="Three kept.",
-        agreement=ReviewAgreement(sampled=0, agreed=0),
-    )
-
-    (split,) = error_type_views([], synthesis, lines)
-
-    assert (split.count, split.genomes, split.certainty) == (
-        3,
-        [_OTHER, _GENOME],
-        "high",
     )
 
 

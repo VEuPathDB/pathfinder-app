@@ -138,14 +138,21 @@ class AuditReviewRepository:
             .values(review=progress.model_dump(by_alias=True, mode="json"))
         )
 
-    async def set_synthesis(self, run_id: UUID, synthesis: Synthesis | None) -> None:
-        stored = (
-            None
-            if synthesis is None
-            else synthesis.model_dump(by_alias=True, mode="json")
-        )
+    async def set_synthesis(self, run_id: UUID, synthesis: Synthesis) -> None:
         await self.session.execute(
-            update(AuditRun).where(AuditRun.id == run_id).values(synthesis=stored)
+            update(AuditRun)
+            .where(AuditRun.id == run_id)
+            .values(synthesis=synthesis.model_dump(by_alias=True, mode="json"))
+        )
+
+    async def reopen_review(self, run_id: UUID) -> None:
+        waiting = ReviewProgress(status="waiting")
+        await self.session.execute(
+            update(AuditRun)
+            .where(AuditRun.id == run_id)
+            .values(
+                review=waiting.model_dump(by_alias=True, mode="json"), synthesis=None
+            )
         )
 
     async def pending_reviews(self) -> list[UUID]:

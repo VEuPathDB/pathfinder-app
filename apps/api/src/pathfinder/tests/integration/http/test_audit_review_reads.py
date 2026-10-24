@@ -288,20 +288,6 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
             "reviewed": [piga],
         },
         {
-            "errorType": "sec_read_as_stop",
-            "title": "Selenocysteine codon read as a stop",
-            "description": (
-                "The model stops at a TGA codon that the gene reads as selenocysteine, "
-                "so the protein it states is cut short."
-            ),
-            "count": 1,
-            "genomes": [_GENOME],
-            "certainty": "medium",
-            "cause": None,
-            "confirmedBy": None,
-            "reviewed": [],
-        },
-        {
             "errorType": "truncated_model",
             "title": "Model too short",
             "description": (

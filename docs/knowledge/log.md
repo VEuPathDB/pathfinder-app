@@ -7,8 +7,9 @@
   finding's detail, and on the run view the error-type sections, the headline finding lines, the
   review state and the agreement with its sentence. A finding read joins its review row, so the
   page reads findings and reviews in one query; `FindingFilter` moves to
-  `persistence/repositories/audit_finding_filter.py`. A section of an error type only a review
-  gave has its own entry, and a kept finding's line shows the review's error type. See
+  `persistence/repositories/audit_finding_filter.py`. A review supersedes the stored type: each
+  finding counts once in the error-type tally, under the review's type and certainty when the
+  review names one, and a kept finding's line shows the review's error type. See
   `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
 * **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded
@@ -16,8 +17,9 @@
   agreement it computes from the stored reviews, and refuses a draft that names an unkept finding,
   mixes error types, ranks the headline out of impact order or states a number no fact holds: the
   summary is held by `prose_faults` over the run fact and an `audit_synthesis` counts fact, and
-  stored rendered. A run with no kept finding stores `NO_FINDING_KEPT` without a model call; each
-  review pass clears the earlier synthesis, and a stopped synthesis stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
+  stored rendered. A run with no kept finding stores `NO_FINDING_KEPT` without a model call;
+  `reopen_review` clears the earlier synthesis on each review pass, on each finish and on a retry
+  that reopens a finished run, and a stopped synthesis stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
 * **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
   `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them (a

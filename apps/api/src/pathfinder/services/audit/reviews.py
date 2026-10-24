@@ -123,9 +123,7 @@ async def queue_review(run_id: UUID) -> None:
 
 async def defer_review(run_id: UUID) -> None:
     async with async_session_factory() as session:
-        repo = AuditReviewRepository(session)
-        await repo.set_review(run_id, ReviewProgress(status="waiting"))
-        await repo.set_synthesis(run_id, None)
+        await AuditReviewRepository(session).reopen_review(run_id)
         await session.commit()
     await continue_review(run_id)
 

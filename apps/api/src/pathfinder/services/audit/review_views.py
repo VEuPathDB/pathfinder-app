@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Mapping
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -185,35 +185,15 @@ def finding_lines(records: Iterable[AuditFindingRecord]) -> dict[int, FindingLin
     return {record.id: finding_line(record) for record in records}
 
 
-def _reviewed_rows(
-    synthesis: Synthesis | None,
-    lines: Mapping[int, FindingLine],
-    tallied: set[ErrorType],
-) -> Iterator[tuple[ErrorType, str, Certainty, int]]:
-    sections = () if synthesis is None else synthesis.sections
-    for section in sections:
-        if section.error_type in tallied:
-            continue
-        for finding_id in section.finding_ids:
-            line = lines[finding_id]
-            named = _Named.model_validate(line)
-            yield named.error_type, line.genome, named.certainty, 1
-
-
 def error_type_views(
     tally: Iterable[tuple[ErrorType, str, Certainty, int]],
     synthesis: Synthesis | None,
     lines: Mapping[int, FindingLine],
 ) -> list[ErrorTypeView]:
-    stored = list(tally)
-    tallied: set[ErrorType] = {row[0] for row in stored}
     counts: Counter[ErrorType] = Counter()
     genomes: defaultdict[ErrorType, dict[str, None]] = defaultdict(dict)
     certainties: defaultdict[ErrorType, list[Certainty]] = defaultdict(list)
-    for error_type, genome, certainty, count in [
-        *stored,
-        *_reviewed_rows(synthesis, lines, tallied),
-    ]:
+    for error_type, genome, certainty, count in tally:
         counts[error_type] += count
         genomes[error_type][genome] = None
         certainties[error_type].append(certainty)

@@ -10,6 +10,7 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.rates import Weighing
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.domain.audit.verdicts import (
@@ -358,3 +359,79 @@ async def test_the_error_type_tally_counts_named_findings_by_genome_and_certaint
         ("truncated_model", _GENOME, "low", 1),
         ("truncated_model", _GENOME, "medium", 1),
     ]
+
+
+async def _named_findings(
+    named: list[tuple[ErrorType, Certainty]],
+) -> tuple[UUID, list[int]]:
+    owner = await seed_thread("toxodb")
+    targets = [
+        SingleGeneTarget(check="gene_length", genes=(f"EXA_{k + 1:04d}",))
+        for k in range(len(named))
+    ]
+    run_id = await create_run(
+        owner=owner, scope=AuditScope(site_id="toxodb", targets=tuple(targets))
+    )
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.add_findings(
+            run_id,
+            [
+                NewFinding(genome=_GENOME, target=t, sampled=True, status="screened")
+                for t in targets
+            ],
+        )
+        ids = [f.id for f in await repo.findings(run_id, FindingFilter())]
+        for finding_id, (error_type, certainty) in zip(ids, named, strict=True):
+            await repo.try_finding(finding_id)
+            await repo.settle_finding(
+                finding_id,
+                SettledFinding(
+                    status="confirmed",
+                    genome=_GENOME,
+                    error_type=error_type,
+                    certainty=certainty,
+                ),
+            )
+        await session.commit()
+    return run_id, ids
+
+
+async def _review_as(run_id: UUID, finding_id: int, verdict: GeneModelVerdict) -> None:
+    review = _review("EXA_0001", finding_id).model_copy(update={"verdict": verdict})
+    async with async_session_factory() as session:
+        await AuditReviewRepository(session).add_review(
+            run_id=run_id, finding_id=finding_id, review=review, model_id=_MODEL
+        )
+        await session.commit()
+
+
+async def test_a_reviewed_type_supersedes_the_stored_type_in_the_tally() -> None:
+    run_id, (first, _) = await _named_findings(
+        [("truncated_model", "low"), ("split_model", "low")]
+    )
+    split = _verdict("EXA_0001", first).model_copy(
+        update={"error_type": "split_model", "certainty": "high"}
+    )
+    await _review_as(run_id, first, split)
+
+    async with async_session_factory() as session:
+        tally = await AuditTallyRepository(session).error_type_tally(run_id)
+
+    assert tally == [
+        ("split_model", _GENOME, "high", 1),
+        ("split_model", _GENOME, "low", 1),
+    ]
+
+
+async def test_a_rejecting_review_keeps_the_stored_type_in_the_tally() -> None:
+    run_id, (finding_id,) = await _named_findings([("truncated_model", "medium")])
+    rejected = _verdict("EXA_0001", finding_id).model_copy(
+        update={"verdict": "no_error", "error_type": None, "certainty": None}
+    )
+    await _review_as(run_id, finding_id, rejected)
+
+    async with async_session_factory() as session:
+        tally = await AuditTallyRepository(session).error_type_tally(run_id)
+
+    assert tally == [("truncated_model", _GENOME, "medium", 1)]

@@ -21,7 +21,6 @@ from veupathdb_mcp.search_line import told_while_waiting
 from pathfinder.domain.audit.findings import AuditOutcome, counts_of
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
-from pathfinder.domain.audit.verdicts import ReviewProgress
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
@@ -141,8 +140,10 @@ async def start_run(
     deadline = datetime.now(UTC) + timedelta(hours=get_settings().audit_run_hours)
     async with async_session_factory() as session:
         repo = AuditRepository(session)
-        if finished and await repo.reopen_unreached(run_id) is None:
-            return await _outcome(run)
+        if finished:
+            if await repo.reopen_unreached(run_id) is None:
+                return await _outcome(run)
+            await AuditReviewRepository(session).reopen_review(run_id)
         await repo.set_deadline(run_id, deadline)
         await repo.set_halted(run_id, None)
         await repo.set_token(run_id, kept)
@@ -177,9 +178,7 @@ async def _set_status(run_id: UUID, status: RunStatus) -> None:
         await repo.set_status(run_id, status)
         if status == "finished":
             await repo.set_token(run_id, None)
-            await AuditReviewRepository(session).set_review(
-                run_id, ReviewProgress(status="waiting")
-            )
+            await AuditReviewRepository(session).reopen_review(run_id)
         await session.commit()
     if status == "finished":
         await queue_review(run_id)

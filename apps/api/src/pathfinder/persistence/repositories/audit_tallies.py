@@ -7,13 +7,13 @@ from collections.abc import Collection
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType, FindingTally
 from pathfinder.domain.audit.run_state import EvidenceTally
-from pathfinder.persistence.models import AuditEvidence, AuditFinding
+from pathfinder.persistence.models import AuditEvidence, AuditFinding, AuditVerdict
 
 __all__ = ["AuditTallyRepository"]
 
@@ -76,13 +76,18 @@ class AuditTallyRepository:
     async def error_type_tally(
         self, run_id: UUID
     ) -> list[tuple[ErrorType, str, Certainty, int]]:
-        grouped = (AuditFinding.error_type, AuditFinding.genome, AuditFinding.certainty)
+        reviewed_type = AuditVerdict.verdict["errorType"].astext
+        reviewed = reviewed_type.is_not(None)
+        error_type = case((reviewed, reviewed_type), else_=AuditFinding.error_type)
+        certainty = case(
+            (reviewed, AuditVerdict.verdict["certainty"].astext),
+            else_=AuditFinding.certainty,
+        )
+        grouped = (error_type, AuditFinding.genome, certainty)
         found = await self.session.execute(
             select(*grouped, func.count())
-            .where(
-                AuditFinding.run_id == run_id,
-                AuditFinding.error_type.is_not(None),
-            )
+            .outerjoin(AuditVerdict, AuditVerdict.finding_id == AuditFinding.id)
+            .where(AuditFinding.run_id == run_id, error_type.is_not(None))
             .group_by(*grouped)
             .order_by(*grouped)
         )
