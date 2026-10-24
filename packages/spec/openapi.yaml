@@ -11757,6 +11757,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/IntronDepth'
           - type: 'null'
+        spansAssemblyGap:
+          type: boolean
+          title: Spansassemblygap
+          default: false
       type: object
       required:
       - start

@@ -9,7 +9,6 @@ from assistant_core.tasks.job_context import durable_job_context
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
 from pathfinder.persistence.repositories import (
@@ -19,6 +18,7 @@ from pathfinder.persistence.repositories import (
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
+from pathfinder.services.gene_sets.types import StrategyRootContext
 from pathfinder.services.strategies.gene_set_refresh import GeneSetRefreshJob
 
 RESEARCHER_TOKEN = "wdk-session-of-the-researcher"
@@ -73,9 +73,7 @@ class ServedRoots:
         self.answers = answers
         self.tokens: list[str | None] = []
 
-    async def read(
-        self, site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
+    async def read(self, site_id: str, wdk_strategy_id: int) -> StrategyGenes:
         del site_id
         self.tokens.append(veupathdb_auth_token_ctx.get())
         answer = self.answers.pop(0)
@@ -85,8 +83,12 @@ class ServedRoots:
             genes=StepGenes(
                 gene_ids=list(answer.gene_ids), homes={}, record_class="transcript"
             ),
-            context=GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            context=StrategyRootContext(
+                wdk_strategy_id=wdk_strategy_id,
+                wdk_step_id=439858931,
+                search_name=None,
+                record_type="transcript",
+                parameters=None,
             ),
             step_count=3,
         )

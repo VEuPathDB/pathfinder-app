@@ -12,6 +12,7 @@ import pytest
 from veupathdb.domain.parameters import NumberValue, ParamValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree, walk
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import site_changes
@@ -27,14 +28,16 @@ _SCORE = "min_exportpred_score"
 
 
 async def _decode(
-    payload: StrategyAst, api: StrategyAPI, wire: dict[str, dict[str, str]]
+    payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
 ) -> None:
     """Decode every wire value as a number, the way a number parameter decodes."""
     del api
     for node in walk(payload.root):
+        if node.id not in wire:
+            continue
         node.parameters = {
             name: NumberValue(value=float(value))
-            for name, value in wire.get(node.id, {}).items()
+            for name, value in wire[node.id].parameters.items()
         }
 
 

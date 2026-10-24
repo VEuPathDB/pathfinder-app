@@ -95,7 +95,6 @@ class GeneSetImporter(Protocol):
         name: str,
         site_id: str,
         wdk_strategy_id: int,
-        record_type: str | None,
     ) -> GeneSet: ...
 
     async def save(self, gene_set: GeneSet, /) -> None: ...
@@ -164,7 +163,6 @@ async def auto_import_gene_set(
             name=name,
             site_id=site_id,
             wdk_strategy_id=wdk_id,
-            record_type=strategy.record_type,
         )
         gs.answer_revision = revision
         await gene_set_service.save(gs)

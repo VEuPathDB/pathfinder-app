@@ -3,15 +3,11 @@ from dataclasses import dataclass
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import DataParsingError, ValidationError
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails, get_strategy_api
-from veupathdb_mcp.wdk import (
-    GeneSetWdkContext,
-    build_snapshot_from_wdk,
-    canonicalize_synced_parameters,
-)
+from veupathdb_mcp.wdk import build_snapshot_from_wdk, canonicalize_synced_parameters
 
 from pathfinder.domain.gene_homes import holds_genes
 from pathfinder.services.gene_sets.homes import StepGenes, read_genes_of, site_kind
-from pathfinder.services.gene_sets.types import ResultNotGenes
+from pathfinder.services.gene_sets.types import ResultNotGenes, StrategyRootContext
 
 
 class RecordsAreNotGenesError(ValidationError):
@@ -32,31 +28,29 @@ class RecordsAreNotGenesError(ValidationError):
 @dataclass(frozen=True)
 class StrategyGenes:
     genes: StepGenes
-    context: GeneSetWdkContext
+    context: StrategyRootContext
     step_count: int
 
 
-async def read_strategy_genes(
-    site_id: str, wdk_strategy_id: int, *, record_type: str | None
-) -> StrategyGenes:
+async def read_strategy_genes(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
     api = get_strategy_api(site_id)
     strategy = await api.get_strategy(wdk_strategy_id)
-    record_class = strategy.record_class_name or ""
-    if not holds_genes(site_kind(site_id), record_class):
-        raise RecordsAreNotGenesError(record_class)
     root = strategy.steps.get(str(strategy.root_step_id))
     if root is None:
         msg = f"Strategy {wdk_strategy_id} does not list its root step"
         raise DataParsingError(msg)
+    record_class = root.record_class_name or ""
+    if not holds_genes(site_kind(site_id), record_class):
+        raise RecordsAreNotGenesError(record_class)
     genes = await read_genes_of(site_id, root)
     search_name, parameters = await _single_search(api, strategy)
     return StrategyGenes(
         genes=genes,
-        context=GeneSetWdkContext(
+        context=StrategyRootContext(
             wdk_strategy_id=wdk_strategy_id,
             wdk_step_id=strategy.root_step_id,
             search_name=search_name,
-            record_type=record_type or record_class,
+            record_type=record_class,
             parameters=parameters,
         ),
         step_count=len(strategy.steps),

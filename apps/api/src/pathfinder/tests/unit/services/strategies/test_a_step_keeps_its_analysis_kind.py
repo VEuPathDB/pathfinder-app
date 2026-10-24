@@ -14,6 +14,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree, walk
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.operations.apply import apply_operation
@@ -150,13 +151,14 @@ class _Site:
 
 
 async def _as_strings(
-    payload: StrategyAst, api: StrategyAPI, wire: dict[str, dict[str, str]]
+    payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
 ) -> None:
     """Decode every wire value as the string parameter it is."""
     del api
     for node in walk(payload.root):
         node.parameters = {
-            name: StringValue(value=value) for name, value in wire[node.id].items()
+            name: StringValue(value=value)
+            for name, value in wire[node.id].parameters.items()
         }
 
 

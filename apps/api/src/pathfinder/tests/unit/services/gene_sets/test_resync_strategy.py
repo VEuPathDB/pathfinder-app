@@ -11,13 +11,12 @@ from dataclasses import fields
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.operations import EmptyResyncError, GeneSetService
 from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, StrategyRootContext
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 Read = Callable[..., Awaitable[StrategyGenes | None]]
@@ -43,22 +42,18 @@ async def test_resync_strategy_replaces_stale_snapshot(
     )
     svc = GeneSetService(store)
 
-    async def _fake_read(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
-        assert (site_id, wdk_strategy_id, record_type) == (
-            "plasmodb",
-            330427013,
-            "transcript",
-        )
+    async def _fake_read(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
+        assert (site_id, wdk_strategy_id) == ("plasmodb", 330427013)
         return StrategyGenes(
             genes=StepGenes(
                 gene_ids=["PF3D7_A", "PF3D7_B"], homes={}, record_class="transcript"
             ),
-            context=GeneSetWdkContext(
+            context=StrategyRootContext(
                 wdk_strategy_id=wdk_strategy_id,
                 wdk_step_id=439858933,
+                search_name=None,
                 record_type="transcript",
+                parameters=None,
             ),
             step_count=4,
         )
@@ -114,17 +109,15 @@ def _signal_peptide_set() -> GeneSet:
 
 
 def _resolver(
-    ctx_out: GeneSetWdkContext,
+    ctx_out: StrategyRootContext,
     step_count: int,
     gene_ids: list[str] | None = None,
 ) -> Read:
     """Stand in for the WDK read, answering one resolved context."""
     resolved = ["PF3D7_NEW"] if gene_ids is None else gene_ids
 
-    async def _read(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
-        del site_id, wdk_strategy_id, record_type
+    async def _read(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
+        del site_id, wdk_strategy_id
         return StrategyGenes(
             genes=StepGenes(
                 gene_ids=list(resolved), homes={}, record_class="transcript"
@@ -150,7 +143,7 @@ async def test_a_resync_carries_the_search_name_record_type_and_parameters(
         operations,
         "read_strategy_genes",
         _resolver(
-            GeneSetWdkContext(
+            StrategyRootContext(
                 wdk_strategy_id=214626640,
                 wdk_step_id=227292630,
                 search_name="GenesByMolecularWeight",
@@ -178,7 +171,7 @@ async def test_a_resync_onto_another_root_step_replaces_the_previous_search_name
         operations,
         "read_strategy_genes",
         _resolver(
-            GeneSetWdkContext(
+            StrategyRootContext(
                 wdk_strategy_id=214626640,
                 wdk_step_id=227292999,
                 search_name="GenesByGeneType",
@@ -207,7 +200,7 @@ async def test_a_resync_onto_a_multi_step_strategy_records_no_search(
         operations,
         "read_strategy_genes",
         _resolver(
-            GeneSetWdkContext(
+            StrategyRootContext(
                 wdk_strategy_id=214626640,
                 wdk_step_id=227293100,
                 search_name=None,
@@ -228,7 +221,7 @@ async def test_a_resync_onto_a_multi_step_strategy_records_no_search(
 def test_every_field_of_a_resolved_context_reaches_the_gene_set() -> None:
     """A field added to the context cannot be left behind by a take."""
     gs = _signal_peptide_set()
-    ctx = GeneSetWdkContext(
+    ctx = StrategyRootContext(
         wdk_strategy_id=1,
         wdk_step_id=2,
         search_name="GenesByTaxon",
@@ -249,9 +242,9 @@ def test_every_field_of_a_resolved_context_reaches_the_gene_set() -> None:
     assert {name: getattr(gs, name) for name in carried} == carried
 
 
-def _other_root_context() -> GeneSetWdkContext:
+def _other_root_context() -> StrategyRootContext:
     """What a re-sync resolves when the strategy now roots on another step."""
-    return GeneSetWdkContext(
+    return StrategyRootContext(
         wdk_strategy_id=214626640,
         wdk_step_id=227292999,
         search_name="GenesByGeneType",

@@ -11,7 +11,6 @@ from assistant_core.platform.context import calling_application
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Discriminator
 from veupathdb.domain.parameters import ParamValue
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.domain.gene_homes import GeneHome, SiteKind, genes_on
 
@@ -41,6 +40,15 @@ class GeneSetMembership(CamelModel):
             gene_count=len(unique),
             digest=hashlib.sha256("\n".join(unique).encode()).hexdigest(),
         )
+
+
+@dataclass(frozen=True)
+class StrategyRootContext:
+    wdk_strategy_id: int
+    wdk_step_id: int
+    search_name: str | None
+    record_type: str
+    parameters: dict[str, ParamValue] | None
 
 
 class ResultAboveTheCap(CamelModel):
@@ -104,7 +112,7 @@ class GeneSet:
             self.site_id, self.gene_ids, self.homes, site_id=site_id, kind=kind
         )
 
-    def take_wdk_context(self, ctx: GeneSetWdkContext, *, step_count: int) -> None:
+    def take_wdk_context(self, ctx: StrategyRootContext, *, step_count: int) -> None:
         """Adopt a resolved WDK context whole.
 
         Every field of the context is one field of the set, so a take replaces

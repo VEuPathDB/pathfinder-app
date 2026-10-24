@@ -66,9 +66,8 @@ class _StubGeneSetService:
         name: str,
         site_id: str,
         wdk_strategy_id: int,
-        record_type: str | None,
     ) -> GeneSet:
-        del wdk_strategy_id, record_type
+        del wdk_strategy_id
         if not self.resolved:
             raise EmptyGeneSetError(name)
         gs = GeneSet(
