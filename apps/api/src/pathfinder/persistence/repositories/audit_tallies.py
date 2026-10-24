@@ -83,11 +83,16 @@ class AuditTallyRepository:
             (reviewed, AuditVerdict.verdict["certainty"].astext),
             else_=AuditFinding.certainty,
         )
+        rejected = AuditVerdict.verdict["verdict"].astext == "no_error"
         grouped = (error_type, AuditFinding.genome, certainty)
         found = await self.session.execute(
             select(*grouped, func.count())
             .outerjoin(AuditVerdict, AuditVerdict.finding_id == AuditFinding.id)
-            .where(AuditFinding.run_id == run_id, error_type.is_not(None))
+            .where(
+                AuditFinding.run_id == run_id,
+                error_type.is_not(None),
+                rejected.is_not(True),
+            )
             .group_by(*grouped)
             .order_by(*grouped)
         )

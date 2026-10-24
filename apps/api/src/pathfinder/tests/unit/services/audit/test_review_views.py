@@ -215,10 +215,11 @@ def test_a_kept_finding_line_shows_the_reviews_type_beside_the_stored_impact() -
     )
 
 
-def test_a_finding_line_the_review_rejects_keeps_the_stored_type() -> None:
-    line = finding_line(
-        _record(7, "sec_read_as_stop", "medium", 0.4, _review("no_error"))
-    )
+@pytest.mark.parametrize("verdict", ["no_error", "undecided"])
+def test_a_finding_line_the_review_does_not_keep_shows_the_stored_type(
+    verdict: VerdictKind,
+) -> None:
+    line = finding_line(_record(7, "sec_read_as_stop", "medium", 0.4, _review(verdict)))
 
     assert (
         line.error_type,

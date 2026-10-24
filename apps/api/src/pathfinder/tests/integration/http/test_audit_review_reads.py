@@ -288,20 +288,6 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
             "reviewed": [piga],
         },
         {
-            "errorType": "truncated_model",
-            "title": "Model too short",
-            "description": (
-                "The model's protein is shorter than its orthologs', and the "
-                "genome's DNA encodes the part it lacks."
-            ),
-            "count": 1,
-            "genomes": [_GENOME],
-            "certainty": "medium",
-            "cause": None,
-            "confirmedBy": None,
-            "reviewed": [],
-        },
-        {
             "errorType": "split_model",
             "title": "One gene split into two models",
             "description": (

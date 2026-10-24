@@ -63,7 +63,9 @@ the model genomes, the highest certainty and, from the synthesis section, the
 cause, how it was confirmed and its findings. A review supersedes the stored
 type: each finding counts once, under the error type and certainty of the
 review that names one, and under the stored ones otherwise
-(`AuditTallyRepository.error_type_tally`). A finding line shows the error type and certainty
+(`AuditTallyRepository.error_type_tally`). A finding the review rejects
+(`no_error`) is left out of the counts, genomes and certainty; an undecided one
+stays under its stored type. Its line still shows the review. A finding line shows the error type and certainty
 of the review that keeps it, and the stored ones otherwise; `headline`;
 `review_state`; and `agreement`, the synthesis's or else the one the stored
 reviews give, with its sentence. A finding's reviewed impact is shown beside

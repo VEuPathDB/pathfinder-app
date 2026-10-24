@@ -20,6 +20,7 @@ from pathfinder.domain.audit.verdicts import (
     ReviewAgreement,
     ReviewProgress,
     Synthesis,
+    VerdictKind,
     finding_cite,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
@@ -424,14 +425,31 @@ async def test_a_reviewed_type_supersedes_the_stored_type_in_the_tally() -> None
     ]
 
 
-async def test_a_rejecting_review_keeps_the_stored_type_in_the_tally() -> None:
-    run_id, (finding_id,) = await _named_findings([("truncated_model", "medium")])
-    rejected = _verdict("EXA_0001", finding_id).model_copy(
-        update={"verdict": "no_error", "error_type": None, "certainty": None}
+@pytest.mark.parametrize(
+    ("verdict", "expected"),
+    [
+        ("no_error", [("truncated_model", _GENOME, "low", 1)]),
+        (
+            "undecided",
+            [
+                ("truncated_model", _GENOME, "low", 1),
+                ("truncated_model", _GENOME, "medium", 1),
+            ],
+        ),
+    ],
+)
+async def test_a_rejected_finding_leaves_the_tally_and_an_undecided_one_stays(
+    verdict: VerdictKind, expected: list[tuple[str, str, str, int]]
+) -> None:
+    run_id, (finding_id, _) = await _named_findings(
+        [("truncated_model", "medium"), ("truncated_model", "low")]
     )
-    await _review_as(run_id, finding_id, rejected)
+    unnamed = _verdict("EXA_0001", finding_id).model_copy(
+        update={"verdict": verdict, "error_type": None, "certainty": None}
+    )
+    await _review_as(run_id, finding_id, unnamed)
 
     async with async_session_factory() as session:
         tally = await AuditTallyRepository(session).error_type_tally(run_id)
 
-    assert tally == [("truncated_model", _GENOME, "medium", 1)]
+    assert tally == expected

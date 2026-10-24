@@ -9,7 +9,8 @@
   page reads findings and reviews in one query; `FindingFilter` moves to
   `persistence/repositories/audit_finding_filter.py`. A review supersedes the stored type: each
   finding counts once in the error-type tally, under the review's type and certainty when the
-  review names one, and a kept finding's line shows the review's error type. See
+  review names one; a finding the review rejects leaves the tally, an undecided one stays under
+  its stored type, and a kept finding's line shows the review's error type. See
   `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
 * **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded
