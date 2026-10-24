@@ -135,6 +135,19 @@ async def test_a_listed_run_is_not_held_and_a_read_one_is() -> None:
     assert (listed, deps.state.turn_markers.audit_runs) == ([], [_RUN])
 
 
+async def test_a_run_state_reaches_the_reply_only_from_a_read_run() -> None:
+    deps = _audit_deps()
+    fact = audit_run_fact(_view())
+    prose = f"The audit run is [stat:{fact.id}.run.status]."
+    unread = prose_faults(prose, turn_facts(deps, refusal=""))
+
+    await lead_audit.read_audit_run(run_context_for(deps), _RUN)
+
+    facts = turn_facts(deps, refusal="")
+    assert (len(unread), prose_faults(prose, facts)) == (1, [])
+    assert render_reply(prose, facts) == "The audit run is finished."
+
+
 async def test_a_run_read_holds_the_genes_of_its_findings_as_records() -> None:
     state = pipeline_state(user_prompt="Summarize the audit.", user_message_id=uuid4())
     state.turn_markers.intent_classified = True
