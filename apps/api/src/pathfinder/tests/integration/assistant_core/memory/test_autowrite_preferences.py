@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -9,14 +8,12 @@ from assistant_core.memory.autowrite import auto_write_memories
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
-from assistant_core.persistence.models import Conversation, Message
 from assistant_core.platform.db import async_session_factory
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.persistence.models import User
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.mark.asyncio
@@ -28,28 +25,6 @@ async def test_a_turn_never_writes_a_preference_the_researcher_did_not_approve(
     user_id = uuid4()
     async with async_session_factory() as session:
         session.add(User(id=user_id))
-        await session.flush()
-        for i in range(5):
-            conversation_id = uuid4()
-            session.add(
-                Conversation(
-                    assistant_id=PATHFINDER_ASSISTANT_ID,
-                    id=conversation_id,
-                    user_id=user_id,
-                    site_id="plasmodb",
-                    name=f"old-{i}",
-                )
-            )
-            await session.flush()
-            session.add(
-                Message(
-                    id=uuid4(),
-                    conversation_id=conversation_id,
-                    role="assistant",
-                    metadata_={"phase": "verification", "turnCompleted": True},
-                    created_at=datetime.now(UTC) - timedelta(days=i + 1),
-                )
-            )
         await session.commit()
     state = PipelineState(
         conversation_id=uuid4(),

@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, MutableMapping
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.errors import ConversationNotFoundError
 from assistant_core.platform import db
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
     AsyncTransaction,
     create_async_engine,
 )
+from structlog.testing import capture_logs
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode, ThreadBusyError
@@ -33,6 +34,7 @@ from pathfinder.tests.integration.persistence._thread_surgery import (
 
 _ADVISORY_LOCKS = text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")
 REFUSED = "the commit was refused"
+DISCARDED = "the thread lock did not end cleanly; its connection is discarded"
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine")
 
@@ -40,6 +42,12 @@ pytestmark = pytest.mark.usefixtures("patch_app_db_engine")
 async def _advisory_locks() -> int:
     async with db.async_session_factory() as session:
         return int((await session.execute(_ADVISORY_LOCKS)).scalar_one())
+
+
+def _discarded(logs: list[MutableMapping[str, Any]]) -> list[str]:
+    return [
+        str(entry["conversation_id"]) for entry in logs if entry["event"] == DISCARDED
+    ]
 
 
 async def _idle_inside_the_hold(conversation_id: UUID, seen: list[int]) -> None:
@@ -52,10 +60,11 @@ async def _idle_inside_the_hold(conversation_id: UUID, seen: list[int]) -> None:
 async def test_a_hold_idle_past_its_bound_ends_and_frees_the_thread() -> None:
     conversation_id = uuid4()
     seen: list[int] = []
-    with pytest.raises(DBAPIError):
+    with capture_logs() as logs:
         await _idle_inside_the_hold(conversation_id, seen)
 
     assert seen == [1, 0]
+    assert _discarded(logs) == [str(conversation_id)]
     assert thread_lock.HOLD_IDLE_SECONDS == 120.0
     async with hold_thread(conversation_id, wait_seconds=0.3):
         assert await _advisory_locks() == 1
@@ -79,7 +88,7 @@ async def test_a_wait_past_the_deadline_is_refused() -> None:
 @pytest.fixture
 async def pooled(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(get_settings().database_url, pool_size=1)
-    monkeypatch.setattr(thread_lock, "get_engine", lambda: engine)
+    monkeypatch.setattr(thread_lock, "lock_engine", lambda: engine)
     yield engine
     await engine.dispose()
 
@@ -106,7 +115,7 @@ async def test_a_task_cancelled_inside_the_hold_leaves_no_lock() -> None:
         assert await _advisory_locks() == 1
 
 
-async def test_a_release_that_fails_invalidates_the_connection(
+async def test_a_release_that_fails_is_logged_and_discards_the_connection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     conversation_id = uuid4()
@@ -126,12 +135,13 @@ async def test_a_release_that_fails_invalidates_the_connection(
     monkeypatch.setattr(AsyncTransaction, "commit", _refuse)
     monkeypatch.setattr(AsyncConnection, "invalidate", _record)
 
-    with pytest.raises(RuntimeError, match=REFUSED):
+    with capture_logs() as logs:
         async with hold_thread(conversation_id):
             pass
 
     monkeypatch.undo()
     assert invalidated == [True]
+    assert _discarded(logs) == [str(conversation_id)]
     assert await _advisory_locks() == 0
 
 

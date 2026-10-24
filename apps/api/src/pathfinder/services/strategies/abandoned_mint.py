@@ -26,11 +26,15 @@ from pathfinder.services.conversations.strategy_ops import (
 logger = get_logger(__name__)
 
 __all__ = [
+    "RELEASE_FAILURES",
     "ReleasableMint",
     "abandoned_mint_to_release",
     "delete_released_mint",
     "fresh_mint",
 ]
+
+
+RELEASE_FAILURES: tuple[type[Exception], ...] = (VEuPathDBError, OSError, RuntimeError)
 
 
 @dataclass(frozen=True)
@@ -167,7 +171,7 @@ async def delete_released_mint(release: ReleasableMint | None) -> None:
     api = get_strategy_api(release.site_id)
     try:
         held = await api.get_strategy(release.wdk_strategy_id)
-    except (VEuPathDBError, OSError, RuntimeError) as exc:
+    except RELEASE_FAILURES as exc:
         logger.warning(
             "Abandoned WDK strategy kept: the site did not answer the saved mark",
             conversation_id=str(release.conversation_id),
@@ -186,7 +190,7 @@ async def delete_released_mint(release: ReleasableMint | None) -> None:
         return
     try:
         await api.delete_strategy(release.wdk_strategy_id)
-    except (VEuPathDBError, OSError, RuntimeError) as exc:
+    except RELEASE_FAILURES as exc:
         logger.warning(
             "Failed to delete the WDK strategy an abandoned turn minted",
             conversation_id=str(release.conversation_id),

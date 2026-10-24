@@ -37,6 +37,7 @@ from pathfinder.services.eda.authoring import (
 from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.catalog import resolve_dataset
 from pathfinder.services.eda.study_site import refuse_a_study_another_site_publishes
+from pathfinder.services.strategies.abandoned_mint import RELEASE_FAILURES
 
 logger = get_logger(__name__)
 
@@ -171,7 +172,7 @@ async def delete_released_document(document: ReleasableDocument | None) -> None:
         return
     try:
         await delete_analysis(document.site_id, analysis_id=document.analysis_id)
-    except VEuPathDBError as exc:
+    except RELEASE_FAILURES as exc:
         logger.warning(
             "kept an EDA document the surgery opened: the study service refused",
             analysis_id=document.analysis_id,
@@ -208,13 +209,20 @@ async def _fresh_document(
         dataset_id=recorded.dataset_id,
         display_name=recorded.display_name,
     )
-    if filters:
+    if not filters:
+        return analysis_id
+    try:
         await patch_subset(
             recorded.site_id,
             analysis_id=analysis_id,
             dataset_id=recorded.dataset_id,
             filters=filters,
         )
+    except Exception:
+        await delete_released_document(
+            ReleasableDocument(site_id=recorded.site_id, analysis_id=analysis_id),
+        )
+        raise
     return analysis_id
 
 
@@ -239,6 +247,26 @@ async def _recorded_or_fresh_document(
     except EdaNotFoundError:
         return _Opened(analysis_id=await _fresh_document(recorded, filters), fresh=True)
     return _Opened(analysis_id=recorded_id, fresh=False)
+
+
+async def _bind_opened(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    recorded: EdaAnalysisState,
+    document: ReleasableDocument,
+) -> ReleasableDocument:
+    try:
+        await _bind_and_count(
+            session,
+            conversation_id=conversation_id,
+            recorded=recorded,
+            analysis_id=document.analysis_id,
+        )
+    except Exception:
+        await delete_released_document(document)
+        raise
+    return document
 
 
 async def _bind_and_count(
@@ -268,17 +296,22 @@ async def _adopt(
     filters = _FILTERS.validate_python(recorded.filters)
     if plan.rebind:
         opened = await _recorded_or_fresh_document(recorded, filters)
-        await _bind_and_count(
+        if not opened.fresh:
+            await _bind_and_count(
+                session,
+                conversation_id=conversation_id,
+                recorded=recorded,
+                analysis_id=opened.analysis_id,
+            )
+            return None
+        return await _bind_opened(
             session,
             conversation_id=conversation_id,
             recorded=recorded,
-            analysis_id=opened.analysis_id,
-        )
-        if not opened.fresh:
-            return None
-        return ReleasableDocument(
-            site_id=recorded.site_id,
-            analysis_id=opened.analysis_id,
+            document=ReleasableDocument(
+                site_id=recorded.site_id,
+                analysis_id=opened.analysis_id,
+            ),
         )
     live = await read_analysis(recorded.site_id, analysis_id=recorded.analysis_id)
     if list(live.descriptor.subset.descriptor) == filters:
@@ -353,10 +386,9 @@ async def branch_thread_binding(
             error=str(exc),
         )
         return None
-    await _bind_and_count(
+    return await _bind_opened(
         session,
         conversation_id=conversation_id,
         recorded=recorded,
-        analysis_id=analysis_id,
+        document=ReleasableDocument(site_id=recorded.site_id, analysis_id=analysis_id),
     )
-    return ReleasableDocument(site_id=recorded.site_id, analysis_id=analysis_id)

@@ -28,6 +28,9 @@ class FakeEda:
     created: list[tuple[str, str]] = field(default_factory=list)
     patched: list[tuple[str, list[EdaFilter]]] = field(default_factory=list)
     deleted: list[str] = field(default_factory=list)
+    delete_attempts: list[str] = field(default_factory=list)
+    refuse_delete: bool = False
+    refuse_patch_of: set[str] = field(default_factory=set)
     refuse_create: bool = False
     fresh: int = 0
     user_study: bool = True
@@ -78,6 +81,9 @@ class FakeEda:
         filters: Sequence[EdaFilter],
     ) -> EdaAnalysisDetail:
         del site_id, dataset_id
+        if analysis_id in self.refuse_patch_of:
+            msg = f"PATCH /users/1/analyses/{analysis_id}: the service is unavailable"
+            raise EdaServerError(msg, 503)
         # A document that is gone refuses the patch, as the service does.
         self._detail(analysis_id)
         self.documents[analysis_id] = list(filters)
@@ -86,6 +92,10 @@ class FakeEda:
 
     async def delete_analysis(self, site_id: str, *, analysis_id: str) -> None:
         del site_id
+        self.delete_attempts.append(analysis_id)
+        if self.refuse_delete:
+            msg = f"DELETE /users/1/analyses/{analysis_id}: the service is unavailable"
+            raise EdaServerError(msg, 503)
         self._detail(analysis_id)
         del self.documents[analysis_id]
         self.deleted.append(analysis_id)

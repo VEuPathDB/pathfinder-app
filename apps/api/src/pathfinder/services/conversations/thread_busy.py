@@ -7,11 +7,12 @@ from assistant_core.persistence.models import BackgroundTask
 from assistant_core.persistence.repositories.background_tasks import (
     ACTIVE_TASK_STATES,
 )
+from assistant_core.tasks.names import CHAT_TURN_TASK
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.repositories.checkpoint_rows import parked_approval
-from pathfinder.persistence.repositories.thread_job import turn_holds_thread
+from pathfinder.persistence.repositories.thread_job import job_holds_thread
 from pathfinder.services.conversations.thread_lock import try_lock_thread
 
 __all__ = ["ThreadBusy", "claim_settled_thread"]
@@ -42,7 +43,11 @@ async def claim_settled_thread(
 ) -> ThreadBusy | None:
     if not await try_lock_thread(session, conversation_id):
         return ThreadBusy.LOCKED
-    if await turn_holds_thread(session, conversation_id=conversation_id):
+    if await job_holds_thread(
+        session,
+        conversation_id=conversation_id,
+        task=CHAT_TURN_TASK,
+    ):
         return ThreadBusy.TURN
     if await parked_approval(session, thread_id=str(conversation_id)) is not None:
         return ThreadBusy.APPROVAL

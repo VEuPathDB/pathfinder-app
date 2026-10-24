@@ -81,6 +81,7 @@ from pathfinder.platform.site_catalogs import (
     preload_catalogs,
     run_catalog_retry_loop,
 )
+from pathfinder.services.conversations.thread_lock import close_lock_engine
 from pathfinder.services.eda.catalog import preload_study_index
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 from pathfinder.transport.http.deps import bind_request_log_ids
@@ -273,6 +274,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         metrics_server.server_close()
     await close_all_clients()
     await close_all_eda_clients()
+    await close_lock_engine()
     await close_db()
     shutdown_observability()
     shutdown_langfuse()

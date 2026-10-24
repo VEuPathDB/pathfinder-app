@@ -17,16 +17,19 @@
   active, or a dispatch holds the lock (`services/conversations/thread_busy.py`). The dispatcher
   refuses a thread of another caller first, then holds the same lock as a transaction lock on a
   connection of its own until the job is deferred, and refuses with `ThreadBusyError` after 45
-  seconds of waiting; that transaction ends after 120 idle seconds. A branch or a revert that
-  does not commit deletes the WDK strategy and the EDA document it made
-  (`services/conversations/surgery_commit.py`). A branch pushes its strategy as
-  its last write and deletes that mint when anything after the push fails, the commit
-  included. The checkpoint tables are named once, in
+  seconds of waiting; that transaction ends after 120 idle seconds, and it takes its connection
+  from a pool of its own (`LOCK_POOL_SIZE` 10 plus `LOCK_POOL_OVERFLOW` 10), so dispatches never
+  wait on the request pool for their own locks. A branch or a revert that does not commit
+  deletes the WDK strategy and the EDA document it made, after a fresh session confirms that no
+  committed row names them (`services/conversations/surgery_commit.py`). A branch pushes its
+  strategy as its last VEuPathDB write and deletes that mint when anything after the push
+  fails, the commit included. An EDA document a surgery opened is deleted when its subset or
+  its binding fails. The checkpoint tables are named once, in
   `persistence/repositories/checkpoint_rows.py`, which a schema test holds equal to what the
   installed checkpointer creates. A branch copies only the blobs its checkpoints name, and a
   revert deletes the blobs no surviving checkpoint names. Message upserts are scoped to their
   conversation in assistant-core 0.3.0b13. See
-  `conventions/thread-surgery-invariants.md` (F11 to F13, R9, R10, S1 to S3).
+  `conventions/thread-surgery-invariants.md` (F11 to F14, R9 to R11, S1 to S3).
 * **The Lead starts and reads gene-model audits and calls the investigator.**
   `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
   `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,
