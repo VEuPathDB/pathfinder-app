@@ -11,16 +11,16 @@ status: stable
 
 An audit read is a statistic fact whose rows are the values of its typed answer
 (`domain/statistic_rows.py::model_rows`). The answer's serialization schema
-(`fact_schema`) gives each leaf a display kind. Every answer an audit fact is read
-from is registered once (`ai/audit/fact_sources.py::FACT_SOURCES`), and each audit
-toolset reads every registered schema when it is built (`warm_fact_schemas`), so a leaf
+(`fact_schema`) gives each leaf a display kind. Every answer a statistic fact is read
+from is registered once (`ai/fact_sources.py::FACT_SOURCES`), and each audit
+toolset and the FRAME toolset read every registered schema when it is built (`warm_fact_schemas`), so a leaf
 with no display form (an untyped value, an object or an array with no item schema)
 fails with `NoDisplayFormError` at startup, never in a turn. A value the schema does not
 hold still renders, by its JSON type.
 
 | leaf | row value | `StatisticRowFact.form` |
 |---|---|---|
-| a number | the number as the answer writes it; a `Share` as a percentage (`88.9%`) | `number` |
+| a number | the number as the answer writes it, a whole number of 1,000 or more with thousands separators (`7,364`); a `Share` as a percentage (`88.9%`); an `Identifier` (a finding id) as written, with no separator | `number` |
 | an enum or a constant | its words: a code table where `domain/audit/facts.py::CODE_WORDS` holds one, else underscores as spaces and, for an enum whose members are underscored capitals, lower case; `code` keeps the wire value | `word` |
 | a boolean | `yes` or `no`, lower case since a row stands inside a sentence | `word` |
 | a field typed `Sentence` (free text: a cause, a description, a card or review text, a message) | the string | `sentence` |

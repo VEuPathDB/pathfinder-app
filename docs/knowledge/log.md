@@ -10,6 +10,10 @@
   criterion, and a `group_comparison` statistic carries the route, the breakdown, the
   residual groups and each set's leading species. See
   [a computed comparison is saved as a group list step](decisions/a-computed-comparison-is-saved-as-a-group-list-step.md).
+* **A whole number of 1,000 or more renders with thousands separators.** A number row
+  of a statistic fact writes `7,364`, as a count reference does; a field typed
+  `Identifier` (a finding id) renders as written. `FACT_SOURCES` moves to
+  `ai/fact_sources.py`, read by the audit and the FRAME toolsets.
 
 ## 2026-10-24
 

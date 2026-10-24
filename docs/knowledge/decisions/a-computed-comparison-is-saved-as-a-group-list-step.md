@@ -31,6 +31,16 @@ snapshot" and the day; its value's basis says it is a snapshot of that day's dat
 search the site re-runs. The comparison's reading check holds the computed criterion too
 (`bound_comparisons`).
 
+**The internal strategy stays, for now.** `frozen_step_id` keeps the step it made in
+an internal strategy of the researcher's account and caches the step id per account and
+membership, so a later call with the same groups returns that step. Deleting the
+strategy after the read would leave the cache naming a step whose strategy is deleted.
+WDK's `DELETE /users/{id}/strategies/{id}` only marks the strategy row deleted
+(`StrategyService.deleteStrategy` -> `StepFactory.updateStrategy`), and WDK does not track
+which steps use a dataset (`StepFactory.cloneDatasetParam`), so the uploaded dataset the
+criterion holds outlives the strategy. Removing the strategy waits for a veupathdb-mcp
+release whose id-list save deletes it and caches nothing.
+
 **The facts.** `HeldComparison.facts()` is `ComparisonFacts`, registered in
 `FACT_SOURCES`, so every row takes its display form from its type: counts as numbers,
 shares of the groups and of each set's genomes as percentages, the route as its words.
