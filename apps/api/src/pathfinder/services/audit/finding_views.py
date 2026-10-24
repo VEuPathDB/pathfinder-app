@@ -9,7 +9,9 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
+from pathfinder.domain.audit.check_facts import evidence_facts
 from pathfinder.domain.audit.confirmations import FindingVerdict
+from pathfinder.domain.audit.facts import EvidenceFacts
 from pathfinder.domain.audit.findings import (
     Certainty,
     ConfirmationEvidence,
@@ -39,6 +41,7 @@ from pathfinder.services.audit.runs import readable_run
 MAX_PAGE = 200
 DEFAULT_PAGE = 50
 MAX_ROW_ID = 2**63 - 1
+_FACT_ORDER: tuple[EvidenceKind, ...] = ("confirmation", "relatives", "gene_evidence")
 
 
 class FindingView(CamelModel):
@@ -110,6 +113,7 @@ class FindingDetail(CamelModel):
     site_id: str
     finding: FindingView
     evidence: list[EvidenceView]
+    facts: list[EvidenceFacts]
     review: FindingReview | None
 
 
@@ -177,6 +181,15 @@ def _verdicts(evidence: Iterable[AuditEvidenceRecord]) -> dict[int, FindingVerdi
     return found
 
 
+def stored_facts(evidence: Iterable[AuditEvidenceRecord]) -> list[EvidenceFacts]:
+    stored = [
+        evidence_facts(record.payload)
+        for record in evidence
+        if record.status == "stored" and record.payload is not None
+    ]
+    return sorted(stored, key=lambda group: _FACT_ORDER.index(group.kind))
+
+
 def _views(
     found: Iterable[AuditFindingRecord],
     evidence: Iterable[AuditEvidenceRecord],
@@ -233,5 +246,6 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
         site_id=run.site_id,
         finding=finding,
         evidence=[EvidenceView.model_validate(record) for record in evidence],
+        facts=stored_facts(evidence),
         review=review,
     )

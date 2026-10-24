@@ -1,11 +1,14 @@
-"""Fusion, strain, missing-gene and organelle answers built from the library's recorded cases."""
+"""Fusion, strain, missing-gene, organelle and intron answers from the library's recorded cases."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from veupathdb_mcp.audit import (
     FusionVerdict,
     GeneFusionAudit,
     GeneticCode,
+    IntronAudit,
     LengthCheck,
     MissingGeneAudit,
     MissingVerdict,
@@ -290,3 +293,16 @@ def organelle(verdict: OrganelleVerdict) -> OrganelleGeneAudit:
         code=GeneticCode.STANDARD,
         code_inferred=True,
     )
+
+
+_MODELS = Path(__file__).resolve().parents[1] / "fixtures" / "audit_models"
+
+
+def _recorded_introns(name: str) -> IntronAudit:
+    return IntronAudit.model_validate_json((_MODELS / name).read_text())
+
+
+PKAC_INTRONS = _recorded_introns("pkac_introns.json")
+AFU8_INTRONS = _recorded_introns("afu8_introns.json")
+AGAP7279_INTRONS = _recorded_introns("agap7279_introns.json")
+AGAP3685_INTRONS = _recorded_introns("agap3685_introns.json")

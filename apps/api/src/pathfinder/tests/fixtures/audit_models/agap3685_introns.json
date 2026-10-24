@@ -1,0 +1,150 @@
+{
+  "verdict": "UNSUPPORTED_RETAINED",
+  "introns": [
+    {
+      "start": 41952076,
+      "end": 41952160,
+      "reads": 0,
+      "tracks": 0
+    },
+    {
+      "start": 41952903,
+      "end": 41953561,
+      "reads": 21255,
+      "tracks": 1
+    },
+    {
+      "start": 41953640,
+      "end": 41953732,
+      "reads": 20594,
+      "tracks": 1
+    },
+    {
+      "start": 41953991,
+      "end": 41954089,
+      "reads": 28,
+      "tracks": 1
+    }
+  ],
+  "unread": [
+    {
+      "start": 41952076,
+      "end": 41952160,
+      "in_cds": true,
+      "outcome": "RETAINED",
+      "replacement": [],
+      "motif": "GT..AG",
+      "depth": {
+        "intron_median_depth": 4.170000076293945,
+        "exon_median_depth": 7.829999923706055,
+        "covered_share": 0.988,
+        "track": "E-MTAB-2880:E_20h_F (unique reverse)",
+        "depth_share": 0.533
+      }
+    }
+  ],
+  "best_junction_reads": 21255,
+  "unstranded_ignored": 0,
+  "reason": null,
+  "gene_ids": [
+    {
+      "given": "AGAP003685",
+      "resolved": "AGAP003685"
+    }
+  ],
+  "gene": "AGAP003685",
+  "transcript": "AGAP003685-RA",
+  "other_transcripts": 0,
+  "tracks_refused": [],
+  "evidence_unread": [],
+  "corrected_cds": [
+    [
+      41952051,
+      41952902
+    ],
+    [
+      41953562,
+      41953639
+    ],
+    [
+      41953733,
+      41953990
+    ],
+    [
+      41954090,
+      41954101
+    ]
+  ],
+  "corrected_protein": "MMQYYLLSWRGFHGNMCKGFHSLQRDGQMVDVTIAAGGKIFKAHKLVLSVCSPYFQKIFLEHPSQHPILFMTDVNSHHMAGLLDFMYSGQVNVKYEDLPNFLKVAEALQVKGLHGESTNDSEERDYQQQQHQHALRLQEQQRLYHQQQQQQHQQQLHQQQQQQQQQQQQQQQQQQQKLAQQRQQLLQVAQQQAHAQAQQQHQQQQQQQQQQQQQQQQQQQQAAAAAAAQQQAAAVAAAVAHQQQQFQHHRNNFKELMKAKHAAAAVVLNEDYLNNNASNANNNNNSSNGNNGNLASNGNANGPLSPYASKKMLDTQKYQKYYSKRKLVQQYEQEMRAEKRKLGIEDVIQAAAAANALNLRLNNGGSPIGSPTAVAAAAAAAAAAAAATQPARDAHERWH",
+  "frame_kept": false,
+  "code": "standard",
+  "code_inferred": true,
+  "orthologs": {
+    "named": 16,
+    "read": 16,
+    "compared": [
+      "ASTEI07450",
+      "AALB20_028778",
+      "AARA21_004563",
+      "GMOY001244",
+      "CFEEL17_026970",
+      "AMAC_006305",
+      "AEPI006067",
+      "ACUA026250"
+    ],
+    "for_corrected": 3,
+    "for_annotated": 2,
+    "reason": null
+  },
+  "correction_reason": null,
+  "model": {
+    "gene": "AGAP003685",
+    "transcript": "AGAP003685-RA",
+    "seqid": "AgamP4_2R",
+    "strand": "-",
+    "exons": [
+      [
+        41950997,
+        41952075
+      ],
+      [
+        41952161,
+        41952902
+      ],
+      [
+        41953562,
+        41953639
+      ],
+      [
+        41953733,
+        41953990
+      ],
+      [
+        41954090,
+        41954101
+      ]
+    ],
+    "cds": [
+      [
+        41951666,
+        41952075
+      ],
+      [
+        41952161,
+        41952902
+      ],
+      [
+        41953562,
+        41953639
+      ],
+      [
+        41953733,
+        41953990
+      ],
+      [
+        41954090,
+        41954101
+      ]
+    ]
+  }
+}

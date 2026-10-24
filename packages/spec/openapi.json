@@ -8991,6 +8991,32 @@
         "title": "EventsSnapshot",
         "description": "The completed history a thread serves, and where a tail continues it."
       },
+      "EvidenceFacts": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "confirmation",
+              "relatives",
+              "gene_evidence"
+            ],
+            "title": "Kind"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/Fact"
+            },
+            "type": "array",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "facts"
+        ],
+        "title": "EvidenceFacts"
+      },
       "EvidenceTally": {
         "properties": {
           "kind": {
@@ -9148,6 +9174,24 @@
         "title": "ExportRequested",
         "description": "An export the researcher asked for."
       },
+      "Fact": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "Fact"
+      },
       "FetchGeneIdsRequest": {
         "properties": {
           "strategyId": {
@@ -9289,6 +9333,13 @@
             "type": "array",
             "title": "Evidence"
           },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceFacts"
+            },
+            "type": "array",
+            "title": "Facts"
+          },
           "review": {
             "anyOf": [
               {
@@ -9305,6 +9356,7 @@
           "siteId",
           "finding",
           "evidence",
+          "facts",
           "review"
         ],
         "title": "FindingDetail"

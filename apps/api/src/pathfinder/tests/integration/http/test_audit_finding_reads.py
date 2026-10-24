@@ -47,6 +47,11 @@ async def test_a_finding_names_its_verdict_and_where_it_came_from(
         ),
         (None, "Gene length against orthologs", None),
     ]
+    assert [group["kind"] for group in detail["facts"]] == ["confirmation"]
+    assert detail["facts"][0]["facts"][0] == {
+        "label": "Reference coding sequence",
+        "value": "1,386 bases",
+    }
     assert [(f["verdict"], f["fromTarget"]) for f in screened["findings"]] == [
         (None, False),
         (None, False),

@@ -76,7 +76,7 @@ _SELENOPROTEIN: dict[SecVerdict, str] = {
     "NOT_AT_SEC": "The model ends, but not at a selenocysteine codon",
     "MODEL_NOT_FOUND": "The model's end was not found in the genome",
 }
-_LENGTH: dict[LengthVerdict, str] = {
+LENGTH_SENTENCES: dict[LengthVerdict, str] = {
     "GENOME_ENCODES": "The genome's DNA encodes the part the model lacks",
     "ASSEMBLY": (
         "The part the model lacks falls in an assembly gap or at a contig end"
@@ -115,7 +115,7 @@ _FUSION: dict[LengthClass | FusionVerdict, str] = {
         "read nothing"
     ),
 }
-_SIDE: dict[SideVerdict, str] = {
+SIDE_SENTENCES: dict[SideVerdict, str] = {
     "STRAIN_SHORT": (
         "Related genomes match the reference, so the strain model is too short"
     ),
@@ -158,10 +158,10 @@ def _by_name[K: str](table: Mapping[K, str]) -> dict[str, str]:
 _SENTENCES: dict[CheckName, dict[str, str]] = {
     "pseudogene_call": _by_name(_PSEUDOGENE),
     "selenoprotein_end": _by_name(_SELENOPROTEIN),
-    "gene_length": _by_name(_LENGTH),
-    "gene_split": _by_name(_LENGTH),
+    "gene_length": _by_name(LENGTH_SENTENCES),
+    "gene_split": _by_name(LENGTH_SENTENCES),
     "gene_fusion": _by_name(_FUSION),
-    "strain_model": _by_name(_SIDE),
+    "strain_model": _by_name(SIDE_SENTENCES),
     "missing_gene": _by_name(_MISSING),
     "organelle_join": _by_name(_ORGANELLE),
     "intron_support": _by_name(_INTRON),

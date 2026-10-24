@@ -1,0 +1,197 @@
+{
+  "verdict": "UNSUPPORTED_UNEXPLAINED",
+  "introns": [
+    {
+      "start": 44979750,
+      "end": 44979917,
+      "reads": 6556,
+      "tracks": 1
+    },
+    {
+      "start": 44980196,
+      "end": 44980267,
+      "reads": 2066,
+      "tracks": 1
+    },
+    {
+      "start": 44981063,
+      "end": 44981393,
+      "reads": 0,
+      "tracks": 0
+    },
+    {
+      "start": 44981404,
+      "end": 44981481,
+      "reads": 27,
+      "tracks": 1
+    },
+    {
+      "start": 44981829,
+      "end": 44981904,
+      "reads": 10697,
+      "tracks": 1
+    },
+    {
+      "start": 44982118,
+      "end": 44982185,
+      "reads": 3914,
+      "tracks": 1
+    },
+    {
+      "start": 44982329,
+      "end": 44982399,
+      "reads": 1416,
+      "tracks": 1
+    },
+    {
+      "start": 44982919,
+      "end": 44982989,
+      "reads": 9392,
+      "tracks": 1
+    },
+    {
+      "start": 44983237,
+      "end": 44983315,
+      "reads": 10624,
+      "tracks": 1
+    },
+    {
+      "start": 44983883,
+      "end": 44983959,
+      "reads": 20908,
+      "tracks": 1
+    }
+  ],
+  "unread": [
+    {
+      "start": 44981063,
+      "end": 44981393,
+      "in_cds": true,
+      "outcome": "UNEXPLAINED",
+      "replacement": [],
+      "motif": null,
+      "depth": null
+    }
+  ],
+  "best_junction_reads": 20908,
+  "unstranded_ignored": 0,
+  "reason": null,
+  "gene_ids": [
+    {
+      "given": "AGAP007279",
+      "resolved": "AGAP007279"
+    }
+  ],
+  "gene": "AGAP007279",
+  "transcript": "AGAP007279-RA",
+  "other_transcripts": 0,
+  "tracks_refused": [],
+  "evidence_unread": [
+    "the intron 44981063-44981393 spans an assembly gap"
+  ],
+  "corrected_cds": null,
+  "corrected_protein": null,
+  "frame_kept": null,
+  "code": null,
+  "code_inferred": false,
+  "orthologs": null,
+  "correction_reason": null,
+  "model": {
+    "gene": "AGAP007279",
+    "transcript": "AGAP007279-RA",
+    "seqid": "AgamP4_2L",
+    "strand": "+",
+    "exons": [
+      [
+        44979568,
+        44979749
+      ],
+      [
+        44979918,
+        44980195
+      ],
+      [
+        44980268,
+        44981062
+      ],
+      [
+        44981394,
+        44981403
+      ],
+      [
+        44981482,
+        44981828
+      ],
+      [
+        44981905,
+        44982117
+      ],
+      [
+        44982186,
+        44982328
+      ],
+      [
+        44982400,
+        44982918
+      ],
+      [
+        44982990,
+        44983236
+      ],
+      [
+        44983316,
+        44983882
+      ],
+      [
+        44983960,
+        44987287
+      ]
+    ],
+    "cds": [
+      [
+        44979581,
+        44979749
+      ],
+      [
+        44979918,
+        44980195
+      ],
+      [
+        44980268,
+        44981062
+      ],
+      [
+        44981394,
+        44981403
+      ],
+      [
+        44981482,
+        44981828
+      ],
+      [
+        44981905,
+        44982117
+      ],
+      [
+        44982186,
+        44982328
+      ],
+      [
+        44982400,
+        44982918
+      ],
+      [
+        44982990,
+        44983236
+      ],
+      [
+        44983316,
+        44983882
+      ],
+      [
+        44983960,
+        44984097
+      ]
+    ]
+  }
+}

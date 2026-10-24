@@ -1,0 +1,143 @@
+{
+  "verdict": "UNSUPPORTED_REPLACED",
+  "introns": [
+    {
+      "start": 201400,
+      "end": 201453,
+      "reads": 16153,
+      "tracks": 1
+    },
+    {
+      "start": 201596,
+      "end": 201652,
+      "reads": 13830,
+      "tracks": 1
+    },
+    {
+      "start": 201926,
+      "end": 201975,
+      "reads": 15427,
+      "tracks": 1
+    },
+    {
+      "start": 202070,
+      "end": 202266,
+      "reads": 0,
+      "tracks": 0
+    }
+  ],
+  "unread": [
+    {
+      "start": 202070,
+      "end": 202266,
+      "in_cds": true,
+      "outcome": "REPLACED",
+      "replacement": [
+        {
+          "start": 202209,
+          "end": 202266,
+          "reads": 18608,
+          "tracks": 1
+        }
+      ],
+      "motif": null,
+      "depth": null
+    }
+  ],
+  "best_junction_reads": 16153,
+  "unstranded_ignored": 0,
+  "reason": null,
+  "gene_ids": [
+    {
+      "given": "Afu8g00850",
+      "resolved": "Afu8g00850"
+    }
+  ],
+  "gene": "Afu8g00850",
+  "transcript": "Afu8g00850-T",
+  "other_transcripts": 0,
+  "tracks_refused": [],
+  "evidence_unread": [],
+  "corrected_cds": [
+    [
+      202062,
+      202208
+    ],
+    [
+      202267,
+      202401
+    ]
+  ],
+  "corrected_protein": "MILKETTRLELPAAADMHVHLRQGKMMELVVPQIRNGGVDTVFVMPNLVPPVTSVAQALEYKAQLQAIEPNVNYLMSLYLNICLSSCLPRIAC",
+  "frame_kept": false,
+  "code": "standard",
+  "code_inferred": true,
+  "orthologs": {
+    "named": 16,
+    "read": 16,
+    "compared": [
+      "CIMG_08074",
+      "TESG_03950",
+      "M_BR32_EuGene_00059721",
+      "ASPVEDRAFT_67969",
+      "FNAPI_10251",
+      "NECHADRAFT_76575",
+      "I7I53_02339",
+      "I303_08007"
+    ],
+    "for_corrected": 0,
+    "for_annotated": 8,
+    "reason": null
+  },
+  "correction_reason": null,
+  "model": {
+    "gene": "Afu8g00850",
+    "transcript": "Afu8g00850-T",
+    "seqid": "Chr8_A_fumigatus_Af293",
+    "strand": "-",
+    "exons": [
+      [
+        201039,
+        201399
+      ],
+      [
+        201454,
+        201595
+      ],
+      [
+        201653,
+        201925
+      ],
+      [
+        201976,
+        202069
+      ],
+      [
+        202267,
+        202401
+      ]
+    ],
+    "cds": [
+      [
+        201039,
+        201399
+      ],
+      [
+        201454,
+        201595
+      ],
+      [
+        201653,
+        201925
+      ],
+      [
+        201976,
+        202069
+      ],
+      [
+        202267,
+        202401
+      ]
+    ]
+  }
+}

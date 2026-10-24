@@ -431,6 +431,7 @@ def test_finding_rows_are_dotted_paths() -> None:
                 message=None,
             )
         ],
+        facts=[],
         review=None,
     )
 

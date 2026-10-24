@@ -1,0 +1,147 @@
+{
+  "verdict": "UNSUPPORTED_MISSING_EXON",
+  "introns": [
+    {
+      "start": 1381746,
+      "end": 1382305,
+      "reads": 0,
+      "tracks": 0
+    },
+    {
+      "start": 1382466,
+      "end": 1382630,
+      "reads": 1970,
+      "tracks": 1
+    },
+    {
+      "start": 1382791,
+      "end": 1383063,
+      "reads": 1442,
+      "tracks": 1
+    }
+  ],
+  "unread": [
+    {
+      "start": 1381746,
+      "end": 1382305,
+      "in_cds": true,
+      "outcome": "MISSING_EXON",
+      "replacement": [
+        {
+          "start": 1381746,
+          "end": 1381886,
+          "reads": 1436,
+          "tracks": 1
+        },
+        {
+          "start": 1382045,
+          "end": 1382280,
+          "reads": 1686,
+          "tracks": 1
+        }
+      ],
+      "motif": null,
+      "depth": null
+    }
+  ],
+  "best_junction_reads": 1970,
+  "unstranded_ignored": 0,
+  "reason": null,
+  "gene_ids": [
+    {
+      "given": "PcyM_0736700",
+      "resolved": "PcyM_0736700"
+    }
+  ],
+  "gene": "PcyM_0736700",
+  "transcript": "PcyM_0736700-t36_1",
+  "other_transcripts": 0,
+  "tracks_refused": [],
+  "evidence_unread": [],
+  "corrected_cds": [
+    [
+      1381622,
+      1381745
+    ],
+    [
+      1381887,
+      1382044
+    ],
+    [
+      1382281,
+      1382465
+    ],
+    [
+      1382631,
+      1382790
+    ],
+    [
+      1383064,
+      1383462
+    ]
+  ],
+  "corrected_protein": "MIQFLKNLQLHKKKDSGSTKEPKRENKMKYEDFNFIRTLGTGSFGRVILATYKNEDFPPVAIKRFEKSKIIKQKQVDHVFSERKILNYISHPFCVNLYGSFKDESYLYLVLEFVIGGEFFTFLRRNKRFPNDVGCFYAAQIVLIFEYLQSLNIVYRDLKPENLLLDKDGFIKMTDFGFAKVVDTRTYTLCGTPEYIAPEILLNIGHGKAADWWTLGIFIYEILVGCPPFYANEPLLIYQKILEGIIYFPKFLDTNCKHLMKKLLSHDLTKRYGNLKKGAQNVKEHPWFGNIDWVSLLHKNVDVPYKPKYKNIFDSSNFERVQEDLTIADKITNENDPFFDW",
+  "frame_kept": true,
+  "code": "standard",
+  "code_inferred": true,
+  "orthologs": {
+    "named": 16,
+    "read": 16,
+    "compared": [
+      "PVX_086975",
+      "PKNH_0733500",
+      "POWCR01_070036800",
+      "PF3D7_0934800",
+      "PBANKA_0835600",
+      "Py17XNL_000801943",
+      "PVPCR_0803510",
+      "PCHAS_0835900"
+    ],
+    "for_corrected": 8,
+    "for_annotated": 0,
+    "reason": null
+  },
+  "correction_reason": null,
+  "model": {
+    "gene": "PcyM_0736700",
+    "transcript": "PcyM_0736700-t36_1",
+    "seqid": "PcyM_07",
+    "strand": "+",
+    "exons": [
+      [
+        1381622,
+        1381745
+      ],
+      [
+        1382306,
+        1382465
+      ],
+      [
+        1382631,
+        1382790
+      ],
+      [
+        1383064,
+        1383462
+      ]
+    ],
+    "cds": [
+      [
+        1381622,
+        1381745
+      ],
+      [
+        1382306,
+        1382465
+      ],
+      [
+        1382631,
+        1382790
+      ],
+      [
+        1383064,
+        1383462
+      ]
+    ]
+  }
+}
