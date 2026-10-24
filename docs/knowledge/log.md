@@ -13,6 +13,14 @@
   reached before the turn is classified, and one Lead rule now routes a count per value: on
   the step that holds the records, else a build, and `count_by_column` only for one catalog
   search's whole result. `ColumnTally.missing` is gone.
+* **A stored verdict this build cannot read is refused at load.** A column fit saved with
+  `shown` false and no `refusedStatus` fails validation with the error type
+  `unreadable_column_fit` (`domain/column_fit.py`), and `StrategyDomainState` loads a
+  `verification_digest` or `last_evidence_card` that fails with it as no verdict, so a stored
+  refusal never reads as a fit of none; the next check writes the verdict again. The sample
+  note states each column's reason: the site's refusal with its status, or no record holding a
+  value. The classifier names a count per value that needs a build a build, with
+  `asks_a_change` set on a strategy so it is never held as a question.
 * **A column fit counts transcripts and states the records with no value.** Both reports a
   column fit reads count one row per transcript (WDK's `AbstractByValueReporter` and
   `AbstractAttributeReporter.getAttributeSql`), so `ColumnFit.counted_in` has no default and
