@@ -317,6 +317,18 @@ class RevertRefusedError(AppError):
         )
 
 
+class ThreadBusyError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code=ErrorCode.SESSION_CONFLICT,
+            title="This chat is busy",
+            status=409,
+            detail=(
+                "This chat is changing right now. Send the message again in a moment."
+            ),
+        )
+
+
 class StrategyCompilationError(AppError):
     """Strategy compilation, step creation, or step-tree assembly failure."""
 

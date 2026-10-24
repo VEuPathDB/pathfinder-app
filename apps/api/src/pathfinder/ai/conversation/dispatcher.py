@@ -22,7 +22,10 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
 from pathfinder.platform.metrics import CHAT_TURNS_STARTED
-from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.conversations.begin import (
+    begin_conversation,
+    refuse_a_thread_of_another_caller,
+)
 from pathfinder.services.conversations.thread_lock import hold_thread
 from pathfinder.services.conversations.turn_slots import require_a_free_turn
 
@@ -34,6 +37,11 @@ async def dispatch(
     user_id: UUID,
     spec: AssistantSpec,
 ) -> Response:
+    await refuse_a_thread_of_another_caller(
+        session,
+        conversation_id=body.conversation_id,
+        user_id=user_id,
+    )
     async with hold_thread(body.conversation_id):
         after = await _enqueue_turn(
             body=body,

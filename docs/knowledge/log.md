@@ -7,7 +7,9 @@
   and are refused with 409 (`FORK_REFUSED`, and the new `REVERT_REFUSED`) while a queued or
   running `chat_turn` job locks the thread, the newest checkpoint parks an approval, a task is
   active, or a dispatch holds the lock (`services/conversations/thread_busy.py`). The dispatcher
-  holds the same lock from its first read to the deferred job. A branch pushes its strategy as
+  refuses a thread of another caller first, then holds the same lock as a transaction lock on a
+  connection of its own until the job is deferred, and refuses with `ThreadBusyError` after 45
+  seconds of waiting. A branch pushes its strategy as
   its last write and deletes that mint when anything after the push fails, the commit
   included. The checkpoint tables are named once, in
   `persistence/repositories/checkpoint_rows.py`, which a schema test holds equal to what the
