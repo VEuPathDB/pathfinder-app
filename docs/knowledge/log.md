@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **A finding the check declines is stored declined, not failed.** `confirm_target`
+  (`services/audit/checks.py`) answers a `ToolError` with no cause, the library's own refusal of
+  its input such as the pseudogene pair-size guard, as `DeclinedCheck`; the confirm stage stores
+  the finding `declined` with the check's words, and `Unresolved.declined`,
+  `FindingCounts.declined` and `UNCHECKED_SENTENCES["declined"]` name it apart from a read that
+  failed. Migration `2026_10_24_0001` widens `ck_audit_findings_status`.
 * **An investigation writes its usage row.** `investigate()` charges the tokens and cost its
   run spent, also when it stops at its budget, through `ai/audit/charges.py`, the one helper the
   auditor turn's `charge_usage` and the review job use too: `charge` writes the row on

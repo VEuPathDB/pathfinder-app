@@ -38,6 +38,7 @@ class Unresolved(CamelModel):
     unsampled: int = Field(default=0, ge=0)
     trying: int = Field(default=0, ge=0)
     failed: int = Field(default=0, ge=0)
+    declined: int = Field(default=0, ge=0)
     unreached: int = Field(default=0, ge=0)
     unread: int = Field(default=0, ge=0)
 
@@ -48,6 +49,7 @@ class Unresolved(CamelModel):
             + self.unsampled
             + self.trying
             + self.failed
+            + self.declined
             + self.unreached
             + self.unread
         )

@@ -34,6 +34,10 @@ _SETTLED = [
     SettledFinding(status="confirmed", message=GAP, judged=False),
     SettledFinding(status="confirmed", message=GAP, judged=False),
     SettledFinding(status="failed", message="the record holds no protein"),
+    SettledFinding(
+        status="declined",
+        message="the check aligns pairs whose product is at most 200000000",
+    ),
 ]
 
 
@@ -65,6 +69,7 @@ async def test_a_rate_counts_only_judged_findings_and_names_the_rest() -> None:
         ("confirmed", "truncated_model", True, 1),
         ("confirmed", None, False, 2),
         ("confirmed", None, True, 1),
+        ("declined", None, True, 1),
         ("failed", None, True, 1),
     ]
     view = await run_view(run_id, owner.user_id)
@@ -73,11 +78,16 @@ async def test_a_rate_counts_only_judged_findings_and_names_the_rest() -> None:
         NF54,
         "gene_length",
         2,
+        2,
+    )
+    assert (rate.unresolved_by_status.failed, rate.unresolved_by_status.declined) == (
+        1,
         1,
     )
-    assert rate.bounds == rate_with_bounds(1, 2, 1)
+    assert rate.bounds == rate_with_bounds(1, 2, 2)
     assert view.targets.genomes == []
-    assert counts_of(view.counts).unjudged == 2
+    counts = counts_of(view.counts)
+    assert (counts.unjudged, counts.failed, counts.declined) == (2, 1, 1)
 
 
 async def test_an_error_the_relatives_moved_is_clean_in_the_genome_that_screened_it() -> (

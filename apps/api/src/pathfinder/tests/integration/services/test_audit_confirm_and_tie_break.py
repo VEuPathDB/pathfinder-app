@@ -54,6 +54,10 @@ from pathfinder.tests.integration.services._audit_confirm import (
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
 PAIR_KEY = PAIR.key
+TOO_LARGE = (
+    "PF3D7_0310200 spans 14855 bases and the PfNF54_030015100:pseudogene window "
+    "19628 bases; the check aligns pairs whose product is at most 200000000"
+)
 
 
 @pytest.fixture
@@ -257,14 +261,15 @@ async def test_an_unplaced_target_the_site_does_not_answer_for_stays_unreached(
 
 
 @pytest.mark.parametrize(
-    "refusal",
+    ("refusal", "status"),
     [
-        ToolError(f"{NF54_PIGA} names no gene of plasmodb"),
-        _truncated(),
+        (ToolError(f"{NF54_PIGA} names no gene of plasmodb"), "declined"),
+        (ToolError(TOO_LARGE), "declined"),
+        (_truncated(), "failed"),
     ],
 )
-async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
-    tools: CheckTools, refusal: ToolError
+async def test_a_refused_check_is_stored_and_the_stage_moves_on(
+    tools: CheckTools, refusal: ToolError, status: str
 ) -> None:
     tools.pseudogene_failures.append(refusal)
     run = await run_with(screened(PAIR, SHORT))
@@ -276,7 +281,7 @@ async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
         )
     failed = found[NF54_PIGA]
     assert (failed.status, failed.attempts, failed.requests, failed.message) == (
-        "failed",
+        status,
         1,
         1,
         str(refusal),
@@ -287,7 +292,7 @@ async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
 
 
 @pytest.mark.parametrize(
-    ("readable", "reason", "reads"),
+    ("readable", "reason", "reads", "status"),
     [
         (
             True,
@@ -296,6 +301,7 @@ async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
                 "the check reads a strain gene the site calls a pseudogene"
             ),
             2,
+            "declined",
         ),
         (
             False,
@@ -304,11 +310,12 @@ async def test_a_refused_check_is_stored_failed_and_the_stage_moves_on(
                 "GeneTranscripts"
             ),
             1,
+            "failed",
         ),
     ],
 )
-async def test_a_check_the_library_refuses_on_the_wire_is_stored_failed_once(
-    readable: bool, reason: str, reads: int
+async def test_a_check_the_library_refuses_on_the_wire_is_stored_once(
+    readable: bool, reason: str, reads: int, status: str
 ) -> None:
     finding = NewFinding(
         genome=DD2, target=UNFLAGGED_STRAIN, sampled=True, status="screened"
@@ -318,7 +325,7 @@ async def test_a_check_the_library_refuses_on_the_wire_is_stored_failed_once(
         await carried(confirm.run_confirm_stage, run, RecordedLane(), seconds=3600)
     (failed,) = (await findings_of(run.id)).values()
     assert (failed.status, failed.error_type, failed.attempts, failed.message) == (
-        "failed",
+        status,
         None,
         1,
         reason,

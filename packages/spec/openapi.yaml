@@ -2574,6 +2574,7 @@ paths:
             - trying
             - confirmed
             - failed
+            - declined
             - unreached
             - unread
             type: string
@@ -6185,6 +6186,7 @@ components:
           - trying
           - confirmed
           - failed
+          - declined
           - unreached
           - unread
           title: Status
@@ -6283,6 +6285,7 @@ components:
           - trying
           - confirmed
           - failed
+          - declined
           - unreached
           - unread
           title: Status
@@ -11830,6 +11833,11 @@ components:
           type: integer
           minimum: 0.0
           title: Failed
+          default: 0
+        declined:
+          type: integer
+          minimum: 0.0
+          title: Declined
           default: 0
         unreached:
           type: integer

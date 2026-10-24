@@ -271,6 +271,7 @@ UNCHECKED_SENTENCES: dict[FindingStatus, str] = {
     "trying": "Being checked",
     "confirmed": "Checked",
     "failed": "Not checked: the check failed",
+    "declined": "Not checked: the check does not take this target",
     "unreached": "Not checked: the site did not answer",
     "unread": "Not checked: not read before the run's deadline",
 }

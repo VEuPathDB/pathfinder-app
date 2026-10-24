@@ -91,6 +91,7 @@ def test_the_unchecked_sentences_table_reads_its_exact_words() -> None:
         "trying": "Being checked",
         "confirmed": "Checked",
         "failed": "Not checked: the check failed",
+        "declined": "Not checked: the check does not take this target",
         "unreached": "Not checked: the site did not answer",
         "unread": "Not checked: not read before the run's deadline",
     }

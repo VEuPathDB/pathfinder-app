@@ -35,7 +35,14 @@ from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.stages import RunStatus, StageName
 
 FindingStatus = Literal[
-    "screened", "unsampled", "trying", "confirmed", "failed", "unreached", "unread"
+    "screened",
+    "unsampled",
+    "trying",
+    "confirmed",
+    "failed",
+    "declined",
+    "unreached",
+    "unread",
 ]
 EvidenceStatus = Literal["pending", "trying", "stored", "failed", "unreached", "unread"]
 EvidenceKind = Literal["confirmation", "relatives", "gene_evidence"]
@@ -377,6 +384,7 @@ class FindingCounts(CamelModel):
     trying: int = 0
     confirmed: int = 0
     failed: int = 0
+    declined: int = 0
     unreached: int = 0
     unread: int = 0
     errors: int = 0

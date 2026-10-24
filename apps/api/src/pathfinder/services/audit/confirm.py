@@ -19,7 +19,11 @@ from pathfinder.persistence.repositories.audit_findings import (
     SettledFinding,
 )
 from pathfinder.platform.metrics import RequestTally
-from pathfinder.services.audit.checks import UnitFailure, confirm_target
+from pathfinder.services.audit.checks import (
+    DeclinedCheck,
+    UnitFailure,
+    confirm_target,
+)
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
 from pathfinder.services.audit.units import (
     NOT_READ,
@@ -29,6 +33,8 @@ from pathfinder.services.audit.units import (
     in_passes,
     tallied,
 )
+
+type _Checked = Confirmation | UnitFailure | DeclinedCheck
 
 _SAMPLED = FindingFilter(sampled=True)
 _OPEN = FindingFilter(sampled=True, statuses=("screened", "unreached", "unread"))
@@ -88,23 +94,21 @@ async def _in_model_genome(
             return reached, replace(placed, model=organism, paired=organism)
 
 
-async def _check(
-    site_id: str, finding: AuditFindingRecord
-) -> tuple[Confirmation | UnitFailure, _Placed]:
+async def _check(site_id: str, finding: AuditFindingRecord) -> tuple[_Checked, _Placed]:
     match await _placed(site_id, finding):
         case UnitFailure() as unplaced:
             return unplaced, _Placed(screened=None)
         case _Placed() as placed:
             pass
     match await confirm_target(site_id, finding.target):
-        case UnitFailure() as failed:
+        case UnitFailure() | DeclinedCheck() as failed:
             return failed, placed
         case reached:
             return await _in_model_genome(site_id, reached, placed)
 
 
 def _settled(
-    reached: Confirmation | UnitFailure, requests: int, placed: _Placed
+    reached: _Checked, requests: int, placed: _Placed
 ) -> tuple[SettledFinding, ConfirmationEvidence | None, str]:
     genome, screened, paired = (
         placed.model or placed.screened,
@@ -122,6 +126,16 @@ def _settled(
                 message=message,
             )
             return failed, None, f"{status} ({message})"
+        case DeclinedCheck(message=message):
+            declined = SettledFinding(
+                status="declined",
+                genome=genome,
+                screened_genome=screened,
+                paired_genome=paired,
+                requests=requests,
+                message=message,
+            )
+            return declined, None, f"declined ({message})"
         case _:
             named = classify_confirmation(reached)
             confirmed = SettledFinding(
@@ -141,7 +155,7 @@ def _settled(
 
 async def _settle(
     finding: AuditFindingRecord,
-    checked: tuple[Confirmation | UnitFailure, _Placed],
+    checked: tuple[_Checked, _Placed],
     tally: RequestTally,
 ) -> tuple[SettledFinding, str]:
     reached, placed = checked
