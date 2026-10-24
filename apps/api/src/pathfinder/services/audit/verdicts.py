@@ -15,6 +15,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     VerdictOrigin,
 )
+from pathfinder.domain.statistic_facts import Identifier
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.platform.audit_errors import AuditNeedsAThreadError
 from pathfinder.services.audit.runs import RunOwner
@@ -35,7 +36,7 @@ class AuditCaller:
 class VerdictView(CamelModel):
     model_config = ConfigDict(frozen=True, from_attributes=True)
 
-    id: int
+    id: Identifier
     run_id: UUID | None
     finding_id: int | None
     origin: VerdictOrigin

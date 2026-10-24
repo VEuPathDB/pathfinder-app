@@ -31,7 +31,7 @@ from pathfinder.domain.audit.words import (
     ERROR_TYPE_TITLES,
     verdict_sentence,
 )
-from pathfinder.domain.statistic_facts import Sentence
+from pathfinder.domain.statistic_facts import Identifier, Sentence
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -70,7 +70,7 @@ def _links(site_id: str, genes: Iterable[str]) -> list[GeneLink]:
 class FindingView(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    id: int
+    id: Identifier
     genome: str
     screened_genome: str
     paired_genome: str | None

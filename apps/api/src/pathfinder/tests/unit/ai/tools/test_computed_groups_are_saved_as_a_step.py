@@ -4,6 +4,7 @@ described as a snapshot, and refused when the step does not hold the list."""
 
 from __future__ import annotations
 
+import itertools
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -23,13 +24,20 @@ from veupathdb_mcp.catalog import PhyleticPattern, get_discovery_service
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.domain.strategy.operational_spec import BoundValue
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+    SpecStructure,
+    StructureNode,
+)
+from pathfinder.domain.strategy.spec_tree import build_step_tree
+from pathfinder.services.strategies.dataset_sources import dataset_source
 from pathfinder.tests._support.computed_comparison import GROUP_IDS, held_comparison
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
 
 _SITE = "orthomcl"
+_ACCOUNTS = itertools.count()
 _USER = 376
 _DATASET = 9001
 _STEP = 501
@@ -109,7 +117,7 @@ def _served(monkeypatch: pytest.MonkeyPatch, counted: int) -> Iterator[_GroupLis
     site = _GroupListSite(counted=counted)
     service = get_site(_SITE).service_url
     users = f"{service}/users/{_USER}"
-    token = veupathdb_auth_token_ctx.set(f"a-registered-token-{counted}")
+    token = veupathdb_auth_token_ctx.set(f"a-registered-token-{next(_ACCOUNTS)}")
     try:
         with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
             router.get(f"{get_site(_SITE).web_base_url}/app").mock(
@@ -187,6 +195,35 @@ async def test_the_groups_are_uploaded_and_bound_as_a_named_snapshot(
     assert result.computed_groups is not None
     assert (result.computed_groups.step_name, result.result_count) == (name, 3)
     assert state.computed_comparisons[_HELD.handle].dataset_id == str(_DATASET)
+
+
+async def test_the_build_leaf_runs_the_list_search_on_the_saved_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _state()
+    with _served(monkeypatch, counted=3):
+        await set_criterion(
+            agent_run_context(site_id=_SITE, agent_state=state),
+            criterion_id="c_more_in_toxo",
+            text=_QUESTION,
+            role="seed",
+            computed_groups=_HELD.handle,
+        )
+    spec = state.operational_spec_draft.model_copy(
+        update={
+            "structure": SpecStructure(
+                root=StructureNode(kind="leaf", criterion_id="c_more_in_toxo")
+            )
+        }
+    )
+
+    leaf = build_step_tree(spec).root
+    dataset = InputDatasetValue(dataset_id=str(_DATASET))
+    assert (leaf.search_name, leaf.parameters) == (
+        "GroupsByNameList",
+        {"group_names": dataset},
+    )
+    assert dataset_source("group_names", dataset) is None
 
 
 async def test_a_step_that_does_not_hold_the_list_is_refused(

@@ -30,7 +30,7 @@ from pathfinder.domain.audit.words import (
     disagreement_sentence,
     paper_sentence,
 )
-from pathfinder.domain.statistic_facts import Sentence, Share
+from pathfinder.domain.statistic_facts import Identifier, Sentence, Share
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -76,7 +76,7 @@ class AgreementView(CamelModel):
 class FindingLine(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    id: int
+    id: Identifier
     genes: list[str]
     genome: str
     error_type: ErrorType | None

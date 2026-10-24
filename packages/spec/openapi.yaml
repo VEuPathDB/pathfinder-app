@@ -6468,6 +6468,7 @@ components:
       properties:
         id:
           type: integer
+          format: identifier
           title: Id
         genes:
           items:
@@ -6781,6 +6782,7 @@ components:
       properties:
         id:
           type: integer
+          format: identifier
           title: Id
         genome:
           type: string

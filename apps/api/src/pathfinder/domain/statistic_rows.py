@@ -20,7 +20,9 @@ from pydantic import (
 from pathfinder.domain.audit.facts import CODE_WORDS, YES_NO
 from pathfinder.domain.statistic_facts import StatisticRowFact
 
-type LeafKind = Literal["number", "share", "boolean", "words", "string", "sentence"]
+type LeafKind = Literal[
+    "number", "share", "identifier", "boolean", "words", "string", "sentence"
+]
 
 _JSON: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 _SCALARS: Mapping[str, LeafKind] = {
@@ -29,7 +31,12 @@ _SCALARS: Mapping[str, LeafKind] = {
     "boolean": "boolean",
     "string": "string",
 }
-_FORMATS: Mapping[str, LeafKind] = {"share": "share", "sentence": "sentence"}
+_FORMATS: Mapping[str, LeafKind] = {
+    "share": "share",
+    "identifier": "identifier",
+    "sentence": "sentence",
+}
+_SEPARATED = 1000
 
 
 class NoDisplayFormError(ValueError):
@@ -117,9 +124,14 @@ _UNTYPED = SchemaNode()
 
 
 def _number(value: float, branches: Sequence[SchemaNode]) -> str:
-    if any(branch.format == "share" for branch in branches):
+    formats = {branch.format for branch in branches}
+    if "share" in formats:
         return f"{round(value * 100, 1):g}%"
-    return json.dumps(value)
+    match value:
+        case int() if "identifier" not in formats and abs(value) >= _SEPARATED:
+            return f"{value:,}"
+        case _:
+            return json.dumps(value)
 
 
 def _scalar(

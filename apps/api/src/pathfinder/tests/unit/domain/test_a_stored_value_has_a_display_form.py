@@ -10,9 +10,14 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, JsonValue
 from veupathdb_mcp.audit import GeneticCode
 
-from pathfinder.ai.audit import fact_sources
+from pathfinder.ai import fact_sources
 from pathfinder.ai.audit.check_tools import build_check_toolset
-from pathfinder.domain.statistic_facts import Sentence, Share, StatisticRowFact
+from pathfinder.domain.statistic_facts import (
+    Identifier,
+    Sentence,
+    Share,
+    StatisticRowFact,
+)
 from pathfinder.domain.statistic_rows import (
     NoDisplayFormError,
     fact_schema,
@@ -75,12 +80,12 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
             name="alreadyKnown", value="not searched", form="word", code="not_searched"
         ),
         StatisticRowFact(name="frameKept", value="no", form="word"),
-        StatisticRowFact(name="junctions.0.reads", value="1226"),
+        StatisticRowFact(name="junctions.0.reads", value="1,226"),
         StatisticRowFact(name="junctions.0.share", value="88.9%"),
         StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
         StatisticRowFact(name="genome", value="Examplea alpha", form="word"),
-        StatisticRowFact(name="span.0", value="4793693"),
-        StatisticRowFact(name="span.1", value="4793790"),
+        StatisticRowFact(name="span.0", value="4,793,693"),
+        StatisticRowFact(name="span.1", value="4,793,790"),
         StatisticRowFact(
             name="code", value="CTG read as serine", form="word", code="ctg_serine"
         ),
@@ -111,7 +116,7 @@ def test_a_note_names_the_field_and_the_field_that_holds_it() -> None:
     assert (
         rows["frameKept"].note(),
         rows["junctions.0.reads"].note(),
-    ) == ("frame kept: no", "junctions reads: 1226")
+    ) == ("frame kept: no", "junctions reads: 1,226")
 
 
 def test_a_key_the_schema_does_not_hold_still_renders() -> None:
@@ -151,4 +156,22 @@ def test_a_field_the_library_marks_through_its_schema_is_a_sentence() -> None:
         StatisticRowFact(
             name="reason", value="No junction track was read.", form="sentence"
         )
+    ]
+
+
+class Counted(CamelModel):
+    id: Identifier
+    groups: int
+    few: int
+    mean: float
+
+
+def test_a_whole_number_of_a_thousand_or_more_is_separated_and_an_id_is_not() -> None:
+    rows = model_rows(Counted(id=52_314, groups=7364, few=999, mean=1234.5))
+
+    assert [(row.name, row.value) for row in rows] == [
+        ("id", "52314"),
+        ("groups", "7,364"),
+        ("few", "999"),
+        ("mean", "1234.5"),
     ]

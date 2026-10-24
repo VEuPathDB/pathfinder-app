@@ -72,6 +72,7 @@ class SchemaFormat:
 
 Share = Annotated[float, SchemaFormat("share")]
 Sentence = Annotated[str, SchemaFormat("sentence")]
+Identifier = Annotated[int, SchemaFormat("identifier")]
 
 _DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -293,6 +294,7 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 
 __all__ = [
     "TURN_STATISTICS",
+    "Identifier",
     "RowForm",
     "SchemaFormat",
     "Sentence",

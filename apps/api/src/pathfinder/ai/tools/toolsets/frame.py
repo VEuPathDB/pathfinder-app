@@ -5,7 +5,7 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.agents.tool_vocabulary import RECORD_READS
-from pathfinder.ai.audit.fact_sources import warm_fact_schemas
+from pathfinder.ai.fact_sources import warm_fact_schemas
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     another_sites_entry,

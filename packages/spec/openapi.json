@@ -9946,6 +9946,7 @@
         "properties": {
           "id": {
             "type": "integer",
+            "format": "identifier",
             "title": "Id"
           },
           "genes": {
@@ -10422,6 +10423,7 @@
         "properties": {
           "id": {
             "type": "integer",
+            "format": "identifier",
             "title": "Id"
           },
           "genome": {

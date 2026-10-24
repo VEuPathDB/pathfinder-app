@@ -10,10 +10,10 @@ from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.audit.check_tools import build_check_toolset
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.fact_sources import FACT_SOURCES
 from pathfinder.ai.audit.facts import AuditRead
 from pathfinder.ai.audit.run_tools import build_run_toolset
 from pathfinder.ai.audit.synthesis import SynthesisCounts
+from pathfinder.ai.fact_sources import FACT_SOURCES
 from pathfinder.domain.statistic_facts import TURN_STATISTICS, StatisticKind
 from pathfinder.domain.statistic_rows import fact_schema
 from pathfinder.domain.strategy.computed_groups import ComparisonFacts
@@ -21,7 +21,15 @@ from pathfinder.domain.strategy.computed_groups import ComparisonFacts
 _HAND_BUILT: frozenset[StatisticKind] = frozenset(
     {"pca", "two_by_two", "contingency", "boxplot", "trend"}
 )
-_DISPLAY_KINDS = {"number", "share", "boolean", "words", "string", "sentence"}
+_DISPLAY_KINDS = {
+    "number",
+    "share",
+    "identifier",
+    "boolean",
+    "words",
+    "string",
+    "sentence",
+}
 
 
 def _answers(annotation: object) -> Iterator[type[BaseModel]]:

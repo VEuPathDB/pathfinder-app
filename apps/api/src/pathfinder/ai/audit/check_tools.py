@@ -39,13 +39,13 @@ from veupathdb_mcp.tools import (
 )
 
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.fact_sources import warm_fact_schemas
 from pathfinder.ai.audit.facts import (
     AuditRead,
     check_fact,
     genome_records,
     rate_fact,
 )
+from pathfinder.ai.fact_sources import warm_fact_schemas
 from pathfinder.domain.audit.verdicts import read_cite
 from pathfinder.services.audit import investigation
 from pathfinder.services.audit.planning import plain_problems

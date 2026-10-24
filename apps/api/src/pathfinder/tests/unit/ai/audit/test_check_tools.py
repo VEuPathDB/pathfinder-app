@@ -416,4 +416,4 @@ class _Spans(BaseModel):
 def test_a_fact_holds_every_scalar_of_a_long_answer() -> None:
     rows = model_rows(_Spans(lost=[(k, k + 9) for k in range(0, 3000, 10)]))
 
-    assert (len(rows), rows[-1].name, rows[-1].value) == (600, "lost.299.1", "2999")
+    assert (len(rows), rows[-1].name, rows[-1].value) == (600, "lost.299.1", "2,999")

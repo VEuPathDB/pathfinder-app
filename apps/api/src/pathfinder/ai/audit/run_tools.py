@@ -18,7 +18,6 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb.errors import WDKLoginRequiredError
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
-from pathfinder.ai.audit.fact_sources import warm_fact_schemas
 from pathfinder.ai.audit.facts import (
     AuditRead,
     audit_finding_fact,
@@ -29,6 +28,7 @@ from pathfinder.ai.audit.facts import (
     plan_fact,
     start_fact,
 )
+from pathfinder.ai.fact_sources import warm_fact_schemas
 from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import (
     PlanAsk,

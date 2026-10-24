@@ -54,8 +54,8 @@ async def test_a_reply_places_the_groups_and_the_breakdown() -> None:
     )
 
     assert rendered == (
-        "The computed snapshot holds 7364 groups, 1884 held by both sets (25.6%), "
-        "1969 of them residual."
+        "The computed snapshot holds 7,364 groups, 1,884 held by both sets (25.6%), "
+        "1,969 of them residual."
     )
 
 
@@ -87,7 +87,7 @@ async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
     }
     assert {name: shown[name] for name in names} == {
         "route": "computed snapshot",
-        "leftOnly": "5480",
+        "leftOnly": "5,480",
         "rightOnly": "0",
         "ties": "371",
         "right.leadingSpecies": "Plasmodium falciparum",
