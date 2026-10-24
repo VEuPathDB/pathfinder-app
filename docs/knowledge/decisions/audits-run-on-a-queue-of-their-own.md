@@ -64,7 +64,12 @@ reopens the run and writes its new deadline and token in one transaction. A job
 that raises stores "the audit job failed" with the error on the run and on the
 unit it was reading, and erases the kept sign-in; a unit failed after its third
 stop keeps that error after the stop message. The run stays halted until a new
-`start_run`; the resume pass does not queue a halted run. The same pass queues
+`start_run`; the resume pass does not queue a halted run. The run's page calls it
+through `POST /api/v1/audits/{run_id}/start` (`services/audit/page_start.py`),
+which takes only the action the run view offers, `resume` or `retry`, and
+refuses every other start with 409 `AUDIT_NOT_STARTABLE` and a plain reason:
+while the run's reviews run, while another job of the run is queued or doing,
+and when its conversation was deleted. The same pass queues
 the review of a finished run whose review job was lost
 ([A finished audit run is reviewed by a job of its own](a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md)).
 

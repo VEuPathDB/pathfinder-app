@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
+from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
+from sqlalchemy import delete
 from veupathdb_mcp.audit import GeneId
 
 from pathfinder.domain.audit.confirmations import (
@@ -18,6 +21,8 @@ from pathfinder.domain.audit.scope import (
     GeneTarget,
     SingleGeneTarget,
 )
+from pathfinder.domain.audit.stages import SIGN_IN_NEEDED
+from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -34,6 +39,7 @@ from pathfinder.tests._support.audit import (
     seed_thread,
 )
 from pathfinder.tests._support.audit_introns import INTRON_GENE, intron_audit
+from pathfinder.tests.integration.jobs._audit_jobs import SCOPE
 
 PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA))
 PIGA_ALIAS = "PF10_0115"
@@ -44,6 +50,8 @@ TARGET = SingleGeneTarget(check="gene_length", genes=("NF54_TARGET",))
 SPLIT = GenePairTarget(check="gene_split", genes=("NF54_A", "NF54_B"))
 UNREADABLE = "the gene record of NF54_SHORT is unreadable"
 UNANSWERED = "plasmodb did not answer"
+DEADLINE = datetime(2026, 10, 21, 18, 0, tzinfo=UTC)
+NOT_READ = "not read before the run's deadline"
 
 
 async def stored_pair_run() -> tuple[RunOwner, UUID, int]:
@@ -245,3 +253,49 @@ async def aliased_pair_run() -> tuple[RunOwner, UUID, int]:
         )
         await session.commit()
     return owner, run_id, pair.id
+
+
+async def halted_run() -> tuple[RunOwner, UUID]:
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    async with async_session_factory() as session:
+        repo = AuditRepository(session)
+        await repo.set_deadline(run_id, DEADLINE)
+        await repo.set_status(run_id, "running")
+        await repo.set_halted(run_id, SIGN_IN_NEEDED)
+        await session.commit()
+    return owner, run_id
+
+
+async def finished_run_with_an_unread_finding() -> tuple[RunOwner, UUID]:
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    (target,) = SCOPE.targets
+    async with async_session_factory() as session:
+        await AuditFindingRepository(session).add_findings(
+            run_id,
+            [
+                NewFinding(
+                    genome=NF54,
+                    target=target,
+                    sampled=True,
+                    status="unread",
+                    message=NOT_READ,
+                )
+            ],
+        )
+        repo = AuditRepository(session)
+        await repo.set_deadline(run_id, DEADLINE)
+        for stage in ("collect", "screen", "confirm", "tie_break"):
+            await repo.finish_stage(run_id, stage)
+        await repo.set_status(run_id, "finished")
+        await session.commit()
+    return owner, run_id
+
+
+async def delete_conversation(conversation_id: UUID) -> None:
+    async with async_session_factory() as session:
+        await session.execute(
+            delete(Conversation).where(Conversation.id == conversation_id)
+        )
+        await session.commit()
