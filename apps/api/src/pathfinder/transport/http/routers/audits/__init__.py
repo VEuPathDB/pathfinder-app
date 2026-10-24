@@ -2,11 +2,11 @@
 
 from fastapi import APIRouter
 
-from . import findings, runs
+from . import findings, runs, words
 
 _PREFIX = "/api/v1/audits"
 
 router = APIRouter(tags=["audits"])
 
-for _sub in (runs.router, findings.router):
+for _sub in (words.router, runs.router, findings.router):
     router.include_router(_sub, prefix=_PREFIX)

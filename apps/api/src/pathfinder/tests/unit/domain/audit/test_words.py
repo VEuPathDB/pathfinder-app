@@ -16,8 +16,10 @@ from veupathdb_mcp.audit import (
 )
 
 from pathfinder.domain.audit.confirmations import FindingVerdict
-from pathfinder.domain.audit.findings import ErrorType, FindingStatus
+from pathfinder.domain.audit.findings import ErrorType, FindingStatus, UnresolvedStatus
+from pathfinder.domain.audit.rates import Unresolved
 from pathfinder.domain.audit.scope import CheckName
+from pathfinder.domain.audit.stages import HaltKind
 from pathfinder.domain.audit.verdicts import (
     LiteratureStatus,
     ReviewAgreement,
@@ -28,9 +30,11 @@ from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_DESCRIPTIONS,
     ERROR_TYPE_TITLES,
+    HALT_SENTENCES,
     LITERATURE_SENTENCES,
     REVIEW_STATUS_SENTENCES,
     UNCHECKED_SENTENCES,
+    UNRESOLVED_WORDS,
     VERDICT_KIND_SENTENCES,
     agreement_sentence,
     paper_sentence,
@@ -85,6 +89,12 @@ def test_every_name_a_report_states_has_its_words() -> None:
     assert sorted(LITERATURE_SENTENCES) == sorted(get_args(LiteratureStatus))
     assert sorted(REVIEW_STATUS_SENTENCES) == sorted(get_args(ReviewStatus))
     assert sorted(UNCHECKED_SENTENCES) == sorted(get_args(FindingStatus))
+    assert sorted(HALT_SENTENCES) == sorted(get_args(HaltKind))
+    assert list(UNRESOLVED_WORDS) == list(get_args(UnresolvedStatus))
+
+
+def test_the_unresolved_statuses_are_the_counts_an_unresolved_tally_holds() -> None:
+    assert list(get_args(UnresolvedStatus)) == list(Unresolved.model_fields)
 
 
 def test_a_paper_that_depends_on_the_model_reads_in_words() -> None:

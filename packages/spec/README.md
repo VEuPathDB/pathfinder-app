@@ -8,7 +8,7 @@ This folder contains the OpenAPI specification for the Pathfinder API.
 
 ### Key API surface areas
 
-92 operations over 83 paths, tagged as:
+78 operations over 68 paths, tagged as:
 
 - **chat** (`/api/v1/chat`) -- one POST that opens a turn and returns an SSE tail
 - **conversations** (`/api/v1/conversations/`) -- CRUD, the event log and its snapshot, counts, fork, revert, WDK import, saved-strategy insert, sidebar
@@ -16,8 +16,7 @@ This folder contains the OpenAPI specification for the Pathfinder API.
 - **tasks** (`/api/v1/conversations/{id}/tasks`) -- the durable task list of a conversation
 - **sites** (`/api/v1/sites/`) -- VEuPathDB site catalog and search metadata, with sub-routes for catalog, genes and parameters
 - **gene-sets** (`/api/v1/gene-sets/`) -- CRUD, confidence, enrichment, records, set operations
-- **experiments** (`/api/v1/experiments/`) -- experiment CRUD, execution, evaluation, enrichment, results
-- **control-sets** (`/api/v1/control-sets`) -- experiment control set management
+- **audits** (`/api/v1/audits/`) -- the current user's gene-model audit runs, one run, its findings and one finding with its evidence, and the words an audit page names each value by
 - **eda** (`/api/v1/eda/`) -- study catalog, subset counts, distributions, visualizations
 - **memories** (`/api/v1/memories`) -- cross-thread memory list, search, edit, delete
 - **exports** (`/api/v1/exports/{id}`) -- export download

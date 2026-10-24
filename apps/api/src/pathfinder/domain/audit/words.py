@@ -17,8 +17,9 @@ from veupathdb_mcp.audit import (
 )
 
 from pathfinder.domain.audit.confirmations import FindingVerdict
-from pathfinder.domain.audit.findings import ErrorType, FindingStatus
+from pathfinder.domain.audit.findings import ErrorType, FindingStatus, UnresolvedStatus
 from pathfinder.domain.audit.scope import CheckName
+from pathfinder.domain.audit.stages import HaltKind
 from pathfinder.domain.audit.verdicts import (
     LiteratureStatus,
     ReviewAgreement,
@@ -273,6 +274,25 @@ UNCHECKED_SENTENCES: dict[FindingStatus, str] = {
     "failed": "Not checked: the check failed",
     "unreached": "Not checked: the site did not answer",
     "unread": "Not checked: not read before the run's deadline",
+}
+
+UNRESOLVED_WORDS: dict[UnresolvedStatus, str] = {
+    "screened": "not checked yet",
+    "unsampled": "not in the random sample",
+    "trying": "being checked",
+    "failed": "where the check failed",
+    "unreached": "where the site did not answer",
+    "unread": "not read before the run's deadline",
+}
+
+HALT_SENTENCES: dict[HaltKind, str] = {
+    "sign_in": (
+        "The audit needs your VEuPathDB sign-in. Sign in on the site, then resume it."
+    ),
+    "task_failed": (
+        "The audit task stopped on an error. Resume it to go on from the last unit "
+        "it finished."
+    ),
 }
 
 
