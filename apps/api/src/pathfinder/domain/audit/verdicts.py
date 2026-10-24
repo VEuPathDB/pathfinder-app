@@ -40,7 +40,12 @@ class GeneModelVerdict(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     genes: tuple[GeneName, ...] = Field(min_length=1, max_length=4)
-    model_genome: OrganismName
+    model_genome: OrganismName = Field(
+        description=(
+            "The full organism name of the genome whose model the verdict "
+            "judges, as the site names it."
+        )
+    )
     verdict: VerdictKind
     error_type: ErrorType | None = None
     certainty: Certainty | None = None

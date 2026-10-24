@@ -30,8 +30,8 @@ from pathfinder.tests._support.audit_planning import (
 UNNAMED = (BETA_R, BETA_S, OUTGROUP)
 NO_SCREEN = ("gene_length", "gene_split")
 SCREENED: tuple[ScreenedCheck, ...] = ("gene_length", "gene_split", "pseudogene_call")
-CHECK_SETS: list[tuple[ScreenedCheck, ...] | None] = [
-    None,
+CHECK_SETS: list[tuple[ScreenedCheck, ...]] = [
+    (),
     *(subset for size in (1, 2, 3) for subset in combinations(SCREENED, size)),
 ]
 FUSION = SingleGeneTarget(check="gene_fusion", genes=("EXA_0003",))
@@ -145,7 +145,7 @@ async def test_every_proposed_scope_is_admitted_or_refused_with_its_reason(
     named: int,
     read: int,
     on_named: bool,
-    checks: tuple[ScreenedCheck, ...] | None,
+    checks: tuple[ScreenedCheck, ...],
 ) -> None:
     genomes = STRAINS[:named]
     places = ((*genomes, *UNNAMED) if on_named else UNNAMED)[:read]

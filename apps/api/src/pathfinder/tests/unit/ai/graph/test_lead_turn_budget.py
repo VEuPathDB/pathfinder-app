@@ -213,7 +213,9 @@ def test_a_turn_stopped_at_its_budget_reports_what_its_run_spent(
     capture, writer = _drive(monkeypatch, "follow_up_question")
 
     assert capture.response is not None
-    assert capture.response.prose.endswith(BUDGET)
+    assert capture.response.prose.endswith(
+        BUDGET.replace("80 model calls", "1 model call")
+    )
     assert capture.tokens >= _THOUGHT_WORDS
     assert writer.chunks_of("error") == []
 
@@ -332,5 +334,10 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
 
     assert capture.response is not None
     assert capture.response.prose == "\n\n".join(
-        [STRATEGY_LINE, ADDED_LINE, f"Verification objected: {OBJECTION}", BUDGET]
+        [
+            STRATEGY_LINE,
+            ADDED_LINE,
+            f"Verification objected: {OBJECTION}",
+            BUDGET.replace("80 model calls", "3 model calls"),
+        ]
     )

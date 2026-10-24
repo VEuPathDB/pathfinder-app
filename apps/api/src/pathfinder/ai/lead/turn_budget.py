@@ -6,7 +6,7 @@ import re
 from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
-from pydantic_ai.usage import UsageLimits
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import TurnMarkers
@@ -37,12 +37,20 @@ def lead_usage_limits() -> UsageLimits:
     )
 
 
-def lead_turn_budget_message() -> str:
-    """What the user reads when a turn spends the ceiling it runs under."""
+def _spent_limit(spent: RunUsage, limits: UsageLimits) -> str:
+    tokens, calls = limits.total_tokens_limit, limits.request_limit
+    if tokens is not None and spent.total_tokens > tokens:
+        return f"{tokens} tokens"
+    if calls is not None and spent.requests >= calls:
+        return count_noun(calls, "model call")
+    return f"{limits.tool_calls_limit} tool calls"
+
+
+def lead_turn_budget_message(spent: RunUsage, limits: UsageLimits) -> str:
+    """What the user reads when a turn spends a ceiling it runs under."""
     return (
-        f"I stopped this turn at its budget of {LEAD_TURN_CALL_LIMIT} model calls "
-        f"and {get_settings().lead_turn_token_limit} tokens. Narrow the request "
-        f"and send it again, and I will start a fresh turn on it."
+        f"I stopped this turn at its budget of {_spent_limit(spent, limits)}. "
+        "Narrow the request and send it again, and I will start a fresh turn on it."
     )
 
 
@@ -119,6 +127,13 @@ def _this_turn(turn: TurnMarkers) -> str:
         return f"This turn added {count_noun(len(added), 'step')}: {named}."
     if turn.changed_strategy:
         return "This turn changed the strategy and added no step."
+    if turn.started_an_audit:
+        return (
+            "This turn started an audit run. It works in the background; ask "
+            "about it to read its findings."
+        )
+    if turn.audit_runs:
+        return "This turn read an audit run and changed no strategy."
     return "This turn changed nothing."
 
 
@@ -138,13 +153,17 @@ def budget_stop_report(
     session: StrategySession,
     turn: TurnMarkers,
     questions: Sequence[OpenQuestion],
+    spent: RunUsage,
+    limits: UsageLimits,
 ) -> str:
     """What a turn at its whole budget produced, then the stop itself."""
+    graph = session.graph
+    audit_only = bool(turn.audit_runs) and (graph is None or not graph.steps)
     parts = [
-        _strategy_state(ledger, session),
+        *([] if audit_only else [_strategy_state(ledger, session)]),
         _this_turn(turn),
         *_verification(ledger, session),
         *(q.question for q in questions),
-        lead_turn_budget_message(),
+        lead_turn_budget_message(spent, limits),
     ]
     return "\n\n".join(parts)

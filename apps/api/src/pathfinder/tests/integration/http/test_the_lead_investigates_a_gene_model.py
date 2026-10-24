@@ -18,6 +18,7 @@ from pathfinder.services.audit.runs import RunOwner
 from pathfinder.services.audit.verdicts import conversation_verdicts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit import seed_thread
+from pathfinder.tests._support.audit_planning import serve_gene_genomes
 from pathfinder.tests._support.run_context import run_context_for, turn_runtime
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -47,6 +48,7 @@ def pseudogene_call(monkeypatch: pytest.MonkeyPatch) -> None:
         return intact()
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
+    serve_gene_genomes(monkeypatch)
 
 
 @pytest.fixture

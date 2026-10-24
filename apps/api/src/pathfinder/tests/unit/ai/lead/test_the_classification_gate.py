@@ -16,8 +16,10 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
     nothing_to_answer_message,
 )
+from pathfinder.ai.lead.intent_gate import AUDIT_TOOLS, tools_the_turn_offers
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -161,7 +163,51 @@ async def test_a_control_the_message_does_not_hold_is_refused(
 
     assert str(refused.value) == (
         f"The researcher's message does not hold {absent}. Name only the ids the "
-        "message types, or the ids of this site a file it attaches shows, spelled "
-        "as it spells them."
+        "message types, the records the conversation showed last, or the ids of "
+        "this site a file it attaches shows, spelled as it spells them."
+    )
+    assert deps.intent is None
+
+
+_SHOWN = ("Afu2g18040", "NCU00776")
+
+
+def _audit_of(*gene_ids: str) -> UserIntent:
+    return UserIntent(
+        classification=IntentClassification.GENE_MODEL_AUDIT,
+        inferred_goal="Start the audit run for the two genes.",
+        named_gene_ids=list(gene_ids),
+    )
+
+
+def _shown_deps() -> LeadDeps:
+    deps = _deps("Please start the gene-model audit run for these two genes.")
+    deps.state.domain.shown_records = [
+        SourceFact(url=f"https://example.org/{gene}", record_id=gene) for gene in _SHOWN
+    ]
+    return deps
+
+
+async def test_ids_the_conversation_showed_last_are_held() -> None:
+    deps = _shown_deps()
+
+    await classify_user_intent(
+        run_context_for(deps), _audit_of("afu2g18040", *_SHOWN[1:])
+    )
+
+    assert deps.intent == _audit_of("afu2g18040", "NCU00776")
+    assert tools_the_turn_offers(deps, AUDIT_TOOLS) == AUDIT_TOOLS
+
+
+async def test_an_id_neither_typed_nor_shown_is_refused() -> None:
+    deps = _shown_deps()
+
+    with pytest.raises(ModelRetry) as refused:
+        await classify_user_intent(
+            run_context_for(deps), _audit_of(*_SHOWN, "PF3D7_0709000")
+        )
+
+    assert str(refused.value).startswith(
+        "The researcher's message does not hold PF3D7_0709000. "
     )
     assert deps.intent is None

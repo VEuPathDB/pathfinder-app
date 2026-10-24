@@ -124,7 +124,8 @@ async def classify_user_intent(
     a conversation with no open question and no waiting card answers none, so
     ``clarification_response`` is refused there.
 
-    Any other imperative asks for a build. "Run it", "rerun the compute",
+    Any other imperative asks for a build, except a ``gene_model_audit`` as
+    the ``classification`` field defines it. "Run it", "rerun the compute",
     "build the strategy", "add those genes as a step", "create the step" -
     and a bare "yes, do it" typed while a card of yours waits - are
     ``extend_strategy`` when the conversation already has a strategy, a framed
@@ -174,9 +175,10 @@ async def classify_user_intent(
       Example: "Please remember for future conversations: I always work with
       P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
 
-    - ``gene_model_audit``: an audit request, a question about an audit's
-      progress, or a question whether a gene's model is right. It states no
-      requirement and becomes no strategy request.
+    - ``gene_model_audit``: an audit request as the ``classification`` field
+      defines it, a question about an audit's progress, or a question whether
+      a gene's model is right. It states no requirement and becomes no
+      strategy request.
 
     The first two are answered in prose, and ``memory_request`` with one
     ``remember`` call per thing to keep. None of them is a request to build.

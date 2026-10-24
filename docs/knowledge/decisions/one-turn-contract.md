@@ -44,6 +44,19 @@ or no criterion of it holds an open slot - and tells FRAME to record the criteri
 The two answer one failure from opposite ends: the pass that asks about nothing, and the reply
 that reports what the pass never wrote.
 
+`failed_check` asks a reply over a standing failed check to state it, and an audit turn
+(`TurnRecord.audit_turn`) owes it nothing: an audit turn reaches no building tool and answers
+about the audit, not the strategy. A digest whose strategy the site no longer holds is dropped by
+`pre_turn.forget_the_verdict_of_a_dropped_strategy`: the read of the strategy answers 404 and a
+listing of the user's strategies succeeds without it. A 404 alone is no proof, because a site
+that is redeploying answers 404 too.
+
+An audit run's state has no prose rule. It reaches the reply only through a reference to the
+`audit_start` or `audit_run` fact the turn read, and a reference to a fact the turn does not
+hold is refused by `unrendered_prose`. A run the turn only listed is not held. A claim written
+in plain words with no reference is not checked; a plan that cannot start is refused to the
+Lead with its reason, so no card and no run follow from it.
+
 `unrendered_prose` is the rule for what the prose may hold, and the only check on its content.
 The prose writes each count, value, record and link as a reference the emitter renders from
 the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply that writes a

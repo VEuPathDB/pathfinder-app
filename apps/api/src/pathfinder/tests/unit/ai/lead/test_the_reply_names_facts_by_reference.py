@@ -36,13 +36,13 @@ from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     CONTRACT_HEADING,
-    WITHHELD_REPLY,
     LeadResponse,
     hold_the_turn_contract,
     reconcile,
     to_correct,
 )
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.ai.lead.withheld_reply import WITHHELD_REPLY
 from pathfinder.domain.caveats import RequirementGap
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome

@@ -48,15 +48,14 @@ from pathfinder.ai.lead.reply_claims import (
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
+from pathfinder.ai.lead.withheld_reply import withheld_prose, withholds
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.reply_references import (
-    FaultKind,
     prose_faults,
     render_reply,
     unheld_references,
 )
 from pathfinder.domain.strategy.questions import AskedQuestion
-from pathfinder.domain.turn_facts import TurnFacts
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -66,16 +65,6 @@ _ASKED_LIMIT = 8
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
-WITHHELD_ALONE = (
-    "I could not write this answer in facts the product renders from the result, "
-    "so it is not shown."
-)
-WITHHELD_REPLY = (
-    f"{WITHHELD_ALONE} The facts beside this reply show what this turn found."
-)
-WITHHELD_FAULTS: frozenset[FaultKind] = frozenset(
-    {"number", "identifier", "product_text", "unheld_reference"}
-)
 
 
 class LeadResponse(CamelModel):
@@ -303,6 +292,8 @@ def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
     digest = record.verification_section.digest
     if digest is None or digest.success:
         return None
+    if record.audit_turn:
+        return None
     if report.asked_questions or record.ends_on_a_card:
         return None
     if ends_with_a_question(report.prose) or digest.failure_stated_in(report.prose):
@@ -442,11 +433,6 @@ def to_correct(
     return []
 
 
-def _withheld(report: LeadResponse, facts: TurnFacts) -> LeadResponse:
-    prose = WITHHELD_ALONE if facts.empty() else WITHHELD_REPLY
-    return report.model_copy(update={"prose": prose})
-
-
 def hold_the_turn_contract(
     ctx: RunContext[LeadDeps],
     output: LeadResponse | DeferredToolRequests,
@@ -466,11 +452,10 @@ def hold_the_turn_contract(
     if mismatches:
         raise ModelRetry(correction_for(mismatches))
     shown = as_the_record_holds(output, record)
-    faults = prose_faults(output.prose, record.facts)
-    if not any(f.kind in WITHHELD_FAULTS for f in faults):
+    if not withholds(prose_faults(output.prose, record.facts)):
         return shown
     ctx.deps.state.turn_markers.unchecked_reply = False
-    return _withheld(shown, record.facts)
+    return shown.model_copy(update={"prose": withheld_prose(record.facts)})
 
 
 def correction_for(mismatches: Sequence[Mismatch]) -> str:

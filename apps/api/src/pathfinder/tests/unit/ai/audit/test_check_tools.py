@@ -5,7 +5,6 @@ import inspect
 import textwrap
 import types
 from collections.abc import Callable, Iterator
-from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -15,17 +14,11 @@ from fastmcp.exceptions import ToolError
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
-    ModelMessage,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import Tool
 from veupathdb.jbrowse import JBrowseError
 from veupathdb_mcp.audit import (
-    GeneId,
     PseudogeneCallAudit,
     locus_tag_answers,
     rate_with_bounds,
@@ -46,15 +39,20 @@ from pathfinder.services.audit.finding_views import (
     FindingView,
 )
 from pathfinder.services.gene_records.read import gene_record_url
+from pathfinder.tests._support.audit_check_runs import (
+    PAIR_ARGS,
+    REFERENCE,
+    RESOLVED,
+    STRAIN,
+    answering,
+    calling,
+    check_deps,
+    intact,
+    run_check,
+    serve_recorded_genomes,
+)
 
-_STRAIN = "EXA_0001"
-_RESOLVED = "EXA_0001:pseudogene"
-_REFERENCE = "EXR_0001"
 _GENOME = "Examplea alpha A"
-_PAIR_ARGS = {
-    "strain_gene": _STRAIN,
-    "reference_gene": _REFERENCE,
-}
 _WHOLE_GENOME_TOOLS = {
     "audit_genome_pseudogene_calls",
     "audit_genome_priority",
@@ -65,54 +63,9 @@ _WHOLE_GENOME_TOOLS = {
 _DATASET_WRITES = {"create_dataset"}
 
 
-def _intact() -> PseudogeneCallAudit:
-    return PseudogeneCallAudit(
-        verdict="INTACT",
-        reference_cds_length=900,
-        strain_cds_length=900,
-        covered=900,
-        premature_stops=[],
-        residue_differences=0,
-        gene_ids=[
-            GeneId(given=_STRAIN, resolved=_RESOLVED),
-            GeneId(given=_REFERENCE, resolved=_REFERENCE),
-        ],
-        strain_gene=_RESOLVED,
-        reference_gene=_REFERENCE,
-    )
-
-
-def _deps() -> AuditDeps:
-    return AuditDeps(site_id="plasmodb", user_id=uuid4(), conversation_id=uuid4())
-
-
-def _calling(tool_name: str, args: dict[str, Any]) -> FunctionModel:
-    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        del info
-        if len(messages) == 1:
-            return ModelResponse(
-                parts=[ToolCallPart(tool_name=tool_name, args=args, tool_call_id="c1")]
-            )
-        return ModelResponse(parts=[TextPart("done")])
-
-    return FunctionModel(respond)
-
-
-async def _run(tool_name: str, args: dict[str, Any], deps: AuditDeps) -> ToolReturnPart:
-    agent = Agent(
-        _calling(tool_name, args),
-        deps_type=AuditDeps,
-        toolsets=[build_check_toolset()],
-        capabilities=[SiteReadFailures[AuditDeps](reads=CHECK_TOOL_NAMES)],
-    )
-    result = await agent.run("check it", deps=deps)
-    (returned,) = [
-        part
-        for message in result.all_messages()
-        for part in message.parts
-        if isinstance(part, ToolReturnPart)
-    ]
-    return returned
+@pytest.fixture(autouse=True)
+def organism_reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    return serve_recorded_genomes(monkeypatch)
 
 
 class _Read(BaseModel):
@@ -131,25 +84,13 @@ def _summary(part: ToolReturnPart) -> str:
     return str(chunk.data["summary"])
 
 
-def _answering(monkeypatch: pytest.MonkeyPatch, error: Exception | None) -> None:
-    async def answer(
-        site_id: str, strain_gene: str, reference_gene: str
-    ) -> PseudogeneCallAudit:
-        del site_id, strain_gene, reference_gene
-        if error is not None:
-            raise error
-        return _intact()
-
-    monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
-
-
 async def test_a_check_read_records_the_given_and_resolved_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _answering(monkeypatch, None)
-    deps = _deps()
+    answering(monkeypatch, None)
+    deps = check_deps()
 
-    returned = await _run("audit_pseudogene_call", _PAIR_ARGS, deps)
+    returned = await run_check("audit_pseudogene_call", PAIR_ARGS, deps)
 
     (fact,) = deps.facts
     assert deps.reads == {
@@ -157,22 +98,28 @@ async def test_a_check_read_records_the_given_and_resolved_ids(
         "audit_pseudogene_call:EXA_0001:pseudogene:EXR_0001",
     }
     assert (fact.kind, fact.value("strainCdsLength")) == ("gene_check", "900")
-    assert [(r.record_id, r.url) for r in deps.records] == [
-        (_STRAIN, gene_record_url("plasmodb", _STRAIN)),
-        (_RESOLVED, gene_record_url("plasmodb", _RESOLVED)),
-        (_REFERENCE, gene_record_url("plasmodb", _REFERENCE)),
+    assert [(r.record_id, r.url, r.organism) for r in deps.records] == [
+        (STRAIN, gene_record_url("plasmodb", STRAIN), "Examplea alpha A"),
+        (RESOLVED, gene_record_url("plasmodb", RESOLVED), "Examplea alpha A"),
+        (REFERENCE, gene_record_url("plasmodb", REFERENCE), "Examplea alpha R"),
     ]
     assert _summary(returned) == "EXA_0001 against EXR_0001: INTACT"
     assert _read(returned).fact_id == fact.id
+    assert returned.model_response_object()["genomes"] == {
+        STRAIN: "Examplea alpha A",
+        RESOLVED: "Examplea alpha A",
+        REFERENCE: "Examplea alpha R",
+    }
+    assert deps.gene_genomes[REFERENCE] == frozenset({"Examplea alpha R"})
 
 
 async def test_a_refused_check_reaches_the_model_as_a_refusal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _answering(monkeypatch, ToolError("EXA_9999 names no gene"))
-    deps = _deps()
+    answering(monkeypatch, ToolError("EXA_9999 names no gene"))
+    deps = check_deps()
 
-    returned = await _run("audit_pseudogene_call", _PAIR_ARGS, deps)
+    returned = await run_check("audit_pseudogene_call", PAIR_ARGS, deps)
 
     assert returned.outcome == "failed"
     assert "EXA_9999 names no gene" in str(returned.content)
@@ -184,9 +131,9 @@ async def test_a_site_outage_inside_a_tool_error_is_an_outage(
 ) -> None:
     outage = ToolError("plasmodb did not answer the audit reads: ConnectError")
     outage.__cause__ = httpx.ConnectError("refused")
-    _answering(monkeypatch, outage)
+    answering(monkeypatch, outage)
 
-    returned = await _run("audit_pseudogene_call", _PAIR_ARGS, _deps())
+    returned = await run_check("audit_pseudogene_call", PAIR_ARGS, check_deps())
 
     assert (returned.outcome, str(returned.content)) == (
         "failed",
@@ -233,7 +180,9 @@ def test_no_check_tool_asks_the_model_for_a_site() -> None:
     } == dict.fromkeys(CHECK_TOOL_NAMES, False)
 
 
-async def test_a_check_runs_on_the_turns_site(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_a_check_runs_on_the_turns_site(
+    monkeypatch: pytest.MonkeyPatch, organism_reads: list[tuple[str, str]]
+) -> None:
     asked: list[str] = []
 
     async def answer(
@@ -241,16 +190,17 @@ async def test_a_check_runs_on_the_turns_site(monkeypatch: pytest.MonkeyPatch) -
     ) -> PseudogeneCallAudit:
         del strain_gene, reference_gene
         asked.append(site_id)
-        return _intact()
+        return intact()
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
     deps = AuditDeps(site_id="toxodb", user_id=uuid4(), conversation_id=uuid4())
 
-    await _run("audit_pseudogene_call", _PAIR_ARGS, deps)
+    await run_check("audit_pseudogene_call", PAIR_ARGS, deps)
 
     assert asked == ["toxodb"]
+    assert organism_reads == [("toxodb", RESOLVED), ("toxodb", REFERENCE)]
     assert [r.url for r in deps.records] == [
-        gene_record_url("toxodb", gene) for gene in (_STRAIN, _RESOLVED, _REFERENCE)
+        gene_record_url("toxodb", gene) for gene in (STRAIN, RESOLVED, REFERENCE)
     ]
 
 
@@ -259,10 +209,10 @@ async def test_a_genome_store_outage_fails_the_check_and_the_turn_goes_on(
 ) -> None:
     outage = ToolError("plasmodb answered 503 to the audit reads: window")
     outage.__cause__ = JBrowseError("GET", "https://example.org/seq", 503)
-    _answering(monkeypatch, outage)
-    deps = _deps()
+    answering(monkeypatch, outage)
+    deps = check_deps()
     agent = Agent(
-        _calling("audit_pseudogene_call", _PAIR_ARGS),
+        calling("audit_pseudogene_call", PAIR_ARGS),
         deps_type=AuditDeps,
         toolsets=[build_check_toolset()],
         capabilities=[SiteReadFailures[AuditDeps](reads=CHECK_TOOL_NAMES)],
@@ -373,9 +323,9 @@ def test_no_chat_check_creates_a_dataset() -> None:
 
 
 async def test_the_rate_tool_is_the_library_rate() -> None:
-    deps = _deps()
+    deps = check_deps()
 
-    returned = await _run(
+    returned = await run_check(
         "rate_with_interval", {"confirmed": 3, "checked": 12, "unresolved": 4}, deps
     )
 
@@ -394,7 +344,7 @@ async def test_the_rate_tool_is_the_library_rate() -> None:
 
 def test_finding_rows_are_dotted_paths() -> None:
     run_id = uuid4()
-    target = GenePairTarget(check="pseudogene_call", genes=(_STRAIN, _REFERENCE))
+    target = GenePairTarget(check="pseudogene_call", genes=(STRAIN, REFERENCE))
     detail = FindingDetail(
         site_id="plasmodb",
         finding=FindingView(
@@ -425,7 +375,7 @@ def test_finding_rows_are_dotted_paths() -> None:
                 kind="confirmation",
                 status="stored",
                 payload=ConfirmationEvidence(
-                    confirmation=PseudogeneConfirmation(result=_intact())
+                    confirmation=PseudogeneConfirmation(result=intact())
                 ),
                 requests=4,
                 attempts=1,

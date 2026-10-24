@@ -11,12 +11,8 @@ from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import (
-    WITHHELD_ALONE,
-    WITHHELD_REPLY,
-    LeadTurnState,
-    hold_the_turn_contract,
-)
+from pathfinder.ai.lead.turn_contract import LeadTurnState, hold_the_turn_contract
+from pathfinder.ai.lead.withheld_reply import WITHHELD_ALONE, WITHHELD_REPLY
 from pathfinder.domain.caveats import RequirementGap
 from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
 from pathfinder.domain.strategy.constraints import (

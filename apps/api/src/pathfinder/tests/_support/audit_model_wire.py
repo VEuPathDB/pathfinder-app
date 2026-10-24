@@ -9,7 +9,7 @@ import httpx
 import respx
 from pydantic import Base64Bytes, BaseModel, ConfigDict, Field, JsonValue
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk import get_site
+from veupathdb.wdk import WDKRecordInstance, get_site
 
 _WIRE = Path(__file__).resolve().parents[1] / "fixtures/audit_models/gt1_selk_wire.json"
 _USER = 376
@@ -104,3 +104,9 @@ def served_wire(wire: RecordWire) -> Iterator[ServedWire]:
             yield served
     finally:
         veupathdb_auth_token_ctx.reset(token)
+
+
+def recorded_gene_record(organism_full: str) -> WDKRecordInstance:
+    """The recorded GT1 gene record, its genome attribute naming ``organism_full``."""
+    recorded = WDKRecordInstance.model_validate(SELK_WIRE.records[0].body)
+    return recorded.model_copy(update={"attributes": {"organism_full": organism_full}})

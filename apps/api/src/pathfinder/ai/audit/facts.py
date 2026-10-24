@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -78,6 +78,15 @@ def gene_records(site_id: str, genes: Iterable[str]) -> list[ReadRecord]:
     ]
 
 
+def genome_records(site_id: str, genomes: Mapping[str, str]) -> list[ReadRecord]:
+    return [
+        ReadRecord(
+            record_id=gene, url=gene_record_url(site_id, gene), organism=organism
+        )
+        for gene, organism in genomes.items()
+    ]
+
+
 def audit_finding_fact(run_id: UUID, detail: FindingDetail) -> StatisticFact:
     finding = detail.finding
     return StatisticFact(
@@ -122,7 +131,7 @@ def _asked(request: PlanRequest) -> list[str]:
     return [
         request.site_id,
         *request.genomes,
-        *(request.checks or ()),
+        *request.checks,
         *(target.key for target in request.targets),
         str(request.confirm_limit),
     ]
