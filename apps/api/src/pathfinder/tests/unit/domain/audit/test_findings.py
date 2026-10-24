@@ -283,6 +283,29 @@ def test_an_error_type_is_never_stored_without_its_certainty() -> None:
         Classification(certainty="high")
 
 
+def test_relative_lengths_and_their_tier_are_stored_together() -> None:
+    with pytest.raises(
+        ValidationError, match="relatives' tier is stored with their lengths"
+    ):
+        RelativesEvidence(
+            reference_gene="R1",
+            reference_length=400,
+            model_length=200,
+            relatives_median=400.0,
+            relative_lengths={"P. vivax": 401, "P. knowlesi": 399},
+        )
+    with pytest.raises(
+        ValidationError, match="relatives' tier is stored with their lengths"
+    ):
+        RelativesEvidence(
+            reference_gene="R1",
+            reference_length=400,
+            model_length=200,
+            relatives_median=None,
+            relatives_tier="OTHER_GENERA",
+        )
+
+
 def test_evidence_reads_back_by_its_kind() -> None:
     confirmation = ConfirmationEvidence(
         confirmation=PseudogeneConfirmation(result=PIGA_INTACT)
@@ -298,6 +321,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         model_length=200,
         relatives_median=400.0,
         relative_lengths={"P. vivax": 401, "P. knowlesi": 399},
+        relatives_tier="SAME_GENUS",
         side="STRAIN_SHORT",
     )
     evidence = GeneEvidencePayload(genes=(K13,), evidence=(K13_EVIDENCE,))
@@ -313,6 +337,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         "modelLength": 200,
         "relativesMedian": 400.0,
         "relativeLengths": {"P. vivax": 401, "P. knowlesi": 399},
+        "relativesTier": "SAME_GENUS",
         "side": "STRAIN_SHORT",
         "referenceOrganism": None,
     }
@@ -324,7 +349,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         "relativesMedian": 400.0,
     }
     assert _PAYLOAD.validate_python(stored_before_sides) == relatives.model_copy(
-        update={"side": None, "relative_lengths": {}}
+        update={"side": None, "relative_lengths": {}, "relatives_tier": None}
     )
     (read,) = _PAYLOAD.dump_python(evidence, by_alias=True, mode="json")["evidence"]
     assert (read["gene"], read["pubmed"], read["comments"]) == (K13, 44, 9)

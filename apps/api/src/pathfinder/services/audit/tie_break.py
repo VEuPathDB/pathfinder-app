@@ -87,6 +87,7 @@ def relatives_evidence(
         model_length=model_length,
         relatives_median=median,
         relative_lengths={} if found is None else found.lengths,
+        relatives_tier=None if found is None else found.tier,
         side=None
         if reference_length is None or model_length is None
         else tie_break(reference_length, model_length, median),

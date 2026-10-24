@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from veupathdb_mcp.audit import GeneticCode
 
-from pathfinder.domain.audit.facts import _CODES, YES_NO
+from pathfinder.domain.audit.facts import _CODES, TIER_WORDS, YES_NO
 from pathfinder.domain.audit.intron_facts import _ACROSS_GAP, _OUTCOMES
 from pathfinder.domain.audit.length_facts import (
     _NO_RELATIVES,
     _NOT_READ,
     _PARTS,
-    _TIERS,
 )
 
 
@@ -43,7 +42,7 @@ def test_the_parts_table_reads_its_exact_words() -> None:
 
 
 def test_the_tiers_table_reads_its_exact_words() -> None:
-    assert _TIERS == {
+    assert TIER_WORDS == {
         "SAME_GENUS": "The same genus",
         "OTHER_GENERA": "Other genera",
     }

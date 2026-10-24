@@ -9,7 +9,6 @@ from veupathdb_mcp.audit import (
     LengthScreen,
     NoRelatives,
     NotRead,
-    RelativeTier,
     StrainModelAudit,
     WindowState,
 )
@@ -17,6 +16,7 @@ from veupathdb_mcp.audit import (
 from pathfinder.domain.audit.facts import (
     NONE,
     NOT_READ,
+    TIER_WORDS,
     YES_NO,
     Fact,
     code_text,
@@ -36,10 +36,6 @@ _PARTS: dict[WindowState | Literal["part1", "part2"], str] = {
     "weak": "matched weakly",
     "part1": "in the first model",
     "part2": "in the second model",
-}
-_TIERS: dict[RelativeTier, str] = {
-    "SAME_GENUS": "The same genus",
-    "OTHER_GENERA": "Other genera",
 }
 _NO_RELATIVES: dict[NoRelatives, str] = {
     "RESIDUAL_GROUP": "the ortholog group is a residual group",
@@ -191,7 +187,7 @@ def strain_facts(result: StrainModelAudit) -> tuple[Fact, ...]:
         Fact(label="Related genomes", value=_relatives(result)),
         Fact(
             label="Related genomes from",
-            value=NOT_READ if tier is None else _TIERS[tier],
+            value=NOT_READ if tier is None else TIER_WORDS[tier],
         ),
         Fact(
             label="Median of the related genomes",

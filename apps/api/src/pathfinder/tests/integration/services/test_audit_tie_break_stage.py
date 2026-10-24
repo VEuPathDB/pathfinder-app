@@ -56,6 +56,7 @@ WEIGHED = RelativesEvidence(
     model_length=200,
     relatives_median=400.0,
     relative_lengths=WEIGHED_LENGTHS,
+    relatives_tier="SAME_GENUS",
     side=audit.tie_break(400, 200, 400.0),
     reference_organism="Plasmodium relative0 X",
 )
@@ -130,6 +131,7 @@ async def test_a_tie_break_read_the_site_cannot_parse_is_stored_failed(
             model_length=190,
             relatives_median=400.0,
             relative_lengths=OTHER_LENGTHS,
+            relatives_tier="SAME_GENUS",
             side="STRAIN_SHORT",
             reference_organism=RELATIVE1,
         ),

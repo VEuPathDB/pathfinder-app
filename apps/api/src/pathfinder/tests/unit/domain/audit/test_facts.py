@@ -208,13 +208,25 @@ def test_stored_relative_lengths_state_their_count_and_range() -> None:
         model_length=110,
         relatives_median=1300.0,
         relative_lengths={"P. vivax": 1300, "P. knowlesi": 1302, "P. berghei": 1298},
+        relatives_tier="SAME_GENUS",
+    )
+    other_genera = relatives.model_copy(
+        update={
+            "relative_lengths": {"T. gondii": 310, "C. parvum": 312},
+            "relatives_tier": "OTHER_GENERA",
+        }
     )
     assert _pairs(relatives_facts(relatives)) == [
         ("Reference model", "REF, 1,319 residues"),
         ("This model", "110 residues"),
         ("Median of independent related genomes", "1300 residues"),
         ("Related genomes read", "3 genomes, 1,298 to 1,302 residues"),
+        ("Related genomes from", "The same genus"),
         ("Which model the related genomes support", "Not read"),
+    ]
+    assert _pairs(relatives_facts(other_genera))[3:5] == [
+        ("Related genomes read", "2 genomes, 310 to 312 residues"),
+        ("Related genomes from", "Other genera"),
     ]
 
 

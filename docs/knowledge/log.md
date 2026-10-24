@@ -12,8 +12,11 @@
 * **The relatives evidence of a length finding keeps each relative's length.**
   `RelativesEvidence.relative_lengths` maps each relative organism to its longest copy, taken
   from the same `relatives_of` read that gives the median, so the dot plot needs no new read; a
-  payload stored without the key loads with `{}`. The relatives facts add "Related genomes read"
-  (the count and the range of lengths) when the lengths are stored.
+  payload stored without the key loads with `{}`. `relatives_tier` keeps the library's tier
+  (same genus or other genera) beside them, and a model validator stores the two together. The
+  relatives facts add "Related genomes read" (the count and the range of lengths) and "Related
+  genomes from" (the tier, in the words `TIER_WORDS` gives the strain facts too) when they are
+  stored.
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`

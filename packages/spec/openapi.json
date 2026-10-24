@@ -14484,6 +14484,16 @@
             "type": "object",
             "title": "Relativelengths"
           },
+          "relativesTier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelativeTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "side": {
             "anyOf": [
               {
