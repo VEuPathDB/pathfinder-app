@@ -12,10 +12,13 @@
 
 * **An audit finding reads its gene models in genome coordinates.** `domain/audit/models.py`
   derives `FindingDetail.models` from the stored confirmation alone: the annotated models of the
-  genes the check judged, the model an intron's RNA-seq junctions propose (`corrected` from the
-  library's corrected CDS, or `retained` with the intron kept as exon when the correction was not
-  read), a fusion's merged span and a selenoprotein's stop codon, the last coding codon on its
-  strand. A check that read no model, an organelle or a missing-gene finding, and a confirmation
+  genes the check judged, the model an intron's RNA-seq junctions propose (`corrected`: the
+  library's corrected CDS, and the exons of the annotated model with each unread intron added and
+  each replacing junction cut out, the rule of the library's `correct_model`, which it does not
+  publish; or `retained`, with the intron kept as exon when the correction was not read), a
+  fusion's merged span and a selenoprotein's stop codon, the last three coding bases on its
+  strand, split across an intron when the last coding part is shorter than three. `FIGURE_KINDS`
+  names the figure of every check. A check that read no model, an organelle or a missing-gene finding, and a confirmation
   stored before the library returned models read `models` as null; nothing is read again and no
   column is added. The review prompt leaves `models` out.
 

@@ -24,6 +24,7 @@ from pathfinder.domain.audit.confirmations import (
     SelenoproteinConfirmation,
     StrainConfirmation,
 )
+from pathfinder.domain.audit.scope import CheckName
 
 type Span = tuple[int, int]
 GeneModelFigureKind = Literal[
@@ -63,8 +64,7 @@ class StopCodon(CamelModel):
 
     gene: str
     seqid: str
-    start: int
-    end: int
+    spans: tuple[Span, ...] = Field(min_length=1, max_length=3)
 
 
 class FindingModels(CamelModel):
@@ -122,12 +122,27 @@ def _kept_intron(intron: UnreadIntron) -> KeptIntron | None:
             return None
 
 
+def _cut(spans: Iterable[Span], cuts: Iterable[Span]) -> tuple[Span, ...]:
+    kept = _merged(spans)
+    for cut_start, cut_end in cuts:
+        kept = tuple(
+            piece
+            for start, end in kept
+            for piece in (
+                (start, min(end, cut_start - 1)),
+                (max(start, cut_end + 1), end),
+            )
+            if piece[0] <= piece[1]
+        )
+    return kept
+
+
 def _kept(unread: Sequence[UnreadIntron]) -> tuple[KeptIntron, ...]:
     return tuple(k for k in map(_kept_intron, unread) if k is not None)
 
 
 def _corrected(
-    result: IntronAudit, unread: Sequence[UnreadIntron]
+    result: IntronAudit, model: ModelSpans, unread: Sequence[UnreadIntron]
 ) -> ProposedModel | None:
     if result.corrected_cds is None:
         return None
@@ -136,7 +151,10 @@ def _corrected(
     return ProposedModel(
         kind="corrected",
         gene=result.gene,
-        exons=_merged([*result.corrected_cds, *((k.start, k.end) for k in kept)]),
+        exons=_cut(
+            [*model.exons, *((intron.start, intron.end) for intron in unread)],
+            [(j.start, j.end) for j in replacements],
+        ),
         cds=tuple(result.corrected_cds),
         removed_introns=tuple((intron.start, intron.end) for intron in unread),
         junctions=tuple((j.start, j.end) for j in replacements),
@@ -167,26 +185,31 @@ def _retained(
 
 def _proposed(result: IntronAudit, model: ModelSpans) -> ProposedModel | None:
     unread = result.unread or []
-    return _corrected(result, unread) or _retained(result, model, unread)
+    return _corrected(result, model, unread) or _retained(result, model, unread)
 
 
 def stop_codon(model: ModelSpans) -> StopCodon:
-    if model.strand == "+":
-        end = max(last for _, last in model.cds)
-        return StopCodon(gene=model.gene, seqid=model.seqid, start=end - 2, end=end)
-    start = min(first for first, _ in model.cds)
-    return StopCodon(gene=model.gene, seqid=model.seqid, start=start, end=start + 2)
+    coding = [p for start, end in sorted(model.cds) for p in range(start, end + 1)]
+    codon = coding[-3:] if model.strand == "+" else coding[:3]
+    return StopCodon(
+        gene=model.gene, seqid=model.seqid, spans=_merged((p, p) for p in codon)
+    )
 
 
 def _read(models: Iterable[ModelSpans | None]) -> tuple[ModelSpans, ...]:
     return tuple(model for model in models if model is not None)
 
 
-_FIGURES: Mapping[str, GeneModelFigureKind] = {
+FIGURE_KINDS: Mapping[CheckName, GeneModelFigureKind | None] = {
     "gene_length": "length",
     "gene_split": "length",
     "pseudogene_call": "pseudogene",
+    "selenoprotein_end": "sec_end",
+    "gene_fusion": "merge",
     "strain_model": "strain",
+    "missing_gene": None,
+    "organelle_join": None,
+    "intron_support": "intron",
 }
 
 
@@ -209,23 +232,20 @@ def _annotated(confirmation: Confirmation) -> tuple[ModelSpans, ...]:
 
 def finding_models(confirmation: Confirmation) -> FindingModels | None:
     annotated = _annotated(confirmation)
-    if not annotated:
+    kind = FIGURE_KINDS[confirmation.check]
+    if kind is None or not annotated:
         return None
     match confirmation:
         case IntronConfirmation(result=result):
             proposed = _proposed(result, annotated[0])
-            return FindingModels(kind="intron", annotated=annotated, proposed=proposed)
+            return FindingModels(kind=kind, annotated=annotated, proposed=proposed)
         case FusionConfirmation(result=result):
-            return FindingModels(
-                kind="merge", annotated=annotated, merged=result.merged
-            )
+            return FindingModels(kind=kind, annotated=annotated, merged=result.merged)
         case SelenoproteinConfirmation(
             result=SelenoproteinEndAudit(models=[ModelSpans() as gene, *_])
         ):
-            return FindingModels(
-                kind="sec_end", annotated=annotated, stop=stop_codon(gene)
-            )
+            return FindingModels(kind=kind, annotated=annotated, stop=stop_codon(gene))
         case SelenoproteinConfirmation():
             return None
         case _:
-            return FindingModels(kind=_FIGURES[confirmation.check], annotated=annotated)
+            return FindingModels(kind=kind, annotated=annotated)

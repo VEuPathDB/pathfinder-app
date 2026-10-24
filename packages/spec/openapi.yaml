@@ -11162,18 +11162,18 @@ components:
         seqid:
           type: string
           title: Seqid
-        start:
-          type: integer
-          title: Start
-        end:
-          type: integer
-          title: End
+        spans:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          maxItems: 3
+          minItems: 1
+          title: Spans
       type: object
       required:
       - gene
       - seqid
-      - start
-      - end
+      - spans
       title: StopCodon
     StrainConfirmation:
       properties:

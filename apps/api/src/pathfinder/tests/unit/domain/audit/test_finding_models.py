@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import get_args
+
 import pytest
 from veupathdb_mcp.audit import GeneLengthAudit, GeneSpan, ModelSpans
 
@@ -17,6 +19,7 @@ from pathfinder.domain.audit.confirmations import (
     StrainConfirmation,
 )
 from pathfinder.domain.audit.models import (
+    FIGURE_KINDS,
     FindingModels,
     KeptIntron,
     ProposedModel,
@@ -24,6 +27,7 @@ from pathfinder.domain.audit.models import (
     finding_models,
     stop_codon,
 )
+from pathfinder.domain.audit.scope import CheckName
 from pathfinder.tests._support.audit import PIGA, PIGA_INTACT, short_audit
 from pathfinder.tests._support.audit_answers import (
     AFU8_INTRONS,
@@ -95,10 +99,16 @@ def test_a_shifted_and_a_replaced_intron_propose_the_junction_they_were_read_by(
         ((4793713, 4793786),),
         (1226,),
     )
-    assert (replaced.cds, replaced.exons, replaced.frame_kept) == (
-        ((202062, 202208), (202267, 202401)),
+    assert (replaced.cds, replaced.frame_kept) == (
         ((202062, 202208), (202267, 202401)),
         False,
+    )
+    assert replaced.exons == (
+        (201039, 201399),
+        (201454, 201595),
+        (201653, 201925),
+        (201976, 202208),
+        (202267, 202401),
     )
     assert (replaced.removed_introns, replaced.junctions, replaced.junction_reads) == (
         ((202070, 202266),),
@@ -128,7 +138,7 @@ def test_a_retained_intron_is_kept_as_exon_in_the_corrected_model() -> None:
         ),
     )
     assert proposed.exons == (
-        (41952051, 41952902),
+        (41950997, 41952902),
         (41953562, 41953639),
         (41953733, 41953990),
         (41954090, 41954101),
@@ -169,6 +179,32 @@ def test_a_retained_intron_with_no_correction_read_proposes_the_exon_alone() -> 
     )
     assert proposed.removed_introns == ((41952076, 41952160),)
     assert [k.outcome for k in proposed.kept] == ["RETAINED"]
+    assert proposed.exons == _proposed(AGAP3685_INTRONS).exons
+
+
+def test_a_noncanonical_intron_is_kept_as_exon_with_its_motif() -> None:
+    (retained,) = AGAP3685_INTRONS.unread or []
+    noncanonical = retained.model_copy(
+        update={"outcome": "NONCANONICAL", "motif": "GC..AG", "depth": None}
+    )
+    result = AGAP3685_INTRONS.model_copy(
+        update={"verdict": "UNSUPPORTED_NONCANONICAL", "unread": [noncanonical]}
+    )
+
+    proposed = _proposed(result)
+
+    assert proposed.kept == (
+        KeptIntron(
+            start=41952076,
+            end=41952160,
+            outcome="NONCANONICAL",
+            motif="GC..AG",
+            depth_share=None,
+            covered_share=None,
+            track=None,
+        ),
+    )
+    assert proposed.exons[0] == (41950997, 41952902)
 
 
 def test_an_unexplained_intron_proposes_no_model() -> None:
@@ -225,23 +261,54 @@ def test_a_selenoprotein_end_marks_its_stop_codon() -> None:
         ["TGGT1_316600", "TGME49_316600"],
     )
     assert models.stop == StopCodon(
-        gene="TGGT1_316600", seqid="TGGT1_chrXI", start=5361334, end=5361336
+        gene="TGGT1_316600", seqid="TGGT1_chrXI", spans=((5361334, 5361336),)
     )
 
 
-def test_a_stop_codon_on_the_minus_strand_is_the_first_coding_base() -> None:
-    minus = ModelSpans(
-        gene="EXA_1",
-        transcript="EXA_1.1",
-        seqid="EXA_01",
-        strand="-",
-        exons=[(90, 400), (500, 700)],
-        cds=[(100, 400), (500, 650)],
+def _model(strand: str, cds: list[tuple[int, int]]) -> ModelSpans:
+    return ModelSpans.model_validate(
+        {
+            "gene": "EXA_1",
+            "transcript": "EXA_1.1",
+            "seqid": "EXA_01",
+            "strand": strand,
+            "exons": cds,
+            "cds": cds,
+        }
     )
 
-    assert stop_codon(minus) == StopCodon(
-        gene="EXA_1", seqid="EXA_01", start=100, end=102
+
+@pytest.mark.parametrize(
+    ("strand", "cds", "spans"),
+    [
+        ("-", [(100, 400), (500, 650)], ((100, 102),)),
+        ("+", [(100, 400), (500, 650)], ((648, 650),)),
+        ("+", [(10, 20), (30, 31)], ((20, 20), (30, 31))),
+        ("-", [(100, 101), (200, 300)], ((100, 101), (200, 200))),
+        ("+", [(10, 20), (30, 30), (40, 40)], ((20, 20), (30, 30), (40, 40))),
+    ],
+)
+def test_a_stop_codon_is_the_last_three_coding_bases_on_its_strand(
+    strand: str, cds: list[tuple[int, int]], spans: tuple[tuple[int, int], ...]
+) -> None:
+    assert stop_codon(_model(strand, cds)) == StopCodon(
+        gene="EXA_1", seqid="EXA_01", spans=spans
     )
+
+
+def test_every_check_names_the_figure_its_finding_draws() -> None:
+    assert FIGURE_KINDS == {
+        "gene_length": "length",
+        "gene_split": "length",
+        "pseudogene_call": "pseudogene",
+        "selenoprotein_end": "sec_end",
+        "gene_fusion": "merge",
+        "strain_model": "strain",
+        "missing_gene": None,
+        "organelle_join": None,
+        "intron_support": "intron",
+    }
+    assert set(FIGURE_KINDS) == set(get_args(CheckName))
 
 
 def test_a_length_finding_holds_the_models_of_its_genes() -> None:
