@@ -93,6 +93,7 @@ def _fact() -> StatisticFact:
             review=None,
             review_text=None,
             genes=[],
+            models=None,
         ),
     )
 

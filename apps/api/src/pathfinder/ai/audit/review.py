@@ -160,7 +160,7 @@ async def review_finding(
 ) -> FindingReview:
     try:
         result = await build_reviewer_agent().run(
-            detail.model_dump_json(by_alias=True),
+            detail.model_dump_json(by_alias=True, exclude={"models"}),
             deps=deps,
             model=model,
             model_settings=settings,

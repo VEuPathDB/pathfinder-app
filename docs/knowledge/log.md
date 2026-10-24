@@ -2,6 +2,15 @@
 
 ## 2026-10-24
 
+* **An audit finding reads its gene models in genome coordinates.** `domain/audit/models.py`
+  derives `FindingDetail.models` from the stored confirmation alone: the annotated models of the
+  genes the check judged, the model an intron's RNA-seq junctions propose (`corrected` from the
+  library's corrected CDS, or `retained` with the intron kept as exon when the correction was not
+  read), a fusion's merged span and a selenoprotein's stop codon, the last coding codon on its
+  strand. A check that read no model, an organelle or a missing-gene finding, and a confirmation
+  stored before the library returned models read `models` as null; nothing is read again and no
+  column is added. The review prompt leaves `models` out.
+
 * **An audit plan prices the gene model reads per check (veupathdb-mcp 0.2.0b47).**
   `UnitCosts.model_reads` names every check: one read for `strain_model` and `selenoprotein_end`,
   two for `gene_fusion`, none for the rest, each held at most the library's

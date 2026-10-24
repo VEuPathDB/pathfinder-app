@@ -8,9 +8,11 @@ from assistant_core.models.scripted import retry_prompt_parts, terminal_call
 from assistant_core.models.settings import build_model_settings
 from pydantic_ai.messages import (
     ModelMessage,
+    ModelRequest,
     ModelResponse,
     RetryPromptPart,
     ToolCallPart,
+    UserPromptPart,
 )
 from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, FunctionModel
@@ -32,6 +34,7 @@ from pathfinder.ai.audit.review import (
 )
 from pathfinder.domain.audit.check_facts import evidence_facts
 from pathfinder.domain.audit.findings import RelativesEvidence
+from pathfinder.domain.audit.models import FindingModels
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview, evidence_cite, finding_cite
 from pathfinder.platform.tiers import PhaseTierConfig
@@ -41,6 +44,7 @@ from pathfinder.services.audit.finding_views import (
     FindingView,
 )
 from pathfinder.services.audit.reviews import ReviewedRun
+from pathfinder.tests._support.audit_answers import PKAC_STRAIN_MODELS
 
 _GENOME = "Examplea alpha A"
 _GENE = "EXA_0001"
@@ -57,7 +61,7 @@ _RELATIVES = RelativesEvidence(
 )
 
 
-def _detail(finding_id: int = 7) -> FindingDetail:
+def _detail(finding_id: int = 7, models: FindingModels | None = None) -> FindingDetail:
     return FindingDetail(
         site_id="plasmodb",
         finding=FindingView(
@@ -107,6 +111,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
         review=None,
         review_text=None,
         genes=[],
+        models=models,
     )
 
 
@@ -164,6 +169,33 @@ async def _reviewed(
         usage=usage,
     )
     return found, usage
+
+
+async def test_the_review_prompt_holds_no_models() -> None:
+    annotated = tuple(model for model in PKAC_STRAIN_MODELS if model is not None)
+    detail = _detail(models=FindingModels(kind="strain", annotated=annotated))
+    prompts: list[str] = []
+
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        match messages[0]:
+            case ModelRequest(parts=[*_, UserPromptPart(content=str() as prompt)]):
+                prompts.append(prompt)
+            case _:
+                pass
+        return ModelResponse(parts=[terminal_call(_review())])
+
+    await review_finding(
+        detail,
+        deps=review_deps(_run(), detail, None),
+        model=FunctionModel(answer),
+        settings=None,
+        usage=RunUsage(),
+    )
+
+    assert prompts == [detail.model_dump_json(by_alias=True, exclude={"models"})]
+    assert '"models"' not in prompts[0]
+    assert '"facts"' in prompts[0]
 
 
 def test_a_review_holds_the_finding_and_its_stored_evidence_only() -> None:
