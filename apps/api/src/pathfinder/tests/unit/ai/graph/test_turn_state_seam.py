@@ -99,6 +99,7 @@ STRATEGY_RESOURCES = {
     "user_prompt",
     "verification_scope",
     "exchanges",
+    "meter",
 }
 
 

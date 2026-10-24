@@ -74,6 +74,14 @@ class SpendOutsideTheLead:
             own_key_cost=self.own_key_cost - billed.own_key_cost,
         )
 
+    def plus(self, tokens: int, cost: Decimal, *, own_key: bool) -> SpendOutsideTheLead:
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens + tokens,
+            sub_agent_cost=self.sub_agent_cost + cost,
+            own_key_tokens=self.own_key_tokens + (tokens if own_key else 0),
+            own_key_cost=self.own_key_cost + (cost if own_key else Decimal(0)),
+        )
+
 
 @dataclass
 class _LeadRunCapture:
@@ -190,6 +198,10 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
     )
     capture.sub_agent_tokens += info.usage.total_tokens
     capture.sub_agent_cost += cost
+    if info.billed:
+        capture.billed_outside_the_lead = capture.billed_outside_the_lead.plus(
+            info.usage.total_tokens, cost, own_key=info.paid_by is PaidBy.USER
+        )
     if info.paid_by is PaidBy.USER:
         capture.own_key_sub_agent_tokens += info.usage.total_tokens
         capture.own_key_sub_agent_cost += cost

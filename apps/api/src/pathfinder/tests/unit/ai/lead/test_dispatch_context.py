@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from assistant_core.platform.types import PaidBy
+from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
 
@@ -10,6 +12,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.lead.sub_agent_tools import SubAgentRunUsage
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     organism_hints_from,
@@ -306,3 +309,41 @@ def test_the_turns_operator_words_reach_the_tool_state() -> None:
     tool_state = agent_deps_for(lead_deps(state)).agent_state
 
     assert tool_state.stated_operators == frozenset({CombineOp.INTERSECT})
+
+
+def test_a_metered_run_is_recorded_on_the_call_that_ran_it() -> None:
+    recorded: list[SubAgentRunUsage] = []
+    deps = lead_deps(pipeline_state(user_prompt="q"), record_usage=recorded.append)
+    usage = RunUsage(input_tokens=1000, output_tokens=200)
+    meter = agent_deps_for(deps, call_id="call_investigate").meter
+    assert meter is not None
+
+    meter(usage, "openai:gpt-4o")
+
+    assert recorded == [
+        SubAgentRunUsage(
+            usage=usage,
+            model_name="gpt-4o",
+            provider_name="openai",
+            provider_url=None,
+            parent_tool_call_id="call_investigate",
+            paid_by=PaidBy.DEPLOYMENT,
+            billed=True,
+        )
+    ]
+
+
+def test_a_dispatch_meters_under_no_call_unless_given_one() -> None:
+    recorded: list[SubAgentRunUsage] = []
+    deps = lead_deps(pipeline_state(user_prompt="q"), record_usage=recorded.append)
+    meter = agent_deps_for(deps).meter
+    assert meter is not None
+
+    meter(RunUsage(input_tokens=5), "mock:investigator")
+
+    (one,) = recorded
+    assert (one.parent_tool_call_id, one.model_name, one.provider_name) == (
+        "",
+        "investigator",
+        "mock",
+    )

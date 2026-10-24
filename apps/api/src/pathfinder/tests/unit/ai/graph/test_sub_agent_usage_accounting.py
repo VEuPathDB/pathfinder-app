@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from decimal import Decimal
 
+import pytest
+from assistant_core import quota
 from assistant_core.platform.types import PaidBy
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
@@ -12,15 +15,18 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.usage import RunUsage
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_capture import (
     _LeadRunCapture,
+    _persist_residual_quota,
     absorb_sub_agent_usage,
     sub_agent_usage_recorder,
 )
 from pathfinder.ai.graph._lead_events import handle_sub_agent_event
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
+from pathfinder.tests._support.database import detached_session
 from pathfinder.tests._support.models import ANTHROPIC_SMALL
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -140,3 +146,27 @@ def test_a_sub_agent_pass_reports_the_running_turn_total() -> None:
     assert len(reported) == 2
     assert Decimal(reported[1]) == capture.sub_agent_cost
     assert Decimal(reported[1]) == 2 * Decimal(reported[0])
+
+
+async def test_a_pass_its_run_already_charged_counts_and_is_not_charged_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture = _LeadRunCapture()
+    state = pipeline_state(user_prompt="q")
+    charged: list[int] = []
+
+    async def accumulate(session: AsyncSession, *, tokens: int, **_: object) -> None:
+        del session
+        charged.append(tokens)
+
+    monkeypatch.setattr(quota, "accumulate", accumulate)
+    absorb_sub_agent_usage(capture, replace(_pass(2441), billed=True))
+    absorb_sub_agent_usage(capture, _pass(80))
+
+    runtime = replace(lead_deps(state).runtime, db_session_factory=detached_session)
+    await _persist_residual_quota(runtime, state, capture)
+
+    assert capture.sub_agent_tokens == 2521
+    assert capture.residual_totals(state)[0] == 2521
+    assert charged == [80]
+    assert capture.billed_outside_the_lead == capture.spend_outside_the_lead()
