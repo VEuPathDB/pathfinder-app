@@ -35,15 +35,20 @@ stored piece of evidence, and the references its own research reads returned.
 The output validator retries a review whose verdict or `known_from` names
 anything else, whose verdict names a gene the finding's target does not, or
 that claims a literature status when no research source was open. A run under
-`REVIEW_LIMITS` that stops at its limit, or never answers a valid review, is
-stored `undecided` with the reason, so the loop moves on.
+`REVIEW_LIMITS` that stops at its limit, or spends its retries, is stored as a
+stopped review (`FindingReview.stopped`, verdict `undecided`, the cause in its
+text), so the loop moves on and a stopped review is never read as a judgement.
+The reviewer runs on the review role's model settings, its reasoning effort
+included, as the auditor runs on its own.
 
 **Agreement.** The sample is the first AGREEMENT_SAMPLE of the findings the run
 reviews, ordered by `sha256(f"{seed}:{finding_id}")`, so a rebuilt run picks the
-same ones. A sampled finding is judged by a second, fresh reviewer run on the
-same stored detail, and its verdict kind is stored as `second_verdict` on the
-same row in one write, so a job killed between the two runs repeats both and
-stores one row.
+same ones; a retried run fills only the places its earlier pairs left, so the
+pairs of a run never pass AGREEMENT_SAMPLE. A sampled finding is judged by a
+second, fresh reviewer run on the same stored detail, and its verdict kind is
+stored as `second_verdict` on the same row in one write, so a job killed between
+the two runs repeats both and stores one row. A stopped run of either side
+leaves no second verdict, so the agreement counts only two judgements.
 
 **Payment.** `services/turn_payment.py::turn_payment` holds the rule
 `require_turn_paid` answers a chat request with: who pays for each provider,
@@ -57,6 +62,14 @@ the next review. Each reviewer run is charged on the row of its payer.
 the deployment's credential, the injection judge on every result and the
 metered toolset. A result the judge flags reaches the reviewer as the withheld
 sentence. A deployment that admits no research server gives `not_searched`.
+
+**Failure.** A job that raises anything else stores `stopped` with "the review
+job failed: <error type>" and the true counts, and the tokens its runs spent are
+charged. A stopped review is not pending, so the resume pass does not call the
+provider again; `review_audit_run` resumes it when the researcher asks. The
+status `finished` and the progress `waiting` are written in one transaction, and
+a deferral that fails is logged and left to the resume pass, so a finished run
+is never halted by its review.
 
 **Resume.** The job stops after `units.SLICE_SECONDS` of work and queues its
 continuation. `maintenance:resume_stranded_audits` also queues a review for
