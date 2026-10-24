@@ -93,7 +93,7 @@ def _phyletic_search(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
-    ("ceiling", "length"), [(None, 2_690), (3_000, 81_779)], ids=["recorded", "long"]
+    ("ceiling", "length"), [(None, 2_690), (1_900, 50_979)], ids=["recorded", "long"]
 )
 async def test_no_return_of_a_bind_by_handle_carries_the_expression(
     ceiling: int | None, length: int
@@ -115,12 +115,12 @@ async def test_no_return_of_a_bind_by_handle_carries_the_expression(
 async def test_the_builder_returns_the_handle_and_keeps_the_expression() -> None:
     state = framing_state()
 
-    handle = (await built(state, 3_000)).handle
+    handle = (await built(state, 1_900)).handle
 
     [(held_handle, held)] = state.built_expressions.items()
     assert (held_handle, len(held.expression), held.pattern) == (
         handle,
-        81_779,
+        50_979,
         MORE_IN_TGON,
     )
 

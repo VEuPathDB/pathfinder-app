@@ -38,7 +38,7 @@ def _phyletic_search(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def _two_built() -> tuple[AgentToolState, str, str]:
     state = framing_state()
-    long = (await built(state, 3_000)).handle
+    long = (await built(state, 1_900)).handle
     short = (await built(state, None)).handle
     await bind(state, short)
     return state, long, short

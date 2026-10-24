@@ -36,7 +36,7 @@ from pathfinder.tests.unit.ai.tools.test_a_built_expression_binds_by_its_handle 
 )
 from pathfinder.tests.unit.ai.tools.test_frame_spec import serve_search
 
-_CASES = pytest.mark.parametrize("ceiling", [None, 3_000], ids=["recorded", "long"])
+_CASES = pytest.mark.parametrize("ceiling", [None, 1_900], ids=["recorded", "long"])
 _OTHER = "APIC>=1T AND MAMM=0T"
 _PROMPT = "Which comparison of protein counts do you mean?"
 
@@ -143,7 +143,7 @@ async def test_the_facts_row_shows_the_reading(ceiling: int | None) -> None:
 
 
 async def test_a_card_binds_the_full_expression_its_handle_stands_for() -> None:
-    state, handle, expression = await _framed(3_000)
+    state, handle, expression = await _framed(1_900)
     held = state.operational_spec_draft.model_copy(deep=True)
     [criterion] = held.criteria
     held.criteria = [
@@ -201,7 +201,7 @@ async def test_a_card_binds_the_full_expression_its_handle_stands_for() -> None:
     [step] = turn_facts(lead_deps(pipeline)).steps
     [row] = [p for p in step.parameters if p.name == EXPRESSION]
     shown = "\n".join([row.value, row.label, *row.notes])
-    assert (len(expression), expression[-40:] in shown) == (81_779, False)
+    assert (len(expression), expression[-40:] in shown) == (50_979, False)
     assert max(len(row.value), *(len(note) for note in row.notes)) <= 2_100
 
 
