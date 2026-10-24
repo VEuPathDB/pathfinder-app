@@ -38,6 +38,16 @@
   answer of `NOT_CHECKED` classifies as not judged (`domain/audit/findings.py`, `_LENGTH_UNREAD`),
   so the confirm stage stores it confirmed with `judged` false and its reason, and the run view's
   rates count it under `unjudged` beside the rate instead of as a clean model.
+* **The first-run hint opens Settings on the Model tab.** The words "Settings -> Model" in
+  `ChatEmptyState` are a button. The Settings modal's open state and tab live in
+  `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav
+  rail's gear read and write it, and a focused memory still holds the modal on the memory tab.
+* **An audit run's findings filter by certainty and by gene target.** `GET
+  /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
+  (`true` reads only the run's gene targets, `false` only the screened candidates).
+  `FindingQuery.where` takes the run's target keys and fills `FindingFilter.certainties`,
+  `FindingFilter.keys` and `FindingFilter.excluded_keys`; a run with no target and `target=true`
+  lists no finding. The audit assistant's `list_audit_findings` reads the same two filters.
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`

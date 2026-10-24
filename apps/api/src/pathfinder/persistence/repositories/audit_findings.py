@@ -37,6 +37,7 @@ __all__ = ["AuditFindingRepository", "FindingFilter", "NewFinding", "SettledFind
 _INSERT_CHUNK = 1000
 _PAYLOAD: TypeAdapter[EvidencePayload] = TypeAdapter(EvidencePayload)
 _EVIDENCE_KEY = "uq_audit_evidence_finding_kind"
+type _Query = Select[tuple[AuditFinding]]
 _REVIEWED = exists().where(AuditVerdict.finding_id == AuditFinding.id).label("reviewed")
 
 
@@ -104,11 +105,42 @@ class FindingFilter(BaseModel):
     checks: tuple[CheckName, ...] = ()
     statuses: tuple[FindingStatus, ...] = ()
     error_types: tuple[ErrorType, ...] = ()
+    certainties: tuple[Certainty, ...] = ()
     genome: str | None = None
     screened_genome: str | None = None
     sampled: bool | None = None
     named: bool | None = None
     keys: tuple[str, ...] | None = None
+    excluded_keys: tuple[str, ...] = ()
+
+
+def _by_kind(query: _Query, where: FindingFilter) -> _Query:
+    if where.checks:
+        query = query.where(AuditFinding.check_name.in_(where.checks))
+    if where.statuses:
+        query = query.where(AuditFinding.status.in_(where.statuses))
+    if where.error_types:
+        query = query.where(AuditFinding.error_type.in_(where.error_types))
+    if where.certainties:
+        query = query.where(AuditFinding.certainty.in_(where.certainties))
+    if where.named is not None:
+        named = AuditFinding.error_type.is_not(None)
+        query = query.where(named if where.named else ~named)
+    return query
+
+
+def _by_place(query: _Query, where: FindingFilter) -> _Query:
+    if where.genome is not None:
+        query = query.where(AuditFinding.genome == where.genome)
+    if where.screened_genome is not None:
+        query = query.where(AuditFinding.screened_genome == where.screened_genome)
+    if where.sampled is not None:
+        query = query.where(AuditFinding.sampled.is_(where.sampled))
+    if where.keys is not None:
+        query = query.where(AuditFinding.target_key.in_(where.keys))
+    if where.excluded_keys:
+        query = query.where(AuditFinding.target_key.not_in(where.excluded_keys))
+    return query
 
 
 class AuditFindingRepository:
@@ -146,28 +178,9 @@ class AuditFindingRepository:
         )
         return [(genome, key) for genome, key in found]
 
-    def _filtered(
-        self, run_id: UUID, where: FindingFilter
-    ) -> Select[tuple[AuditFinding]]:
+    def _filtered(self, run_id: UUID, where: FindingFilter) -> _Query:
         query = select(AuditFinding).where(AuditFinding.run_id == run_id)
-        if where.checks:
-            query = query.where(AuditFinding.check_name.in_(where.checks))
-        if where.statuses:
-            query = query.where(AuditFinding.status.in_(where.statuses))
-        if where.error_types:
-            query = query.where(AuditFinding.error_type.in_(where.error_types))
-        if where.genome is not None:
-            query = query.where(AuditFinding.genome == where.genome)
-        if where.screened_genome is not None:
-            query = query.where(AuditFinding.screened_genome == where.screened_genome)
-        if where.sampled is not None:
-            query = query.where(AuditFinding.sampled.is_(where.sampled))
-        if where.named is not None:
-            named = AuditFinding.error_type.is_not(None)
-            query = query.where(named if where.named else ~named)
-        if where.keys is not None:
-            query = query.where(AuditFinding.target_key.in_(where.keys))
-        return query
+        return _by_place(_by_kind(query, where), where)
 
     async def findings(
         self,

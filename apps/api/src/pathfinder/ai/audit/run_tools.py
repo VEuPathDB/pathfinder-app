@@ -243,8 +243,8 @@ async def list_audit_findings_tool(
 ) -> ToolReturn[AuditRead[FindingPage]]:
     """List one page of an audit run's findings, highest impact first.
 
-    query filters by check, genome, screened genome, sample, status and error
-    type, and pages with offset and limit; an empty query lists the first page.
+    query filters by check, genome, screened genome, sample, status, error type,
+    certainty and gene target, and pages with offset and limit; an empty query lists the first page.
     """
     page = await list_audit_findings(ctx.deps.caller, run_id, query)
     fact = findings_fact(run_id, page)
