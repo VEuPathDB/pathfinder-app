@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 
 from pathfinder.tests.integration.http._audit_reads import (
+    mixed_run,
     screened_genome_run,
     stored_intron_run,
     stored_pair_run,
@@ -65,3 +66,19 @@ async def test_an_intron_finding_reads_with_its_verdict(app: FastAPI) -> None:
     assert [
         (f["id"], f["check"], f["verdict"], f["errorType"]) for f in page["findings"]
     ] == [(finding_id, "intron_support", "UNSUPPORTED_MISSING_EXON", "missing_exon")]
+
+
+async def test_findings_filter_by_certainty_and_by_target(app: FastAPI) -> None:
+    owner, run_id, ids = await mixed_run()
+    url = f"/api/v1/audits/{run_id}/findings"
+    async with client_for(app, owner.user_id) as client:
+        medium = (await client.get(url, params={"certainty": "medium"})).json()
+        targets = (await client.get(url, params={"target": "true"})).json()
+        screened = (await client.get(url, params={"target": "false"})).json()
+        refused = await client.get(url, params={"certainty": "certain"})
+    assert [f["id"] for f in medium["findings"]] == [ids["split"]]
+    assert sorted(f["id"] for f in targets["findings"]) == [ids["target"]]
+    assert sorted(f["id"] for f in screened["findings"]) == sorted(
+        [ids["short"], ids["split"]]
+    )
+    assert refused.status_code == 422

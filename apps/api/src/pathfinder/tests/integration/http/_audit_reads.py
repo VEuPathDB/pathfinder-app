@@ -11,7 +11,12 @@ from pathfinder.domain.audit.confirmations import (
     PseudogeneConfirmation,
 )
 from pathfinder.domain.audit.findings import ConfirmationEvidence
-from pathfinder.domain.audit.scope import AuditScope, GenePairTarget, SingleGeneTarget
+from pathfinder.domain.audit.scope import (
+    AuditScope,
+    GenePairTarget,
+    GeneTarget,
+    SingleGeneTarget,
+)
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     FindingFilter,
@@ -32,6 +37,8 @@ from pathfinder.tests._support.audit_introns import INTRON_GENE, intron_audit
 PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA))
 SHORT = SingleGeneTarget(check="gene_length", genes=("NF54_SHORT",))
 INTRON = SingleGeneTarget(check="intron_support", genes=(INTRON_GENE,))
+TARGET = SingleGeneTarget(check="gene_length", genes=("NF54_TARGET",))
+SPLIT = GenePairTarget(check="gene_split", genes=("NF54_A", "NF54_B"))
 UNREADABLE = "the gene record of NF54_SHORT is unreadable"
 UNANSWERED = "plasmodb did not answer"
 
@@ -143,3 +150,51 @@ async def stored_intron_run() -> tuple[RunOwner, UUID, int]:
         )
         await session.commit()
     return owner, run_id, intron.id
+
+
+async def mixed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
+    owner = await seed_thread()
+    run_id = await create_run(
+        owner=owner,
+        scope=AuditScope(
+            site_id="plasmodb",
+            genomes=(NF54,),
+            comparison=(P3D7,),
+            checks=("gene_length", "gene_split"),
+            targets=(TARGET,),
+        ),
+    )
+    settled: dict[str, tuple[GeneTarget, SettledFinding]] = {
+        "short": (
+            SHORT,
+            SettledFinding(
+                status="confirmed", error_type="truncated_model", certainty="high"
+            ),
+        ),
+        "split": (
+            SPLIT,
+            SettledFinding(
+                status="confirmed", error_type="split_model", certainty="medium"
+            ),
+        ),
+        "target": (TARGET, SettledFinding(status="confirmed")),
+    }
+    ids: dict[str, int] = {}
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.add_findings(
+            run_id,
+            [
+                NewFinding(genome=NF54, target=target, sampled=True, status="screened")
+                for target, _ in settled.values()
+            ],
+        )
+        stored = {
+            f.target.key: f.id for f in await repo.findings(run_id, FindingFilter())
+        }
+        for name, (target, settlement) in settled.items():
+            ids[name] = stored[target.key]
+            await repo.try_finding(ids[name])
+            await repo.settle_finding(ids[name], settlement)
+        await session.commit()
+    return owner, run_id, ids
