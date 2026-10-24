@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-25
+
+* **A compare past the expression caps is computed, saved as a group list step, and
+  stated from its facts.** PathFinder takes veupathdb-mcp v0.2.0-b51.
+  `build_phyletic_expression` answers through `answer_phyletic_pattern`; a computed
+  answer returns its counts and a `groups:` handle, `set_criterion(computed_groups=...)`
+  saves the ids with `frozen_step_id(record_type="group")` as a `GroupsByNameList`
+  criterion, and a `group_comparison` statistic carries the route, the breakdown, the
+  residual groups and each set's leading species. See
+  [a computed comparison is saved as a group list step](decisions/a-computed-comparison-is-saved-as-a-group-list-step.md).
+
 ## 2026-10-24
 
 * **A stored value renders in the form its type gives it; `stat` places it and `cite`
