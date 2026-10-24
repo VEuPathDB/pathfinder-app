@@ -10,7 +10,6 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
 from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
-from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
@@ -235,7 +234,6 @@ class TurnFacts(CamelModel):
     # reference renders them; the facts part draws no row for them.
     shown_before: list[SourceFact] = Field(default_factory=list, exclude=True)
     comparisons: list[ComparisonFact] = Field(default_factory=list)
-    met_clauses: list[MetClause] = Field(default_factory=list, exclude=True)
     # Which of the asked genes each membership check of this turn found held.
     # The reply's record references render them.
     memberships: list[MembershipFact] = Field(default_factory=list, exclude=True)
@@ -440,7 +438,6 @@ class TurnFacts(CamelModel):
                 "named_genes": [gene.redacted(redact) for gene in self.named_genes],
                 "shown_before": [s.redacted(redact) for s in self.shown_before],
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
-                "met_clauses": [m.redacted(redact) for m in self.met_clauses],
                 "memberships": [m.redacted(redact) for m in self.memberships],
                 "statistics": [s.redacted(redact) for s in self.statistics],
                 "tallies": [t.redacted(redact) for t in self.tallies],

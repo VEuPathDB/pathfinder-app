@@ -20387,17 +20387,6 @@
             "default": true,
             "title": "Hard",
             "type": "boolean"
-          },
-          "genomeShape": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GenomeShape"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Only for a requirement about which genomes hold a group's proteins: its shape as the message states it. scope: the genomes it names (codes), every genome outside them (all_except), or each species or each genome of them on its own. measure, condition and value as stated; condition absent takes no measure. kind compare, with reading, condition and factor, for a comparison of two sets. None for any other requirement."
           }
         },
         "required": [
@@ -22535,95 +22524,6 @@
           "siteId"
         ],
         "title": "GeneSet",
-        "type": "object"
-      },
-      "GenomeShape": {
-        "properties": {
-          "kind": {
-            "default": "count",
-            "enum": [
-              "count",
-              "compare"
-            ],
-            "title": "Kind",
-            "type": "string"
-          },
-          "scope": {
-            "default": "codes",
-            "enum": [
-              "codes",
-              "all_except",
-              "each_species_of",
-              "each_genome_of"
-            ],
-            "title": "Scope",
-            "type": "string"
-          },
-          "measure": {
-            "anyOf": [
-              {
-                "enum": [
-                  "genomes",
-                  "proteins",
-                  "share"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Measure"
-          },
-          "condition": {
-            "enum": [
-              "at_least",
-              "at_most",
-              "exactly",
-              "more_than",
-              "fewer_than",
-              "absent"
-            ],
-            "title": "Condition",
-            "type": "string"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          },
-          "reading": {
-            "anyOf": [
-              {
-                "enum": [
-                  "per_genome",
-                  "totals",
-                  "averages"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reading"
-          },
-          "factor": {
-            "default": 1,
-            "title": "Factor",
-            "type": "number"
-          }
-        },
-        "required": [
-          "condition"
-        ],
-        "title": "GenomeShape",
         "type": "object"
       },
       "GraphCleared": {

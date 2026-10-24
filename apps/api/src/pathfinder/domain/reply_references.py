@@ -11,7 +11,6 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 
-from pathfinder.domain.clause_facts import met_sentence
 from pathfinder.domain.comparison_facts import ComparedVariant
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.list_items import without_item_numbers
@@ -228,7 +227,6 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "record": _record,
     "stat": lambda facts, body: statistic_value(facts.statistics, body),
     "tally": lambda facts, body: tally_count(facts.tallies, body),
-    "met": lambda facts, body: met_sentence(facts.met_clauses, body),
 }
 
 
@@ -243,7 +241,7 @@ def _unheld_words(match: re.Match[str]) -> str:
             return match.group("body") or ""
         case "url":
             return "a link not shown"
-        case "value" | "source" | "stat" | "met":
+        case "value" | "source" | "stat":
             return "a value not shown"
         case _:
             return "a count not shown"

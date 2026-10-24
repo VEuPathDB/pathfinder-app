@@ -17,9 +17,6 @@ from pathfinder.ai.agents._instructions import (
     pinned_user_memories,
 )
 from pathfinder.ai.agents.frame_choice_checks import hold_a_choice_to_its_readings
-from pathfinder.ai.agents.frame_clause_checks import (
-    hold_the_reports_to_the_bound_patterns,
-)
 from pathfinder.ai.agents.frame_compare_checks import hold_a_comparison_to_its_reading
 from pathfinder.ai.agents.frame_expression_checks import (
     hold_an_every_genome_presence_to_a_question,
@@ -404,7 +401,6 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_structure_to_bound_criteria)
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
-    agent.output_validator(hold_the_reports_to_the_bound_patterns)
     agent.output_validator(hold_a_choice_to_its_readings)
     agent.output_validator(hold_an_option_to_a_held_expression)
     agent.output_validator(hold_the_readings_to_the_site)

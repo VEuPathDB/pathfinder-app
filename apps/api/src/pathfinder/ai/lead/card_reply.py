@@ -38,9 +38,7 @@ REPLY_REFERENCES = (
     "for the genes two share), [stat:<id>.<row>] one value of a statistic the EDA service "
     "computed this turn, [tally:<id>.<value>] the records a column tally of "
     "this turn counted for a value, [tally:<id>] the records it counted in all, "
-    "[tally:<id>:values] how many values it counted, [met:<requirement>] "
-    "that a term of the bound expression meets a requirement the framing pass "
-    "found met, "
+    "[tally:<id>:values] how many values it counted, "
     f"[record:<record_id>] {CITABLE_RECORDS}, [url] the strategy's "
     f"link. {PLACEMENT_RULES}"
 )

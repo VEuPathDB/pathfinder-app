@@ -9,7 +9,6 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.ai.agents.unserved import UnservedSearch
-from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.named_combine import NamedCombine
@@ -224,8 +223,6 @@ class AgentToolState:
         default_factory=dict
     )
     built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
-    clause_asked: set[str] = field(default_factory=set)
-    clause_met: dict[str, MetClause] = field(default_factory=dict)
     refusals: int = 0
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.

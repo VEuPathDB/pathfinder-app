@@ -6,14 +6,6 @@
   in `ai/lead/added_criteria.py` now needs `UserIntent.asks_a_change` as well as the catalog's
   listing, so two typed signals agree. `counts_beyond_their_sets` compares the stated count as
   an exact fraction, and the structure check reads the result with `match`.
-* **A met clause must match its requirement's typed shape, and its drop is shown.**
-  `Constraint.genome_shape` types a requirement about which genomes hold a group's proteins;
-  a report's clause is refused within the refusal bound unless it parses and matches that shape
-  (`matches_shape`). A met report is dropped in code on every result of the pass, with a
-  `report_dropped` gap and a `MetClause` the Lead reads (`FrameResult.met_by_clause`,
-  `TurnMarkers.met_clauses`), and the reply writes `[met:<n>]`, refused otherwise
-  (`unnamed_clause`). The ask for a missing clause no longer tells FRAME to leave the report out.
-  See [the decision](decisions/a-requirement-a-bound-pattern-states-is-met.md).
 * **A transform the site lists for its input is an edit the message asks for.** An edit pass that
   adds a criterion no requirement of the message states is still refused, unless the criterion
   is a transform whose search the site's catalog lists as taking the record class of the input it
@@ -35,14 +27,6 @@
   (`unbound_in_structure`, `domain/strategy/structure_bindings.py`; a criterion waiting for its
   analysis counts as bound), naming each one, so the pass binds or drops it before the build
   refuses the node. At the refusal bound the pass ends with a `structure_names_unbound` gap.
-* **A requirement the bound phyletic expression states is not reported unmet.** A
-  `RequirementReport` carries `clause`, the requirement as one pattern term, and
-  `hold_the_reports_to_the_bound_patterns` refuses a `site_has_no_search` or `stand_in_bound`
-  report whose clause a term of the bound pattern states (`states_clause`,
-  `domain/strategy/pattern_clauses.py`), so no drop card asks about it; a report with no clause
-  is sent back once with the expression's reading. The clause is JSON on FRAME's output and
-  parsed at the check, so the output type checks only shape. See
-  [the decision](decisions/a-requirement-a-bound-pattern-states-is-met.md).
 * **A comparison of two genome sets is bound in the reading FRAME classed it by.**
   `FrameResult.comparison_reading` is FRAME's typed class of a request that compares how many
   proteins two sets of genomes hold, one rule per reading (`READING_RULES` in

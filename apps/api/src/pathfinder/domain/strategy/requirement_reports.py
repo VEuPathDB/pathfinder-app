@@ -8,9 +8,8 @@ from enum import StrEnum
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
-from pydantic import Field, TypeAdapter, model_validator
+from pydantic import Field, model_validator
 from veupathdb.model import CamelModel
-from veupathdb_mcp.catalog import PhyleticPattern
 
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -19,7 +18,6 @@ from pathfinder.domain.strategy.constraints import (
 )
 
 RecordRole = Literal["answer", "through"]
-_PATTERN: TypeAdapter[PhyleticPattern] = TypeAdapter(PhyleticPattern)
 
 
 class RecordTypeRole(CamelModel):
@@ -97,19 +95,6 @@ class RequirementReport(CamelModel):
             "refused to run, such as MapProteinsByDiamond."
         ),
     )
-    clause: str = Field(
-        default="",
-        description=(
-            "Only for a requirement about which genomes hold a group's proteins, "
-            "such as an absence or a share of a set's genomes: the requirement as "
-            "one pattern term in build_phyletic_expression's form, written as "
-            "JSON. A requirement a term of the bound expression states is met and "
-            "is never reported. Empty for any other requirement."
-        ),
-    )
-
-    def clause_pattern(self) -> PhyleticPattern | None:
-        return _PATTERN.validate_json(self.clause) if self.clause.strip() else None
 
     @model_validator(mode="after")
     def _a_search_and_a_site_only_where_the_problem_takes_them(

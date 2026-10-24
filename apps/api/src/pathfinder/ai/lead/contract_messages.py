@@ -12,7 +12,6 @@ from assistant_core.graph.tool_summary import count_noun
 from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
 from pathfinder.ai.lead.edit_messages import recut_call
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -410,14 +409,6 @@ def unmade_change_message(
         f"The message asks {ask} and this turn made no change and raised no card: "
         f"make {change} through {how}, or say in the reply why {change} cannot be "
         "made."
-    )
-
-
-def unnamed_clause_message(met: MetClause) -> str:
-    return (
-        f"The framing pass found '{met.requirement}' met by the term "
-        f"{met.clause} of the bound expression and dropped its report. Write "
-        f"{met.reference} in the reply, which renders that the term meets it."
     )
 
 
