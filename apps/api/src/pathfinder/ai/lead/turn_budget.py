@@ -38,12 +38,12 @@ def lead_usage_limits() -> UsageLimits:
 
 
 def _spent_limit(spent: RunUsage, limits: UsageLimits) -> str:
-    calls, tools = limits.request_limit, limits.tool_calls_limit
-    if tools is not None and spent.tool_calls > tools:
-        return count_noun(tools, "tool call")
+    tokens, calls = limits.total_tokens_limit, limits.request_limit
+    if tokens is not None and spent.total_tokens > tokens:
+        return f"{tokens} tokens"
     if calls is not None and spent.requests >= calls:
         return count_noun(calls, "model call")
-    return f"{limits.total_tokens_limit} tokens"
+    return f"{limits.tool_calls_limit} tool calls"
 
 
 def lead_turn_budget_message(spent: RunUsage, limits: UsageLimits) -> str:

@@ -92,10 +92,11 @@ def test_each_turn_gets_its_own_limits_object() -> None:
     ("spent", "limit"),
     [
         (RunUsage(requests=80), "80 model calls"),
-        (RunUsage(requests=12, tool_calls=81), "80 tool calls"),
+        (RunUsage(requests=12, tool_calls=78), "80 tool calls"),
+        (RunUsage(requests=80, input_tokens=600_001), f"{_DEFAULT_LIMIT} tokens"),
         (RunUsage(requests=15, input_tokens=600_001), f"{_DEFAULT_LIMIT} tokens"),
     ],
-    ids=["calls", "tool_calls", "tokens"],
+    ids=["calls", "tool_calls", "tokens_at_the_call_limit", "tokens"],
 )
 def test_the_turn_budget_message_names_the_limit_the_turn_spent(
     spent: RunUsage, limit: str
