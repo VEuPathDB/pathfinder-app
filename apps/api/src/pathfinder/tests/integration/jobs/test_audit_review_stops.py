@@ -50,6 +50,7 @@ from pathfinder.tests.integration.jobs._audit_reviews import (
     queued_reviews,
     recorded_reviewer,
     review_jobs,
+    spent_tokens,
     work_reviews,
 )
 
@@ -160,6 +161,7 @@ async def test_the_tokens_of_a_run_that_fails_are_charged(
 
     model = FunctionModel(answer, model_name="test:reviewer")
     monkeypatch.setattr(review, "review_model", lambda model_id: model)
+    tokens = spent_tokens(monkeypatch)
     owner, run_id, _ = await finished_run({1: high(1)})
     await defer_review(run_id)
 
@@ -169,7 +171,9 @@ async def test_the_tokens_of_a_run_that_fails_are_charged(
         paid = await get_period_totals(
             session, owner.user_id, paid_by=PaidBy.DEPLOYMENT
         )
-    assert paid.tokens > 0
+    assert len(tokens) == 1
+    assert tokens[0] > 0
+    assert paid.tokens == tokens[0]
     assert await stored_reviews(run_id) == []
 
 
@@ -296,3 +300,21 @@ async def test_a_retried_run_keeps_its_agreement_sample(
     found = await stored_reviews(run_id)
     paired = [v for v in found if v.review is not None and v.review.second_verdict]
     assert (len(found), len(paired)) == (4, 1)
+
+
+async def test_a_retry_fills_only_the_sample_places_its_pairs_left(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(reviews, "AGREEMENT_SAMPLE", 1)
+    owner, run_id, _ = await finished_run({1: high(1), 2: high(2)})
+    await defer_review(run_id)
+    await work_reviews(jobs)
+    monkeypatch.setattr(reviews, "AGREEMENT_SAMPLE", 2)
+
+    await add_named(run_id, {3: high(3), 4: high(4), 5: high(5)})
+    await start_review(run_id, owner)
+    await work_reviews(jobs)
+
+    found = await stored_reviews(run_id)
+    paired = [v for v in found if v.review is not None and v.review.second_verdict]
+    assert (len(found), len(paired)) == (5, 2)

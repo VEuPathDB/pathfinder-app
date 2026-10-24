@@ -21,12 +21,15 @@ from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models import Model, ModelRequestParameters
 from pydantic_ai.models.wrapper import WrapperModel
 from pydantic_ai.settings import ModelSettings
+from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.audit import review
 from pathfinder.ai.audit.mock import build_review_mock
+from pathfinder.ai.audit.review import ReviewDeps
 from pathfinder.domain.audit.findings import Certainty, RelativesEvidence
 from pathfinder.domain.audit.rates import GenomeUse, Importance, Weighing
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
+from pathfinder.domain.audit.verdicts import FindingReview
 from pathfinder.jobs.impls.audit_review_impl import run_review_job
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_findings import (
@@ -43,6 +46,7 @@ from pathfinder.platform.tool_sources import (
     RESEARCH_MCP_PART_NAMESPACE,
     RESEARCH_MCP_SOURCE_ID,
 )
+from pathfinder.services.audit.finding_views import FindingDetail
 from pathfinder.services.audit.queue import AUDIT_REVIEW_JOB
 from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.tests._support.audit import seed_thread
@@ -227,3 +231,26 @@ def admitted_research(endpoint: str, monkeypatch: pytest.MonkeyPatch) -> Iterato
 
 def ids_in(stored: dict[str, int], numbers: Sequence[int]) -> list[int]:
     return [stored[gene(n)] for n in numbers]
+
+
+def spent_tokens(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    tokens: list[int] = []
+    original = review.review_finding
+
+    async def counted(
+        detail: FindingDetail,
+        *,
+        deps: ReviewDeps,
+        model: Model,
+        settings: ModelSettings | None,
+        usage: RunUsage,
+    ) -> FindingReview:
+        try:
+            return await original(
+                detail, deps=deps, model=model, settings=settings, usage=usage
+            )
+        finally:
+            tokens.append(usage.total_tokens)
+
+    monkeypatch.setattr(review, "review_finding", counted)
+    return tokens
