@@ -49,10 +49,8 @@ def json_rows(prefix: str, value: object) -> list[StatisticRowFact]:
     return list(_rows(prefix, _JSON.validate_python(value)))
 
 
-def _dumped(model: BaseModel | None, *, exclude: set[str] | None = None) -> object:
-    if model is None:
-        return None
-    return model.model_dump(mode="json", by_alias=True, exclude=exclude)
+def _dumped(model: BaseModel) -> object:
+    return model.model_dump(mode="json", by_alias=True)
 
 
 def check_fact(
