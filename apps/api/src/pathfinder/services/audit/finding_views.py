@@ -22,6 +22,7 @@ from pathfinder.domain.audit.findings import (
     FindingStatus,
 )
 from pathfinder.domain.audit.genes import evidence_genes, named_genes
+from pathfinder.domain.audit.models import FindingModels, finding_models
 from pathfinder.domain.audit.rates import Weighing
 from pathfinder.domain.audit.scope import CheckName, GeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview
@@ -140,6 +141,7 @@ class FindingDetail(CamelModel):
     review: FindingReview | None
     review_text: ReviewText | None
     genes: list[GeneLink]
+    models: FindingModels | None
 
 
 class FindingQuery(CamelModel):
@@ -284,6 +286,7 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
     )
     payloads = [record.payload for record in evidence if record.payload is not None]
     named = [link.gene for link in finding.genes]
+    confirmation = _confirmations(evidence).get(finding_id)
     return FindingDetail(
         site_id=run.site_id,
         finding=finding,
@@ -292,4 +295,5 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
         review=review,
         review_text=None if review is None else review_text(review),
         genes=_links(run.site_id, dict.fromkeys([*named, *evidence_genes(payloads)])),
+        models=None if confirmation is None else finding_models(confirmation),
     )

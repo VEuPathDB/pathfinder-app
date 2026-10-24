@@ -92,6 +92,17 @@ MEASURED_COSTS = UnitCosts(
         "intron_support": 6,
     },
     evidence_seconds={"confirmation": 0.0, "relatives": 1.3, "gene_evidence": 5.0},
+    model_reads={
+        "gene_length": 0,
+        "gene_split": 0,
+        "pseudogene_call": 0,
+        "selenoprotein_end": 1,
+        "gene_fusion": 2,
+        "strain_model": 1,
+        "missing_gene": 0,
+        "organelle_join": 0,
+        "intron_support": 0,
+    },
 )
 
 

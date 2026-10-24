@@ -148,7 +148,7 @@ class UnitCosts(CamelModel):
     confirm_seconds: Mapping[CheckName, float]
     confirm_store_reads: Mapping[CheckName, int]
     evidence_seconds: Mapping[EvidenceKind, float]
-    model_reads_per_finding: int = Field(default=0, ge=0)
+    model_reads: Mapping[CheckName, int]
 
     @model_validator(mode="after")
     def _every_unit(self) -> Self:
@@ -161,6 +161,7 @@ class UnitCosts(CamelModel):
             *_unnamed("confirm_requests", self.confirm_requests, checks),
             *_unnamed("confirm_seconds", self.confirm_seconds, checks),
             *_unnamed("confirm_store_reads", self.confirm_store_reads, checks),
+            *_unnamed("model_reads", self.model_reads, checks),
             *_unnamed("evidence_requests", self.evidence_requests, kinds),
             *_unnamed("evidence_seconds", self.evidence_seconds, kinds),
         ]
@@ -303,7 +304,7 @@ def _units(scope: AuditScope) -> list[tuple[CheckName, int]]:
 
 def _finding_requests(check: CheckName, costs: UnitCosts) -> int:
     evidence = sum(costs.evidence_requests[kind] for kind in EVIDENCE_KINDS[check])
-    return costs.confirm_requests[check] + costs.model_reads_per_finding + evidence
+    return costs.confirm_requests[check] + costs.model_reads[check] + evidence
 
 
 def _finding_seconds(check: CheckName, costs: UnitCosts) -> float:

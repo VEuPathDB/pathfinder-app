@@ -6,8 +6,9 @@ from fastapi.responses import JSONResponse
 from pathfinder.platform.errors import ForbiddenError
 from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.security import create_dev_login_token, set_dev_login_cookie
+from pathfinder.services.audit.sample_run import SampleRunIds, store_sample_run
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.transport.http.deps import DBSession
+from pathfinder.transport.http.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/api/v1/dev", tags=["dev"])
 
@@ -33,3 +34,10 @@ async def dev_login(session: DBSession, user_id: str | None = None) -> JSONRespo
     resp = JSONResponse({"authToken": auth_token, "userId": str(internal_id)})
     set_dev_login_cookie(resp, auth_token)
     return resp
+
+
+@router.post("/audits/sample")
+async def store_sample_audit_run(user_id: CurrentUser) -> SampleRunIds:
+    if not is_mock_deployment():
+        raise ForbiddenError(title="Only available in mock mode")
+    return await store_sample_run(user_id)

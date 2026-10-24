@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import pytest
+from veupathdb_mcp.audit import MODEL_READS_PER_FINDING
 
 from pathfinder.domain.audit.planning import PlanRequest, SiteGenome, estimate
 from pathfinder.domain.audit.scope import AuditScope, MissingGeneTarget
@@ -255,3 +256,14 @@ async def test_the_estimate_waits_the_settings_run_hours(
 
     assert proposal.estimate is not None
     assert proposal.estimate.hours_at_most == 3.5
+
+
+def test_measured_model_reads_stay_under_the_library_bound() -> None:
+    reads = MEASURED_COSTS.model_reads
+
+    assert max(reads.values()) <= MODEL_READS_PER_FINDING
+    assert {check: n for check, n in reads.items() if n} == {
+        "strain_model": 1,
+        "gene_fusion": 2,
+        "selenoprotein_end": 1,
+    }
