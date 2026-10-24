@@ -200,6 +200,10 @@ def test_a_turn_that_answers_the_start_card_reaches_it() -> None:
     assert _offered(_answering(IntentClassification.APPROVAL)) == _AUDIT_TOOLS
 
 
+def test_a_typed_answer_to_the_start_card_sends_the_start_schema() -> None:
+    assert _listed(_answering(IntentClassification.APPROVAL)) == AUDIT_TOOLS
+
+
 def test_an_unclassified_answer_to_the_start_card_reaches_it() -> None:
     assert _offered(_answering(None)) == AUDIT_START_TOOLS
 
