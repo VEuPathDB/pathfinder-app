@@ -28,7 +28,7 @@ from pathfinder.domain.audit.scope import (
     SingleGeneTarget,
 )
 from pathfinder.services.audit import checks
-from pathfinder.services.audit.checks import UnitFailure, confirm_target
+from pathfinder.services.audit.checks import DeclinedCheck, UnitFailure, confirm_target
 from pathfinder.services.audit.units import SignInNeededError
 from pathfinder.tests._support.audit import (
     GT1_SELK,
@@ -255,7 +255,6 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
             ),
             "failed",
         ),
-        (ToolError("NOT_A_GENE names no gene of plasmodb"), "failed"),
     ],
 )
 async def test_a_tool_error_is_failed_or_unreached(
@@ -273,11 +272,25 @@ async def test_a_tool_error_is_failed_or_unreached(
     assert found == UnitFailure(status=status, message=str(error))
 
 
+async def test_a_tool_error_with_no_site_error_under_it_is_declined(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    refusal = "NOT_A_GENE names no gene of plasmodb"
+
+    async def tool(site_id: str, gene: str) -> object:
+        raise ToolError(refusal)
+
+    monkeypatch.setattr(checks, "audit_gene_length", tool)
+    found = await confirm_target(
+        "plasmodb", SingleGeneTarget(check="gene_length", genes=("NOT_A_GENE",))
+    )
+    assert found == DeclinedCheck(message=refusal)
+
+
 async def test_the_library_refuses_a_strain_gene_its_site_does_not_flag() -> None:
     with yip1_records() as report:
         found = await confirm_target(SITE, UNFLAGGED_STRAIN)
-    assert found == UnitFailure(
-        status="failed",
+    assert found == DeclinedCheck(
         message=(
             f"{DD2_YIP1} is not flagged a pseudogene on plasmodb (is_pseudo: No); "
             "the check reads a strain gene the site calls a pseudogene"
@@ -336,7 +349,6 @@ _HALF_THE_CIRCLE = (
     ("error", "status"),
     [
         (_caused(_HALF_THE_CIRCLE, ValueError(_HALF_THE_CIRCLE)), "failed"),
-        (ToolError(f"{ARI_NAC} names no gene of toxodb"), "failed"),
         (
             _caused("VEuPathDB service error", WDKError("upstream failed", status=502)),
             "unreached",
@@ -356,6 +368,21 @@ async def test_a_refused_genome_check_is_failed_or_unreached(
     monkeypatch.setattr(checks, tool, refusing)
     found = await confirm_target("plasmodb", _GENOME_CHECKS[tool])
     assert found == UnitFailure(status=status, message=str(error))
+
+
+@pytest.mark.parametrize("tool", list(_GENOME_CHECKS))
+async def test_a_genome_check_the_library_refuses_is_declined(
+    monkeypatch: pytest.MonkeyPatch, tool: str
+) -> None:
+    refusal = f"{ARI_NAC} names no gene of toxodb"
+
+    async def refusing(*args: str) -> object:
+        del args
+        raise ToolError(refusal)
+
+    monkeypatch.setattr(checks, tool, refusing)
+    found = await confirm_target("plasmodb", _GENOME_CHECKS[tool])
+    assert found == DeclinedCheck(message=refusal)
 
 
 @pytest.mark.parametrize("tool", list(_GENOME_CHECKS))
