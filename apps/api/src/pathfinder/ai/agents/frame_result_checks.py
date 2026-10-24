@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.requirement_reports import (
     reported_requirements,
     unknown_requirement_ids,
 )
+from pathfinder.domain.strategy.structure_bindings import unbound_in_structure
 from pathfinder.services.gene_sets.homes import site_kind
 
 
@@ -135,6 +136,34 @@ def hold_an_organism_to_a_step(
     raise ModelRetry(msg)
 
 
+def hold_the_structure_to_bound_criteria(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    match output:
+        case FrameResult(disposition="spec_ready"):
+            pass
+        case _:
+            return output
+    state = ctx.deps.agent_state
+    unbound = unbound_in_structure(state.operational_spec_draft)
+    if not unbound:
+        return output
+    ids = ", ".join(unbound)
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gap(
+            "structure_names_unbound",
+            f"The structure names {ids}, which no bound criterion stands for.",
+        )
+    state.refusals += 1
+    them = "it" if len(unbound) == 1 else "them"
+    msg = (
+        f"set_structure names {ids}, and the draft binds no search for {them}. "
+        f"Bind each with set_criterion, or call set_structure again without {them}: "
+        "the build refuses a node no bound criterion stands for."
+    )
+    raise ModelRetry(msg)
+
+
 def hold_the_questions_to_the_draft(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
@@ -239,6 +268,15 @@ def _misreported_refusals(
             "no search: put the search the site refused in `search`, or report the "
             "requirement as site_has_no_search."
         )
+    limited = [r for r in unrefused if r.search in state.builder_refusals]
+    if limited:
+        named = [r.search for r in limited]
+        limits = "; ".join(state.builder_refusals[search] for search in named)
+        return limited, (
+            f"site_refused_the_search names {named}, and the site never ran it: "
+            f"build_phyletic_expression's own limit refused the pattern ({limits}). "
+            "Narrow the pattern, or report the requirement as site_has_no_search."
+        )
     unlisted = [r for r in unrefused if r.search in state.unserved_searches]
     if unlisted:
         return unlisted, (
@@ -303,4 +341,5 @@ __all__ = [
     "hold_the_reports_to_the_refusals",
     "hold_the_reports_to_the_requirement_list",
     "hold_the_route_to_another_site",
+    "hold_the_structure_to_bound_criteria",
 ]

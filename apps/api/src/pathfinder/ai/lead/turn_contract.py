@@ -29,6 +29,7 @@ from pathfinder.ai.lead.contract_messages import (
     unrendered_prose_message,
     unreported_change_message,
     unsaved_controls_message,
+    unstated_reading_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.ledger import blamed_the_site
@@ -120,6 +121,7 @@ MismatchKind = Literal[
     "failed_check",
     "unmade_change",
     "unbacked_absence",
+    "unstated_reading",
 ]
 
 
@@ -313,6 +315,11 @@ def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:
     return UNBACKED_ABSENCE
 
 
+def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
+    unstated = [r for r in record.chosen_readings if r.unstated_in(report.prose)]
+    return unstated_reading_message(unstated[0]) if unstated else None
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -332,6 +339,7 @@ _RULES: tuple[
     ("failed_check", _failed_check),
     ("unmade_change", _unmade_change),
     ("unbacked_absence", _unbacked_absence),
+    ("unstated_reading", _unstated_reading),
 )
 
 

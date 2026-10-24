@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterator
-from itertools import combinations
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -22,31 +21,35 @@ from pathfinder.domain.reference_grammar import (
     reference_kind,
 )
 from pathfinder.domain.reference_placement import misplacements
-from pathfinder.domain.scratchpad_facts import hard_facts
+from pathfinder.domain.reply_suggestions import (
+    A_TOKEN,
+    EDGE_MARKS,
+    an_identifier,
+    last_change,
+    link_references,
+    number_references,
+    product_of,
+    record_references,
+    value_word_references,
+)
 from pathfinder.domain.statistic_facts import (
     statistic_group_references,
-    statistic_references,
     statistic_value,
     statistic_word_references,
 )
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import tally_count, tally_references
+from pathfinder.domain.tally_facts import tally_count
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
 _A_LINK = re.compile(
     r"(?:https?:[\\/]*|www\.|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
     re.IGNORECASE,
 )
-_A_TOKEN = re.compile(r"[\w:./,%+-]+")
-_EDGE_MARKS = ".,:;/+-_"
-_A_UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.IGNORECASE)
 _THE_DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _NUM = r"\d[\d,]*(?:\.\d+)?(?:[eE][+-]?\d+)?"
 # A count or a value: a number, a range or ratio of numbers, with a percent or a
 # unit glued to it ("37C", "5x", "2-fold"), or a log scale ("log2").
 _A_NUMBER = re.compile(rf"[+-]?{_NUM}(?:[-/]{_NUM})*(?:%|-?[A-Za-z]{{1,4}})?|log\d+")
-# The protein-domain and Ensembl accessions a record carries.
-_AN_ACCESSION = re.compile(r"PF\d{5}|IPR\d{6}|ENS[A-Z]*[GTP]\d{11}")
 # The count a comparison reference names after its variant.
 _COMPARED = ("unique", "result", "shared")
 _GROUP_SHOWN = 6
@@ -70,6 +73,7 @@ type FaultKind = Literal[
     "number_word",
     "noun_after_count",
     "product_text",
+    "standalone_count",
 ]
 
 
@@ -139,10 +143,6 @@ def _compared(facts: TurnFacts, body: str) -> int | None:
             return variant.gene_count
 
 
-def _last_change(facts: TurnFacts, side: str) -> int | None:
-    return None if facts.last_change is None else facts.last_change.count(side)
-
-
 def _count(facts: TurnFacts, side: str) -> int | None:
     """The count one side of a difference names."""
     kind, _, body = side.partition(":")
@@ -157,7 +157,7 @@ def _count(facts: TurnFacts, side: str) -> int | None:
         case "compare", _:
             return _compared(facts, body)
         case "last_change", _:
-            return _last_change(facts, body)
+            return last_change(facts, body)
         case _:
             step = facts.step(side)
             return None if step is None else step.count
@@ -222,7 +222,7 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "before": _step_count_before,
     "diff": lambda facts, body: _with_noun(_difference(facts, body), facts),
     "compare": lambda facts, body: _with_noun(_compared(facts, body), facts),
-    "last_change": lambda facts, body: _with_noun(_last_change(facts, body), facts),
+    "last_change": lambda facts, body: _with_noun(last_change(facts, body), facts),
     "value": _value,
     "source": _source,
     "record": _record,
@@ -262,114 +262,9 @@ def render_reply(prose: str, facts: TurnFacts) -> str:
     return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
 
 
-def _count_references(facts: TurnFacts) -> Iterator[tuple[str, int]]:
-    """Each reference to a count the facts hold, with its count."""
-    for step in facts.steps:
-        if step.count is not None:
-            yield step.step_id, step.count
-        if step.count_before is not None:
-            yield f"before:{step.step_id}", step.count_before
-    for name, count in (
-        ("root", facts.root_count),
-        ("root_before", facts.root_count_before),
-        ("last_change:before", _last_change(facts, "before")),
-        ("last_change:after", _last_change(facts, "after")),
-    ):
-        if count is not None:
-            yield name, count
-    for comparison in facts.comparisons:
-        for v in comparison.variants:
-            yield f"compare:{v.label}", v.gene_count
-            yield f"compare:{v.label}:unique", v.unique_count
-            if v.result_count is not None:
-                yield f"compare:{v.label}:result", v.result_count
-
-
-def _shown(side: str) -> str:
-    """A count side as a reference of its own."""
-    if side in ("root", "root_before") or side.startswith(
-        ("before:", "compare:", "last_change:")
-    ):
-        return f"[{side}]"
-    return f"[count:{side}]"
-
-
-def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
-    """The references that render the number: a count, a difference of two
-    counts, the genes two variants share, a value, or a statistic."""
-    counts = list(_count_references(facts))
-    held = [_shown(side) for side, n in counts if str(n) == number]
-    held.extend(
-        f"[diff:{a},{b}]"
-        for (a, n), (b, m) in combinations(counts, 2)
-        if str(abs(n - m)) == number
-    )
-    held.extend(
-        f"[compare:{o.a},{o.b}:shared]"
-        for c in facts.comparisons
-        for o in c.overlaps
-        if str(o.shared) == number
-    )
-    held.extend(
-        f"[value:{step.step_id}.{p.name}]"
-        for step in facts.steps
-        for p in step.parameters
-        if p.value == number
-    )
-    held.extend(statistic_references(facts.statistics, number))
-    held.extend(tally_references(facts.tallies, number))
-    return tuple(dict.fromkeys(held))
-
-
-def _record_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
-    ids = {s.record_id for s in facts.citable_records()}
-    return (f"[record:{token}]",) if token in ids else ()
-
-
-def _link_references(facts: TurnFacts, link: str) -> tuple[str, ...]:
-    if link == facts.strategy_url():
-        return ("[url]",)
-    return tuple(
-        dict.fromkeys(
-            f"[record:{s.record_id}]" for s in facts.citable_records() if s.url == link
-        )
-    )
-
-
-def _an_identifier(token: str) -> bool:
-    """A site's gene id, a domain or Ensembl accession, a search name, or a
-    snake_case, colon-joined or uuid token. A count is never an identifier."""
-    named = any(c.isalpha() for c in token) and token in hard_facts(token)
-    shaped = "_" in token or ":" in token or named
-    accession = _AN_ACCESSION.fullmatch(token) or _A_UUID.fullmatch(token)
-    return shaped or accession is not None
-
-
-def _value_word_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
-    """The value references whose value or label holds the token as a word."""
-    return tuple(
-        f"[value:{step.step_id}.{p.name}]"
-        for step in facts.steps
-        for p in step.parameters
-        if token in p.value.split() or token in p.label.split()
-    )
-
-
-def _product_of(facts: TurnFacts, token: str) -> str:
-    """The id of a record whose product holds the number as a word, or ""."""
-    return next(
-        (
-            s.record_id
-            for s in facts.citable_records()
-            if token in (w.strip(_EDGE_MARKS) for w in _A_TOKEN.findall(s.product))
-        ),
-        "",
-    )
-
-
 def _words(text: str) -> set[str]:
     """The whole tokens of the text, case folded."""
-    return {found.strip(_EDGE_MARKS).casefold() for found in _A_TOKEN.findall(text)}
+    return {found.strip(EDGE_MARKS).casefold() for found in A_TOKEN.findall(text)}
 
 
 def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
@@ -377,14 +272,14 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
     in neither shape ("PfEMP1", "3D7", "SignalP-6.0") is prose, and so is a
     number a request message writes as a whole token."""
     said = {word for message in facts.request_messages for word in _words(message)}
-    for found in _A_TOKEN.findall(text):
-        token = found.strip(_EDGE_MARKS)
-        identifier = bool(token) and _an_identifier(token)
+    for found in A_TOKEN.findall(text):
+        token = found.strip(EDGE_MARKS)
+        identifier = bool(token) and an_identifier(token)
         if not identifier and (
             _A_NUMBER.fullmatch(token) is None or token.casefold() in said
         ):
             continue
-        record_id = "" if identifier else _product_of(facts, token)
+        record_id = "" if identifier else product_of(facts, token)
         if record_id:
             reference = f"[record:{record_id}]"
             yield ProseFault(
@@ -398,13 +293,13 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
         numbered = (
             ()
             if digits is None
-            else _number_references(facts, digits.group().replace(",", ""))
+            else number_references(facts, digits.group().replace(",", ""))
         )
         yield ProseFault(
             token=token,
             kind="identifier" if identifier else "number",
-            references=_record_references(facts, token)
-            or _value_word_references(facts, token)
+            references=record_references(facts, token)
+            or value_word_references(facts, token)
             or (
                 statistic_word_references(facts.statistics, token) if identifier else ()
             )
@@ -424,7 +319,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
     held = TurnFacts() if facts is None else facts
     text = _outside(prose)
     links = [
-        ProseFault(token=link, kind="link", references=_link_references(held, link))
+        ProseFault(token=link, kind="link", references=link_references(held, link))
         for link in _A_LINK.findall(text)
     ]
     tokens = list(_token_faults(_A_LINK.sub(" ", text), held))
@@ -457,9 +352,26 @@ def _held_under(match: re.Match[str], facts: TurnFacts) -> tuple[str, ...]:
     return held[:_GROUP_SHOWN]
 
 
+def standalone_counts(prose: str, facts: TurnFacts) -> list[ProseFault]:
+    written = {match.group() for match in A_REFERENCE.finditer(prose)}
+    return [
+        ProseFault(
+            token=alone,
+            kind="standalone_count",
+            references=(f"[compare:{v.label}:result]",),
+        )
+        for c in facts.comparisons
+        for v in c.variants
+        if v.larger_alone
+        and (alone := f"[compare:{v.label}]") in written
+        and f"[compare:{v.label}:result]" not in written
+    ]
+
+
 def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
-    """Each reference that names nothing the facts hold, then each fact the
-    prose writes outside a reference."""
+    """Each reference that names nothing the facts hold, each variant size alone
+    quoted without its count in the strategy, then each fact the prose writes
+    outside a reference."""
     unheld = [
         ProseFault(
             token=match.group(),
@@ -468,7 +380,8 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         )
         for match in _unheld(prose, facts)
     ]
-    return list(dict.fromkeys([*unheld, *shape_faults(prose, facts)]))
+    alone = standalone_counts(prose, facts)
+    return list(dict.fromkeys([*unheld, *alone, *shape_faults(prose, facts)]))
 
 
 __all__ = [

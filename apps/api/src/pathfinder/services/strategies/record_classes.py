@@ -68,7 +68,7 @@ async def record_class_names(site_id: str) -> dict[str, str]:
     }
 
 
-async def _site_transforms(site_id: str) -> dict[str, SearchRecordClasses]:
+async def site_transforms(site_id: str) -> dict[str, SearchRecordClasses]:
     return {
         search.url_segment: record_classes_of(search, record.url_segment)
         for record in await get_raw_record_types(site_id)
@@ -133,7 +133,7 @@ async def tree_record_class_refusal(
         **held,
     }
     names = await record_class_names(site_id)
-    transforms = await _site_transforms(site_id)
+    transforms = await site_transforms(site_id)
     mixed = first_mixed_combine(root, own)
     if mixed is not None:
         return mixed_combine_refusal(mixed, names, transforms)

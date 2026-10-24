@@ -108,7 +108,7 @@ digits with thousands separators, a decimal point, an exponent, a range, a perce
 unit, "37C", "5x", "2-fold", "1e-6", and a log scale, "log2"; an item number that starts a
 line is the list's mark only when it is 1 or follows the item number before it), an
 identifier shape (`domain/scratchpad_facts.hard_facts` gene ids and search names such as
-`PF3D7_0908300`, `PKNH_1234500`, `TGME49_233460`, `LmjF.36.0010`; `_AN_ACCESSION`, the Pfam,
+`PF3D7_0908300`, `PKNH_1234500`, `TGME49_233460`, `LmjF.36.0010`; `reply_suggestions._AN_ACCESSION`, the Pfam,
 InterPro and Ensembl accessions; a snake_case, colon-joined or uuid token, so a GO term and a
 step id), a link, a reference that names nothing
 the facts hold, and a bracket outside a reference that nests, opens with a reference's name

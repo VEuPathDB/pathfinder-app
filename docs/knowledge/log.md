@@ -55,6 +55,67 @@
   relatives facts add "Related genomes read" (the count and the range of lengths) and "Related
   genomes from" (the tier, in the words `TIER_WORDS` gives the strain facts too) when they are
   stored.
+* **A listed transform passes the edit check only beside a classified change.** The exemption
+  in `ai/lead/added_criteria.py` now needs `UserIntent.asks_a_change` as well as the catalog's
+  listing, so two typed signals agree. `counts_beyond_their_sets` compares the stated count as
+  an exact fraction, and the structure check reads the result with `match`.
+* **A transform the site lists for its input is an edit the message asks for.** An edit pass that
+  adds a criterion no requirement of the message states is still refused, unless the criterion
+  is a transform whose search the site's catalog lists as taking the record class of the input it
+  maps (`listed_transform_ids`, `domain/strategy/listed_transforms.py`, over
+  `services/strategies/record_classes.py::site_transforms`); the refusal moved to
+  `ai/lead/added_criteria.py`. The classifier's typed `UserIntent.asks_a_change` marks a message
+  that asks the strategy to change however it is worded: the gate refuses a `follow_up_question`
+  so marked, and `held_as_question` keeps such a request a request, so it reaches FRAME.
+* **A builder's own refusal is not a site failure.** `build_phyletic_expression` reads the
+  library's `ValidationError` (its guard: unknown codes, the term and depth caps, the count-read
+  ceiling) as the builder's limit: the retry says so and the pass records it in
+  `AgentToolState.builder_refusals`. A `WDKError` the site answered while the builder counted is
+  recorded in `refused_searches`, as a bound count's refusal is. `hold_the_reports_to_the_refusals`
+  sends back a `site_refused_the_search` report naming a search only the builder refused, so no
+  card says the site failed to run it.
+* **A ready spec's structure names only criteria the draft bound.** The FRAME output validator
+  `hold_the_structure_to_bound_criteria` (`ai/agents/frame_result_checks.py`) sends back a
+  `spec_ready` pass whose structure names a criterion the draft lacks or holds with no search
+  (`unbound_in_structure`, `domain/strategy/structure_bindings.py`; a criterion waiting for its
+  analysis counts as bound), naming each one, so the pass binds or drops it before the build
+  refuses the node. At the refusal bound the pass ends with a `structure_names_unbound` gap.
+* **A comparison of two genome sets is bound in the reading FRAME classed it by.**
+  `FrameResult.comparison_reading` is FRAME's typed class of a request that compares how many
+  proteins two sets of genomes hold, one rule per reading (`READING_RULES` in
+  `domain/strategy/compare_readings.py`: `per_genome` for each genome, `totals` for the sets
+  pooled, `averages` for proteins per genome, an average or a ratio). The output validator
+  `hold_a_comparison_to_its_reading` (`ai/agents/frame_compare_checks.py`) refuses a pass whose
+  bound expressions hold no compare term, or a compare of another reading where a set holds
+  more than one genome. `build_phyletic_expression` states the same three rules. Rejected: reading
+  the reading off the question's words; the class is FRAME's own typed field.
+* **A set's genome count is read from the site's taxonomy, never stated.**
+  `build_phyletic_expression` answers `sets`, each set the pattern names with the genomes its
+  codes cover on the site's taxonomy (`domain/strategy/pattern_sets.py`, `set_sizes`), and
+  refuses, before any count read, a genome count larger than its set holds, naming both counts
+  (`counts_beyond_their_sets`; `each_genome_of` holds one genome a part, `each_species_of` its
+  largest species). Its description no longer asks FRAME to turn a share into a genome count:
+  a share is stated as `share` and the builder reads the set's size.
+* **A reading FRAME chose without asking is named in the reply.** `FrameResult.chosen_reading`
+  (`domain/strategy/chosen_reading.py`: the reading built and at least one other) marks a request
+  that reads more than one way and was built one way without a card. The frame dispatch records it
+  on the turn (`TurnMarkers.chosen_readings`), and the turn contract refuses a reply that does not
+  name the chosen reading and every other one (`unstated_reading`). No card is added: the choice
+  stays FRAME's, and the reply makes it visible.
+* **A share of a result is quoted as the count inside the strategy.** A variant that
+  `compare_search_variants` counted in place shows both counts in the facts part
+  (`ComparedVariant.row`: its size alone and its count in the strategy's result). A reply that
+  quotes `[compare:<variant>]`, the size alone, for a variant larger alone than the strategy's
+  result with it in place, and never `[compare:<variant>:result]`, is refused
+  (`standalone_counts` in `domain/reply_references.py`, fault kind `standalone_count`) with the
+  reference that renders the count in the strategy.
+* **An off-topic classification is held to the site's own record types.** The classification
+  gate (`ai/lead/classification_gate.py`) reads the record types of the site's loaded catalog
+  (`held_record_types`, no request) when a message is classified `off_topic`, and refuses that
+  classification when the message holds a record type's display name or its plural as one run
+  of words. The refusal lists every record type of the site, so the Lead reads the site's own
+  record words as in scope. No word list is kept.
+
 * **The first-run hint opens Settings on the Model tab.** The words "Settings -> Model" in
   `ChatEmptyState` are a button. The Settings modal's open state and tab live in
   `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav

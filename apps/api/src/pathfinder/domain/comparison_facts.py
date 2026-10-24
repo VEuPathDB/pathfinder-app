@@ -28,12 +28,21 @@ class ComparedVariant(CamelModel):
     differs_by: dict[str, str] = Field(default_factory=dict)
 
     def row(self, noun: str) -> str:
-        """The variant's count, after the values it differs by from the others."""
+        """The variant's count, after the values it differs by from the others,
+        and its count inside the strategy when it was counted in place."""
         differs = "; ".join(
             f"{name}: {_shown_value(wire)}" for name, wire in self.differs_by.items()
         )
         searched = f"{self.label} ({differs})" if differs else self.label
-        return f"{searched}: {counted(self.gene_count, noun)}"
+        alone = counted(self.gene_count, noun)
+        if self.result_count is None:
+            return f"{searched}: {alone}"
+        placed = counted(self.result_count, noun)
+        return f"{searched}: {alone} alone; {placed} in the strategy's result"
+
+    @property
+    def larger_alone(self) -> bool:
+        return self.result_count is not None and self.gene_count > self.result_count
 
 
 def _shown_value(wire: str) -> str:

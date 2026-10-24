@@ -17706,6 +17706,12 @@ components:
           description: 'For a change to the strategy: ''loosen'' when the message asks the result to admit more records (a
             lower cut, a wider range, a requirement dropped), ''tighten'' when it asks for fewer, ''other'' for any other
             message.'
+        asksAChange:
+          default: false
+          description: 'The message asks the strategy to change: a step added, removed or replaced, its records carried to
+            another record type, or a value changed. True whether it is worded as a request or as a question.'
+          title: Asksachange
+          type: boolean
         undo:
           default: false
           description: The message asks to undo, revert or put back the last change.

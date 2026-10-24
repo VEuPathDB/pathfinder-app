@@ -1,5 +1,5 @@
 """The refusals the classification gate holds an intent to, read from the turn
-and from the site's organisms and genes."""
+and from the site's organisms, genes and record types."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 from pydantic import ConfigDict, Field
 from veupathdb.model import CamelModel
 from veupathdb_mcp.audit import GeneIdRefusal, TooManyIdsError
-from veupathdb_mcp.catalog import NoGeneRecordsError
+from veupathdb_mcp.catalog import NoGeneRecordsError, get_discovery_service
 from veupathdb_mcp.gene_lookup import (
     GeneIdFound,
     GeneIdReading,
@@ -23,6 +23,8 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
     named_ids,
     nothing_to_answer_message,
+    occurs_in,
+    question_asks_a_change_message,
     question_withdraws_message,
     unstated_ids_message,
     unstated_operator_refusal,
@@ -37,6 +39,33 @@ from pathfinder.services.gene_records.read import gene_record_url
 _ID_CANDIDATE = re.compile(r"(?<![\w.])(?=[\w.-]*\d)[A-Za-z]\w*(?:[.-]\w+)*")
 
 
+class RecordNames(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    singular: str
+    plural: str
+
+    def shown(self) -> str:
+        return f"{self.singular} ({self.plural})" if self.plural else self.singular
+
+    def named_in(self, message: str) -> str | None:
+        return next(
+            (name for name in (self.plural, self.singular) if occurs_in(name, message)),
+            None,
+        )
+
+
+def _record_names(site_id: str) -> tuple[RecordNames, ...]:
+    held = get_discovery_service().held_record_types(site_id)
+    if held is None:
+        return ()
+    return tuple(
+        RecordNames(singular=rt.display_name, plural=rt.display_name_plural)
+        for rt in held
+        if rt.display_name
+    )
+
+
 class SiteReading(CamelModel):
     """What the gate read of the site for this classification."""
 
@@ -46,6 +75,7 @@ class SiteReading(CamelModel):
     genes: frozenset[str] = frozenset()
     """The asked ids that resolve to a gene of the site, case-folded."""
     unread: frozenset[str] = frozenset()
+    records: tuple[RecordNames, ...] = ()
 
     def holds(self, gene_id: str) -> bool:
         return gene_id.casefold() in self.genes | self.unread
@@ -105,7 +135,9 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
         for reading in found
         for gene in reading.records
     )
+    off_topic = intent.classification is IntentClassification.OFF_TOPIC
     return SiteReading(
+        records=_record_names(state.site_id) if off_topic else (),
         organisms=organisms,
         genes=frozenset(reading.given.casefold() for reading in found),
         unread=frozenset(g.casefold() for g in asked)
@@ -117,16 +149,31 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
 def _off_topic_refusal(
     state: PipelineState, intent: UserIntent, site: SiteReading
 ) -> str | None:
-    """Why an off-topic intent is in scope: the message names genes of the site."""
+    """Why an off-topic intent is in scope: the message names genes or a record
+    type of the site."""
     if intent.classification is not IntentClassification.OFF_TOPIC:
         return None
     asked = _ids_to_resolve(state, intent)
     genes = [gene_id for gene_id in asked if gene_id.casefold() in site.genes]
-    if not genes:
+    if genes:
+        return (
+            f"The message names {', '.join(genes)}, genes of this site, so it is in "
+            "scope. Classify it by what it asks of them."
+        )
+    return _record_type_refusal(state.user_prompt, site.records)
+
+
+def _record_type_refusal(message: str, records: tuple[RecordNames, ...]) -> str | None:
+    named = next(
+        (found for record in records if (found := record.named_in(message))), None
+    )
+    if named is None:
         return None
+    held = ", ".join(record.shown() for record in records)
     return (
-        f"The message names {', '.join(genes)}, genes of this site, so it is in "
-        "scope. Classify it by what it asks of them."
+        f'The message names "{named}", a record type of this site, so it is in '
+        f"scope. This site's records are: {held}. Classify it by what it asks of "
+        "them."
     )
 
 
@@ -210,13 +257,15 @@ def held_as_question(state: PipelineState, intent: UserIntent) -> UserIntent | N
 
     The message states nothing outside its asks: no word of a requirement the
     intent records, or no word at all when it records none. An ask that names
-    a check keeps the request.
+    a check keeps the request, and so does an intent marked as asking a change.
     """
     if intent.classification not in _REQUESTS or not intent.asks:
         return None
     if any(_CHECK_WORDS.intersection(words_of(ask)) for ask in intent.asks):
         return None
     if intent.edit_direction != "other" or intent.withdrawn:
+        return None
+    if intent.asks_a_change:
         return None
     outside = _words_outside_the_asks(state, intent)
     stated = {
@@ -237,6 +286,10 @@ def classification_refusal(
     operator = unstated_operator_refusal(intent, message)
     if operator is not None:
         return operator
+    if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
+        intent.asks_a_change
+    ):
+        return question_asks_a_change_message()
     if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
         intent.withdrawn
     ):

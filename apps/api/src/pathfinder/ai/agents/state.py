@@ -217,6 +217,7 @@ class AgentToolState:
     spec_the_dispatch_found: OperationalSpec | None = None
     # The searches the site refused to run this pass, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)
+    builder_refusals: dict[str, str] = field(default_factory=dict)
     unserved_searches: dict[str, UnservedSearch] = field(default_factory=dict)
     id_list_datasets: dict[tuple[str, str, tuple[str, ...]], str] = field(
         default_factory=dict

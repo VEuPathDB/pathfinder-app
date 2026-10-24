@@ -3,12 +3,23 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.errors import ValidationError
-from veupathdb_mcp.catalog import PhyleticPattern, write_phyletic_expression
+from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
+from veupathdb.errors import ValidationError, WDKError
+from veupathdb_mcp.catalog import (
+    PhyleticExpressionResult,
+    PhyleticPattern,
+    ortho_taxonomy,
+    write_phyletic_expression,
+)
 
 from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._expression_handles import held_handle
+from pathfinder.domain.strategy.pattern_sets import (
+    SetSize,
+    counts_beyond_their_sets,
+    set_sizes,
+)
 
 PHYLETIC_EXPRESSION_MAX_CALL_SECONDS = 300
 
@@ -20,6 +31,27 @@ class BuiltExpression(CamelModel):
     reading: str
     groups: int
     codes: tuple[str, ...]
+    sets: tuple[SetSize, ...] = ()
+
+
+def _builder_limit(limit: str) -> str:
+    return (
+        f"build_phyletic_expression refused the pattern before the site ran it: "
+        f"{limit} This is the builder's own limit, not a site failure: correct or narrow "
+        "the pattern and build it again. A requirement no pattern within the limit "
+        "states is never site_refused_the_search."
+    )
+
+
+async def _written(
+    ctx: RunContext[AgentDeps], pattern: PhyleticPattern
+) -> PhyleticExpressionResult:
+    try:
+        return await write_phyletic_expression(ctx.deps.site_id, pattern)
+    except WDKError as refused:
+        answer = f"HTTP {refused.status}: {refused.detail}"
+        ctx.deps.agent_state.refused_searches[PHYLETIC_EXPRESSION_SEARCH] = answer
+        raise
 
 
 async def build_phyletic_expression(
@@ -42,9 +74,12 @@ async def build_phyletic_expression(
       protein in any genome of the set, with no measure and no value.
     - compare: {"kind": "compare", "left": SET, "right": SET, "reading": R,
       "condition": C, "factor": F} holds when left C F times right, F defaulting
-      to 1. per_genome compares each genome of left with each genome of right;
-      totals compares the protein totals of the two sets; averages compares
-      proteins per genome, each total divided by its set's genome count.
+      to 1. per_genome answers a question about each genome: every genome of
+      left against every genome of right. totals answers a question about the
+      sets pooled: all proteins of left against all proteins of right. averages
+      answers a question about proteins per genome, an average or a ratio: each
+      set's proteins divided by its genome count. A comparison of two sets of
+      genomes is a compare, never a count over one genome of each.
     - all_of, any_of, none_of: {"kind": "all_of", "terms": [PATTERN, ...]} holds
       when every term holds, any_of when one does, none_of when none does.
 
@@ -56,13 +91,16 @@ async def build_phyletic_expression(
       species of clade X, each on its own.
     - {"kind": "each_genome_of", "codes": ["X"]}: the count holds in every genome
       of clade X, each on its own.
-    compare takes codes and all_except only. A share of N genomes is a genome
-    count: at_least p is at least ceil(p*N/100) genomes. A pattern nests at most
-    8 levels and holds at most 128 terms.
+    compare takes codes and all_except only. State a share of a set's genomes
+    with measure share: the tool reads each set's genome count from the site's
+    taxonomy, and refuses a genome count larger than the set holds. A pattern
+    nests at most 8 levels and holds at most 128 terms.
 
     The result gives handle, reading (the expression in words), groups (the
-    groups it returns) and codes (the codes it names). The expression itself
-    stays with the conversation: bind phyletic_expression to the handle, such as
+    groups it returns), codes (the codes it names) and sets (each set the
+    pattern names with the genomes its codes cover on the site's taxonomy).
+    A genome count you state comes from sets, never from your own count.
+    The expression itself stays with the conversation: bind phyletic_expression to the handle, such as
     "expr:3f2a9c01b7de", in this pass or a later one, or offer it as a value of
     a question. A pattern the site could not read or count within the call
     budget is refused with its size; narrow it and call again.
@@ -71,15 +109,21 @@ async def build_phyletic_expression(
         ctx: Agent run context.
         pattern: The groups to select, as described above.
     """
+    tree = await ortho_taxonomy(ctx.deps.site_id)
+    beyond = [] if tree is None else counts_beyond_their_sets(pattern, tree)
+    if beyond:
+        raise ModelRetry(" ".join(count.sentence for count in beyond))
     try:
         built = await read_in_time(
             "build_phyletic_expression",
             "the phyletic expression's group counts",
-            write_phyletic_expression(ctx.deps.site_id, pattern),
+            _written(ctx, pattern),
             deadline=PHYLETIC_EXPRESSION_MAX_CALL_SECONDS,
         )
     except ValidationError as exc:
-        raise ModelRetry(exc.detail or exc.title) from exc
+        limit = exc.detail or exc.title
+        ctx.deps.agent_state.builder_refusals[PHYLETIC_EXPRESSION_SEARCH] = limit
+        raise ModelRetry(_builder_limit(limit)) from exc
     held = BuiltExpression(
         handle=held_handle(
             ctx.deps.agent_state, built.expression, pattern, built.reading
@@ -87,5 +131,6 @@ async def build_phyletic_expression(
         reading=built.reading,
         groups=built.groups,
         codes=built.codes,
+        sets=() if tree is None else set_sizes(pattern, tree),
     )
     return with_summary(held, f"{held.groups} groups", ctx=ctx)
