@@ -9562,6 +9562,13 @@
                 "type": "null"
               }
             ]
+          },
+          "genes": {
+            "items": {
+              "$ref": "#/components/schemas/GeneLink"
+            },
+            "type": "array",
+            "title": "Genes"
           }
         },
         "type": "object",
@@ -9571,7 +9578,8 @@
           "evidence",
           "facts",
           "review",
-          "reviewText"
+          "reviewText",
+          "genes"
         ],
         "title": "FindingDetail"
       },
@@ -10112,6 +10120,13 @@
               }
             ]
           },
+          "genes": {
+            "items": {
+              "$ref": "#/components/schemas/GeneLink"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
           "check": {
             "type": "string",
             "enum": [
@@ -10180,6 +10195,7 @@
           "verdict",
           "fromTarget",
           "reviewLine",
+          "genes",
           "check",
           "verdictText",
           "checkTitle",
@@ -10764,6 +10780,24 @@
           "codeInferred"
         ],
         "title": "GeneLengthAudit"
+      },
+      "GeneLink": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "url"
+        ],
+        "title": "GeneLink"
       },
       "GeneListDataset": {
         "properties": {
@@ -14773,6 +14807,23 @@
             ],
             "title": "Relativesmedian"
           },
+          "relativeLengths": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Relativelengths"
+          },
+          "relativesTier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelativeTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "side": {
             "anyOf": [
               {
@@ -14800,7 +14851,11 @@
           "referenceGene",
           "referenceLength",
           "modelLength",
-          "relativesMedian"
+          "relativesMedian",
+          "relativeLengths",
+          "relativesTier",
+          "side",
+          "referenceOrganism"
         ],
         "title": "RelativesEvidence"
       },

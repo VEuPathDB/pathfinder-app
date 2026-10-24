@@ -113,6 +113,10 @@ async def add_named(run_id: UUID, weighings: dict[int, Weighing]) -> dict[str, i
                     reference_length=400,
                     model_length=200,
                     relatives_median=400.0,
+                    relative_lengths={},
+                    relatives_tier=None,
+                    side=None,
+                    reference_organism=None,
                 ),
                 requests=1,
             )

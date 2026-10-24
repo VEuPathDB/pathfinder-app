@@ -177,12 +177,18 @@ def test_relatives_state_their_numbers() -> None:
         relatives_median=300.0,
         side="STRAIN_SHORT",
         reference_organism="Plasmodium falciparum 3D7",
+        relative_lengths={},
+        relatives_tier=None,
     )
     unmeasured = RelativesEvidence(
         reference_gene="REF",
         reference_length=None,
         model_length=None,
         relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
     )
     assert _pairs(relatives_facts(relatives)) == [
         ("Reference model", "REF in Plasmodium falciparum 3D7, 319 residues"),
@@ -198,6 +204,37 @@ def test_relatives_state_their_numbers() -> None:
         ("This model", "Not read"),
         ("Median of independent related genomes", "Not read"),
         ("Which model the related genomes support", "Not read"),
+    ]
+
+
+def test_stored_relative_lengths_state_their_count_and_range() -> None:
+    relatives = RelativesEvidence(
+        reference_gene="REF",
+        reference_length=1319,
+        model_length=110,
+        relatives_median=1300.0,
+        relative_lengths={"P. vivax": 1300, "P. knowlesi": 1302, "P. berghei": 1298},
+        relatives_tier="SAME_GENUS",
+        side=None,
+        reference_organism=None,
+    )
+    other_genera = relatives.model_copy(
+        update={
+            "relative_lengths": {"T. gondii": 310, "C. parvum": 312},
+            "relatives_tier": "OTHER_GENERA",
+        }
+    )
+    assert _pairs(relatives_facts(relatives)) == [
+        ("Reference model", "REF, 1,319 residues"),
+        ("This model", "110 residues"),
+        ("Median of independent related genomes", "1300 residues"),
+        ("Related genomes read", "3 genomes, 1,298 to 1,302 residues"),
+        ("Related genomes from", "The same genus"),
+        ("Which model the related genomes support", "Not read"),
+    ]
+    assert _pairs(relatives_facts(other_genera))[3:5] == [
+        ("Related genomes read", "2 genomes, 310 to 312 residues"),
+        ("Related genomes from", "Other genera"),
     ]
 
 
@@ -237,6 +274,10 @@ def test_the_summary_joins_every_fact_of_every_group() -> None:
         reference_length=319,
         model_length=110,
         relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
     )
     records = GeneEvidencePayload(genes=(PIGA,), evidence=(PIGA_EVIDENCE,))
     assert evidence_summary([evidence_facts(relatives), evidence_facts(records)]) == (

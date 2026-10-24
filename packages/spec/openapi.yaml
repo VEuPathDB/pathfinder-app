@@ -6204,6 +6204,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/ReviewText'
           - type: 'null'
+        genes:
+          items:
+            $ref: '#/components/schemas/GeneLink'
+          type: array
+          title: Genes
       type: object
       required:
       - siteId
@@ -6212,6 +6217,7 @@ components:
       - facts
       - review
       - reviewText
+      - genes
       title: FindingDetail
     FindingLine:
       properties:
@@ -6556,6 +6562,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/ReviewLine'
           - type: 'null'
+        genes:
+          items:
+            $ref: '#/components/schemas/GeneLink'
+          type: array
+          title: Genes
         check:
           type: string
           enum:
@@ -6608,6 +6619,7 @@ components:
       - verdict
       - fromTarget
       - reviewLine
+      - genes
       - check
       - verdictText
       - checkTitle
@@ -6995,6 +7007,19 @@ components:
       - code
       - codeInferred
       title: GeneLengthAudit
+    GeneLink:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        url:
+          type: string
+          title: Url
+      type: object
+      required:
+      - gene
+      - url
+      title: GeneLink
     GeneListDataset:
       properties:
         siteId:
@@ -9711,6 +9736,15 @@ components:
           - type: number
           - type: 'null'
           title: Relativesmedian
+        relativeLengths:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Relativelengths
+        relativesTier:
+          anyOf:
+          - $ref: '#/components/schemas/RelativeTier'
+          - type: 'null'
         side:
           anyOf:
           - $ref: '#/components/schemas/SideVerdict'
@@ -9726,6 +9760,10 @@ components:
       - referenceLength
       - modelLength
       - relativesMedian
+      - relativeLengths
+      - relativesTier
+      - side
+      - referenceOrganism
       title: RelativesEvidence
     ReplaceStrategyOp:
       properties:

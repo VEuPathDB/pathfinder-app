@@ -4,7 +4,7 @@ from collections.abc import Iterable, Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
-from veupathdb_mcp.audit import GeneEvidence, GeneticCode
+from veupathdb_mcp.audit import GeneEvidence, GeneticCode, RelativeTier
 
 from pathfinder.domain.audit.findings import (
     EvidenceKind,
@@ -16,6 +16,10 @@ from pathfinder.domain.audit.words import SIDE_SENTENCES
 NOT_READ = "Not read"
 NONE = "None found"
 YES_NO: dict[bool | None, str] = {True: "Yes", False: "No", None: NOT_READ}
+TIER_WORDS: dict[RelativeTier, str] = {
+    "SAME_GENUS": "The same genus",
+    "OTHER_GENERA": "Other genera",
+}
 
 _CODES: dict[GeneticCode, str] = {
     GeneticCode.STANDARD: "Standard",
@@ -76,6 +80,19 @@ def unread_facts(reasons: Sequence[str]) -> tuple[Fact, ...]:
     )
 
 
+def _read_relatives(evidence: RelativesEvidence) -> tuple[Fact, ...]:
+    lengths = evidence.relative_lengths
+    tier = evidence.relatives_tier
+    if tier is None:
+        return ()
+    genomes = counted(len(lengths), "genome", "genomes")
+    span = f"{min(lengths.values()):,} to {max(lengths.values()):,} residues"
+    return (
+        Fact(label="Related genomes read", value=f"{genomes}, {span}"),
+        Fact(label="Related genomes from", value=TIER_WORDS[tier]),
+    )
+
+
 def relatives_facts(evidence: RelativesEvidence) -> tuple[Fact, ...]:
     organism = evidence.reference_organism
     gene = (
@@ -94,6 +111,7 @@ def relatives_facts(evidence: RelativesEvidence) -> tuple[Fact, ...]:
             label="Median of independent related genomes",
             value=NOT_READ if median is None else f"{median:g} residues",
         ),
+        *_read_relatives(evidence),
         Fact(
             label="Which model the related genomes support",
             value=NOT_READ if side is None else SIDE_SENTENCES[side],

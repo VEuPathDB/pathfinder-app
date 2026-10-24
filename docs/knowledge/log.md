@@ -19,6 +19,27 @@
   stored rendered. A run with no kept finding stores `NO_FINDING_KEPT` without a model call; each
   review pass clears the earlier synthesis, and a stopped synthesis stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
+* **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
+  `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them (a
+  confirmation that does not name a target gene raises; with none stored, the target's own), and
+  `evidence_genes`, the relatives' reference gene and the genes whose records were read, in
+  order and once each. `FindingView.genes` links the finding's own genes and
+  `FindingDetail.genes` those and every gene its evidence names, each a `GeneLink {gene, url}`
+  built by `services/record_pages.py::record_page_url`, the one record-page helper.
+* **The relatives evidence of a length finding keeps each relative's length.**
+  `RelativesEvidence.relative_lengths` maps each relative organism to its longest copy, taken
+  from the same `relatives_of` read that gives the median, so the dot plot needs no new read.
+  `relatives_tier` keeps the library's tier (same genus or other genera) beside them, and a model
+  validator stores the two together. Every key of `RelativesEvidence` is required: `{}` and
+  null state a read that found no reference row or too few relatives. Alembic `2026_10_24_0002`
+  writes those values into the relatives rows stored without the keys. The
+  relatives facts add "Related genomes read" (the count and the range of lengths) and "Related
+  genomes from" (the tier, in the words `TIER_WORDS` gives the strain facts too) when they are
+  stored.
+* **The first-run hint opens Settings on the Model tab.** The words "Settings -> Model" in
+  `ChatEmptyState` are a button. The Settings modal's open state and tab live in
+  `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav
+  rail's gear read and write it, and a focused memory still holds the modal on the memory tab.
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`
   (`true` reads only the run's gene targets, `false` only the screened candidates).

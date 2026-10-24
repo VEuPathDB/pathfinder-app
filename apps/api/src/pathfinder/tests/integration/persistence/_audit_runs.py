@@ -23,7 +23,14 @@ PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA))
 SHORT = SingleGeneTarget(check="gene_length", genes=("NF54_SHORT",))
 SCOPE = AuditScope(site_id="plasmodb", targets=(PAIR,))
 RELATIVES = RelativesEvidence(
-    reference_gene=PIGA, reference_length=461, model_length=461, relatives_median=460.0
+    reference_gene=PIGA,
+    reference_length=461,
+    model_length=461,
+    relatives_median=460.0,
+    relative_lengths={},
+    relatives_tier=None,
+    side=None,
+    reference_organism=None,
 )
 UNREACHED = "plasmodb did not answer"
 

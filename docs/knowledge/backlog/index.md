@@ -29,7 +29,7 @@ what left.
 29. [A decision model is chosen on our own scorecards](a-decision-model-is-chosen-on-our-own-scorecards.md) - PARKED: Cloudflare's open-weight Clef and Clef-flash take Jev's request shape; the five Jev scorecards are rerun on both, on hosted Workers AI, before any decision model is wired.
 53. [A recorded gold strategy builds from its file](a-recorded-gold-strategy-builds-from-its-file.md) - no recorded gold file validates as a typed step tree, so the gold build route builds none of them.
 
-54. [Two site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary.
+54. [Three site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
 
 ## Known and accepted
 

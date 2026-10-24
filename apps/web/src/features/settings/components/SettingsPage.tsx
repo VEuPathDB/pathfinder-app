@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Modal } from "@/lib/components/Modal";
-import type { SettingsTab } from "../types";
+import type { SettingsTab } from "@/state/useSettingsModalStore";
 import { DataSettings } from "./settings/DataSettings";
 import { AdvancedSettings } from "./settings/AdvancedSettings";
 import { MemorySettings } from "./settings/MemorySettings";

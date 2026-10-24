@@ -10,7 +10,7 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
 from pathfinder.domain.audit.check_facts import evidence_facts
-from pathfinder.domain.audit.confirmations import FindingVerdict
+from pathfinder.domain.audit.confirmations import Confirmation, FindingVerdict
 from pathfinder.domain.audit.facts import EvidenceFacts
 from pathfinder.domain.audit.findings import (
     Certainty,
@@ -21,6 +21,7 @@ from pathfinder.domain.audit.findings import (
     EvidenceStatus,
     FindingStatus,
 )
+from pathfinder.domain.audit.genes import evidence_genes, named_genes
 from pathfinder.domain.audit.rates import Weighing
 from pathfinder.domain.audit.scope import CheckName, GeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview
@@ -42,11 +43,26 @@ from pathfinder.services.audit.review_views import (
     review_text,
 )
 from pathfinder.services.audit.runs import readable_run
+from pathfinder.services.record_pages import record_page_url
 
 MAX_PAGE = 200
 DEFAULT_PAGE = 50
 MAX_ROW_ID = 2**63 - 1
 _FACT_ORDER: tuple[EvidenceKind, ...] = ("confirmation", "relatives", "gene_evidence")
+
+
+class GeneLink(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    gene: str
+    url: str
+
+
+def _links(site_id: str, genes: Iterable[str]) -> list[GeneLink]:
+    return [
+        GeneLink(gene=gene, url=record_page_url(site_id, "gene", gene))
+        for gene in genes
+    ]
 
 
 class FindingView(CamelModel):
@@ -72,6 +88,7 @@ class FindingView(CamelModel):
     verdict: FindingVerdict | None
     from_target: bool
     review_line: ReviewLine | None
+    genes: list[GeneLink]
 
     @computed
     def check(self) -> CheckName:
@@ -122,6 +139,7 @@ class FindingDetail(CamelModel):
     facts: list[EvidenceFacts]
     review: FindingReview | None
     review_text: ReviewText | None
+    genes: list[GeneLink]
 
 
 class FindingQuery(CamelModel):
@@ -155,7 +173,8 @@ class FindingQuery(CamelModel):
 def _view(
     record: AuditFindingRecord,
     *,
-    verdict: FindingVerdict | None,
+    site_id: str,
+    confirmation: Confirmation | None,
     from_target: bool,
 ) -> FindingView:
     return FindingView(
@@ -176,18 +195,21 @@ def _view(
         stopped=record.stopped,
         message=record.message,
         reviewed=record.reviewed,
-        verdict=verdict,
+        verdict=None if confirmation is None else confirmation.verdict,
         from_target=from_target,
         review_line=None if record.review is None else review_line(record.review),
+        genes=_links(site_id, named_genes(record.target, confirmation)),
     )
 
 
-def _verdicts(evidence: Iterable[AuditEvidenceRecord]) -> dict[int, FindingVerdict]:
-    found: dict[int, FindingVerdict] = {}
+def _confirmations(
+    evidence: Iterable[AuditEvidenceRecord],
+) -> dict[int, Confirmation]:
+    found: dict[int, Confirmation] = {}
     for record in evidence:
         match record.payload:
             case ConfirmationEvidence(confirmation=confirmation):
-                found[record.finding_id] = confirmation.verdict
+                found[record.finding_id] = confirmation
             case _:
                 pass
     return found
@@ -203,15 +225,17 @@ def stored_facts(evidence: Iterable[AuditEvidenceRecord]) -> list[EvidenceFacts]
 
 
 def _views(
+    site_id: str,
     found: Iterable[AuditFindingRecord],
     evidence: Iterable[AuditEvidenceRecord],
     target_keys: Collection[str],
 ) -> list[FindingView]:
-    verdicts = _verdicts(evidence)
+    confirmations = _confirmations(evidence)
     return [
         _view(
             record,
-            verdict=verdicts.get(record.id),
+            site_id=site_id,
+            confirmation=confirmations.get(record.id),
             from_target=record.target.key in target_keys,
         )
         for record in found
@@ -239,7 +263,7 @@ async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> Find
         site_id=run.site_id,
         total=total,
         offset=query.offset,
-        findings=_views(found, evidence, set(target_keys)),
+        findings=_views(run.site_id, found, evidence, set(target_keys)),
     )
 
 
@@ -255,7 +279,11 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
             )
         evidence = await repo.evidence(run_id, [finding_id])
     review = found.review
-    (finding,) = _views([found], evidence, {t.key for t in run.scope.targets})
+    (finding,) = _views(
+        run.site_id, [found], evidence, {t.key for t in run.scope.targets}
+    )
+    payloads = [record.payload for record in evidence if record.payload is not None]
+    named = [link.gene for link in finding.genes]
     return FindingDetail(
         site_id=run.site_id,
         finding=finding,
@@ -263,4 +291,5 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
         facts=stored_facts(evidence),
         review=review,
         review_text=None if review is None else review_text(review),
+        genes=_links(run.site_id, dict.fromkeys([*named, *evidence_genes(payloads)])),
     )

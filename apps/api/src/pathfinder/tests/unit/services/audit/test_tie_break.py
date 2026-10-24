@@ -25,6 +25,11 @@ ROWS = [
     gene_row("PK", "Plasmodium knowlesi H", 302),
     gene_row("PB", "Plasmodium berghei ANKA", 298),
 ]
+RELATIVES = {
+    "Plasmodium vivax P01": 300,
+    "Plasmodium knowlesi H": 302,
+    "Plasmodium berghei ANKA": 298,
+}
 
 
 def test_the_relatives_are_the_other_species_of_the_reference_genus() -> None:
@@ -34,6 +39,8 @@ def test_the_relatives_are_the_other_species_of_the_reference_genus() -> None:
         reference_length=319,
         model_length=110,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         side=tie_break(319, 110, 300.0),
         reference_organism="Plasmodium falciparum 3D7",
     )
@@ -47,6 +54,8 @@ def test_a_model_the_relatives_support_leaves_the_side_unclear() -> None:
         reference_length=319,
         model_length=296,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         side="UNCLEAR",
         reference_organism="Plasmodium falciparum 3D7",
     )
@@ -59,6 +68,8 @@ def test_a_split_pair_is_weighed_by_its_parts_together() -> None:
         reference_length=319,
         model_length=300,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         side="UNCLEAR",
         reference_organism="Plasmodium falciparum 3D7",
     )
@@ -71,7 +82,10 @@ def test_a_model_with_a_part_of_no_length_has_no_model_length() -> None:
         reference_length=319,
         model_length=None,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         reference_organism="Plasmodium falciparum 3D7",
+        side=None,
     )
 
 
@@ -81,7 +95,10 @@ def test_a_model_part_the_rows_do_not_hold_has_no_model_length() -> None:
         reference_length=319,
         model_length=None,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         reference_organism="Plasmodium falciparum 3D7",
+        side=None,
     )
 
 
@@ -91,6 +108,23 @@ def test_a_reference_the_rows_do_not_hold_has_no_lengths() -> None:
         reference_length=None,
         model_length=110,
         relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
+    )
+
+
+def test_too_few_relatives_store_no_lengths() -> None:
+    assert _weighed("REF", ["STRAIN"], ROWS[:3]) == RelativesEvidence(
+        reference_gene="REF",
+        reference_length=319,
+        model_length=110,
+        relatives_median=None,
+        relative_lengths={},
+        side="NO_RELATIVES",
+        reference_organism="Plasmodium falciparum 3D7",
+        relatives_tier=None,
     )
 
 
@@ -113,6 +147,11 @@ def test_the_models_own_organism_has_no_vote_among_the_relatives() -> None:
         reference_length=319,
         model_length=110,
         relatives_median=311.0,
+        relative_lengths={
+            "Toxoplasma gondii ME49": 310,
+            "Cryptosporidium parvum Iowa II": 312,
+        },
+        relatives_tier="OTHER_GENERA",
         side="STRAIN_SHORT",
         reference_organism="Plasmodium vivax P01",
     )
@@ -125,6 +164,8 @@ def test_the_lengths_are_the_records_and_the_median_is_the_groups() -> None:
         reference_length=319,
         model_length=110,
         relatives_median=300.0,
+        relative_lengths=RELATIVES,
+        relatives_tier="SAME_GENUS",
         side="STRAIN_SHORT",
         reference_organism="Plasmodium falciparum 3D7",
     )
