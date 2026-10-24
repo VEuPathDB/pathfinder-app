@@ -1,0 +1,2810 @@
+{
+  "run": {
+    "run": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "siteId": "plasmodb",
+      "conversationId": "00000000-0000-4000-8000-000000000002",
+      "release": "71",
+      "status": "finished",
+      "phase": "finished",
+      "deadlineAt": null,
+      "genomes": ["Plasmodium falciparum NF54", "Plasmodium falciparum Dd2"],
+      "checks": [
+        "gene_length",
+        "intron_support",
+        "organelle_join",
+        "pseudogene_call",
+        "strain_model"
+      ],
+      "targets": 3,
+      "createdAt": "2026-10-22T00:00:00Z",
+      "finishedAt": "2026-10-22T00:00:00Z"
+    },
+    "scope": {
+      "siteId": "plasmodb",
+      "genomes": ["Plasmodium falciparum NF54", "Plasmodium falciparum Dd2"],
+      "comparison": ["Plasmodium falciparum 3D7"],
+      "checks": ["gene_length", "pseudogene_call"],
+      "targets": [
+        {
+          "check": "strain_model",
+          "genes": ["PcyM_0736700", "PCYB_074210"]
+        },
+        {
+          "check": "organelle_join",
+          "genes": ["PF3D7_MIT02300"],
+          "organism": "Plasmodium falciparum NF54",
+          "sequenceId": "CM019798.1"
+        },
+        {
+          "check": "intron_support",
+          "genes": ["PcyM_0736700"]
+        }
+      ],
+      "referenceGenome": "Plasmodium falciparum 3D7",
+      "confirmLimit": 150
+    },
+    "stages": {
+      "stages": [
+        {
+          "name": "collect",
+          "finished": true,
+          "requests": 4,
+          "storeReads": 0,
+          "done": 3,
+          "total": 3,
+          "message": ""
+        },
+        {
+          "name": "screen",
+          "finished": true,
+          "requests": 2,
+          "storeReads": 0,
+          "done": 2,
+          "total": 2,
+          "message": ""
+        },
+        {
+          "name": "confirm",
+          "finished": true,
+          "requests": 9,
+          "storeReads": 45,
+          "done": 6,
+          "total": 8,
+          "message": ""
+        },
+        {
+          "name": "tie_break",
+          "finished": true,
+          "requests": 6,
+          "storeReads": 0,
+          "done": 1,
+          "total": 3,
+          "message": ""
+        }
+      ],
+      "halted": null,
+      "targetFailure": null
+    },
+    "requests": 21,
+    "storeReads": 45,
+    "unfinished": [],
+    "genomes": [
+      {
+        "organism": "Plasmodium falciparum NF54",
+        "role": "audited",
+        "status": "collected",
+        "geneCount": 1,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "priority": null,
+        "referenceStrain": false
+      },
+      {
+        "organism": "Plasmodium falciparum Dd2",
+        "role": "audited",
+        "status": "collected",
+        "geneCount": 1,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "priority": null,
+        "referenceStrain": false
+      },
+      {
+        "organism": "Plasmodium falciparum 3D7",
+        "role": "comparison",
+        "status": "collected",
+        "geneCount": 2,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "priority": null,
+        "referenceStrain": true
+      }
+    ],
+    "counts": [
+      {
+        "genome": "Plasmodium cynomolgi strain M",
+        "check": "intron_support",
+        "status": "confirmed",
+        "errorType": "missing_exon",
+        "judged": true,
+        "modelGenome": "Plasmodium cynomolgi strain M",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium cynomolgi strain M",
+        "check": "strain_model",
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "judged": true,
+        "modelGenome": "Plasmodium cynomolgi strain M",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "confirmed",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 2
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unreached",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unread",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unsampled",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum NF54",
+        "check": "organelle_join",
+        "status": "confirmed",
+        "errorType": "organelle_split_at_join",
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum NF54",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum NF54",
+        "check": "pseudogene_call",
+        "status": "confirmed",
+        "errorType": "intact_gene_called_pseudogene",
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum NF54",
+        "count": 1
+      }
+    ],
+    "rates": [
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "bounds": {
+          "confirmed": 1,
+          "checked": 3,
+          "unresolved": 3,
+          "rate": 0.3333333333333333,
+          "low": 0.061491944720396235,
+          "high": 0.7923403991979523,
+          "floor": 0.16666666666666666,
+          "ceiling": 0.6666666666666666
+        },
+        "unjudged": 0,
+        "unresolvedByStatus": {
+          "screened": 0,
+          "unsampled": 1,
+          "trying": 0,
+          "failed": 0,
+          "declined": 0,
+          "unreached": 1,
+          "unread": 1,
+          "total": 3
+        },
+        "unresolved": 3
+      },
+      {
+        "genome": "Plasmodium falciparum NF54",
+        "check": "pseudogene_call",
+        "bounds": {
+          "confirmed": 1,
+          "checked": 1,
+          "unresolved": 0,
+          "rate": 1.0,
+          "low": 0.20654931437723742,
+          "high": 1.0,
+          "floor": 1.0,
+          "ceiling": 1.0
+        },
+        "unjudged": 0,
+        "unresolvedByStatus": {
+          "screened": 0,
+          "unsampled": 0,
+          "trying": 0,
+          "failed": 0,
+          "declined": 0,
+          "unreached": 0,
+          "unread": 0,
+          "total": 0
+        },
+        "unresolved": 0
+      }
+    ],
+    "targets": {
+      "genomes": [
+        {
+          "genome": "Plasmodium cynomolgi strain B",
+          "check": "strain_model",
+          "checked": 1,
+          "errors": 0,
+          "unjudged": 0,
+          "unresolvedByStatus": {
+            "screened": 0,
+            "unsampled": 0,
+            "trying": 0,
+            "failed": 0,
+            "declined": 0,
+            "unreached": 0,
+            "unread": 0,
+            "total": 0
+          },
+          "unresolved": 0
+        },
+        {
+          "genome": "Plasmodium cynomolgi strain M",
+          "check": "intron_support",
+          "checked": 1,
+          "errors": 1,
+          "unjudged": 0,
+          "unresolvedByStatus": {
+            "screened": 0,
+            "unsampled": 0,
+            "trying": 0,
+            "failed": 0,
+            "declined": 0,
+            "unreached": 0,
+            "unread": 0,
+            "total": 0
+          },
+          "unresolved": 0
+        },
+        {
+          "genome": "Plasmodium cynomolgi strain M",
+          "check": "strain_model",
+          "checked": 1,
+          "errors": 1,
+          "unjudged": 0,
+          "unresolvedByStatus": {
+            "screened": 0,
+            "unsampled": 0,
+            "trying": 0,
+            "failed": 0,
+            "declined": 0,
+            "unreached": 0,
+            "unread": 0,
+            "total": 0
+          },
+          "unresolved": 0
+        },
+        {
+          "genome": "Plasmodium falciparum NF54",
+          "check": "organelle_join",
+          "checked": 1,
+          "errors": 1,
+          "unjudged": 0,
+          "unresolvedByStatus": {
+            "screened": 0,
+            "unsampled": 0,
+            "trying": 0,
+            "failed": 0,
+            "declined": 0,
+            "unreached": 0,
+            "unread": 0,
+            "total": 0
+          },
+          "unresolved": 0
+        }
+      ],
+      "unplaced": 0
+    },
+    "review": {
+      "status": "synthesized",
+      "done": 5,
+      "total": 5,
+      "message": ""
+    },
+    "synthesis": {
+      "sections": [
+        {
+          "errorType": "intact_gene_called_pseudogene",
+          "cause": "Sample review: rebuilt through the reference coding sequence, the strain's DNA encodes all 1,386 bases with no stop inside.",
+          "confirmedBy": "Sample: the pseudogene check rebuilt the strain's DNA through the reference coding sequence.",
+          "findingIds": [1]
+        },
+        {
+          "errorType": "truncated_model",
+          "cause": "Sample review: the strain model lacks reference residues 41 to 100, which the strain's genome encodes.",
+          "confirmedBy": "Sample: the strain check read reference residues 41 to 100 in the strain's genome.",
+          "findingIds": [8]
+        },
+        {
+          "errorType": "organelle_split_at_join",
+          "cause": "Sample review: the reference protein is whole only across the join of CM019798.1.",
+          "confirmedBy": "Sample: the organelle check aligned the reference protein across the join of the circular contig.",
+          "findingIds": [9]
+        },
+        {
+          "errorType": "missing_exon",
+          "cause": "Sample review: RNA-seq junctions of 1,436 and 1,686 reads join the exon 1,381,887 to 1,382,044 the model lacks.",
+          "confirmedBy": "Sample: the intron check read the RNA-seq junctions that join the exon the model lacks.",
+          "findingIds": [10]
+        }
+      ],
+      "headline": [1, 8, 9, 10],
+      "summary": "Sample summary: each section restates what its check stored.",
+      "agreement": {
+        "sampled": 2,
+        "agreed": 1,
+        "share": 0.5
+      }
+    },
+    "reviewed": 5,
+    "action": "retry",
+    "reviewsRunning": false,
+    "halt": null,
+    "left": {
+      "genomes": 0,
+      "findings": 2,
+      "evidence": 2,
+      "total": 4
+    },
+    "evidence": [
+      {
+        "kind": "confirmation",
+        "status": "stored",
+        "count": 7
+      },
+      {
+        "kind": "gene_evidence",
+        "status": "stored",
+        "count": 1
+      },
+      {
+        "kind": "gene_evidence",
+        "status": "unreached",
+        "count": 1
+      },
+      {
+        "kind": "gene_evidence",
+        "status": "unread",
+        "count": 1
+      }
+    ],
+    "errorTypes": [
+      {
+        "errorType": "intact_gene_called_pseudogene",
+        "title": "Intact gene called a pseudogene",
+        "description": "The site calls the gene a pseudogene, but the genome's DNA encodes the whole protein its reference encodes.",
+        "count": 1,
+        "genomes": ["Plasmodium falciparum NF54"],
+        "certainty": "high",
+        "cause": "Sample review: rebuilt through the reference coding sequence, the strain's DNA encodes all 1,386 bases with no stop inside.",
+        "confirmedBy": "Sample: the pseudogene check rebuilt the strain's DNA through the reference coding sequence.",
+        "reviewed": [
+          {
+            "id": 1,
+            "genes": ["PfNF54_100037200", "PF3D7_1032400"],
+            "genome": "Plasmodium falciparum NF54",
+            "errorType": "intact_gene_called_pseudogene",
+            "errorTitle": "Intact gene called a pseudogene",
+            "certainty": "high",
+            "impact": 0.5,
+            "reviewedImpact": 0.8
+          }
+        ]
+      },
+      {
+        "errorType": "truncated_model",
+        "title": "Model too short",
+        "description": "The model's protein is shorter than its orthologs', and the genome's DNA encodes the part it lacks.",
+        "count": 1,
+        "genomes": ["Plasmodium cynomolgi strain M"],
+        "certainty": "high",
+        "cause": "Sample review: the strain model lacks reference residues 41 to 100, which the strain's genome encodes.",
+        "confirmedBy": "Sample: the strain check read reference residues 41 to 100 in the strain's genome.",
+        "reviewed": [
+          {
+            "id": 8,
+            "genes": ["PcyM_0736700", "PCYB_074210"],
+            "genome": "Plasmodium cynomolgi strain M",
+            "errorType": "truncated_model",
+            "errorTitle": "Model too short",
+            "certainty": "high",
+            "impact": 0.25,
+            "reviewedImpact": null
+          }
+        ]
+      },
+      {
+        "errorType": "organelle_split_at_join",
+        "title": "Organelle gene split at the circular join",
+        "description": "The organelle genome is circular but stored as a line, and the gene is cut where the line ends.",
+        "count": 1,
+        "genomes": ["Plasmodium falciparum NF54"],
+        "certainty": "high",
+        "cause": "Sample review: the reference protein is whole only across the join of CM019798.1.",
+        "confirmedBy": "Sample: the organelle check aligned the reference protein across the join of the circular contig.",
+        "reviewed": [
+          {
+            "id": 9,
+            "genes": ["PF3D7_MIT02300"],
+            "genome": "Plasmodium falciparum NF54",
+            "errorType": "organelle_split_at_join",
+            "errorTitle": "Organelle gene split at the circular join",
+            "certainty": "high",
+            "impact": 0.25,
+            "reviewedImpact": null
+          }
+        ]
+      },
+      {
+        "errorType": "missing_exon",
+        "title": "Exon missing from the model",
+        "description": "RNA-seq reads join an exon the model does not have.",
+        "count": 1,
+        "genomes": ["Plasmodium cynomolgi strain M"],
+        "certainty": "high",
+        "cause": "Sample review: RNA-seq junctions of 1,436 and 1,686 reads join the exon 1,381,887 to 1,382,044 the model lacks.",
+        "confirmedBy": "Sample: the intron check read the RNA-seq junctions that join the exon the model lacks.",
+        "reviewed": [
+          {
+            "id": 10,
+            "genes": ["PcyM_0736700"],
+            "genome": "Plasmodium cynomolgi strain M",
+            "errorType": "missing_exon",
+            "errorTitle": "Exon missing from the model",
+            "certainty": "high",
+            "impact": 0.25,
+            "reviewedImpact": null
+          }
+        ]
+      }
+    ],
+    "headline": [
+      {
+        "id": 1,
+        "genes": ["PfNF54_100037200", "PF3D7_1032400"],
+        "genome": "Plasmodium falciparum NF54",
+        "errorType": "intact_gene_called_pseudogene",
+        "errorTitle": "Intact gene called a pseudogene",
+        "certainty": "high",
+        "impact": 0.5,
+        "reviewedImpact": 0.8
+      },
+      {
+        "id": 8,
+        "genes": ["PcyM_0736700", "PCYB_074210"],
+        "genome": "Plasmodium cynomolgi strain M",
+        "errorType": "truncated_model",
+        "errorTitle": "Model too short",
+        "certainty": "high",
+        "impact": 0.25,
+        "reviewedImpact": null
+      },
+      {
+        "id": 9,
+        "genes": ["PF3D7_MIT02300"],
+        "genome": "Plasmodium falciparum NF54",
+        "errorType": "organelle_split_at_join",
+        "errorTitle": "Organelle gene split at the circular join",
+        "certainty": "high",
+        "impact": 0.25,
+        "reviewedImpact": null
+      },
+      {
+        "id": 10,
+        "genes": ["PcyM_0736700"],
+        "genome": "Plasmodium cynomolgi strain M",
+        "errorType": "missing_exon",
+        "errorTitle": "Exon missing from the model",
+        "certainty": "high",
+        "impact": 0.25,
+        "reviewedImpact": null
+      }
+    ],
+    "reviewState": {
+      "status": "synthesized",
+      "text": "Reviewed and summarized",
+      "done": 5,
+      "total": 5,
+      "message": ""
+    },
+    "agreement": {
+      "sampled": 2,
+      "agreed": 1,
+      "share": 0.5,
+      "text": "Two independent reviews agreed on 1 of 2 sampled findings (50%)"
+    }
+  },
+  "findings": {
+    "siteId": "plasmodb",
+    "total": 10,
+    "offset": 0,
+    "findings": [
+      {
+        "id": 1,
+        "genome": "Plasmodium falciparum NF54",
+        "screenedGenome": "Plasmodium falciparum NF54",
+        "pairedGenome": null,
+        "target": {
+          "check": "pseudogene_call",
+          "genes": ["PfNF54_100037200", "PF3D7_1032400"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "intact_gene_called_pseudogene",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.5,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PF3D7_1032400"],
+            "source": "cited",
+            "value": 1.0
+          },
+          "use": {
+            "genome": "Plasmodium falciparum NF54",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.5
+        },
+        "requests": 6,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "INTACT",
+        "fromTarget": false,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": "error",
+          "impact": 0.8,
+          "impactReason": "Sample review: the reference gene's record cites two PubMed articles.",
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PfNF54_100037200",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfNF54_100037200"
+          },
+          {
+            "gene": "PF3D7_1032400",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1032400"
+          }
+        ],
+        "check": "pseudogene_call",
+        "verdictText": "The strain's DNA encodes the whole protein, so the pseudogene call is wrong",
+        "checkTitle": "Pseudogene calls on intact genes",
+        "errorTitle": "Intact gene called a pseudogene"
+      },
+      {
+        "id": 2,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_140076300"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PfDd2_140076300"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium falciparum Dd2",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "GENOME_ENCODES",
+        "fromTarget": false,
+        "reviewLine": {
+          "verdict": "no_error",
+          "verdictText": "The review finds no error",
+          "secondVerdict": "error",
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PfDd2_140076300",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_140076300"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The genome's DNA encodes the part the model lacks",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": "Model too short"
+      },
+      {
+        "id": 8,
+        "genome": "Plasmodium cynomolgi strain M",
+        "screenedGenome": "Plasmodium cynomolgi strain M",
+        "pairedGenome": "Plasmodium cynomolgi strain B",
+        "target": {
+          "check": "strain_model",
+          "genes": ["PcyM_0736700", "PCYB_074210"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PcyM_0736700", "PCYB_074210"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium cynomolgi strain M",
+            "source": "model_role",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "STRAIN_SHORT",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PcyM_0736700",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+          },
+          {
+            "gene": "PCYB_074210",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PCYB_074210"
+          }
+        ],
+        "check": "strain_model",
+        "verdictText": "Related genomes match the reference, so the strain model is too short",
+        "checkTitle": "Strain model against its reference",
+        "errorTitle": "Model too short"
+      },
+      {
+        "id": 9,
+        "genome": "Plasmodium falciparum NF54",
+        "screenedGenome": "Plasmodium falciparum NF54",
+        "pairedGenome": null,
+        "target": {
+          "check": "organelle_join",
+          "genes": ["PF3D7_MIT02300"],
+          "organism": "Plasmodium falciparum NF54",
+          "sequenceId": "CM019798.1"
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "organelle_split_at_join",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PF3D7_MIT02300"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium falciparum NF54",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "SPLIT_AT_JOIN",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_found",
+          "literatureText": "No report of it was found"
+        },
+        "genes": [
+          {
+            "gene": "PF3D7_MIT02300",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_MIT02300"
+          }
+        ],
+        "check": "organelle_join",
+        "verdictText": "The protein is whole only across the join of the circular genome",
+        "checkTitle": "Organelle genes at the circular join",
+        "errorTitle": "Organelle gene split at the circular join"
+      },
+      {
+        "id": 10,
+        "genome": "Plasmodium cynomolgi strain M",
+        "screenedGenome": "Plasmodium cynomolgi strain M",
+        "pairedGenome": null,
+        "target": {
+          "check": "intron_support",
+          "genes": ["PcyM_0736700"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "missing_exon",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PcyM_0736700"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium cynomolgi strain M",
+            "source": "unknown",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "UNSUPPORTED_MISSING_EXON",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PcyM_0736700",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+          }
+        ],
+        "check": "intron_support",
+        "verdictText": "RNA-seq reads join an exon the model does not have",
+        "checkTitle": "Exon structure against RNA-seq",
+        "errorTitle": "Exon missing from the model"
+      },
+      {
+        "id": 3,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_CLEAN1"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": "NOT_SHORT",
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_CLEAN1",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN1"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The model is not short against its orthologs",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      {
+        "id": 4,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_CLEAN2"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": "NOT_SHORT",
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_CLEAN2",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN2"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The model is not short against its orthologs",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      {
+        "id": 5,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_LATE"]
+        },
+        "sampled": true,
+        "status": "unread",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": "not read before the run's deadline",
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_LATE",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_LATE"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      {
+        "id": 6,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_DOWN"]
+        },
+        "sampled": true,
+        "status": "unreached",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": "plasmodb did not answer",
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_DOWN",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_DOWN"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      {
+        "id": 7,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_SPARE"]
+        },
+        "sampled": false,
+        "status": "unsampled",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_SPARE",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_SPARE"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      }
+    ]
+  },
+  "details": [
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 1,
+        "genome": "Plasmodium falciparum NF54",
+        "screenedGenome": "Plasmodium falciparum NF54",
+        "pairedGenome": null,
+        "target": {
+          "check": "pseudogene_call",
+          "genes": ["PfNF54_100037200", "PF3D7_1032400"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "intact_gene_called_pseudogene",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.5,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PF3D7_1032400"],
+            "source": "cited",
+            "value": 1.0
+          },
+          "use": {
+            "genome": "Plasmodium falciparum NF54",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.5
+        },
+        "requests": 6,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "INTACT",
+        "fromTarget": false,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": "error",
+          "impact": 0.8,
+          "impactReason": "Sample review: the reference gene's record cites two PubMed articles.",
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PfNF54_100037200",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfNF54_100037200"
+          },
+          {
+            "gene": "PF3D7_1032400",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1032400"
+          }
+        ],
+        "check": "pseudogene_call",
+        "verdictText": "The strain's DNA encodes the whole protein, so the pseudogene call is wrong",
+        "checkTitle": "Pseudogene calls on intact genes",
+        "errorTitle": "Intact gene called a pseudogene"
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "pseudogene_call",
+              "result": {
+                "verdict": "INTACT",
+                "referenceCdsLength": 1386,
+                "strainCdsLength": 1386,
+                "covered": 1386,
+                "prematureStops": [],
+                "residueDifferences": 0,
+                "prematureStopsTruncated": false,
+                "geneIds": [
+                  {
+                    "given": "PfNF54_100037200",
+                    "resolved": "PfNF54_100037200"
+                  },
+                  {
+                    "given": "PF3D7_1032400",
+                    "resolved": "PF3D7_1032400"
+                  }
+                ],
+                "strainGene": "PfNF54_100037200",
+                "referenceGene": "PF3D7_1032400",
+                "referenceModel": null,
+                "evidenceUnread": []
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        },
+        {
+          "kind": "gene_evidence",
+          "status": "stored",
+          "payload": {
+            "kind": "gene_evidence",
+            "genes": ["PF3D7_1032400"],
+            "evidence": [
+              {
+                "geneIds": [
+                  {
+                    "given": "PF3D7_1032400",
+                    "resolved": "PF3D7_1032400"
+                  }
+                ],
+                "gene": "PF3D7_1032400",
+                "pdbHits": [
+                  {
+                    "transcript": "PF3D7_1032400.1",
+                    "pdbId": "3mbo",
+                    "title": "Glycosyltransferase, group 1 family",
+                    "taxon": "Bacillus anthracis",
+                    "identity": 24,
+                    "proteinCoveredPercent": 53,
+                    "evalue": 1.43e-12,
+                    "chains": ["3mbo_D", "3mbo_C", "3mbo_B", "3mbo_A"]
+                  },
+                  {
+                    "transcript": "PF3D7_1032400.1",
+                    "pdbId": "2jjm",
+                    "title": "GLYCOSYL TRANSFERASE, GROUP 1 FAMILY PROTEIN",
+                    "taxon": "Bacillus anthracis",
+                    "identity": 24,
+                    "proteinCoveredPercent": 53,
+                    "evalue": 1.3e-12,
+                    "chains": [
+                      "2jjm_L",
+                      "2jjm_K",
+                      "2jjm_J",
+                      "2jjm_I",
+                      "2jjm_H",
+                      "2jjm_G",
+                      "2jjm_F",
+                      "2jjm_E",
+                      "2jjm_D",
+                      "2jjm_C",
+                      "2jjm_B",
+                      "2jjm_A"
+                    ]
+                  },
+                  {
+                    "transcript": "PF3D7_1032400.1",
+                    "pdbId": "5d01",
+                    "title": "N-acetyl-alpha-D-glucosaminyl L-malate synthase",
+                    "taxon": "unidentified",
+                    "identity": 23,
+                    "proteinCoveredPercent": 54,
+                    "evalue": 2.8e-13,
+                    "chains": ["5d01_B", "5d01_A"]
+                  },
+                  {
+                    "transcript": "PF3D7_1032400.1",
+                    "pdbId": "5d00",
+                    "title": "N-acetyl-alpha-D-glucosaminyl L-malate synthase",
+                    "taxon": "unidentified",
+                    "identity": 23,
+                    "proteinCoveredPercent": 54,
+                    "evalue": 2.8e-13,
+                    "chains": ["5d00_B", "5d00_A"]
+                  }
+                ],
+                "peptides": [],
+                "alphafold": [
+                  {
+                    "uniprotId": "Q8IJ83",
+                    "source": "SWISSPROT direct link",
+                    "first": 1,
+                    "last": 461,
+                    "length": 461
+                  }
+                ],
+                "linkouts": [
+                  {
+                    "database": "Ares Lab Genome Browser",
+                    "externalId": "PF10_0316"
+                  },
+                  {
+                    "database": "EntrezGene",
+                    "externalId": "810473"
+                  },
+                  {
+                    "database": "PlasmoDraft",
+                    "externalId": "PF10_0316"
+                  },
+                  {
+                    "database": "PlasmoMAP a network of functional interactions between <i>P. falciparum</i> proteins",
+                    "externalId": "PF10_0316"
+                  },
+                  {
+                    "database": "protein_id",
+                    "externalId": "CZT98581.1"
+                  },
+                  {
+                    "database": "PubMed from Genome Annotations",
+                    "externalId": "12117963"
+                  },
+                  {
+                    "database": "RefSeq_dna",
+                    "externalId": "XM_001347564.2"
+                  },
+                  {
+                    "database": "RefSeq_peptide",
+                    "externalId": "XP_001347600.2"
+                  },
+                  {
+                    "database": "TDR Targets Database",
+                    "externalId": "PF3D7_1032400"
+                  },
+                  {
+                    "database": "UniParc",
+                    "externalId": "UPI0001B051A2"
+                  },
+                  {
+                    "database": "Uniprot/SPTREMBL",
+                    "externalId": "Q8IJ83"
+                  }
+                ],
+                "seqedits": [],
+                "transcripts": [
+                  {
+                    "transcriptId": "PF3D7_1032400.1",
+                    "transcriptType": "mRNA",
+                    "proteinLength": 461,
+                    "exonCount": 7
+                  }
+                ],
+                "comments": 0,
+                "pubmed": 2,
+                "notes": 0,
+                "phenotypes": [
+                  {
+                    "table": "pfal3D7_phenotype_pB_mutagenesis_MIS_MFS_RSRC",
+                    "rows": []
+                  }
+                ],
+                "unprefixedTables": [
+                  {
+                    "table": "EdaPhenotypeGraphsDataTable",
+                    "rows": [
+                      {
+                        "value": "0.7980",
+                        "variable": "Mutagenesis Index Score",
+                        "dataset_id": "PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC"
+                      },
+                      {
+                        "value": "3209.0000",
+                        "variable": "Mutagenesis Index Score Rank",
+                        "dataset_id": "PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC"
+                      },
+                      {
+                        "value": "-2.2120",
+                        "variable": "Mutant Fitness Score",
+                        "dataset_id": "PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC"
+                      },
+                      {
+                        "value": "3736.5000",
+                        "variable": "Mutant Fitness Score Rank",
+                        "dataset_id": "PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC"
+                      }
+                    ]
+                  },
+                  {
+                    "table": "PhenotypeScoreGraphsDataTable",
+                    "rows": []
+                  },
+                  {
+                    "table": "PhenotypeScore",
+                    "rows": []
+                  },
+                  {
+                    "table": "RodMalPhenotype",
+                    "rows": []
+                  }
+                ],
+                "unserved": []
+              }
+            ]
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Reference coding sequence",
+              "value": "1,386 bases"
+            },
+            {
+              "label": "Strain sequence rebuilt through it",
+              "value": "1,386 bases"
+            },
+            {
+              "label": "Bases that match the reference",
+              "value": "1,386 of 1,386"
+            },
+            {
+              "label": "Stops inside the rebuilt protein",
+              "value": "None found"
+            },
+            {
+              "label": "Amino acids that differ from the reference",
+              "value": "0"
+            }
+          ]
+        },
+        {
+          "kind": "gene_evidence",
+          "facts": [
+            {
+              "label": "PF3D7_1032400 citations",
+              "value": "2 PubMed articles, 0 comments, 0 notes"
+            },
+            {
+              "label": "PF3D7_1032400 structures",
+              "value": "4 PDB similarities; AlphaFold Q8IJ83 covers residues 1 to 461 of 461"
+            },
+            {
+              "label": "PF3D7_1032400 peptides",
+              "value": "None found"
+            }
+          ]
+        }
+      ],
+      "review": {
+        "verdict": {
+          "genes": ["PfNF54_100037200", "PF3D7_1032400"],
+          "modelGenome": "Plasmodium falciparum NF54",
+          "verdict": "error",
+          "errorType": "intact_gene_called_pseudogene",
+          "certainty": "high",
+          "cause": "Sample review: rebuilt through the reference coding sequence, the strain's DNA encodes all 1,386 bases with no stop inside.",
+          "cites": ["finding:1"]
+        },
+        "alreadyKnown": "not_searched",
+        "knownFrom": [],
+        "paperDepends": null,
+        "cardText": "Sample fix: annotate PfNF54_100037200 as protein coding, with the coding sequence its reference PF3D7_1032400 gives.",
+        "impact": 0.8,
+        "impactReason": "Sample review: the reference gene's record cites two PubMed articles.",
+        "secondVerdict": "error",
+        "stopped": false
+      },
+      "reviewText": {
+        "verdictText": "The review keeps the error",
+        "literatureText": "The literature was not searched",
+        "paperText": "Not checked whether a published study depends on this gene's model",
+        "secondText": "A second, independent review: The review keeps the error"
+      },
+      "genes": [
+        {
+          "gene": "PfNF54_100037200",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfNF54_100037200"
+        },
+        {
+          "gene": "PF3D7_1032400",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1032400"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 2,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_140076300"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PfDd2_140076300"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium falciparum Dd2",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "GENOME_ENCODES",
+        "fromTarget": false,
+        "reviewLine": {
+          "verdict": "no_error",
+          "verdictText": "The review finds no error",
+          "secondVerdict": "error",
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PfDd2_140076300",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_140076300"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The genome's DNA encodes the part the model lacks",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": "Model too short"
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "gene_length",
+              "result": {
+                "models": [],
+                "evidenceUnread": [],
+                "geneIds": [
+                  {
+                    "given": "PfDd2_140076300",
+                    "resolved": "PfDd2_140076300"
+                  }
+                ],
+                "genes": ["PfDd2_140076300"],
+                "lengthClass": "SHORT",
+                "ratio": 0.6,
+                "groupMedian": 200.0,
+                "groupCopies": 1.0,
+                "groupSpread": 0.0,
+                "organisms": 10,
+                "referenceGene": "PF3D7_1472100",
+                "verdict": "GENOME_ENCODES",
+                "windows": 19,
+                "counts": {
+                  "model": 12,
+                  "genome_same_strand": 7
+                },
+                "track": "MMMMMMGGGGGGGMMMMMM",
+                "nsInWindow": 0,
+                "atContigEdge": false,
+                "code": "standard",
+                "codeInferred": true
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        },
+        {
+          "kind": "gene_evidence",
+          "status": "unread",
+          "payload": null,
+          "requests": 0,
+          "attempts": 0,
+          "stopped": 0,
+          "message": "not read before the run's deadline"
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Model",
+              "value": "PfDd2_140076300"
+            },
+            {
+              "label": "Reference gene",
+              "value": "PF3D7_1472100"
+            },
+            {
+              "label": "Ortholog group median",
+              "value": "200 residues over 10 organisms"
+            },
+            {
+              "label": "Length against the median",
+              "value": "0.6 times the median length"
+            },
+            {
+              "label": "Parts of the reference protein",
+              "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Unknown bases in the region read",
+              "value": "0"
+            },
+            {
+              "label": "At a contig end",
+              "value": "No"
+            },
+            {
+              "label": "Genetic code",
+              "value": "Standard (inferred)"
+            }
+          ]
+        }
+      ],
+      "review": {
+        "verdict": {
+          "genes": ["PfDd2_140076300"],
+          "modelGenome": "Plasmodium falciparum Dd2",
+          "verdict": "no_error",
+          "errorType": null,
+          "certainty": null,
+          "cause": "Sample review: the stored length check reads the helper's group numbers only, so the review keeps no error.",
+          "cites": ["finding:2"]
+        },
+        "alreadyKnown": "not_searched",
+        "knownFrom": [],
+        "paperDepends": null,
+        "cardText": "Sample review: no change proposed.",
+        "impact": null,
+        "impactReason": null,
+        "secondVerdict": "error",
+        "stopped": false
+      },
+      "reviewText": {
+        "verdictText": "The review finds no error",
+        "literatureText": "The literature was not searched",
+        "paperText": "Not checked whether a published study depends on this gene's model",
+        "secondText": "A second, independent review: The review keeps the error"
+      },
+      "genes": [
+        {
+          "gene": "PfDd2_140076300",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_140076300"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 3,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_CLEAN1"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": "NOT_SHORT",
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_CLEAN1",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN1"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The model is not short against its orthologs",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "gene_length",
+              "result": {
+                "models": [],
+                "evidenceUnread": [],
+                "geneIds": [
+                  {
+                    "given": "PfDd2_CLEAN1",
+                    "resolved": "PfDd2_CLEAN1"
+                  }
+                ],
+                "genes": ["PfDd2_CLEAN1"],
+                "lengthClass": "SHORT",
+                "ratio": 0.6,
+                "groupMedian": 200.0,
+                "groupCopies": 1.0,
+                "groupSpread": 0.0,
+                "organisms": 10,
+                "referenceGene": "PF3D7_1472100",
+                "verdict": "NOT_SHORT",
+                "windows": 19,
+                "counts": {
+                  "model": 12,
+                  "genome_same_strand": 7
+                },
+                "track": "MMMMMMGGGGGGGMMMMMM",
+                "nsInWindow": 0,
+                "atContigEdge": false,
+                "code": "standard",
+                "codeInferred": true
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Model",
+              "value": "PfDd2_CLEAN1"
+            },
+            {
+              "label": "Reference gene",
+              "value": "PF3D7_1472100"
+            },
+            {
+              "label": "Ortholog group median",
+              "value": "200 residues over 10 organisms"
+            },
+            {
+              "label": "Length against the median",
+              "value": "0.6 times the median length"
+            },
+            {
+              "label": "Parts of the reference protein",
+              "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Unknown bases in the region read",
+              "value": "0"
+            },
+            {
+              "label": "At a contig end",
+              "value": "No"
+            },
+            {
+              "label": "Genetic code",
+              "value": "Standard (inferred)"
+            }
+          ]
+        }
+      ],
+      "review": null,
+      "reviewText": null,
+      "genes": [
+        {
+          "gene": "PfDd2_CLEAN1",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN1"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 4,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_CLEAN2"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": "NOT_SHORT",
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_CLEAN2",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN2"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": "The model is not short against its orthologs",
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "gene_length",
+              "result": {
+                "models": [],
+                "evidenceUnread": [],
+                "geneIds": [
+                  {
+                    "given": "PfDd2_CLEAN2",
+                    "resolved": "PfDd2_CLEAN2"
+                  }
+                ],
+                "genes": ["PfDd2_CLEAN2"],
+                "lengthClass": "SHORT",
+                "ratio": 0.6,
+                "groupMedian": 200.0,
+                "groupCopies": 1.0,
+                "groupSpread": 0.0,
+                "organisms": 10,
+                "referenceGene": "PF3D7_1472100",
+                "verdict": "NOT_SHORT",
+                "windows": 19,
+                "counts": {
+                  "model": 12,
+                  "genome_same_strand": 7
+                },
+                "track": "MMMMMMGGGGGGGMMMMMM",
+                "nsInWindow": 0,
+                "atContigEdge": false,
+                "code": "standard",
+                "codeInferred": true
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Model",
+              "value": "PfDd2_CLEAN2"
+            },
+            {
+              "label": "Reference gene",
+              "value": "PF3D7_1472100"
+            },
+            {
+              "label": "Ortholog group median",
+              "value": "200 residues over 10 organisms"
+            },
+            {
+              "label": "Length against the median",
+              "value": "0.6 times the median length"
+            },
+            {
+              "label": "Parts of the reference protein",
+              "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Unknown bases in the region read",
+              "value": "0"
+            },
+            {
+              "label": "At a contig end",
+              "value": "No"
+            },
+            {
+              "label": "Genetic code",
+              "value": "Standard (inferred)"
+            }
+          ]
+        }
+      ],
+      "review": null,
+      "reviewText": null,
+      "genes": [
+        {
+          "gene": "PfDd2_CLEAN2",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_CLEAN2"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 5,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_LATE"]
+        },
+        "sampled": true,
+        "status": "unread",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": "not read before the run's deadline",
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_LATE",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_LATE"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      "evidence": [],
+      "facts": [],
+      "review": null,
+      "reviewText": null,
+      "genes": [
+        {
+          "gene": "PfDd2_LATE",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_LATE"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 6,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_DOWN"]
+        },
+        "sampled": true,
+        "status": "unreached",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": "plasmodb did not answer",
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_DOWN",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_DOWN"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      "evidence": [],
+      "facts": [],
+      "review": null,
+      "reviewText": null,
+      "genes": [
+        {
+          "gene": "PfDd2_DOWN",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_DOWN"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 7,
+        "genome": "Plasmodium falciparum Dd2",
+        "screenedGenome": "Plasmodium falciparum Dd2",
+        "pairedGenome": null,
+        "target": {
+          "check": "gene_length",
+          "genes": ["PfDd2_SPARE"]
+        },
+        "sampled": false,
+        "status": "unsampled",
+        "errorType": null,
+        "certainty": null,
+        "judged": true,
+        "impact": null,
+        "weighing": null,
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": null,
+        "reviewed": false,
+        "verdict": null,
+        "fromTarget": false,
+        "reviewLine": null,
+        "genes": [
+          {
+            "gene": "PfDd2_SPARE",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_SPARE"
+          }
+        ],
+        "check": "gene_length",
+        "verdictText": null,
+        "checkTitle": "Gene length against orthologs",
+        "errorTitle": null
+      },
+      "evidence": [],
+      "facts": [],
+      "review": null,
+      "reviewText": null,
+      "genes": [
+        {
+          "gene": "PfDd2_SPARE",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PfDd2_SPARE"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 8,
+        "genome": "Plasmodium cynomolgi strain M",
+        "screenedGenome": "Plasmodium cynomolgi strain M",
+        "pairedGenome": "Plasmodium cynomolgi strain B",
+        "target": {
+          "check": "strain_model",
+          "genes": ["PcyM_0736700", "PCYB_074210"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PcyM_0736700", "PCYB_074210"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium cynomolgi strain M",
+            "source": "model_role",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "STRAIN_SHORT",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PcyM_0736700",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+          },
+          {
+            "gene": "PCYB_074210",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PCYB_074210"
+          }
+        ],
+        "check": "strain_model",
+        "verdictText": "Related genomes match the reference, so the strain model is too short",
+        "checkTitle": "Strain model against its reference",
+        "errorTitle": "Model too short"
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "strain_model",
+              "result": {
+                "models": [
+                  {
+                    "gene": "PcyM_0736700",
+                    "transcript": "PcyM_0736700-t36_1",
+                    "seqid": "PcyM_07",
+                    "strand": "+",
+                    "exons": [
+                      [1381622, 1381745],
+                      [1382306, 1382465],
+                      [1382631, 1382790],
+                      [1383064, 1383462]
+                    ],
+                    "cds": [
+                      [1381622, 1381745],
+                      [1382306, 1382465],
+                      [1382631, 1382790],
+                      [1383064, 1383462]
+                    ]
+                  },
+                  {
+                    "gene": "PCYB_074210",
+                    "transcript": "PCYB_074210-t26_1",
+                    "seqid": "DF157099",
+                    "strand": "+",
+                    "exons": [
+                      [1385909, 1386032],
+                      [1386174, 1386331],
+                      [1386568, 1386752],
+                      [1386918, 1387077],
+                      [1387255, 1387653]
+                    ],
+                    "cds": [
+                      [1385909, 1386032],
+                      [1386174, 1386331],
+                      [1386568, 1386752],
+                      [1386918, 1387077],
+                      [1387255, 1387653]
+                    ]
+                  }
+                ],
+                "evidenceUnread": [],
+                "lost": [[41, 100]],
+                "extra": [],
+                "dna": {
+                  "verdict": "GENOME_ENCODES",
+                  "windows": 33,
+                  "counts": {
+                    "weak": 1,
+                    "model": 27,
+                    "genome_same_strand": 5
+                  },
+                  "track": "MMMMGGGGGwMMMMMMMMMMMMMMMMMMMMMMM",
+                  "nsInWindow": 0,
+                  "atContigEdge": false
+                },
+                "notRead": null,
+                "nearbyParalogs": [],
+                "side": "STRAIN_SHORT",
+                "relatives": {
+                  "tier": "SAME_GENUS",
+                  "members": [
+                    {
+                      "organism": "Plasmodium relative0 X",
+                      "length": 335
+                    },
+                    {
+                      "organism": "Plasmodium relative1 X",
+                      "length": 345
+                    }
+                  ],
+                  "missing": null,
+                  "copiesPerOrganism": 1.0,
+                  "median": 340.0
+                },
+                "geneIds": [
+                  {
+                    "given": "PcyM_0736700",
+                    "resolved": "PcyM_0736700"
+                  },
+                  {
+                    "given": "PCYB_074210",
+                    "resolved": "PCYB_074210"
+                  }
+                ],
+                "strainGene": "PcyM_0736700",
+                "referenceGene": "PCYB_074210",
+                "strainLength": 280,
+                "referenceLength": 341,
+                "code": "standard",
+                "codeInferred": true
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        },
+        {
+          "kind": "gene_evidence",
+          "status": "unreached",
+          "payload": null,
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": "plasmodb did not answer"
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Strain model PcyM_0736700",
+              "value": "280 residues"
+            },
+            {
+              "label": "Reference model PCYB_074210",
+              "value": "341 residues"
+            },
+            {
+              "label": "Reference residues the strain model lacks",
+              "value": "41 to 100"
+            },
+            {
+              "label": "Strain residues the reference lacks",
+              "value": "None found"
+            },
+            {
+              "label": "The strain's DNA over the lost part",
+              "value": "The genome's DNA encodes the part the model lacks"
+            },
+            {
+              "label": "Parts of the reference protein",
+              "value": "33: 1 matched weakly, 27 in the model, 5 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Unknown bases in the region read",
+              "value": "0"
+            },
+            {
+              "label": "At a contig end",
+              "value": "No"
+            },
+            {
+              "label": "Related genomes",
+              "value": "Plasmodium relative0 X (335 residues) and Plasmodium relative1 X (345 residues)"
+            },
+            {
+              "label": "Related genomes from",
+              "value": "The same genus"
+            },
+            {
+              "label": "Median of the related genomes",
+              "value": "340 residues"
+            },
+            {
+              "label": "Paralogs near the model",
+              "value": "None found"
+            },
+            {
+              "label": "Genetic code",
+              "value": "Standard (inferred)"
+            }
+          ]
+        }
+      ],
+      "review": {
+        "verdict": {
+          "genes": ["PcyM_0736700", "PCYB_074210"],
+          "modelGenome": "Plasmodium cynomolgi strain M",
+          "verdict": "error",
+          "errorType": "truncated_model",
+          "certainty": "high",
+          "cause": "Sample review: the strain model lacks reference residues 41 to 100, which the strain's genome encodes.",
+          "cites": ["finding:8"]
+        },
+        "alreadyKnown": "not_searched",
+        "knownFrom": [],
+        "paperDepends": null,
+        "cardText": "Sample fix: extend PcyM_0736700 over the residues its genome encodes.",
+        "impact": null,
+        "impactReason": null,
+        "secondVerdict": null,
+        "stopped": false
+      },
+      "reviewText": {
+        "verdictText": "The review keeps the error",
+        "literatureText": "The literature was not searched",
+        "paperText": "Not checked whether a published study depends on this gene's model",
+        "secondText": null
+      },
+      "genes": [
+        {
+          "gene": "PcyM_0736700",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+        },
+        {
+          "gene": "PCYB_074210",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PCYB_074210"
+        }
+      ],
+      "models": {
+        "kind": "strain",
+        "annotated": [
+          {
+            "gene": "PcyM_0736700",
+            "transcript": "PcyM_0736700-t36_1",
+            "seqid": "PcyM_07",
+            "strand": "+",
+            "exons": [
+              [1381622, 1381745],
+              [1382306, 1382465],
+              [1382631, 1382790],
+              [1383064, 1383462]
+            ],
+            "cds": [
+              [1381622, 1381745],
+              [1382306, 1382465],
+              [1382631, 1382790],
+              [1383064, 1383462]
+            ]
+          },
+          {
+            "gene": "PCYB_074210",
+            "transcript": "PCYB_074210-t26_1",
+            "seqid": "DF157099",
+            "strand": "+",
+            "exons": [
+              [1385909, 1386032],
+              [1386174, 1386331],
+              [1386568, 1386752],
+              [1386918, 1387077],
+              [1387255, 1387653]
+            ],
+            "cds": [
+              [1385909, 1386032],
+              [1386174, 1386331],
+              [1386568, 1386752],
+              [1386918, 1387077],
+              [1387255, 1387653]
+            ]
+          }
+        ],
+        "proposed": null,
+        "merged": null,
+        "stop": null
+      }
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 9,
+        "genome": "Plasmodium falciparum NF54",
+        "screenedGenome": "Plasmodium falciparum NF54",
+        "pairedGenome": null,
+        "target": {
+          "check": "organelle_join",
+          "genes": ["PF3D7_MIT02300"],
+          "organism": "Plasmodium falciparum NF54",
+          "sequenceId": "CM019798.1"
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "organelle_split_at_join",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PF3D7_MIT02300"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium falciparum NF54",
+            "source": "other_strain",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "SPLIT_AT_JOIN",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_found",
+          "literatureText": "No report of it was found"
+        },
+        "genes": [
+          {
+            "gene": "PF3D7_MIT02300",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_MIT02300"
+          }
+        ],
+        "check": "organelle_join",
+        "verdictText": "The protein is whole only across the join of the circular genome",
+        "checkTitle": "Organelle genes at the circular join",
+        "errorTitle": "Organelle gene split at the circular join"
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "organelle_join",
+              "result": {
+                "verdict": "SPLIT_AT_JOIN",
+                "bestLinear": 274,
+                "bestCircular": 376,
+                "referenceLength": 376,
+                "overlapBases": 87,
+                "overlapMismatches": 0,
+                "geneIds": [
+                  {
+                    "given": "PF3D7_MIT02300",
+                    "resolved": "PF3D7_MIT02300"
+                  }
+                ],
+                "organism": "Plasmodium falciparum NF54",
+                "sequenceId": "CM019798.1",
+                "referenceGene": "PF3D7_MIT02300",
+                "contigLength": 6054,
+                "code": "standard",
+                "codeInferred": true
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Sequence",
+              "value": "CM019798.1, 6,054 bases"
+            },
+            {
+              "label": "Best whole copy on the linear sequence",
+              "value": "274 of 376 residues"
+            },
+            {
+              "label": "Best copy across the join",
+              "value": "376 of 376 residues"
+            },
+            {
+              "label": "Bases the two ends share",
+              "value": "87, with 0 mismatches"
+            },
+            {
+              "label": "Genetic code",
+              "value": "Standard (inferred)"
+            }
+          ]
+        }
+      ],
+      "review": {
+        "verdict": {
+          "genes": ["PF3D7_MIT02300"],
+          "modelGenome": "Plasmodium falciparum NF54",
+          "verdict": "error",
+          "errorType": "organelle_split_at_join",
+          "certainty": "high",
+          "cause": "Sample review: the reference protein is whole only across the join of CM019798.1.",
+          "cites": ["finding:9"]
+        },
+        "alreadyKnown": "not_found",
+        "knownFrom": [],
+        "paperDepends": null,
+        "cardText": "Sample fix: model PF3D7_MIT02300's copy across the join of CM019798.1.",
+        "impact": null,
+        "impactReason": null,
+        "secondVerdict": null,
+        "stopped": false
+      },
+      "reviewText": {
+        "verdictText": "The review keeps the error",
+        "literatureText": "No report of it was found",
+        "paperText": "Not checked whether a published study depends on this gene's model",
+        "secondText": null
+      },
+      "genes": [
+        {
+          "gene": "PF3D7_MIT02300",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_MIT02300"
+        }
+      ],
+      "models": null
+    },
+    {
+      "siteId": "plasmodb",
+      "finding": {
+        "id": 10,
+        "genome": "Plasmodium cynomolgi strain M",
+        "screenedGenome": "Plasmodium cynomolgi strain M",
+        "pairedGenome": null,
+        "target": {
+          "check": "intron_support",
+          "genes": ["PcyM_0736700"]
+        },
+        "sampled": true,
+        "status": "confirmed",
+        "errorType": "missing_exon",
+        "certainty": "high",
+        "judged": true,
+        "impact": 0.25,
+        "weighing": {
+          "certainty": "high",
+          "importance": {
+            "genes": ["PcyM_0736700"],
+            "source": "not_read",
+            "value": 0.5
+          },
+          "use": {
+            "genome": "Plasmodium cynomolgi strain M",
+            "source": "unknown",
+            "reference": false,
+            "value": 0.5
+          },
+          "certaintyWeight": 1.0,
+          "impact": 0.25
+        },
+        "requests": 0,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null,
+        "reviewed": true,
+        "verdict": "UNSUPPORTED_MISSING_EXON",
+        "fromTarget": true,
+        "reviewLine": {
+          "verdict": "error",
+          "verdictText": "The review keeps the error",
+          "secondVerdict": null,
+          "impact": null,
+          "impactReason": null,
+          "literature": "not_searched",
+          "literatureText": "The literature was not searched"
+        },
+        "genes": [
+          {
+            "gene": "PcyM_0736700",
+            "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+          }
+        ],
+        "check": "intron_support",
+        "verdictText": "RNA-seq reads join an exon the model does not have",
+        "checkTitle": "Exon structure against RNA-seq",
+        "errorTitle": "Exon missing from the model"
+      },
+      "evidence": [
+        {
+          "kind": "confirmation",
+          "status": "stored",
+          "payload": {
+            "kind": "confirmation",
+            "confirmation": {
+              "check": "intron_support",
+              "result": {
+                "verdict": "UNSUPPORTED_MISSING_EXON",
+                "introns": [
+                  {
+                    "start": 1381746,
+                    "end": 1382305,
+                    "reads": 0,
+                    "tracks": 0
+                  },
+                  {
+                    "start": 1382466,
+                    "end": 1382630,
+                    "reads": 1970,
+                    "tracks": 1
+                  },
+                  {
+                    "start": 1382791,
+                    "end": 1383063,
+                    "reads": 1442,
+                    "tracks": 1
+                  }
+                ],
+                "unread": [
+                  {
+                    "start": 1381746,
+                    "end": 1382305,
+                    "inCds": true,
+                    "outcome": "MISSING_EXON",
+                    "replacement": [
+                      {
+                        "start": 1381746,
+                        "end": 1381886,
+                        "reads": 1436,
+                        "tracks": 1
+                      },
+                      {
+                        "start": 1382045,
+                        "end": 1382280,
+                        "reads": 1686,
+                        "tracks": 1
+                      }
+                    ],
+                    "motif": null,
+                    "depth": null,
+                    "spansAssemblyGap": false
+                  }
+                ],
+                "bestJunctionReads": 1970,
+                "unstrandedIgnored": 0,
+                "reason": null,
+                "geneIds": [
+                  {
+                    "given": "PcyM_0736700",
+                    "resolved": "PcyM_0736700"
+                  }
+                ],
+                "gene": "PcyM_0736700",
+                "transcript": "PcyM_0736700-t36_1",
+                "otherTranscripts": 0,
+                "tracksRefused": [],
+                "evidenceUnread": [],
+                "correctedCds": [
+                  [1381622, 1381745],
+                  [1381887, 1382044],
+                  [1382281, 1382465],
+                  [1382631, 1382790],
+                  [1383064, 1383462]
+                ],
+                "correctedProtein": "MIQFLKNLQLHKKKDSGSTKEPKRENKMKYEDFNFIRTLGTGSFGRVILATYKNEDFPPVAIKRFEKSKIIKQKQVDHVFSERKILNYISHPFCVNLYGSFKDESYLYLVLEFVIGGEFFTFLRRNKRFPNDVGCFYAAQIVLIFEYLQSLNIVYRDLKPENLLLDKDGFIKMTDFGFAKVVDTRTYTLCGTPEYIAPEILLNIGHGKAADWWTLGIFIYEILVGCPPFYANEPLLIYQKILEGIIYFPKFLDTNCKHLMKKLLSHDLTKRYGNLKKGAQNVKEHPWFGNIDWVSLLHKNVDVPYKPKYKNIFDSSNFERVQEDLTIADKITNENDPFFDW",
+                "frameKept": true,
+                "code": "standard",
+                "codeInferred": true,
+                "orthologs": {
+                  "named": 16,
+                  "read": 16,
+                  "compared": [
+                    "PVX_086975",
+                    "PKNH_0733500",
+                    "POWCR01_070036800",
+                    "PF3D7_0934800",
+                    "PBANKA_0835600",
+                    "Py17XNL_000801943",
+                    "PVPCR_0803510",
+                    "PCHAS_0835900"
+                  ],
+                  "forCorrected": 8,
+                  "forAnnotated": 0,
+                  "reason": null
+                },
+                "correctionReason": null,
+                "model": {
+                  "gene": "PcyM_0736700",
+                  "transcript": "PcyM_0736700-t36_1",
+                  "seqid": "PcyM_07",
+                  "strand": "+",
+                  "exons": [
+                    [1381622, 1381745],
+                    [1382306, 1382465],
+                    [1382631, 1382790],
+                    [1383064, 1383462]
+                  ],
+                  "cds": [
+                    [1381622, 1381745],
+                    [1382306, 1382465],
+                    [1382631, 1382790],
+                    [1383064, 1383462]
+                  ]
+                },
+                "junctionTracks": {
+                  "organismAbbrev": "pcynM",
+                  "listed": 1,
+                  "read": 1
+                }
+              }
+            }
+          },
+          "requests": 0,
+          "attempts": 1,
+          "stopped": 0,
+          "message": null
+        }
+      ],
+      "facts": [
+        {
+          "kind": "confirmation",
+          "facts": [
+            {
+              "label": "Transcript judged",
+              "value": "PcyM_0736700-t36_1"
+            },
+            {
+              "label": "Annotated introns with reads",
+              "value": "2 of 3"
+            },
+            {
+              "label": "Junction tracks read",
+              "value": "1 of 1 listed for pcynM"
+            },
+            {
+              "label": "Intron with no read",
+              "value": "bases 1,381,746 to 1,382,305"
+            },
+            {
+              "label": "What the evidence shows there",
+              "value": "RNA-seq junctions that join an exon the model lacks"
+            },
+            {
+              "label": "RNA-seq junctions that replace it",
+              "value": "1,381,746 to 1,381,886 (1,436 reads; tracks: 1) and 1,382,045 to 1,382,280 (1,686 reads; tracks: 1)"
+            },
+            {
+              "label": "Corrected protein",
+              "value": "341 residues, frame kept"
+            },
+            {
+              "label": "Orthologs that match",
+              "value": "8 for the corrected model, 0 for the annotated one, of 16 read"
+            }
+          ]
+        }
+      ],
+      "review": {
+        "verdict": {
+          "genes": ["PcyM_0736700"],
+          "modelGenome": "Plasmodium cynomolgi strain M",
+          "verdict": "error",
+          "errorType": "missing_exon",
+          "certainty": "high",
+          "cause": "Sample review: RNA-seq junctions of 1,436 and 1,686 reads join the exon 1,381,887 to 1,382,044 the model lacks.",
+          "cites": ["finding:10"]
+        },
+        "alreadyKnown": "not_searched",
+        "knownFrom": [],
+        "paperDepends": null,
+        "cardText": "Sample fix: add the exon 1,381,887 to 1,382,044 to PcyM_0736700.",
+        "impact": null,
+        "impactReason": null,
+        "secondVerdict": null,
+        "stopped": false
+      },
+      "reviewText": {
+        "verdictText": "The review keeps the error",
+        "literatureText": "The literature was not searched",
+        "paperText": "Not checked whether a published study depends on this gene's model",
+        "secondText": null
+      },
+      "genes": [
+        {
+          "gene": "PcyM_0736700",
+          "url": "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PcyM_0736700"
+        }
+      ],
+      "models": {
+        "kind": "intron",
+        "annotated": [
+          {
+            "gene": "PcyM_0736700",
+            "transcript": "PcyM_0736700-t36_1",
+            "seqid": "PcyM_07",
+            "strand": "+",
+            "exons": [
+              [1381622, 1381745],
+              [1382306, 1382465],
+              [1382631, 1382790],
+              [1383064, 1383462]
+            ],
+            "cds": [
+              [1381622, 1381745],
+              [1382306, 1382465],
+              [1382631, 1382790],
+              [1383064, 1383462]
+            ]
+          }
+        ],
+        "proposed": {
+          "kind": "corrected",
+          "gene": "PcyM_0736700",
+          "exons": [
+            [1381622, 1381745],
+            [1381887, 1382044],
+            [1382281, 1382465],
+            [1382631, 1382790],
+            [1383064, 1383462]
+          ],
+          "cds": [
+            [1381622, 1381745],
+            [1381887, 1382044],
+            [1382281, 1382465],
+            [1382631, 1382790],
+            [1383064, 1383462]
+          ],
+          "removedIntrons": [[1381746, 1382305]],
+          "junctions": [
+            [1381746, 1381886],
+            [1382045, 1382280]
+          ],
+          "junctionReads": [1436, 1686],
+          "kept": [],
+          "frameKept": true
+        },
+        "merged": null,
+        "stop": null
+      }
+    }
+  ]
+}

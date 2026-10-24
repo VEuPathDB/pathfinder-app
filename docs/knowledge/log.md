@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A sample audit run backs the report page's flow and the web fixture.**
+  `data/audit/sample_run.json` holds a finished plasmodb run of ten findings, built from the
+  recorded test-support results, with the reviews and the synthesis of the stored shapes.
+  `services/audit/sample_run.py::store_sample_run` stores it for one person, and the mock-only
+  `POST /api/v1/dev/audits/sample` answers its run id and finding ids. The routes' answers for it
+  are `apps/web/src/features/audit/__fixtures__/sampleRun.json`, with ids and times fixed. See
+  `conventions/recording-the-audit-models.md`.
+
 * **An audit finding reads its gene models in genome coordinates.** `domain/audit/models.py`
   derives `FindingDetail.models` from the stored confirmation alone: the annotated models of the
   genes the check judged, the model an intron's RNA-seq junctions propose (`corrected` from the
