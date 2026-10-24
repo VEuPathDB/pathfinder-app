@@ -267,6 +267,7 @@ def test_a_proposal_without_a_scope_draws_no_card() -> None:
     refused = ScopeProposal(
         request=PlanRequest(site_id="exampledb", genomes=("alpha",)),
         unresolved=("alpha",),
+        suggestions={"alpha": ()},
     )
 
     with pytest.raises(ValueError, match="no scope"):
@@ -366,6 +367,18 @@ def test_a_request_out_of_bounds_is_refused_in_words(
 ) -> None:
     with pytest.raises(ValueError, match=message):
         PlanRequest.model_validate({"siteId": "exampledb", **change})
+
+
+def test_a_proposal_holds_suggestions_for_every_unresolved_genome() -> None:
+    request = PlanRequest(site_id="exampledb", genomes=("alpha", "beta"))
+
+    with pytest.raises(ValueError, match="a proposal suggests for every unresolved"):
+        ScopeProposal(
+            request=request, unresolved=("alpha", "beta"), suggestions={"alpha": ()}
+        )
+    assert ScopeProposal(
+        request=request, unresolved=("alpha",), suggestions={"alpha": ()}
+    ).suggestions == {"alpha": ()}
 
 
 def test_an_empty_check_list_leaves_the_checks_to_the_planner() -> None:

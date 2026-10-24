@@ -175,6 +175,17 @@ class ScopeProposal(CamelModel):
             raise ValueError(msg)
         return self
 
+    @model_validator(mode="after")
+    def _suggestions_for_the_unresolved(self) -> Self:
+        unsuggested = [n for n in self.unresolved if n not in self.suggestions]
+        if unsuggested:
+            msg = (
+                "a proposal suggests for every unresolved genome, and not for "
+                f"{', '.join(unsuggested)}"
+            )
+            raise ValueError(msg)
+        return self
+
 
 class AuditStartCard(CamelModel):
     model_config = ConfigDict(frozen=True)
