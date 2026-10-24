@@ -136,7 +136,8 @@ def _deps(session: StrategySession | None = None) -> AgentDeps:
         lead_deps(
             pipeline_state(user_prompt=f"save these genes as {SET_NAME}"),
             strategy_session=session,
-        )
+        ),
+        call_id="call_test",
     )
 
 

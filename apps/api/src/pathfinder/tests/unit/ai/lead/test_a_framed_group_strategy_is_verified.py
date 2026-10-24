@@ -73,7 +73,7 @@ def _framed_deps(stated: Constraint) -> LeadDeps:
         pushed_step_ids=["step_b08116fe"], wdk_strategy_id=214645250
     )
     deps = lead_deps(state, strategy_session=_session())
-    framing = agent_deps_for(deps)
+    framing = agent_deps_for(deps, call_id="call_test")
     framing.agent_state.frame_set_criterion(
         Criterion(
             id="step_b08116fe",

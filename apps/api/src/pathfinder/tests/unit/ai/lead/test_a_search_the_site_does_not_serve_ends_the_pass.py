@@ -136,7 +136,7 @@ def _deps() -> LeadDeps:
 
 
 def _agent_deps(deps: LeadDeps, accession_under: str) -> AgentDeps:
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id="call_test")
     state: AgentToolState = agent_deps.agent_state
     state.request_messages = [_PROMPT]
     state.record_catalog_read(listing(["ByIdList"], record_type="sequence"))

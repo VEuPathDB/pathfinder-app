@@ -109,8 +109,11 @@ async def test_an_investigation_citing_an_unmade_read_is_refused(
             return _output(info, {"answer": "It is truncated.", "verdicts": [_VERDICT]})
         return _output(info, {"answer": "No read settles it.", "verdicts": []})
 
-    found, _ = await investigate(
-        "is the model of EXA_0003 truncated", deps=_deps(), model=FunctionModel(respond)
+    found = await investigate(
+        "is the model of EXA_0003 truncated",
+        deps=_deps(),
+        model=FunctionModel(respond),
+        usage=RunUsage(),
     )
 
     assert retried == [unheld_cites_message([_UNMADE])]
@@ -131,7 +134,8 @@ async def test_an_investigation_charges_the_tokens_it_spent(charged: Charged) ->
     deps = _deps()
     model = FunctionModel(answer, model_name="judge")
 
-    _, spent = await investigate("is it right", deps=deps, model=model)
+    spent = RunUsage()
+    await investigate("is it right", deps=deps, model=model, usage=spent)
 
     assert spent.total_tokens == 120
     assert charged == [(deps.user_id, 120, "function:judge")]
@@ -146,10 +150,12 @@ async def test_an_investigation_runs_on_its_own_budget(charged: Charged) -> None
         )
 
     deps = _deps()
-    found, spent = await investigate(
+    spent = RunUsage()
+    found = await investigate(
         "what is the rate",
         deps=deps,
         model=FunctionModel(forever, model_name="forever"),
+        usage=spent,
     )
 
     assert INVESTIGATION_LIMITS.request_limit == 24
@@ -166,8 +172,9 @@ async def test_an_investigation_ignores_the_usage_of_its_caller() -> None:
         return _output(info, {"answer": "Nothing to judge.", "verdicts": []})
 
     async def ask_the_investigator(ctx: RunContext[AuditDeps]) -> str:
-        found, spent = await investigate(
-            "is it right", deps=ctx.deps, model=FunctionModel(answer)
+        spent = RunUsage()
+        found = await investigate(
+            "is it right", deps=ctx.deps, model=FunctionModel(answer), usage=spent
         )
         inner.append(spent)
         return found.answer
@@ -202,7 +209,9 @@ async def test_the_investigator_holds_the_checks_and_reads_and_no_start() -> Non
         offered.append(frozenset(tool.name for tool in info.function_tools))
         return _output(info, {"answer": "Nothing to judge.", "verdicts": []})
 
-    await investigate("is it right", deps=_deps(), model=FunctionModel(answer))
+    await investigate(
+        "is it right", deps=_deps(), model=FunctionModel(answer), usage=RunUsage()
+    )
 
     assert offered == [CHECK_TOOL_NAMES | READ_TOOL_NAMES]
 

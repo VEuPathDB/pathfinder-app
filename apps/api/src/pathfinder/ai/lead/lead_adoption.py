@@ -14,6 +14,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.deltas import ExecuteDelta
+from pathfinder.ai.lead.dispatch_context import dispatch_call_id
 from pathfinder.ai.lead.lead_tools import clear_the_strategy
 from pathfinder.ai.lead.sub_agent_dispatch import build_the_minted, minted_spec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -104,7 +105,7 @@ async def adopt_separating_strategy(
     if deps.step_count:
         await clear_the_strategy(ctx, keep_control_sets=True)
     deps.state.domain.operational_spec = offer.spec
-    delta = await build_the_minted(deps, minted)
+    delta = await build_the_minted(deps, minted, call_id=dispatch_call_id(ctx))
     deps.state.domain.attached_controls = await _attach_the_controls(deps, offer)
     return delta
 

@@ -39,7 +39,8 @@ def _build_state() -> PipelineState:
 
 def _deps(state: PipelineState, ctx: Context) -> AgentDeps:
     return agent_deps_for(
-        LeadDeps(state=state, intent=None, runtime=ctx, retrieved_memories=[])
+        LeadDeps(state=state, intent=None, runtime=ctx, retrieved_memories=[]),
+        call_id="call_test",
     )
 
 

@@ -5,6 +5,7 @@ from assistant_core.graph.tool_summary import count_noun, with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.models import AbstractModel, Model
+from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.audit.investigator import (
     GeneModelInvestigation,
@@ -39,10 +40,14 @@ async def investigate_gene_models(
 ) -> ToolReturn[GeneModelInvestigation]:
     deps = audit_deps_of(ctx.deps, origin=origin)
     model = request_model(ctx.model)
-    found, usage = await investigate(question, deps=deps, model=model)
-    if ctx.deps.meter is not None:
-        ctx.deps.meter(usage, model.model_id)
+    usage = RunUsage()
+    try:
+        found = await investigate(question, deps=deps, model=model, usage=usage)
+    finally:
+        if ctx.deps.meter is not None and usage.requests:
+            ctx.deps.meter(usage, model)
     ctx.deps.turn_markers.record_audit_facts(found.facts)
-    ctx.deps.turn_markers.record_resolved_genes(found.records)
+    for record in found.records:
+        ctx.deps.turn_markers.record_read(record)
     summary = count_noun(len(found.verdicts), "verdict")
     return with_summary(found, f"Investigated: {summary}", ctx=ctx)

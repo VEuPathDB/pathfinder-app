@@ -94,7 +94,7 @@ async def test_a_save_through_verifications_toolset_records_the_set(
 ) -> None:
     """The sub-agent runs under its own deps, and the turn still records it."""
     deps = _deps()
-    inner: AgentDeps = agent_deps_for(deps)
+    inner: AgentDeps = agent_deps_for(deps, call_id="call_test")
 
     await _verification_save()(
         run_context_for(inner, "call_save"),
@@ -130,7 +130,7 @@ async def test_a_save_through_verifications_toolset_reaches_the_turn_record(
     saved: list[GeneSet],
 ) -> None:
     deps = _deps()
-    inner: AgentDeps = agent_deps_for(deps)
+    inner: AgentDeps = agent_deps_for(deps, call_id="call_test")
 
     await _verification_save()(
         run_context_for(inner, "call_save"),

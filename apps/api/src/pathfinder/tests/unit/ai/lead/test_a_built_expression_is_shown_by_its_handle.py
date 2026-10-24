@@ -209,13 +209,13 @@ async def test_a_built_expression_lives_as_long_as_the_conversation() -> None:
     state, handle, expression = await _framed(None)
     pipeline = pipeline_state("orthomcl", domain=StrategyDomainState())
     deps = lead_deps(pipeline)
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id="call_test")
     agent_deps.agent_state.built_expressions.update(state.built_expressions)
 
     apply_agent_state(deps, agent_deps)
 
     assert pipeline.domain.built_expressions == state.built_expressions
-    assert agent_deps_for(deps).agent_state.built_expressions == {
+    assert agent_deps_for(deps, call_id="call_test").agent_state.built_expressions == {
         handle: state.built_expressions[handle]
     }
     assert state.built_expressions[handle].expression == expression

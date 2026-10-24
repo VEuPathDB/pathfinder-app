@@ -29,7 +29,10 @@ _REQUEST = "Find genes upregulated 24 hours post blood meal"
 def test_a_sub_agents_writes_carry_the_request() -> None:
     deps = lead_deps(pipeline_state(user_prompt=_REQUEST))
 
-    assert agent_deps_for(deps).to_strategy_context().user_prompt == _REQUEST
+    assert (
+        agent_deps_for(deps, call_id="call_test").to_strategy_context().user_prompt
+        == _REQUEST
+    )
 
 
 def test_a_later_turn_carries_the_threads_original_request() -> None:
@@ -38,9 +41,9 @@ def test_a_later_turn_carries_the_threads_original_request() -> None:
         domain=StrategyDomainState(original_request=_REQUEST),
     )
 
-    assert agent_deps_for(lead_deps(state)).to_strategy_context().user_prompt == (
-        _REQUEST
-    )
+    assert agent_deps_for(
+        lead_deps(state), call_id="call_test"
+    ).to_strategy_context().user_prompt == (_REQUEST)
 
 
 def test_an_eda_step_carries_the_request() -> None:
@@ -71,6 +74,8 @@ async def test_a_recovery_resync_carries_the_request(
         pipeline_state(user_prompt=_REQUEST), strategy_session=session_with_one_step()
     )
 
-    await sub_agent_dispatch._resync_outcome(agent_deps_for(deps), BuildOutcome())
+    await sub_agent_dispatch._resync_outcome(
+        agent_deps_for(deps, call_id="call_test"), BuildOutcome()
+    )
 
     assert requests == [_REQUEST]

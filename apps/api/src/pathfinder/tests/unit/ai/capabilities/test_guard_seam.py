@@ -190,7 +190,7 @@ def test_the_product_deps_default_to_the_pathfinder_guard() -> None:
 
 def test_every_sub_agent_dispatch_builds_deps_under_the_product_guard() -> None:
     """One deps container serves all three sub-agents, built once per dispatch."""
-    deps = agent_deps_for(_lead_deps())
+    deps = agent_deps_for(_lead_deps(), call_id="call_test")
 
     assert deps.tool_repetition_guard.read_only_tools == READ_ONLY_TOOLS
     assert deps.tool_repetition_guard.stopped_call_id == ""
@@ -209,10 +209,10 @@ def test_the_lead_deps_carry_the_product_guard() -> None:
 
 def test_each_turn_gets_its_own_guard_state() -> None:
     """Two dispatches never share a streak, so one turn cannot stop the next."""
-    first = agent_deps_for(_lead_deps()).tool_repetition_guard
+    first = agent_deps_for(_lead_deps(), call_id="call_test").tool_repetition_guard
     for step in range(1, DEFAULT_REPETITION_THRESHOLD + 2):
         first.check("get_strategy", {}, tool_call_id=f"c{step}", run_step=step)
-    second = agent_deps_for(_lead_deps()).tool_repetition_guard
+    second = agent_deps_for(_lead_deps(), call_id="call_test").tool_repetition_guard
 
     assert first.stopped_call_id == f"c{DEFAULT_REPETITION_THRESHOLD + 1}"
     assert second.total_blocked == 0

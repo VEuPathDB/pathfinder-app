@@ -58,7 +58,9 @@ async def test_an_intersect_of_nothing_is_answered_with_the_combine_shape() -> N
             ]
         )
 
-    deps = agent_deps_for(lead_deps(pipeline_state(user_prompt="drop the filter")))
+    deps = agent_deps_for(
+        lead_deps(pipeline_state(user_prompt="drop the filter")), call_id="call_test"
+    )
     deps.db_session_factory = None
     agent = build_frame_agent()
 

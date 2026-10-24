@@ -102,6 +102,6 @@ def test_a_pass_starts_from_the_roles_the_thread_holds() -> None:
     deps = _deps()
     deps.state.domain.record_roles = {_PROTEINS.key: "through"}
 
-    held = agent_deps_for(deps).agent_state.held_record_roles
+    held = agent_deps_for(deps, call_id="call_test").agent_state.held_record_roles
 
     assert held == {_PROTEINS.key: "through"}

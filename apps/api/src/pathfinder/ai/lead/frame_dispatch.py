@@ -235,7 +235,7 @@ async def _run_frame(
     resume: SubAgentResume | None = None,
 ) -> FrameResult | SubAgentApprovalWait:
     """Run FRAME and apply its result, on a fresh dispatch or a resumed one."""
-    agent_deps = agent_deps_for(deps)
+    agent_deps = agent_deps_for(deps, call_id=parent_tool_call_id)
     if not agent_deps.agent_state.operational_spec_draft.goal:
         agent_deps.agent_state.operational_spec_draft.goal = deps.state.user_prompt
     bound_before = _bound_count(agent_deps.agent_state.operational_spec_draft)

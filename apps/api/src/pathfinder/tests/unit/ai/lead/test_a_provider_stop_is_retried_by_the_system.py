@@ -68,7 +68,7 @@ def frame_on(monkeypatch: pytest.MonkeyPatch) -> Callable[[Exception], Any]:
 async def _frame_pass(deps: LeadDeps) -> FrameResult | None:
     result = await stream_sub_agent(
         run=PhaseRun("frame", "frame it"),
-        agent_deps=agent_deps_for(deps),
+        agent_deps=agent_deps_for(deps, call_id="call_test"),
         parent_tool_call_id="t1",
         expected_output_type=FrameResult,
         deps=deps,

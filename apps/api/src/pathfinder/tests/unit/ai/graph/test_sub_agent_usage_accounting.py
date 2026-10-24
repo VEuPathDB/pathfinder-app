@@ -170,3 +170,29 @@ async def test_a_pass_its_run_already_charged_counts_and_is_not_charged_again(
     assert capture.residual_totals(state)[0] == 2521
     assert charged == [80]
     assert capture.billed_outside_the_lead == capture.spend_outside_the_lead()
+
+
+async def test_a_pass_charged_on_the_researchers_key_is_not_charged_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture = _LeadRunCapture()
+    state = pipeline_state(user_prompt="q")
+    charged: list[tuple[PaidBy, int]] = []
+
+    async def accumulate(
+        session: AsyncSession, *, tokens: int, paid_by: PaidBy, **_: object
+    ) -> None:
+        del session
+        charged.append((paid_by, tokens))
+
+    monkeypatch.setattr(quota, "accumulate", accumulate)
+    absorb_sub_agent_usage(
+        capture, replace(_pass(2441), billed=True, paid_by=PaidBy.USER)
+    )
+
+    runtime = replace(lead_deps(state).runtime, db_session_factory=detached_session)
+    await _persist_residual_quota(runtime, state, capture)
+
+    assert charged == []
+    assert (capture.own_key_sub_agent_tokens, capture.sub_agent_tokens) == (2441, 2441)
+    assert capture.billed_outside_the_lead == capture.spend_outside_the_lead()

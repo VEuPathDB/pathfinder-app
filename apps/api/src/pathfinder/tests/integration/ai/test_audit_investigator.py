@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic_ai.usage import RunUsage
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from pathfinder.ai.audit.deps import AuditDeps
@@ -52,10 +53,12 @@ async def test_an_investigation_stores_its_verdicts(
         origin="lead",
     )
 
-    found, spent = await investigate(
+    spent = RunUsage()
+    found = await investigate(
         "is the pseudogene call on EXA_0001 right; its reference gene is EXR_0001",
         deps=deps,
         model=build_audit_mock(),
+        usage=spent,
     )
 
     (verdict,) = found.verdicts

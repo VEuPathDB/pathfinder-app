@@ -8,14 +8,14 @@ does not name keeps its WDK id and every value the researcher set on it.
 from __future__ import annotations
 
 from collections.abc import Collection
+from dataclasses import dataclass
 
-import pydantic
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.errors import ParamMessages, ValidationError
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
@@ -45,8 +45,8 @@ from pathfinder.ai.lead.edit_messages import (
     removal_is_the_cards_message,
     undo_moves_nothing_message,
     unsupported_edit_message,
-    wdk_refused_the_written_step_message,
 )
+from pathfinder.ai.lead.edit_refused_values import refused_values_message
 from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
 from pathfinder.ai.lead.pre_turn import hydrate_spec_from_the_strategy, stated_spec_of
@@ -56,10 +56,7 @@ from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-)
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.orthology import organism_move_refusal
 from pathfinder.domain.strategy.revision import parse_strategy_ast, strategy_revision
@@ -94,6 +91,13 @@ __all__ = ["edit_strategy", "run_edit"]
 _UNDONE = "The strategy is back to the revision before the last change."
 
 
+@dataclass(frozen=True)
+class _EditBase:
+    graph: StrategyGraph
+    revision: str
+    call_id: str
+
+
 async def run_edit(
     *,
     deps: LeadDeps,
@@ -116,9 +120,13 @@ async def run_edit(
         # this turn framed for a fresh thread must survive a misrouted call.
         offered = tools_the_turn_offers(deps, ["frame_problem", "build_strategy"])
         raise ModelRetry(no_strategy_to_edit_message(offered))
-    base_revision = strategy_revision(graph.to_strategy_ast())
+    base = _EditBase(
+        graph=graph,
+        revision=strategy_revision(graph.to_strategy_ast()),
+        call_id=parent_tool_call_id,
+    )
     if resume is None and deps.intent is not None and deps.intent.asks_only_to_undo():
-        return await _undo(deps=deps, graph=graph, base_revision=base_revision)
+        return await _undo(deps=deps, base=base)
     answered, pending = the_edit_the_strategy_owes(deps.state, found)
     frame = await run_frame(
         deps=deps,
@@ -184,16 +192,13 @@ async def run_edit(
         deps=deps,
         after=after,
         diff=diff,
-        graph=graph,
-        base_revision=base_revision,
+        base=base,
         undo=False,
     )
     return pushed.model_copy(update={"reported": frame.reported, "gaps": frame.gaps})
 
 
-async def _undo(
-    *, deps: LeadDeps, graph: StrategyGraph, base_revision: str
-) -> EditDelta:
+async def _undo(*, deps: LeadDeps, base: _EditBase) -> EditDelta:
     """Return the strategy to the revision before its last change.
 
     Both trees are stated the same way, so the diff holds only what the last
@@ -204,16 +209,16 @@ async def _undo(
             session, conversation_id=deps.state.conversation_id
         )
     stored = None if revision is None else parse_strategy_ast(revision.strategy_ast)
-    live = graph.to_strategy_ast()
+    live = base.graph.to_strategy_ast()
     if revision is None or stored is None or live is None:
         raise CallRefused(no_earlier_revision_message())
-    if revision.revision == base_revision:
+    if revision.revision == base.revision:
         raise CallRefused(nothing_to_undo_message())
     site_id, goal = deps.runtime.site_id, deps.state.user_prompt
     before = await stated_spec_of(live, site_id=site_id, goal=goal)
     after = await stated_spec_of(stored, site_id=site_id, goal=goal)
     diff = diff_specs(before, after)
-    _refuse_a_removal_the_card_owns(deps, diff, graph)
+    _refuse_a_removal_the_card_owns(deps, diff, base.graph)
     # The commit's guards read the spec the thread states, so it states the
     # restored tree before the push.
     deps.state.domain.operational_spec = after
@@ -221,8 +226,7 @@ async def _undo(
         deps=deps,
         after=after,
         diff=diff,
-        graph=graph,
-        base_revision=base_revision,
+        base=base,
         undo=True,
     )
 
@@ -232,8 +236,7 @@ async def _push_the_edit(
     deps: LeadDeps,
     after: OperationalSpec,
     diff: SpecDiff,
-    graph: StrategyGraph,
-    base_revision: str,
+    base: _EditBase,
     undo: bool,
 ) -> EditDelta:
     """Push what ``after`` states with no criterion that waits for its
@@ -242,6 +245,7 @@ async def _push_the_edit(
     ``undo`` says the edit returns to the previous revision, which an empty
     batch cannot do.
     """
+    graph = base.graph
     planned = spec_without_pending_analyses(after)
     try:
         ops = operations_for(diff, after=planned, graph=graph)
@@ -271,9 +275,9 @@ async def _push_the_edit(
             preserved_step_ids=preserved,
         )
     current = strategy_revision(graph.to_strategy_ast())
-    if current != base_revision:
-        refuse_and_restore(deps, changed_revision_message(base_revision, current))
-    agent_deps = agent_deps_for(deps)
+    if current != base.revision:
+        refuse_and_restore(deps, changed_revision_message(base.revision, current))
+    agent_deps = agent_deps_for(deps, call_id=base.call_id)
     try:
         commit = await apply_operations_and_commit(
             deps=agent_deps.to_strategy_context(), ops=ops
@@ -284,7 +288,7 @@ async def _push_the_edit(
     except ValidationError as exc:
         refuse_and_restore(
             deps,
-            _refused_values_message(exc, diff=diff, after=planned, added=introduced),
+            refused_values_message(exc, diff=diff, after=planned, added=introduced),
         )
     outcome = live_outcome(agent_deps.strategy_session, commit.failed_step_ids)
     # The spec the thread carries states the option on the step that runs it,
@@ -347,56 +351,6 @@ def _refuse_a_delta_the_strategy_disagrees_with(
         refuse_and_restore(
             deps, delta_disagrees_with_the_strategy_message(sorted(disagreed))
         )
-
-
-_REFUSED_PARAMS = pydantic.TypeAdapter(list[ParamMessages])
-
-
-def _params_wdk_named(exc: ValidationError) -> frozenset[str]:
-    """The parameter names the refusal rows carry, empty when it carries none."""
-    try:
-        rows = _REFUSED_PARAMS.validate_python(exc.errors or [])
-    except pydantic.ValidationError:
-        return frozenset()
-    return frozenset(row.param for row in rows)
-
-
-def _steps_the_edit_writes(
-    diff: SpecDiff, after: OperationalSpec, added: Collection[str]
-) -> list[Criterion]:
-    """The criteria whose values this edit sends to VEuPathDB.
-
-    A criterion the edit builds a step for is written whatever the diff calls
-    it, because the spec it is compared against already held it.
-    """
-    written = {
-        change.criterion_id
-        for change in diff.changes
-        if change.disposition in {"added", "changed"}
-    } | set(added)
-    return [criterion for criterion in after.criteria if criterion.id in written]
-
-
-def _refused_values_message(
-    exc: ValidationError,
-    *,
-    diff: SpecDiff,
-    after: OperationalSpec,
-    added: Collection[str],
-) -> str:
-    """The refusal for values VEuPathDB turned down while the edit was pushed.
-
-    The refused step is the one this edit writes that states a parameter the
-    answer names; every written step is named when the answer names none.
-    """
-    params = _params_wdk_named(exc)
-    written = _steps_the_edit_writes(diff, after, added)
-    named = [c for c in written if not params.isdisjoint(c.resolved_params)]
-    return wdk_refused_the_written_step_message(
-        exc.detail or str(exc),
-        steps=[f"[{c.id}] {c.search_name}" for c in (named or written)],
-        params=sorted(params),
-    )
 
 
 def _unbound(deps: LeadDeps, reason: str, refusal: str) -> EditDelta:

@@ -20,7 +20,7 @@ _CARRY = f"Carry these to their syntenic orthologs in {_ME49}."
 def test_the_turns_carry_reaches_the_tool_state() -> None:
     state = pipeline_state("veupathdb", user_prompt=_CARRY)
 
-    tool_state = agent_deps_for(lead_deps(state)).agent_state
+    tool_state = agent_deps_for(lead_deps(state), call_id="call_test").agent_state
 
     assert tool_state.orthology_request == OrthologyRequest(
         shape="transform", target=_ME49
@@ -41,7 +41,7 @@ def test_a_transform_the_found_tree_holds_is_carried_nowhere() -> None:
         ),
     )
 
-    tool_state = agent_deps_for(lead_deps(state)).agent_state
+    tool_state = agent_deps_for(lead_deps(state), call_id="call_test").agent_state
 
     assert tool_state.carried_to("c_to") == ""
     assert tool_state.carried_to("c_to_me49") == _ME49
@@ -52,7 +52,7 @@ def test_a_kept_gene_carries_no_transform() -> None:
         "veupathdb", user_prompt=f"Keep only those with syntenic orthologs in {_ME49}."
     )
 
-    tool_state = agent_deps_for(lead_deps(state)).agent_state
+    tool_state = agent_deps_for(lead_deps(state), call_id="call_test").agent_state
 
     assert tool_state.orthology_request == OrthologyRequest(
         shape="round_trip", target=_ME49

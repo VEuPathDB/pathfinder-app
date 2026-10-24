@@ -12,9 +12,11 @@ from typing import NoReturn
 from assistant_core.capabilities.refused_calls import CallRefused
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import CallDeferred, ModelRetry
+from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.capabilities.metering import RunPricing
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
@@ -87,17 +89,17 @@ def offered_readings(state: PipelineState) -> list[ReadValues]:
     ]
 
 
-def _meter(deps: LeadDeps, call_id: str) -> Callable[[RunUsage, str], None]:
-    def meter(usage: RunUsage, model_id: str) -> None:
-        provider, _, model = model_id.partition(":")
+def _meter(deps: LeadDeps, call_id: str) -> Callable[[RunUsage, Model], None]:
+    def meter(usage: RunUsage, model: Model) -> None:
+        pricing = RunPricing.of(model)
         deps.record_sub_agent_usage(
             SubAgentRunUsage(
                 usage=usage,
-                model_name=model or None,
-                provider_name=provider or None,
-                provider_url=None,
+                model_name=pricing.model_name,
+                provider_name=pricing.provider_name,
+                provider_url=pricing.provider_url,
                 parent_tool_call_id=call_id,
-                paid_by=turn_paid_by(model_id),
+                paid_by=turn_paid_by(model.model_id),
                 billed=True,
             )
         )
@@ -105,7 +107,7 @@ def _meter(deps: LeadDeps, call_id: str) -> Callable[[RunUsage, str], None]:
     return meter
 
 
-def agent_deps_for(deps: LeadDeps, *, call_id: str = "") -> AgentDeps:
+def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
     state = deps.state
     runtime = deps.runtime
     ledger = derive_ledger(state, deps.intent, phase_stop=deps.last_phase_stop)

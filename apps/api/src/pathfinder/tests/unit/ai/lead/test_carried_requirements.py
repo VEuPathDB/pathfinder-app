@@ -172,7 +172,9 @@ def test_a_question_with_no_recommendation_carries_nothing() -> None:
 def test_the_frame_dispatch_carries_the_first_turn_combination() -> None:
     state = _answered(_asked_state(*_questions()), _TURN_TWO, _answering_intent())
 
-    deps = agent_deps_for(lead_deps(state, intent=_answering_intent()))
+    deps = agent_deps_for(
+        lead_deps(state, intent=_answering_intent()), call_id="call_test"
+    )
 
     assert [c.requested_value for c in deps.agent_state.combination_requirements] == [
         _COMBINATION
@@ -190,7 +192,9 @@ def test_the_frame_dispatch_carries_a_recommended_organism() -> None:
     state.domain.open_questions = [question]
     state = _answered(state, _ACCEPTED, _accepting_intent())
 
-    deps = agent_deps_for(lead_deps(state, intent=_accepting_intent()))
+    deps = agent_deps_for(
+        lead_deps(state, intent=_accepting_intent()), call_id="call_test"
+    )
 
     assert deps.agent_state.organism_hints == ["Plasmodium vivax P01"]
 
@@ -241,7 +245,9 @@ def test_a_new_goal_while_a_question_is_open_replaces_the_requirements() -> None
 def test_an_abandoned_combination_reaches_no_sub_agent() -> None:
     state = _answered(_asked_state(*_questions()), _ABANDONED, _abandoning_intent())
 
-    deps = agent_deps_for(lead_deps(state, intent=_abandoning_intent()))
+    deps = agent_deps_for(
+        lead_deps(state, intent=_abandoning_intent()), call_id="call_test"
+    )
 
     assert deps.agent_state.combination_requirements == []
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
@@ -339,6 +345,8 @@ def test_a_new_goal_replaces_the_requirements_a_frame_question_left_open() -> No
     ledger = derive_ledger(state, _abandoning_intent())
     values = {g.constraint.requested_value for g in ledger.constraints.grounded}
     assert values == {"Plasmodium falciparum"}
-    deps = agent_deps_for(lead_deps(state, intent=_abandoning_intent()))
+    deps = agent_deps_for(
+        lead_deps(state, intent=_abandoning_intent()), call_id="call_test"
+    )
     assert deps.agent_state.combination_requirements == []
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
