@@ -63,6 +63,7 @@ PassGapKind = Literal[
     "organism_step_missing",
     "record_role_missing",
     "record_type_unknown",
+    "structure_names_unbound",
 ]
 
 

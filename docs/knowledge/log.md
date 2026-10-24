@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **A ready spec's structure names only criteria the draft bound.** The FRAME output validator
+  `hold_the_structure_to_bound_criteria` (`ai/agents/frame_result_checks.py`) sends back a
+  `spec_ready` pass whose structure names a criterion the draft lacks or holds with no search
+  (`unbound_in_structure`, `domain/strategy/structure_bindings.py`; a criterion waiting for its
+  analysis counts as bound), naming each one, so the pass binds or drops it before the build
+  refuses the node. At the refusal bound the pass ends with a `structure_names_unbound` gap.
 * **A requirement the bound phyletic expression states is not reported unmet.** A
   `RequirementReport` carries `clause`, the requirement as one pattern term, and
   `hold_the_reports_to_the_bound_patterns` refuses a `site_has_no_search` or `stand_in_bound`

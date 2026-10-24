@@ -37,6 +37,7 @@ from pathfinder.ai.agents.frame_result_checks import (
     hold_the_reports_to_the_refusals,
     hold_the_reports_to_the_requirement_list,
     hold_the_route_to_another_site,
+    hold_the_structure_to_bound_criteria,
 )
 from pathfinder.ai.agents.scratchpad_guidance import (
     PATHFINDER_SCRATCHPAD_GUIDANCE,
@@ -400,6 +401,7 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_an_organism_to_a_step)
     agent.output_validator(hold_the_questions_to_a_dimension)
     agent.output_validator(hold_the_questions_to_the_draft)
+    agent.output_validator(hold_the_structure_to_bound_criteria)
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
     agent.output_validator(hold_the_reports_to_the_bound_patterns)

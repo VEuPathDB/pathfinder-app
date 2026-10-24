@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.requirement_reports import (
     reported_requirements,
     unknown_requirement_ids,
 )
+from pathfinder.domain.strategy.structure_bindings import unbound_in_structure
 from pathfinder.services.gene_sets.homes import site_kind
 
 
@@ -131,6 +132,32 @@ def hold_an_organism_to_a_step(
         f"{named}, and no step of the draft limits its records to an organism. A "
         f"unit of a phyletic expression or the text of a transform does not. "
         f"{remedy} If no search can, report {ids} in requirement_problems."
+    )
+    raise ModelRetry(msg)
+
+
+def hold_the_structure_to_bound_criteria(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    """Send back a ready spec whose structure names a criterion it never bound."""
+    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
+        return output
+    state = ctx.deps.agent_state
+    unbound = unbound_in_structure(state.operational_spec_draft)
+    if not unbound:
+        return output
+    ids = ", ".join(unbound)
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gap(
+            "structure_names_unbound",
+            f"The structure names {ids}, which no bound criterion stands for.",
+        )
+    state.refusals += 1
+    them = "it" if len(unbound) == 1 else "them"
+    msg = (
+        f"set_structure names {ids}, and the draft binds no search for {them}. "
+        f"Bind each with set_criterion, or call set_structure again without {them}: "
+        "the build refuses a node no bound criterion stands for."
     )
     raise ModelRetry(msg)
 
@@ -303,4 +330,5 @@ __all__ = [
     "hold_the_reports_to_the_refusals",
     "hold_the_reports_to_the_requirement_list",
     "hold_the_route_to_another_site",
+    "hold_the_structure_to_bound_criteria",
 ]
