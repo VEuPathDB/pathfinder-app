@@ -6,6 +6,7 @@ between them resolves.
 """
 
 from datetime import datetime
+from typing import Self
 from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import (
@@ -978,6 +979,13 @@ class AuditEvidenceRecord(BaseModel):
     attempts: int
     stopped: int
     message: str | None
+
+    @model_validator(mode="after")
+    def _stored_has_payload(self) -> Self:
+        if (self.status == "stored") != (self.payload is not None):
+            msg = "evidence holds a payload when and only when it is stored"
+            raise ValueError(msg)
+        return self
 
 
 class _StoredVerdict(BaseModel):

@@ -5,19 +5,25 @@
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`
-  joined by `; ` for the export; `domain/audit/check_facts.py` states each check's stored result
-  (`confirmation_facts`, `evidence_facts`) and `domain/audit/intron_facts.py` the intron check's,
-  with each intron no read supports, the junctions that replace it, its splice-site bases and its
-  read depth against the library's RETAINED thresholds. A null reads "Not read".
-  `FindingDetail.facts` holds one group per stored payload, in the order confirmation,
-  relatives, gene evidence. The recorded intron results the tests read are in
-  `tests/fixtures/audit_models/`.
+  joined by `; ` for the export. `domain/audit/check_facts.py` states the pseudogene,
+  selenoprotein, missing-gene and organelle results (`confirmation_facts`, `evidence_facts`),
+  `domain/audit/length_facts.py` the length, split, fusion and strain results, and
+  `domain/audit/intron_facts.py` the intron check's, with each intron no read supports, the
+  junctions that replace it, its splice-site bases and its read depth against the library's
+  RETAINED thresholds. A value not read reads "Not read", a read that found nothing "None found",
+  and "Evidence not read" is shown only when the result names one. A strain whose genome was not
+  read states its own reason. `FindingDetail.facts` holds one group per stored payload, in the
+  order confirmation, relatives, gene evidence; `AuditEvidenceRecord` refuses a payload on
+  evidence that is not stored and a stored row with none. The recorded intron results the tests
+  read are in `tests/fixtures/audit_models/`, written by `scripts/record_audit_models.py`
+  (`conventions/recording-the-audit-models.md`).
 * **An audit finding states its check, its verdict and its error in plain words.**
   `domain/audit/words.py` holds one sentence per check (`CHECK_TITLES`), per verdict a check
-  gives (`verdict_sentence`, which answers null for a verdict another check gives), per error
+  gives (`verdict_sentence`), per error
   type (`ERROR_TYPE_TITLES`, `ERROR_TYPE_DESCRIPTIONS`), per review verdict, literature status
   and review status, per finding status with no stored verdict (`UNCHECKED_SENTENCES`), and the
-  paper and agreement sentences. `FindingView` carries the computed `verdictText`, `checkTitle`
+  paper and agreement sentences. `verdict_sentence` raises on a verdict its check does not give,
+  and `gene_split` has its own sentence for a pair the group does not call a split. `FindingView` carries the computed `verdictText`, `checkTitle`
   and `errorTitle`, so the page and the export read one sentence and the web keeps no table.
 * **One phyletic builder, and an expression is shown by its handle.** veupathdb-mcp
   0.2.0b42 (now pinned) replaces the three OrthoMCL builders with

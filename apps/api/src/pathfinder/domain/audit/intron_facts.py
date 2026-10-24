@@ -11,21 +11,25 @@ from veupathdb_mcp.audit import (
     UnreadOutcome,
 )
 
-from pathfinder.domain.audit.facts import NONE, NOT_READ, Fact, counted, known, listed
+from pathfinder.domain.audit.facts import (
+    NOT_READ,
+    Fact,
+    counted,
+    known,
+    listed,
+    unread_facts,
+)
+from pathfinder.domain.audit.words import percent
 
 _OUTCOMES: dict[UnreadOutcome, str] = {
-    "SHIFTED": "a junction a few bases away",
-    "MISSING_EXON": "junctions that join an exon the model lacks",
-    "REPLACED": "a junction that replaces it",
-    "NONCANONICAL": "its splice-site bases are not canonical",
-    "RETAINED": "reads cover it and none splices it",
-    "UNEXPLAINED": "nothing explains it",
+    "SHIFTED": "an RNA-seq junction a few bases away",
+    "MISSING_EXON": "RNA-seq junctions that join an exon the model lacks",
+    "REPLACED": "an RNA-seq junction that replaces it",
+    "NONCANONICAL": "the genome's splice-site bases are not canonical",
+    "RETAINED": "RNA-seq reads cover it and none splices it",
+    "UNEXPLAINED": "no evidence explains it",
 }
 _ACROSS_GAP = "it spans an assembly gap, so its splice-site bases were not read"
-
-
-def _percent(share: float) -> str:
-    return f"{round(100 * share)}%"
 
 
 def _junction(junction: IntronSupport) -> str:
@@ -38,9 +42,9 @@ def _junction(junction: IntronSupport) -> str:
 def _depth(depth: IntronDepth) -> str:
     return (
         f"median {depth.intron_median_depth:g} against an exon median of "
-        f"{depth.exon_median_depth:g} ({_percent(depth.depth_share)}; RETAINED needs "
-        f"{_percent(RETAINED_MIN_SHARE)} or more), {_percent(depth.covered_share)} of its "
-        f"bases covered (RETAINED needs {_percent(RETAINED_MIN_COVERED)} or more), "
+        f"{depth.exon_median_depth:g} ({percent(depth.depth_share)}; RETAINED needs "
+        f"{percent(RETAINED_MIN_SHARE)} or more), {percent(depth.covered_share)} of its "
+        f"bases covered (RETAINED needs {percent(RETAINED_MIN_COVERED)} or more), "
         f"track {depth.track}"
     )
 
@@ -67,7 +71,7 @@ def _unread_intron(intron: UnreadIntron, unread: list[str]) -> tuple[Fact, ...]:
             label="Intron with no read",
             value=f"bases {intron.start:,} to {intron.end:,}",
         ),
-        Fact(label="What the RNA-seq shows there", value=_shown(intron, unread)),
+        Fact(label="What the evidence shows there", value=_shown(intron, unread)),
         *motif,
         Fact(
             label="RNA-seq junctions that replace it",
@@ -95,14 +99,12 @@ def _corrected(result: IntronAudit) -> str:
 def _orthologs(orthologs: OrthologSupport | None) -> str:
     if orthologs is None:
         return NOT_READ
-    match (orthologs.for_corrected, orthologs.for_annotated, orthologs.read):
-        case (int(corrected), int(annotated), int(read)):
-            return (
-                f"{corrected:,} for the corrected model, {annotated:,} for the "
-                f"annotated one, of {read:,} read"
-            )
-        case _:
-            return known(orthologs.reason)
+    if orthologs.reason is not None:
+        return orthologs.reason
+    return (
+        f"{orthologs.for_corrected:,} for the corrected model, "
+        f"{orthologs.for_annotated:,} for the annotated one, of {orthologs.read:,} read"
+    )
 
 
 def intron_facts(result: IntronAudit) -> tuple[Fact, ...]:
@@ -117,7 +119,7 @@ def intron_facts(result: IntronAudit) -> tuple[Fact, ...]:
             for intron in result.unread or []
             for fact in _unread_intron(intron, unread)
         ),
-        Fact(label="Evidence not read", value="; ".join(unread) or NONE),
+        *unread_facts(unread),
         Fact(label="Corrected protein", value=_corrected(result)),
         Fact(label="Orthologs that match", value=_orthologs(result.orthologs)),
         *why,

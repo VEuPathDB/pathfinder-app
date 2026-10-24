@@ -15,6 +15,7 @@ from veupathdb_mcp.audit import (
     SideVerdict,
 )
 
+from pathfinder.domain.audit.confirmations import FindingVerdict
 from pathfinder.domain.audit.findings import ErrorType, FindingStatus
 from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.verdicts import (
@@ -36,7 +37,7 @@ from pathfinder.domain.audit.words import (
     verdict_sentence,
 )
 
-_VERDICTS: list[tuple[CheckName, tuple[str, ...]]] = [
+_VERDICTS: list[tuple[CheckName, tuple[FindingVerdict, ...]]] = [
     ("pseudogene_call", get_args(PseudogeneVerdict.__value__)),
     ("selenoprotein_end", get_args(SecVerdict.__value__)),
     ("gene_length", get_args(LengthVerdict.__value__)),
@@ -54,10 +55,14 @@ _VERDICTS: list[tuple[CheckName, tuple[str, ...]]] = [
 
 @pytest.mark.parametrize(("check", "verdicts"), _VERDICTS)
 def test_every_verdict_a_check_gives_has_a_plain_sentence(
-    check: CheckName, verdicts: tuple[str, ...]
+    check: CheckName, verdicts: tuple[FindingVerdict, ...]
 ) -> None:
     sentences = [verdict_sentence(check, verdict) for verdict in verdicts]
-    assert [s for s in sentences if s is None or "_" in s] == []
+    assert [s for s in sentences if s == "" or "_" in s] == []
+
+
+def test_every_check_has_a_title_and_its_verdicts_listed() -> None:
+    assert sorted(check for check, _ in _VERDICTS) == sorted(get_args(CheckName))
     assert sorted(CHECK_TITLES) == sorted(get_args(CheckName))
 
 
@@ -65,7 +70,8 @@ def test_a_verdict_reads_only_under_the_check_that_gives_it() -> None:
     assert verdict_sentence("strain_model", "STRAIN_SHORT") == (
         "Related genomes match the reference, so the strain model is too short"
     )
-    assert verdict_sentence("organelle_join", "STRAIN_SHORT") is None
+    with pytest.raises(KeyError):
+        verdict_sentence("organelle_join", "STRAIN_SHORT")
     assert (
         UNCHECKED_SENTENCES["unread"]
         == "Not checked: not read before the run's deadline"
@@ -95,4 +101,20 @@ def test_the_reviews_agreement_reads_with_its_share() -> None:
     )
     assert agreement_sentence(ReviewAgreement(sampled=0, agreed=0)) == (
         "No finding was reviewed twice, so the reviews' agreement is not measured"
+    )
+
+
+def test_a_split_pair_left_unchecked_names_the_split_not_a_short_model() -> None:
+    assert (
+        verdict_sentence("gene_split", "NOT_CHECKED"),
+        verdict_sentence("gene_length", "NOT_CHECKED"),
+    ) == (
+        (
+            "The site's ortholog group does not call the pair a split, so their DNA "
+            "was not read"
+        ),
+        (
+            "The site's whole ortholog group does not class the model as short, so "
+            "its DNA was not read"
+        ),
     )

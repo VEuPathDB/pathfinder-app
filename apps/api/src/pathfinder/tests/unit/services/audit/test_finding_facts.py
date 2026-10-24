@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import (
     ConfirmationEvidence,
@@ -55,3 +58,22 @@ def test_the_stored_evidence_reads_as_facts_in_kind_order() -> None:
 def test_a_stored_relatives_read_sits_before_the_gene_records() -> None:
     groups = stored_facts([_record(_RECORDS, "stored"), _record(_RELATIVES, "stored")])
     assert [group.kind for group in groups] == ["relatives", "gene_evidence"]
+
+
+@pytest.mark.parametrize(
+    ("status", "payload"), [("stored", None), ("failed", _RELATIVES)]
+)
+def test_evidence_holds_a_payload_only_when_stored(
+    status: EvidenceStatus, payload: EvidencePayload | None
+) -> None:
+    with pytest.raises(ValidationError, match="only when it is stored"):
+        AuditEvidenceRecord(
+            finding_id=1,
+            kind="relatives",
+            status=status,
+            payload=payload,
+            requests=1,
+            attempts=1,
+            stopped=0,
+            message=None,
+        )

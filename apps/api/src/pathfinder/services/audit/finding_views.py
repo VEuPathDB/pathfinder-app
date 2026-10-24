@@ -185,7 +185,7 @@ def stored_facts(evidence: Iterable[AuditEvidenceRecord]) -> list[EvidenceFacts]
     stored = [
         evidence_facts(record.payload)
         for record in evidence
-        if record.status == "stored" and record.payload is not None
+        if record.payload is not None
     ]
     return sorted(stored, key=lambda group: _FACT_ORDER.index(group.kind))
 

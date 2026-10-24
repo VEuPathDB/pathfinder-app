@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from veupathdb_mcp.audit import (
+    RETAINED_MIN_COVERED,
+    RETAINED_MIN_SHARE,
     FusionVerdict,
     IntronVerdict,
     LengthClass,
@@ -14,6 +16,7 @@ from veupathdb_mcp.audit import (
     SideVerdict,
 )
 
+from pathfinder.domain.audit.confirmations import FindingVerdict
 from pathfinder.domain.audit.findings import ErrorType, FindingStatus
 from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.verdicts import (
@@ -22,6 +25,11 @@ from pathfinder.domain.audit.verdicts import (
     ReviewStatus,
     VerdictKind,
 )
+
+
+def percent(share: float) -> str:
+    return f"{round(100 * share)}%"
+
 
 CHECK_TITLES: dict[CheckName, str] = {
     "pseudogene_call": "Pseudogene calls on intact genes",
@@ -49,8 +57,9 @@ _INTRON: dict[IntronVerdict, str] = {
         "GT..AG or GC..AG"
     ),
     "UNSUPPORTED_RETAINED": (
-        "RNA-seq reads cover an annotated intron across nearly all its length at a "
-        "quarter of the exons' depth or more, and none splices it out"
+        f"RNA-seq reads cover an annotated intron across {percent(RETAINED_MIN_COVERED)} "
+        f"or more of its length at {percent(RETAINED_MIN_SHARE)} or more of the exons' "
+        "depth, and none splices it out"
     ),
     "UNSUPPORTED_UNEXPLAINED": (
         "An annotated intron has no RNA-seq read, and no junction, splice-site bases "
@@ -151,20 +160,31 @@ _ORGANELLE: dict[OrganelleVerdict, str] = {
 }
 
 
-def _by_name[K: str](table: Mapping[K, str]) -> dict[str, str]:
-    return dict(table.items())
+_SPLIT: dict[LengthVerdict, str] = {
+    **LENGTH_SENTENCES,
+    "NOT_CHECKED": (
+        "The site's ortholog group does not call the pair a split, so their DNA was "
+        "not read"
+    ),
+}
 
 
-_SENTENCES: dict[CheckName, dict[str, str]] = {
-    "pseudogene_call": _by_name(_PSEUDOGENE),
-    "selenoprotein_end": _by_name(_SELENOPROTEIN),
-    "gene_length": _by_name(LENGTH_SENTENCES),
-    "gene_split": _by_name(LENGTH_SENTENCES),
-    "gene_fusion": _by_name(_FUSION),
-    "strain_model": _by_name(SIDE_SENTENCES),
-    "missing_gene": _by_name(_MISSING),
-    "organelle_join": _by_name(_ORGANELLE),
-    "intron_support": _by_name(_INTRON),
+def _by_name[K: FindingVerdict](
+    check: CheckName, table: Mapping[K, str]
+) -> dict[tuple[CheckName, FindingVerdict], str]:
+    return {(check, verdict): sentence for verdict, sentence in table.items()}
+
+
+_SENTENCES: dict[tuple[CheckName, FindingVerdict], str] = {
+    **_by_name("pseudogene_call", _PSEUDOGENE),
+    **_by_name("selenoprotein_end", _SELENOPROTEIN),
+    **_by_name("gene_length", LENGTH_SENTENCES),
+    **_by_name("gene_split", _SPLIT),
+    **_by_name("gene_fusion", _FUSION),
+    **_by_name("strain_model", SIDE_SENTENCES),
+    **_by_name("missing_gene", _MISSING),
+    **_by_name("organelle_join", _ORGANELLE),
+    **_by_name("intron_support", _INTRON),
 }
 
 ERROR_TYPE_TITLES: dict[ErrorType, str] = {
@@ -278,5 +298,5 @@ def paper_sentence(*, depends: bool | None) -> str:
             return "Not checked whether a published study depends on this gene's model"
 
 
-def verdict_sentence(check: CheckName, verdict: str) -> str | None:
-    return _SENTENCES[check].get(verdict)
+def verdict_sentence(check: CheckName, verdict: FindingVerdict) -> str:
+    return _SENTENCES[check, verdict]

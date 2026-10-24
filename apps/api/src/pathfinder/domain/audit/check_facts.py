@@ -1,22 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
 
 from veupathdb_mcp.audit import (
-    GeneFusionAudit,
-    GeneLengthAudit,
-    LengthCheck,
-    LengthScreen,
     MissingGeneAudit,
-    NoRelatives,
-    NotRead,
     OrganelleGeneAudit,
     PseudogeneCallAudit,
-    RelativeTier,
     SelenoproteinEndAudit,
-    StrainModelAudit,
-    WindowState,
 )
 
 from pathfinder.domain.audit.confirmations import (
@@ -38,11 +28,9 @@ from pathfinder.domain.audit.facts import (
     Fact,
     code_text,
     gene_evidence_facts,
-    known,
     listed,
     relatives_facts,
     residues,
-    runs_text,
     unread_facts,
 )
 from pathfinder.domain.audit.findings import (
@@ -52,31 +40,14 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
 )
 from pathfinder.domain.audit.intron_facts import intron_facts
-from pathfinder.domain.audit.words import LENGTH_SENTENCES
+from pathfinder.domain.audit.length_facts import (
+    fusion_facts,
+    length_facts,
+    strain_facts,
+)
+from pathfinder.domain.audit.words import percent
 
-_WINDOWS: dict[WindowState | Literal["part1", "part2"], str] = {
-    "model": "in the model",
-    "genome_same_strand": "encoded on the same strand outside the model",
-    "genome_other_strand": "encoded on the other strand",
-    "absent": "not encoded",
-    "weak": "matched weakly",
-    "part1": "in the first model",
-    "part2": "in the second model",
-}
-_TIERS: dict[RelativeTier, str] = {
-    "SAME_GENUS": "The same genus",
-    "OTHER_GENERA": "Other genera",
-}
-_NO_RELATIVES: dict[NoRelatives, str] = {
-    "RESIDUAL_GROUP": "the ortholog group is a residual group",
-    "PARALOGS": "the related genomes do not hold one copy each",
-    "FEWER_THAN_TWO": "fewer than two independent related genomes hold the gene",
-}
-_NOT_READ: dict[NotRead, str] = {
-    "NO_LOST_RUN": "The strain protein lacks no run of the reference protein",
-    "UNQUALIFIED": "The ortholog group is a residual group",
-    "PARALOG_IN_WINDOW": "A paralog lies in the window the check reads",
-}
+_LISTED_STOPS = 20
 
 
 def _positions(at: Sequence[int]) -> str:
@@ -86,42 +57,9 @@ def _positions(at: Sequence[int]) -> str:
     return f"at {word} {listed([f'{n:,}' for n in at])}"
 
 
-def _windows(check: LengthCheck) -> str:
-    if check.windows == 0:
-        return "None read"
-    parts = [f"{n:,} {_WINDOWS[label]}" for label, n in check.counts.items()]
-    return f"{check.windows:,}: {', '.join(parts)}"
-
-
-def _dna(check: LengthCheck) -> tuple[Fact, ...]:
-    ns = check.ns_in_window
-    return (
-        Fact(label="Windows of the reference protein", value=_windows(check)),
-        Fact(
-            label="Unknown bases in the window",
-            value=NOT_READ if ns is None else f"{ns:,}",
-        ),
-        Fact(label="At a contig end", value=YES_NO[check.at_contig_edge]),
-    )
-
-
-def _screen(screen: LengthScreen) -> tuple[Fact, ...]:
-    ratio = screen.ratio
-    return (
-        Fact(
-            label="Model" if len(screen.genes) == 1 else "Models",
-            value=listed(screen.genes),
-        ),
-        Fact(label="Reference gene", value=known(screen.reference_gene)),
-        Fact(
-            label="Ortholog group median",
-            value=f"{screen.group_median:g} residues over {screen.organisms:,} organisms",
-        ),
-        Fact(
-            label="Length against the median",
-            value=NOT_READ if ratio is None else f"{ratio:g}",
-        ),
-    )
+def _stops(at: Sequence[int]) -> str:
+    shown = _positions(at)
+    return f"{shown} (the first {_LISTED_STOPS})" if len(at) >= _LISTED_STOPS else shown
 
 
 def _pseudogene(result: PseudogeneCallAudit) -> tuple[Fact, ...]:
@@ -140,7 +78,7 @@ def _pseudogene(result: PseudogeneCallAudit) -> tuple[Fact, ...]:
         ),
         Fact(
             label="Stops inside the rebuilt protein",
-            value=_positions(result.premature_stops),
+            value=_stops(result.premature_stops),
         ),
         Fact(
             label="Amino acids that differ from the reference",
@@ -163,7 +101,7 @@ def _selenoprotein(result: SelenoproteinEndAudit) -> tuple[Fact, ...]:
         ),
         Fact(
             label="Identity of the two ends",
-            value=NOT_READ if identity is None else f"{round(100 * identity)}%",
+            value=NOT_READ if identity is None else percent(identity),
         ),
         Fact(
             label="The model's stop sits where the reference has selenocysteine",
@@ -173,131 +111,28 @@ def _selenoprotein(result: SelenoproteinEndAudit) -> tuple[Fact, ...]:
     )
 
 
-def _length(result: GeneLengthAudit) -> tuple[Fact, ...]:
-    return (
-        *_screen(result),
-        *_dna(result),
-        Fact(
-            label="Genetic code",
-            value=code_text(result.code, inferred=result.code_inferred),
-        ),
-        *unread_facts(result.evidence_unread),
-    )
-
-
-def _fusion(result: GeneFusionAudit) -> tuple[Fact, ...]:
-    fusion = result.fusion
-    merged = result.merged
-    found = (
-        ()
-        if fusion is None
-        else (
-            Fact(label="Extra residues", value=runs_text(fusion.extra)),
-            Fact(
-                label="Windows matching a neighbour",
-                value=f"{fusion.neighbour_windows:,} of {fusion.extra_windows:,}",
-            ),
-            Fact(
-                label="Partner gene",
-                value=NONE if fusion.partner is None else fusion.partner,
-            ),
-            Fact(label="Neighbours read", value=listed(fusion.neighbours)),
-            Fact(label="Product", value=fusion.product),
-            Fact(label="Partner's ortholog group", value=known(fusion.partner_group)),
-            Fact(label="Partner's product", value=known(fusion.partner_product)),
-            Fact(
-                label="Partner's copies in the group",
-                value=NOT_READ
-                if fusion.partner_copies is None
-                else listed(fusion.partner_copies),
-            ),
-        )
-    )
-    joined = (
-        ()
-        if merged is None
-        else (
-            Fact(
-                label="Merged model",
-                value=f"{merged.gene} on {merged.seqid}, bases {merged.start:,} to "
-                f"{merged.end:,}",
-            ),
-        )
-    )
-    return (*_screen(result), *found, *joined, *unread_facts(result.evidence_unread))
-
-
-def _relatives(result: StrainModelAudit) -> str:
-    relatives = result.relatives
-    if not relatives.members:
-        missing = relatives.missing
-        return NONE if missing is None else f"None: {_NO_RELATIVES[missing]}"
-    return listed([f"{m.organism} ({residues(m.length)})" for m in relatives.members])
-
-
-def _strain(result: StrainModelAudit) -> tuple[Fact, ...]:
-    relatives = result.relatives
-    median = relatives.median
-    tier = relatives.tier
-    not_read = result.not_read
-    why = (
-        ()
-        if not_read is None
-        else (Fact(label="Why the genome was not read", value=_NOT_READ[not_read]),)
-    )
-    return (
-        Fact(
-            label=f"Strain model {result.strain_gene}",
-            value=residues(result.strain_length),
-        ),
-        Fact(
-            label=f"Reference model {result.reference_gene}",
-            value=residues(result.reference_length),
-        ),
-        Fact(
-            label="Reference residues the strain model lacks",
-            value=runs_text(result.lost),
-        ),
-        Fact(
-            label="Strain residues the reference lacks", value=runs_text(result.extra)
-        ),
-        Fact(
-            label="The strain's DNA over the lost part",
-            value=LENGTH_SENTENCES[result.dna.verdict],
-        ),
-        *_dna(result.dna),
-        *why,
-        Fact(label="Related genomes", value=_relatives(result)),
-        Fact(
-            label="Related genomes from",
-            value=NOT_READ if tier is None else _TIERS[tier],
-        ),
-        Fact(
-            label="Median of the related genomes",
-            value=NOT_READ if median is None else f"{median:g} residues",
-        ),
-        Fact(label="Paralogs near the model", value=listed(result.nearby_paralogs)),
-        Fact(
-            label="Genetic code",
-            value=code_text(result.code, inferred=result.code_inferred),
-        ),
-        *unread_facts(result.evidence_unread),
-    )
-
-
 def _located(result: MissingGeneAudit) -> str:
     located = result.located
     if located is None:
         return NOT_READ
-    found = f"{located.found:,} of {located.windows:,} windows"
+    found = f"{located.found:,} of {located.windows:,} parts of the gene"
     if located.span is None:
         return found
     start, end = located.span
     return f"{found}, bases {start:,} to {end:,}"
 
 
-def _missing(result: MissingGeneAudit) -> tuple[Fact, ...]:
+def _anchors(result: MissingGeneAudit) -> str:
     anchors = result.anchors
+    if anchors is not None:
+        return (
+            f"{anchors.left.gene} and {anchors.right.gene} on "
+            f"{anchors.left.sequence_id}"
+        )
+    return NONE if result.verdict == "NO_SYNTENY" else NOT_READ
+
+
+def _missing(result: MissingGeneAudit) -> tuple[Fact, ...]:
     frame = result.open_frame
     stops = result.stops
     overlapping = result.overlapping
@@ -308,13 +143,7 @@ def _missing(result: MissingGeneAudit) -> tuple[Fact, ...]:
             value=f"{result.example_gene}, {residues(result.example_length)}",
         ),
         Fact(label="Genome it is absent from", value=result.absent_organism),
-        Fact(
-            label="Conserved neighbours",
-            value="None found"
-            if anchors is None
-            else f"{anchors.left.gene} and {anchors.right.gene} on "
-            f"{anchors.left.sequence_id}",
-        ),
+        Fact(label="Conserved neighbours", value=_anchors(result)),
         Fact(label="Where the DNA encodes it", value=_located(result)),
         Fact(
             label="Open reading frame there",
@@ -364,7 +193,8 @@ def _organelle(result: OrganelleGeneAudit) -> tuple[Fact, ...]:
         ),
         Fact(
             label="Bases the two ends share",
-            value=f"{result.overlap_bases:,}, with {result.overlap_mismatches:,} mismatches",
+            value=f"{result.overlap_bases:,}, with {result.overlap_mismatches:,} "
+            "mismatches",
         ),
         Fact(
             label="Genetic code",
@@ -382,9 +212,9 @@ def _targeted_facts(
 ) -> tuple[Fact, ...]:
     match confirmation:
         case FusionConfirmation(result=result):
-            return _fusion(result)
+            return fusion_facts(result)
         case StrainConfirmation(result=result):
-            return _strain(result)
+            return strain_facts(result)
         case MissingGeneConfirmation(result=result):
             return _missing(result)
         case OrganelleConfirmation(result=result):
@@ -400,7 +230,7 @@ def confirmation_facts(confirmation: Confirmation) -> tuple[Fact, ...]:
         case SelenoproteinConfirmation(result=result):
             return _selenoprotein(result)
         case LengthConfirmation(result=result):
-            return _length(result)
+            return length_facts(result)
         case (
             FusionConfirmation()
             | StrainConfirmation()

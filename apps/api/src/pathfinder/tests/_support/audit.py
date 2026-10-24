@@ -154,6 +154,10 @@ def _group(
     }
 
 
+def revised[M: BaseModel](model: M, **changes: object) -> M:
+    return type(model).model_validate({**model.model_dump(), **changes})
+
+
 def short_audit(
     gene: str,
     *,

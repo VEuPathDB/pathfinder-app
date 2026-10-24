@@ -14,7 +14,7 @@ from pathfinder.domain.audit.findings import (
 from pathfinder.domain.audit.words import SIDE_SENTENCES
 
 NOT_READ = "Not read"
-NONE = "None"
+NONE = "None found"
 YES_NO: dict[bool | None, str] = {True: "Yes", False: "No", None: NOT_READ}
 
 _CODES: dict[GeneticCode, str] = {
@@ -96,7 +96,7 @@ def relatives_facts(evidence: RelativesEvidence) -> tuple[Fact, ...]:
         ),
         Fact(
             label="Which model the related genomes support",
-            value="Not judged" if side is None else SIDE_SENTENCES[side],
+            value=NOT_READ if side is None else SIDE_SENTENCES[side],
         ),
     )
 
@@ -113,7 +113,7 @@ def _structures(record: GeneEvidence) -> str:
 
 def _peptides(record: GeneEvidence) -> str:
     if not record.peptides:
-        return "None served"
+        return NONE
     spectra = sum(peptide.spectra for peptide in record.peptides)
     return (
         f"{counted(len(record.peptides), 'peptide', 'peptides')}, "
