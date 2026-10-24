@@ -22,6 +22,11 @@ from pathfinder.domain.audit.findings import (
 from pathfinder.domain.audit.rates import Weighing
 from pathfinder.domain.audit.scope import CheckName, GeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview
+from pathfinder.domain.audit.words import (
+    CHECK_TITLES,
+    ERROR_TYPE_TITLES,
+    verdict_sentence,
+)
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -62,6 +67,20 @@ class FindingView(CamelModel):
     @computed
     def check(self) -> CheckName:
         return self.target.check
+
+    @computed
+    def verdict_text(self) -> str | None:
+        return (
+            None if self.verdict is None else verdict_sentence(self.check, self.verdict)
+        )
+
+    @computed
+    def check_title(self) -> str:
+        return CHECK_TITLES[self.check]
+
+    @computed
+    def error_title(self) -> str | None:
+        return None if self.error_type is None else ERROR_TYPE_TITLES[self.error_type]
 
 
 class FindingPage(CamelModel):

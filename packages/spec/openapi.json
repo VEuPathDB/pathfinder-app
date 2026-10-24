@@ -9741,6 +9741,35 @@
             ],
             "title": "Check",
             "readOnly": true
+          },
+          "verdictText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdicttext",
+            "readOnly": true
+          },
+          "checkTitle": {
+            "type": "string",
+            "title": "Checktitle",
+            "readOnly": true
+          },
+          "errorTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortitle",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -9764,7 +9793,10 @@
           "reviewed",
           "verdict",
           "fromTarget",
-          "check"
+          "check",
+          "verdictText",
+          "checkTitle",
+          "errorTitle"
         ],
         "title": "FindingView"
       },

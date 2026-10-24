@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **An audit finding states its check, its verdict and its error in plain words.**
+  `domain/audit/words.py` holds one sentence per check (`CHECK_TITLES`), per verdict a check
+  gives (`verdict_sentence`, which answers null for a verdict another check gives), per error
+  type (`ERROR_TYPE_TITLES`, `ERROR_TYPE_DESCRIPTIONS`), per review verdict, literature status
+  and review status, per finding status with no stored verdict (`UNCHECKED_SENTENCES`), and the
+  paper and agreement sentences. `FindingView` carries the computed `verdictText`, `checkTitle`
+  and `errorTitle`, so the page and the export read one sentence and the web keeps no table.
+
 * **One phyletic builder, and an expression is shown by its handle.** veupathdb-mcp
   0.2.0b42 (now pinned) replaces the three OrthoMCL builders with
   `build_phyletic_expression(site_id, pattern)`, bounds a pattern at 8 levels and 128 terms

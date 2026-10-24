@@ -37,6 +37,16 @@ async def test_a_finding_names_its_verdict_and_where_it_came_from(
         "INTACT",
         True,
     )
+    assert [
+        (f["verdictText"], f["checkTitle"], f["errorTitle"]) for f in page["findings"]
+    ] == [
+        (
+            "The strain's DNA encodes the whole protein, so the pseudogene call is wrong",
+            "Pseudogene calls on intact genes",
+            "Intact gene called a pseudogene",
+        ),
+        (None, "Gene length against orthologs", None),
+    ]
     assert [(f["verdict"], f["fromTarget"]) for f in screened["findings"]] == [
         (None, False),
         (None, False),
