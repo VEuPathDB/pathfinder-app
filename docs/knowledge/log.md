@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **A set's genome count is read from the site's taxonomy, never stated.**
+  `build_phyletic_expression` answers `sets`, each set the pattern names with the genomes its
+  codes cover on the site's taxonomy (`domain/strategy/pattern_sets.py`, `set_sizes`), and
+  refuses, before any count read, a genome count larger than its set holds, naming both counts
+  (`counts_beyond_their_sets`; `each_genome_of` holds one genome a part, `each_species_of` its
+  largest species). Its description no longer asks FRAME to turn a share into a genome count:
+  a share is stated as `share` and the builder reads the set's size.
 * **A reading FRAME chose without asking is named in the reply.** `FrameResult.chosen_reading`
   (`domain/strategy/chosen_reading.py`: the reading built and at least one other) marks a request
   that reads more than one way and was built one way without a card. The frame dispatch records it

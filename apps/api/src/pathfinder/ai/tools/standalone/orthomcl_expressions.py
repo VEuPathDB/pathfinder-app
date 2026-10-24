@@ -4,11 +4,20 @@ from pydantic import ConfigDict
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.catalog import PhyleticPattern, write_phyletic_expression
+from veupathdb_mcp.catalog import (
+    PhyleticPattern,
+    ortho_taxonomy,
+    write_phyletic_expression,
+)
 
 from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._expression_handles import held_handle
+from pathfinder.domain.strategy.pattern_sets import (
+    SetSize,
+    counts_beyond_their_sets,
+    set_sizes,
+)
 
 PHYLETIC_EXPRESSION_MAX_CALL_SECONDS = 300
 
@@ -20,6 +29,7 @@ class BuiltExpression(CamelModel):
     reading: str
     groups: int
     codes: tuple[str, ...]
+    sets: tuple[SetSize, ...] = ()
 
 
 async def build_phyletic_expression(
@@ -56,12 +66,15 @@ async def build_phyletic_expression(
       species of clade X, each on its own.
     - {"kind": "each_genome_of", "codes": ["X"]}: the count holds in every genome
       of clade X, each on its own.
-    compare takes codes and all_except only. A share of N genomes is a genome
-    count: at_least p is at least ceil(p*N/100) genomes. A pattern nests at most
-    8 levels and holds at most 128 terms.
+    compare takes codes and all_except only. State a share of a set's genomes
+    with measure share: the tool reads each set's genome count from the site's
+    taxonomy, and refuses a genome count larger than the set holds. A pattern
+    nests at most 8 levels and holds at most 128 terms.
 
     The result gives handle, reading (the expression in words), groups (the
-    groups it returns) and codes (the codes it names). The expression itself
+    groups it returns), codes (the codes it names) and sets (each set the
+    pattern names with the genomes its codes cover on the site's taxonomy).
+    A genome count you state comes from sets, never from your own count. The expression itself
     stays with the conversation: bind phyletic_expression to the handle, such as
     "expr:3f2a9c01b7de", in this pass or a later one, or offer it as a value of
     a question. A pattern the site could not read or count within the call
@@ -71,6 +84,10 @@ async def build_phyletic_expression(
         ctx: Agent run context.
         pattern: The groups to select, as described above.
     """
+    tree = await ortho_taxonomy(ctx.deps.site_id)
+    beyond = [] if tree is None else counts_beyond_their_sets(pattern, tree)
+    if beyond:
+        raise ModelRetry(" ".join(count.sentence for count in beyond))
     try:
         built = await read_in_time(
             "build_phyletic_expression",
@@ -87,5 +104,6 @@ async def build_phyletic_expression(
         reading=built.reading,
         groups=built.groups,
         codes=built.codes,
+        sets=() if tree is None else set_sizes(pattern, tree),
     )
     return with_summary(held, f"{held.groups} groups", ctx=ctx)
