@@ -1,0 +1,142 @@
+{
+  "models": [
+    {
+      "gene": "PcyM_0736700",
+      "transcript": "PcyM_0736700-t36_1",
+      "seqid": "PcyM_07",
+      "strand": "+",
+      "exons": [
+        [
+          1381622,
+          1381745
+        ],
+        [
+          1382306,
+          1382465
+        ],
+        [
+          1382631,
+          1382790
+        ],
+        [
+          1383064,
+          1383462
+        ]
+      ],
+      "cds": [
+        [
+          1381622,
+          1381745
+        ],
+        [
+          1382306,
+          1382465
+        ],
+        [
+          1382631,
+          1382790
+        ],
+        [
+          1383064,
+          1383462
+        ]
+      ]
+    },
+    {
+      "gene": "PCYB_074210",
+      "transcript": "PCYB_074210-t26_1",
+      "seqid": "DF157099",
+      "strand": "+",
+      "exons": [
+        [
+          1385909,
+          1386032
+        ],
+        [
+          1386174,
+          1386331
+        ],
+        [
+          1386568,
+          1386752
+        ],
+        [
+          1386918,
+          1387077
+        ],
+        [
+          1387255,
+          1387653
+        ]
+      ],
+      "cds": [
+        [
+          1385909,
+          1386032
+        ],
+        [
+          1386174,
+          1386331
+        ],
+        [
+          1386568,
+          1386752
+        ],
+        [
+          1386918,
+          1387077
+        ],
+        [
+          1387255,
+          1387653
+        ]
+      ]
+    }
+  ],
+  "evidence_unread": [],
+  "lost": [
+    [
+      41,
+      100
+    ]
+  ],
+  "extra": [],
+  "dna": {
+    "verdict": "GENOME_ENCODES",
+    "windows": 33,
+    "counts": {
+      "model": 27,
+      "genome_same_strand": 5,
+      "weak": 1
+    },
+    "track": "MMMMGGGGGwMMMMMMMMMMMMMMMMMMMMMMM",
+    "ns_in_window": 0,
+    "at_contig_edge": false
+  },
+  "not_read": null,
+  "nearby_paralogs": [],
+  "side": "NO_RELATIVES",
+  "relatives": {
+    "tier": null,
+    "members": [],
+    "missing": "PARALOGS",
+    "copies_per_organism": 8.0,
+    "median": null
+  },
+  "gene_ids": [
+    {
+      "given": "PcyM_0736700",
+      "resolved": "PcyM_0736700"
+    },
+    {
+      "given": "PCYB_074210",
+      "resolved": "PCYB_074210"
+    }
+  ],
+  "strain_gene": "PcyM_0736700",
+  "reference_gene": "PCYB_074210",
+  "strain_length": 280,
+  "reference_length": 341,
+  "code": "standard",
+  "code_inferred": true
+}

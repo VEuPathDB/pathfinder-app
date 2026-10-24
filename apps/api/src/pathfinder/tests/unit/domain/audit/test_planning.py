@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import get_args
 
 import pytest
@@ -90,7 +91,7 @@ SCOPE = AuditScope(
 )
 
 
-def _costs(*, model_reads: int = 0) -> UnitCosts:
+def _costs(*, model_reads: Mapping[CheckName, int] | None = None) -> UnitCosts:
     checks: tuple[CheckName, ...] = get_args(CheckName)
     kinds: tuple[EvidenceKind, ...] = get_args(EvidenceKind)
     return UnitCosts(
@@ -102,7 +103,7 @@ def _costs(*, model_reads: int = 0) -> UnitCosts:
         confirm_seconds=dict.fromkeys(checks, 2.0),
         confirm_store_reads={c: 5 if c == "intron_support" else 0 for c in checks},
         evidence_seconds=dict.fromkeys(kinds, 2.0),
-        model_reads_per_finding=model_reads,
+        model_reads=dict.fromkeys(checks, 0) if model_reads is None else model_reads,
     )
 
 
@@ -203,11 +204,29 @@ def test_each_listed_gene_is_priced_as_one_record_read() -> None:
     assert "datasets" not in RunEstimate.model_fields
 
 
-def test_model_reads_per_finding_is_added_per_sampled_finding() -> None:
-    plain = estimate(SCOPE, run_hours=6.0, costs=_costs())
-    read = estimate(SCOPE, run_hours=6.0, costs=_costs(model_reads=3))
+def test_model_reads_are_counted_per_check() -> None:
+    checks: tuple[CheckName, ...] = get_args(CheckName)
+    reads: dict[CheckName, int] = {c: int(c == "strain_model") for c in checks}
+    scope = AuditScope(
+        site_id="exampledb",
+        genomes=STRAINS[:1],
+        checks=("gene_length",),
+        targets=(LIST_TARGETS[2],),
+        confirm_limit=5,
+    )
 
-    assert read.wdk_requests - plain.wdk_requests == 3 * (5 * 2 + 6)
+    plain = estimate(scope, run_hours=6.0, costs=_costs())
+    read = estimate(scope, run_hours=6.0, costs=_costs(model_reads=reads))
+
+    assert (plain.wdk_requests, read.wdk_requests) == (48, 49)
+
+
+def test_unit_costs_name_every_check_they_read_models_for() -> None:
+    costs = _costs().model_dump()
+    del costs["model_reads"]["gene_fusion"]
+
+    with pytest.raises(ValueError, match="model_reads names no gene_fusion"):
+        UnitCosts.model_validate(costs)
 
 
 def test_a_scope_of_missing_gene_targets_reads_no_listed_gene() -> None:
