@@ -417,6 +417,7 @@ def test_finding_rows_are_dotted_paths() -> None:
             reviewed=False,
             verdict="INTACT",
             from_target=True,
+            genes=[],
         ),
         evidence=[
             EvidenceView(
@@ -433,6 +434,7 @@ def test_finding_rows_are_dotted_paths() -> None:
         ],
         facts=[],
         review=None,
+        genes=[],
     )
 
     fact = audit_finding_fact(run_id, detail)

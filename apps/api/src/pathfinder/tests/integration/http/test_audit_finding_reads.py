@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 
+from pathfinder.domain.audit.findings import GeneEvidencePayload
+from pathfinder.persistence.repositories.audit_findings import AuditFindingRepository
+from pathfinder.tests._support.audit import NF54_PIGA, PIGA
+from pathfinder.tests._support.audit_evidence import K13, PIGA_EVIDENCE, evidence_of
 from pathfinder.tests.integration.http._audit_reads import (
     screened_genome_run,
     stored_intron_run,
@@ -15,6 +20,7 @@ from pathfinder.tests.integration.http.conftest import client_for
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "site_login_names_the_user"
 )
+GENE_PAGE = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/"
 
 
 async def test_a_finding_names_its_verdict_and_where_it_came_from(
@@ -65,3 +71,35 @@ async def test_an_intron_finding_reads_with_its_verdict(app: FastAPI) -> None:
     assert [
         (f["id"], f["check"], f["verdict"], f["errorType"]) for f in page["findings"]
     ] == [(finding_id, "intron_support", "UNSUPPORTED_MISSING_EXON", "missing_exon")]
+
+
+async def test_a_finding_links_its_genes_to_the_site(app: FastAPI) -> None:
+    owner, run_id, pair_id = await stored_pair_run()
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.try_evidence(pair_id, "gene_evidence")
+        await repo.save_evidence(
+            pair_id,
+            GeneEvidencePayload(
+                genes=(PIGA, K13), evidence=(PIGA_EVIDENCE, evidence_of(K13))
+            ),
+            requests=2,
+        )
+        await session.commit()
+    async with client_for(app, owner.user_id) as client:
+        page = (await client.get(f"/api/v1/audits/{run_id}/findings")).json()
+        detail = (
+            await client.get(f"/api/v1/audits/{run_id}/findings/{pair_id}")
+        ).json()
+    assert [f["genes"] for f in page["findings"]] == [
+        [
+            {"gene": NF54_PIGA, "url": GENE_PAGE + NF54_PIGA},
+            {"gene": PIGA, "url": GENE_PAGE + PIGA},
+        ],
+        [{"gene": "NF54_SHORT", "url": GENE_PAGE + "NF54_SHORT"}],
+    ]
+    assert detail["finding"]["genes"] == page["findings"][0]["genes"]
+    assert detail["genes"] == [
+        *page["findings"][0]["genes"],
+        {"gene": K13, "url": GENE_PAGE + K13},
+    ]

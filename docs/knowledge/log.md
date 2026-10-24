@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
+  `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them, and
+  `evidence_genes`, the relatives' reference gene and the genes whose records were read, in
+  order and once each. `FindingView.genes` links the finding's own genes and
+  `FindingDetail.genes` those and every gene its evidence names, each a `GeneLink {gene, url}`
+  built by `services/record_pages.py::record_page_url`, the one record-page helper.
 * **The relatives evidence of a length finding keeps each relative's length.**
   `RelativesEvidence.relative_lengths` maps each relative organism to its longest copy, taken
   from the same `relatives_of` read that gives the median, so the dot plot needs no new read; a

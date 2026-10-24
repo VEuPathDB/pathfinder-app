@@ -9349,6 +9349,13 @@
                 "type": "null"
               }
             ]
+          },
+          "genes": {
+            "items": {
+              "$ref": "#/components/schemas/GeneLink"
+            },
+            "type": "array",
+            "title": "Genes"
           }
         },
         "type": "object",
@@ -9357,7 +9364,8 @@
           "finding",
           "evidence",
           "facts",
-          "review"
+          "review",
+          "genes"
         ],
         "title": "FindingDetail"
       },
@@ -9783,6 +9791,13 @@
             "type": "boolean",
             "title": "Fromtarget"
           },
+          "genes": {
+            "items": {
+              "$ref": "#/components/schemas/GeneLink"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
           "check": {
             "type": "string",
             "enum": [
@@ -9850,6 +9865,7 @@
           "reviewed",
           "verdict",
           "fromTarget",
+          "genes",
           "check",
           "verdictText",
           "checkTitle",
@@ -10434,6 +10450,24 @@
           "codeInferred"
         ],
         "title": "GeneLengthAudit"
+      },
+      "GeneLink": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "url"
+        ],
+        "title": "GeneLink"
       },
       "GeneListDataset": {
         "properties": {
