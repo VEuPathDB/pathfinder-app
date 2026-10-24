@@ -145,7 +145,7 @@ def _finalize_without_io(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _no_turn_message(**kwargs: Any) -> None:
         del kwargs
 
-    async def _one_candidate(
+    def _one_candidate(
         _state: PipelineState,
         **_kwargs: object,
     ) -> Sequence[tuple[MemoryValue, str]]:
@@ -155,7 +155,7 @@ def _finalize_without_io(monkeypatch: pytest.MonkeyPatch) -> None:
         del kwargs
 
     monkeypatch.setattr(nodes, "write_turn_message", _no_turn_message)
-    monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _one_candidate)
+    monkeypatch.setattr(nodes, "collect_memory_candidates", _one_candidate)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
     monkeypatch.setattr(nodes, "compact_scratchpad", _no_compaction)
 

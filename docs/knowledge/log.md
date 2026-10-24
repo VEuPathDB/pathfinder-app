@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A turn no longer writes a site preference on its own.** `ai/lead/memory_candidates.py`
+  offered a `preferred_site:<site>` preference after three assistant messages whose metadata
+  held `phase == "verification"` and `turnCompleted == true`. No turn writes either key, so it
+  never fired; had it fired, it would have pinned a preference with no card, against
+  `decisions/a-preference-is-pinned-only-on-the-researchers-yes.md`. The candidate, its gate
+  and `collect_turn_memory_candidates` are removed; `finalize_turn` reads
+  `collect_memory_candidates`, and a preference reaches the store only through the Lead's
+  approved `remember`.
 * **A branch and a revert wait for the thread to settle.** Both take the thread lock
   `thread:<conversation id>` for their transaction (`services/conversations/thread_lock.py`)
   and are refused with 409 (`FORK_REFUSED`, and the new `REVERT_REFUSED`) while a queued or
