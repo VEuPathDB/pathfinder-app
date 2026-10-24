@@ -142,7 +142,6 @@ class UnitCosts(CamelModel):
 
     collect_requests: Mapping[GenomeRole, int]
     run_requests: int = Field(ge=0)
-    reads_per_listed_gene: int = Field(ge=0)
     confirm_requests: Mapping[CheckName, int]
     evidence_requests: Mapping[EvidenceKind, int]
     collect_seconds: Mapping[GenomeRole, float]
@@ -312,6 +311,9 @@ def _finding_seconds(check: CheckName, costs: UnitCosts) -> float:
     return costs.confirm_seconds[check] + evidence
 
 
+LIBRARY_READS_PER_LISTED_GENE = 1
+
+
 def listed_genes(scope: AuditScope) -> int:
     return len({g for t in scope.targets if t.genome is None for g in t.genes})
 
@@ -322,7 +324,7 @@ def estimate(scope: AuditScope, *, run_hours: float, costs: UnitCosts) -> RunEst
     requests = (
         sum(costs.collect_requests[role] for role in roles)
         + costs.run_requests
-        + costs.reads_per_listed_gene * listed_genes(scope)
+        + LIBRARY_READS_PER_LISTED_GENE * listed_genes(scope)
         + sum(n * _finding_requests(check, costs) for check, n in units)
     )
     seconds = sum(costs.collect_seconds[role] for role in roles) + sum(

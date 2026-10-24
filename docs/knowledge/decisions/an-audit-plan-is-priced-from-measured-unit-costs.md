@@ -53,7 +53,8 @@ to five suggestions that hold all of its words.
 per-unit means of one cost run (QA plasmodb and toxodb, build 71, 2026-10-23),
 with request and store-read counts rounded up. A run reads its build once and,
 one gene record read for each distinct gene of the targets that enter the run's
-gene list (`reads_per_listed_gene`); a run leaves no dataset in the account, and
+gene list (`LIBRARY_READS_PER_LISTED_GENE`, the library's stated cost and not
+part of `MEASURED_COSTS`); a run leaves no dataset in the account, and
 a scope whose only targets are missing-gene or organelle targets lists no gene.
 Each screened check costs `confirm_limit` findings per audited genome, so the
 request count is an upper bound. `model_reviews` is the review cap plus the

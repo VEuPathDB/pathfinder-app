@@ -7,7 +7,7 @@
   fails partway starts again from the first gene. `RunStages.target_list`, `keep_target_list` and
   the screen's stored upload are gone; a stored stage row that still holds `targetList` loads
   without it, because the stage model ignores keys it does not name. The plan prices
-  `reads_per_listed_gene` for each distinct listed gene, and `RunEstimate` and `AuditStartCard`
+  `LIBRARY_READS_PER_LISTED_GENE` (the library's stated cost, not a measured one) for each distinct listed gene, and `RunEstimate` and `AuditStartCard`
   carry no `datasets` field.
 * **The auditor judges a large run within its budget and stops plainly at it.** `read_audit_findings`
   reads up to `FINDINGS_PER_CALL` (25) findings in one call and `record_gene_model_verdicts` stores

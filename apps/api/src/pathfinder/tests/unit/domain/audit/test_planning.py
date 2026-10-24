@@ -96,7 +96,6 @@ def _costs(*, model_reads: int = 0) -> UnitCosts:
     return UnitCosts(
         collect_requests={"audited": 2, "comparison": 2},
         run_requests=3,
-        reads_per_listed_gene=1,
         confirm_requests=dict.fromkeys(checks, 4),
         evidence_requests={"confirmation": 0, "relatives": 1, "gene_evidence": 2},
         collect_seconds={"audited": 2.0, "comparison": 2.0},
