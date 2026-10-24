@@ -54,6 +54,8 @@ const PORTAL_DOWN = site({
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
+
 import { AppNavRail } from "./AppNavRail";
 
 function draw(siteSwitchable = true) {
@@ -62,7 +64,6 @@ function draw(siteSwitchable = true) {
       siteId="plasmodb"
       siteSwitchable={siteSwitchable}
       onSiteChange={() => undefined}
-      onOpenSettings={() => undefined}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
     />,
@@ -75,7 +76,6 @@ function drawFor(siteId: string, onSiteChange: (id: string) => void = () => unde
       siteId={siteId}
       siteSwitchable
       onSiteChange={onSiteChange}
-      onOpenSettings={() => undefined}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
     />,
@@ -140,6 +140,19 @@ describe("AppNavRail section links", () => {
     await screen.findByRole("button", { name: "Settings" });
 
     expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
+  });
+
+  it("opens the settings modal from the gear", async () => {
+    useSettingsModalStore.setState({ isOpen: false, tab: "keys" });
+    draw();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Settings" }));
+
+    expect(useSettingsModalStore.getState()).toMatchObject({
+      isOpen: true,
+      tab: "keys",
+    });
+    useSettingsModalStore.setState({ isOpen: false, tab: "model" });
   });
 
   it("closes the bottom group with the settings", async () => {

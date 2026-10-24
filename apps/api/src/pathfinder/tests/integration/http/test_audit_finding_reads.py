@@ -13,6 +13,7 @@ from pathfinder.tests._support.audit_evidence import K13, PIGA_EVIDENCE, evidenc
 from pathfinder.tests.integration.http._audit_reads import (
     PIGA_ALIAS,
     aliased_pair_run,
+    mixed_run,
     screened_genome_run,
     stored_intron_run,
     stored_pair_run,
@@ -73,6 +74,42 @@ async def test_an_intron_finding_reads_with_its_verdict(app: FastAPI) -> None:
     assert [
         (f["id"], f["check"], f["verdict"], f["errorType"]) for f in page["findings"]
     ] == [(finding_id, "intron_support", "UNSUPPORTED_MISSING_EXON", "missing_exon")]
+
+
+async def test_findings_filter_by_certainty_and_by_target(app: FastAPI) -> None:
+    owner, run_id, ids = await mixed_run()
+    url = f"/api/v1/audits/{run_id}/findings"
+    async with client_for(app, owner.user_id) as client:
+        medium = (await client.get(url, params={"certainty": "medium"})).json()
+        targets = (await client.get(url, params={"target": "true"})).json()
+        screened = (await client.get(url, params={"target": "false"})).json()
+        refused = await client.get(url, params={"certainty": "certain"})
+    assert ([f["id"] for f in medium["findings"]], medium["total"]) == (
+        [ids["split"]],
+        1,
+    )
+    assert ([f["id"] for f in targets["findings"]], targets["total"]) == (
+        [ids["target"]],
+        1,
+    )
+    assert (sorted(f["id"] for f in screened["findings"]), screened["total"]) == (
+        sorted([ids["short"], ids["split"]]),
+        2,
+    )
+    assert refused.status_code == 422
+
+
+async def test_a_run_with_no_gene_target_lists_no_target_finding(
+    app: FastAPI,
+) -> None:
+    owner, run_id = await screened_genome_run()
+    async with client_for(app, owner.user_id) as client:
+        page = (
+            await client.get(
+                f"/api/v1/audits/{run_id}/findings", params={"target": "true"}
+            )
+        ).json()
+    assert (page["findings"], page["total"]) == ([], 0)
 
 
 async def test_a_finding_links_its_genes_to_the_site(app: FastAPI) -> None:
