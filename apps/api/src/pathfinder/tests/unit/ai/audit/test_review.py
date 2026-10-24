@@ -69,6 +69,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
             reviewed=False,
             verdict=None,
             from_target=True,
+            review_line=None,
         ),
         evidence=[
             EvidenceView(
@@ -97,6 +98,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
         ],
         facts=[],
         review=None,
+        review_text=None,
     )
 
 

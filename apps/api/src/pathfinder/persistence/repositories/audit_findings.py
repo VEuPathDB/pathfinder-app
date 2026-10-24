@@ -109,6 +109,7 @@ class FindingFilter(BaseModel):
     sampled: bool | None = None
     named: bool | None = None
     keys: tuple[str, ...] | None = None
+    ids: tuple[int, ...] | None = None
 
 
 class AuditFindingRepository:
@@ -167,6 +168,8 @@ class AuditFindingRepository:
             query = query.where(named if where.named else ~named)
         if where.keys is not None:
             query = query.where(AuditFinding.target_key.in_(where.keys))
+        if where.ids is not None:
+            query = query.where(AuditFinding.id.in_(where.ids))
         return query
 
     async def findings(

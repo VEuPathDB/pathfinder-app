@@ -46,6 +46,14 @@ from pathfinder.persistence.repositories.audit_findings import (
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
+from pathfinder.services.audit.review_views import (
+    AgreementView,
+    ErrorTypeView,
+    FindingLine,
+    ReviewState,
+    review_report,
+    review_state,
+)
 from pathfinder.services.audit.runs import readable_run
 
 
@@ -102,6 +110,10 @@ class AuditRunView(CamelModel):
     halt: RunHalt | None
     left: LeftUnits
     evidence: list[EvidenceTally]
+    error_types: list[ErrorTypeView]
+    headline: list[FindingLine]
+    review_state: ReviewState | None
+    agreement: AgreementView | None
 
 
 def _summary(run: AuditRunRecord) -> AuditRunSummary:
@@ -156,6 +168,7 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         )
         evidence = await tallies.evidence_tally(run_id)
         reviewed = await AuditReviewRepository(session).reviewed_count(run_id)
+        report = await review_report(session, run_id, run.synthesis)
     summary = _summary(run)
     left = left_units((genome.status for genome in genomes), tally, evidence)
     running = reviews_running(summary.phase, run.review)
@@ -178,4 +191,8 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         halt=run.stages.halt_reason,
         left=left,
         evidence=evidence,
+        error_types=report.error_types,
+        headline=report.headline,
+        review_state=None if run.review is None else review_state(run.review),
+        agreement=report.agreement,
     )

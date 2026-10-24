@@ -196,7 +196,7 @@ async def test_a_finding_reads_with_its_stored_review(app: FastAPI) -> None:
     assert unreviewed["review"] is None
 
 
-async def test_findings_mark_reviewed_in_one_query(
+async def test_findings_read_their_reviews_in_one_query(
     app: FastAPI, db_engine: AsyncEngine
 ) -> None:
     owner, run_id, reviewed_id, unreviewed_id = await _reviewed_run()
@@ -209,6 +209,8 @@ async def test_findings_mark_reviewed_in_one_query(
         (reviewed_id, True),
         (unreviewed_id, False),
     ]
+    assert [f["reviewLine"] is None for f in page["findings"]] == [False, True]
     reading_verdicts = [s for s in seen if "audit_verdicts" in s]
-    assert len(reading_verdicts) == 1
+    assert len(reading_verdicts) == 2
     assert "FROM audit_findings" in reading_verdicts[0]
+    assert "audit_verdicts.finding_id IN" in reading_verdicts[1]

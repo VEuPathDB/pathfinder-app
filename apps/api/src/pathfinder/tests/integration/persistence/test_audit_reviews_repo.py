@@ -29,6 +29,7 @@ from pathfinder.persistence.repositories.audit_findings import (
     SettledFinding,
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
+from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.persistence.repositories.audit_weighings import AuditWeighingRepository
 from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.tests._support.audit import seed_thread
@@ -306,3 +307,49 @@ async def test_a_purge_deletes_one_sites_verdicts_or_every_sites() -> None:
             await AuditReviewRepository(session).delete_for_user(
                 user_id=owner.user_id, site_id=""
             )
+
+
+async def test_reviews_of_reads_the_named_findings_reviews_in_the_run() -> None:
+    _, run_id, ids = await _run_with_findings([0.3, 1.0, 0.075])
+    _, other_run, other_ids = await _run_with_findings([1.0])
+    await _add_review(run_id, ids[1.0])
+    await _add_review(run_id, ids[0.3])
+    await _add_review(other_run, other_ids[1.0])
+
+    async with async_session_factory() as session:
+        found = await AuditReviewRepository(session).reviews_of(
+            run_id, [ids[1.0], ids[0.075], other_ids[1.0]]
+        )
+
+    assert found == {ids[1.0]: _review("EXA_0001", ids[1.0])}
+
+
+async def test_the_error_type_tally_counts_named_findings_by_genome_and_certainty() -> (
+    None
+):
+    _, run_id, _ = await _run_with_findings([0.3, 1.0, 0.075])
+    await _run_with_findings([1.0])
+    unnamed = SingleGeneTarget(check="gene_length", genes=("EXA_0009",))
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.add_findings(
+            run_id,
+            [
+                NewFinding(
+                    genome=_GENOME, target=unnamed, sampled=True, status="screened"
+                )
+            ],
+        )
+        (finding,) = await repo.findings(run_id, FindingFilter(keys=(unnamed.key,)))
+        await repo.try_finding(finding.id)
+        await repo.settle_finding(finding.id, SettledFinding(status="confirmed"))
+        await session.commit()
+
+    async with async_session_factory() as session:
+        tally = await AuditTallyRepository(session).error_type_tally(run_id)
+
+    assert tally == [
+        ("truncated_model", _GENOME, "high", 1),
+        ("truncated_model", _GENOME, "low", 1),
+        ("truncated_model", _GENOME, "medium", 1),
+    ]

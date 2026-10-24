@@ -5667,6 +5667,41 @@
         ],
         "title": "AddTransformOp"
       },
+      "AgreementView": {
+        "properties": {
+          "sampled": {
+            "type": "integer",
+            "title": "Sampled"
+          },
+          "agreed": {
+            "type": "integer",
+            "title": "Agreed"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sampled",
+          "agreed",
+          "share",
+          "text"
+        ],
+        "title": "AgreementView"
+      },
       "AlphaFoldModel": {
         "properties": {
           "uniprotId": {
@@ -6234,6 +6269,40 @@
             },
             "type": "array",
             "title": "Evidence"
+          },
+          "errorTypes": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorTypeView"
+            },
+            "type": "array",
+            "title": "Errortypes"
+          },
+          "headline": {
+            "items": {
+              "$ref": "#/components/schemas/FindingLine"
+            },
+            "type": "array",
+            "title": "Headline"
+          },
+          "reviewState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agreement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgreementView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6255,7 +6324,11 @@
           "reviewsRunning",
           "halt",
           "left",
-          "evidence"
+          "evidence",
+          "errorTypes",
+          "headline",
+          "reviewState",
+          "agreement"
         ],
         "title": "AuditRunView"
       },
@@ -8958,6 +9031,99 @@
         ],
         "title": "ErrorTypeSection"
       },
+      "ErrorTypeView": {
+        "properties": {
+          "errorType": {
+            "type": "string",
+            "enum": [
+              "intact_gene_called_pseudogene",
+              "sec_read_as_stop",
+              "truncated_model",
+              "split_model",
+              "over_extended_model",
+              "fused_model",
+              "missing_gene",
+              "organelle_split_at_join",
+              "missing_exon",
+              "shifted_splice_site",
+              "spurious_intron",
+              "unsupported_intron"
+            ],
+            "title": "Errortype"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Count"
+          },
+          "genomes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genomes"
+          },
+          "certainty": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Certainty"
+          },
+          "cause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cause"
+          },
+          "confirmedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmedby"
+          },
+          "reviewed": {
+            "items": {
+              "$ref": "#/components/schemas/FindingLine"
+            },
+            "type": "array",
+            "title": "Reviewed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "errorType",
+          "title",
+          "description",
+          "count",
+          "genomes",
+          "certainty",
+          "cause",
+          "confirmedBy",
+          "reviewed"
+        ],
+        "title": "ErrorTypeView"
+      },
       "EventsSnapshot": {
         "properties": {
           "chunks": {
@@ -9349,6 +9515,16 @@
                 "type": "null"
               }
             ]
+          },
+          "reviewText": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewText"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -9357,9 +9533,115 @@
           "finding",
           "evidence",
           "facts",
-          "review"
+          "review",
+          "reviewText"
         ],
         "title": "FindingDetail"
+      },
+      "FindingLine": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "genes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "errorType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "intact_gene_called_pseudogene",
+                  "sec_read_as_stop",
+                  "truncated_model",
+                  "split_model",
+                  "over_extended_model",
+                  "fused_model",
+                  "missing_gene",
+                  "organelle_split_at_join",
+                  "missing_exon",
+                  "shifted_splice_site",
+                  "spurious_intron",
+                  "unsupported_intron"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortype"
+          },
+          "errorTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortitle"
+          },
+          "certainty": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certainty"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "reviewedImpact": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewedimpact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "genes",
+          "genome",
+          "errorType",
+          "errorTitle",
+          "certainty",
+          "impact",
+          "reviewedImpact"
+        ],
+        "title": "FindingLine"
       },
       "FindingPage": {
         "properties": {
@@ -9783,6 +10065,16 @@
             "type": "boolean",
             "title": "Fromtarget"
           },
+          "reviewLine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewLine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "check": {
             "type": "string",
             "enum": [
@@ -9850,6 +10142,7 @@
           "reviewed",
           "verdict",
           "fromTarget",
+          "reviewLine",
           "check",
           "verdictText",
           "checkTitle",
@@ -14640,6 +14933,85 @@
         ],
         "title": "ReviewAgreement"
       },
+      "ReviewLine": {
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "error",
+              "no_error",
+              "undecided"
+            ],
+            "title": "Verdict"
+          },
+          "verdictText": {
+            "type": "string",
+            "title": "Verdicttext"
+          },
+          "secondVerdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "error",
+                  "no_error",
+                  "undecided"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondverdict"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "impactReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impactreason"
+          },
+          "literature": {
+            "type": "string",
+            "enum": [
+              "known",
+              "not_found",
+              "not_searched"
+            ],
+            "title": "Literature"
+          },
+          "literatureText": {
+            "type": "string",
+            "title": "Literaturetext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "verdictText",
+          "secondVerdict",
+          "impact",
+          "impactReason",
+          "literature",
+          "literatureText"
+        ],
+        "title": "ReviewLine"
+      },
       "ReviewProgress": {
         "properties": {
           "status": {
@@ -14675,6 +15047,80 @@
           "status"
         ],
         "title": "ReviewProgress"
+      },
+      "ReviewState": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "reviewing",
+              "synthesized",
+              "stopped"
+            ],
+            "title": "Status"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "text",
+          "done",
+          "total",
+          "message"
+        ],
+        "title": "ReviewState"
+      },
+      "ReviewText": {
+        "properties": {
+          "verdictText": {
+            "type": "string",
+            "title": "Verdicttext"
+          },
+          "literatureText": {
+            "type": "string",
+            "title": "Literaturetext"
+          },
+          "paperText": {
+            "type": "string",
+            "title": "Papertext"
+          },
+          "secondText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondtext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdictText",
+          "literatureText",
+          "paperText",
+          "secondText"
+        ],
+        "title": "ReviewText"
       },
       "Run": {
         "prefixItems": [

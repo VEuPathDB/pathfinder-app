@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **The audit views read the reviews and the synthesis in plain words.**
+  `services/audit/review_views.py` builds `ReviewLine` on each finding of a page, `ReviewText` on a
+  finding's detail, and on the run view the error-type sections, the headline finding lines, the
+  review state and the agreement with its sentence. `FindingFilter.ids`, `reviews_of` and
+  `error_type_tally` read them in one query each. See
+  `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
+
 * **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded
   synthesis agent over the kept reviews once the review loop has nothing left, attaches the
   agreement it computes from the stored reviews, and refuses a draft that names an unkept finding,

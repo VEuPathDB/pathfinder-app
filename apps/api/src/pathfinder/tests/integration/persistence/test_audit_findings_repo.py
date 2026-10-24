@@ -131,6 +131,8 @@ async def test_filters_select_by_check_genome_error_naming_and_page(
         PAIR.key
     ]
     assert await keys(FindingFilter(sampled=False)) == []
+    assert await keys(FindingFilter(ids=(pair.id, short.id))) == [SHORT.key, PAIR.key]
+    assert await keys(FindingFilter(ids=())) == []
 
 
 async def test_a_finding_left_trying_reopens_until_its_third_stop(

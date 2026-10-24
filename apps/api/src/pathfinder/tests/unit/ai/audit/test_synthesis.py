@@ -79,6 +79,10 @@ def _view() -> AuditRunView:
         halt=None,
         left=LeftUnits(genomes=0, findings=0, evidence=0),
         evidence=[],
+        error_types=[],
+        headline=[],
+        review_state=None,
+        agreement=None,
     )
 
 

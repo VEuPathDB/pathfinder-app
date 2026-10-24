@@ -44,6 +44,18 @@ limit stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget
 stops it before the call; a later start reruns only the synthesis. The run is
 charged like a reviewer run.
 
+**What the report reads.** `services/audit/review_views.py` states the stored
+reviews and the synthesis in the words of `domain/audit/words.py`. Each finding
+on a page carries its `review_line` (one `reviews_of` query for the page) and
+the finding detail its `review_text`. The run view carries `error_types`, one
+per error type its confirmed findings name, in `ERROR_TYPE_TITLES` order, with
+the count, the model genomes, the highest certainty and, from the synthesis
+section, the cause, how it was confirmed and its findings; `headline`;
+`review_state`; and `agreement`, the synthesis's or else the one the stored
+reviews give, with its sentence. A finding's reviewed impact is shown beside
+the stored impact, which keeps the page order. No share of kept findings is
+shown.
+
 **One reviewer run.** The prompt is the stored `FindingDetail` as JSON. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each
 stored piece of evidence, and the references its own research reads returned.
