@@ -12209,7 +12209,8 @@
           "reason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -12334,13 +12335,28 @@
           "correctionReason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Correctionreason"
+          },
+          "correctedExons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Span"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correctedexons"
           },
           "model": {
             "anyOf": [
@@ -12416,6 +12432,7 @@
             "type": "number",
             "maximum": 1.0,
             "minimum": 0.0,
+            "format": "share",
             "title": "Coveredshare"
           },
           "track": {
@@ -12819,6 +12836,7 @@
           },
           "share": {
             "type": "number",
+            "format": "share",
             "title": "Share",
             "readOnly": true
           }
@@ -14002,7 +14020,8 @@
           "reason": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "sentence"
               },
               {
                 "type": "null"
@@ -15124,26 +15143,31 @@
           },
           "rate": {
             "type": "number",
+            "format": "share",
             "title": "Rate",
             "readOnly": true
           },
           "low": {
             "type": "number",
+            "format": "share",
             "title": "Low",
             "readOnly": true
           },
           "high": {
             "type": "number",
+            "format": "share",
             "title": "High",
             "readOnly": true
           },
           "floor": {
             "type": "number",
+            "format": "share",
             "title": "Floor",
             "readOnly": true
           },
           "ceiling": {
             "type": "number",
+            "format": "share",
             "title": "Ceiling",
             "readOnly": true
           }
@@ -25350,6 +25374,11 @@
           },
           "status": {
             "$ref": "#/components/schemas/RequirementGapStatus"
+          },
+          "key": {
+            "default": "",
+            "title": "Key",
+            "type": "string"
           },
           "sentence": {
             "description": "The requirement, in the researcher's words, and what is missing.",

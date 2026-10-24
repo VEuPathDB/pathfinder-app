@@ -49,8 +49,9 @@ refused.
 The rule lives in the Lead's turn contract as the unverified-build rule
 (`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`).
 
-**It fires at most once per turn**, tracked as `contract_refused` on the same
-markers, which every rule of the contract shares. The second answer goes
+**It fires at most once per turn**: each rule of the contract is asked once
+per turn, its kind kept on `TurnMarkers.refused_rules`, and `contract_refused`
+says a rule refused an answer of this turn. The second answer goes
 through even when it carries no accepted reason, marked as unchecked: only the model knows whether a check is
 possible on this turn, so the contract compels the attempt and not the outcome.
 A verification that returned a review that failed is not asked again either:

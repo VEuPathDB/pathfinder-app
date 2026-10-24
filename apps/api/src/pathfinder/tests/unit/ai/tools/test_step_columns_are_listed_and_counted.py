@@ -197,7 +197,12 @@ async def test_a_steps_columns_are_found_by_name_and_countable(
         ("organism_full", "Organism"),
         ("organismAbbrev", "organismAbbrev"),
     ]
-    assert (found.total, found.countable) == (4, 4)
+    assert (found.total, found.countable, found.reach, found.transforms) == (
+        4,
+        4,
+        "step",
+        [],
+    )
     assert [(c.name, c.data_type, c.countable) for c in links.columns] == [
         ("JBrowse", "OTHER", False),
     ]
@@ -205,7 +210,12 @@ async def test_a_steps_columns_are_found_by_name_and_countable(
         await step_columns(ctx, TM_STEP, name="jbrowse", countable_only=True),
         StepColumnPage,
     )
-    assert (counted_links.total, counted_links.columns) == (0, [])
+    assert (
+        counted_links.total,
+        counted_links.columns,
+        counted_links.reach,
+        counted_links.transforms,
+    ) == (0, [], "none", [])
 
 
 async def test_a_step_the_strategy_does_not_hold_is_not_listed(

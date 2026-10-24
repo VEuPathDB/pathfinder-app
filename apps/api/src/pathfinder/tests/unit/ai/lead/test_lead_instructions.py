@@ -210,7 +210,7 @@ def test_the_reply_names_each_fact_by_a_reference_the_product_renders() -> None:
         in instructions
     )
     assert "The reply explains, recommends and asks" in instructions
-    assert "which stands in place of the number" in instructions
+    assert "its clause writes no number word (one to twelve, a dozen" in instructions
     assert (
         'A name that mixes letters and digits ("PfEMP1", "3D7", "SignalP-6.0") is prose.'
         in instructions

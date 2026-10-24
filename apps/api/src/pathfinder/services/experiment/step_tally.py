@@ -18,11 +18,14 @@ from veupathdb_mcp.catalog import genome_names, get_raw_record_types
 from veupathdb_mcp.wdk import (
     ColumnCounts,
     ColumnNotCountedError,
+    StepColumn,
     StepColumns,
+    TransformColumns,
     count_by_column,
     list_step_columns,
 )
 
+from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
 from pathfinder.domain.tally_facts import tally_id
 from pathfinder.services.experiment.column_tally import (
     BY_VALUE,
@@ -251,3 +254,36 @@ async def countable_columns(site_id: str, wdk_step_id: int) -> StepColumns:
         for c in listed.columns
     )
     return listed.model_copy(update={"columns": columns})
+
+
+def _reached(column: StepColumn) -> ReachedColumn:
+    return ReachedColumn(name=column.name, display_name=column.display_name)
+
+
+async def _transform_reach(site_id: str, transform: TransformColumns) -> TransformReach:
+    fields = await _record_fields(site_id, transform.record_type)
+    held = {c.name for c in transform.columns}
+    coded = [
+        ReachedColumn(name=f.name, display_name=field_label(f))
+        for f in fields
+        if f.name in _by_codes(fields) and f.name not in held
+    ]
+    countable = [*(_reached(c) for c in transform.columns), *coded]
+    return TransformReach(
+        search_name=transform.search_name,
+        display_name=transform.display_name,
+        record_type=transform.record_type,
+        countable=len(countable),
+        columns=countable[:_NAMED_COLUMNS],
+    )
+
+
+async def step_reach(
+    site_id: str, listed: StepColumns, tallies_before: int
+) -> StepReach:
+    return StepReach(
+        wdk_step_id=listed.step_id,
+        record_type=listed.record_type,
+        transforms=[await _transform_reach(site_id, t) for t in listed.transforms],
+        tallies_before=tallies_before,
+    )

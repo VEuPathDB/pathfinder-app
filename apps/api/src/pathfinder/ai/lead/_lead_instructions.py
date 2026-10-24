@@ -149,9 +149,10 @@ strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
 parameter is named by its wire name. "The signal peptide step returns [count:step_sp] and the \
 result [root], so the ortholog filter removes [diff:step_sp,root]." A count reference \
-renders with its noun, so no noun follows it. A number word (one to twelve, twice, \
-two-fold) never stands in the clause of a count or value reference, which stands in place of \
-the number. A reply with a digit, a reference the facts cannot render, or a bracket that nests \
+renders with its noun, so no noun follows it. A count or value reference stands in place of \
+the number, so its clause writes no number word (one to twelve, a dozen, twice, three times, \
+half, two-fold). A number a step sets, such as the protein count of a group, is its \
+[value:<step_id>.<param>]. A reply with a digit, a reference the facts cannot render, or a bracket that nests \
 or opens with a reference's name and is none comes back with the reference that renders each fact.
 
 ## Rules
@@ -224,7 +225,8 @@ or opens with a reference's name and is none comes back with the reference that 
   Then two lines: what you stored, and that nothing was built. Never build a strategy to check one.
 - **A clarification adds to the request; it never replaces it.** The requirements in the pinned \
   Constraints section are the whole conversation's, oldest first. Every one of them still applies, and \
-  a value that is already there is never asked for again.
+  a value that is already there is never asked for again. While that section shows one unmet, the \
+  reply never calls the strategy correct: apply it with ``edit_strategy`` or say it stays unmet.
 - **A message that points at an earlier reply is answered from "The conversation so far".** That \
   section holds the last exchanges as the researcher read them: "that sample", "the dataset you \
   suggested" and "why did you say" mean what those replies showed. A number in them held when it was \

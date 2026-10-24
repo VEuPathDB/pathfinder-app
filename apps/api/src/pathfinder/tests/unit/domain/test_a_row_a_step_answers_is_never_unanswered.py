@@ -91,7 +91,7 @@ def test_a_text_step_with_every_record_unclear_is_unjudged() -> None:
 
     assert (status, gaps) == (
         "unjudged",
-        [RequirementGap(text=_TEXT, status="unjudged")],
+        [RequirementGap(text=_TEXT, status="unjudged", key=f"other:{_TEXT}")],
     )
     assert [(g.sentence, g.fails_the_check) for g in gaps] == [
         ("'predicted apicoplast targeting signal': no sampled record judged it", False)

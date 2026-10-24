@@ -113,7 +113,11 @@ async def test_a_removed_cutoff_is_no_gap_after_the_check() -> None:
 
     gaps = _findings(deps, _review(), []).gaps
 
-    assert gaps == [RequirementGap(text="signal peptide", status="unmet")]
+    assert gaps == [
+        RequirementGap(
+            text="signal peptide", status="unmet", key="other:signal peptide"
+        )
+    ]
 
 
 async def test_a_new_value_of_the_kind_replaces_the_held_one() -> None:

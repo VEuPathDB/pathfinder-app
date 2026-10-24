@@ -7985,6 +7985,7 @@ components:
         reason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Reason
         geneIds:
@@ -8048,8 +8049,16 @@ components:
         correctionReason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Correctionreason
+        correctedExons:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Span'
+            type: array
+          - type: 'null'
+          title: Correctedexons
         model:
           anyOf:
           - $ref: '#/components/schemas/ModelSpans'
@@ -8102,6 +8111,7 @@ components:
           type: number
           maximum: 1.0
           minimum: 0.0
+          format: share
           title: Coveredshare
         track:
           type: string
@@ -8384,6 +8394,7 @@ components:
           title: Ns
         share:
           type: number
+          format: share
           title: Share
           readOnly: true
       type: object
@@ -9208,6 +9219,7 @@ components:
         reason:
           anyOf:
           - type: string
+            format: sentence
           - type: 'null'
           title: Reason
       type: object
@@ -9946,22 +9958,27 @@ components:
           title: Unresolved
         rate:
           type: number
+          format: share
           title: Rate
           readOnly: true
         low:
           type: number
+          format: share
           title: Low
           readOnly: true
         high:
           type: number
+          format: share
           title: High
           readOnly: true
         floor:
           type: number
+          format: share
           title: Floor
           readOnly: true
         ceiling:
           type: number
+          format: share
           title: Ceiling
           readOnly: true
       additionalProperties: false
@@ -16963,6 +16980,10 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/RequirementGapStatus'
+        key:
+          default: ''
+          title: Key
+          type: string
         sentence:
           description: The requirement, in the researcher's words, and what is missing.
           readOnly: true

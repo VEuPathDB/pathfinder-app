@@ -174,7 +174,11 @@ def test_a_row_that_restates_an_answered_question_is_no_gap() -> None:
         asked=["Is there a better one on VectorBase for this question?"],
     )
 
-    assert gaps == [RequirementGap(text="signal peptide", status="unmet")]
+    assert gaps == [
+        RequirementGap(
+            text="signal peptide", status="unmet", key="other:signal peptide"
+        )
+    ]
 
 
 def _leads_card(prompt: str, *labels: str) -> CardQuestion:
@@ -278,8 +282,12 @@ def test_an_answered_question_hides_no_requirement_its_words_carry() -> None:
     )
 
     assert gaps == [
-        RequirementGap(text="BspA-like proteins", status="unmet"),
-        RequirementGap(text="signal peptide", status="unmet"),
+        RequirementGap(
+            text="BspA-like proteins", status="unmet", key="other:BspA-like proteins"
+        ),
+        RequirementGap(
+            text="signal peptide", status="unmet", key="other:signal peptide"
+        ),
     ]
 
 
@@ -311,4 +319,4 @@ async def test_a_kept_requirement_stays_open_and_stays_a_gap() -> None:
             GroundedConstraint(constraint=fold, status=ConstraintStatus.UNGROUNDABLE)
         ],
         asked=[q.question for q in domain.answered_questions],
-    ) == [RequirementGap(text="1.5-fold", status="unmet")]
+    ) == [RequirementGap(text="1.5-fold", status="unmet", key="fold_change:1.5-fold")]

@@ -71,7 +71,11 @@ _V2_TEST = ControlTestEvidence(
 _V2_CAVEAT = ControlsCaveat(
     positives_returned=52, positives_total=80, negatives_returned=2, negatives_total=40
 )
-_UNMET = RequirementGap(text="at least 2 transmembrane domains", status="unmet")
+_UNMET = RequirementGap(
+    text="at least 2 transmembrane domains",
+    status="unmet",
+    key="other:at least 2 transmembrane domains",
+)
 # The review row the check wrote, which the gap above is read from.
 _UNMET_ROW = RequirementCheck(
     text="at least 2 transmembrane domains",
