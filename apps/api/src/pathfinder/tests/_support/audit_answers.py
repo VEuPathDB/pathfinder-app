@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from veupathdb_mcp.audit import (
@@ -12,9 +13,11 @@ from veupathdb_mcp.audit import (
     LengthCheck,
     MissingGeneAudit,
     MissingVerdict,
+    ModelSpans,
     NotRead,
     OrganelleGeneAudit,
     OrganelleVerdict,
+    SelenoproteinEndAudit,
     SideVerdict,
     StrainModelAudit,
 )
@@ -25,6 +28,24 @@ from pathfinder.tests._support.audit import (
     relative_organisms,
     resolved_ids,
 )
+
+_MODELS = Path(__file__).resolve().parents[1] / "fixtures" / "audit_models"
+
+
+def _recorded(name: str) -> str:
+    return (_MODELS / name).read_text()
+
+
+PKAC_INTRONS = IntronAudit.model_validate_json(_recorded("pkac_introns.json"))
+DMAW_INTRONS = IntronAudit.model_validate_json(_recorded("dmaw_introns.json"))
+AFU8_INTRONS = IntronAudit.model_validate_json(_recorded("afu8_introns.json"))
+AGAP7279_INTRONS = IntronAudit.model_validate_json(_recorded("agap7279_introns.json"))
+AGAP3685_INTRONS = IntronAudit.model_validate_json(_recorded("agap3685_introns.json"))
+PKAC_STRAIN_MODELS = StrainModelAudit.model_validate_json(
+    _recorded("pkac_strain.json")
+).models
+RPT6_FUSION = GeneFusionAudit.model_validate_json(_recorded("rpt6_fusion.json"))
+GT1_SELK = SelenoproteinEndAudit.model_validate_json(_recorded("gt1_selk.json"))
 
 FRAGILE_RPT6 = "AK88_02763"
 COATNEYI_RPT6 = "PCOAH_00051830"
@@ -136,11 +157,14 @@ _PKAC_PAIR = {
 }
 
 
-def strain(side: SideVerdict) -> StrainModelAudit:
+def strain(
+    side: SideVerdict, *, models: Sequence[ModelSpans | None] = PKAC_STRAIN_MODELS
+) -> StrainModelAudit:
     read = _ABSENT if side == "NOT_JUDGED" else _ENCODED
     return StrainModelAudit.model_validate(
         {
             **_PKAC_PAIR,
+            "models": models,
             "lost": [(41, 100)],
             "dna": {**read, "windows": 33, "ns_in_window": 0, "at_contig_edge": False},
             "not_read": None,
@@ -293,16 +317,3 @@ def organelle(verdict: OrganelleVerdict) -> OrganelleGeneAudit:
         code=GeneticCode.STANDARD,
         code_inferred=True,
     )
-
-
-_MODELS = Path(__file__).resolve().parents[1] / "fixtures" / "audit_models"
-
-
-def _recorded_introns(name: str) -> IntronAudit:
-    return IntronAudit.model_validate_json((_MODELS / name).read_text())
-
-
-PKAC_INTRONS = _recorded_introns("pkac_introns.json")
-AFU8_INTRONS = _recorded_introns("afu8_introns.json")
-AGAP7279_INTRONS = _recorded_introns("agap7279_introns.json")
-AGAP3685_INTRONS = _recorded_introns("agap3685_introns.json")

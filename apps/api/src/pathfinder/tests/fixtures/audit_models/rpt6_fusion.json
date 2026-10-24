@@ -1,0 +1,97 @@
+{
+  "models": [
+    {
+      "gene": "PCOAH_00051830",
+      "transcript": "PCOAH_00051830-t30_1",
+      "seqid": "CP016252",
+      "strand": "+",
+      "exons": [
+        [
+          251514,
+          252788
+        ]
+      ],
+      "cds": [
+        [
+          251514,
+          252788
+        ]
+      ]
+    },
+    {
+      "gene": "PCOAH_00051820",
+      "transcript": "PCOAH_00051820-t30_1",
+      "seqid": "CP016252",
+      "strand": "+",
+      "exons": [
+        [
+          248191,
+          250131
+        ]
+      ],
+      "cds": [
+        [
+          248191,
+          250131
+        ]
+      ]
+    }
+  ],
+  "evidence_unread": [],
+  "gene_ids": [
+    {
+      "given": "AK88_02763",
+      "resolved": "AK88_02763"
+    }
+  ],
+  "genes": [
+    "AK88_02763"
+  ],
+  "length_class": "LONG",
+  "ratio": 2.583,
+  "group_median": 424.0,
+  "group_copies": 1.0,
+  "group_spread": 0.031,
+  "organisms": 63,
+  "reference_gene": "PCOAH_00051830",
+  "fusion": {
+    "extra": [
+      [
+        1,
+        220
+      ],
+      [
+        221,
+        270
+      ],
+      [
+        271,
+        690
+      ]
+    ],
+    "partner": "PCOAH_00051820",
+    "closest_neighbour": null,
+    "neighbour_windows": 56,
+    "neighbours": [
+      "PCOAH_00051800",
+      "PCOAH_00051810",
+      "PCOAH_00051820",
+      "PCOAH_00051840",
+      "PCOAH_00051850",
+      "PCOAH_00051860"
+    ],
+    "product": "26S protease regulatory subunit 8",
+    "partner_group": "OG8_0090231",
+    "partner_product": "Uncharacterized protein",
+    "partner_copies": [],
+    "extra_windows": 66,
+    "verdict": "EXTRA_MATCHES_NEIGHBOUR"
+  },
+  "merged": {
+    "gene": "AK88_02763",
+    "seqid": "KQ001672",
+    "strand": "+",
+    "start": 202826,
+    "end": 207689
+  }
+}

@@ -24,6 +24,35 @@
   `gene_model_audit`, records no requirement, no request text and no withdrawal on the thread,
   and the start tool is withheld on every other turn unless the turn answers its card. See
   `decisions/building-is-a-response-to-a-request.md`.
+* **A sample audit run backs the report page's flow and the web fixture.**
+  `data/audit/sample_run.json` holds a finished plasmodb run of ten findings, built from the
+  recorded test-support results, with the reviews and the synthesis of the stored shapes.
+  `services/audit/sample_run.py::store_sample_run` stores it for one person, and the mock-only
+  `POST /api/v1/dev/audits/sample` answers its run id and finding ids. The routes' answers for it
+  are `apps/web/src/features/audit/__fixtures__/sampleRun.json`, with ids and times fixed. See
+  `conventions/recording-the-audit-models.md`.
+
+* **An audit finding reads its gene models in genome coordinates.** `domain/audit/models.py`
+  derives `FindingDetail.models` from the stored confirmation alone: the annotated models of the
+  genes the check judged, the model an intron's RNA-seq junctions propose (`corrected`: the
+  library's corrected CDS, and the exons of the annotated model with each unread intron added and
+  each replacing junction cut out, the rule of the library's `correct_model`, which it does not
+  publish; or `retained`, with the intron kept as exon when the correction was not read), a
+  fusion's merged span and a selenoprotein's stop codon, the last three coding bases on its
+  strand, split across an intron when the last coding part is shorter than three. `FIGURE_KINDS`
+  names the figure of every check. A check that read no model, an organelle or a missing-gene finding, and a confirmation
+  stored before the library returned models read `models` as null; nothing is read again and no
+  column is added. The review prompt leaves `models` out.
+
+* **An audit run counts a check's gene model reads with its other requests (veupathdb-mcp
+  0.2.0b47).** The confirm stage counts them on the finding and on the stage, as
+  `tests/integration/services/test_audit_model_reads_counted.py` proves over the recorded GT1
+  SelK wire (9 requests). The plan adds no charge for them: the measured confirm cost of each
+  check already holds them, and `UnitCosts` names no model reads.
+  `tests/fixtures/audit_models/` adds the recorded DMAW intron, PKAC strain, RPT6 fusion and GT1
+  SelK results with their models, and the list of unpublished tool server modules matches the
+  b47 published surface. See `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md` and
+  `conventions/recording-the-audit-models.md`.
 
 * **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
   `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted

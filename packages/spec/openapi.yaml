@@ -6279,6 +6279,10 @@ components:
             $ref: '#/components/schemas/GeneLink'
           type: array
           title: Genes
+        models:
+          anyOf:
+          - $ref: '#/components/schemas/FindingModels'
+          - type: 'null'
       type: object
       required:
       - siteId
@@ -6288,6 +6292,7 @@ components:
       - review
       - reviewText
       - genes
+      - models
       title: FindingDetail
     FindingLine:
       properties:
@@ -6355,6 +6360,41 @@ components:
       - impact
       - reviewedImpact
       title: FindingLine
+    FindingModels:
+      properties:
+        kind:
+          type: string
+          enum:
+          - intron
+          - length
+          - pseudogene
+          - strain
+          - merge
+          - sec_end
+          title: Kind
+        annotated:
+          items:
+            $ref: '#/components/schemas/ModelSpans'
+          type: array
+          minItems: 1
+          title: Annotated
+        proposed:
+          anyOf:
+          - $ref: '#/components/schemas/ProposedModel'
+          - type: 'null'
+        merged:
+          anyOf:
+          - $ref: '#/components/schemas/GeneSpan'
+          - type: 'null'
+        stop:
+          anyOf:
+          - $ref: '#/components/schemas/StopCodon'
+          - type: 'null'
+      type: object
+      required:
+      - kind
+      - annotated
+      title: FindingModels
     FindingPage:
       properties:
         siteId:
@@ -7912,6 +7952,50 @@ components:
       - listed
       - read
       title: JunctionTracks
+    KeptIntron:
+      properties:
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        outcome:
+          type: string
+          enum:
+          - NONCANONICAL
+          - RETAINED
+          title: Outcome
+        motif:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Motif
+        depthShare:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Depthshare
+        coveredShare:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Coveredshare
+        track:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Track
+      type: object
+      required:
+      - start
+      - end
+      - outcome
+      - motif
+      - depthShare
+      - coveredShare
+      - track
+      title: KeptIntron
     KeyRefusal:
       type: string
       enum:
@@ -9265,6 +9349,64 @@ components:
           site_switched: '#/components/schemas/SiteSwitched'
           strategy_opened: '#/components/schemas/StrategyOpened'
           turn_undone: '#/components/schemas/TurnUndone'
+    ProposedModel:
+      properties:
+        kind:
+          type: string
+          enum:
+          - corrected
+          - retained
+          title: Kind
+        gene:
+          type: string
+          title: Gene
+        exons:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          title: Exons
+        cds:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          title: Cds
+        removedIntrons:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          title: Removedintrons
+        junctions:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          title: Junctions
+        junctionReads:
+          items:
+            type: integer
+          type: array
+          title: Junctionreads
+        kept:
+          items:
+            $ref: '#/components/schemas/KeptIntron'
+          type: array
+          title: Kept
+          default: []
+        frameKept:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Framekept
+      type: object
+      required:
+      - kind
+      - gene
+      - exons
+      - cds
+      - removedIntrons
+      - junctions
+      - junctionReads
+      - frameKept
+      title: ProposedModel
     ProviderKeyIn:
       properties:
         key:
@@ -11012,6 +11154,27 @@ components:
       type: object
       title: StepValidationErrors
       description: Validation error details for a step.
+    StopCodon:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        seqid:
+          type: string
+          title: Seqid
+        spans:
+          items:
+            $ref: '#/components/schemas/Span'
+          type: array
+          maxItems: 3
+          minItems: 1
+          title: Spans
+      type: object
+      required:
+      - gene
+      - seqid
+      - spans
+      title: StopCodon
     StrainConfirmation:
       properties:
         check:

@@ -437,6 +437,7 @@ def test_finding_rows_are_dotted_paths() -> None:
         review=None,
         review_text=None,
         genes=[],
+        models=None,
     )
 
     fact = audit_finding_fact(run_id, detail)

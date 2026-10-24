@@ -90,7 +90,7 @@ SCOPE = AuditScope(
 )
 
 
-def _costs(*, model_reads: int = 0) -> UnitCosts:
+def _costs() -> UnitCosts:
     checks: tuple[CheckName, ...] = get_args(CheckName)
     kinds: tuple[EvidenceKind, ...] = get_args(EvidenceKind)
     return UnitCosts(
@@ -102,7 +102,6 @@ def _costs(*, model_reads: int = 0) -> UnitCosts:
         confirm_seconds=dict.fromkeys(checks, 2.0),
         confirm_store_reads={c: 5 if c == "intron_support" else 0 for c in checks},
         evidence_seconds=dict.fromkeys(kinds, 2.0),
-        model_reads_per_finding=model_reads,
     )
 
 
@@ -201,13 +200,7 @@ def test_each_listed_gene_is_priced_as_one_record_read() -> None:
 
     assert (many, single) == (3 + 6 + 4 * (4 + 2), 3 + 1 + 4 + 2)
     assert "datasets" not in RunEstimate.model_fields
-
-
-def test_model_reads_per_finding_is_added_per_sampled_finding() -> None:
-    plain = estimate(SCOPE, run_hours=6.0, costs=_costs())
-    read = estimate(SCOPE, run_hours=6.0, costs=_costs(model_reads=3))
-
-    assert read.wdk_requests - plain.wdk_requests == 3 * (5 * 2 + 6)
+    assert "model_reads" not in UnitCosts.model_fields
 
 
 def test_a_scope_of_missing_gene_targets_reads_no_listed_gene() -> None:
