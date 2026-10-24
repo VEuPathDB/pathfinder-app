@@ -72,7 +72,7 @@ async def test_a_review_on_the_owners_key_is_charged_to_the_owner(
 
     await work_reviews(jobs)
 
-    assert len(tokens) == 2
+    assert len(tokens) == 3
     assert sum(tokens) > 0
     assert (
         await _paid(owner.user_id, PaidBy.USER),

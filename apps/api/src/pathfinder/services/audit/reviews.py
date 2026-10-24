@@ -181,6 +181,12 @@ async def stored_reviews(run_id: UUID) -> list[VerdictView]:
     return [VerdictView.model_validate(record) for record in found]
 
 
+async def stored_impacts(run_id: UUID) -> dict[int, float | None]:
+    async with async_session_factory() as session:
+        found = await AuditFindingRepository(session).findings(run_id, _NAMED)
+    return {finding.id: finding.impact for finding in found}
+
+
 async def store_synthesis(run_id: UUID, synthesis: Synthesis) -> None:
     async with async_session_factory() as session:
         await AuditReviewRepository(session).set_synthesis(run_id, synthesis)

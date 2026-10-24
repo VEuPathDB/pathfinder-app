@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator, Sequence
+from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
 from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 from uuid import UUID
@@ -23,13 +23,13 @@ from pydantic_ai.models.wrapper import WrapperModel
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage
 
-from pathfinder.ai.audit import review
+from pathfinder.ai.audit import review, synthesis
 from pathfinder.ai.audit.mock import build_review_mock
 from pathfinder.ai.audit.review import ReviewDeps
 from pathfinder.domain.audit.findings import Certainty, RelativesEvidence
 from pathfinder.domain.audit.rates import GenomeUse, Importance, Weighing
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
-from pathfinder.domain.audit.verdicts import FindingReview
+from pathfinder.domain.audit.verdicts import FindingReview, Synthesis
 from pathfinder.jobs.impls.audit_review_impl import run_review_job
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_findings import (
@@ -49,6 +49,8 @@ from pathfinder.platform.tool_sources import (
 from pathfinder.services.audit.finding_views import FindingDetail
 from pathfinder.services.audit.queue import AUDIT_REVIEW_JOB
 from pathfinder.services.audit.runs import RunOwner, create_run
+from pathfinder.services.audit.verdicts import VerdictView
+from pathfinder.services.audit.views import AuditRunView
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests.integration.http._wdk_mcp_double import serve_mcp
 
@@ -253,4 +255,25 @@ def spent_tokens(monkeypatch: pytest.MonkeyPatch) -> list[int]:
             tokens.append(usage.total_tokens)
 
     monkeypatch.setattr(review, "review_finding", counted)
+    synthesized = synthesis.synthesize
+
+    async def synthesis_counted(
+        view: AuditRunView,
+        reviews: Sequence[VerdictView],
+        *,
+        impacts: Mapping[int, float | None],
+        model: Model,
+        settings: ModelSettings | None = None,
+    ) -> tuple[Synthesis, RunUsage]:
+        try:
+            found, usage = await synthesized(
+                view, reviews, impacts=impacts, model=model, settings=settings
+            )
+        except synthesis.SynthesisStoppedError as stopped:
+            tokens.append(stopped.usage.total_tokens)
+            raise
+        tokens.append(usage.total_tokens)
+        return found, usage
+
+    monkeypatch.setattr(review, "synthesize", synthesis_counted)
     return tokens

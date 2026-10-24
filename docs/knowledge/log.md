@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded
+  synthesis agent over the kept reviews once the review loop has nothing left, attaches the
+  agreement it computes from the stored reviews, and refuses a draft that names an unkept finding,
+  mixes error types, ranks the headline out of impact order or writes a share of kept findings.
+  A run with no kept finding stores `NO_FINDING_KEPT` without a model call; a stopped synthesis
+  stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
+
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`

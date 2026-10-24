@@ -26,8 +26,23 @@ A finding's review is one row, so a finding is never reviewed twice: a retried
 run reviews only its new findings, and a run already `synthesized` with nothing
 left defers nothing (`start_review`). The progress (`done`, `total`, the status
 and a message) is on `audit_runs.review` after every review. With nothing left
-the job hands over to the synthesis; until that exists it stores `synthesized`
-with no synthesis.
+the job writes the run's synthesis and then stores `synthesized`.
+
+**The synthesis.** `ai/audit/synthesis.py::synthesize` reads the run view, the
+stored reviews and the stored impacts, and one bounded run under
+`SYNTHESIS_LIMITS` writes a `SynthesisDraft`: one section per error type with
+its cause and how the checks confirmed it, the headline finding ids and a
+summary. The code attaches `agreement=review_agreement(<the stored reviews>)`;
+the model never writes it, so no rate rests on one judgement. The output
+validator retries a draft that names a finding no review keeps as an `error`, a
+section whose findings' reviews name another error type, a headline out of
+descending impact (the review's impact when set, else the stored one, a
+finding with none last), or a summary that writes a percentage or a share of
+kept findings. With no kept finding the job makes no model call and stores
+`NO_FINDING_KEPT` with no section. A synthesis that spends its retries or its
+limit stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget
+stops it before the call; a later start reruns only the synthesis. The run is
+charged like a reviewer run.
 
 **One reviewer run.** The prompt is the stored `FindingDetail` as JSON. The
 reads a review may cite are `finding:<id>`, `evidence:<id>:<kind>` for each
