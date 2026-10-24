@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import get_args
+
 import pytest
 from veupathdb_mcp.audit import GeneEvidence, rate_with_bounds
 
@@ -174,6 +176,11 @@ def test_the_unresolved_count_is_split_by_status() -> None:
     )
     assert rate.unresolved == 5
     assert rate.bounds == rate_with_bounds(1, 3, 5)
+
+
+def test_the_unresolved_split_names_every_status_but_confirmed() -> None:
+    statuses = [status for status in get_args(FindingStatus) if status != "confirmed"]
+    assert list(Unresolved.model_fields) == statuses
 
 
 def test_an_unresolved_split_reads_on_the_wire_with_its_total() -> None:
