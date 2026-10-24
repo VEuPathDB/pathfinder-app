@@ -99,6 +99,7 @@ BODY_SITE_UNGATED: frozenset[tuple[str, str]] = frozenset(
 # then works on comes from a stored row, not from the request.
 IDENTITY_SITE_GATED: frozenset[tuple[str, str]] = frozenset(
     {
+        ("POST", "/api/v1/audits/{run_id}/start"),
         ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         ("POST", "/api/v1/conversations/{conversation_id}/revert-to-message"),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/fork"),

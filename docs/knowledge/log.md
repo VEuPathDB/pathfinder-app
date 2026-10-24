@@ -31,6 +31,16 @@
   `decisions/an-audit-plan-is-priced-from-measured-unit-costs.md` and
   `conventions/recording-the-audit-models.md`.
 
+* **A run's page starts it again.** `POST /api/v1/audits/{run_id}/start`, body
+  `{"action": "resume" | "retry"}`, behind `require_registered_wdk_identity`, resumes a halted
+  run or retries what a finished run left unread or unreached, and answers the run view. It
+  takes only the action the view offers and refuses every other start with 409
+  `AUDIT_NOT_STARTABLE` (`platform/audit_errors.py::AuditNotStartableError`) and a plain reason:
+  while the run's reviews run (they hold the run's lock), while another job of the run is queued
+  or doing, and when the run's conversation was deleted. Another person's run is 404. The checks
+  live in `services/audit/page_start.py`; `start_run` itself still returns without starting when
+  the lock is held. See `decisions/audits-run-on-a-queue-of-their-own.md`.
+
 * **The audit views read the reviews and the synthesis in plain words.**
   `services/audit/review_views.py` builds `ReviewLine` on each finding of a page, `ReviewText` on a
   finding's detail, and on the run view the error-type sections, the headline finding lines, the
