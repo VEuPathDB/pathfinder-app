@@ -17961,6 +17961,11 @@
                 "type": "null"
               }
             ]
+          },
+          "spansAssemblyGap": {
+            "type": "boolean",
+            "title": "Spansassemblygap",
+            "default": false
           }
         },
         "type": "object",
