@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from veupathdb_mcp.audit import GeneId
 
 from pathfinder.domain.audit.confirmations import (
     IntronConfirmation,
@@ -30,6 +31,8 @@ from pathfinder.tests._support.audit import (
 from pathfinder.tests._support.audit_introns import INTRON_GENE, intron_audit
 
 PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA))
+PIGA_ALIAS = "PF10_0115"
+ALIASED_PAIR = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, PIGA_ALIAS))
 SHORT = SingleGeneTarget(check="gene_length", genes=("NF54_SHORT",))
 INTRON = SingleGeneTarget(check="intron_support", genes=(INTRON_GENE,))
 UNREADABLE = "the gene record of NF54_SHORT is unreadable"
@@ -143,3 +146,47 @@ async def stored_intron_run() -> tuple[RunOwner, UUID, int]:
         )
         await session.commit()
     return owner, run_id, intron.id
+
+
+async def aliased_pair_run() -> tuple[RunOwner, UUID, int]:
+    owner = await seed_thread()
+    run_id = await create_run(
+        owner=owner, scope=AuditScope(site_id="plasmodb", targets=(ALIASED_PAIR,))
+    )
+    resolved = PIGA_INTACT.model_copy(
+        update={
+            "gene_ids": [
+                GeneId(given=NF54_PIGA, resolved=NF54_PIGA),
+                GeneId(given=PIGA_ALIAS, resolved=PIGA),
+            ]
+        }
+    )
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.add_findings(
+            run_id,
+            [
+                NewFinding(
+                    genome=NF54, target=ALIASED_PAIR, sampled=True, status="screened"
+                )
+            ],
+        )
+        (pair,) = await repo.findings(run_id, FindingFilter())
+        await repo.try_finding(pair.id)
+        await repo.settle_finding(
+            pair.id,
+            SettledFinding(
+                status="confirmed",
+                error_type="intact_gene_called_pseudogene",
+                certainty="high",
+                requests=6,
+            ),
+        )
+        await repo.try_evidence(pair.id, "confirmation")
+        await repo.save_evidence(
+            pair.id,
+            ConfirmationEvidence(confirmation=PseudogeneConfirmation(result=resolved)),
+            requests=2,
+        )
+        await session.commit()
+    return owner, run_id, pair.id

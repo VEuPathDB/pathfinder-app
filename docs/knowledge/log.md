@@ -3,7 +3,8 @@
 ## 2026-10-24
 
 * **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
-  `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them, and
+  `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them (a
+  confirmation that does not name a target gene raises; with none stored, the target's own), and
   `evidence_genes`, the relatives' reference gene and the genes whose records were read, in
   order and once each. `FindingView.genes` links the finding's own genes and
   `FindingDetail.genes` those and every gene its evidence names, each a `GeneLink {gene, url}`

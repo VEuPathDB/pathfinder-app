@@ -11,6 +11,8 @@ from pathfinder.persistence.repositories.audit_findings import AuditFindingRepos
 from pathfinder.tests._support.audit import NF54_PIGA, PIGA
 from pathfinder.tests._support.audit_evidence import K13, PIGA_EVIDENCE, evidence_of
 from pathfinder.tests.integration.http._audit_reads import (
+    PIGA_ALIAS,
+    aliased_pair_run,
     screened_genome_run,
     stored_intron_run,
     stored_pair_run,
@@ -103,3 +105,23 @@ async def test_a_finding_links_its_genes_to_the_site(app: FastAPI) -> None:
         *page["findings"][0]["genes"],
         {"gene": K13, "url": GENE_PAGE + K13},
     ]
+
+
+async def test_a_finding_links_the_genes_its_confirmation_resolved(
+    app: FastAPI,
+) -> None:
+    owner, run_id, pair_id = await aliased_pair_run()
+    async with client_for(app, owner.user_id) as client:
+        page = (await client.get(f"/api/v1/audits/{run_id}/findings")).json()
+        detail = (
+            await client.get(f"/api/v1/audits/{run_id}/findings/{pair_id}")
+        ).json()
+    resolved = [
+        {"gene": NF54_PIGA, "url": GENE_PAGE + NF54_PIGA},
+        {"gene": PIGA, "url": GENE_PAGE + PIGA},
+    ]
+    (finding,) = page["findings"]
+    assert finding["target"]["genes"] == [NF54_PIGA, PIGA_ALIAS]
+    assert finding["genes"] == resolved
+    assert detail["finding"]["genes"] == resolved
+    assert detail["genes"] == resolved

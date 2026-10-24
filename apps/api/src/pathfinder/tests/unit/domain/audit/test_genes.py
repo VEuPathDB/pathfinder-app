@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from veupathdb_mcp.audit import GeneId
 
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
@@ -50,6 +51,13 @@ def test_two_genes_the_site_resolved_to_one_are_named_once() -> None:
     )
     aliased = GenePairTarget(check="pseudogene_call", genes=(ALIAS, PIGA))
     assert named_genes(aliased, stored) == (PIGA,)
+
+
+def test_a_confirmation_that_does_not_name_a_target_gene_is_refused() -> None:
+    stored = PseudogeneConfirmation(result=PIGA_INTACT)
+    aliased = GenePairTarget(check="pseudogene_call", genes=(NF54_PIGA, ALIAS))
+    with pytest.raises(KeyError, match=ALIAS):
+        named_genes(aliased, stored)
 
 
 def test_evidence_names_the_reference_and_the_genes_it_read_once_each() -> None:

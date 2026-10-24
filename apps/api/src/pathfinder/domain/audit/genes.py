@@ -15,12 +15,10 @@ from pathfinder.domain.audit.scope import GeneTarget
 def named_genes(
     target: GeneTarget, confirmation: Confirmation | None
 ) -> tuple[str, ...]:
-    resolved = (
-        {}
-        if confirmation is None
-        else {named.given: named.resolved for named in confirmation.result.gene_ids}
-    )
-    return tuple(dict.fromkeys(resolved.get(gene, gene) for gene in target.genes))
+    if confirmation is None:
+        return tuple(dict.fromkeys(target.genes))
+    resolved = {named.given: named.resolved for named in confirmation.result.gene_ids}
+    return tuple(dict.fromkeys(resolved[gene] for gene in target.genes))
 
 
 def evidence_genes(payloads: Iterable[EvidencePayload]) -> tuple[str, ...]:
