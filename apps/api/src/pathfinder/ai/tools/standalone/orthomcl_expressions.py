@@ -1,20 +1,28 @@
-from assistant_core.graph.tool_summary import with_summary
+from datetime import UTC, datetime
+from typing import Literal
+
+from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
-from veupathdb.errors import ValidationError, WDKError
+from veupathdb.errors import DataParsingError, ValidationError, WDKError
 from veupathdb_mcp.catalog import (
     PhyleticExpressionResult,
     PhyleticPattern,
     ortho_taxonomy,
-    write_phyletic_expression,
+)
+from veupathdb_mcp.wdk import (
+    ComputedComparisonResult,
+    ComputedSet,
+    answer_phyletic_pattern,
 )
 
-from pathfinder.ai.capabilities.site_reads import read_in_time
+from pathfinder.ai.capabilities.site_reads import read_in_time, site_data_failure
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._expression_handles import held_handle
+from pathfinder.domain.strategy.computed_groups import COMPUTED_ROUTE, HeldComparison
 from pathfinder.domain.strategy.pattern_sets import (
     SetSize,
     counts_beyond_their_sets,
@@ -22,16 +30,56 @@ from pathfinder.domain.strategy.pattern_sets import (
 )
 
 PHYLETIC_EXPRESSION_MAX_CALL_SECONDS = 300
+_TOOL = "build_phyletic_expression"
 
 
 class BuiltExpression(CamelModel):
     model_config = ConfigDict(frozen=True)
 
+    route: Literal["expression"] = "expression"
     handle: str
     reading: str
     groups: int
     codes: tuple[str, ...]
     sets: tuple[SetSize, ...] = ()
+
+
+class ComputedComparison(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    route: Literal["computed"] = "computed"
+    handle: str
+    reading: str
+    groups: int
+    both_held: int
+    left_only: int
+    right_only: int
+    ties: int
+    residual_groups: int
+    sets: tuple[ComputedSet, ComputedSet]
+    probe_requests: int
+    compute_requests: int
+    fact_id: str
+    computed_on: str
+
+    @classmethod
+    def of(cls, held: HeldComparison) -> ComputedComparison:
+        answer = held.answer
+        return cls(
+            handle=held.handle,
+            reading=answer.reading,
+            groups=answer.groups,
+            both_held=answer.both_held,
+            left_only=answer.left_only,
+            right_only=answer.right_only,
+            ties=answer.ties,
+            residual_groups=answer.residual_groups,
+            sets=answer.sets,
+            probe_requests=answer.probe_requests,
+            compute_requests=answer.compute_requests,
+            fact_id=held.fact().id,
+            computed_on=held.computed_on.isoformat(),
+        )
 
 
 def _builder_limit(limit: str) -> str:
@@ -45,19 +93,40 @@ def _builder_limit(limit: str) -> str:
 
 async def _written(
     ctx: RunContext[AgentDeps], pattern: PhyleticPattern
-) -> PhyleticExpressionResult:
+) -> PhyleticExpressionResult | ComputedComparisonResult:
+    refused_searches = ctx.deps.agent_state.refused_searches
     try:
-        return await write_phyletic_expression(ctx.deps.site_id, pattern)
+        return await answer_phyletic_pattern(ctx.deps.site_id, pattern)
     except WDKError as refused:
         answer = f"HTTP {refused.status}: {refused.detail}"
-        ctx.deps.agent_state.refused_searches[PHYLETIC_EXPRESSION_SEARCH] = answer
+        refused_searches[PHYLETIC_EXPRESSION_SEARCH] = answer
         raise
+    except DataParsingError as unreadable:
+        said = unreadable.detail or unreadable.title
+        refused_searches[PHYLETIC_EXPRESSION_SEARCH] = said
+        failed = site_data_failure(_TOOL, said)
+        raise failed from unreadable
+
+
+def _computed(
+    ctx: RunContext[AgentDeps],
+    pattern: PhyleticPattern,
+    answer: ComputedComparisonResult,
+) -> ToolReturn[BuiltExpression | ComputedComparison]:
+    held = HeldComparison(
+        pattern=pattern, answer=answer, computed_on=datetime.now(UTC).date()
+    )
+    ctx.deps.agent_state.computed_comparisons[held.handle] = held
+    shown = ComputedComparison.of(held)
+    return with_summary(
+        shown, f"{count_noun(shown.groups, 'group')}, {COMPUTED_ROUTE}", ctx=ctx
+    )
 
 
 async def build_phyletic_expression(
     ctx: RunContext[AgentDeps],
     pattern: PhyleticPattern,
-) -> ToolReturn[BuiltExpression]:
+) -> ToolReturn[BuiltExpression | ComputedComparison]:
     """Write OrthoMCL's phyletic_expression from a pattern, check it against the
     site's taxonomy, and count the groups it returns.
 
@@ -105,6 +174,19 @@ async def build_phyletic_expression(
     a question. A pattern the site could not read or count within the call
     budget is refused with its size; narrow it and call again.
 
+    A compare that is the whole pattern and whose expression passes the site's
+    caps comes back with route "computed": the same groups the expression
+    would select, counted from each set's per-group protein counts in at most
+    24 requests. It gives groups, bothHeld, leftOnly, rightOnly, ties,
+    residualGroups, each set's genomes, species, groups and proteins, the
+    requests spent and factId, and holds the group ids under a "groups:"
+    handle: pass it to set_criterion as computed_groups to save them as a step,
+    a snapshot of today's data the site does not re-run. The computed route
+    refuses at_least, at_most and exactly (they hold at 0 against 0); state
+    more_than or fewer_than. A per_genome compare that reads more than 24
+    requests needs a background task and is refused; compare averages or totals.
+    A route "expression" answer is a live search, bound as above.
+
     Args:
         ctx: Agent run context.
         pattern: The groups to select, as described above.
@@ -124,6 +206,9 @@ async def build_phyletic_expression(
         limit = exc.detail or exc.title
         ctx.deps.agent_state.builder_refusals[PHYLETIC_EXPRESSION_SEARCH] = limit
         raise ModelRetry(_builder_limit(limit)) from exc
+    match built:
+        case ComputedComparisonResult():
+            return _computed(ctx, pattern, built)
     held = BuiltExpression(
         handle=held_handle(
             ctx.deps.agent_state, built.expression, pattern, built.reading

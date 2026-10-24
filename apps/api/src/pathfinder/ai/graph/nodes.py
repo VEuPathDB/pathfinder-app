@@ -153,6 +153,8 @@ async def finalize_turn_node(
     kept = kept_expressions(state)
     if kept != state.domain.built_expressions:
         domain_update["built_expressions"] = kept
+    if state.domain.computed_comparisons:
+        domain_update["computed_comparisons"] = {}
     if domain_update:
         update["domain"] = state.domain.model_copy(update=domain_update)
     return Command(goto=_END, update=update or None)

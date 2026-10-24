@@ -1,4 +1,4 @@
-"""The typed answers an audit fact is read from, each schema checked when a toolset is built."""
+"""The typed answers a statistic fact is read from, each schema checked when a toolset is built."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from pathfinder.ai.audit.synthesis import SynthesisCounts
 from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import ScopeProposal
 from pathfinder.domain.statistic_rows import fact_schema
+from pathfinder.domain.strategy.computed_groups import ComparisonFacts
 from pathfinder.services.audit.finding_views import FindingDetail, FindingPage
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
@@ -39,6 +40,7 @@ FACT_SOURCES: tuple[type[BaseModel], ...] = (
     FindingPage,
     ScopeProposal,
     SynthesisCounts,
+    ComparisonFacts,
 )
 
 

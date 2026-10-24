@@ -15,20 +15,14 @@ from veupathdb.domain.strategy import StrategyAst
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.graph.stored_verdicts import Stored
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
-from pathfinder.ai.graph.turn_records import (
-    TurnMarkers,
-    ZeroResultStep,
-)
+from pathfinder.ai.graph.turn_records import TurnMarkers, ZeroResultStep
 from pathfinder.ai.lead.intent import REQUEST_INTENTS, UNRECORDED_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
-from pathfinder.domain.eda_thread import (
-    EdaAnalysisFacts,
-    OpenEdaAnalysis,
-)
+from pathfinder.domain.eda_thread import EdaAnalysisFacts, OpenEdaAnalysis
 from pathfinder.domain.evidence import (
     EvidenceCard,
     NamedControlSet,
@@ -43,12 +37,10 @@ from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.computed_groups import HeldComparison
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-)
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.spec_tree import renumber_criteria
 from pathfinder.domain.strategy.staleness import StaleBuild
@@ -217,6 +209,7 @@ class StrategyDomainState(ThreadRequirements):
     stale_build: StaleBuild | None = None
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
     built_expressions: dict[str, BuiltPattern] = Field(default_factory=dict)
+    computed_comparisons: dict[str, HeldComparison] = Field(default_factory=dict)
     # The EDA filter sheet the thread holds open, and the study it describes.
     open_eda_sheet: OpenEdaSheet | None = None
     # The analysis-state card the thread last showed. A tool emits the card

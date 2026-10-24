@@ -58,7 +58,7 @@ constraint-dependencies = [
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b12" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b24" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b50" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b51" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0b1" }
 
 [build-system]
@@ -393,6 +393,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog.experiments",
     "veupathdb_mcp.catalog.gene_records",
     "veupathdb_mcp.catalog.group_counts",
+    "veupathdb_mcp.catalog.group_ids",
     "veupathdb_mcp.catalog.hidden_params",
     "veupathdb_mcp.catalog.models",
     "veupathdb_mcp.catalog.overview_formatting",
@@ -408,6 +409,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog.param_validation",
     "veupathdb_mcp.catalog.parameters",
     "veupathdb_mcp.catalog.phyletic_builder",
+    "veupathdb_mcp.catalog.phyletic_compare",
     "veupathdb_mcp.catalog.phyletic_logic",
     "veupathdb_mcp.catalog.phyletic_pattern",
     "veupathdb_mcp.catalog.public_strategy_search",
@@ -508,6 +510,7 @@ forbidden_modules = [
     "veupathdb_mcp.tools.refusals",
     "veupathdb_mcp.tools.user_tools",
     "veupathdb_mcp.wdk.ai_expression",
+    "veupathdb_mcp.wdk.column_counts",
     "veupathdb_mcp.wdk.enrichment.gene_ids",
     "veupathdb_mcp.wdk.enrichment.html",
     "veupathdb_mcp.wdk.enrichment.parser",
@@ -516,10 +519,12 @@ forbidden_modules = [
     "veupathdb_mcp.wdk.enrichment.types",
     "veupathdb_mcp.wdk.gene_record_type",
     "veupathdb_mcp.wdk.gene_set_steps",
+    "veupathdb_mcp.wdk.group_clouds",
     "veupathdb_mcp.wdk.group_genomes",
     "veupathdb_mcp.wdk.helpers",
     "veupathdb_mcp.wdk.id_list_datasets",
     "veupathdb_mcp.wdk.param_decoding",
+    "veupathdb_mcp.wdk.phyletic_counts",
     "veupathdb_mcp.wdk.params",
     "veupathdb_mcp.wdk.plan_counts",
     "veupathdb_mcp.wdk.refusal",

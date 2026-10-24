@@ -231,7 +231,9 @@ def test_frame_instructions_build_every_phyletic_expression_and_bind_its_handle(
     assert (
         "On OrthoMCL, describe the groups to `build_phyletic_expression(pattern)` "
         "with the codes `lookup_phyletic_codes` returns, and bind "
-        "`phyletic_expression` to the handle it returns."
+        "`phyletic_expression` to the handle it returns; a compare past the "
+        "expression caps comes back with route `computed`, a snapshot whose "
+        "`groups:` handle `set_criterion` takes as `computed_groups`."
     ) in text
     assert "A genus with no clade code is the list of its genome codes." in text
     assert "Single copy often returns few groups." in text

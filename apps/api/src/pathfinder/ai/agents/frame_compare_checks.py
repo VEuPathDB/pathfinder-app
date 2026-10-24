@@ -7,6 +7,7 @@ from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.domain.strategy.compare_readings import reading_departures
+from pathfinder.domain.strategy.computed_groups import bound_comparisons
 from pathfinder.domain.strategy.expression_handles import bound_patterns
 
 
@@ -21,7 +22,11 @@ async def hold_a_comparison_to_its_reading(
     if asked is None:
         return output
     state = ctx.deps.agent_state
-    bound = bound_patterns(state.built_expressions, state.operational_spec_draft)
+    spec = state.operational_spec_draft
+    bound = [
+        *bound_patterns(state.built_expressions, spec),
+        *bound_comparisons(state.computed_comparisons, spec),
+    ]
     tree = await ortho_taxonomy(ctx.deps.site_id) if bound else None
     if tree is None:
         return output

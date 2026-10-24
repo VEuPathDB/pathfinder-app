@@ -7,6 +7,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import PhyleticTree
 from veupathdb_mcp.catalog import PhyleticExpressionResult, PhyleticPattern
+from veupathdb_mcp.wdk import ComputedComparisonResult
 
 from pathfinder.ai.tools.standalone import orthomcl_expressions
 from pathfinder.ai.tools.standalone.orthomcl_expressions import (
@@ -36,7 +37,7 @@ def writes(monkeypatch: pytest.MonkeyPatch) -> _Writes:
 
     async def _write(
         site_id: str, written: PhyleticPattern
-    ) -> PhyleticExpressionResult:
+    ) -> PhyleticExpressionResult | ComputedComparisonResult:
         held.patterns.append(written)
         return PhyleticExpressionResult(
             site_id=site_id,
@@ -48,7 +49,7 @@ def writes(monkeypatch: pytest.MonkeyPatch) -> _Writes:
         )
 
     monkeypatch.setattr(orthomcl_expressions, "ortho_taxonomy", _tree)
-    monkeypatch.setattr(orthomcl_expressions, "write_phyletic_expression", _write)
+    monkeypatch.setattr(orthomcl_expressions, "answer_phyletic_pattern", _write)
     return held
 
 

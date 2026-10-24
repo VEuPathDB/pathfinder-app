@@ -373,6 +373,9 @@ def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
         agent_deps.agent_state.discovered_searches,
     )
     deps.state.domain.built_expressions = dict(agent_deps.agent_state.built_expressions)
+    comparisons = agent_deps.agent_state.computed_comparisons
+    deps.state.domain.computed_comparisons = dict(comparisons)
+    deps.state.domain.record_statistics(held.fact() for held in comparisons.values())
     draft = agent_deps.agent_state.operational_spec_draft
     if draft.criteria or draft.dropped:
         deps.state.domain.operational_spec = restate_copies(draft)

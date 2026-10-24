@@ -32,6 +32,7 @@ type StatisticKind = Literal[
     "contingency",
     "boxplot",
     "trend",
+    "group_comparison",
     "gene_check",
     "audit_finding",
     "audit_run",

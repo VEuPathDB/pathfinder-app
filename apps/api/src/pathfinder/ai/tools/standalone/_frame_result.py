@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import WDKSearch
@@ -36,6 +36,15 @@ class GeneSetBinding(CamelModel):
     genes_here: int
 
 
+class ComputedGroupsBinding(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    handle: str
+    groups: int
+    step_name: str
+    description: str
+
+
 class SetCriterionResult(CamelModel):
     """Result of binding a criterion to a WDK search and resolving its params."""
 
@@ -48,6 +57,7 @@ class SetCriterionResult(CamelModel):
     saved_strategy: SavedStrategyListing | None = None
     # The saved gene set this criterion starts from, when it names one.
     gene_set: GeneSetBinding | None = None
+    computed_groups: ComputedGroupsBinding | None = None
     # Every visible parameter name mapped to null, in sheet order.
     params_template: dict[str, None] = Field(default_factory=dict)
     # True when this call opened the parameter sheet. Nothing is recorded then:

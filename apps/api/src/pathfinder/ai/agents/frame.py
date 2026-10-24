@@ -163,7 +163,10 @@ Procedure:
         `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
         question about it. On OrthoMCL, describe the groups to
         `build_phyletic_expression(pattern)` with the codes `lookup_phyletic_codes`
-        returns, and bind `phyletic_expression` to the handle it returns. A genus
+        returns, and bind `phyletic_expression` to the handle it returns; a
+        compare past the expression caps comes back with route `computed`, a
+        snapshot whose `groups:` handle `set_criterion` takes as
+        `computed_groups`. A genus
         with no clade code is the list of its genome codes. A T count counts
         genomes, and strains are genomes. Single copy often returns few groups.
         When an expression names genomes of several species or strains of one

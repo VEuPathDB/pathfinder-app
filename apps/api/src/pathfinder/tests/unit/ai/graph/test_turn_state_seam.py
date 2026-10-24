@@ -62,6 +62,7 @@ DOMAIN_FIELDS = {
     "stale_build",
     "created_gene_sets",
     "built_expressions",
+    "computed_comparisons",
     "open_eda_sheet",
     "eda_analysis",
     "open_eda_analysis",

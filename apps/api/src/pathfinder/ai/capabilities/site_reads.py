@@ -50,6 +50,15 @@ def site_refusal(tool_name: str, said: str) -> ToolFailed:
     )
 
 
+def site_data_failure(tool_name: str, said: str) -> ToolFailed:
+    return ToolFailed(
+        f"{tool_name} read data the site served that it cannot use ({said}). "
+        "Nothing was kept and the strategy is unchanged. Say that the site's data "
+        "for this read could not be used, and answer from what the turn already "
+        "holds."
+    )
+
+
 def _judged_read(tool_name: str, error: BaseException, said: str) -> ToolFailed:
     if unreached(error):
         return site_read_failure(tool_name, said)

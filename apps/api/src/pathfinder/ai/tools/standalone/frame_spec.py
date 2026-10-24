@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone._catalog_models import (
 from pathfinder.ai.tools.standalone._expression_handles import (
     with_stored_expressions,
 )
+from pathfinder.ai.tools.standalone._frame_computed import set_computed_criterion
 from pathfinder.ai.tools.standalone._frame_datasets import (
     saved_id_lists,
     with_typed_ids,
@@ -143,6 +144,7 @@ async def set_criterion(
     params: ParamProposals | None = None,
     saved_strategy: str = "",
     gene_set: str = "",
+    computed_groups: str = "",
     why: SearchChoice | None = None,
     reading: str = "",
 ) -> ToolReturn[SetCriterionResult]:
@@ -165,6 +167,12 @@ async def set_criterion(
     ``list_gene_sets``. A set saved on another site, such as OrthoMCL or the
     portal, starts from the genes it holds on this site. The set's genes run
     through the site's gene id search; there are no parameters to decide.
+
+    Pass ``computed_groups`` INSTEAD of ``search_name`` when the criterion is
+    the groups of a computed comparison: give the ``groups:`` handle
+    ``build_phyletic_expression`` returned. The groups are uploaded to the
+    researcher's account as an id list and the step holds that list, a
+    snapshot of today's data that the site does not re-run.
 
     Call this ONCE with no ``params`` to open the PARAMETER SHEET: every
     visible parameter of the search with its type, help, default, dependency,
@@ -237,6 +245,8 @@ async def set_criterion(
     stated = Criterion(id=criterion_id, text=text, role=role)
     if gene_set:
         return await set_gene_set_criterion(ctx, stated, reference=gene_set)
+    if computed_groups:
+        return await set_computed_criterion(ctx, stated, handle=computed_groups)
     if saved_strategy:
         return await set_saved_criterion(ctx, stated, reference=saved_strategy)
     if not search_name:
