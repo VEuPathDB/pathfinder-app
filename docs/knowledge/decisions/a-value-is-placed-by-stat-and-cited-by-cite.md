@@ -22,7 +22,7 @@ hold still renders, by its JSON type.
 |---|---|---|
 | a number | the number as the answer writes it; a `Share` as a percentage (`88.9%`) | `number` |
 | an enum or a constant | its words: a code table where `domain/audit/facts.py::CODE_WORDS` holds one, else underscores as spaces and, for an enum whose members are underscored capitals, lower case; `code` keeps the wire value | `word` |
-| a boolean | `YES_NO` (`Yes`, `No`) | `word` |
+| a boolean | `yes` or `no`, lower case since a row stands inside a sentence | `word` |
 | a field typed `Sentence` (free text: a cause, a description, a card or review text, a message) | the string | `sentence` |
 | any other string (a name, a genome, a product, an id) | the string | `word` |
 
@@ -45,7 +45,10 @@ rows they name (`StoredSynthesis.facts`, from `reply_notes.referenced_facts`); e
 renders it (`services/audit/views.py::_shown` through `reply_references.nested_text`), so
 `GET /api/v1/audits/{id}` and the Lead's `read_audit_run` fact both hold text: a `stat`
 renders in place and a `cite` as its value in parentheses, since nested text carries no
-notes.
+notes. The view types the rendered summary without a length cap (`SynthesisView`), so a
+stored summary always reads; the synthesis refuses a draft whose rendered summary,
+`nested_text` over the facts it cites, runs past `MAX_CARD` (1200 characters), since each
+`cite` grows by its value.
 
 `Sentence` and `Share` are `Annotated` markers (`statistic_facts.SchemaFormat`) that add
 a `format` to the field's schema, which `fact_schema` reads. A name the gate refuses as a
@@ -55,9 +58,9 @@ outside references, and the refusal of the written name names that `stat`.
 
 The tool server's answer types are not marked here. Of their string fields,
 `IntronAudit.correction_reason`, `IntronJudgement.reason` and `OrthologSupport.reason` are
-free text and would take `Sentence`; every other one (genes, transcripts, organisms,
-products, titles, tracks, versions, ids, sequences) is a word. Until the tool server marks
-them, those three render as words.
+free text and take `format: "sentence"` in the tool server's own schema, which
+`fact_schema` reads the same way it reads `Sentence`; every other one (genes, transcripts,
+organisms, products, titles, tracks, versions, ids, sequences) is a word.
 
 The placement rule (`card_reply.PLACEMENT_RULES`, in the Lead's instructions and every
 schema that lists the references) is one sentence: `[stat:]` is the value written in
@@ -89,8 +92,8 @@ it means, and the type of the row decides which kind may name it.
   retired.
 - **A sentence decided by its word count.** It made every name of two words (a genome, a
   product) impossible to place, the most common placement.
-- **A display form declared for each field.** The 16 registered answers hold 147 string
-  fields, 77 of them in the tool server's distribution; the schema type decides the form,
+- **A display form declared for each field.** The 16 registered answers hold 186 string
+  fields, 88 of them in the tool server's distribution; the schema type decides the form,
   one marker names the free text, and the startup check refuses a leaf no type decides.
 
 # What would prove this wrong
