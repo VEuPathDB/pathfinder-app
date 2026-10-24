@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **The web names every value the audit routes send in plain words.**
+  `features/audit/words.ts` holds one table per generated enum (checks, error types, certainty,
+  the finding, genome and evidence statuses, the evidence kinds, the stages, the genome roles, the
+  run phases, the halt kinds, and the importance and use sources) plus `ORIGIN_WORDS`, each a
+  `Record` over the enum's key type, so a value the API adds fails `yarn typecheck` until it has
+  words. `CHECK_WORDS` and `ERROR_TYPE_WORDS` repeat `CHECK_TITLES` and `ERROR_TYPE_TITLES`,
+  because the run list, the rates and the filters name a check with no finding at hand; a verdict
+  sentence or a fact is read from the API and never written here.
 * **The web names the audit addresses in one place and the nav rail links them.**
   `lib/routes.ts` holds `auditsUrl()` (`/audits`), `auditRunUrl(runId, search)` and
   `auditFindingUrl(runId, findingId, search)`, where `search` is empty or starts with `?`; the nav
