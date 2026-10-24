@@ -10,16 +10,6 @@ const DAY = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-const UNRESOLVED_ORDER: readonly (keyof UnresolvedWords)[] = [
-  "screened",
-  "unsampled",
-  "trying",
-  "failed",
-  "declined",
-  "unreached",
-  "unread",
-];
-
 function roundHalfEven(value: number): number {
   const rounded = Math.round(value);
   return value % 1 === 0.5 && rounded % 2 === 1 ? rounded - 1 : rounded;
@@ -67,9 +57,10 @@ export function scopeText(run: Pick<AuditRunSummary, "genomes" | "targets">): st
 
 export function unresolvedText(unresolved: Unresolved, words: UnresolvedWords): string {
   if (unresolved.total === 0) return "0";
-  const parts = UNRESOLVED_ORDER.flatMap((key) => {
-    const count = unresolved[key] ?? 0;
-    return count > 0 ? [`${String(count)} ${words[key]}`] : [];
+  const counts: Record<string, number | undefined> = unresolved;
+  const parts = Object.entries(words).flatMap(([key, text]) => {
+    const count = counts[key] ?? 0;
+    return count > 0 ? [`${String(count)} ${text}`] : [];
   });
   return `${String(unresolved.total)} (${parts.join(", ")})`;
 }

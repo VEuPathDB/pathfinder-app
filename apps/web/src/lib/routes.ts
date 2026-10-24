@@ -13,6 +13,10 @@ export function chatRoot(): string {
   return "/conversation";
 }
 
+export function savedUrl(): string {
+  return "/saved";
+}
+
 /** The conversation the path names, or null on the draft route. */
 export function conversationIdFromPath(pathname: string): string | null {
   return pathname.match(CONVERSATION_ID_IN_PATH)?.[1] ?? null;

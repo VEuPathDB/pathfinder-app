@@ -25,8 +25,8 @@ export const GENOME_STATUS_WORDS: Record<GenomeViewStatusEnumKey, string> = {
   trying: "Being read",
   collected: "Read",
   failed: "Could not be read",
-  unreached: "Couldn't reach the site",
-  unread: "Not read before the deadline",
+  unreached: "The site did not answer",
+  unread: "Not read before the run's deadline",
 };
 
 export const EVIDENCE_STATUS_WORDS: Record<EvidenceViewStatusEnumKey, string> = {
@@ -34,8 +34,8 @@ export const EVIDENCE_STATUS_WORDS: Record<EvidenceViewStatusEnumKey, string> = 
   trying: "Being read",
   stored: "Read",
   failed: "Could not be read",
-  unreached: "Couldn't reach the site",
-  unread: "Not read before the deadline",
+  unreached: "The site did not answer",
+  unread: "Not read before the run's deadline",
 };
 
 export const EVIDENCE_KIND_WORDS: Record<EvidenceViewKindEnumKey, string> = {

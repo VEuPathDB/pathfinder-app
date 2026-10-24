@@ -7,6 +7,11 @@
   site's website `/audits` reads only that site's runs, drops the Site column and reads "No audits
   on <site> yet"; on the portal it lists every site's runs. The rule is in
   `decisions/the-site-comes-from-the-website-that-frames-pathfinder.md`.
+* **The audit words read alike, and the nav names each section by its route.** `unresolvedText`
+  orders its parts by the served words' keys, so no web copy of the order is kept. A genome or
+  evidence row that the site did not answer reads "The site did not answer", and one not read in
+  time "Not read before the run's deadline", as the finding statuses do. The nav rail's entries
+  take `chatRoot()`, `savedUrl()` (new) and `auditsUrl()`.
 * **The web lists a researcher's audits at `/audits`.** `features/audit/AuditRunsPage.tsx` reads
   `GET /api/v1/audits` and the served words, and shows one row per run in the order the API
   lists them: the day it started, linked to the run's page, its site, what it examines, its

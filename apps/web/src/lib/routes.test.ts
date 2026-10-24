@@ -8,6 +8,7 @@ import {
   conversationIdFromPath,
   edaTabUrl,
   helpUrl,
+  savedUrl,
   strategyCanvasUrl,
   strategyStepUrl,
   yourDataUrl,
@@ -17,6 +18,7 @@ describe("route builders", () => {
   it("name no site, since the website that frames PathFinder decides it", () => {
     expect(chatRoot()).toBe("/conversation");
     expect(chatUrl("c1")).toBe("/conversation/c1");
+    expect(savedUrl()).toBe("/saved");
   });
 
   it("reads the conversation id out of a path, past a query or a hash", () => {

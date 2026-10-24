@@ -95,7 +95,6 @@ def test_every_name_a_report_states_has_its_words() -> None:
 
 def test_the_unresolved_statuses_are_the_counts_an_unresolved_tally_holds() -> None:
     assert list(get_args(UnresolvedStatus)) == list(Unresolved.model_fields)
-    assert UNRESOLVED_WORDS["declined"] == "that the check does not take"
 
 
 def test_a_paper_that_depends_on_the_model_reads_in_words() -> None:

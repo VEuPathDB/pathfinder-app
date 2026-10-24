@@ -38,7 +38,7 @@ import { SiteIcon } from "@/lib/components/SiteIcon";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";
-import { conversationIdFromPath } from "@/lib/routes";
+import { auditsUrl, chatRoot, conversationIdFromPath, savedUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
@@ -53,15 +53,15 @@ interface AppNavRailProps {
 }
 
 interface NavSpec {
-  slug: "conversation" | "saved" | "audits";
+  href: string;
   icon: LucideIcon;
   label: string;
 }
 
 const NAV: NavSpec[] = [
-  { slug: "conversation", icon: MessageCircle, label: "Conversation" },
-  { slug: "saved", icon: Bookmark, label: "Saved strategies" },
-  { slug: "audits", icon: ClipboardCheck, label: "Audits" },
+  { href: chatRoot(), icon: MessageCircle, label: "Conversation" },
+  { href: savedUrl(), icon: Bookmark, label: "Saved strategies" },
+  { href: auditsUrl(), icon: ClipboardCheck, label: "Audits" },
 ];
 
 export function AppNavRail({
@@ -102,11 +102,11 @@ export function AppNavRail({
         <div className="my-1 h-px w-6 bg-border" />
 
         {NAV.map((item) => {
-          const href = `/${item.slug}`;
+          const href = item.href;
           const active = pathname.startsWith(href);
           const Icon = item.icon;
           return (
-            <Tooltip key={item.slug}>
+            <Tooltip key={item.href}>
               <TooltipTrigger asChild>
                 <Link
                   href={href}

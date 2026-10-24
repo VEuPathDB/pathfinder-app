@@ -70,8 +70,8 @@ describe("audit words", () => {
       trying: "Being read",
       collected: "Read",
       failed: "Could not be read",
-      unreached: "Couldn't reach the site",
-      unread: "Not read before the deadline",
+      unreached: "The site did not answer",
+      unread: "Not read before the run's deadline",
     });
     expect(words.ROLE_WORDS).toEqual({
       audited: "Audited",
@@ -85,8 +85,8 @@ describe("audit words", () => {
       trying: "Being read",
       stored: "Read",
       failed: "Could not be read",
-      unreached: "Couldn't reach the site",
-      unread: "Not read before the deadline",
+      unreached: "The site did not answer",
+      unread: "Not read before the run's deadline",
     });
     expect(words.EVIDENCE_KIND_WORDS).toEqual({
       confirmation: "What the genome's DNA shows",

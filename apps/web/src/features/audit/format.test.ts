@@ -114,6 +114,13 @@ describe("audit formats", () => {
     );
   });
 
+  it("names the unresolved statuses in the order the API serves their words", () => {
+    const { unread, ...rest } = served.unresolved;
+    expect(
+      unresolvedText({ screened: 4, unread: 6, total: 10 }, { unread, ...rest }),
+    ).toBe("10 (6 not read before the run's deadline, 4 not checked yet)");
+  });
+
   it("names every unresolved status, in the order a finding moves through them", () => {
     expect(
       unresolvedText(
