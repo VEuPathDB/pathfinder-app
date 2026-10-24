@@ -14443,6 +14443,13 @@
             ],
             "title": "Relativesmedian"
           },
+          "relativeLengths": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Relativelengths"
+          },
           "side": {
             "anyOf": [
               {

@@ -9503,6 +9503,11 @@ components:
           - type: number
           - type: 'null'
           title: Relativesmedian
+        relativeLengths:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Relativelengths
         side:
           anyOf:
           - $ref: '#/components/schemas/SideVerdict'

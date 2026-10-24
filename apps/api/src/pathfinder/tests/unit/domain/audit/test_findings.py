@@ -297,6 +297,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         reference_length=400,
         model_length=200,
         relatives_median=400.0,
+        relative_lengths={"P. vivax": 401, "P. knowlesi": 399},
         side="STRAIN_SHORT",
     )
     evidence = GeneEvidencePayload(genes=(K13,), evidence=(K13_EVIDENCE,))
@@ -311,6 +312,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         "referenceLength": 400,
         "modelLength": 200,
         "relativesMedian": 400.0,
+        "relativeLengths": {"P. vivax": 401, "P. knowlesi": 399},
         "side": "STRAIN_SHORT",
         "referenceOrganism": None,
     }
@@ -322,7 +324,7 @@ def test_evidence_reads_back_by_its_kind() -> None:
         "relativesMedian": 400.0,
     }
     assert _PAYLOAD.validate_python(stored_before_sides) == relatives.model_copy(
-        update={"side": None}
+        update={"side": None, "relative_lengths": {}}
     )
     (read,) = _PAYLOAD.dump_python(evidence, by_alias=True, mode="json")["evidence"]
     assert (read["gene"], read["pubmed"], read["comments"]) == (K13, 44, 9)

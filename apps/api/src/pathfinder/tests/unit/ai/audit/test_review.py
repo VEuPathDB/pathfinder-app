@@ -95,6 +95,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
                 message="the site refused the read",
             ),
         ],
+        facts=[],
         review=None,
     )
 

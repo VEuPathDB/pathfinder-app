@@ -131,7 +131,9 @@ of a split model. Two checks read a proxy: for `organelle_join` the gene read is
 the reference gene the check compared, and for `missing_gene` it is the example
 gene in another genome, because the genome in error serves no record of the
 gene. The relatives evidence of a length error stores the library's `tie_break`
-side and the reference's organism. A `truncated_model` finding whose relatives
+side, the reference's organism and each relative's length by organism
+(`relative_lengths`, from the one `relatives_of` read that gives the median; empty when no
+relatives qualify or the evidence was stored without them). A `truncated_model` finding whose relatives
 answer `REFERENCE_LONG` is classed as the strain check classes that side: an
 `over_extended_model` of medium certainty in the reference's model genome, whose
 gene is then read; the genome the error moved to is also recorded as its paired

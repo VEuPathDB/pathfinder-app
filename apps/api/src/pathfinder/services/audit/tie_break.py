@@ -13,7 +13,7 @@ from veupathdb_mcp.audit import (
     GroupMember,
     orthologs_of,
     record_rows,
-    relatives_median,
+    relatives_of,
     tie_break,
 )
 
@@ -79,12 +79,14 @@ def relatives_evidence(
     reference_length = lengths.get(reference_gene)
     organism = None if reference is None else reference.organism
     model_length = sum(parts) if len(parts) == len(genes) else None
-    median = None if reference is None else relatives_median(reference, model, group)
+    found = None if reference is None else relatives_of(reference, model, group)
+    median = None if found is None else found.median
     return RelativesEvidence(
         reference_gene=reference_gene,
         reference_length=reference_length,
         model_length=model_length,
         relatives_median=median,
+        relative_lengths={} if found is None else found.lengths,
         side=None
         if reference_length is None or model_length is None
         else tie_break(reference_length, model_length, median),

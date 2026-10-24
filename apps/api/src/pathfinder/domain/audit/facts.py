@@ -76,6 +76,14 @@ def unread_facts(reasons: Sequence[str]) -> tuple[Fact, ...]:
     )
 
 
+def _read_relatives(lengths: dict[str, int]) -> tuple[Fact, ...]:
+    if not lengths:
+        return ()
+    genomes = counted(len(lengths), "genome", "genomes")
+    span = f"{min(lengths.values()):,} to {max(lengths.values()):,} residues"
+    return (Fact(label="Related genomes read", value=f"{genomes}, {span}"),)
+
+
 def relatives_facts(evidence: RelativesEvidence) -> tuple[Fact, ...]:
     organism = evidence.reference_organism
     gene = (
@@ -94,6 +102,7 @@ def relatives_facts(evidence: RelativesEvidence) -> tuple[Fact, ...]:
             label="Median of independent related genomes",
             value=NOT_READ if median is None else f"{median:g} residues",
         ),
+        *_read_relatives(evidence.relative_lengths),
         Fact(
             label="Which model the related genomes support",
             value=NOT_READ if side is None else SIDE_SENTENCES[side],

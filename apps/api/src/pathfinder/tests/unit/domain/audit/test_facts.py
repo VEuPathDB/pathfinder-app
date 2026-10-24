@@ -201,6 +201,23 @@ def test_relatives_state_their_numbers() -> None:
     ]
 
 
+def test_stored_relative_lengths_state_their_count_and_range() -> None:
+    relatives = RelativesEvidence(
+        reference_gene="REF",
+        reference_length=1319,
+        model_length=110,
+        relatives_median=1300.0,
+        relative_lengths={"P. vivax": 1300, "P. knowlesi": 1302, "P. berghei": 1298},
+    )
+    assert _pairs(relatives_facts(relatives)) == [
+        ("Reference model", "REF, 1,319 residues"),
+        ("This model", "110 residues"),
+        ("Median of independent related genomes", "1300 residues"),
+        ("Related genomes read", "3 genomes, 1,298 to 1,302 residues"),
+        ("Which model the related genomes support", "Not read"),
+    ]
+
+
 def test_gene_records_state_their_citations_structures_and_peptides() -> None:
     genes = (PIGA, K13, GLO1, DMAW)
     records = GeneEvidencePayload(

@@ -304,6 +304,7 @@ class RelativesEvidence(CamelModel):
     reference_length: int | None
     model_length: int | None
     relatives_median: float | None
+    relative_lengths: dict[str, int] = Field(default_factory=dict)
     side: SideVerdict | None = None
     reference_organism: str | None = None
 

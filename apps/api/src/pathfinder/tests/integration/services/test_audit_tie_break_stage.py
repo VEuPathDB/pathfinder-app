@@ -23,6 +23,7 @@ from pathfinder.tests._support.audit import (
     RecordedLane,
     carried,
     observed_requests,
+    relative_organisms,
 )
 from pathfinder.tests._support.audit_answers import PCYB_PKAC, PCYM_PKAC
 from pathfinder.tests.integration.services._audit_confirm import (
@@ -46,11 +47,15 @@ from pathfinder.tests.integration.services._audit_confirm import (
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
+RELATIVE1 = "Plasmodium relative1 X"
+WEIGHED_LENGTHS = dict.fromkeys(relative_organisms(9)[2:], 400) | {RELATIVE1: 420}
+OTHER_LENGTHS = {o: 400 for o in relative_organisms(9) if o != RELATIVE1}
 WEIGHED = RelativesEvidence(
     reference_gene=REFERENCE,
     reference_length=400,
     model_length=200,
     relatives_median=400.0,
+    relative_lengths=WEIGHED_LENGTHS,
     side=audit.tie_break(400, 200, 400.0),
     reference_organism="Plasmodium relative0 X",
 )
@@ -124,8 +129,9 @@ async def test_a_tie_break_read_the_site_cannot_parse_is_stored_failed(
             reference_length=420,
             model_length=190,
             relatives_median=400.0,
+            relative_lengths=OTHER_LENGTHS,
             side="STRAIN_SHORT",
-            reference_organism="Plasmodium relative1 X",
+            reference_organism=RELATIVE1,
         ),
     )
     assert tools.ortholog_reads == ["NF54_SHORT", "NF54_SHORT2"]
