@@ -161,7 +161,6 @@ def wire_checks(monkeypatch: pytest.MonkeyPatch) -> Checks:
     monkeypatch.setattr(collect, "genome_priorities", no_busco_scores)
     monkeypatch.setattr(collect, "organism_report", served_organisms)
     monkeypatch.setattr(collect, "site_build", site.site_build)
-    monkeypatch.setattr(screen, "upload_gene_list", site.upload_list)
     monkeypatch.setattr(screen, "read_gene_list", site.read_list)
     monkeypatch.setattr(confirm, "record_rows", site.named_rows)
     monkeypatch.setattr(checks, "audit_gene_length", fakes.length)

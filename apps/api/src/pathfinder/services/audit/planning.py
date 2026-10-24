@@ -56,7 +56,6 @@ _SERVER_ERROR = 500
 MEASURED_COSTS = UnitCosts(
     collect_requests={"audited": 4, "comparison": 1},
     run_requests=1,
-    list_requests=3,
     confirm_requests={
         "gene_length": 5,
         "gene_split": 12,

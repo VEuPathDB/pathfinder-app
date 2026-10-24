@@ -442,7 +442,7 @@ def test_finding_rows_are_dotted_paths() -> None:
     fact = audit_finding_fact(run_id, detail)
 
     assert fact.kind == "audit_finding"
-    assert fact.value("confirmation.confirmation.result.strainCdsLength") == "900"
+    assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert fact.value("finding.genome") == _GENOME
     assert fact.value("finding.target.check") == "pseudogene_call"
     assert (fact.value("finding.verdict"), fact.value("finding.fromTarget")) == (
@@ -451,7 +451,7 @@ def test_finding_rows_are_dotted_paths() -> None:
     )
     assert (
         statistic_value(
-            [fact], f"{fact.id}.confirmation.confirmation.result.strainCdsLength"
+            [fact], f"{fact.id}.evidence.0.payload.confirmation.result.strainCdsLength"
         )
         == "900"
     )

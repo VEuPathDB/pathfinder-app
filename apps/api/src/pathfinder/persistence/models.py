@@ -757,8 +757,8 @@ class AuditFinding(Base):
         UniqueConstraint("run_id", "target_key", name="uq_audit_findings_run_target"),
         CheckConstraint(
             "status IN "
-            "('screened', 'unsampled', 'trying', 'confirmed', 'failed', 'unreached', "
-            "'unread')",
+            "('screened', 'unsampled', 'trying', 'confirmed', 'failed', 'declined', "
+            "'unreached', 'unread')",
             name="ck_audit_findings_status",
         ),
         CheckConstraint(

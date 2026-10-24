@@ -49,10 +49,8 @@ def json_rows(prefix: str, value: object) -> list[StatisticRowFact]:
     return list(_rows(prefix, _JSON.validate_python(value)))
 
 
-def _dumped(model: BaseModel | None, *, exclude: set[str] | None = None) -> object:
-    if model is None:
-        return None
-    return model.model_dump(mode="json", by_alias=True, exclude=exclude)
+def _dumped(model: BaseModel) -> object:
+    return model.model_dump(mode="json", by_alias=True)
 
 
 def check_fact(
@@ -86,23 +84,7 @@ def audit_finding_fact(run_id: UUID, detail: FindingDetail) -> StatisticFact:
         id=statistic_id("audit_finding", [str(run_id), str(finding.id)]),
         kind="audit_finding",
         title=f"Finding {finding.id} of audit run {run_id}",
-        rows=[
-            *json_rows("siteId", detail.site_id),
-            *json_rows("finding", _dumped(finding)),
-            *json_rows(
-                "evidence",
-                [
-                    _dumped(evidence, exclude={"payload"})
-                    for evidence in detail.evidence
-                ],
-            ),
-            *(
-                row
-                for evidence in detail.evidence
-                for row in json_rows(evidence.kind, _dumped(evidence.payload))
-            ),
-            *json_rows("review", _dumped(detail.review)),
-        ],
+        rows=json_rows("", _dumped(detail)),
     )
 
 

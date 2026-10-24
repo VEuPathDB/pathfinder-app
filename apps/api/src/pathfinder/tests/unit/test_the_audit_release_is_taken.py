@@ -21,7 +21,6 @@ _AUDIT_NAMES = {
     "GeneRow",
     "GeneIdProblem",
     "GeneIdRefusal",
-    "GeneListDataset",
     "GeneticCode",
     "GroupMember",
     "GenomePriorities",
@@ -63,7 +62,6 @@ _AUDIT_NAMES = {
     "record_rows",
     "relatives_median",
     "tie_break",
-    "upload_gene_list",
 }
 _GENE_LOOKUP_NAMES = {"GeneIdFound", "list_organisms", "read_each_gene_id"}
 _CATALOG_NAMES = {
@@ -108,10 +106,15 @@ def test_the_intron_check_names_its_three_new_verdicts() -> None:
     assert sorted(new - set(get_args(IntronVerdict.__value__))) == []
 
 
+def test_the_audit_package_holds_no_dataset_upload() -> None:
+    gone = {"upload_gene_list", "GeneListDataset", "LIST_PAGE_RECORDS"}
+    assert sorted(gone & set(veupathdb_mcp.audit.__all__)) == []
+
+
 def test_the_pinned_releases_are_installed() -> None:
     assert (
         version("veupathdb-mcp"),
         veupathdb_mcp.__version__,
         version("veupathdb-py"),
         version("assistant-core"),
-    ) == ("0.2.0b45", "0.2.0b45", "0.1.0b23", "0.3.0b12")
+    ) == ("0.2.0b46", "0.2.0b46", "0.1.0b23", "0.3.0b12")

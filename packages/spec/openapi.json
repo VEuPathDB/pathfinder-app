@@ -4200,6 +4200,7 @@
                     "trying",
                     "confirmed",
                     "failed",
+                    "declined",
                     "unreached",
                     "unread"
                   ],
@@ -9843,6 +9844,7 @@
               "trying",
               "confirmed",
               "failed",
+              "declined",
               "unreached",
               "unread"
             ],
@@ -9998,6 +10000,7 @@
               "trying",
               "confirmed",
               "failed",
+              "declined",
               "unreached",
               "unread"
             ],
@@ -10798,31 +10801,6 @@
           "url"
         ],
         "title": "GeneLink"
-      },
-      "GeneListDataset": {
-        "properties": {
-          "siteId": {
-            "type": "string",
-            "title": "Siteid"
-          },
-          "datasetId": {
-            "type": "integer",
-            "title": "Datasetid"
-          },
-          "size": {
-            "type": "integer",
-            "maximum": 400.0,
-            "minimum": 1.0,
-            "title": "Size"
-          }
-        },
-        "type": "object",
-        "required": [
-          "siteId",
-          "datasetId",
-          "size"
-        ],
-        "title": "GeneListDataset"
       },
       "GeneModelVerdict": {
         "properties": {
@@ -15279,16 +15257,6 @@
               }
             ],
             "title": "Targetfailure"
-          },
-          "targetList": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GeneListDataset"
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "type": "object",
@@ -18677,6 +18645,12 @@
             "title": "Failed",
             "default": 0
           },
+          "declined": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Declined",
+            "default": 0
+          },
           "unreached": {
             "type": "integer",
             "minimum": 0.0,
@@ -20020,10 +19994,6 @@
           "modelReviews": {
             "title": "Modelreviews",
             "type": "integer"
-          },
-          "datasets": {
-            "title": "Datasets",
-            "type": "integer"
           }
         },
         "required": [
@@ -20040,8 +20010,7 @@
           "storeReads",
           "hours",
           "hoursAtMost",
-          "modelReviews",
-          "datasets"
+          "modelReviews"
         ],
         "title": "AuditStartCard",
         "type": "object"

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
+from fastmcp.exceptions import ToolError
 from pydantic import ConfigDict
 from veupathdb_mcp.tools import (
     audit_gene_fusion,
@@ -43,6 +44,12 @@ class UnitFailure(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     status: Literal["failed", "unreached"]
+    message: str
+
+
+class DeclinedCheck(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
     message: str
 
 
@@ -105,8 +112,12 @@ async def _confirm(site_id: str, target: GeneTarget) -> Confirmation:
 
 async def confirm_target(
     site_id: str, target: GeneTarget
-) -> Confirmation | UnitFailure:
+) -> Confirmation | UnitFailure | DeclinedCheck:
     try:
         return await _confirm(site_id, target)
     except UNIT_FAILURES as exc:
-        return UnitFailure(status=failure_status(exc), message=str(exc))
+        match exc:
+            case ToolError(__cause__=None):
+                return DeclinedCheck(message=str(exc))
+            case _:
+                return UnitFailure(status=failure_status(exc), message=str(exc))

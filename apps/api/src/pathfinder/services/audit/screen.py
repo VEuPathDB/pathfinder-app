@@ -8,12 +8,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
-from veupathdb_mcp.audit import (
-    GeneListDataset,
-    GeneRow,
-    read_gene_list,
-    upload_gene_list,
-)
+from veupathdb_mcp.audit import GeneRow, read_gene_list
 
 from pathfinder.domain.audit.sampling import sample_candidates
 from pathfinder.domain.audit.scope import GeneTarget, paired_genome
@@ -109,25 +104,11 @@ class _TargetRead:
     unread: bool = False
 
 
-async def _target_list(run: AuditRunRecord, genes: list[str]) -> GeneListDataset:
-    async with async_session_factory() as session:
-        stored = await AuditRepository(session).stored_run(run.id)
-    if stored is not None and stored.stages.target_list is not None:
-        return stored.stages.target_list
-    listed = await upload_gene_list(run.site_id, genes)
-    async with async_session_factory() as session:
-        await AuditRepository(session).change_stages(
-            run.id, lambda stages: stages.keep_target_list(listed)
-        )
-        await session.commit()
-    return listed
-
-
 async def _target_rows(
     run: AuditRunRecord, genes: list[str]
 ) -> list[GeneRow] | UnitFailure:
     try:
-        return await read_gene_list(await _target_list(run, genes))
+        return await read_gene_list(run.site_id, genes)
     except UNIT_FAILURES as exc:
         return UnitFailure(status=failure_status(exc), message=str(exc))
 

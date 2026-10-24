@@ -83,7 +83,7 @@ class NewFinding(BaseModel):
 class SettledFinding(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    status: Literal["confirmed", "failed", "unreached"]
+    status: Literal["confirmed", "failed", "declined", "unreached"]
     genome: str | None = None
     screened_genome: str | None = None
     paired_genome: str | None = None

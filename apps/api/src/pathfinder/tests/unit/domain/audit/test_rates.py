@@ -169,13 +169,14 @@ def test_the_unresolved_count_is_split_by_status() -> None:
         _row(NF54, "unread", 1),
         _row(NF54, "unsampled", 1),
         _row(NF54, "failed", 2),
+        _row(NF54, "declined", 1),
     ]
     (rate,) = genome_rates(tally)
     assert rate.unresolved_by_status == Unresolved(
-        unsampled=1, failed=2, unreached=1, unread=1
+        unsampled=1, failed=2, declined=1, unreached=1, unread=1
     )
-    assert rate.unresolved == 5
-    assert rate.bounds == rate_with_bounds(1, 3, 5)
+    assert rate.unresolved == 6
+    assert rate.bounds == rate_with_bounds(1, 3, 6)
 
 
 def test_the_unresolved_split_names_every_status_but_confirmed() -> None:
@@ -193,6 +194,7 @@ def test_an_unresolved_split_reads_on_the_wire_with_its_total() -> None:
             "unsampled": 0,
             "trying": 1,
             "failed": 0,
+            "declined": 0,
             "unreached": 0,
             "unread": 2,
             "total": 3,

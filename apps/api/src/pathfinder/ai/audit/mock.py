@@ -26,6 +26,7 @@ from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.profiles import ModelProfile
 
+from pathfinder.ai.audit.mock_run import JUDGE_REQUEST, judge_the_run
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.lead.retrieval_toolset import ResearchAnswer
 from pathfinder.domain.audit.scope import AuditScope
@@ -41,7 +42,7 @@ INVESTIGATOR = "investigator"
 PLAN_TOOL = "plan_gene_model_audit"
 LIST_RUNS_TOOL = "list_audit_runs"
 READ_RUN_TOOL = "read_audit_run"
-VERDICT_TOOL = "record_gene_model_verdict"
+VERDICT_TOOL = "record_gene_model_verdicts"
 RATE_TOOL = "rate_with_interval"
 PSEUDOGENE_CALL = "audit_pseudogene_call"
 PSEUDOGENE_QUESTION = "pseudogene call"
@@ -148,7 +149,7 @@ def _judged(
         )
     if _returned(turn, VERDICT_TOOL) is None:
         return scripted_call(
-            VERDICT_TOOL, {"verdict": _pseudogene_verdict(strain, reference, read)}
+            VERDICT_TOOL, {"verdicts": [_pseudogene_verdict(strain, reference, read)]}
         )
     written = spelled and not retry_prompt_parts(turn)
     length = (
@@ -261,6 +262,9 @@ def _auditor_script(messages: list[ModelMessage]) -> ScriptedPart:
     asked = _AUDIT_REQUEST.search(text)
     if asked is not None:
         return _audit(turn, asked.group("genome").strip())
+    judged = JUDGE_REQUEST.search(text)
+    if judged is not None:
+        return judge_the_run(turn, judged.group("run"))
     pair = _pair(text) if PSEUDOGENE_QUESTION in lowered else None
     if pair is not None:
         return _judged(turn, *pair, spelled=SPELL_OUT in lowered)

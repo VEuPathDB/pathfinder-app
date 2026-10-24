@@ -18,7 +18,6 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb_mcp.audit import (
     GeneId,
     GeneLengthAudit,
-    GeneListDataset,
     GeneRow,
     GeneticCode,
     PseudogeneCallAudit,
@@ -318,7 +317,7 @@ class FakeSite:
         self.failures: defaultdict[str, list[BaseException]] = defaultdict(list)
         self.release_failures: list[BaseException] = []
         self.target_failures: list[BaseException] = []
-        self.uploads: list[list[str]] = []
+        self.list_reads: list[list[str]] = []
         self.genome_reads: list[str] = []
         self.release_reads = 0
         self.tokens: set[str | None] = set()
@@ -342,17 +341,9 @@ class FakeSite:
             raise self.target_failures.pop(0)
         return [row for row in self.rows if row.gene in gene_ids]
 
-    async def upload_list(self, site_id: str, gene_ids: list[str]) -> GeneListDataset:
-        self._requested()
-        self.uploads.append(sorted(gene_ids))
-        return GeneListDataset(
-            site_id=site_id, dataset_id=len(self.uploads), size=len(gene_ids)
-        )
-
-    async def read_list(self, dataset: GeneListDataset) -> list[GeneRow]:
-        return await self.named_rows(
-            dataset.site_id, self.uploads[dataset.dataset_id - 1]
-        )
+    async def read_list(self, site_id: str, gene_ids: list[str]) -> list[GeneRow]:
+        self.list_reads.append(sorted(gene_ids))
+        return await self.named_rows(site_id, gene_ids)
 
     async def site_build(self, site_id: str) -> str:
         del site_id

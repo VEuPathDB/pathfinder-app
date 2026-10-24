@@ -290,10 +290,10 @@ def test_a_row_that_keeps_every_rule_is_stored(
 
 @pytest.mark.parametrize(("constraint", "literal"), _DOMAIN_VALUES)
 def test_a_checked_column_takes_exactly_the_domain_values(
-    migrated: str, constraint: str, literal: object
+    at_head: str, constraint: str, literal: object
 ) -> None:
     definition = rows(
-        migrated,
+        at_head,
         "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = %s",
         (constraint,),
     )

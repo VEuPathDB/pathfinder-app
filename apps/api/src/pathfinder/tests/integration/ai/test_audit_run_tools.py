@@ -8,8 +8,8 @@ import pytest
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
-from pydantic import BaseModel, ConfigDict
-from pydantic_ai import Agent, DeferredToolRequests
+from pydantic import BaseModel, ConfigDict, TypeAdapter
+from pydantic_ai import Agent, DeferredToolRequests, ModelRetry
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -30,16 +30,21 @@ from pathfinder.ai.audit.run_tools import (
     list_audit_runs_tool,
     plan_gene_model_audit_tool,
     read_audit_finding,
-    read_audit_finding_tool,
+    read_audit_findings_tool,
     read_audit_run,
     read_audit_run_tool,
     start_gene_model_audit,
 )
+from pathfinder.ai.audit.verdict_tool import record_gene_model_verdicts
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.planning import PlanAsk
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
-from pathfinder.domain.audit.verdicts import evidence_cite, finding_cite
+from pathfinder.domain.audit.verdicts import (
+    GeneModelVerdict,
+    evidence_cite,
+    finding_cite,
+)
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -85,6 +90,25 @@ class _Read(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     fact_id: str
+
+
+class _FindingId(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class _Answer(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    finding: _FindingId
+
+
+class _FindingRead(_Read):
+    answer: _Answer
+
+
+_READS: TypeAdapter[list[_FindingRead]] = TypeAdapter(list[_FindingRead])
 
 
 def _fact_id(returned: ToolReturn[Any]) -> str:
@@ -299,21 +323,43 @@ async def test_reading_a_finding_records_its_facts() -> None:
     run_id, finding_id = await _stored_finding(owner)
     ctx = _context(owner)
 
-    returned = await read_audit_finding_tool(ctx, run_id, finding_id)
+    returned = await read_audit_findings_tool(ctx, run_id, [finding_id])
 
     (fact,) = ctx.deps.facts
+    (read,) = _READS.validate_python(returned.return_value)
     assert ctx.deps.reads == {
         finding_cite(finding_id),
         evidence_cite(finding_id, "confirmation"),
     }
-    assert (fact.kind, _fact_id(returned)) == (
+    assert (fact.kind, read.fact_id, read.answer.finding.id) == (
         "audit_finding",
         fact.id,
+        finding_id,
     )
-    assert fact.value("confirmation.confirmation.result.strainCdsLength") == "900"
+    assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert [(r.record_id, r.url) for r in ctx.deps.records] == [
         (gene, gene_record_url("plasmodb", gene)) for gene in (_STRAIN, _REFERENCE)
     ]
+
+
+async def test_a_batch_with_an_unknown_finding_holds_no_cite() -> None:
+    owner = await seed_thread()
+    run_id, finding_id = await _stored_finding(owner)
+    ctx = _context(owner)
+    verdict = GeneModelVerdict(
+        genes=(_STRAIN,),
+        model_genome=_GENOME,
+        verdict="undecided",
+        cause="The stored finding does not settle it.",
+        cites=(finding_cite(finding_id),),
+    )
+
+    with pytest.raises(CallRefused):
+        await read_audit_findings_tool(ctx, run_id, [finding_id, finding_id + 1])
+    with pytest.raises(ModelRetry, match=finding_cite(finding_id)):
+        await record_gene_model_verdicts(ctx, [verdict])
+
+    assert (ctx.deps.reads, ctx.deps.facts, ctx.deps.records) == (set(), [], [])
 
 
 async def test_every_audit_read_records_its_fact(

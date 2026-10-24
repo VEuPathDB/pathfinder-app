@@ -44,7 +44,6 @@ def _facts() -> TurnFacts:
                 hours=0.5,
                 hours_at_most=6,
                 model_reviews=60,
-                datasets=0,
             ),
             no_reference="no genome of Examplea alpha is marked a reference strain",
         )

@@ -13,7 +13,6 @@ from veupathdb_mcp.audit import (
     FusionVerdict,
     GeneEvidence,
     GeneFusionAudit,
-    GeneLengthAudit,
     IntronVerdict,
     MissingVerdict,
     OrganelleVerdict,
@@ -37,7 +36,14 @@ from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.stages import RunStatus, StageName
 
 FindingStatus = Literal[
-    "screened", "unsampled", "trying", "confirmed", "failed", "unreached", "unread"
+    "screened",
+    "unsampled",
+    "trying",
+    "confirmed",
+    "failed",
+    "declined",
+    "unreached",
+    "unread",
 ]
 EvidenceStatus = Literal["pending", "trying", "stored", "failed", "unreached", "unread"]
 EvidenceKind = Literal["confirmation", "relatives", "gene_evidence"]
@@ -100,12 +106,38 @@ def _unjudged(verdict: str, reason: str) -> Classification:
     return Classification(message=f"{verdict}: {reason}")
 
 
-def _length(result: GeneLengthAudit) -> Classification:
+_LENGTH_UNREAD: dict[
+    tuple[Literal["gene_length", "gene_split"], bool], Classification
+] = {
+    ("gene_length", False): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group does not class the gene as short, so the check reads no DNA",
+    ),
+    ("gene_length", True): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group cannot class the gene's length, so the check reads no DNA",
+    ),
+    ("gene_split", False): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group does not call the pair a split, so the check reads no DNA",
+    ),
+    ("gene_split", True): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group cannot class the pair's length, so the check reads no DNA",
+    ),
+}
+
+
+def _length(confirmation: LengthConfirmation) -> Classification:
+    result = confirmation.result
     match (result.length_class, result.verdict):
         case ("SHORT", "GENOME_ENCODES"):
             return _named("truncated_model", "high")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
+        case (length_class, "NOT_CHECKED"):
+            unclassed = length_class == "UNQUALIFIED"
+            return _LENGTH_UNREAD[confirmation.check, unclassed]
         case _:
             return NO_ERROR
 
@@ -278,8 +310,8 @@ def classify_confirmation(
         case SelenoproteinConfirmation(result=result):
             stops = result.verdict == "STOPS_AT_SEC"
             return _named("sec_read_as_stop", "high") if stops else NO_ERROR
-        case LengthConfirmation(result=result):
-            return _length(result)
+        case LengthConfirmation():
+            return _length(confirmation)
         case (
             FusionConfirmation()
             | StrainConfirmation()
@@ -373,6 +405,7 @@ class FindingCounts(CamelModel):
     trying: int = 0
     confirmed: int = 0
     failed: int = 0
+    declined: int = 0
     unreached: int = 0
     unread: int = 0
     errors: int = 0

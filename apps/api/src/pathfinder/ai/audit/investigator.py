@@ -10,6 +10,7 @@ from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage, UsageLimits
 
+from pathfinder.ai.audit.charges import charge_run
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolset
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import INVESTIGATOR_INSTRUCTIONS
@@ -91,6 +92,7 @@ def _with_reads(
 async def investigate(
     question: str, *, deps: AuditDeps, model: Model
 ) -> tuple[GeneModelInvestigation, RunUsage]:
+    owner = deps.caller.user_id
     usage = RunUsage()
     try:
         result = await build_investigator_agent().run(
@@ -103,6 +105,8 @@ async def investigate(
     except UsageLimitExceeded:
         stopped = GeneModelInvestigation(answer=BUDGET_ANSWER, verdicts=())
         return _with_reads(stopped, deps), usage
+    finally:
+        await charge_run(owner, usage, model, model_id=model.model_id)
     found = result.output
     for verdict in found.verdicts:
         await record_verdict(

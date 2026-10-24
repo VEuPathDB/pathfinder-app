@@ -91,7 +91,6 @@ async def test_a_target_that_names_its_genome_is_placed_there_without_a_gene_rea
 ) -> None:
     site = FakeSite([])
     site.target_failures.extend([httpx.ConnectError("connection refused")] * 20)
-    monkeypatch.setattr(screen, "upload_gene_list", site.upload_list)
     monkeypatch.setattr(screen, "read_gene_list", site.read_list)
     owner = await seed_thread()
     scope = AuditScope(site_id="plasmodb", targets=(MISSING, MITO, PIGA_PAIR))
@@ -109,7 +108,7 @@ async def test_a_target_that_names_its_genome_is_placed_there_without_a_gene_rea
         MITO.key: (NF54, "screened"),
         PIGA_PAIR.key: ("", "unreached"),
     }
-    assert site.uploads == [[PIGA, NF54_PIGA]]
+    assert site.list_reads == [[PIGA, NF54_PIGA]]
 
 
 async def test_an_answer_that_names_no_error_keeps_what_its_check_could_not_judge(

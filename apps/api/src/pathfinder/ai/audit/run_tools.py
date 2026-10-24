@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Annotated
 from uuid import UUID
 
 import pydantic
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import count_noun, with_summary
+from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import Tool
 from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb.errors import WDKLoginRequiredError
 
-from pathfinder.ai.audit.deps import AuditDeps
+from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
 from pathfinder.ai.audit.facts import (
     AuditRead,
     audit_finding_fact,
@@ -254,22 +256,38 @@ async def list_audit_findings_tool(
     return with_summary(read, summary, ctx=ctx)
 
 
-async def read_audit_finding_tool(
-    ctx: RunContext[AuditDeps], run_id: UUID, finding_id: int
-) -> ToolReturn[AuditRead[FindingDetail]]:
-    """Read one finding of an audit run with every piece of evidence the run stored for it."""
-    detail = await read_audit_finding(ctx.deps.caller, run_id, finding_id)
+def _held(
+    deps: AuditDeps, run_id: UUID, detail: FindingDetail
+) -> AuditRead[FindingDetail]:
+    finding_id = detail.finding.id
     fact = audit_finding_fact(run_id, detail)
-    ctx.deps.facts.append(fact)
+    deps.facts.append(fact)
     stored = (e.kind for e in detail.evidence if e.status == "stored")
-    ctx.deps.reads |= {
+    deps.reads |= {
         finding_cite(finding_id),
         *(evidence_cite(finding_id, kind) for kind in stored),
     }
-    ctx.deps.records.extend(gene_records(detail.site_id, detail.finding.target.genes))
-    read = AuditRead[FindingDetail](answer=detail, fact_id=fact.id)
-    summary = f"Finding {finding_id}: {detail.finding.status}"
-    return with_summary(read, summary, ctx=ctx)
+    deps.records.extend(gene_records(detail.site_id, detail.finding.target.genes))
+    return AuditRead[FindingDetail](answer=detail, fact_id=fact.id)
+
+
+async def read_audit_findings_tool(
+    ctx: RunContext[AuditDeps],
+    run_id: UUID,
+    finding_ids: Annotated[
+        list[int], Field(min_length=1, max_length=FINDINGS_PER_CALL)
+    ],
+) -> ToolReturn[list[AuditRead[FindingDetail]]]:
+    """Read findings of an audit run, each with every piece of evidence the run stored for it.
+
+    A call that names a finding the run does not hold reads none of them.
+    """
+    details = [
+        await read_audit_finding(ctx.deps.caller, run_id, k)
+        for k in dict.fromkeys(finding_ids)
+    ]
+    reads = [_held(ctx.deps, run_id, detail) for detail in details]
+    return with_summary(reads, count_noun(len(reads), "finding"), ctx=ctx)
 
 
 def _read_tools() -> list[Tool[AuditDeps]]:
@@ -277,7 +295,7 @@ def _read_tools() -> list[Tool[AuditDeps]]:
         Tool(list_audit_runs_tool, name="list_audit_runs"),
         Tool(read_audit_run_tool, name="read_audit_run"),
         Tool(list_audit_findings_tool, name="list_audit_findings"),
-        Tool(read_audit_finding_tool, name="read_audit_finding"),
+        Tool(read_audit_findings_tool, name="read_audit_findings"),
     ]
 
 

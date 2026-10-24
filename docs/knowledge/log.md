@@ -21,6 +21,42 @@
   `reopen_review` clears the earlier synthesis on each review pass, on each finish and on a retry
   that reopens a finished run, and a stopped synthesis stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
+* **An audit run uploads no dataset (veupathdb-mcp 0.2.0b46).** The screen reads the run's
+  target genes with `read_gene_list(site_id, genes)`, one gene record read per gene; a read that
+  fails partway starts again from the first gene. `RunStages.target_list`, `keep_target_list` and
+  the screen's stored upload are gone; a stored stage row that still holds `targetList` loads
+  without it, because the stage model ignores keys it does not name. The plan prices
+  `LIBRARY_READS_PER_LISTED_GENE` (the library's stated cost, not a measured one) for each distinct listed gene, and `RunEstimate` and `AuditStartCard`
+  carry no `datasets` field.
+* **The auditor judges a large run within its budget and stops plainly at it.** `read_audit_findings`
+  reads up to `FINDINGS_PER_CALL` (25) findings in one call and `record_gene_model_verdicts` stores
+  up to 25 verdicts in one, all or none, so a run of 29 findings costs five tool calls, not 59
+  (`AUDITOR_LIMITS` stays 40). A turn that reaches its request or tool-call limit ends on
+  `StopAtTheBudget` (`ai/audit/budget_stop.py`): the reply names the stop and the verdicts the turn
+  already stored, which stay stored, and the history ends on that reply so the next turn runs on it. No
+  pydantic-ai error text reaches the researcher.
+* **A finding's fact names each value by its path in the answer.** `audit_finding_fact` holds one
+  row per scalar of the `FindingDetail` the tool returned, so
+  `[stat:<id>.evidence.0.payload.confirmation.result.<field>]` renders the value the auditor read.
+  A `stat` reference that names a group of rows, an object, a list or a fact id alone, is refused
+  with the rows under it (`statistic_group_references`, at most six), so the retry names one value
+  instead of rendering "a value not shown".
+* **A finding the check declines is stored declined, not failed.** `confirm_target`
+  (`services/audit/checks.py`) answers a `ToolError` with no cause, the library's own refusal of
+  its input such as the pseudogene pair-size guard, as `DeclinedCheck`; the confirm stage stores
+  the finding `declined` with the check's words, and `Unresolved.declined`,
+  `FindingCounts.declined` and `UNCHECKED_SENTENCES["declined"]` name it apart from a read that
+  failed. Migration `2026_10_24_0003` widens `ck_audit_findings_status`.
+* **An investigation writes its usage row.** `investigate()` charges the tokens and cost its
+  run spent, also when it stops at its budget, through `ai/audit/charges.py`, the one helper the
+  auditor turn's `charge_usage` and the review job use too: `charge` writes the row on
+  `turn_paid_by` of the model id, and `charge_run` prices a `RunUsage` on its model first. The
+  owner pays when the turn's keyring holds a live key for the model's provider, and the
+  deployment pays otherwise.
+* **A length check that read no DNA is an unjudged finding.** A `gene_length` or `gene_split`
+  answer of `NOT_CHECKED` classifies as not judged (`domain/audit/findings.py`, `_LENGTH_UNREAD`),
+  so the confirm stage stores it confirmed with `judged` false and its reason, and the run view's
+  rates count it under `unjudged` beside the rate instead of as a clean model.
 * **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
   `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them (a
   confirmation that does not name a target gene raises; with none stored, the target's own), and

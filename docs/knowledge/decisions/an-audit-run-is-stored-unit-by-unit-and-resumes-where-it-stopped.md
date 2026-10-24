@@ -25,7 +25,10 @@ JBrowse store by its upstream status). An error with the data parsing code, such
 a malformed table or track file, is an answer the site gave, so it is `failed` at
 any status. The stage reads an `unreached` unit again after a pause that doubles
 from 30 seconds to 15 minutes, until the deadline; the other units go on
-meanwhile. Any other failure settles it `failed` with the site's message. A
+meanwhile. A finding whose check refuses its input with no site error under the
+refusal, such as a pair too large to align or a strain the site does not call a
+pseudogene, settles `declined` with the check's words, and the run's rates count it
+apart from `failed`. Any other failure settles it `failed` with the site's message. A
 unit still `trying` when a stage starts was being read when a worker stopped:
 it reopens, and the third time it is `failed`. A run that does not halt
 therefore always finishes and lists its failed, unreached and unread units; a
