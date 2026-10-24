@@ -23,7 +23,7 @@ from pathfinder.ai.agents.verification import (
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.toolsets.verification import build_toolset
-from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
+from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.tests._support.sub_agents import agent_tool_names, toolset_tool_names
 
 # The served tools, under the prefix the runtime wraps the source in. They are

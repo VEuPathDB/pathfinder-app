@@ -6,7 +6,6 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
-from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from pydantic_ai.models import Model
@@ -41,7 +40,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
+from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.services.conversations.responses import conversation_strategy_revision
 from pathfinder.services.conversations.turns import turn_start_revision_id
 from pathfinder.services.strategies.session_factory import (
@@ -49,14 +48,6 @@ from pathfinder.services.strategies.session_factory import (
     persisted_graph,
 )
 from pathfinder.services.wdk_identity import require_registered_wdk_login
-
-# The open-web and literature reads this assistant asks for. A deployment that
-# admits no such server serves neither, and the turn runs without them.
-RESEARCH_TOOL_SOURCE = ToolSourceDeclaration(
-    name="research",
-    source_id=RESEARCH_MCP_SOURCE_ID,
-    tools=frozenset({"web_search", "literature_search"}),
-)
 
 PATHFINDER_CHECKPOINT_TYPES: tuple[type, ...] = (
     SearchOverview,
@@ -174,7 +165,6 @@ def build_pathfinder_spec() -> AssistantSpec:
 
 __all__ = [
     "PATHFINDER_CHECKPOINT_TYPES",
-    "RESEARCH_TOOL_SOURCE",
     "build_initial_state",
     "build_pathfinder_spec",
     "build_turn_context",

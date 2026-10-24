@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import (
     AUDIT_ROLES,
@@ -16,8 +17,10 @@ from pathfinder.platform.tiers import (
     KNOWN_ROLES,
     REVIEW_ROLE,
     resolve_phase_tier_config,
+    role_model,
+    tier_model,
 )
-from pathfinder.tests._support.models import DEFAULT_MODEL
+from pathfinder.tests._support.models import DEFAULT_MODEL, OPENAI_STANDARD
 
 _TIERS: tuple[TierName, ...] = tuple(
     tier for tier in get_args(TierName) if tier != "custom"
@@ -63,3 +66,30 @@ def test_the_request_body_refuses_a_pick_for_an_audit_role(role: str) -> None:
         ChatRequestBody.model_validate(
             {"conversationId": str(uuid4()), "phaseModels": {role: DEFAULT_MODEL}}
         )
+
+
+def test_a_role_no_tier_names_keeps_its_compile_time_model() -> None:
+    assert (
+        tier_model(
+            AUDIT_ASSISTANT_ID, "openai", "custom", AUDITOR_ROLE, compile_time="x:y"
+        )
+        == "x:y"
+    )
+    assert (
+        tier_model(
+            AUDIT_ASSISTANT_ID, "openai", "balanced", AUDITOR_ROLE, compile_time="x:y"
+        )
+        == OPENAI_STANDARD
+    )
+
+
+def test_the_auditor_runs_on_the_deployments_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "default_provider", "openai")
+    monkeypatch.setattr(settings, "default_tier", "balanced")
+
+    assert role_model(AUDIT_ASSISTANT_ID, AUDITOR_ROLE, compile_time="x:y") == (
+        OPENAI_STANDARD
+    )

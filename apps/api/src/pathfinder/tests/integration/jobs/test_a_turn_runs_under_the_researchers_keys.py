@@ -17,6 +17,8 @@ from pydantic_ai.models import Model
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
+from pathfinder.assistants import registry
+from pathfinder.assistants.audit.spec import build_audit_spec
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.domain.provider_keys import KeyRefusal, KeyStatuses
 from pathfinder.jobs.completion import open_completion_turn
@@ -25,7 +27,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyRefusedError
 from pathfinder.platform.model_keys import keyed_model, one_generation, turn_paid_by
 from pathfinder.services.provider_keys import key_statuses, record_refusals, store_key
-from pathfinder.tests._support.models import DEFAULT_MODEL
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
@@ -145,3 +147,27 @@ async def test_the_turn_a_finished_task_opens_is_refused_on_a_refused_key(
         await open_completion_turn(turn)
 
     assert writer.types() == ["error", "data-turn-failed", "finish", "done"]
+
+
+@pytest.mark.usefixtures("_sealed", "patch_app_db_engine", "db_cleaner")
+async def test_an_audit_turn_needs_a_payer_only_for_the_auditor(
+    session_maker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "default_tier", "custom")
+    monkeypatch.setattr(
+        registry,
+        "audit_compile_time_models",
+        lambda: {"auditor": DEFAULT_MODEL, "audit_review": ANTHROPIC_SMALL},
+    )
+    user_id = await _keyed_user(session_maker, refused=False)
+    ran = False
+
+    async with turn_keys(
+        user_id=user_id, spec=build_audit_spec(), body=_body(), writer=_Chunks()
+    ):
+        ran = True
+
+    assert ran is True

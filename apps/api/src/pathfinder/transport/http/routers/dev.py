@@ -3,17 +3,13 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError
+from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.security import create_dev_login_token, set_dev_login_cookie
 from pathfinder.services.users import get_or_create_user_id
 from pathfinder.transport.http.deps import DBSession
 
 router = APIRouter(prefix="/api/v1/dev", tags=["dev"])
-
-
-def _is_mock_provider() -> bool:
-    return get_settings().pathfinder_chat_provider.strip().lower() == "mock"
 
 
 @router.post("/login")
@@ -27,7 +23,7 @@ async def dev_login(session: DBSession, user_id: str | None = None) -> JSONRespo
     Pass ``?user_id=worker-0`` to create isolated users per Playwright
     worker so parallel tests don't share data.
     """
-    if not _is_mock_provider():
+    if not is_mock_deployment():
         raise ForbiddenError(title="Only available in mock mode")
 
     external_id = f"e2e-{user_id}@test.local" if user_id else "e2e@test.local"

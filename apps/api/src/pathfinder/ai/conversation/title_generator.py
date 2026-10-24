@@ -23,7 +23,7 @@ from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyError
 from pathfinder.platform.model_catalog import get_smallest_model
-from pathfinder.platform.model_keys import keyed_model
+from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
 from pathfinder.platform.pinned_model import pinned_model
 
 MAX_TITLE_WORDS = 7
@@ -137,7 +137,7 @@ async def generate_conversation_title(
     if not cleaned:
         return "New conversation"
 
-    is_mock = get_settings().pathfinder_chat_provider.strip().lower() == "mock"
+    is_mock = is_mock_deployment()
     resolved_id = title_model_id(provider)
     if resolved_id is None and not is_mock:
         return _fallback_title(first_user_message)

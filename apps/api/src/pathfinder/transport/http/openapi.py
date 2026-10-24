@@ -4,10 +4,13 @@ Declares the RFC 9457 problem+json error contract, and anchors the models the
 generated client needs but no route returns.
 """
 
+from collections.abc import Iterable
 from functools import cache
 from typing import Any
 
 from assistant_core.conversation.stream_parts.core_parts import STREAM_PARTS
+from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
+from assistant_core.spec import AssistantSpec
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -31,16 +34,31 @@ def _problem_components() -> dict[str, Any]:
     return {"ProblemDetail": schema, **nested}
 
 
+def register_stream_parts_of(
+    specs: Iterable[AssistantSpec], registry: StreamPartRegistry
+) -> None:
+    for spec in specs:
+        if spec.register_stream_parts is None:
+            continue
+        own = StreamPartRegistry()
+        spec.register_stream_parts(own)
+        for entry in own.entries():
+            if entry in registry.entries():
+                continue
+            if entry.kind is None:
+                registry.register_schema_only(entry.schema_name, entry.model)
+            else:
+                registry.register(entry.kind, entry.model)
+
+
 @cache
 def _stream_parts_index() -> type[BaseModel]:
     """The index model of every registered ``data-*`` payload.
 
-    Each installed assistant registers its parts once, so the spec carries the
-    union of them.
+    Each installed assistant registers its parts, so the spec carries the
+    union of them; a part two assistants emit is one entry.
     """
-    for spec in get_assistant_registry().specs():
-        if spec.register_stream_parts is not None:
-            spec.register_stream_parts(STREAM_PARTS)
+    register_stream_parts_of(get_assistant_registry().specs(), STREAM_PARTS)
     return STREAM_PARTS.schema_index_model()
 
 

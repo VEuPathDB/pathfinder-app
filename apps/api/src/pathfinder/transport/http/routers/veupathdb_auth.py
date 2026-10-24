@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.security import decode_session_token, dev_login_cookie
 from pathfinder.services.wdk_identity import (
     current_user_on_a_site_that_answers,
@@ -28,8 +28,7 @@ async def auth_status(
     503. A mock chat provider has no VEuPathDB session, so its dev-login cookie
     alone proves identity there.
     """
-    settings = get_settings()
-    mock = settings.pathfinder_chat_provider.strip().lower() == "mock"
+    mock = is_mock_deployment()
     claims = decode_session_token(dev_login) if dev_login else None
     if mock and claims is not None and claims.dev_login:
         return AuthStatusResponse(signedIn=True)

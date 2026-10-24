@@ -11,9 +11,9 @@ from pathfinder.ai.conversation.attachments import ReadAttachment, read_attachme
 from pathfinder.ai.conversation.dispatcher import dispatch
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import (
-    assistant_role_models,
     get_assistant_registry,
     prompt_reader_model,
+    turn_role_models,
 )
 from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.security import limiter
@@ -92,7 +92,7 @@ async def paid_turn_user(
     spec: ChatAssistant,
 ) -> UUID:
     """The caller, once a key is known to pay for every model the turn runs."""
-    roles = assistant_role_models(spec.assistant_id, body.runtime_phase_models)
+    roles = turn_role_models(spec.assistant_id, body.runtime_phase_models)
     await require_turn_paid(session, user_id, roles.values())
     return user_id
 

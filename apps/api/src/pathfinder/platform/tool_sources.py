@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Self
 
 from assistant_core.mcp.admission import AdmissionRecord, AdmittedSources
+from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.mcp.resolution import (
     ToolSourceUnavailableError,
     build_mcp_toolset,
@@ -30,6 +31,14 @@ WDK_MCP_CALL_SECONDS = 180
 RESEARCH_MCP_SOURCE_ID = "veupathdb-research-mcp"
 RESEARCH_MCP_PART_NAMESPACE = "research"
 RESEARCH_MCP_CALL_SECONDS = 60
+
+# The open-web and literature reads an assistant asks for. A deployment that
+# admits no such server serves neither, and the turn runs without them.
+RESEARCH_TOOL_SOURCE = ToolSourceDeclaration(
+    name="research",
+    source_id=RESEARCH_MCP_SOURCE_ID,
+    tools=frozenset({"web_search", "literature_search"}),
+)
 
 # The setting that holds each admitted server's credential, and the variable a
 # refusal names. A source id absent here is one this deployment cannot call.
@@ -154,6 +163,7 @@ __all__ = [
     "RESEARCH_MCP_CALL_SECONDS",
     "RESEARCH_MCP_PART_NAMESPACE",
     "RESEARCH_MCP_SOURCE_ID",
+    "RESEARCH_TOOL_SOURCE",
     "WDK_MCP_CALL_SECONDS",
     "WDK_MCP_PART_NAMESPACE",
     "WDK_MCP_SOURCE_ID",

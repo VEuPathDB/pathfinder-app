@@ -276,13 +276,17 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
                 return ""
 
     @property
+    def mock_provider(self) -> bool:
+        return self.pathfinder_chat_provider.strip().lower() == "mock"
+
+    @property
     def deployment_providers(self) -> frozenset[ModelProvider]:
         """The providers this deployment pays for.
 
         The mock answers for every provider, so a mock deployment pays for all.
         """
         every: tuple[ModelProvider, ...] = get_args(ModelProvider.__value__)
-        if self.pathfinder_chat_provider.strip().lower() == "mock":
+        if self.mock_provider:
             return frozenset(every)
         return frozenset(p for p in every if self.deployment_credential(p).strip())
 

@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from pathfinder.ai.graph.turn_records import ReadRecord, TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.evidence import VerificationReview
-from pathfinder.domain.record_facts import ListedFact, OrthologFact, SourceFact
+from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.domain.turn_facts import StepFact
@@ -24,20 +24,6 @@ def with_counts_before(
         s.model_copy(update={"count_before": markers.count_before(s.step_id, s.count)})
         for s in steps
     ]
-
-
-def _gene(record: ReadRecord) -> SourceFact:
-    return SourceFact(
-        url=record.url,
-        record_id=record.record_id,
-        product=record.product,
-        organism=record.organism,
-        values=record.words(),
-        orthologs=[
-            OrthologFact(gene_id=gene_id, organism=organism)
-            for gene_id, organism in record.ortholog_pairs()
-        ],
-    )
 
 
 def _step_of(sync: SyncStateProtocol | None) -> dict[int, str]:
@@ -64,7 +50,7 @@ def read_sources(
             continue
         gene = judged.get(record.record_id)
         records.append(
-            _gene(record).model_copy(
+            record.source_fact().model_copy(
                 update={
                     "step_id": step_id,
                     "step_name": named.get(step_id, ""),
@@ -115,7 +101,7 @@ def listed_ids(
 
 def named_genes(markers: TurnMarkers) -> list[SourceFact]:
     """The genes the message names that the gate resolved to the site's records."""
-    return [_gene(record) for record in markers.resolved_genes]
+    return [record.source_fact() for record in markers.resolved_genes]
 
 
 __all__ = ["listed_ids", "named_genes", "read_sources", "with_counts_before"]

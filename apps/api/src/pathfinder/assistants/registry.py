@@ -11,10 +11,12 @@ from assistant_core.registry import AssistantRegistry
 from assistant_core.spec import AssistantSpec
 
 from pathfinder.ai.agents.registry import phase_defaults
+from pathfinder.ai.audit.auditor import audit_compile_time_models
+from pathfinder.assistants.audit.spec import build_audit_spec
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.tiers import resolve_phase_tier_config
+from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tiers import AUDITOR_ROLE, tier_model
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -22,6 +24,7 @@ class InstalledAssistant:
     build_spec: Callable[[], AssistantSpec]
     compile_time_models: Callable[[], dict[str, str]]
     prompt_role: str
+    turn_roles: frozenset[str]
 
 
 def installed_assistants() -> dict[str, InstalledAssistant]:
@@ -30,6 +33,13 @@ def installed_assistants() -> dict[str, InstalledAssistant]:
             build_spec=build_pathfinder_spec,
             compile_time_models=phase_defaults,
             prompt_role="lead",
+            turn_roles=frozenset(phase_defaults()),
+        ),
+        AUDIT_ASSISTANT_ID: InstalledAssistant(
+            build_spec=build_audit_spec,
+            compile_time_models=audit_compile_time_models,
+            prompt_role=AUDITOR_ROLE,
+            turn_roles=frozenset({AUDITOR_ROLE}),
         ),
     }
 
@@ -46,12 +56,11 @@ def get_assistant_registry() -> AssistantRegistry:
 def _defaults_of(
     assistant_id: str, provider: ModelProvider, tier: TierName
 ) -> dict[str, str]:
-    resolved: dict[str, str] = {}
     models = installed_assistants()[assistant_id].compile_time_models()
-    for role, baked_in in models.items():
-        config = resolve_phase_tier_config(assistant_id, provider, tier, role)
-        resolved[role] = baked_in if config is None else config.model_id
-    return resolved
+    return {
+        role: tier_model(assistant_id, provider, tier, role, compile_time=baked_in)
+        for role, baked_in in models.items()
+    }
 
 
 def installed_phase_defaults(provider: ModelProvider, tier: TierName) -> dict[str, str]:
@@ -75,6 +84,13 @@ def assistant_role_models(
         assistant_id, settings.default_provider, settings.default_tier
     )
     return {role: picks.get(role) or default for role, default in defaults.items()}
+
+
+def turn_role_models(assistant_id: str, picks: Mapping[str, str]) -> dict[str, str]:
+    """The model of each role a chat turn of one assistant runs."""
+    runs = installed_assistants()[assistant_id].turn_roles
+    models = assistant_role_models(assistant_id, picks)
+    return {role: model for role, model in models.items() if role in runs}
 
 
 def turn_trace_labels(assistant_id: str, picks: Mapping[str, str]) -> dict[str, str]:
@@ -101,5 +117,6 @@ __all__ = [
     "installed_assistants",
     "installed_phase_defaults",
     "prompt_reader_model",
+    "turn_role_models",
     "turn_trace_labels",
 ]

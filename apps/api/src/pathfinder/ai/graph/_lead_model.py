@@ -17,8 +17,8 @@ from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.model_keys import keyed_model
-from pathfinder.platform.tiers import resolve_phase_tier_config
+from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
+from pathfinder.platform.tiers import deployment_role_config, tier_model
 
 _LEAD_ROLE = "lead"
 
@@ -41,7 +41,7 @@ def resolve_lead_model_context(
 ) -> LeadModelContext:
     """The agent override to run under, the model id it resolves to, and the
     effort it runs at."""
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+    if is_mock_deployment():
         return LeadModelContext(
             override=agent.override(model=get_mock_model()),
             model_id="mock:lead",
@@ -49,14 +49,14 @@ def resolve_lead_model_context(
         )
 
     settings = get_settings()
-    tier_cfg = resolve_phase_tier_config(
+    tier_cfg = deployment_role_config(PATHFINDER_ASSISTANT_ID, _LEAD_ROLE)
+    effective_model = model_override or tier_model(
         PATHFINDER_ASSISTANT_ID,
         settings.default_provider,
         settings.default_tier,
         _LEAD_ROLE,
+        compile_time=baked_model_id(agent),
     )
-    tier_model = tier_cfg.model_id if tier_cfg is not None else None
-    effective_model = model_override or tier_model or baked_model_id(agent)
     effort = reasoning_effort or (
         tier_cfg.reasoning_effort if tier_cfg is not None else None
     )

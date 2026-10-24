@@ -242,6 +242,19 @@ async def read_audit_finding_tool(
     return with_summary(read, summary, ctx=ctx)
 
 
+def _read_tools() -> list[Tool[AuditDeps]]:
+    return [
+        Tool(list_audit_runs_tool, name="list_audit_runs"),
+        Tool(read_audit_run_tool, name="read_audit_run"),
+        Tool(list_audit_findings_tool, name="list_audit_findings"),
+        Tool(read_audit_finding_tool, name="read_audit_finding"),
+    ]
+
+
+def build_read_toolset() -> FunctionToolset[AuditDeps]:
+    return FunctionToolset(_read_tools(), max_retries=3)
+
+
 def build_run_toolset() -> FunctionToolset[AuditDeps]:
     return FunctionToolset(
         [
@@ -252,10 +265,10 @@ def build_run_toolset() -> FunctionToolset[AuditDeps]:
                 requires_approval=True,
                 args_validator=audit_can_start,
             ),
-            Tool(list_audit_runs_tool, name="list_audit_runs"),
-            Tool(read_audit_run_tool, name="read_audit_run"),
-            Tool(list_audit_findings_tool, name="list_audit_findings"),
-            Tool(read_audit_finding_tool, name="read_audit_finding"),
+            *_read_tools(),
         ],
         max_retries=3,
     )
+
+
+READ_TOOL_NAMES: frozenset[str] = frozenset(build_read_toolset().tools)

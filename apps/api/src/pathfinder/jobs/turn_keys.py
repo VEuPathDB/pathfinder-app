@@ -16,7 +16,7 @@ from assistant_core.spec import AssistantSpec
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_failure import turn_closed_on_failure
-from pathfinder.assistants.registry import assistant_role_models
+from pathfinder.assistants.registry import turn_role_models
 from pathfinder.platform.model_keys import (
     ProviderBuilder,
     attach_keyring,
@@ -44,7 +44,7 @@ async def turn_keys(
     """
     async with turn_closed_on_failure(writer):
         keyring = await load_keyring(user_id)
-        roles = assistant_role_models(spec.assistant_id, body.runtime_phase_models)
+        roles = turn_role_models(spec.assistant_id, body.runtime_phase_models)
         require_payers(roles.values(), keyring.statuses())
     with attach_keyring(keyring, build) as keys:
         try:

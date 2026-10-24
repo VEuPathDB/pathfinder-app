@@ -44,6 +44,7 @@ from pathfinder.domain.strategy.orthology import restate_copies
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
 from pathfinder.services.strategies.measurements import TurnCounts
 
@@ -191,7 +192,7 @@ def phase_model_id(runtime: Context, role: PhaseRole) -> str:
 
     The mock model belongs to no catalog entry, so a mock deployment names none.
     """
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+    if is_mock_deployment():
         return ""
     return runtime.phase_models.get(role) or phase_default_model_id(role)
 

@@ -2,16 +2,25 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.runtime import AssistantDeps
-from pydantic import Field
+from pydantic import Field, SkipValidation
+from pydantic_ai.toolsets import AbstractToolset
 
 from pathfinder.ai.graph.turn_records import ReadRecord
+from pathfinder.domain.audit.verdicts import VerdictOrigin
 from pathfinder.domain.statistic_facts import StatisticFact
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.audit.verdicts import AuditCaller
 
 
 class AuditDeps(AssistantDeps):
+    origin: VerdictOrigin = "auditor"
+    tool_sources: SkipValidation[AbstractToolset[Any]] | None = None
+    request: str = ""
+    reply_refusals: int = 0
     reads: set[str] = Field(default_factory=set)
     facts: list[StatisticFact] = Field(default_factory=list)
     records: list[ReadRecord] = Field(default_factory=list)
@@ -25,4 +34,14 @@ class AuditDeps(AssistantDeps):
             user_id=self.user_id,
             conversation_id=self.conversation_id,
             site_id=self.site_id,
+        )
+
+    def held_reads(self) -> frozenset[str]:
+        return frozenset(self.reads)
+
+    def turn_facts(self, request: str) -> TurnFacts:
+        return TurnFacts(
+            statistics=list(self.facts),
+            sources=[record.source_fact() for record in self.records],
+            request_messages=[request] if request else [],
         )

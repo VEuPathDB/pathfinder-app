@@ -21,11 +21,15 @@ from pathfinder.ai.graph._lead_capture import (
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.lead_agent import LEAD_MODEL, build_lead_agent
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.database import detached_session
-from pathfinder.tests._support.models import DEFAULT_MODEL, OPENAI_FLAGSHIP
+from pathfinder.tests._support.models import (
+    DEFAULT_MODEL,
+    OPENAI_FLAGSHIP,
+    OPENAI_SMALL,
+)
 
 _LEAD_MODEL = DEFAULT_MODEL
 
@@ -85,6 +89,26 @@ def test_a_request_effort_wins_over_the_tier() -> None:
     resolved = resolve_lead_model_context(build_lead_agent(), reasoning_effort="low")
 
     assert resolved.reasoning_effort == "low"
+
+
+@pytest.mark.usefixtures("_cloud_provider")
+def test_a_tier_that_names_no_lead_keeps_the_baked_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "default_tier", "custom", raising=False)
+
+    resolved = resolve_lead_model_context(build_lead_agent())
+
+    assert (resolved.model_id, resolved.reasoning_effort) == (LEAD_MODEL, None)
+
+
+@pytest.mark.usefixtures("_cloud_provider")
+def test_a_request_model_wins_over_the_tier() -> None:
+    resolved = resolve_lead_model_context(
+        build_lead_agent(), model_override=OPENAI_SMALL
+    )
+
+    assert (resolved.model_id, resolved.reasoning_effort) == (OPENAI_SMALL, "high")
 
 
 def test_the_mock_provider_states_no_effort(monkeypatch: pytest.MonkeyPatch) -> None:

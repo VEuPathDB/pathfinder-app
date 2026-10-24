@@ -242,6 +242,7 @@ def second_assistant(
         build_spec=build_spec,
         compile_time_models=_helper_models,
         prompt_role=HELPER,
+        turn_roles=frozenset({HELPER}),
     )
     monkeypatch.setattr(
         registry, "installed_assistants", lambda: {**production, HELPER: helper}
