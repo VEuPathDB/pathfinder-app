@@ -94,6 +94,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         tool_sources=recording_retrievals(one_toolset(runtime.tool_sources), deps),
         agent_state=AgentToolState(
             discovered_searches=dict(state.domain.discovered_searches),
+            built_expressions=dict(state.domain.built_expressions),
             # The draft is a copy, so a pass that binds nothing leaves the
             # committed spec exactly as the turn found it.
             operational_spec_draft=(

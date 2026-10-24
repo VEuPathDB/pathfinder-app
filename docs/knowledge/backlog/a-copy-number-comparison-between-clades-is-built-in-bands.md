@@ -30,21 +30,22 @@ disjunction of bands, for example with P Plasmodium genomes and T Toxoplasma gen
 band stating a whole number of copies per genome. The approximation is per clade on
 average, not per genome; a group where one strain carries all the copies passes.
 
-## Two genomes compare exactly
+## The builder writes the bands
 
-Between two single genomes the comparison needs no approximation. "More proteins in genome
-A than in genome B" is `B=0 AND A>=1 OR B=1 AND A>=2 OR ... OR B=K AND A>=K+1`, where K is
-the smallest count for which `B>=K+1` returns no group; each term fixes B's count, AND
-binds before OR as the site reads it, and `B=0` is the only form that matches a group with
-no protein in B. FRAME builds it with `build_protein_count_comparison` (veupathdb-mcp),
-which reads K from the site with count reports, and binds the expression whole; it never
-writes the ladder by hand. What remains of this item is the comparison between clades.
+`build_phyletic_expression` (veupathdb-mcp 0.2.0b40) writes every comparison from a
+pattern: a `compare` of two sets with reading `per_genome`, `totals` or `averages`, a
+condition and a factor. It reads from the site the largest count the right side holds
+and writes one band per count, so "more proteins in genome A than in genome B" and "at
+least twice as many proteins per genome in Toxoplasma as in Plasmodium" are both one
+call, and FRAME binds the handle the call returns. An `averages` comparison compares
+clade averages, not each genome. What remains of this item is the guidance, the
+question and the caveat below.
 
 ## Change
 
 1. The Lead's guidance for OrthoMCL names the pattern: a copy-number comparison between
-   clades is built as count bands over each clade's genome list, and the answer states
-   that it compares clade averages, not each genome.
+   clades is a `compare` with reading `averages`, and the answer states that it compares
+   clade averages, not each genome.
 2. The clarifying question offers that approximation with its numbers (the genome counts
    of each clade, the bands it would write) instead of asking for raw thresholds, and the
    turn builds it when the user agrees.

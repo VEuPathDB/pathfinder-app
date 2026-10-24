@@ -9,7 +9,6 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict
-from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, NamedStep
@@ -20,6 +19,7 @@ from pathfinder.ai.lead.dispatch_messages import (
     stop_heading,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.domain.strategy.expression_handles import shown_params, shown_wire
 from pathfinder.domain.strategy.named_combine import NamedCombine, combine_at
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -108,9 +108,10 @@ def _pending_line(
         return f"- [{cid}] {planned[cid].text[:60]} has no step on the strategy yet."
     if change.disposition == "changed":
         moved = ", ".join(
-            f"{name}={value}" for name, value in change.changed_params.items()
+            f"{name}={shown_wire(name, value)}"
+            for name, value in change.changed_params.items()
         )
-        was = {name: to_wire(value) for name, value in held[cid].param_values.items()}
+        was = shown_params(held[cid].param_values)
         running = ", ".join(
             f"{name}={was.get(name, '(unset)')}" for name in change.changed_params
         )
@@ -171,8 +172,8 @@ def edit_work_order(
             f"{criterion_runs(criterion)} ({criterion.role})"
         )
         lines.extend(
-            f"    {name}={to_wire(value)}"
-            for name, value in criterion.param_values.items()
+            f"    {name}={value}"
+            for name, value in shown_params(criterion.param_values).items()
         )
     lines.extend(pending_lines(pending, before, answered))
     lines.extend(

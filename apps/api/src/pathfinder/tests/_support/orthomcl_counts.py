@@ -103,7 +103,7 @@ def same_reading(first: str, second: str) -> bool:
 
 @dataclass
 class ReplayedCounts:
-    pending: list[RecordedReport]
+    totals: dict[Reading, int]
     delay: float = 0.0
     status: int = 200
     sent: list[str] = field(default_factory=list)
@@ -115,12 +115,12 @@ class ReplayedCounts:
         self.sent.append(expression)
         if self.status != httpx.codes.OK:
             return httpx.Response(self.status, text=_UNAVAILABLE)
-        recorded = self.pending.pop(0)
-        assert same_reading(expression, recorded.expression), expression
+        reading = _reading(expression)
+        assert reading in self.totals, expression
         return httpx.Response(
             200,
             json={
-                "meta": {"totalCount": recorded.total, "responseCount": 0},
+                "meta": {"totalCount": self.totals[reading], "responseCount": 0},
                 "records": [],
             },
         )
@@ -128,12 +128,14 @@ class ReplayedCounts:
 
 @contextmanager
 def replayed_counts(
-    name: str, *, start: int = 0, delay: float = 0.0, status: int = 200
+    name: str, *, delay: float = 0.0, status: int = 200
 ) -> Iterator[ReplayedCounts]:
     recording = count_recording(name)
     taxonomy = client_recording("orthomcl_taxonomy")
     replay = ReplayedCounts(
-        pending=list(recording.reports[start:]), delay=delay, status=status
+        totals={_reading(r.expression): r.total for r in recording.reports},
+        delay=delay,
+        status=status,
     )
     site = get_site(SITE)
     service = site.service_url
@@ -148,3 +150,16 @@ def replayed_counts(
             f"{PHYLETIC_EXPRESSION_SEARCH}/reports/standard"
         ).mock(side_effect=replay.answer)
         yield replay
+
+
+class CountsBelow(dict[Reading, int]):
+    def __init__(self, ceiling: int) -> None:
+        super().__init__()
+        self.ceiling = ceiling
+
+    def __contains__(self, key: object) -> bool:
+        return True
+
+    def __getitem__(self, key: Reading) -> int:
+        counts = [unit[2] for term in key for unit in term]
+        return 0 if counts and max(counts) >= self.ceiling and len(key) == 1 else 5

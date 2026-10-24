@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
+from pathfinder.domain.strategy.expression_handles import expression_handle
 from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
 from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
@@ -110,7 +111,7 @@ async def test_the_reading_states_the_list_size_whether_or_not_the_site_counted(
         Measurement(
             kind="vocabulary_label",
             param="phyletic_expression",
-            reading=expression,
+            reading=expression_handle(expression),
             label=(
                 "exactly 1 protein of P. falciparum 3D7 and at most 1 genome of "
                 "these 2: P. falciparum 7G8, P. falciparum HB3 (2 genomes of 1 "

@@ -38,9 +38,7 @@ _TOOL_NAME_TOKENS = frozenset(
     {
         # Catalog and framing
         "browse_search_categories",
-        "build_clade_only_expression",
-        "build_every_species_expression",
-        "build_protein_count_comparison",
+        "build_phyletic_expression",
         "drop_criterion",
         "get_parameter_options",
         "get_record_types",

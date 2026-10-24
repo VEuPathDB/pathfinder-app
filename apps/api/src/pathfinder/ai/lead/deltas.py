@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from types import MappingProxyType
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
@@ -38,6 +39,8 @@ _ADDED_SEARCHES = (
 )
 
 
+_NO_READINGS: Mapping[str, str] = MappingProxyType({})
+
 PassGapKind = Literal[
     "reading_left_out",
     "question_without_readings",
@@ -46,10 +49,12 @@ PassGapKind = Literal[
     "question_decides_nothing",
     "questions_bind_nothing",
     "every_genome_unasked",
+    "expression_handle_unknown",
     "group_genomes_left_out",
     "group_scope_missing",
     "group_scope_exception_unknown",
     "missing_after_refusal",
+    "organism_step_missing",
     "record_role_missing",
     "record_type_unknown",
 ]
@@ -168,6 +173,7 @@ class FrameResult(CamelModel):
         self,
         spec: OperationalSpec | None = None,
         requirements: Sequence[Constraint] = (),
+        readings: Mapping[str, str] = _NO_READINGS,
     ) -> list[OpenQuestion]:
         """The open questions, each option typed by what answering it binds.
 
@@ -185,6 +191,7 @@ class FrameResult(CamelModel):
                 noun=noun,
                 replaces=[numbered[n].key for n in q.requirements if n in numbered],
                 stated=bool(stated_numbers(requirements)),
+                readings=readings,
             )
             for q in self.open_questions
             if q.offers_a_choice(by_id.get(q.criterion_id))

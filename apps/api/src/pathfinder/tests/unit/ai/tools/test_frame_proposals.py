@@ -302,12 +302,12 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByOrthologPattern",
         {**PHYLETIC_ORGANISM, "included_species": None, "excluded_species": None},
-        ("at least one species or clade", "included_species"),
+        ("select no species", "included_species"),
     ),
     (
         "GenesByOrthologPattern",
         dict(PHYLETIC_ORGANISM),
-        ("at least one species or clade",),
+        ("select no species",),
     ),
     (
         "GenesByOrthologPattern",

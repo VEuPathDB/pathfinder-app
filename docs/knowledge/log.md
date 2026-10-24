@@ -1,5 +1,60 @@
 # Log
 
+## 2026-10-24
+
+* **One phyletic builder, and an expression is shown by its handle.** veupathdb-mcp
+  0.2.0b42 (now pinned) replaces the three OrthoMCL builders with
+  `build_phyletic_expression(site_id, pattern)`, bounds a pattern at 8 levels and 128 terms
+  and refuses a build it predicts past its read, pair or time budget. PathFinder wraps it
+  once (`ai/tools/standalone/orthomcl_expressions.py`): the site comes from the turn and the
+  model states only the `PhyleticPattern`. An expression can run to 645,028 characters, so
+  no model reads one: `domain/strategy/expression_handles.py` names each expression by a
+  content handle (`expr:` and 12 hex digits of its SHA-256) and is the one rule every
+  model-facing render of a bound value goes through (`shown_wire`, `shown_value`,
+  `shown_params`, `shown_parameters`): the `set_criterion` return (its values, its
+  rationale's `derived_from` and its measurements), the ledger's frame section,
+  `get_strategy`, the edit work order and its pending lines, FRAME's pinned workspace and
+  graph, the consult answer, a dispatch refusal, a declined offer and a case memory. The
+  builder keeps the expression in `AgentToolState.built_expressions`, which the dispatch
+  carries to and from `StrategyDomainState.built_expressions`, so a handle lives as long
+  as the conversation. The store keeps each expression with the `PhyleticPattern` that
+  built it (`BuiltPattern`), and `finalize_turn` keeps only the handles the specs, an open
+  question, a declined proposal, a separation offer or the pending approval still name
+  (`ai/graph/expression_store.py`). `set_criterion` and a card's `SetValues` or
+  `ReadValues` resolve a handle against that store and every expression the spec binds;
+  `set_criterion` refuses an unknown handle by name, and
+  `frame_option_checks.hold_an_option_to_a_held_expression` refuses a question whose
+  option names one, through the shared refusal budget, then drops the question with an
+  `expression_handle_unknown` gap. A case memory records a built expression as its
+  pattern, so a later conversation builds it again, and a typed one as written. A typed expression
+  still binds as written and is shown by its handle. The expression's reading is its
+  `describe` while both fit 2,000 characters, else its code, term and character counts
+  (`services/strategies/expression_readings.py`), and the facts row shows that reading.
+  FRAME's instructions name the builder in one sentence, keep "single copy often returns
+  few groups" and drop the hand-written recipes.
+* **A hidden parameter is never a model choice, and never shown.** The website draws no
+  hidden group and fills each hidden value from its default or the saved step, and the
+  sheet lists none. `parameter_rules.site_fixed` is read-only or hidden, so a hidden
+  proposal at the site's value is left out with a correction and any other value is
+  refused; `BoundValue.visible` is the sheet's own flag. The `set_criterion` return omits
+  hidden values, `card_answers.params_held` holds none, so no question can ask about one,
+  and a card binds none. A revision keeps the saved step's hidden value: `spec_diff`
+  moves no hidden value the spec before it did not state. The EDA routing in
+  `set_criterion` reads the proposed `eda_dataset_id` before the hidden check, and the
+  EDA services still send the `eda_*` values they author. `get_parameter_options`
+  answers `HiddenParameterError` as a named retry. The resolver derives `profile_pattern`
+  from the proposed species lists and the search's definition, and `set_criterion`
+  answers `PhyleticListError` and `HiddenParameterError` as named retries.
+* **A stated organism is carried by a step.** `frame_result_checks.hold_an_organism_to_a_step`
+  sends back a `spec_ready` pass whose answer is genes or proteins when a requirement of
+  kind organism is neither reported nor met by a step that limits records to an organism:
+  a bound organism parameter, a dataset's organism, an ID list the researcher gave (any
+  `input-dataset` value) or OrthoMCL's `ByTaxonomy` taxon (`domain/strategy/organism_steps.py`).
+  A phyletic unit or a transform's text does not meet it. The check is per spec, not per
+  organism: a step limited to another organism also meets it. The remedy names
+  `ByTaxonomy` on OrthoMCL only. It shares the refusal budget and leaves an
+  `organism_step_missing` gap once the budget is spent.
+
 ## 2026-10-23
 
 * **Every log line names the work and the user.** `platform/log_ids.py::LogIds` holds the ids a

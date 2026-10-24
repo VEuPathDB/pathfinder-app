@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import SinglePickValue, WDKVocabTerm
 from veupathdb.wdk import (
     WDKEnumParam,
@@ -254,7 +254,7 @@ class TestADependentReadNeedsItsParent:
             )
         ).return_value
 
-        assert result is info
+        assert result == info
 
     async def test_a_parameter_with_no_parents_is_unaffected(
         self, monkeypatch: pytest.MonkeyPatch
@@ -271,7 +271,7 @@ class TestADependentReadNeedsItsParent:
             )
         ).return_value
 
-        assert result is info
+        assert result == info
 
 
 def _term(code: str, display: str) -> WDKVocabTerm:
@@ -377,15 +377,17 @@ class TestReadingOnePhyleticList:
             "pfal",
         ]
 
-    async def test_the_hidden_pattern_gains_no_tree(
+    async def test_the_hidden_pattern_is_refused_by_name(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        info = await self._read(monkeypatch, parameter_id="profile_pattern")
+        with pytest.raises(ModelRetry) as refused:
+            await self._read(monkeypatch, parameter_id="profile_pattern")
 
-        assert isinstance(info, ParameterInfo)
-        assert info.name == "profile_pattern"
-        assert info.is_visible is False
-        assert info.allowed_values is None
+        assert str(refused.value) == (
+            "profile_pattern is a hidden parameter of GenesByOrthologPattern: the "
+            "site sets it, so it takes no value from you. Read a parameter the "
+            "sheet lists."
+        )
 
 
 class TestSeveralPhrasingsReachTheRead:

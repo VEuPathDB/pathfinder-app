@@ -120,13 +120,9 @@ PARAMETER_RULES: Mapping[ParameterClass, ParameterRules] = MappingProxyType(
 
 
 def site_fixed(info: ParameterInfo) -> bool:
-    """A read-only parameter, or a hidden one with no vocabulary, holds a value
-    only the site sets.
-
-    Hidden means not shown: a hidden parameter with a vocabulary takes any of
-    its entries.
-    """
-    return info.is_read_only or (not info.is_visible and not info.vocabulary())
+    """A read-only or hidden parameter holds a value only the site sets: the
+    website never shows a hidden one, so it travels at its default."""
+    return info.is_read_only or not info.is_visible
 
 
 # The phyletic parameters are classed by name: their kind is a plain string.

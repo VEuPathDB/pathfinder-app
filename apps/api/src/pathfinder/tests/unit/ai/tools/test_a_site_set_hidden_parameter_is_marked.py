@@ -1,6 +1,6 @@
-"""A bound parameter the sheet hides and offers no choice for is marked not
-visible, so no facts row draws it. A hidden parameter with a choice of entries
-stays visible, and so does a parameter the sheet shows."""
+"""A bound parameter the sheet hides is marked not visible, so no facts row
+draws it, whether or not it has a vocabulary. A parameter the sheet shows
+stays visible."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
 
 
 @pytest.mark.asyncio
-async def test_only_a_hidden_parameter_without_a_choice_is_not_visible(
+async def test_every_hidden_parameter_is_not_visible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_search(monkeypatch, _sheet, url_segment=_SEARCH, display_name="Profile")
@@ -63,6 +63,6 @@ async def test_only_a_hidden_parameter_without_a_choice_is_not_visible(
     [criterion] = state.operational_spec_draft.criteria
     assert {name: held.visible for name, held in criterion.resolved_params.items()} == {
         "profile_pattern": False,
-        "profileset_generic": True,
+        "profileset_generic": False,
         "min_count": True,
     }

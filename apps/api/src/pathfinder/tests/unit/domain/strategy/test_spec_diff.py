@@ -10,10 +10,12 @@ from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
     ParamValue,
+    SinglePickValue,
 )
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
@@ -133,6 +135,41 @@ class TestTheDiffNamesWhatHappened:
         assert change.changed_params == {
             "organism": '["Plasmodium falciparum 3D7"]',
         }
+
+
+class TestAHiddenValueTheStepCarries:
+    @staticmethod
+    def _with_hidden_channel(criterion: Criterion) -> Criterion:
+        hidden = BoundValue(
+            value=SinglePickValue(value="Channel 1"), source="default", visible=False
+        )
+        criterion.resolved_params["channel"] = hidden
+        return criterion
+
+    def test_it_is_no_moved_value(self) -> None:
+        after = _spec(
+            _criterion("text"),
+            _criterion("go", organism=MultiPickValue(values=["Plasmodium"])),
+            self._with_hidden_channel(
+                _criterion("expr", min_expression_percentile=NumberValue(value=90))
+            ),
+        )
+
+        result = diff_specs(_three(), after)
+
+        change = next(c for c in result.changes if c.criterion_id == "expr")
+        assert change.changed_params == {"min_expression_percentile": "90"}
+
+    def test_it_alone_keeps_the_criterion(self) -> None:
+        after = _spec(
+            _criterion("text"),
+            _criterion("go", organism=MultiPickValue(values=["Plasmodium"])),
+            self._with_hidden_channel(
+                _criterion("expr", min_expression_percentile=NumberValue(value=80))
+            ),
+        )
+
+        assert _disposition(diff_specs(_three(), after), "expr") == "kept"
 
 
 class TestTheStructure:

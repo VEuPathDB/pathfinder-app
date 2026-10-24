@@ -87,7 +87,6 @@ async def test_two_open_sheets_name_every_parameter_either_holds() -> None:
 
     assert sorted(_params(schema)["properties"]) == [
         "any_or_all",
-        "channel",
         "max_expression_percentile",
         "min_expression_percentile",
         "profileset_generic",

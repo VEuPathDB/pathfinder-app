@@ -128,16 +128,13 @@ def _hidden_versioned(context: dict[str, str]) -> list[ParameterInfo]:
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_parameter_with_a_choice_renders_its_choices_line(
+async def test_a_hidden_parameter_renders_no_choices_line(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_search(monkeypatch, _hidden_versioned)
     _serve_count(monkeypatch, 0)
     state = AgentToolState()
 
-    await bind(state, "RecordsByMethod", {"min_count": "1", **_PICK_V3})
+    await bind(state, "RecordsByMethod", {"min_count": "1"})
 
-    assert (
-        "    CHOICES method_version: holds ['v3'], 3 options, others ['v2', 'v1']"
-        in _frame_section(state.operational_spec_draft)
-    )
+    assert "CHOICES method_version" not in _frame_section(state.operational_spec_draft)

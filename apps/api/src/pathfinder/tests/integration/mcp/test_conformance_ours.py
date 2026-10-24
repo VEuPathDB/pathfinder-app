@@ -28,7 +28,6 @@ from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.server import SERVER_NAME, TOOLS
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
-from pathfinder.tests._support.orthomcl_counts import CRYPTOSPORIDIUM
 from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
 from pathfinder.tests.integration.mcp._served import (
     RECORD_TYPE,
@@ -65,9 +64,24 @@ NEGATIVE_CONTROL = "TGME49_205250"
 CONTROL_GENE_COUNT = 3
 
 ORTHOMCL = "orthomcl"
-MORE_PROTEINS = "tgon"
-FEWER_PROTEINS = "pfal"
 CLADE = "APIC"
+ONLY_IN_CLADE = {
+    "kind": "all_of",
+    "terms": [
+        {
+            "kind": "count",
+            "of": {"kind": "codes", "codes": [CLADE]},
+            "measure": "genomes",
+            "condition": "at_least",
+            "value": 1,
+        },
+        {
+            "kind": "count",
+            "of": {"kind": "all_except", "codes": [CLADE]},
+            "condition": "absent",
+        },
+    ],
+}
 
 RUN_SECONDS = 900.0
 
@@ -153,9 +167,9 @@ class AdmissionRecord(CamelModel):
 
 def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
     """The arguments a conformance call may use, on the one site kept warm and,
-    for the three OrthoMCL expression builders, on the site they serve.
+    for the OrthoMCL expression builder, on the site it serves.
 
-    Nineteen of the served tools appear. `enrich_gene_ids` is not among them: the
+    Seventeen of the served tools appear. `enrich_gene_ids` is not among them: the
     suite calls one non-destructive write, and the cheaper of the two answers it.
     """
     return {
@@ -165,17 +179,7 @@ def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
         "list_searches": {"site_id": SITE},
         "list_transforms": {"site_id": SITE},
         "lookup_phyletic_codes": {"site_id": SITE, "query": "falciparum"},
-        "build_protein_count_comparison": {
-            "site_id": ORTHOMCL,
-            "genome_a": MORE_PROTEINS,
-            "genome_b": FEWER_PROTEINS,
-            "reverse": True,
-        },
-        "build_clade_only_expression": {"site_id": ORTHOMCL, "clade": [CLADE]},
-        "build_every_species_expression": {
-            "site_id": ORTHOMCL,
-            "clade": CRYPTOSPORIDIUM,
-        },
+        "build_phyletic_expression": {"site_id": ORTHOMCL, "pattern": ONLY_IN_CLADE},
         "search_example_plans": {"site_id": SITE, "query": "gametocyte genes"},
         "get_search_overview": {"site_id": SITE, "search_name": TARGET_SEARCH},
         "get_parameter_options": {

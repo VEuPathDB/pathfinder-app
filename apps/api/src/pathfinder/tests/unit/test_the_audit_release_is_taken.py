@@ -66,7 +66,14 @@ _AUDIT_NAMES = {
     "upload_gene_list",
 }
 _GENE_LOOKUP_NAMES = {"GeneIdFound", "list_organisms", "read_each_gene_id"}
-_CATALOG_NAMES = {"NoGeneRecordsError", "require_gene_records"}
+_CATALOG_NAMES = {
+    "HiddenParameterError",
+    "NoGeneRecordsError",
+    "PhyleticExpressionResult",
+    "PhyleticPattern",
+    "require_gene_records",
+    "write_phyletic_expression",
+}
 _TOOL_NAMES = {
     "audit_gene_evidence",
     "audit_gene_fusion",
@@ -79,7 +86,7 @@ _TOOL_NAMES = {
     "audit_pseudogene_call",
     "audit_selenoprotein_end",
     "audit_strain_model",
-    "build_every_species_expression",
+    "build_phyletic_expression",
 }
 
 
@@ -107,4 +114,4 @@ def test_the_pinned_releases_are_installed() -> None:
         veupathdb_mcp.__version__,
         version("veupathdb-py"),
         version("assistant-core"),
-    ) == ("0.2.0b39", "0.2.0b39", "0.1.0b22", "0.3.0b11")
+    ) == ("0.2.0b42", "0.2.0b42", "0.1.0b23", "0.3.0b12")

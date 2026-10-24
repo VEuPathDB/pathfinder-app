@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
+from pathfinder.domain.strategy.expression_handles import expression_handle
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -246,3 +247,31 @@ def test_a_step_moved_onto_an_rna_seq_upload_keeps_the_rna_seq_grounding() -> No
     )
 
     assert briefing.constraints == []
+
+
+def _groups_ast(expression: str) -> StrategyAst:
+    return StrategyAst(
+        record_type="group",
+        root=StrategyStepNode(
+            id="step_groups",
+            search_name="GroupsByPhyleticPattern",
+            parameters={"phyletic_expression": StringValue(value=expression)},
+            display_name="groups",
+        ),
+    )
+
+
+def test_an_outside_change_to_an_expression_names_both_handles() -> None:
+    before, after = "APIC>=1T AND MAMM=0T", "APIC>=2T AND MAMM=0T"
+
+    briefing = compose_turn_briefing(
+        ThreadActivity(),
+        requirements=[],
+        answered=_groups_ast(before),
+        live=_groups_ast(after),
+    )
+
+    assert briefing.render().splitlines()[1] == (
+        f"- groups (step_groups): phyletic_expression {expression_handle(before)} "
+        f"-> {expression_handle(after)}"
+    )

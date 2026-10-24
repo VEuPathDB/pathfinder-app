@@ -13,6 +13,12 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
+from pathfinder.domain.strategy.expression_handles import (
+    BuiltPattern,
+    UnknownExpressionError,
+    held_expressions,
+    resolved_params,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -33,7 +39,7 @@ def params_held(spec: OperationalSpec) -> dict[str, set[str]]:
     """The parameters each criterion holds, bound or open, by criterion id."""
     held: dict[str, set[str]] = defaultdict(set)
     for c in spec.criteria:
-        held[c.id] |= set(c.resolved_params) | {s.param_name for s in c.open_params}
+        held[c.id] |= set(c.shown_values) | {s.param_name for s in c.open_params}
     for slot in spec.open_slots:
         held[slot.criterion_id].add(slot.param_name)
     return held
@@ -75,7 +81,12 @@ def _card_bound(
     sheet: Sequence[ParameterInfo],
 ) -> Criterion:
     slots = [*criterion.open_params, *slots]
+    hidden = {i.name for i in sheet if not i.is_visible} | {
+        name for name, held in criterion.resolved_params.items() if not held.visible
+    }
     for name, value in binding.params.items():
+        if name in hidden:
+            continue
         kind = _kind_of(criterion, name, slots, sheet)
         criterion = criterion_restated(
             criterion,
@@ -109,12 +120,18 @@ def spec_bound_by_card(
     *,
     option_id: str,
     sheets: Mapping[str, Sequence[ParameterInfo]],
+    expressions: Mapping[str, BuiltPattern],
 ) -> OperationalSpec:
     """The spec with the option's values bound as the card's, each read on the
     published sheet of its search in ``sheets``. A value takes the kind of the
     value it replaces or the slot it fills; a gone criterion binds nothing."""
     if all(c.id != binding.criterion_id for c in spec.criteria):
         return spec
+    try:
+        params = resolved_params(binding.params, held_expressions(expressions, spec))
+    except UnknownExpressionError:
+        return spec
+    binding = binding.model_copy(update={"params": params})
     slots = [s for s in spec.open_slots if s.criterion_id == binding.criterion_id]
     return spec.model_copy(
         update={

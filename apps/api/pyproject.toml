@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-ai>=2.54.0,<3",
     "fastmcp-slim[server]>=3.3.0,<4",
     "langgraph==1.2.11",
-    "langgraph-checkpoint-postgres==3.1.2", # PYSEC-2026-3635
+    "langgraph-checkpoint-postgres==3.1.3", # CVE-2026-115883
     "psycopg[binary]>=3.2.0",
     "langfuse>=4.0.0",
     "opentelemetry-sdk>=1.44.0",
@@ -56,9 +56,9 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b11" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b22" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b39" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b12" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b23" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b42" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0b1" }
 
 [build-system]

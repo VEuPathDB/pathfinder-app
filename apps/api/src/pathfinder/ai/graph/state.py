@@ -45,6 +45,7 @@ from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
+from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -217,6 +218,7 @@ class StrategyDomainState(ThreadRequirements):
     # was stale last turn is not stale after the next build.
     stale_build: StaleBuild | None = None
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
+    built_expressions: dict[str, BuiltPattern] = Field(default_factory=dict)
     # The EDA filter sheet the thread holds open, and the study it describes.
     open_eda_sheet: OpenEdaSheet | None = None
     # The analysis-state card the thread last showed. A tool emits the card

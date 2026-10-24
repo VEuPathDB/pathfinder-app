@@ -165,7 +165,7 @@ def test_a_fold_carries_a_value_from_its_option() -> None:
     )
 
 
-def test_a_hidden_parameter_without_a_choice_is_bound_not_visible() -> None:
+def test_a_hidden_parameter_is_bound_not_visible() -> None:
     bound = bind_values(
         {
             "profile_pattern": StringValue(value="hsap=1T"),
@@ -181,12 +181,12 @@ def test_a_hidden_parameter_without_a_choice_is_bound_not_visible() -> None:
     }
 
 
-def test_a_hidden_parameter_with_a_choice_is_bound_visible() -> None:
+def test_a_hidden_parameter_with_a_vocabulary_is_bound_not_visible() -> None:
     bound = bind_values(
         {"channel": StringValue(value="Channel 1")}, "default", _PERCENTILE
     )
 
-    assert bound["channel"].visible is True
+    assert bound["channel"].visible is False
 
 
 def test_a_value_read_again_keeps_the_visibility_of_its_sheet() -> None:

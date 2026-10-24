@@ -291,7 +291,7 @@ class TestTheParamVocabSnapshot:
             ),
             ParameterInfo,
         )
-        assert result is info
+        assert result == info
 
         overview = state.get_overview("RNASeqHardFloor")
         assert overview is not None

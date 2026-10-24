@@ -18,10 +18,8 @@ const REGISTERED = [
   "add_step_filter",
   "apply_operations",
   "browse_search_categories",
-  "build_clade_only_expression",
   "build_control_set",
-  "build_every_species_expression",
-  "build_protein_count_comparison",
+  "build_phyletic_expression",
   "build_strategy",
   "classify_user_intent",
   "clear_strategy",
@@ -143,15 +141,9 @@ describe("humanizeToolName", () => {
     expect(humanizeToolName("rename_strategy")).toBe("Rename strategy");
   });
 
-  it("names the three OrthoMCL expression builders by what they build", () => {
-    expect(humanizeToolName("build_protein_count_comparison")).toBe(
-      "Compare protein counts",
-    );
-    expect(humanizeToolName("build_clade_only_expression")).toBe(
-      "Find groups only in a clade",
-    );
-    expect(humanizeToolName("build_every_species_expression")).toBe(
-      "Find groups in every species",
+  it("names the OrthoMCL expression builder by what it builds", () => {
+    expect(humanizeToolName("build_phyletic_expression")).toBe(
+      "Build a phyletic pattern",
     );
   });
 

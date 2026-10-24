@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -26,6 +26,7 @@ from pathfinder.ai.tools.standalone._frame_rationale_terms import (
     Binding,
     checked_term,
 )
+from pathfinder.domain.strategy.expression_handles import shown_params
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.step_rationale import (
     MAX_REASON_CHARS,
@@ -122,12 +123,12 @@ async def rationale_for(
         if kept is None:
             return ChosenWhy(None)
         if kept.kind == "search":
-            changed = kept.changed_by(_wired(values))
+            changed = kept.changed_by(shown_params(values))
             organisms = {info.name for info in infos if info.organism_param}
             if not changed:
                 return ChosenWhy(kept)
             if set(changed) <= organisms and not _names_the_old_value(kept, changed):
-                rewired = kept.model_copy(update={"derived_from": _wired(values)})
+                rewired = kept.model_copy(update={"derived_from": shown_params(values)})
                 return ChosenWhy(rewired)
             if why is None:
                 raise ModelRetry(_derived_from_changed(criterion_id, kept, changed))
@@ -180,7 +181,7 @@ async def rationale_for(
         query=read.query,
         tool_call_id=read.tool_call_id,
         sources=sources_retrieved(ctx, criterion_id, why.sources),
-        derived_from=_wired(values),
+        derived_from=shown_params(values),
     )
     corrections = () if chosen.correction is None else (chosen.correction,)
     return ChosenWhy(rationale, corrections)
@@ -195,10 +196,6 @@ def _names_the_old_value(kept: SearchRationale, changed: Sequence[str]) -> bool:
         for word in words_of(kept.derived_from.get(name, ""))
         if word not in FILLER_WORDS
     )
-
-
-def _wired(values: Mapping[str, ParamValue]) -> dict[str, str]:
-    return {name: to_wire(value) for name, value in values.items()}
 
 
 def _read_behind(

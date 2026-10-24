@@ -5,10 +5,17 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from veupathdb.domain.parameters import PhyleticExpression, PhyleticTree, to_wire
+from veupathdb.domain.parameters import PhyleticTree, to_wire
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.domain.strategy.expression_handles import (
+    expression_reading,
+    shown_wire,
+)
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+    Measurement,
+)
 from pathfinder.services.strategies.parameter_rules import rules_of
 
 
@@ -24,13 +31,13 @@ def expression_readings(
             continue
         if rules_of(infos[name]).measurement != "expression_reading":
             continue
-        expression = PhyleticExpression.parse(to_wire(bound.value))
+        text = to_wire(bound.value)
         readings.append(
             Measurement(
                 kind="vocabulary_label",
                 param=name,
-                reading=expression.render(),
-                label=expression.describe(tree or PhyleticTree()),
+                reading=shown_wire(name, text),
+                label=expression_reading(text, tree or PhyleticTree()),
             )
         )
     return readings

@@ -25,7 +25,6 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolInputStartChunk,
     ToolOutputDeniedChunk,
 )
-from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.graph._lead_answers import answers_for, is_pure_approval, typed_reply
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -37,6 +36,7 @@ from pathfinder.ai.lead.proposal import (
     AdoptionArgs,
     DeclinedProposal,
 )
+from pathfinder.domain.strategy.expression_handles import shown_params
 
 _DECLINED_BY_REPLY = "The researcher sent a new message instead of answering the card."
 # A no on a removal is a no to the message that asked for it.
@@ -75,10 +75,7 @@ def _declined_offer(
             AddCriterionChange(
                 sentence=f"{criterion.text} ({criterion.role})",
                 search_name=criterion.search_name,
-                params={
-                    name: to_wire(bound.value)
-                    for name, bound in criterion.resolved_params.items()
-                },
+                params=shown_params(criterion.param_values),
             )
             for criterion in offer.spec.criteria
         ],

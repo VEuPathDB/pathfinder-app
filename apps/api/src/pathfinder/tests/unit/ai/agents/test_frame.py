@@ -223,59 +223,26 @@ def test_frame_instructions_keep_the_organism_a_value() -> None:
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
-def test_frame_instructions_write_absence_from_some_genomes_as_the_site_reads_it() -> (
+def test_frame_instructions_build_every_phyletic_expression_and_bind_its_handle() -> (
     None
 ):
     text = _normalized(_FRAME_INSTRUCTIONS)
 
-    assert "<=(N-k)T`." not in text
     assert (
-        "absence from at least k of its N genomes, for k below N, is "
-        "`X AND L<=(N-k)T OR X AND L=0T`, with X the other units of that AND term "
-        "(`L<=(N-k)T OR L=0T` when there are none); absence from all N is "
-        "`X AND L=0T`."
+        "On OrthoMCL, describe the groups to `build_phyletic_expression(pattern)` "
+        "with the codes `lookup_phyletic_codes` returns, and bind "
+        "`phyletic_expression` to the handle it returns."
     ) in text
-    assert "absence from a list L is `L=0T`" in text
-    assert (
-        "The site drops parentheses and reads AND before OR, so write an OR of AND "
-        "terms" in text
-    )
     assert "A genus with no clade code is the list of its genome codes." in text
-    assert "Single copy over a list is only `L=NT AND L=N`" in text
-
-
-def test_frame_instructions_build_a_protein_count_comparison_and_never_write_it() -> (
-    None
-):
-    text = _normalized(_FRAME_INSTRUCTIONS)
-
+    assert "Single copy often returns few groups." in text
+    assert "recipe" not in text
     assert (
-        "A comparison of the protein counts of two single genomes, genome A holding "
-        "more proteins than genome B, is never written by hand: "
-        "`build_protein_count_comparison(genome_a, genome_b)` reads from the site "
-        "the largest count the ladder needs and returns the expression; bind it whole."
+        "On a phyletic expression, each reading's `value` is a handle "
+        "`build_phyletic_expression` returned for that reading."
     ) in text
-
-
-def test_frame_instructions_build_a_presence_only_in_a_clade() -> None:
-    text = _normalized(_FRAME_INSTRUCTIONS)
-
-    assert (
-        "Presence in a clade or genome list L with no protein in any genome outside "
-        "L is built by `build_clade_only_expression(clade)`, with `within` a clade M "
-        "that holds L when only the genomes outside M must hold none; bind its "
-        "expression whole."
-    ) in text
-
-
-def test_frame_instructions_build_a_presence_in_every_species() -> None:
-    text = _normalized(_FRAME_INSTRUCTIONS)
-
-    assert (
-        "Presence in every species of a clade or genome list L, a species present "
-        "when half its genomes rounded up hold a protein, is built by "
-        "`build_every_species_expression(clade)`; bind its expression whole."
-    ) in text
+    assert "The site drops parentheses" not in text
+    assert "<=(N-k)T" not in text
+    assert "correct the pattern and build it again." in text
 
 
 def test_frame_instructions_ask_for_the_scope_of_a_taxon_an_expression_spans() -> None:

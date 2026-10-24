@@ -214,19 +214,25 @@ def _authored_spec(dataset_id: str) -> str:
     )
 
 
-def _string_param(name: str) -> WDKParameter:
+def _string_param(name: str, *, visible: bool = True) -> WDKParameter:
     return WDKStringParam(
         name=name,
         display_name=name,
         allow_empty_value=True,
         initial_display_value="",
+        is_visible=visible,
     )
 
 
-def _eda_response(*, search_name: str, query_name: str) -> WDKSearchResponse:
+def _eda_response(
+    *, search_name: str, query_name: str, visible: bool = True
+) -> WDKSearchResponse:
     return wdk_search_response(
         search_name,
-        [_string_param(EDA_DATASET_ID_PARAM), _string_param(EDA_ANALYSIS_SPEC_PARAM)],
+        [
+            _string_param(EDA_DATASET_ID_PARAM, visible=visible),
+            _string_param(EDA_ANALYSIS_SPEC_PARAM, visible=visible),
+        ],
         level="DISPLAYABLE",
         query_name=query_name,
     )
@@ -307,6 +313,27 @@ class TestAProposedSpecIsRefused:
         assert result.params[EDA_ANALYSIS_SPEC_PARAM] == StringValue(
             value=_authored_spec(_DATASET_ID)
         )
+
+
+async def test_the_service_sets_the_hidden_eda_values_it_authored(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(
+        monkeypatch,
+        _eda_response(
+            search_name=_DESEQ_SEARCH, query_name=COMPUTE_QUERY, visible=False
+        ),
+    )
+
+    result = await _validate_spec(_DESEQ_SEARCH, _authored_spec(_DATASET_ID))
+
+    assert (
+        result.params[EDA_DATASET_ID_PARAM],
+        result.params[EDA_ANALYSIS_SPEC_PARAM],
+    ) == (
+        StringValue(value=_DATASET_ID),
+        StringValue(value=_authored_spec(_DATASET_ID)),
+    )
 
 
 class TestAnEmptySpecFollowsTheQuery:

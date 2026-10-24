@@ -61,6 +61,7 @@ DOMAIN_FIELDS = {
     "last_build_outcome",
     "stale_build",
     "created_gene_sets",
+    "built_expressions",
     "open_eda_sheet",
     "eda_analysis",
     "open_eda_analysis",

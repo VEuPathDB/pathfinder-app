@@ -154,7 +154,10 @@ the pattern and the two lists, tested in
 decides a search is phyletic and builds its tree, so the sheet, the binding and
 the wire guard cannot disagree about it;
 `veupathdb_mcp/catalog/param_phyletic.py:derive_phyletic_overrides` is the binding,
-applied in `ai/tools/standalone/frame_spec.py:set_criterion` and by the bench.
+applied by the resolver: `set_criterion` passes the two proposed lists and the
+search's definition to `resolve_params_with_intent(..., definition=)`
+(`ai/tools/standalone/_frame_proposals.py:resolve_proposals`), which derives
+`profile_pattern` and refuses a stated one.
 Conformance: `packages/spec/phyletic_conformance.json` is one clade tree and one
 expected binding per selection, read by
 `apps/api/src/pathfinder/tests/unit/test_phyletic_conformance.py`

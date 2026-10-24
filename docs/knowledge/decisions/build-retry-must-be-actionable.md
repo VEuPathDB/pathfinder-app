@@ -40,7 +40,7 @@ The guard still raises `ModelRetry`; only the wording varies. That keeps the exi
 A refusal is one of three things, in this order:
 
 - **A correction, when the code can compute it.** `set_criterion` leaves out a
-  parameter only the site sets (read-only, or hidden with no vocabulary:
+  parameter only the site sets (read-only, or hidden:
   `document_type`, `dataset_url`) proposed at the value the site holds and
   names it in `corrections`; it maps a
   display name written without its parenthetical ("Text term") or in other case

@@ -100,7 +100,7 @@ _PERCENTILE_WHY = {
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_choice_at_the_sites_value_binds_as_the_default(
+async def test_a_hidden_parameter_at_the_sites_value_is_left_out(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch)
@@ -117,30 +117,33 @@ async def test_a_hidden_choice_at_the_sites_value_binds_as_the_default(
     [criterion] = state.operational_spec_draft.criteria
     channel = criterion.resolved_params["channel"]
     assert (result.corrections, to_wire(channel.value), channel.source) == (
-        [],
+        ["channel is set by the site to 'Channel 1', so the proposal was left out"],
         "Channel 1",
         "default",
     )
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_choice_at_another_of_its_values_binds_as_chosen(
+async def test_a_hidden_parameter_at_another_of_its_values_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch)
     state = AgentToolState()
 
-    await _bind(
-        state,
-        _PERCENTILE,
-        _TACHYZOITE | {"channel": "Channel 2"},
-        _PERCENTILE_WHY,
-        text="genes expressed in asexual blood stages at the 50th percentile",
-    )
+    with pytest.raises(ModelRetry) as refused:
+        await _bind(
+            state,
+            _PERCENTILE,
+            _TACHYZOITE | {"channel": "Channel 2"},
+            _PERCENTILE_WHY,
+            text="genes expressed in asexual blood stages at the 50th percentile",
+        )
 
-    [criterion] = state.operational_spec_draft.criteria
-    channel = criterion.resolved_params["channel"]
-    assert (to_wire(channel.value), channel.source) == ("Channel 2", "chosen")
+    assert str(refused.value).startswith(
+        f"channel on {_PERCENTILE.url_segment} is set by the site to 'Channel 1' "
+        "and takes no other value; leave it out of params."
+    )
+    assert state.operational_spec_draft.criteria == []
 
 
 _VES: Proposals = {

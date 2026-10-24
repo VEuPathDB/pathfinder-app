@@ -61,7 +61,7 @@ Babesia under Babesiidae). `BoundValue.taxon` holds the taxon and its organism
 count, and the facts row shows it ("Organism: Babesia (10 organisms)"). A longer
 entry the message names at the same words, a species, names that entry and not
 the taxon. A parameter the
-parameter rules class as `site_fixed` (read-only, or hidden with no vocabulary)
+parameter rules class as `site_fixed` (read-only, or hidden)
 has the source rule `site`: its value is `default` whatever a message holds. `set_criterion` decides the source from that data;
 the model never declares it. A value read from a strategy that already exists
 (a hydrated spec, an outside change replayed) is `held`: the strategy holds it
@@ -106,10 +106,11 @@ against the site's default, when it differs. Each parameter class names its
 rule in `PARAMETER_RULES`, which is total over the kinds WDK publishes: a date,
 a dataset, a step input and the derived profile pattern record why they have
 no reading, an unquoted single word and a search the site search does not
-read record the same, and a read-only parameter or a hidden parameter with no
-vocabulary is the site's to set, so nothing is measured. A hidden parameter
-that is not read-only and has a vocabulary is a choice the bind takes, since
-WDK accepts any of its entries, and the sheet lists it marked hidden. A count
+read record the same, and a read-only or hidden parameter is the site's to set,
+so nothing is measured. A hidden parameter is never a choice, with or without a
+vocabulary: the website draws no hidden group and sends each hidden value from
+its default or the saved step, and the sheet lists no hidden parameter
+(veupathdb-mcp 0.2.0b40). A count
 the service fails to answer (a 5xx) is recorded with no count.
 An unquoted text is also counted with each operand of several words quoted
 (`TextExpression`), recorded as a `phrase_reading`; the operator words `AND`,
@@ -233,9 +234,17 @@ longer value once made the whole value stated, so a Boolean the model composed
 around a phrase of the request read as the researcher's, and skipped its
 measurement. The whole value is now required.
 
-**Holding every hidden parameter to its default.** A hidden parameter with a
-vocabulary can decide a dependent vocabulary; holding it hid the comparison the
-request named and refused a value WDK accepts.
+**A hidden parameter with a vocabulary is a choice.** Taken from 0.2.0a32 and
+reversed with veupathdb-mcp 0.2.0b40. The website never shows a hidden
+parameter: wdk-client's `DefaultQuestionForm.tsx` draws no group whose
+`displayType` is `hidden`, and `extractParamValues` fills each hidden value
+from the URL, the saved step or `initialDisplayValue`. A hidden `channel` set
+to its other entry made QA plasmodb answer 500
+(`GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCPercentile`). A hidden
+value now travels at its default, or at the saved step's value when that step
+is revised (`spec_diff._change_for` moves no hidden value the spec before it
+did not state). The bind's return lists no hidden value, no question holds one
+(`card_answers.params_held`), and a card binds none.
 
 **The message states a value before the site does.** A read-only
 `document_type` "gene" and a site default "any" read as stated because a word
@@ -278,7 +287,7 @@ Guarded by `tests/unit/domain/strategy/test_a_value_says_who_set_it.py`,
 `tests/unit/domain/strategy/test_a_value_is_stated_only_whole.py`,
 `tests/unit/services/strategies/test_every_parameter_kind_is_measured_and_labelled.py`,
 `tests/unit/domain/test_a_pick_names_the_options_not_taken.py`,
-`tests/unit/ai/tools/test_a_hidden_choice_is_bindable.py`,
+`tests/unit/ai/tools/test_a_hidden_parameter_is_never_a_choice.py`,
 `tests/unit/services/strategies/test_a_choice_is_named_only_when_it_changes_the_count.py`,
 `tests/unit/services/strategies/test_a_binding_is_measured_against_its_other_readings.py`,
 `tests/unit/ai/tools/test_a_bind_records_its_measurements.py`,

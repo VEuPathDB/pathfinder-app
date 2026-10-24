@@ -16,6 +16,7 @@ from pydantic import (
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import (
     MAX_NEAREST_ENTRIES,
+    PHYLETIC_LIST_PARAMS,
     VocabOption,
     accession_matches,
     match_exact_option,
@@ -25,18 +26,17 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
+    HiddenParameterError,
     OverrideMap,
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
-    PhyleticNoSelection,
-    PhyleticUnresolvedProposal,
+    PhyleticListError,
     RadioPairIssue,
     ResolvedParams,
     UnknownParameterError,
     UnreadableValueError,
     check_radio_pairs,
-    derive_phyletic_overrides,
     is_phyletic_sheet,
     radio_pairs,
     resolve_params_with_intent,
@@ -237,8 +237,8 @@ async def refuse_unmatched_values(
     A dependent parameter is skipped here: the sheet showed its vocabulary under
     the search defaults, and ``reconcile_dependents`` checks it against the one
     the bound parents produce. A filter parameter takes a facet expression, not
-    a vocabulary entry. A ``derived`` parameter holds a canonical value the
-    derivation already resolved, which names no single entry. A refusal that
+    a vocabulary entry. A ``derived`` parameter is a species list the
+    resolver reads against the tree, which names no single entry. A refusal that
     sends the request to the portal is recorded on the pass. A user-dataset
     parameter is checked against the researcher's own uploads instead.
     """
@@ -320,52 +320,8 @@ async def _other_sites_holding(
     return [held for held in holders if held != site_id]
 
 
-def phyletic_overrides(
-    definition: WDKSearch, call: CriterionCall, infos: list[ParameterInfo]
-) -> dict[str, str] | None:
-    """The three phyletic values the two proposed species lists state.
-
-    The clade tree lives on the structural parameters, which the sheet drops. An
-    unresolved term and an empty selection are both retries.
-    """
-    if not is_phyletic_sheet(infos):
-        return None
-    match derive_phyletic_overrides(definition.parameters or [], call.params):
-        case None:
-            return None
-        case PhyleticUnresolvedProposal() as unresolved:
-            raise ModelRetry(_phyletic_retry(call, unresolved))
-        case PhyleticNoSelection():
-            msg = (
-                f"{call.search_name}: a phylogenetic profile needs at least one "
-                f"species or clade in included_species or excluded_species. An "
-                f"empty selection states no criterion and returns every gene of "
-                f"the chosen organisms. Name what must have an ortholog and what "
-                f"must not, or drop_criterion if the request states neither."
-            )
-            raise ModelRetry(msg)
-        case derived:
-            return derived.model_dump()
-
-
-def _phyletic_retry(call: CriterionCall, derived: PhyleticUnresolvedProposal) -> str:
-    """Names each list's unresolved terms and the entries nearest to them."""
-    unresolved = derived.unresolved
-    reasons: list[str] = []
-    if unresolved.included_unknown:
-        reasons.append(f"included_species names no entry {unresolved.included_unknown}")
-    if unresolved.excluded_unknown:
-        reasons.append(f"excluded_species names no entry {unresolved.excluded_unknown}")
-    if unresolved.conflicts:
-        reasons.append(f"{unresolved.conflicts} is in both lists")
-    nearest = f" Nearest entries: {derived.nearest}." if derived.nearest else ""
-    return (
-        f"{call.search_name}: {'; '.join(reasons)}. Copy a code or a label from the "
-        f"included_species / excluded_species vocabulary on the sheet, and name each "
-        f"species or clade in ONE of the two lists. A genus or common name is not a "
-        f"node - name a species or a clade code from the sheet, or call "
-        f"lookup_phyletic_codes(query).{nearest}"
-    )
+def species_lists(infos: list[ParameterInfo]) -> frozenset[str]:
+    return PHYLETIC_LIST_PARAMS if is_phyletic_sheet(infos) else frozenset()
 
 
 def radio_overrides(
@@ -420,19 +376,34 @@ def _radio_retry(
 
 
 async def resolve_proposals(
-    fetch_at: ParamFetcher, text: str, overrides: OverrideMap
+    fetch_at: ParamFetcher,
+    call: CriterionCall,
+    overrides: OverrideMap,
+    definition: WDKSearch,
 ) -> ResolvedParams:
     try:
         return await resolve_params_with_intent(
             fetch_at=fetch_at,
-            intent=ParamIntent(text=text),
+            intent=ParamIntent(text=call.text),
             overrides=overrides,
+            definition=definition.parameters or [],
         )
     except UnknownParameterError as exc:
         msg = (
             f"{exc.detail} The valid names are listed above; do not request the "
             f"sheet again."
         )
+        raise ModelRetry(msg) from exc
+    except PhyleticListError as exc:
+        msg = (
+            f"{call.search_name}: {exc.detail} A genus or common name is not a "
+            f"node: name a species or a clade code from the included_species / "
+            f"excluded_species vocabulary on the sheet, or call "
+            f"lookup_phyletic_codes(query). Nothing was recorded."
+        )
+        raise ModelRetry(msg) from exc
+    except HiddenParameterError as exc:
+        msg = f"{call.search_name}: {exc.detail} Nothing was recorded."
         raise ModelRetry(msg) from exc
     except UnreadableValueError as exc:
         raise ModelRetry(str(exc)) from exc

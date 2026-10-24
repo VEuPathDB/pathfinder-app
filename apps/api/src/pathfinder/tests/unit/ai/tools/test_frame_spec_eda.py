@@ -51,25 +51,27 @@ _INVENTED_SPEC = (
 )
 
 
-def _eda_params(default: str | None) -> list[WDKParameter]:
+def _eda_params(default: str | None, *, visible: bool = True) -> list[WDKParameter]:
     return [
         WDKStringParam(
             name=EDA_DATASET_ID_PARAM,
             display_name=EDA_DATASET_ID_PARAM,
             allow_empty_value=True,
             initial_display_value=default,
+            is_visible=visible,
         ),
         WDKStringParam(
             name=EDA_ANALYSIS_SPEC_PARAM,
             display_name=EDA_ANALYSIS_SPEC_PARAM,
             allow_empty_value=True,
             initial_display_value="",
+            is_visible=visible,
         ),
     ]
 
 
-def _eda_response(default: str | None) -> WDKSearchResponse:
-    parameters = _eda_params(default)
+def _eda_response(default: str | None, *, visible: bool = True) -> WDKSearchResponse:
+    parameters = _eda_params(default, visible=visible)
     return WDKSearchResponse(
         search_data=WDKSearch(
             url_segment=_MUTAGENESIS_SEARCH,
@@ -99,10 +101,10 @@ def _eda_callbacks(_site_id: str, **_kw: object) -> ValidationCallbacks:
 
 
 def _serve_the_eda_search(
-    monkeypatch: pytest.MonkeyPatch, *, default: str | None
+    monkeypatch: pytest.MonkeyPatch, *, default: str | None, visible: bool = True
 ) -> None:
     """The EDA-backed search, whose dataset default is ``default``."""
-    parameters = _eda_params(default)
+    parameters = _eda_params(default, visible=visible)
     infos = format_param_info_typed(parameters)
     serve_params(monkeypatch, lambda _context: infos)
     serve_definition(
@@ -122,10 +124,12 @@ def _serve_the_eda_search(
     async def _details(
         ctx: SearchContext, **_kw: object
     ) -> tuple[WDKSearchResponse, str]:
-        return _eda_response(default), ctx.record_type
+        return _eda_response(default, visible=visible), ctx.record_type
 
     async def _resolved(_ctx: SearchContext, **_kw: object) -> ResolvedSearch:
-        return ResolvedSearch(response=_eda_response(default), values_were_read=True)
+        return ResolvedSearch(
+            response=_eda_response(default, visible=visible), values_were_read=True
+        )
 
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
@@ -373,3 +377,25 @@ class TestABoundCriterionKeepsItsSearch:
         assert f"{self._HELD} is bound to {self._PERCENTILE}" in message
         assert "Name a new criterion id" in message
         assert state.operational_spec_draft.criteria == [self._held()]
+
+
+async def test_a_hidden_dataset_parameter_still_names_the_dataset_to_wait_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve_the_eda_search(monkeypatch, default=_DATASET_ID, visible=False)
+    state = AgentToolState()
+    upload = "EDAUD_Y518ZRlgBR0Q5"
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await bind(
+            state,
+            _MUTAGENESIS_SEARCH,
+            {EDA_DATASET_ID_PARAM: upload},
+            criterion_id="c_up",
+            text="up in treated",
+        )
+
+    assert f"needing the analysis workflow on dataset {upload}" in str(excinfo.value)
+    assert state.operational_spec_draft.criteria == [
+        _waiting_on("c_up", "up in treated", upload)
+    ]

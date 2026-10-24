@@ -370,6 +370,7 @@ def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
     deps.state.domain.discovered_searches = dict(
         agent_deps.agent_state.discovered_searches,
     )
+    deps.state.domain.built_expressions = dict(agent_deps.agent_state.built_expressions)
     draft = agent_deps.agent_state.operational_spec_draft
     if draft.criteria or draft.dropped:
         deps.state.domain.operational_spec = restate_copies(draft)

@@ -15,6 +15,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
 )
+from pathfinder.domain.strategy.expression_handles import held_readings
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     unanswered_questions,
@@ -88,7 +89,11 @@ def questions_for_the_card(
     return unanswered_questions(
         with_refusals(
             with_withdrawals(
-                result.questions(domain.operational_spec, domain.requirements),
+                result.questions(
+                    domain.operational_spec,
+                    domain.requirements,
+                    held_readings(domain.built_expressions),
+                ),
                 unstated,
             ),
             refused,

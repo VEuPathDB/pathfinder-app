@@ -64,8 +64,7 @@ class BoundValue(CamelModel):
     placeholder: bool = False
     # The value is the initial value the site publishes for the parameter.
     at_default: bool = False
-    # The sheet shows the parameter, or its vocabulary offers more than one
-    # entry. A hidden parameter with no choice still rides the step.
+    # The sheet shows the parameter. A hidden parameter still rides the step.
     visible: bool = True
     # The sheet reads the parameter as a number or a pick of terms.
     number: bool = False

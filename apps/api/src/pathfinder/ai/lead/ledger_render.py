@@ -18,6 +18,7 @@ from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import Caveat, ControlsCaveat
 from pathfinder.domain.evidence import NamedControlSet, VerificationReview
 from pathfinder.domain.reading_caveats import reading_line
+from pathfinder.domain.strategy.expression_handles import shown_value
 from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -26,7 +27,6 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.question_options import OptionBinding, SetValues
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.readings import ReadValues
-from pathfinder.domain.strategy.value_binding import plain_value
 
 # The most values one question card offers.
 _OPTION_WINDOW = 8
@@ -136,7 +136,7 @@ def _render_criterion(
     if reason is not None:
         out.append(f"    WHY {reason.line()}")
     out.extend(
-        f"    {crit.display_name_of(name)} ({name}) = {plain_value(bound.value)} "
+        f"    {crit.display_name_of(name)} ({name}) = {shown_value(name, bound.value)} "
         f"({bound.source})"
         for name, bound in crit.shown_values.items()
     )

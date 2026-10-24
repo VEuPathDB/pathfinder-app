@@ -33,12 +33,6 @@ def _at_default(value: ParamValue, published: str | None) -> bool:
 _NUMBER_KINDS = frozenset({"number", "single-pick-vocabulary"})
 
 
-def researcher_sees(info: ParameterInfo) -> bool:
-    """Whether the researcher sees the parameter: the sheet shows it, or its
-    vocabulary offers a choice of more than one entry."""
-    return info.is_visible or len(info.vocabulary()) > 1
-
-
 def _bound(
     value: ParamValue,
     source: ValueSource,
@@ -56,7 +50,7 @@ def _bound(
         label=value_label(value, info, sheet),
         placeholder=info.is_placeholder(to_wire(value)),
         at_default=_at_default(value, info.default_value),
-        visible=researcher_sees(info),
+        visible=info.is_visible,
         number=info.is_number or info.param_kind in _NUMBER_KINDS,
         decimals=shown_decimals(info.default_value),
     )

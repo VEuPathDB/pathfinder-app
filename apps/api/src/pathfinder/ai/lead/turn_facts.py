@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from veupathdb.domain.parameters import InputDatasetValue, to_wire
+from veupathdb.domain.parameters import (
+    PHYLETIC_EXPRESSION_PARAM,
+    InputDatasetValue,
+    to_wire,
+)
 from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -37,6 +41,7 @@ from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.last_change import LastChange, change_since
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.expression_handles import held_readings
 from pathfinder.domain.strategy.measurement_clauses import (
     counted_clauses,
     read_pick_clauses,
@@ -46,7 +51,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.option_labels import option_label
+from pathfinder.domain.strategy.option_labels import option_label, with_readings
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -104,6 +109,8 @@ def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str
             return bound.label or "an uploaded list", ""
         case _ if bound.taxon is not None:
             return bound.taxon.name, bound.taxon.label()
+        case _ if name == PHYLETIC_EXPRESSION_PARAM:
+            return bound.label, ""
         case _:
             return (
                 bound.rounded() or plain_value(bound.value),
@@ -215,13 +222,15 @@ def _record_types(graph: StrategyGraph | None) -> dict[str, str | None]:
 
 
 def _counted_live(
-    spec: OperationalSpec | None, sync: SyncStateProtocol | None
+    spec: OperationalSpec | None,
+    sync: SyncStateProtocol | None,
+    readings: Mapping[str, str],
 ) -> OperationalSpec | None:
     """The spec with each bind count that did not arrive taken from the live
-    strategy's count of the step it built."""
-    if spec is None or sync is None:
-        return spec
-    return spec.counted_at(sync.step_counts)
+    strategy's count of the step it built, and each built expression read."""
+    if spec is not None and sync is not None:
+        spec = spec.counted_at(sync.step_counts)
+    return with_readings(spec, readings)
 
 
 def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[StepFact]:
@@ -341,10 +350,11 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     markers = state.turn_markers
     domain = state.domain
     session = deps.runtime.strategy_session
-    spec = _counted_live(domain.operational_spec, session.sync_state)
+    readings = held_readings(domain.built_expressions)
+    spec = _counted_live(domain.operational_spec, session.sync_state, readings)
     # A built step runs the values the strategy answers to; a draft a pass
     # bound and no push wrote is the plan, not the step.
-    answered = _counted_live(domain.answered_spec, session.sync_state)
+    answered = _counted_live(domain.answered_spec, session.sync_state, readings)
     graph = session.get_graph(None)
     ledger = derive_ledger(state, deps.intent)
     said = state.researcher_messages()

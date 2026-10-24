@@ -141,6 +141,7 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         name: value
         for name, value in after_params.items()
         if before_params.get(name) != value
+        and (name in before_params or after.resolved_params[name].visible)
     }
     if not changed and not removed and not rebound:
         return CriterionChange(criterion_id=before.id, disposition="kept")

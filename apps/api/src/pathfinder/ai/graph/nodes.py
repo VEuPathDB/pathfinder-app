@@ -19,6 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from pathfinder.ai.agents.compactor import build_compactor_agent
 from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
 from pathfinder.ai.graph._lead_capture import turn_with_spend
+from pathfinder.ai.graph.expression_store import kept_expressions
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
@@ -144,8 +145,14 @@ async def finalize_turn_node(
             runtime.context, state, turn_message_id=turn_message_id
         )
 
+    domain_update: dict[str, object] = {}
     if notes_written and state.domain.created_gene_sets:
         # A note in the store is not offered again, so the per-turn write does
         # not grow with the thread.
-        update["domain"] = state.domain.model_copy(update={"created_gene_sets": []})
+        domain_update["created_gene_sets"] = []
+    kept = kept_expressions(state)
+    if kept != state.domain.built_expressions:
+        domain_update["built_expressions"] = kept
+    if domain_update:
+        update["domain"] = state.domain.model_copy(update=domain_update)
     return Command(goto=_END, update=update or None)

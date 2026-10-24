@@ -8,7 +8,7 @@ what left.
 ## Ranked
 
 51. [A clarifying question offers what the site can build](a-clarifying-question-offers-what-the-site-can-build.md) - a consult asks for raw search parameters and then still refuses; it offers two or three buildable readings in the user's terms, builds the one picked, and refuses once with the nearest buildable thing.
-50. [A copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md) - "more genes per genome in Toxoplasma than Plasmodium" is refused although the phyletic expression counts proteins over a genome list; build it as count bands joined with OR and state the clade-average caveat.
+50. [A copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md) - "more genes per genome in Toxoplasma than Plasmodium" is refused although `build_phyletic_expression` writes a clade-average comparison; guide the Lead to that pattern, offer it in the question and state the clade-average caveat.
 49. [An audit screens a genome for selenoproteins](an-audit-screens-a-genome-for-selenoproteins.md) - a genome-scope run screens length and split candidates from the gene reports; the selenoprotein check needs each genome's proteins with a `U`, which no library function reads per genome, so until one does it runs on explicit gene targets only.
 47. [A member count reaches framing on the first message](a-built-step-is-counted-by-a-column.md) - a count of a result's members by a column is classified a follow-up question on a conversation with no strategy and the column tally guesses a search; the tally's refusal now names the reroute to framing, and a replay of the first message must reach `frame_problem`, build the transform and answer with the site's tally.
 46. [An answer opens its result on the site](an-answer-opens-its-result-on-the-site.md) - the site link sits only in the rail's Strategy panel and the canvas top bar; the answer that reports a result opens that step's records on the site in one click.
@@ -28,6 +28,8 @@ what left.
 31. [A message that commands a change is an edit when it also asks a question](a-message-that-commands-a-change-is-an-edit.md) - a command beside a question can be classified a question that withdraws nothing, and the turn answers read-only.
 29. [A decision model is chosen on our own scorecards](a-decision-model-is-chosen-on-our-own-scorecards.md) - PARKED: Cloudflare's open-weight Clef and Clef-flash take Jev's request shape; the five Jev scorecards are rerun on both, on hosted Workers AI, before any decision model is wired.
 53. [A recorded gold strategy builds from its file](a-recorded-gold-strategy-builds-from-its-file.md) - no recorded gold file validates as a typed step tree, so the gold build route builds none of them.
+
+54. [Two site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary.
 
 ## Known and accepted
 

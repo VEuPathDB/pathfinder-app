@@ -21,7 +21,7 @@ It holds:
   vocabulary label read for it and who set it; a default or chosen value carries its
   measurement clauses (`measurement_clauses.counted_clauses`), a card value its option label,
   a stated or held value nothing more; a placeholder the site left (`BoundValue.placeholder`)
-  reads "not set (site placeholder)" with no measurement. A bound parameter the sheet does not show and whose vocabulary offers no choice (`BoundValue.visible` false: a phyletic profile pattern, an RNA-Seq `dataset_url`) draws no row, no ledger value line and no reason term, and still rides the step; a hidden parameter with more than one entry is a choice and keeps its row, and a value a count measures never shows a not-measurable clause. A measurement a row shows as a note
+  reads "not set (site placeholder)" with no measurement. A bound parameter the sheet does not show (`BoundValue.visible` false: a phyletic profile pattern, an RNA-Seq `dataset_url`, a hidden `channel`) draws no row, no ledger value line and no reason term, and still rides the step, and a value a count measures never shows a not-measurable clause. A measurement a row shows as a note
   is no caveat as well (`TurnFacts._one_drawer_per_measurement`), and a clause or a caveat
   names a pick of more than three values by its size (`measurement_clauses.shown_value`); the
   row shows it whole. An analysis row names its filters and its measured variable as the study

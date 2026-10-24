@@ -84,22 +84,11 @@ def test_a_third_identical_step_id_read_is_refused() -> None:
     )
 
 
-def test_a_third_identical_protein_count_comparison_is_refused() -> None:
-    answered = _identical_calls(
-        "build_protein_count_comparison", {"genome_a": "tgon", "genome_b": "pfal"}, 3
-    )
+def test_a_third_identical_phyletic_build_is_refused() -> None:
+    pattern = {"kind": "count", "of": {"kind": "codes", "codes": ["APIC"]}}
+    answered = _identical_calls("build_phyletic_expression", {"pattern": pattern}, 3)
 
     assert answered[:2] == ["", ""]
     assert answered[2].startswith(
-        "You have called build_protein_count_comparison 3 times with identical "
-        "arguments"
-    )
-
-
-def test_a_third_identical_clade_only_expression_is_refused() -> None:
-    answered = _identical_calls("build_clade_only_expression", {"clade": ["APIC"]}, 3)
-
-    assert answered[:2] == ["", ""]
-    assert answered[2].startswith(
-        "You have called build_clade_only_expression 3 times with identical arguments"
+        "You have called build_phyletic_expression 3 times with identical arguments"
     )

@@ -3,7 +3,8 @@ recommends, and the options it offers, each typed by what answering it binds."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from types import MappingProxyType
 from typing import Annotated
 
 from pydantic import Field, ValidationError, model_validator
@@ -44,6 +45,9 @@ _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
 _OPTIONS_LIMIT = 8
 _A_CHOICE = 2
+
+
+_NO_READINGS: Mapping[str, str] = MappingProxyType({})
 
 
 class _Question(CamelModel):
@@ -211,6 +215,7 @@ class SlotQuestion(AskedQuestion):
         noun: str = "record",
         replaces: Sequence[str] = (),
         stated: bool = False,
+        readings: Mapping[str, str] = _NO_READINGS,
     ) -> OpenQuestion:
         """The question with one option per value an offered value binds.
 
@@ -238,7 +243,13 @@ class SlotQuestion(AskedQuestion):
             options=[
                 TypedOption(
                     id=key,
-                    label=option_label(criterion, self.param_name, wire, noun=noun),
+                    label=option_label(
+                        criterion,
+                        self.param_name,
+                        wire,
+                        noun=noun,
+                        readings=readings,
+                    ),
                     binding=SetValues(
                         criterion_id=self.criterion_id,
                         params={self.param_name: wire},

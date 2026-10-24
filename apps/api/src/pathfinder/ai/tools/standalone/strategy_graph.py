@@ -18,6 +18,7 @@ from pathfinder.ai.tools.standalone.graph_helpers import (
     serialize_step,
 )
 from pathfinder.domain.strategy.build_outcome import built_counts
+from pathfinder.domain.strategy.expression_handles import shown_parameters
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
@@ -64,6 +65,12 @@ class StrategySummaryResponse(CamelModel):
     unread_analyses: list[str] = Field(default_factory=list)
 
 
+def shown_step(step: StepResponse) -> StepResponse:
+    if step.parameters is None:
+        return step
+    return step.model_copy(update={"parameters": shown_parameters(step.parameters)})
+
+
 async def get_strategy(
     ctx: RunContext[AgentDeps],
     *,
@@ -93,7 +100,8 @@ async def get_strategy(
     steps: list[StepResponse] | None = None
     if not summary_only:
         steps = [
-            serialize_step(graph, step, sync_state) for step in graph.steps.values()
+            shown_step(serialize_step(graph, step, sync_state))
+            for step in graph.steps.values()
         ]
 
     summary = StrategySummaryResponse(

@@ -378,10 +378,13 @@ async def test_a_proposal_binds_the_value_the_vocabulary_names(
     expected: dict[str, str],
 ) -> None:
     serve_for(monkeypatch, search)
+    state = AgentToolState()
 
-    result = await propose(AgentToolState(), search, params)
+    await propose(state, search, params)
 
-    assert {name: result.resolved_params[name] for name in expected} == expected
+    [criterion] = state.operational_spec_draft.criteria
+    held = criterion.resolved_params
+    assert {name: held[name].value.to_wire() for name in expected} == expected
 
 
 @pytest.mark.asyncio

@@ -11,6 +11,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import FrameResult, PassGap
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.domain.strategy.organism_steps import organisms_no_step_limits
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
@@ -19,6 +20,7 @@ from pathfinder.domain.strategy.requirement_reports import (
     reported_requirements,
     unknown_requirement_ids,
 )
+from pathfinder.services.gene_sets.homes import site_kind
 
 
 def _without(output: FrameResult, dropped: list[RequirementReport]) -> FrameResult:
@@ -89,6 +91,46 @@ def hold_the_record_types_to_a_role(
         "record-type requirement in 'Requirements the researcher stated' a role: "
         "answer when the result is those records, through when the tree passes "
         "through them."
+    )
+    raise ModelRetry(msg)
+
+
+def hold_an_organism_to_a_step(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
+        return output
+    state = ctx.deps.agent_state
+    unmet = organisms_no_step_limits(
+        state.stated_requirements,
+        output.requirement_problems,
+        state.operational_spec_draft,
+    )
+    if not unmet:
+        return output
+    numbered = numbered_requirements(state.stated_requirements)
+    if not may_refuse(ctx, state.refusals):
+        asked = "; ".join(f"{n} asks for: {numbered[n].requested_value}" for n in unmet)
+        return output.with_gap(
+            "organism_step_missing",
+            f"No step limits the records to the organism {asked}.",
+        )
+    state.refusals += 1
+    named = ", ".join(
+        f"{n} asks for {numbered[n].requested_value} (organism)" for n in unmet
+    )
+    ids = ", ".join(unmet)
+    remedy = (
+        "Add a step that does, such as the sequence search by taxonomy "
+        "(ByTaxonomy) intersected with the proteins, or a search whose organism "
+        "parameter names it."
+        if site_kind(ctx.deps.site_id) == "orthomcl"
+        else "Bind the organism parameter of a search that has one to it."
+    )
+    msg = (
+        f"{named}, and no step of the draft limits its records to an organism. A "
+        f"unit of a phyletic expression or the text of a transform does not. "
+        f"{remedy} If no search can, report {ids} in requirement_problems."
     )
     raise ModelRetry(msg)
 
@@ -254,6 +296,7 @@ def hold_the_reports_to_the_refusals(
 
 
 __all__ = [
+    "hold_an_organism_to_a_step",
     "hold_the_questions_to_a_dimension",
     "hold_the_questions_to_the_draft",
     "hold_the_record_types_to_a_role",

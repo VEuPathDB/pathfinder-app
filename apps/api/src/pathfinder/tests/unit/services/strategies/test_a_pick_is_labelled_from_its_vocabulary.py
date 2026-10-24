@@ -82,7 +82,6 @@ def test_every_vocabulary_pick_is_labelled_from_the_vocabulary() -> None:
         ),
         ("any_or_all", "any", "any"),
         ("protein_coding_only", "yes", "protein coding"),
-        ("channel", "Channel 1", "Channel 1"),
     ]
     assert labels.unlabelled == []
 

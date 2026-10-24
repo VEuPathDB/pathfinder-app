@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
+from pathfinder.domain.strategy.expression_handles import shown_wire
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.question_options import (
     Keep,
@@ -185,11 +186,21 @@ def _apply(
     match option.binding:
         case SetValues() as values if spec is not None:
             domain.operational_spec = spec_bound_by_card(
-                spec, values, option_id=option.id, sheets=sheets
+                spec,
+                values,
+                option_id=option.id,
+                sheets=sheets,
+                expressions=domain.built_expressions,
             )
         case ReadValues() as read if spec is not None:
             values = SetValues(criterion_id=read.criterion_id, params=read.params)
-            bound = spec_bound_by_card(spec, values, option_id=option.id, sheets=sheets)
+            bound = spec_bound_by_card(
+                spec,
+                values,
+                option_id=option.id,
+                sheets=sheets,
+                expressions=domain.built_expressions,
+            )
             domain.operational_spec = spec_with_reading(
                 bound, read.criterion_id, read.accepted()
             )
@@ -287,7 +298,10 @@ def _chosen(label: str, question: OpenQuestion | None) -> str:
     option = next((o for o in options if o.label == label), None)
     match option:
         case TypedOption(binding=SetValues(params=params) | ReadValues(params=params)):
-            sets = ", ".join(f'{name} to "{value}"' for name, value in params.items())
+            sets = ", ".join(
+                f'{name} to "{shown_wire(name, value)}"'
+                for name, value in params.items()
+            )
             return f"{label} (sets {sets})"
         case _:
             return label

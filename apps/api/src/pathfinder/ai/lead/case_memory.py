@@ -9,17 +9,20 @@ case written twice is one row.
 from __future__ import annotations
 
 import textwrap
+from collections.abc import Mapping
 from datetime import UTC, datetime
 
 from assistant_core.memory.autowrite import MemoryCandidate
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.tombstones import compute_content_hash
+from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM, to_wire
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.ledger_sections import render_structure
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
+from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 __all__ = ["collect_case_candidates"]
@@ -72,22 +75,38 @@ def _tags(state: PipelineState, spec: OperationalSpec | None) -> list[str]:
     return tags
 
 
-def _params(criterion: Criterion) -> dict[str, str]:
-    return {name: value.to_wire() for name, value in criterion.param_values.items()}
+def _params(
+    criterion: Criterion, built: Mapping[str, BuiltPattern]
+) -> dict[str, object]:
+    patterns = {held.expression: held for held in built.values()}
+    params: dict[str, object] = {}
+    for name, value in criterion.param_values.items():
+        wire = to_wire(value)
+        held = patterns.get(wire) if name == PHYLETIC_EXPRESSION_PARAM else None
+        params[name] = (
+            wire
+            if held is None
+            else {"pattern": held.model_dump(mode="json", by_alias=True)["pattern"]}
+        )
+    return params
 
 
-def _criteria_rows(spec: OperationalSpec) -> list[dict[str, object]]:
-    return [_criterion_row(criterion) for criterion in spec.criteria]
+def _criteria_rows(
+    spec: OperationalSpec, built: Mapping[str, BuiltPattern]
+) -> list[dict[str, object]]:
+    return [_criterion_row(criterion, built) for criterion in spec.criteria]
 
 
-def _criterion_row(criterion: Criterion) -> dict[str, object]:
+def _criterion_row(
+    criterion: Criterion, built: Mapping[str, BuiltPattern]
+) -> dict[str, object]:
     """One criterion as the case records it; an analysis by what it selects,
     and a chosen search by the basis it was chosen on."""
     row: dict[str, object] = {
         "text": criterion.text,
         "search_name": criterion.search_name,
         "role": criterion.role,
-        "params": _params(criterion),
+        "params": _params(criterion, built),
     }
     if criterion.analysis is not None:
         row["analysis"] = criterion.analysis.words
@@ -150,7 +169,7 @@ def _outcome_case(
         "site": state.site_id,
         "structure": structure,
         "root_count": root_count,
-        "criteria": _criteria_rows(spec),
+        "criteria": _criteria_rows(spec, state.domain.built_expressions),
     }
     return _case_value(
         state,
@@ -191,7 +210,7 @@ def _recovery_cases(
     goal = _goal(state, spec)
     cases: list[MemoryCandidate] = []
     for entry, criterion in _recoveries(state, spec, outcome, counts):
-        params = _params(criterion)
+        params = _params(criterion, state.domain.built_expressions)
         emptied_for = entry.criterion_text or criterion.text
         content: dict[str, object] = {
             "case": "recovery",

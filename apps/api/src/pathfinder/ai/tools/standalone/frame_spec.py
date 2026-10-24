@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import PHYLETIC_LIST_PARAMS, to_wire
+from veupathdb.domain.parameters import to_wire
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
@@ -22,6 +22,9 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
     search_display_name,
 )
+from pathfinder.ai.tools.standalone._expression_handles import (
+    with_stored_expressions,
+)
 from pathfinder.ai.tools.standalone._frame_datasets import (
     saved_id_lists,
     with_typed_ids,
@@ -39,12 +42,12 @@ from pathfinder.ai.tools.standalone._frame_measure import (
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     ParamProposals,
-    phyletic_overrides,
     radio_overrides,
     refuse_undecided,
     refuse_unknown_names,
     refuse_unmatched_values,
     resolve_proposals,
+    species_lists,
 )
 from pathfinder.ai.tools.standalone._frame_qualifiers import (
     qualifiers_no_search_states,
@@ -75,6 +78,7 @@ from pathfinder.ai.tools.standalone._frame_unserved import (
 )
 from pathfinder.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
+from pathfinder.domain.strategy.expression_handles import shown_wire
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -268,15 +272,21 @@ async def _bind_the_search(
     with an_unserved_search_refused(ctx, criterion_id, search_name, record_type):
         definition = await _search_definition(search)
         infos = await fetch_at({})
+    await refuse_a_search_the_criterion_cannot_use(
+        ctx, record_type, definition, stated, params
+    )
     call, fixed = proposed_call(
-        CriterionCall(
-            criterion_id=criterion_id, search_name=search_name, text=text, params=params
+        with_stored_expressions(
+            state,
+            CriterionCall(
+                criterion_id=criterion_id,
+                search_name=search_name,
+                text=text,
+                params=params,
+            ),
         ),
         infos,
         state.request_messages,
-    )
-    await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, stated, call.params
     )
     qualifiers = await qualifiers_no_search_states(
         ctx, record_type, definition, stated, call.params
@@ -284,29 +294,27 @@ async def _bind_the_search(
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     refuse_unknown_names(call, infos)
     refuse_undecided(call, infos)
-    phyletic = phyletic_overrides(definition, call, infos)
+    lists = species_lists(infos)
     radio = radio_overrides(definition, call, infos)
     await refuse_unmatched_values(
         ctx.deps.site_id,
         definition,
         call,
         infos,
-        PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
+        lists,
         state,
     )
     refuse_what_the_words_decide(definition, call, infos, state)
     refuse_a_pick_no_lookup_read(state, definition, call, infos)
     # A null proposal states no value, so it leaves the param to resolution.
-    # The derived pattern replaces the two lists it was derived from.
     overrides = {
         **{name: value for name, value in call.params.items() if value is not None},
-        **(phyletic or {}),
         **radio,
     }
     overrides, typed = await saved_id_lists(
         ctx.deps.site_id, state, criterion_id, infos, overrides
     )
-    resolved = await resolve_proposals(fetch_at, text, overrides)
+    resolved = await resolve_proposals(fetch_at, call, overrides, definition)
     if resolved.unread:
         msg = (
             f"The criterion states a quantity and {resolved.unread} was left null. "
@@ -396,7 +404,9 @@ async def _bind_the_search(
             criterion_id=criterion_id,
             search_name=search_name,
             resolved_params={
-                name: to_wire(value) for name, value in resolved.params.items()
+                name: shown_wire(name, to_wire(value))
+                for name, value in resolved.params.items()
+                if name in bound and bound[name].visible
             },
             defaulted_params=sorted(
                 n for n, b in bound.items() if b.source == "default"

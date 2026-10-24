@@ -122,6 +122,7 @@ class TestAnAnswerBindsTheCriterion:
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
             sheets=_SHEETS,
+            expressions={},
         )
 
         [criterion] = bound.criteria
@@ -145,6 +146,7 @@ class TestAnAnswerBindsTheCriterion:
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
             sheets=_SHEETS,
+            expressions={},
         )
 
         [criterion] = bound.criteria
@@ -166,6 +168,7 @@ class TestAnAnswerBindsTheCriterion:
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
             sheets=_SHEETS,
+            expressions={},
         )
 
         assert [s.criterion_id for s in bound.open_slots] == ["c_other"]
@@ -178,6 +181,7 @@ class TestAnAnswerBindsTheCriterion:
             SetValues(criterion_id="c_gone", params={_PERCENTILE: "1"}),
             option_id="1",
             sheets=_SHEETS,
+            expressions={},
         )
 
         assert bound == spec
@@ -207,6 +211,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="entamoeba-histolytica-hm-1-imss",
             sheets=_SHEETS,
+            expressions={},
         )
 
         [criterion] = bound.criteria
@@ -228,6 +233,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="o",
             sheets=_SHEETS,
+            expressions={},
         )
 
         [criterion] = bound.criteria
@@ -253,6 +259,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="o",
             sheets=_SHEETS,
+            expressions={},
         )
 
         assert bound.criteria[0].resolved_params["organism"].value == MultiPickValue(

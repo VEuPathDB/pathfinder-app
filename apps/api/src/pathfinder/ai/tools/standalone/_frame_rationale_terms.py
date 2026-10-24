@@ -15,7 +15,7 @@ from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
 from pathfinder.domain.strategy.readings import why_no_readings
 from pathfinder.domain.strategy.step_rationale import RationaleBasis, names_the_phrase
-from pathfinder.domain.strategy.value_binding import bind_values, researcher_sees
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.parameter_rules import parameter_class
 
 
@@ -42,7 +42,7 @@ class Binding:
     @property
     def shown(self) -> list[ParameterInfo]:
         """The parameters the researcher sees, the only ones a term may name."""
-        return [info for info in self.infos if researcher_sees(info)]
+        return [info for info in self.infos if info.is_visible]
 
 
 @dataclass(frozen=True)

@@ -25,7 +25,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.domain.value_caveats import (
-    ChoiceCaveat,
     assumed_value_caveats,
 )
 from pathfinder.services.strategies.measurements import (
@@ -92,14 +91,10 @@ def _criterion(
 
 
 @pytest.mark.asyncio
-async def test_a_default_comparison_whose_other_option_counts_fewer_is_a_choice(
+async def test_a_hidden_comparison_is_no_choice_and_reads_no_other_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _count(_search: str, params: Mapping[str, ParamValue]) -> int:
-        assert wire(params, "profileset_generic") == _AMA
-        return recorded_count("report_life_stages_amastigote")
-
-    asked = serve_counts(monkeypatch, _count)
+    asked = serve_counts(monkeypatch, lambda _search, _params: 0)
     value = SinglePickValue(value=_PNA)
     bound = recorded_count("report_life_stages_pna")
 
@@ -116,32 +111,18 @@ async def test_a_default_comparison_whose_other_option_counts_fewer_is_a_choice(
         infos=_life_stages(),
     )
 
-    assert (bound, asked, measured) == (
-        142,
-        [_LIFE_STAGES],
-        [
-            Measurement(
-                kind="options_not_taken",
-                param="profileset_generic",
-                unchosen=[_AMA],
-                unchosen_count=1,
+    assert (bound, asked, measured) == (142, [], [])
+    assert (
+        assumed_value_caveats(
+            OperationalSpec(
+                criteria=[
+                    _criterion(
+                        "profileset_generic", "Experiment", value, measured, bound
+                    )
+                ]
             )
-        ],
-    )
-    (caveat,) = assumed_value_caveats(
-        OperationalSpec(
-            criteria=[
-                _criterion("profileset_generic", "Experiment", value, measured, bound)
-            ]
         )
-    )
-    assert caveat == ChoiceCaveat(
-        criterion_id="c_1",
-        param_display_name="Experiment",
-        value=_PNA,
-        source="default",
-        unchosen=[_AMA],
-        unchosen_count=1,
+        == []
     )
 
 

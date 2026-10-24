@@ -273,7 +273,7 @@ class TestTheParameterRead:
             )
         ).return_value
 
-        assert result is info
+        assert result == info
 
     async def test_an_unknown_id_returns_the_close_match_and_the_valid_list(
         self, monkeypatch: pytest.MonkeyPatch
@@ -338,7 +338,7 @@ class TestTheParameterRead:
                 ctx, search_name="GenesByGoTerm", parameter_id="go_term"
             )
         ).return_value
-        assert first is info
+        assert first == info
 
         second = (
             await catalog_discovery.get_parameter_options(
@@ -368,7 +368,7 @@ class TestTheParameterRead:
                 ctx, search_name="GenesByGoTerm", parameter_id="go_term"
             )
         ).return_value
-        assert fixed is info
+        assert fixed == info
 
 
 class TestTheOptionCountSummary:

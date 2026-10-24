@@ -32,11 +32,13 @@ does not reject a valid group.
    that have several strains with their strain counts) from the taxonomy the phyletic
    lookup already reads.
 
-## Measure first
+## What the builder takes
 
-Whether the OrthoMCL phyletic expression grammar takes a lower bound on a taxon count
-(for example a count of at least 55 of 61); if it does not, how the share offer is
-expressed (a sum over species groups, or a count search beside the pattern).
+`build_phyletic_expression` (veupathdb-mcp 0.2.0b40) writes each offer from a pattern:
+every genome is a `count` of `genomes` `exactly` N over the clade's codes, a share is a
+`count` with measure `share` and condition `at_least` (90 percent of 61 genomes is at least 55),
+and every species is a `count` over `each_species_of` the clade. No offer needs an
+expression written by hand.
 
 ## Done when
 

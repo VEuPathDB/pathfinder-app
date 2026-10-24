@@ -18,6 +18,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.build_outcome import built_counts
+from pathfinder.domain.strategy.expression_handles import shown_params, shown_wire
 from pathfinder.domain.strategy.requirement_reports import requirements_block
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.eda.export import exported_analysis
@@ -124,7 +125,8 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
             line += f" | open: {slots}"
         lines.append(line)
         lines.extend(
-            f"    {name}={to_wire(value)}" for name, value in c.param_values.items()
+            f"    {name}={value}"
+            for name, value in shown_params(c.param_values).items()
         )
     if spec.dropped:
         lines.append("dropped: " + "; ".join(d.text for d in spec.dropped))
@@ -203,7 +205,7 @@ def _render_step_params(step: StrategyStep, kind: AnalysisKind | None) -> str:
         return ""
     param_strs: list[str] = []
     for name, value in step.parameters.items():
-        wire = to_wire(value)
+        wire = shown_wire(name, to_wire(value))
         if len(wire) > _MAX_PARAM_VAL_LEN:
             wire = wire[: _MAX_PARAM_VAL_LEN - 3] + "..."
         param_strs.append(f"{name}={wire}")

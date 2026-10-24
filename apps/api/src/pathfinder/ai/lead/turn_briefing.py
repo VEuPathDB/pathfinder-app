@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
+from pathfinder.domain.strategy.expression_handles import shown_wire
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
@@ -130,12 +131,17 @@ def _clipped(value: str | None, limit: int = _MAX_VALUE_CHARS) -> str:
     return f"{value[:limit]}..."
 
 
+def _shown(name: str, value: str | None) -> str:
+    return _clipped(None if value is None else shown_wire(name, value))
+
+
 def _step_line(change: StepChange) -> str:
     parts: list[str] = []
     if change.search_after is not None:
         parts.append(f"search {change.search_before} -> {change.search_after}")
     parts.extend(
-        f"{param.name} {_clipped(param.before)} -> {_clipped(param.after)}"
+        f"{param.name} {_shown(param.name, param.before)} -> "
+        f"{_shown(param.name, param.after)}"
         for param in change.params[:_MAX_PARAMS_PER_STEP]
     )
     dropped = len(change.params) - _MAX_PARAMS_PER_STEP

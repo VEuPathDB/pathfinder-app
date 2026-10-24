@@ -151,7 +151,7 @@ def test_each_recorded_parameter_has_its_class() -> None:
         "max_expression_percentile": "numeric_string",
         "any_or_all": "single-pick-vocabulary",
         "protein_coding_only": "single-pick-vocabulary",
-        "channel": "single-pick-vocabulary",
+        "channel": "site_fixed",
         "profile_pattern": "phyletic_pattern",
         "included_species": "phyletic_list",
         "excluded_species": "phyletic_list",
@@ -159,19 +159,19 @@ def test_each_recorded_parameter_has_its_class() -> None:
     }
 
 
-def test_only_a_read_only_or_a_hidden_parameter_without_a_vocabulary_is_the_sites() -> (
-    None
-):
+def test_a_read_only_or_a_hidden_parameter_is_the_sites() -> None:
     text = _sheet(_TEXT)
     channel = next(info for info in _sheet(_PCT) if info.name == "channel")
 
     assert [(i.name, i.is_read_only) for i in text if site_fixed(i)] == [
         ("document_type", True)
     ]
-    assert (
-        site_fixed(channel),
-        site_fixed(channel.model_copy(update={"is_read_only": True})),
-    ) == (False, True)
+    assert (channel.is_visible, len(channel.vocabulary()), site_fixed(channel)) == (
+        False,
+        2,
+        True,
+    )
+    assert site_fixed(channel.model_copy(update={"is_visible": True})) is False
 
 
 def _spore_wall_count(_search: str, params: Mapping[str, ParamValue]) -> int:
@@ -258,7 +258,6 @@ async def test_a_binding_whose_count_did_not_arrive_records_each_value_unmeasure
             Measurement(
                 kind="bound_count", param="min_expression_percentile", reading="80"
             ),
-            Measurement(kind="bound_count", param="channel", reading="Channel 1"),
         ],
     )
 

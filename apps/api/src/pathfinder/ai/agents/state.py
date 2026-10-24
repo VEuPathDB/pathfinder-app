@@ -10,6 +10,7 @@ from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.ai.agents.unserved import UnservedSearch
 from pathfinder.domain.strategy.constraints import Constraint, message_states
+from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import (
@@ -220,6 +221,7 @@ class AgentToolState:
     id_list_datasets: dict[tuple[str, str, tuple[str, ...]], str] = field(
         default_factory=dict
     )
+    built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
     refusals: int = 0
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.

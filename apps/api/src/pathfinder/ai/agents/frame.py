@@ -21,8 +21,12 @@ from pathfinder.ai.agents.frame_expression_checks import (
     hold_an_every_genome_presence_to_a_question,
     hold_the_taxa_to_their_scope,
 )
+from pathfinder.ai.agents.frame_option_checks import (
+    hold_an_option_to_a_held_expression,
+)
 from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from pathfinder.ai.agents.frame_result_checks import (
+    hold_an_organism_to_a_step,
     hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,
     hold_the_record_types_to_a_role,
@@ -155,33 +159,18 @@ Procedure:
         `GroupsByPhyleticPattern`: the phylogenetic profile states only "every one
         present" and "every one absent". On any other site, report that requirement as
         `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
-        question about it. On OrthoMCL, write it in `phyletic_expression` from the codes
-        and genome counts `lookup_phyletic_codes` returns, with the recipes the
-        parameter's help states. A comparison of the protein counts of two single
-        genomes, genome A holding more proteins than genome B, is never written by
-        hand: `build_protein_count_comparison(genome_a, genome_b)` reads from the site
-        the largest count the ladder needs and returns the expression; bind it whole.
-        Presence in a clade or genome list L with no protein in any genome outside L
-        is built by `build_clade_only_expression(clade)`, with `within` a clade M
-        that holds L when only the genomes outside M must hold none; bind its
-        expression whole. Presence in every species of a clade or genome list L, a
-        species present when half its genomes rounded up hold a protein, is built by
-        `build_every_species_expression(clade)`; bind its expression whole. A genus
+        question about it. On OrthoMCL, describe the groups to
+        `build_phyletic_expression(pattern)` with the codes `lookup_phyletic_codes`
+        returns, and bind `phyletic_expression` to the handle it returns. A genus
         with no clade code is the list of its genome codes. A T count counts
-        genomes, and strains are genomes. When an expression
-        names genomes of several species or strains of one taxon, state the taxon's
-        scope in `group_scopes`: whole, with `except_codes` for the genomes the request
-        leaves out, or named, exactly the genomes the units write. The site drops
-        parentheses and reads AND before OR, so write an OR of AND terms, each term
-        repeating the units it shares. `<`, `<=` and `>=` hold only for a group with a
-        protein in the list, so absence from a list L is `L=0T`, and absence from at
-        least k of its N genomes, for k below N, is `X AND L<=(N-k)T OR X AND L=0T`,
-        with X the other units of that AND term (`L<=(N-k)T OR L=0T` when there are
-        none); absence from all N is `X AND L=0T`. Single copy over a list is only `L=NT AND L=N`: bind it
-        as written and say in `summary` that it requires one protein in every genome,
-        so it may return few groups. `set_criterion` answers the expression in words with
-        the size of each list; when those words do not say what the request asks, correct
-        the expression and bind it again. OrthoMCL's record types are
+        genomes, and strains are genomes. Single copy often returns few groups.
+        When an expression names genomes of several species or strains of one
+        taxon, state the taxon's scope in `group_scopes`: whole, with
+        `except_codes` for the genomes the request leaves out, or named, exactly
+        the genomes the units write. `set_criterion` answers
+        the expression in words with the size of each list; when those words do not
+        say what the request asks, correct the pattern and build it again.
+        OrthoMCL's record types are
         `group` (ortholog groups) and `sequence` (proteins, the genes a request asks
         for): `GroupsByPhyleticPattern` returns groups, the `FromGroups` transform of
         record type `sequence` turns them into proteins, and a `ByTaxonomy` step of record
@@ -286,13 +275,13 @@ Procedure:
    site builds as written, never a description in words. Its `recommended_value` is the
    label of the reading you recommend. When the requirements the researcher stated are
    listed, the question's own `requirements` lists the keys (R1, R2) of those its
-   readings approximate; with no list, it lists none. Take
-   them from the recipes the parameter's help states, on a parameter that takes no
-   vocabulary. Never ask for a raw threshold or a raw expression. A comparison of the
-   protein counts of two single genomes is bound as the exact recipe the help states,
-   with no question and no threshold asked; readings are for a request only an
-   approximation states, such as a comparison of lists of many genomes, and each names
-   its approximation in its caveat. When the researcher answers in their own words, bind
+   readings approximate; with no list, it lists none. On a phyletic expression, each
+   reading's `value` is a handle `build_phyletic_expression` returned for that reading.
+   Never ask for a raw threshold or a raw expression. A comparison of the protein
+   counts of two single genomes is one exact pattern, built and bound with no question
+   and no threshold asked; readings are for a request only an approximation states,
+   such as a comparison of lists of many genomes, and each names its approximation in
+   its caveat. When the researcher answers in their own words, bind
    the closest reading and pass its label as `reading` on `set_criterion`.
    When no reading approximates a requirement, say so once in `summary` with the
    reason and the nearest search, and ask nothing about it.
@@ -404,11 +393,13 @@ def build_frame_agent() -> FrameAgent:
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_reports_to_the_requirement_list)
     agent.output_validator(hold_the_record_types_to_a_role)
+    agent.output_validator(hold_an_organism_to_a_step)
     agent.output_validator(hold_the_questions_to_a_dimension)
     agent.output_validator(hold_the_questions_to_the_draft)
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
     agent.output_validator(hold_a_choice_to_its_readings)
+    agent.output_validator(hold_an_option_to_a_held_expression)
     agent.output_validator(hold_the_readings_to_the_site)
     agent.output_validator(hold_the_taxa_to_their_scope)
     agent.output_validator(hold_an_every_genome_presence_to_a_question)

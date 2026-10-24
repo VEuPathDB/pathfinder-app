@@ -14,6 +14,7 @@ from veupathdb.domain.parameters import to_wire
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.domain.strategy.expression_handles import shown_value, shown_wire
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -327,8 +328,8 @@ def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
     """Why an option one criterion runs the search for is still unplaced."""
     carried = carried_values(carrier)
     clashes = [
-        f"{name}={to_wire(bound.value)} where {carrier.id} already carries "
-        f"{name}={carried[name]}"
+        f"{name}={shown_value(name, bound.value)} where {carrier.id} already "
+        f"carries {name}={shown_wire(name, carried[name])}"
         for name, bound in option.resolved_params.items()
         if bound.source != "default"
         and name in carried

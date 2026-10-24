@@ -189,7 +189,6 @@ async def test_a_binding_that_counted_nothing_reads_no_other_count(
         "max_expression_percentile",
         "any_or_all",
         "protein_coding_only",
-        "channel",
     ]
 
 
@@ -219,8 +218,7 @@ async def test_a_default_on_a_binding_that_counted_nothing_was_not_measured(
 async def test_a_second_bind_of_the_same_values_reads_the_turns_counts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A count that arrived is read once a turn; one the site failed to answer
-    is asked again."""
+    """A count that arrived is read once a turn."""
     asked = _serve(monkeypatch, recorded_count("report_percentile_min_80"))
     state = AgentToolState()
 
@@ -228,7 +226,7 @@ async def test_a_second_bind_of_the_same_values_reads_the_turns_counts(
     first = len(asked)
     await _bound(state)
 
-    assert (first, len(asked)) == (6, 7)
+    assert (first, len(asked)) == (5, 5)
 
 
 def _maybe() -> dict[str, BoundValue]:
