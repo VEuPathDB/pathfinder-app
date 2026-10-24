@@ -66,12 +66,45 @@ class ConstraintStatus(StrEnum):
     UNGROUNDABLE = "ungroundable"
 
 
+class GenomeShape(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["count", "compare"] = "count"
+    scope: Literal["codes", "all_except", "each_species_of", "each_genome_of"] = "codes"
+    measure: Literal["genomes", "proteins", "share"] | None = None
+    condition: Literal[
+        "at_least", "at_most", "exactly", "more_than", "fewer_than", "absent"
+    ]
+    value: float | None = None
+    reading: Literal["per_genome", "totals", "averages"] | None = None
+    factor: float = 1
+
+    def outline(self) -> str:
+        if self.kind == "compare":
+            return f"a {self.reading} compare, {self.condition} {self.factor:g} times"
+        amount = "" if self.value is None else f" {self.value:g}"
+        measure = "" if self.measure is None else f" {self.measure}"
+        return f"{self.condition}{amount}{measure} over {self.scope}"
+
+
 class Constraint(CamelModel):
     kind: ConstraintKind
     requested_value: str = Field(min_length=1)
     label: str = Field(min_length=1)
     source: ConstraintSource = ConstraintSource.ASSUMED
     hard: bool = True
+    genome_shape: GenomeShape | None = Field(
+        default=None,
+        description=(
+            "Only for a requirement about which genomes hold a group's proteins: "
+            "its shape as the message states it. scope: the genomes it names "
+            "(codes), every genome outside them (all_except), or each species or "
+            "each genome of them on its own. measure, condition and value as "
+            "stated; condition absent takes no measure. kind compare, with "
+            "reading, condition and factor, for a comparison of two sets. None "
+            "for any other requirement."
+        ),
+    )
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
 

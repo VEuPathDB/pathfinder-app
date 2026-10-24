@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A met clause must match its requirement's typed shape, and its drop is shown.**
+  `Constraint.genome_shape` types a requirement about which genomes hold a group's proteins;
+  a report's clause is refused within the refusal bound unless it parses and matches that shape
+  (`matches_shape`). A met report is dropped in code on every result of the pass, with a
+  `report_dropped` gap and a `MetClause` the Lead reads (`FrameResult.met_by_clause`,
+  `TurnMarkers.met_clauses`), and the reply writes `[met:<n>]`, refused otherwise
+  (`unnamed_clause`). The ask for a missing clause no longer tells FRAME to leave the report out.
+  See [the decision](decisions/a-requirement-a-bound-pattern-states-is-met.md).
 * **A transform the site lists for its input is an edit the message asks for.** An edit pass that
   adds a criterion no requirement of the message states is still refused, unless the criterion
   is a transform whose search the site's catalog lists as taking the record class of the input it

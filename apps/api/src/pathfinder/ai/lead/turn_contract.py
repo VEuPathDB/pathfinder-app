@@ -24,6 +24,7 @@ from pathfinder.ai.lead.contract_messages import (
     unclassified_turn_message,
     unfinished_work_message,
     unmade_change_message,
+    unnamed_clause_message,
     unnamed_record_organism_message,
     unrecorded_offer_message,
     unrendered_prose_message,
@@ -122,6 +123,7 @@ MismatchKind = Literal[
     "unmade_change",
     "unbacked_absence",
     "unstated_reading",
+    "unnamed_clause",
 ]
 
 
@@ -321,6 +323,11 @@ def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
     return unstated_reading_message(unstated[0]) if unstated else None
 
 
+def _unnamed_clause(report: LeadResponse, record: TurnRecord) -> str | None:
+    unnamed = [m for m in record.facts.met_clauses if m.sentence not in report.prose]
+    return unnamed_clause_message(unnamed[0]) if unnamed else None
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -341,6 +348,7 @@ _RULES: tuple[
     ("unmade_change", _unmade_change),
     ("unbacked_absence", _unbacked_absence),
     ("unstated_reading", _unstated_reading),
+    ("unnamed_clause", _unnamed_clause),
 )
 
 

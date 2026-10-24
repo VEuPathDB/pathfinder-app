@@ -18,6 +18,7 @@ REFERENCE_KINDS = (
     "last_change",
     "stat",
     "tally",
+    "met",
 )
 BARE_REFERENCES = ("root_before", "root", "url")
 A_REFERENCE = re.compile(

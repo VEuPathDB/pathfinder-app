@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from fractions import Fraction
 from math import ceil, floor
 
+from pydantic import TypeAdapter, ValidationError
 from veupathdb.domain.parameters import PhyleticTree
 from veupathdb_mcp.catalog import (
     AllExcept,
@@ -21,6 +22,7 @@ from veupathdb_mcp.catalog import (
     PhyleticPattern,
 )
 
+from pathfinder.domain.strategy.constraints import GenomeShape
 from pathfinder.domain.strategy.pattern_sets import NamedSet, genomes_of
 
 type Span = tuple[int, int | None]
@@ -28,6 +30,7 @@ type PartKey = tuple[frozenset[str], bool | None, Span | None]
 type TermKey = tuple[object, ...]
 
 _WHOLE = 100
+_COUNT: TypeAdapter[CountTerm] = TypeAdapter(CountTerm)
 _NONE: Span = (0, 0)
 _SOME: Span = (1, None)
 
@@ -132,4 +135,36 @@ def states_clause(
     return all(key is not None and key in held for key in wanted)
 
 
-__all__ = ["states_clause"]
+def _shaped_count(clause: CountTerm, shape: GenomeShape) -> CountTerm | None:
+    raw = {
+        "kind": "count",
+        "of": {"kind": shape.scope, "codes": clause.of.codes},
+        "measure": shape.measure,
+        "condition": shape.condition,
+        "value": shape.value,
+    }
+    try:
+        return _COUNT.validate_python(raw)
+    except ValidationError:
+        return None
+
+
+def matches_shape(
+    clause: PhyleticPattern, shape: GenomeShape, tree: PhyleticTree
+) -> bool:
+    match clause:
+        case CountTerm() if shape.kind == "count":
+            shaped = _shaped_count(clause, shape)
+            key = None if shaped is None else _count_key(shaped, tree)
+            return key is not None and key == _count_key(clause, tree)
+        case CompareTerm() if shape.kind == "compare":
+            return (shape.reading, shape.condition, Fraction(str(shape.factor))) == (
+                clause.reading,
+                clause.condition,
+                Fraction(str(clause.factor)),
+            )
+        case _:
+            return False
+
+
+__all__ = ["matches_shape", "states_clause"]

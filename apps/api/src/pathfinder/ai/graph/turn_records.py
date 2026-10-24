@@ -11,6 +11,7 @@ from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
@@ -234,8 +235,8 @@ class TurnMarkers(CamelModel):
     resolved_genes: list[ReadRecord] = Field(default_factory=list)
     # The counts each completed comparison of this turn returned, in order.
     comparisons: list[ComparisonFact] = Field(default_factory=list)
-    # The reading each framing pass of this turn built without asking.
     chosen_readings: list[ChosenReading] = Field(default_factory=list)
+    met_clauses: list[MetClause] = Field(default_factory=list)
     # Which of the asked genes each membership check of this turn found held.
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)

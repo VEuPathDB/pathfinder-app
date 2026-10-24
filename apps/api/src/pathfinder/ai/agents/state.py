@@ -9,6 +9,7 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.ai.agents.unserved import UnservedSearch
+from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.named_combine import NamedCombine
@@ -217,15 +218,14 @@ class AgentToolState:
     spec_the_dispatch_found: OperationalSpec | None = None
     # The searches the site refused to run this pass, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)
-    # The searches a builder's own guard refused before the site ran them.
     builder_refusals: dict[str, str] = field(default_factory=dict)
     unserved_searches: dict[str, UnservedSearch] = field(default_factory=dict)
     id_list_datasets: dict[tuple[str, str, tuple[str, ...]], str] = field(
         default_factory=dict
     )
     built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
-    # The reported requirements this pass was asked to state a clause for.
     clause_asked: set[str] = field(default_factory=set)
+    clause_met: dict[str, MetClause] = field(default_factory=dict)
     refusals: int = 0
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.

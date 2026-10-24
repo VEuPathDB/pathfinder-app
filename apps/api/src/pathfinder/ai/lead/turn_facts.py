@@ -192,10 +192,8 @@ def _built_steps(
     outcome: BuildOutcome | None,
     said: Sequence[str],
 ) -> list[StepFact]:
-    """The steps under the strategy's root, each after the inputs it reads.
-
-    ``said`` holds the researcher's messages, which state an analysis value.
-    """
+    """The steps under the strategy's root, each after the inputs it reads;
+    ``said`` holds the researcher's messages, which state an analysis value."""
     root_id = None if graph is None else graph.primary_root_id()
     if graph is None or root_id is None:
         return []
@@ -431,6 +429,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         named_genes=named_genes(markers),
         shown_before=list(domain.shown_records),
         comparisons=list(markers.comparisons),
+        met_clauses=list(markers.met_clauses),
         memberships=list(markers.memberships),
         statistics=list(domain.statistics),
         tallies=list(markers.tallies),

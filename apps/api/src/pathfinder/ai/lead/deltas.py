@@ -11,6 +11,7 @@ from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
+from pathfinder.domain.clause_facts import MetClause
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
@@ -64,6 +65,8 @@ PassGapKind = Literal[
     "record_role_missing",
     "record_type_unknown",
     "structure_names_unbound",
+    "clause_unread",
+    "clause_mismatch",
 ]
 
 
@@ -163,6 +166,9 @@ class FrameResult(CamelModel):
     )
 
     gaps: Annotated[list[PassGap], OmittedFromInput] = Field(default_factory=list)
+    met_by_clause: Annotated[list[MetClause], OmittedFromInput] = Field(
+        default_factory=list
+    )
 
     def with_gaps(self, gaps: Sequence[PassGap]) -> FrameResult:
         return self.model_copy(update={"gaps": [*self.gaps, *gaps]})

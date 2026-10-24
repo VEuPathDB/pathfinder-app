@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.domain.strategy.pattern_clauses import states_clause
+from pathfinder.domain.strategy.constraints import GenomeShape
+from pathfinder.domain.strategy.pattern_clauses import matches_shape, states_clause
 from pathfinder.tests._support.synthetic_taxonomy import pattern, synthetic_tree
 
 _TERMS: list[object] = [
@@ -122,3 +123,40 @@ def test_a_clause_of_several_terms_is_stated_when_each_is() -> None:
     )
 
     assert states_clause(_FERNS_ONLY, both, synthetic_tree())
+
+
+_EVERY = GenomeShape(measure="share", condition="at_least", value=100)
+
+
+@pytest.mark.parametrize(
+    ("shape", "clause", "matched"),
+    [
+        (
+            GenomeShape(condition="absent"),
+            _count(_NOT_FERN, "genomes", "at_most", 0),
+            True,
+        ),
+        (_EVERY, _count(_NOT_FERN, "genomes", "at_most", 0), False),
+        (_EVERY, _count(_FERN, "genomes", "exactly", 3), True),
+        (
+            GenomeShape(scope="all_except", condition="absent"),
+            _count(_FERN, "genomes", "at_most", 0),
+            False,
+        ),
+        (
+            GenomeShape(kind="compare", reading="averages", condition="more_than"),
+            _TERMS[2],
+            True,
+        ),
+        (
+            GenomeShape(kind="compare", reading="totals", condition="more_than"),
+            _TERMS[2],
+            False,
+        ),
+        (GenomeShape(condition="absent"), _TERMS[2], False),
+    ],
+)
+def test_a_clause_matches_only_its_requirements_shape(
+    shape: GenomeShape, clause: object, matched: bool
+) -> None:
+    assert matches_shape(pattern(clause), shape, synthetic_tree()) is matched
