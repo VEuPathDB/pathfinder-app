@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from veupathdb_mcp.audit import PseudogeneCallAudit
+
 from pathfinder.domain.audit.check_facts import confirmation_facts, evidence_facts
 from pathfinder.domain.audit.confirmations import (
     MissingGeneConfirmation,
@@ -44,23 +46,31 @@ def test_a_pseudogene_call_states_its_rebuilt_sequence() -> None:
 
 def test_a_pseudogene_call_states_its_stops_and_the_evidence_it_did_not_read() -> None:
     stopped = revised(PIGA_INTACT, premature_stops=[12, 40], evidence_unread=[UNREAD])
-    capped = revised(PIGA_INTACT, premature_stops=list(range(1, 21)))
     facts = _pairs(confirmation_facts(PseudogeneConfirmation(result=stopped)))
-    (stops,) = [
-        v
-        for label, v in _pairs(
-            confirmation_facts(PseudogeneConfirmation(result=capped))
-        )
-        if label.startswith("Stops")
-    ]
     assert (facts[3], facts[-1]) == (
         ("Stops inside the rebuilt protein", "at residues 12 and 40"),
         ("Evidence not read", UNREAD),
     )
-    assert stops == (
+
+
+def _stops(result: PseudogeneCallAudit) -> str:
+    (stops,) = [
+        fact.value
+        for fact in confirmation_facts(PseudogeneConfirmation(result=result))
+        if fact.label == "Stops inside the rebuilt protein"
+    ]
+    return stops
+
+
+def test_a_cut_stop_list_says_how_many_it_lists() -> None:
+    twenty = list(range(1, 21))
+    listed = (
         "at residues 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 "
-        "and 20 (the first 20)"
+        "and 20"
     )
+    cut = revised(PIGA_INTACT, premature_stops=twenty, premature_stops_truncated=True)
+    whole = revised(PIGA_INTACT, premature_stops=twenty)
+    assert (_stops(cut), _stops(whole)) == (f"{listed} (the first 20)", listed)
 
 
 def test_an_organelle_gene_states_where_it_is_whole() -> None:

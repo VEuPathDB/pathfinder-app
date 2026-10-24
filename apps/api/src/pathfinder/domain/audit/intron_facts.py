@@ -6,6 +6,7 @@ from veupathdb_mcp.audit import (
     IntronAudit,
     IntronDepth,
     IntronSupport,
+    JunctionTracks,
     OrthologSupport,
     UnreadIntron,
     UnreadOutcome,
@@ -106,6 +107,18 @@ def _orthologs(orthologs: OrthologSupport | None) -> str:
     )
 
 
+def _tracks(tracks: JunctionTracks | None) -> tuple[Fact, ...]:
+    if tracks is None:
+        return ()
+    return (
+        Fact(
+            label="Junction tracks read",
+            value=f"{tracks.read:,} of {tracks.listed:,} listed for "
+            f"{tracks.organism_abbrev}",
+        ),
+    )
+
+
 def intron_facts(result: IntronAudit) -> tuple[Fact, ...]:
     unread = result.evidence_unread
     reason = result.correction_reason
@@ -113,6 +126,7 @@ def intron_facts(result: IntronAudit) -> tuple[Fact, ...]:
     return (
         Fact(label="Transcript judged", value=known(result.transcript)),
         Fact(label="Annotated introns with reads", value=_with_reads(result)),
+        *_tracks(result.junction_tracks),
         *(fact for intron in result.unread or [] for fact in _unread_intron(intron)),
         *unread_facts(unread),
         Fact(label="Corrected protein", value=_corrected(result)),

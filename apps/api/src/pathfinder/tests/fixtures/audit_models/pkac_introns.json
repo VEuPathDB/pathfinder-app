@@ -144,5 +144,10 @@
         1383462
       ]
     ]
+  },
+  "junction_tracks": {
+    "organism_abbrev": "pcynM",
+    "listed": 1,
+    "read": 1
   }
 }

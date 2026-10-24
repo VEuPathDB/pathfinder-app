@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from veupathdb_mcp.audit import (
+    PREMATURE_STOPS_LISTED,
     MissingGeneAudit,
     OrganelleGeneAudit,
     PseudogeneCallAudit,
@@ -47,8 +48,6 @@ from pathfinder.domain.audit.length_facts import (
 )
 from pathfinder.domain.audit.words import percent
 
-_LISTED_STOPS = 20
-
 
 def _positions(at: Sequence[int]) -> str:
     if not at:
@@ -57,9 +56,11 @@ def _positions(at: Sequence[int]) -> str:
     return f"at {word} {listed([f'{n:,}' for n in at])}"
 
 
-def _stops(at: Sequence[int]) -> str:
-    shown = _positions(at)
-    return f"{shown} (the first {_LISTED_STOPS})" if len(at) >= _LISTED_STOPS else shown
+def _stops(result: PseudogeneCallAudit) -> str:
+    shown = _positions(result.premature_stops)
+    if result.premature_stops_truncated:
+        return f"{shown} (the first {PREMATURE_STOPS_LISTED})"
+    return shown
 
 
 def _pseudogene(result: PseudogeneCallAudit) -> tuple[Fact, ...]:
@@ -78,7 +79,7 @@ def _pseudogene(result: PseudogeneCallAudit) -> tuple[Fact, ...]:
         ),
         Fact(
             label="Stops inside the rebuilt protein",
-            value=_stops(result.premature_stops),
+            value=_stops(result),
         ),
         Fact(
             label="Amino acids that differ from the reference",

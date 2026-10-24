@@ -147,5 +147,10 @@
         41954101
       ]
     ]
+  },
+  "junction_tracks": {
+    "organism_abbrev": "agamPEST",
+    "listed": 1,
+    "read": 1
   }
 }

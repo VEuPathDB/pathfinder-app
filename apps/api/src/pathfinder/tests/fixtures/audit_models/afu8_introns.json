@@ -140,5 +140,10 @@
         202401
       ]
     ]
+  },
+  "junction_tracks": {
+    "organism_abbrev": "afumAf293",
+    "listed": 1,
+    "read": 1
   }
 }

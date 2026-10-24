@@ -11,7 +11,9 @@
   `domain/audit/intron_facts.py` the intron check's, with each intron no read supports, the
   junctions that replace it, its splice-site bases and its read depth against the library's
   RETAINED thresholds; an intron over an assembly gap says so from
-  `UnreadIntron.spans_assembly_gap` (veupathdb-mcp 0.2.0b44), whatever its outcome. A value not read reads "Not read", a read that found nothing "None found",
+  `UnreadIntron.spans_assembly_gap` (veupathdb-mcp 0.2.0b44), whatever its outcome, and states the
+  junction tracks it read from `IntronAudit.junction_tracks`; a pseudogene call says its stop list
+  is cut from `premature_stops_truncated` and `PREMATURE_STOPS_LISTED` (0.2.0b45). A value not read reads "Not read", a read that found nothing "None found",
   and "Evidence not read" is shown only when the result names one. A strain whose genome was not
   read states its own reason. `FindingDetail.facts` holds one group per stored payload, in the
   order confirmation, relatives, gene evidence; `AuditEvidenceRecord` refuses a payload on

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from veupathdb_mcp.audit import IntronAudit, OrthologSupport, UnreadIntron
+from veupathdb_mcp.audit import (
+    JUNCTION_TRACKS_READ,
+    IntronAudit,
+    JunctionTracks,
+    OrthologSupport,
+    UnreadIntron,
+)
 
 from pathfinder.domain.audit.check_facts import confirmation_facts
 from pathfinder.domain.audit.confirmations import IntronConfirmation
@@ -29,6 +35,7 @@ def test_an_intron_result_states_the_intron_with_no_read_and_its_junctions() -> 
     assert _pairs(PKAC_INTRONS) == [
         ("Transcript judged", "PcyM_0736700-t36_1"),
         ("Annotated introns with reads", "2 of 3"),
+        ("Junction tracks read", "1 of 1 listed for pcynM"),
         ("Intron with no read", "bases 1,381,746 to 1,382,305"),
         (
             "What the evidence shows there",
@@ -169,3 +176,18 @@ def test_orthologs_not_counted_state_the_reason() -> None:
     reason = "no ortholog protein was read"
     uncounted = revised(PKAC_INTRONS, orthologs=OrthologSupport.not_read(reason))
     assert _introns(uncounted)["Orthologs that match"] == reason
+
+
+def test_a_cut_junction_track_list_states_what_it_read() -> None:
+    tracks = JunctionTracks(
+        organism_abbrev="pcynM", listed=6, read=JUNCTION_TRACKS_READ
+    )
+    cut = revised(
+        PKAC_INTRONS, junction_tracks=tracks, evidence_unread=[tracks.cap_note]
+    )
+    facts = _introns(cut)
+    assert (facts["Junction tracks read"], facts["Evidence not read"]) == (
+        "4 of 6 listed for pcynM",
+        "pcynM lists 6 junction tracks; the first 4 were read",
+    )
+    assert "Evidence not read" not in _introns(PKAC_INTRONS)

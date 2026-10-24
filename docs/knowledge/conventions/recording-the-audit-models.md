@@ -33,7 +33,7 @@ test helpers and its recorded wires, so it must be at the tag that
 `apps/api/pyproject.toml` pins.
 
 1. Put `~/repos/ai-wdk-mcp` at the pinned tag (the git command is the user's):
-   `git -C ~/repos/ai-wdk-mcp switch --detach v0.2.0-b44`, with the tag read from
+   `git -C ~/repos/ai-wdk-mcp switch --detach v0.2.0-b45`, with the tag read from
    `[tool.uv.sources]`.
 2. From `apps/api`, run the recorder:
 
