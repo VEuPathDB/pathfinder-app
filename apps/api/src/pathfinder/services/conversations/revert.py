@@ -13,23 +13,21 @@ from assistant_core.persistence.models import (
 )
 from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.platform.logging import get_logger
-from sqlalchemy import (
-    DateTime,
-    bindparam,
-    delete,
-    literal,
-    select,
-    text,
-    tuple_,
-)
+from sqlalchemy import delete, literal, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import StrategyRevisionView
+from pathfinder.persistence.repositories.checkpoint_rows import cut_checkpoints
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.persistence.rows import rows_changed
+from pathfinder.platform.errors import RevertRefusedError
+from pathfinder.services.conversations.thread_busy import (
+    ThreadBusy,
+    claim_settled_thread,
+)
 from pathfinder.services.eda.thread_surgery import (
     logs_a_binding,
     restore_thread_binding,
@@ -48,6 +46,23 @@ logger = get_logger(__name__)
 
 class RevertError(ValueError):
     """Raised when the revert request references missing or unauthorized rows."""
+
+
+_REFUSALS = {
+    ThreadBusy.LOCKED: (
+        "This chat is changing right now. Try the undo again in a moment."
+    ),
+    ThreadBusy.TURN: (
+        "This chat is still answering. Stop the reply or wait for it to finish, "
+        "then undo."
+    ),
+    ThreadBusy.APPROVAL: (
+        "This chat is waiting for your answer to a request. Answer it, then undo."
+    ),
+    ThreadBusy.TASK: (
+        "This chat is running a background task. Undo once the task has finished."
+    ),
+}
 
 
 def _strategy_state(
@@ -93,6 +108,9 @@ async def revert_conversation_to_message(
         )
         msg = "Conversation not found"
         raise RevertError(msg)
+    busy = await claim_settled_thread(session, conversation_id)
+    if busy is not None:
+        raise RevertRefusedError(_REFUSALS[busy])
 
     target = await session.scalar(
         select(Message).where(
@@ -175,37 +193,7 @@ async def revert_conversation_to_message(
         )
     )
 
-    writes_stmt = text(
-        """
-        DELETE FROM checkpoint_writes w
-        USING checkpoints c
-        WHERE w.thread_id = c.thread_id
-          AND w.checkpoint_ns = c.checkpoint_ns
-          AND w.checkpoint_id = c.checkpoint_id
-          AND c.thread_id = :thread_id
-          AND (c.checkpoint->>'ts')::timestamptz >= :cutoff
-        """,
-    ).bindparams(bindparam("cutoff", type_=DateTime(timezone=True)))
-    deleted_writes = rows_changed(
-        await session.execute(
-            writes_stmt,
-            {"thread_id": thread_id, "cutoff": cutoff_ts},
-        )
-    )
-
-    checkpoints_stmt = text(
-        """
-        DELETE FROM checkpoints
-        WHERE thread_id = :thread_id
-          AND (checkpoint->>'ts')::timestamptz >= :cutoff
-        """,
-    ).bindparams(bindparam("cutoff", type_=DateTime(timezone=True)))
-    deleted_checkpoints = rows_changed(
-        await session.execute(
-            checkpoints_stmt,
-            {"thread_id": thread_id, "cutoff": cutoff_ts},
-        )
-    )
+    cut = await cut_checkpoints(session, thread_id=thread_id, cutoff=cutoff_ts)
 
     deleted_revisions = await revisions.delete_at_or_after(
         conversation_id,
@@ -239,8 +227,9 @@ async def revert_conversation_to_message(
         deleted_notes=deleted_notes,
         deleted_events=deleted_events,
         deleted_tasks=deleted_tasks,
-        deleted_checkpoints=deleted_checkpoints,
-        deleted_checkpoint_writes=deleted_writes,
+        deleted_checkpoints=cut.checkpoints,
+        deleted_checkpoint_writes=cut.writes,
+        deleted_checkpoint_blobs=cut.blobs,
         deleted_strategy_revisions=deleted_revisions,
         strategy=restored,
     )

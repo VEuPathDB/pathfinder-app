@@ -2,6 +2,19 @@
 
 ## 2026-10-24
 
+* **A branch and a revert wait for the thread to settle.** Both take the thread lock
+  `thread:<conversation id>` for their transaction (`services/conversations/thread_lock.py`)
+  and are refused with 409 (`FORK_REFUSED`, and the new `REVERT_REFUSED`) while a queued or
+  running `chat_turn` job locks the thread, the newest checkpoint parks an approval, a task is
+  active, or a dispatch holds the lock (`services/conversations/thread_busy.py`). The dispatcher
+  holds the same lock from its first read to the deferred job. A branch pushes its strategy as
+  its last write and deletes that mint when anything after the push fails, the commit
+  included. The checkpoint tables are named once, in
+  `persistence/repositories/checkpoint_rows.py`, which a schema test holds equal to what the
+  installed checkpointer creates. A branch copies only the blobs its checkpoints name, and a
+  revert deletes the blobs no surviving checkpoint names. Message upserts are scoped to their
+  conversation in assistant-core 0.3.0b13. See
+  `conventions/thread-surgery-invariants.md` (F11 to F13, R9, R10, S1 to S3).
 * **The Lead starts and reads gene-model audits and calls the investigator.**
   `ai/lead/lead_audit.py` registers the audit run tools on the Lead (`plan_gene_model_audit`,
   `start_gene_model_audit` behind its card, `list_audit_runs`, `read_audit_run`,

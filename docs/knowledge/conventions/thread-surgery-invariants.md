@@ -1,10 +1,10 @@
 ---
 type: Convention
 title: Thread surgery invariants
-description: What a branch and a revert promise, one testable sentence each, with the test that fails when it stops holding. Covers the copied prefix, the model's visible history, the strategy revision and its WDK identity, the id space, repeatability, the EDA binding case by case, the library rows and cross-thread memory.
+description: What a branch and a revert promise, one testable sentence each, with the test that fails when it stops holding. Covers the copied prefix, the model's visible history, the strategy revision and its WDK identity, the id space, repeatability, the EDA binding case by case, the library rows, cross-thread memory, the busy-thread refusals and their lock, the checkpoint blobs and the checkpoint schema.
 tags: [branching, revert, persistence, strategy-revision, testing]
 generated: { by: claude-code/opus-5, at: 2026-08-31T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-31T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-10-24T00:00:00Z }
 status: stable
 ---
 
@@ -35,10 +35,13 @@ The mechanism behind F7 and R7 is
 | F8 | The library rows stay the user's. A branch never inherits the `gene_set_id` it would rewrite: it starts unlinked and imports a gene set of its own on its first build. | `test_fork_case_matrix.py::test_f8_a_branch_owns_its_gene_set` |
 | F9 | Cross-thread memory is user-scoped, so a branch turn retrieves exactly what its parent's turn would. | `test_fork_case_matrix.py::test_f9_a_branch_turn_retrieves_the_memories_its_parent_would` |
 | F10 | A branch copies no message rating: nobody rated its messages. The parent keeps its own. | `test_rating_follows_thread_surgery.py::test_a_branch_copies_no_rating` |
+| F11 | A branch copies only the checkpoint blobs that its copied checkpoints name in `channel_versions`, and still runs a turn that reads the anchor's history. | `test_surgery_keeps_only_named_blobs.py::test_f11_a_branch_copies_only_the_blobs_its_checkpoints_name` |
+| F12 | A branch is refused while the source thread is busy: a queued or running `chat_turn` job locks it, its newest checkpoint parks an approval, a task of it is active, or another branch, revert or dispatch holds the thread lock. It goes through once the thread settles. | `test_surgery_refuses_a_busy_thread.py::test_a_branch_waits_for_the_thread_to_settle`, `...::test_surgery_is_refused_while_a_turn_is_being_dispatched` |
+| F13 | A branch that does not commit leaves no WDK strategy and no branch row. The push is the last write of the branch; a failure after it, the commit included, deletes the minted strategy through `delete_released_mint`. | `test_a_failed_branch_leaves_no_wdk_strategy.py` (three cases) |
 
-A branch is refused rather than approximated in two cases, both pinned by
-`test_fork_materializes_revision.py`: a thread with a strategy and no revision
-history at all, and a thread with a durable task running in the copied prefix.
+A branch is refused rather than approximated when the thread holds a strategy
+and no revision history at all (`test_fork_materializes_revision.py`), and
+while the thread is busy (F12).
 
 # Revert
 
@@ -52,6 +55,16 @@ history at all, and a thread with a durable task running in the copied prefix.
 | R6 | A revert touches one thread. A sibling branch and the parent keep every row; a revert that deletes a branch point nulls that branch's back-reference and nothing else. | `test_revert_case_matrix.py::test_r6_reverting_one_branch_leaves_its_sibling_and_parent_alone`, `...::test_r6_reverting_the_parent_leaves_each_branch_s_content_alone` |
 | R7 | The task rows the deleted turns created are gone, with their progress rows, and the EDA binding follows the surviving log. A thread whose log never recorded a binding is left alone. | `test_revert_case_matrix.py::test_r7_a_revert_past_the_bind_removes_the_tasks_and_the_binding`, `...::test_r7_a_binding_the_log_never_recorded_survives_the_revert`, `...::test_r7_a_revert_puts_the_recorded_filters_back_on_the_open_analysis`, `...::test_r7_a_revert_rebinds_the_analysis_the_deleted_turns_replaced`, `...::test_r7_a_revert_recreates_the_recorded_document_when_it_is_gone`, `...::test_r7_a_study_service_refusal_leaves_the_binding_where_it_was` |
 | R8 | A revert deletes the rating of every message it deletes, through the foreign key, and keeps the ratings of the surviving messages. | `test_rating_follows_thread_surgery.py::test_a_revert_past_a_rated_message_removes_its_rating` |
+| R9 | A revert deletes every checkpoint blob that no surviving checkpoint names in `channel_versions`, and the next turn still reads the target's history. | `test_surgery_keeps_only_named_blobs.py::test_r9_a_revert_leaves_no_blob_its_checkpoints_do_not_name` |
+| R10 | A revert is refused while the thread is busy, as F12 defines it, and changes no row. A turn that streams while a revert is asked for keeps its rows until it ends; the revert then deletes them and they do not return. | `test_surgery_refuses_a_busy_thread.py::test_a_revert_waits_for_the_thread_to_settle`, `test_a_revert_during_a_turn_keeps_its_cut.py` |
+
+# Both
+
+| # | Invariant | Test |
+|---|---|---|
+| S1 | One advisory lock per thread, `thread:<conversation id>`, orders surgery and dispatch. A branch or a revert tries it for its transaction and is refused when it is held; a dispatch holds it from its first read to the deferred job, and waits for a surgery to commit. A running turn holds its procrastinate job lock, which the surgery reads as F12 says. | `test_surgery_refuses_a_busy_thread.py::test_a_dispatch_waits_for_a_surgery_to_commit`, `unit/ai/conversation/test_a_new_message_waits_for_the_turn_it_stops.py` |
+| S2 | The checkpoint tables and their columns are named once, in `persistence/repositories/checkpoint_rows.py`, and are exactly the columns the installed `langgraph-checkpoint-postgres` creates. A graph run writes `checkpoint->>'ts'` as the saver reports it, and every blob row it writes is named by a checkpoint's `channel_versions`. | `test_checkpoint_schema_contract.py` (two cases) |
+| S3 | A message upsert writes only a row of the conversation it names. A copied checkpoint that still names a parent message id cannot change the parent's row: the runtime refuses with `MessageOwnedElsewhereError`, and the turn writes no metadata row. | `test_message_upsert.py::test_an_upsert_from_a_branch_leaves_the_parent_row_unchanged` |
 
 ## What R7 does, case by case
 

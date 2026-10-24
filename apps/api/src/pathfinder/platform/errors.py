@@ -48,6 +48,7 @@ class ErrorCode(StrEnum):
     CONVERSATION_NOT_FOUND = "CONVERSATION_NOT_FOUND"
     CONVERSATION_FROM_EARLIER_BUILD = "CONVERSATION_FROM_EARLIER_BUILD"
     FORK_REFUSED = "FORK_REFUSED"
+    REVERT_REFUSED = "REVERT_REFUSED"
     ASSISTANT_NOT_FOUND = "ASSISTANT_NOT_FOUND"
     ASSISTANT_MISMATCH = "ASSISTANT_MISMATCH"
 
@@ -301,6 +302,16 @@ class ForkRefusedError(AppError):
         super().__init__(
             code=ErrorCode.FORK_REFUSED,
             title="Cannot branch this chat",
+            status=409,
+            detail=reason,
+        )
+
+
+class RevertRefusedError(AppError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(
+            code=ErrorCode.REVERT_REFUSED,
+            title="Cannot undo to this message",
             status=409,
             detail=reason,
         )

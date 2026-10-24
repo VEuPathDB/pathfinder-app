@@ -109,8 +109,9 @@ finishes, and one continuation after the last of them - so a client does not
 read the first `data-task-completed` as the end of the gap.
 
 A parked call is thread state. `fork_conversation` copies checkpoints
-verbatim (`copy_checkpoint_state`), so a branch taken while a durable task
-is running would carry a `pending_durable_call` naming tasks whose
-completion turn opens on the parent thread only; the branch would hold
-calls nothing answers. Not reproduced, and nothing clears or re-parks them
-yet.
+verbatim (`persistence/repositories/checkpoint_rows.py::copy_checkpoints`), so
+a branch of a thread that parks a call would hold a call nothing answers: the
+completion turn opens on the parent thread only. A branch and a revert are
+therefore refused while the thread has an active task, a queued or running
+turn job, or a parked approval (F12 and R10 of
+[thread surgery invariants](../conventions/thread-surgery-invariants.md)).

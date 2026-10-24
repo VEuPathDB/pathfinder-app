@@ -42,6 +42,7 @@ from pathfinder.services.conversations.duplicate import (
     duplicate_conversation,
 )
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
+from pathfinder.services.conversations.fork_strategy import branch_mint
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
     build_conversation_response,
@@ -52,6 +53,7 @@ from pathfinder.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
 )
+from pathfinder.services.strategies.abandoned_mint import delete_released_mint
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -209,7 +211,13 @@ class ConversationService:
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title=str(exc),
             ) from exc
-        await self._session.commit()
+        mint = await branch_mint(self._session, fork)
+        try:
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            await delete_released_mint(mint)
+            raise
         refreshed = await self._repo.get_with_strategy(fork.id)
         if refreshed is None:
             raise NotFoundError(
