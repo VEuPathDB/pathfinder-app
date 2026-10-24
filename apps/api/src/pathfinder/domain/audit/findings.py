@@ -106,14 +106,24 @@ def _unjudged(verdict: str, reason: str) -> Classification:
     return Classification(message=f"{verdict}: {reason}")
 
 
-_LENGTH_UNREAD: dict[Literal["gene_length", "gene_split"], Classification] = {
-    "gene_length": _unjudged(
+_LENGTH_UNREAD: dict[
+    tuple[Literal["gene_length", "gene_split"], bool], Classification
+] = {
+    ("gene_length", False): _unjudged(
         "NOT_CHECKED",
         "the ortholog group does not class the gene as short, so the check reads no DNA",
     ),
-    "gene_split": _unjudged(
+    ("gene_length", True): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group cannot class the gene's length, so the check reads no DNA",
+    ),
+    ("gene_split", False): _unjudged(
         "NOT_CHECKED",
         "the ortholog group does not call the pair a split, so the check reads no DNA",
+    ),
+    ("gene_split", True): _unjudged(
+        "NOT_CHECKED",
+        "the ortholog group cannot class the pair's length, so the check reads no DNA",
     ),
 }
 
@@ -125,8 +135,9 @@ def _length(confirmation: LengthConfirmation) -> Classification:
             return _named("truncated_model", "high")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
-        case (_, "NOT_CHECKED"):
-            return _LENGTH_UNREAD[confirmation.check]
+        case (length_class, "NOT_CHECKED"):
+            unclassed = length_class == "UNQUALIFIED"
+            return _LENGTH_UNREAD[confirmation.check, unclassed]
         case _:
             return NO_ERROR
 
