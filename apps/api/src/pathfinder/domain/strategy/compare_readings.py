@@ -1,6 +1,3 @@
-"""Which compare reading answers which comparison of two genome sets, and the
-bound terms that do not answer the reading a framing pass classed a request by."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -59,7 +56,6 @@ def reading_departures(
     bound: Sequence[tuple[str, PhyleticPattern]],
     tree: PhyleticTree,
 ) -> list[str]:
-    """Why the bound patterns do not answer a comparison of the asked reading."""
     terms = [(cid, term) for cid, held in bound for term in compare_terms(held)]
     if bound and not terms:
         ids = ", ".join(cid for cid, _ in bound)

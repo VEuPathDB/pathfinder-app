@@ -56,7 +56,9 @@ class RecordNames(CamelModel):
 
 
 def _record_names(site_id: str) -> tuple[RecordNames, ...]:
-    held = get_discovery_service().held_record_types(site_id) or []
+    held = get_discovery_service().held_record_types(site_id)
+    if held is None:
+        return ()
     return tuple(
         RecordNames(singular=rt.display_name, plural=rt.display_name_plural)
         for rt in held

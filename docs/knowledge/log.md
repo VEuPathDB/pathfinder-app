@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+* **A listed transform passes the edit check only beside a classified change.** The exemption
+  in `ai/lead/added_criteria.py` now needs `UserIntent.asks_a_change` as well as the catalog's
+  listing, so two typed signals agree. `counts_beyond_their_sets` compares the stated count as
+  an exact fraction, and the structure check reads the result with `match`.
 * **A met clause must match its requirement's typed shape, and its drop is shown.**
   `Constraint.genome_shape` types a requirement about which genomes hold a group's proteins;
   a report's clause is refused within the refusal bound unless it parses and matches that shape

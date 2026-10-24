@@ -1,6 +1,3 @@
-"""The criteria an edit pass may add to a held strategy: one a requirement of the
-message states, or a transform the site lists for the input it maps."""
-
 from __future__ import annotations
 
 from pathfinder.ai.lead.dispatch_context import refuse_and_keep_what_it_bound
@@ -51,7 +48,11 @@ async def refuse_an_added_criterion_the_message_does_not_state(
     unstated = _unstated(deps, found, draft)
     if not unstated:
         return
-    listed = listed_transform_ids(draft, await site_transforms(deps.site_id))
+    listed = (
+        listed_transform_ids(draft, await site_transforms(deps.site_id))
+        if deps.intent.asks_a_change
+        else frozenset[str]()
+    )
     for criterion in unstated:
         if criterion.id in listed:
             continue

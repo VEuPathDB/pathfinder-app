@@ -10,8 +10,14 @@ from pathfinder.ai.lead.classification_gate import (
     classification_refusal,
     held_as_question,
 )
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
+from pathfinder.ai.lead.intent import (
+    ClassifiedIntent,
+    IntentClassification,
+    UserIntent,
+)
+from pathfinder.ai.lead.lead_tools import classify_user_intent
+from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _MESSAGE = "Could you show me what is inside those lanterns?"
 _ASKS = [_MESSAGE]
@@ -43,16 +49,16 @@ def test_a_question_that_asks_a_change_is_refused_as_a_question() -> None:
     )
 
 
-def test_a_question_that_asks_no_change_stands() -> None:
+async def test_a_question_that_asks_no_change_stands() -> None:
     state = pipeline_state("giardiadb", user_prompt=_MESSAGE, user_message_id=uuid4())
+    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
 
-    refusal = classification_refusal(
-        state,
-        _intent(IntentClassification.FOLLOW_UP_QUESTION, change=False),
-        SiteReading(),
+    returned = await classify_user_intent(
+        ctx, _intent(IntentClassification.FOLLOW_UP_QUESTION, change=False)
     )
 
-    assert [refusal] == [None]
+    held = ClassifiedIntent.model_validate(returned.return_value)
+    assert held.intent.classification is IntentClassification.FOLLOW_UP_QUESTION
 
 
 def test_a_change_worded_as_a_question_is_not_held_as_one() -> None:

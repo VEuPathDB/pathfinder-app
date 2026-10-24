@@ -96,7 +96,6 @@ def _bound_expressions(spec: OperationalSpec | None) -> dict[str, str]:
 def bound_patterns(
     built: Mapping[str, BuiltPattern], spec: OperationalSpec
 ) -> list[tuple[str, PhyleticPattern]]:
-    """The pattern of each criterion bound to an expression this conversation built."""
     return [
         (criterion_id, built[handle].pattern)
         for criterion_id, text in _bound_texts(spec)

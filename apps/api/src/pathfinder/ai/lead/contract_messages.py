@@ -422,7 +422,6 @@ def unnamed_clause_message(met: MetClause) -> str:
 
 
 def unstated_reading_message(reading: ChosenReading) -> str:
-    """Why a reply that does not name the reading a framing pass chose is refused."""
     others = ", ".join(f"'{label}'" for label in reading.alternatives)
     other = "other" if len(reading.alternatives) == 1 else "others"
     return (

@@ -318,7 +318,6 @@ def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:
 
 
 def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A reading a framing pass chose without asking is named with the others."""
     unstated = [r for r in record.chosen_readings if r.unstated_in(report.prose)]
     return unstated_reading_message(unstated[0]) if unstated else None
 

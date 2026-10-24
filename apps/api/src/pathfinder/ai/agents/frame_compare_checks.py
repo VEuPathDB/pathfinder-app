@@ -1,6 +1,3 @@
-"""What FRAME's result is held to when it classes a request as a comparison of
-two genome sets."""
-
 from __future__ import annotations
 
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext

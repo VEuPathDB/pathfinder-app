@@ -139,9 +139,11 @@ def hold_an_organism_to_a_step(
 def hold_the_structure_to_bound_criteria(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
-    """Send back a ready spec whose structure names a criterion it never bound."""
-    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
-        return output
+    match output:
+        case FrameResult(disposition="spec_ready"):
+            pass
+        case _:
+            return output
     state = ctx.deps.agent_state
     unbound = unbound_in_structure(state.operational_spec_draft)
     if not unbound:

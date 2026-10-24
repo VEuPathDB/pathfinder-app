@@ -1,6 +1,3 @@
-"""The transform criteria of a spec that the site lists for the record class of
-the input they map."""
-
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
@@ -19,7 +16,6 @@ def _nodes(node: StructureNode) -> Iterator[StructureNode]:
 def listed_transform_ids(
     spec: OperationalSpec, transforms: Mapping[str, SearchRecordClasses]
 ) -> frozenset[str]:
-    """Each transform criterion whose search takes its input's record class."""
     if spec.structure is None:
         return frozenset()
     by_id = {criterion.id: criterion for criterion in spec.criteria}

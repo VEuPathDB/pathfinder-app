@@ -112,3 +112,12 @@ def test_at_the_bound_the_unbound_criteria_are_a_named_gap() -> None:
             sentence="The structure names c_tide, which no bound criterion stands for.",
         )
     ]
+
+
+def test_a_criterion_waiting_for_its_analysis_counts_as_bound() -> None:
+    spec = _spec(bound_lanterns=True)
+    spec.criteria.append(
+        Criterion(id="c_tide", text="tide samples", needs_analysis_on="DS_tide")
+    )
+
+    assert unbound_in_structure(spec) == []

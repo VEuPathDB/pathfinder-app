@@ -1,8 +1,8 @@
-"""The genome sets a phyletic pattern names, as the site's taxonomy counts them."""
-
 from __future__ import annotations
 
 from collections.abc import Iterator
+from fractions import Fraction
+from math import ceil, floor
 
 from pydantic import ConfigDict
 from veupathdb.domain.parameters import PHYLETIC_ROOT_CODE, PhyleticTree
@@ -41,14 +41,14 @@ class CountBeyondSet(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     condition: str
-    value: int
+    value: float
     named: str
     genomes: int
 
     @property
     def sentence(self) -> str:
         return (
-            f"{_WORDS[self.condition]} {self.value} genomes of {self.named} asks for "
+            f"{_WORDS[self.condition]} {self.value:g} genomes of {self.named} asks for "
             f"more genomes than it holds: its codes cover {self.genomes} genomes on "
             "the site's taxonomy. Read each set's genome count from `sets`, or state "
             "the bound as a share."
@@ -93,7 +93,6 @@ def _sets_of(term: CountTerm | CompareTerm) -> list[NamedSet]:
 
 
 def set_sizes(pattern: PhyleticPattern, tree: PhyleticTree) -> tuple[SetSize, ...]:
-    """Each set the pattern names, once, with the genomes its codes cover."""
     named = [named for term in terms_of(pattern) for named in _sets_of(term)]
     sizes = (
         SetSize(
@@ -130,13 +129,14 @@ def _beyond(term: CountTerm, tree: PhyleticTree) -> CountBeyondSet | None:
     if term.condition not in _WORDS:
         return None
     largest = _largest_part(term.of, tree)
-    value = int(term.value)
-    held = value >= largest if term.condition == "more_than" else value > largest
+    value = Fraction(str(term.value))
+    least = floor(value) + 1 if term.condition == "more_than" else ceil(value)
+    held = least > largest
     if not held:
         return None
     return CountBeyondSet(
         condition=term.condition,
-        value=value,
+        value=term.value,
         named=term.of.outline(),
         genomes=largest,
     )
@@ -145,7 +145,6 @@ def _beyond(term: CountTerm, tree: PhyleticTree) -> CountBeyondSet | None:
 def counts_beyond_their_sets(
     pattern: PhyleticPattern, tree: PhyleticTree
 ) -> list[CountBeyondSet]:
-    """Each genome count no group can reach, because the set holds fewer genomes."""
     return [
         beyond
         for term in count_terms(pattern)

@@ -87,3 +87,19 @@ def test_the_refusal_names_the_count_in_the_strategy() -> None:
         "strategy's result with it in place, so it is no share of the result: "
         "write ``[compare:North:result]``, its count in the strategy."
     )
+
+
+def test_a_size_alone_equal_to_the_count_in_place_stands() -> None:
+    level = TurnFacts(
+        comparisons=[
+            ComparisonFact(
+                variants=[
+                    ComparedVariant(
+                        label="West", gene_count=9, unique_count=9, result_count=9
+                    )
+                ]
+            )
+        ]
+    )
+
+    assert prose_faults("West holds [compare:West].", level) == []

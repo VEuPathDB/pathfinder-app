@@ -363,7 +363,6 @@ def nothing_to_answer_message() -> str:
 
 
 def question_asks_a_change_message() -> str:
-    """The refusal of a question classification that marks a change."""
     return (
         "The classification marks the message as asking for a change to the "
         "strategy, and a follow_up_question changes nothing. Classify it as the "

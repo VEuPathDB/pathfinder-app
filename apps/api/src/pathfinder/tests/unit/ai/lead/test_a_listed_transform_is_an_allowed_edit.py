@@ -85,7 +85,9 @@ def test_a_search_the_site_lists_as_no_transform_is_not_named() -> None:
     assert listed_transform_ids(_transformed(_MEMBERS), {}) == frozenset()
 
 
-def _edit(monkeypatch: pytest.MonkeyPatch, added: Criterion) -> LeadDeps:
+def _edit(
+    monkeypatch: pytest.MonkeyPatch, added: Criterion, *, change: bool = True
+) -> LeadDeps:
     async def _fake(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
         agent_deps.agent_state.operational_spec_draft = _transformed(added)
@@ -101,6 +103,7 @@ def _edit(monkeypatch: pytest.MonkeyPatch, added: Criterion) -> LeadDeps:
         intent=UserIntent(
             classification=IntentClassification.EXTEND_STRATEGY,
             inferred_goal="The members of the groups.",
+            asks_a_change=change,
         ),
         strategy_session=session_with_one_step("orthomcl"),
     )
@@ -136,3 +139,16 @@ async def test_an_edit_adding_an_unlisted_transform_is_refused(
         await run_frame(deps=deps, parent_tool_call_id="t1", work_order="edit")
 
     assert str(refused.value).startswith("The pass adds 'c_back' ('groups of those')")
+
+
+async def test_a_listed_transform_the_message_asks_no_change_for_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    deps = _edit(monkeypatch, _MEMBERS, change=False)
+
+    with pytest.raises(ModelRetry) as refused:
+        await run_frame(deps=deps, parent_tool_call_id="t1", work_order="edit")
+
+    assert str(refused.value).startswith(
+        "The pass adds 'c_members' ('the members of those groups')"
+    )

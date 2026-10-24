@@ -1,6 +1,3 @@
-"""The reading of a request a framing pass built without asking, and the other
-readings the request allows."""
-
 from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel

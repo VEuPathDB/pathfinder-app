@@ -1,6 +1,3 @@
-"""Whether a bound phyletic pattern states a requirement's clause: a term every
-group of the pattern meets selects the same groups on the site's taxonomy."""
-
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -129,7 +126,6 @@ def _conjuncts(pattern: PhyleticPattern) -> Iterator[PhyleticPattern]:
 def states_clause(
     pattern: PhyleticPattern, clause: PhyleticPattern, tree: PhyleticTree
 ) -> bool:
-    """Whether every term of the clause is a term every group of the pattern meets."""
     held = {_key(term, tree) for term in _conjuncts(pattern)} - {None}
     wanted = [_key(term, tree) for term in _conjuncts(clause)]
     return all(key is not None and key in held for key in wanted)

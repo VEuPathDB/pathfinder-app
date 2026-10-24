@@ -82,7 +82,6 @@ class TurnRecord(CamelModel):
     export_step_ids: tuple[str, ...] = ()
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
-    # The readings a framing pass of this turn built without asking.
     chosen_readings: tuple[ChosenReading, ...] = ()
 
     @property

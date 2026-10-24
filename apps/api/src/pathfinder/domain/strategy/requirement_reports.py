@@ -109,7 +109,6 @@ class RequirementReport(CamelModel):
     )
 
     def clause_pattern(self) -> PhyleticPattern | None:
-        """The clause as a pattern term; raises when it is none."""
         return _PATTERN.validate_json(self.clause) if self.clause.strip() else None
 
     @model_validator(mode="after")
