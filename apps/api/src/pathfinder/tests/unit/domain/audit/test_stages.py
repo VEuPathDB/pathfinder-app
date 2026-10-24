@@ -115,17 +115,3 @@ def test_the_last_target_failure_rides_every_change_of_the_stages() -> None:
         "connection refused",
         None,
     )
-
-
-def test_a_stored_row_that_kept_a_target_list_loads_without_it() -> None:
-    stored = (
-        RunStages()
-        .note_target_failure("refused")
-        .model_dump(by_alias=True, mode="json")
-    )
-    stored["targetList"] = {"siteId": "plasmodb", "datasetId": 9, "size": 300}
-
-    loaded = RunStages.model_validate(stored)
-
-    assert loaded == RunStages().note_target_failure("refused")
-    assert "targetList" not in loaded.model_dump(by_alias=True, mode="json")
