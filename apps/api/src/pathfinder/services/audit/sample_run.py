@@ -41,7 +41,7 @@ from pathfinder.persistence.repositories.audit_weighings import (
     AuditWeighingRepository,
 )
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.audit.runs import RunOwner, create_run
+from pathfinder.services.audit.runs import RunOwner, add_run
 from pathfinder.services.conversations.begin import begin_conversation
 
 SAMPLE_PATH: Traversable = files("pathfinder") / "data" / "audit" / "sample_run.json"
@@ -259,9 +259,7 @@ async def store_sample_run(user_id: UUID) -> SampleRunIds:
             site_id=sample.scope.site_id,
             assistant_id=PATHFINDER_ASSISTANT_ID,
         )
-        await session.commit()
-    run_id = await create_run(owner=owner, scope=sample.scope)
-    async with async_session_factory() as session:
+        run_id = await add_run(session, owner=owner, scope=sample.scope)
         await _store_genomes(AuditRepository(session), run_id, sample.genomes)
         ids = await _store_findings(session, run_id, sample.findings)
         await _store_stages(AuditRepository(session), run_id, sample)

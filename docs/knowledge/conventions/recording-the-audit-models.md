@@ -75,7 +75,10 @@ that name findings by their 1-based place. Build it from those values with
 
 `apps/web/src/features/audit/__fixtures__/sampleRun.json` is what the run, page
 and detail routes answer for the stored sample, with ids and times fixed.
-`tests/integration/http/test_audit_sample_run.py` writes it when it is absent
-and compares it on every later run. After it writes the file, run
-`yarn prettier --write` on it in `apps/web`; the comparison reads the JSON, not
-its layout.
+`tests/integration/http/test_audit_sample_run.py` compares it on every run and
+fails when it is absent. To write it again, run that test with
+`PATHFINDER_WRITE_AUDIT_SAMPLE=1`, then run `yarn prettier --write` on the file
+in `apps/web`; the comparison reads the JSON, not its layout. The test maps
+every stored id it reads (`id`, `conversationId`, `findingIds`, `headline` and
+the `finding:<id>` cites) to the finding's place, so the file does not depend
+on the ids the database hands out.

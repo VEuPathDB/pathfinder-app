@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -12,7 +13,9 @@ from veupathdb_mcp.audit import INTRON_STORE_READS
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError
+from pathfinder.services.audit import sample_run
 from pathfinder.services.audit.sample_run import SampleRunIds, store_sample_run
+from pathfinder.services.audit.views import list_runs
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests.integration.http.conftest import client_for
 from pathfinder.transport.http.routers import dev
@@ -27,18 +30,42 @@ RUN_ID = "00000000-0000-4000-8000-000000000001"
 CONVERSATION_ID = "00000000-0000-4000-8000-000000000002"
 AT = "2026-10-22T00:00:00Z"
 SAMPLE_ROUTE = "/api/v1/dev/audits/sample"
+WRITE_FIXTURE = "PATHFINDER_WRITE_AUDIT_SAMPLE"
+
+
+class ReviewStoreRefusedError(Exception):
+    pass
+
 
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 
 
 def _field(key: str, item: Json, ids: dict[str, Json]) -> Json:
-    match key:
-        case "createdAt" | "finishedAt" | "deadlineAt" if item is not None:
+    match key, item:
+        case (("createdAt" | "finishedAt" | "deadlineAt"), str()):
             return AT
-        case "id" | "conversationId" if str(item) in ids:
+        case (("id" | "conversationId"), _) if str(item) in ids:
+            return ids[str(item)]
+        case (("findingIds" | "headline"), list()):
+            return [_place(i, ids) for i in item]
+        case _:
+            return _fixed(item, ids)
+
+
+def _place(item: Json, ids: dict[str, Json]) -> Json:
+    match item:
+        case int():
             return ids[str(item)]
         case _:
             return _fixed(item, ids)
+
+
+def _cite(cite: str, ids: dict[str, Json]) -> str:
+    match cite.split(":"):
+        case ["finding" | "evidence" as kind, stored, *rest] if stored in ids:
+            return ":".join([kind, str(ids[stored]), *rest])
+        case _:
+            return cite
 
 
 def _fixed(value: Json, ids: dict[str, Json]) -> Json:
@@ -47,6 +74,8 @@ def _fixed(value: Json, ids: dict[str, Json]) -> Json:
             return {key: _field(key, item, ids) for key, item in value.items()}
         case list():
             return [_fixed(item, ids) for item in value]
+        case str():
+            return _cite(value, ids)
         case _:
             return value
 
@@ -62,6 +91,7 @@ def fixed_ids(body: Json, stored: SampleRunIds, conversation_id: UUID) -> Json:
 
 async def test_the_sample_run_reads_as_the_web_fixture_holds_it(app: FastAPI) -> None:
     user = (await seed_thread()).user_id
+    earlier = await store_sample_run(user)
     stored = await store_sample_run(user)
     async with client_for(app, user) as client:
         run = (await client.get(f"/api/v1/audits/{stored.run_id}")).json()
@@ -79,9 +109,11 @@ async def test_the_sample_run_reads_as_the_web_fixture_holds_it(app: FastAPI) ->
         stored,
         UUID(run["run"]["conversationId"]),
     )
-    if not FIXTURE.exists():
+    if os.environ.get(WRITE_FIXTURE) == "1":
         FIXTURE.parent.mkdir(parents=True, exist_ok=True)
         FIXTURE.write_text(json.dumps(read, indent=2) + "\n")
+    assert stored.finding_ids[0] == earlier.finding_ids[-1] + 1
+    assert FIXTURE.exists(), f"no web fixture; run this test with {WRITE_FIXTURE}=1"
     assert json.loads(FIXTURE.read_text()) == read
     assert (run["run"]["phase"], run["action"], run["left"]["total"]) == (
         "finished",
@@ -143,3 +175,18 @@ async def test_the_sample_route_refuses_outside_mock_mode(
 
     with pytest.raises(ForbiddenError, match="Only available in mock mode"):
         await dev.store_sample_audit_run(user)
+
+
+async def test_a_sample_that_fails_partway_stores_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = (await seed_thread()).user_id
+
+    async def refused(*_: object) -> None:
+        raise ReviewStoreRefusedError
+
+    monkeypatch.setattr(sample_run, "_store_reviews", refused)
+
+    with pytest.raises(ReviewStoreRefusedError):
+        await sample_run.store_sample_run(user)
+    assert await list_runs(user) == []
