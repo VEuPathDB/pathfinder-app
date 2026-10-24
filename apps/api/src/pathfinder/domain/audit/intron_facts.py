@@ -49,13 +49,12 @@ def _depth(depth: IntronDepth) -> str:
     )
 
 
-def _shown(intron: UnreadIntron, unread: list[str]) -> str:
-    gap = f"the intron {intron.start}-{intron.end} spans an assembly gap"
-    across = intron.outcome == "UNEXPLAINED" and gap in unread
-    return _ACROSS_GAP if across else _OUTCOMES[intron.outcome]
+def _shown(intron: UnreadIntron) -> str:
+    shown = _OUTCOMES[intron.outcome]
+    return f"{shown}; {_ACROSS_GAP}" if intron.spans_assembly_gap else shown
 
 
-def _unread_intron(intron: UnreadIntron, unread: list[str]) -> tuple[Fact, ...]:
+def _unread_intron(intron: UnreadIntron) -> tuple[Fact, ...]:
     motif = (
         ()
         if intron.motif is None
@@ -71,7 +70,7 @@ def _unread_intron(intron: UnreadIntron, unread: list[str]) -> tuple[Fact, ...]:
             label="Intron with no read",
             value=f"bases {intron.start:,} to {intron.end:,}",
         ),
-        Fact(label="What the evidence shows there", value=_shown(intron, unread)),
+        Fact(label="What the evidence shows there", value=_shown(intron)),
         *motif,
         Fact(
             label="RNA-seq junctions that replace it",
@@ -114,11 +113,7 @@ def intron_facts(result: IntronAudit) -> tuple[Fact, ...]:
     return (
         Fact(label="Transcript judged", value=known(result.transcript)),
         Fact(label="Annotated introns with reads", value=_with_reads(result)),
-        *(
-            fact
-            for intron in result.unread or []
-            for fact in _unread_intron(intron, unread)
-        ),
+        *(fact for intron in result.unread or [] for fact in _unread_intron(intron)),
         *unread_facts(unread),
         Fact(label="Corrected protein", value=_corrected(result)),
         Fact(label="Orthologs that match", value=_orthologs(result.orthologs)),

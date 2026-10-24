@@ -40,7 +40,8 @@
         "covered_share": 0.988,
         "track": "E-MTAB-2880:E_20h_F (unique reverse)",
         "depth_share": 0.533
-      }
+      },
+      "spans_assembly_gap": false
     }
   ],
   "best_junction_reads": 21255,

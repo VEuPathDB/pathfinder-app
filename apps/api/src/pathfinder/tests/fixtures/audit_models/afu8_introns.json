@@ -41,7 +41,8 @@
         }
       ],
       "motif": null,
-      "depth": null
+      "depth": null,
+      "spans_assembly_gap": false
     }
   ],
   "best_junction_reads": 16153,

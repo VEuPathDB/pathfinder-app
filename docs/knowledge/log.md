@@ -10,7 +10,8 @@
   `domain/audit/length_facts.py` the length, split, fusion and strain results, and
   `domain/audit/intron_facts.py` the intron check's, with each intron no read supports, the
   junctions that replace it, its splice-site bases and its read depth against the library's
-  RETAINED thresholds. A value not read reads "Not read", a read that found nothing "None found",
+  RETAINED thresholds; an intron over an assembly gap says so from
+  `UnreadIntron.spans_assembly_gap` (veupathdb-mcp 0.2.0b44), whatever its outcome. A value not read reads "Not read", a read that found nothing "None found",
   and "Evidence not read" is shown only when the result names one. A strain whose genome was not
   read states its own reason. `FindingDetail.facts` holds one group per stored payload, in the
   order confirmation, relatives, gene evidence; `AuditEvidenceRecord` refuses a payload on

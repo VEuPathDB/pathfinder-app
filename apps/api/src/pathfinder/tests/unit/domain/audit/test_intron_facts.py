@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from veupathdb_mcp.audit import IntronAudit, OrthologSupport
+from veupathdb_mcp.audit import IntronAudit, OrthologSupport, UnreadIntron
 
 from pathfinder.domain.audit.check_facts import confirmation_facts
 from pathfinder.domain.audit.confirmations import IntronConfirmation
@@ -107,18 +107,50 @@ def test_a_shifted_and_an_unexplained_intron_read_in_words() -> None:
 
 def test_an_intron_across_an_assembly_gap_reads_as_unread() -> None:
     facts = _introns(AGAP7279_INTRONS)
+    assert [intron.spans_assembly_gap for intron in AGAP7279_INTRONS.unread or []] == [
+        True
+    ]
     assert (
         facts["What the evidence shows there"],
         facts["Evidence not read"],
         facts["Corrected protein"],
         facts["Orthologs that match"],
     ) == (
-        "it spans an assembly gap, so its splice-site bases were not read",
+        (
+            "no evidence explains it; it spans an assembly gap, so its splice-site "
+            "bases were not read"
+        ),
         "the intron 44981063-44981393 spans an assembly gap",
         "Not read",
         "Not read",
     )
     assert "Splice-site bases" not in facts
+
+
+def test_an_intron_off_a_gap_states_only_its_outcome() -> None:
+    assert [intron.spans_assembly_gap for intron in PKAC_INTRONS.unread or []] == [
+        False
+    ]
+    assert _introns(PKAC_INTRONS)["What the evidence shows there"] == (
+        "RNA-seq junctions that join an exon the model lacks"
+    )
+
+
+def test_a_shifted_intron_over_a_gap_states_both() -> None:
+    shifted = intron_audit("UNSUPPORTED_SHIFTED")
+    (intron,) = shifted.unread or []
+    over_gap = revised(
+        shifted,
+        unread=[
+            UnreadIntron.model_validate(
+                {**intron.model_dump(), "spans_assembly_gap": True}
+            )
+        ],
+    )
+    assert _introns(over_gap)["What the evidence shows there"] == (
+        "an RNA-seq junction a few bases away; it spans an assembly gap, so its "
+        "splice-site bases were not read"
+    )
 
 
 def test_an_unchecked_intron_result_states_what_it_did_not_read() -> None:
