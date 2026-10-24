@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.runtime import AssistantDeps
@@ -27,6 +28,7 @@ class AuditDeps(AssistantDeps):
     facts: list[StatisticFact] = Field(default_factory=list)
     records: list[ReadRecord] = Field(default_factory=list)
     recorded: list[int] = Field(default_factory=list)
+    runs: list[UUID] = Field(default_factory=list)
 
     @property
     def caller(self) -> AuditCaller:

@@ -9,6 +9,7 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
 from pathfinder.domain.audit.verdicts import GeneModelVerdict
@@ -21,6 +22,24 @@ def unheld_cites_message(unheld: Sequence[str]) -> str:
         "the reads the tools of this turn made, or run the read first. Nothing "
         "was stored."
     )
+
+
+def unheld_genomes_message(unheld: Sequence[str]) -> str:
+    return (
+        f"These genomes are no organism of this site: {', '.join(unheld)}. "
+        "model_genome is the full organism name of the genome whose model the "
+        "verdict judges. Nothing was stored."
+    )
+
+
+async def unheld_genomes(
+    site_id: str, verdicts: Sequence[GeneModelVerdict]
+) -> list[str]:
+    named = dict.fromkeys(verdict.model_genome for verdict in verdicts)
+    if not named:
+        return []
+    held = frozenset(await list_organisms(site_id))
+    return [genome for genome in named if genome not in held]
 
 
 async def record_gene_model_verdicts(
@@ -42,6 +61,9 @@ async def record_gene_model_verdicts(
     unheld = [cite for verdict in verdicts for cite in verdict.unheld_cites(held)]
     if unheld:
         raise ModelRetry(unheld_cites_message(unheld))
+    genomes = await unheld_genomes(ctx.deps.site_id, verdicts)
+    if genomes:
+        raise ModelRetry(unheld_genomes_message(genomes))
     stored: list[int] = []
     for verdict in verdicts:
         stored.append(

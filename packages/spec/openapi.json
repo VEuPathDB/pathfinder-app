@@ -11277,7 +11277,8 @@
             "type": "string",
             "maxLength": 255,
             "minLength": 1,
-            "title": "Modelgenome"
+            "title": "Modelgenome",
+            "description": "The full organism name of the genome whose model the verdict judges, as the site names it."
           },
           "verdict": {
             "type": "string",

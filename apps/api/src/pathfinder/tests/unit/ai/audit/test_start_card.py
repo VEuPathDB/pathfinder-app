@@ -5,6 +5,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import truncate_summary
 from pydantic_ai import Agent, DeferredToolRequests, ModelRetry
 from pydantic_ai.capabilities import HandleDeferredToolCalls
@@ -20,7 +21,12 @@ from pydantic_ai.tools import DeferredToolResults, RunContext, ToolDenied
 from veupathdb.errors import WDKError, WDKLoginRequiredError
 
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.run_tools import START_TOOL, audit_can_start, build_run_toolset
+from pathfinder.ai.audit.run_tools import (
+    START_TOOL,
+    audit_can_start,
+    build_run_toolset,
+    plan_gene_model_audit_tool,
+)
 from pathfinder.ai.audit.start_card import ask_about_the_audits
 from pathfinder.domain.audit.planning import (
     START_LABEL,
@@ -33,6 +39,7 @@ from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.services.audit import planning
 from pathfinder.services.audit.planning import propose_scope
 from pathfinder.tests._support.audit_planning import (
+    RNA_KEPT,
     STRAINS,
     FakeSite,
     faked_site,
@@ -41,6 +48,10 @@ from pathfinder.tests._support.audit_planning import (
 from pathfinder.tests._support.run_context import run_context_for
 
 _CALL = "start-1"
+GENOME_RULE = (
+    "A genome is one of the site's organism names, written in full, and a "
+    "request that checks only gene targets names no genome."
+)
 _REQUEST = plan_request(STRAINS[0], STRAINS[1])
 
 
@@ -227,10 +238,10 @@ async def test_a_replan_with_no_scope_draws_no_card(site: FakeSite) -> None:
 
     reason = (
         f"The planner starts no audit: the site holds no genome named {STRAINS[1]}. "
-        "Nothing was started and no card was shown."
+        f"{GENOME_RULE} Nothing was started and no card was shown."
     )
     assert [(c["chunk"]["type"], c["chunk"]["data"]["summary"]) for c in written] == [
-        ("data-tool-summary", reason.removesuffix(".")),
+        ("data-tool-summary", truncate_summary(reason)),
     ]
     assert results == DeferredToolResults(approvals={_CALL: ToolDenied(reason)})
 
@@ -295,3 +306,31 @@ async def test_a_sign_in_refusal_in_the_replan_reaches_the_turn(
         await ask_about_the_audits(parked, written.append, site_id="plasmodb")
 
     assert written == []
+
+
+@pytest.mark.usefixtures("site")
+async def test_a_plan_that_names_a_site_as_a_genome_is_refused_with_the_rule() -> None:
+    ctx = _context()
+
+    with pytest.raises(CallRefused) as refused:
+        await plan_gene_model_audit_tool(
+            ctx, PlanAsk(genomes=("PlasmoDB",), targets=(RNA_KEPT,))
+        )
+
+    assert refused.value.message == (
+        "The planner starts no audit: the site holds no genome named PlasmoDB. "
+        f"{GENOME_RULE} Nothing was started and no card was shown."
+    )
+    assert (ctx.deps.facts, ctx.deps.records) == ([], [])
+
+
+@pytest.mark.usefixtures("site")
+async def test_a_refused_plan_names_the_organisms_its_words_hold() -> None:
+    with pytest.raises(CallRefused) as refused:
+        await plan_gene_model_audit_tool(_context(), PlanAsk(genomes=("beta",)))
+
+    assert refused.value.message == (
+        "The planner starts no audit: the site holds no genome named beta; the "
+        "organisms its words name are Examplea beta R, Examplea beta S. "
+        f"{GENOME_RULE} Nothing was started and no card was shown."
+    )

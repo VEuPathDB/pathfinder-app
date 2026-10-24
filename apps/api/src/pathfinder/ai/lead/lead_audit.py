@@ -60,6 +60,7 @@ def _audit_context(ctx: RunContext[LeadDeps]) -> RunContext[AuditDeps]:
 def _keep(ctx: RunContext[LeadDeps], audit: RunContext[AuditDeps]) -> None:
     markers = ctx.deps.state.turn_markers
     markers.record_audit_facts(audit.deps.facts)
+    markers.record_audit_runs(audit.deps.runs)
     for record in audit.deps.records:
         markers.record_read(record)
 

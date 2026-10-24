@@ -38,6 +38,7 @@ from pathfinder.services.audit.views import run_view
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit_planning import STRAINS, faked_site
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
+from pathfinder.tests._support.site_organisms import serve_recorded_verdict_genomes
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -99,6 +100,7 @@ def pseudogene_call(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
     monkeypatch.setattr(investigation, "audit_pseudogene_call", answer)
+    serve_recorded_verdict_genomes(monkeypatch)
 
 
 async def _post(

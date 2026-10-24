@@ -243,6 +243,7 @@ class TurnMarkers(CamelModel):
     tallies: list[TallyFact] = Field(default_factory=list)
     audit_facts: list[StatisticFact] = Field(default_factory=list)
     audit_runs_held: bool = False
+    audit_runs: list[UUID] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -421,6 +422,9 @@ class TurnMarkers(CamelModel):
 
     def record_tally(self, tally: TallyFact) -> None:
         self.tallies.append(tally)
+
+    def record_audit_runs(self, run_ids: Iterable[UUID]) -> None:
+        self.audit_runs = list(dict.fromkeys([*self.audit_runs, *run_ids]))
 
     def record_audit_facts(self, facts: Iterable[StatisticFact]) -> None:
         read = {fact.id: fact for fact in self.audit_facts}

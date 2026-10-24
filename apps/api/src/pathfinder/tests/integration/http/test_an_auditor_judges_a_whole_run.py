@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.audit import mock_run
+from pathfinder.ai.audit import mock_run, verdict_tool
 from pathfinder.ai.audit.budget_stop import budget_stop_prose
 from pathfinder.ai.audit.mock import AUDITOR_GREETING
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
@@ -42,6 +42,15 @@ _GENOME = STRAINS[0]
 _FINDINGS = 29
 _READ = "read_audit_findings"
 _RECORD = "record_gene_model_verdicts"
+
+
+@pytest.fixture(autouse=True)
+def site_genomes(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def organisms(site_id: str) -> list[str]:
+        assert site_id == "plasmodb"
+        return list(STRAINS)
+
+    monkeypatch.setattr(verdict_tool, "list_organisms", organisms)
 
 
 async def _post(

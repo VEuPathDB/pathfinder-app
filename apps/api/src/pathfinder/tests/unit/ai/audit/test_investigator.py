@@ -30,6 +30,7 @@ from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES
 from pathfinder.ai.audit.verdict_tool import (
     record_gene_model_verdicts,
     unheld_cites_message,
+    unheld_genomes_message,
 )
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.turn_records import TurnMarkers
@@ -64,6 +65,76 @@ def charged(monkeypatch: pytest.MonkeyPatch) -> Charged:
 
     monkeypatch.setattr(investigator, "charge_run", charge)
     return seen
+
+
+@pytest.fixture(autouse=True)
+def site_genomes(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def organisms(site_id: str) -> list[str]:
+        assert site_id == "plasmodb"
+        return ["Examplea alpha A", "Examplea beta B"]
+
+    monkeypatch.setattr(verdict_tool, "list_organisms", organisms)
+
+
+async def test_an_investigation_naming_a_genome_the_site_lacks_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = _storing(monkeypatch, investigator)
+    deps = _deps()
+    deps.reads.add(_UNMADE)
+    invented = {**_VERDICT, "modelGenome": "PlasmoDB EXA_0003 model"}
+    retried: list[str] = []
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        retried.extend(_retries(messages[-1:]))
+        verdict = _VERDICT if retried else invented
+        return _output(info, {"answer": "It is truncated.", "verdicts": [verdict]})
+
+    await investigate(
+        "is the model of EXA_0003 truncated",
+        deps=deps,
+        model=FunctionModel(respond),
+        usage=RunUsage(),
+    )
+
+    assert retried == [
+        (
+            "These genomes are no organism of this site: PlasmoDB EXA_0003 model. "
+            "model_genome is the full organism name of the genome whose model the "
+            "verdict judges. Nothing was stored."
+        )
+    ]
+    assert [verdict.model_genome for _, verdict in stored] == ["Examplea alpha A"]
+
+
+async def test_the_verdict_tool_refuses_a_genome_the_site_lacks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored = _storing(monkeypatch, verdict_tool)
+    deps = _deps().model_copy(update={"reads": {_UNMADE}})
+    invented = GeneModelVerdict.model_validate({**_VERDICT, "modelGenome": "EXA"})
+
+    with pytest.raises(ModelRetry) as refused:
+        await record_gene_model_verdicts(run_context_for(deps), [invented])
+
+    assert str(refused.value) == unheld_genomes_message(["EXA"])
+    assert (stored, deps.recorded) == ([], [])
+
+
+async def test_an_investigation_carries_the_runs_its_reads_named() -> None:
+    deps = _deps()
+    run_id = uuid4()
+    deps.runs.append(run_id)
+
+    def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        return _output(info, {"answer": "Nothing to judge.", "verdicts": []})
+
+    found = await investigate(
+        "is it right", deps=deps, model=FunctionModel(answer), usage=RunUsage()
+    )
+
+    assert found.runs == (run_id,)
 
 
 def _deps() -> AuditDeps:

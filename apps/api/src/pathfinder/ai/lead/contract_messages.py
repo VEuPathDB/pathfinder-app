@@ -434,3 +434,9 @@ UNBACKED_ABSENCE = (
     "not list comes back with the searches the catalog lookup finds, and a search "
     "is absent only when that lookup finds none."
 )
+
+UNRUN_AUDIT = (
+    "The reply says an audit ran, and this turn started no audit run and read "
+    "none. Say what the turn did: what the investigator judged, or that no "
+    "audit started and why."
+)

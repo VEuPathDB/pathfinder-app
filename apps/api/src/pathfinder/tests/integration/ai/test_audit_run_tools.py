@@ -396,6 +396,7 @@ async def test_every_audit_read_records_its_fact(
         str(finding_id),
     )
     assert [r.record_id for r in ctx.deps.records] == [_STRAIN, _REFERENCE]
+    assert ctx.deps.runs == [run_id, run_id, run_id]
     assert [
         plan.value("scope.confirmLimit"),
         plan.value("noReference"),
@@ -406,16 +407,20 @@ async def test_every_audit_read_records_its_fact(
     ] == ["150", None, _GENOME, "0", _REFERENCE, "plasmodb"]
 
 
-async def test_a_plan_records_its_suggestions_and_its_target_genes(
+async def test_a_plan_records_its_target_genes_and_refuses_an_unheld_genome(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     faked_site(monkeypatch)
     ctx = _context(await seed_thread())
 
-    await plan_gene_model_audit_tool(ctx, PlanAsk(genomes=("Examplea",)))
+    with pytest.raises(CallRefused) as refused:
+        await plan_gene_model_audit_tool(ctx, PlanAsk(genomes=("Examplea",)))
     await plan_gene_model_audit_tool(ctx, PlanAsk(targets=(_PAIR,)))
 
-    unresolved, targeted = ctx.deps.facts
-    assert unresolved.value("suggestions.Examplea.0") == STRAINS[0]
+    [targeted] = ctx.deps.facts
+    assert refused.value.message.split(". ")[0] == (
+        "The planner starts no audit: the site holds no genome named Examplea; the "
+        f"organisms its words name are {', '.join(STRAINS[:5])}"
+    )
     assert targeted.value("scope.targets.0.genes.0") == _STRAIN
     assert [r.record_id for r in ctx.deps.records] == [_STRAIN, _REFERENCE]
