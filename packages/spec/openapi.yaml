@@ -6510,6 +6510,14 @@ components:
           - type: number
           - type: 'null'
           title: Reviewedimpact
+        reviewsDisagree:
+          type: boolean
+          title: Reviewsdisagree
+        disagreementText:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disagreementtext
       type: object
       required:
       - id
@@ -6520,6 +6528,8 @@ components:
       - certainty
       - impact
       - reviewedImpact
+      - reviewsDisagree
+      - disagreementText
       title: FindingLine
     FindingModels:
       properties:

@@ -10023,6 +10023,21 @@
               }
             ],
             "title": "Reviewedimpact"
+          },
+          "reviewsDisagree": {
+            "type": "boolean",
+            "title": "Reviewsdisagree"
+          },
+          "disagreementText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disagreementtext"
           }
         },
         "type": "object",
@@ -10034,7 +10049,9 @@
           "errorTitle",
           "certainty",
           "impact",
-          "reviewedImpact"
+          "reviewedImpact",
+          "reviewsDisagree",
+          "disagreementText"
         ],
         "title": "FindingLine"
       },

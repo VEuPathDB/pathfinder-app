@@ -66,7 +66,11 @@ review that names one, and under the stored ones otherwise
 (`AuditTallyRepository.error_type_tally`). A finding the review rejects
 (`no_error`) is left out of the counts, genomes and certainty; an undecided one
 stays under its stored type. Its line still shows the review. A finding line shows the error type and certainty
-of the review that keeps it, and the stored ones otherwise; `headline`;
+of the review that keeps it, and the stored ones otherwise, and whether its two
+reviews disagree (`reviewsDisagree`, with `disagreementText` naming both
+verdicts), read from the stored review row and never from the synthesis prose.
+A finding whose reviews disagree may stay in a section and in the headline,
+because every line of both carries the disagreement; `headline`;
 `review_state`; and `agreement`, the synthesis's or else the one the stored
 reviews give, with its sentence. A finding's reviewed impact is shown beside
 the stored impact, which keeps the page order. No share of kept findings is

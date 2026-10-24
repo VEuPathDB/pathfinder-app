@@ -92,6 +92,13 @@ class FindingReview(CamelModel):
             raise ValueError(msg)
         return self
 
+    @property
+    def disagreement(self) -> tuple[VerdictKind, VerdictKind] | None:
+        first, second = self.verdict.verdict, self.second_verdict
+        if second is None or second == first:
+            return None
+        return first, second
+
 
 class UnsearchedReview(FindingReview):
     already_known: SkipJsonSchema[LiteratureStatus] = "not_searched"
@@ -140,7 +147,7 @@ def review_agreement(reviews: Sequence[FindingReview]) -> ReviewAgreement:
     paired = [r for r in reviews if r.second_verdict is not None]
     return ReviewAgreement(
         sampled=len(paired),
-        agreed=sum(r.verdict.verdict == r.second_verdict for r in paired),
+        agreed=sum(r.disagreement is None for r in paired),
     )
 
 

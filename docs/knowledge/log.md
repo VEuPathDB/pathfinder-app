@@ -2,6 +2,18 @@
 
 ## 2026-10-24
 
+* **A finding line states when its two reviews disagree.** `FindingLine` carries
+  `reviewsDisagree` and `disagreementText`, from `FindingReview.disagreement` on the stored
+  review row, so a disputed finding in a synthesis section or in the headline always shows
+  both verdicts. The agreement count reads the same property.
+* **A review is offered literature fields only with a source open, and a spent review keeps
+  its last refusal.** With no research source the reviewer writes `UnsearchedReview` and
+  reads no literature instruction. A review that spends its retries stores the last refusal
+  in plain words after `OUT_OF_RETRIES`.
+* **A usage row counts a cached token once.** pydantic-ai's `input_tokens` already holds
+  the cache reads and writes, so `_charge_token_delta` charges input plus output tokens
+  only. The dollar amount was already right: `genai_prices` prices the cache tokens as
+  parts of the input.
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
