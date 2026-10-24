@@ -2,6 +2,11 @@
 
 ## 2026-10-24
 
+* **The web tests read the sample audit run through the generated schemas.**
+  `features/audit/__fixtures__/sampleRun.ts` parses the recorded `sampleRun.json` into
+  `SAMPLE_RUN`, `SAMPLE_FINDINGS` and `SAMPLE_DETAILS`; `sampleDetail(check)` gives the detail of
+  the sample's error of that check and throws when the sample holds none. Its test holds each
+  `checkTitle` and `errorTitle` to the served words in `packages/spec/audit_words.json`.
 * **A sample audit run backs the report page's flow and the web fixture.**
   `data/audit/sample_run.json` holds a finished plasmodb run of ten findings, built from the
   recorded test-support results, with the reviews and the synthesis of the stored shapes.
