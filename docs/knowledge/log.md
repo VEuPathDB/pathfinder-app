@@ -5,8 +5,10 @@
 * **The audit views read the reviews and the synthesis in plain words.**
   `services/audit/review_views.py` builds `ReviewLine` on each finding of a page, `ReviewText` on a
   finding's detail, and on the run view the error-type sections, the headline finding lines, the
-  review state and the agreement with its sentence. `FindingFilter.ids`, `reviews_of` and
-  `error_type_tally` read them in one query each. See
+  review state and the agreement with its sentence. A finding read joins its review row, so the
+  page reads findings and reviews in one query; `FindingFilter` moves to
+  `persistence/repositories/audit_finding_filter.py`. A section of an error type only a review
+  gave has its own entry, and a kept finding's line shows the review's error type. See
   `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
 * **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded

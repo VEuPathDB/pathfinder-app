@@ -7,7 +7,7 @@ from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
-from sqlalchemy import Select, case, exists, func, select, update
+from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,38 +17,46 @@ from pathfinder.domain.audit.findings import (
     ErrorType,
     EvidenceKind,
     EvidencePayload,
-    FindingStatus,
 )
-from pathfinder.domain.audit.scope import CheckName, GeneTarget
+from pathfinder.domain.audit.scope import GeneTarget
 from pathfinder.persistence.models import (
     AuditEvidence,
     AuditEvidenceRecord,
     AuditFinding,
     AuditFindingRecord,
     AuditVerdict,
+    AuditVerdictRecord,
 )
 from pathfinder.persistence.repositories.audit import (
     UnitNotOpenError,
     stopped_message,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import (
+    FindingFilter,
+    filtered,
+)
 
-__all__ = ["AuditFindingRepository", "FindingFilter", "NewFinding", "SettledFinding"]
+__all__ = ["AuditFindingRepository", "NewFinding", "SettledFinding"]
 
 _INSERT_CHUNK = 1000
 _PAYLOAD: TypeAdapter[EvidencePayload] = TypeAdapter(EvidencePayload)
 _EVIDENCE_KEY = "uq_audit_evidence_finding_kind"
 type _Query = Select[tuple[AuditFinding]]
-_REVIEWED = exists().where(AuditVerdict.finding_id == AuditFinding.id).label("reviewed")
+_REVIEWED = AuditVerdict.finding_id == AuditFinding.id
 
 
 def _evidence_unit(finding_id: int, kind: str) -> str:
     return f"{kind} evidence of finding {finding_id}"
 
 
-def _reviewed(finding: AuditFinding, *, reviewed: bool) -> AuditFindingRecord:
-    return AuditFindingRecord.model_validate(finding).model_copy(
-        update={"reviewed": reviewed}
+def _reviewed(
+    finding: AuditFinding, verdict: AuditVerdict | None
+) -> AuditFindingRecord:
+    review = (
+        None if verdict is None else AuditVerdictRecord.model_validate(verdict).review
     )
+    record = AuditFindingRecord.model_validate(finding)
+    return record.model_copy(update={"review": review})
 
 
 class NewFinding(BaseModel):
@@ -99,53 +107,6 @@ class SettledFinding(BaseModel):
         return self
 
 
-class FindingFilter(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    checks: tuple[CheckName, ...] = ()
-    statuses: tuple[FindingStatus, ...] = ()
-    error_types: tuple[ErrorType, ...] = ()
-    certainties: tuple[Certainty, ...] = ()
-    genome: str | None = None
-    screened_genome: str | None = None
-    sampled: bool | None = None
-    named: bool | None = None
-    keys: tuple[str, ...] | None = None
-    excluded_keys: tuple[str, ...] = ()
-    ids: tuple[int, ...] | None = None
-
-
-def _by_kind(query: _Query, where: FindingFilter) -> _Query:
-    if where.checks:
-        query = query.where(AuditFinding.check_name.in_(where.checks))
-    if where.statuses:
-        query = query.where(AuditFinding.status.in_(where.statuses))
-    if where.error_types:
-        query = query.where(AuditFinding.error_type.in_(where.error_types))
-    if where.certainties:
-        query = query.where(AuditFinding.certainty.in_(where.certainties))
-    if where.named is not None:
-        named = AuditFinding.error_type.is_not(None)
-        query = query.where(named if where.named else ~named)
-    return query
-
-
-def _by_place(query: _Query, where: FindingFilter) -> _Query:
-    if where.genome is not None:
-        query = query.where(AuditFinding.genome == where.genome)
-    if where.screened_genome is not None:
-        query = query.where(AuditFinding.screened_genome == where.screened_genome)
-    if where.sampled is not None:
-        query = query.where(AuditFinding.sampled.is_(where.sampled))
-    if where.keys is not None:
-        query = query.where(AuditFinding.target_key.in_(where.keys))
-    if where.excluded_keys:
-        query = query.where(AuditFinding.target_key.not_in(where.excluded_keys))
-    if where.ids is not None:
-        query = query.where(AuditFinding.id.in_(where.ids))
-    return query
-
-
 class AuditFindingRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -183,7 +144,7 @@ class AuditFindingRepository:
 
     def _filtered(self, run_id: UUID, where: FindingFilter) -> _Query:
         query = select(AuditFinding).where(AuditFinding.run_id == run_id)
-        return _by_place(_by_kind(query, where), where)
+        return filtered(query, where)
 
     async def findings(
         self,
@@ -201,14 +162,15 @@ class AuditFindingRepository:
         )
         query = (
             self._filtered(run_id, where)
-            .add_columns(_REVIEWED)
+            .add_columns(AuditVerdict)
+            .outerjoin(AuditVerdict, _REVIEWED)
             .order_by(*order)
             .offset(offset)
             .limit(limit)
             .execution_options(populate_existing=True)
         )
         found = await self.session.execute(query)
-        return [_reviewed(finding, reviewed=reviewed) for finding, reviewed in found]
+        return [_reviewed(finding, verdict) for finding, verdict in found]
 
     async def count_findings(self, run_id: UUID, where: FindingFilter) -> int:
         counted = await self.session.scalar(
@@ -219,12 +181,13 @@ class AuditFindingRepository:
     async def finding(self, run_id: UUID, finding_id: int) -> AuditFindingRecord | None:
         found = (
             await self.session.execute(
-                select(AuditFinding, _REVIEWED)
+                select(AuditFinding, AuditVerdict)
+                .outerjoin(AuditVerdict, _REVIEWED)
                 .where(AuditFinding.run_id == run_id, AuditFinding.id == finding_id)
                 .execution_options(populate_existing=True)
             )
         ).one_or_none()
-        return None if found is None else _reviewed(found[0], reviewed=found[1])
+        return None if found is None else _reviewed(found[0], found[1])
 
     async def try_finding(self, finding_id: int) -> None:
         tried = await self.session.scalar(

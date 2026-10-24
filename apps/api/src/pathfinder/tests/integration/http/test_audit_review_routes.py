@@ -22,9 +22,9 @@ from pathfinder.domain.audit.verdicts import (
     Synthesis,
     finding_cite,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
@@ -210,7 +210,5 @@ async def test_findings_read_their_reviews_in_one_query(
         (unreviewed_id, False),
     ]
     assert [f["reviewLine"] is None for f in page["findings"]] == [False, True]
-    reading_verdicts = [s for s in seen if "audit_verdicts" in s]
-    assert len(reading_verdicts) == 2
-    assert "FROM audit_findings" in reading_verdicts[0]
-    assert "audit_verdicts.finding_id IN" in reading_verdicts[1]
+    (reading_verdicts,) = [s for s in seen if "audit_verdicts" in s]
+    assert "FROM audit_findings LEFT OUTER JOIN audit_verdicts" in reading_verdicts

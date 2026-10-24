@@ -12,9 +12,9 @@ from fastmcp.exceptions import ToolError
 from procrastinate.testing import InMemoryConnector
 from veupathdb.errors import WDKError, WDKLoginRequiredError
 
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode

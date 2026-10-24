@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
@@ -30,9 +30,9 @@ from pathfinder.domain.audit.words import (
     paper_sentence,
 )
 from pathfinder.persistence.models import AuditFindingRecord
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
@@ -152,28 +152,50 @@ def review_state(progress: ReviewProgress) -> ReviewState:
     )
 
 
-def finding_line(
-    record: AuditFindingRecord, review: FindingReview | None
-) -> FindingLine:
-    error_type = record.error_type
+class _Named(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    error_type: ErrorType
+    certainty: Certainty
+
+
+def _kept_as(review: FindingReview | None) -> _Named | None:
+    if review is None or review.verdict.verdict != "error":
+        return None
+    return _Named.model_validate(review.verdict)
+
+
+def finding_line(record: AuditFindingRecord) -> FindingLine:
+    review = record.review
+    kept = _kept_as(review)
+    error_type = record.error_type if kept is None else kept.error_type
     return FindingLine(
         id=record.id,
         genes=list(record.target.genes),
         genome=record.genome,
         error_type=error_type,
         error_title=None if error_type is None else ERROR_TYPE_TITLES[error_type],
-        certainty=record.certainty,
+        certainty=record.certainty if kept is None else kept.certainty,
         impact=record.impact,
         reviewed_impact=None if review is None else review.impact,
     )
 
 
-def finding_lines(
-    records: Iterable[AuditFindingRecord], reviews: Mapping[int, FindingReview]
-) -> dict[int, FindingLine]:
-    return {
-        record.id: finding_line(record, reviews.get(record.id)) for record in records
-    }
+def finding_lines(records: Iterable[AuditFindingRecord]) -> dict[int, FindingLine]:
+    return {record.id: finding_line(record) for record in records}
+
+
+def _reviewed_rows(
+    synthesis: Synthesis | None, lines: Mapping[int, FindingLine], tallied: set[str]
+) -> Iterator[tuple[ErrorType, str, Certainty, int]]:
+    sections = () if synthesis is None else synthesis.sections
+    for section in sections:
+        if section.error_type in tallied:
+            continue
+        for finding_id in section.finding_ids:
+            line = lines[finding_id]
+            named = _Named.model_validate(line)
+            yield named.error_type, line.genome, named.certainty, 1
 
 
 def error_type_views(
@@ -181,10 +203,15 @@ def error_type_views(
     synthesis: Synthesis | None,
     lines: Mapping[int, FindingLine],
 ) -> list[ErrorTypeView]:
+    stored = list(tally)
+    tallied: set[str] = {row[0] for row in stored}
     counts: Counter[ErrorType] = Counter()
     genomes: defaultdict[ErrorType, dict[str, None]] = defaultdict(dict)
     certainties: defaultdict[ErrorType, list[Certainty]] = defaultdict(list)
-    for error_type, genome, certainty, count in tally:
+    for error_type, genome, certainty, count in [
+        *stored,
+        *_reviewed_rows(synthesis, lines, tallied),
+    ]:
         counts[error_type] += count
         genomes[error_type][genome] = None
         certainties[error_type].append(certainty)
@@ -258,7 +285,7 @@ async def review_report(
     found = await AuditFindingRepository(session).findings(
         run_id, FindingFilter(ids=ids)
     )
-    lines = finding_lines(found, await reviews.reviews_of(run_id, ids))
+    lines = finding_lines(found)
     return ReviewReport(
         error_types=error_type_views(tally, synthesis, lines),
         headline=[lines[f] for f in synthesis.headline],

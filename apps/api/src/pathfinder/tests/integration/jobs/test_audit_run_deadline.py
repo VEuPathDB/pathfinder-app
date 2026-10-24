@@ -11,9 +11,9 @@ from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit import units

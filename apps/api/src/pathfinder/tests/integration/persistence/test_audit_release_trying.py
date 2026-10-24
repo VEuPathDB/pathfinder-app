@@ -8,9 +8,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.tests._support.audit import NF54
 from pathfinder.tests.integration.persistence._audit_runs import (

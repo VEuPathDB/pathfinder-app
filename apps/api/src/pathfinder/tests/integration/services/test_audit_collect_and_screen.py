@@ -14,9 +14,9 @@ from veupathdb_mcp.audit import GeneRow
 
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.audit import collect, screen

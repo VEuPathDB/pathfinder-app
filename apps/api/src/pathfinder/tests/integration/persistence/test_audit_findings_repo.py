@@ -12,9 +12,9 @@ from pathfinder.domain.audit.findings import FindingTally
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit import STOPPED_MESSAGE, UnitNotOpenError
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )

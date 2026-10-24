@@ -40,9 +40,9 @@ from pathfinder.domain.audit.stages import RunHalt, RunStages, RunStatus, StageN
 from pathfinder.domain.audit.verdicts import ReviewProgress, Synthesis
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository

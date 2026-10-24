@@ -14,9 +14,9 @@ from veupathdb_mcp.audit import GeneRow
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget, ScreenedCheck
 from pathfinder.domain.audit.screen import Candidate, screen_genomes
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     SettledFinding,
 )
 from pathfinder.persistence.repositories.audit_weighings import AuditWeighingRepository

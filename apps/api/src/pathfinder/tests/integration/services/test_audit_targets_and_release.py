@@ -17,9 +17,9 @@ from pathfinder.domain.audit.scope import (
     SingleGeneTarget,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.services.audit import collect, screen
 from pathfinder.services.audit.runs import RunOwner, create_run, owned_run

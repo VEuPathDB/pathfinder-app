@@ -13,9 +13,9 @@ from pathfinder.domain.audit.findings import ConfirmationEvidence, classify_conf
 from pathfinder.domain.audit.scope import paired_genome
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     SettledFinding,
 )
 from pathfinder.platform.metrics import RequestTally

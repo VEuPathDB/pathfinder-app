@@ -22,9 +22,9 @@ from pathfinder.domain.audit.verdicts import (
     Synthesis,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.services.audit.finding_views import FindingDetail, finding_detail

@@ -44,6 +44,7 @@ def _record(
     error_type: ErrorType | None,
     certainty: Certainty | None,
     impact: float | None,
+    review: FindingReview | None = None,
 ) -> AuditFindingRecord:
     return AuditFindingRecord(
         id=finding_id,
@@ -63,6 +64,7 @@ def _record(
         attempts=1,
         stopped=0,
         message=None,
+        review=review,
     )
 
 
@@ -196,32 +198,122 @@ def test_a_review_state_states_its_status(status: ReviewStatus, text: str) -> No
     )
 
 
-def test_a_finding_line_keeps_the_stored_impact_beside_the_reviewed_one() -> None:
-    line = finding_line(
-        _record(7, "sec_read_as_stop", "medium", 0.4),
-        _review(impact=0.9, impact_reason="A paper uses the gene."),
-    )
+def test_a_kept_finding_line_shows_the_reviews_type_beside_the_stored_impact() -> None:
+    review = _review(impact=0.9, impact_reason="A paper uses the gene.")
+
+    line = finding_line(_record(7, "sec_read_as_stop", "medium", 0.4, review))
 
     assert line == FindingLine(
         id=7,
         genes=["EXA_0007"],
         genome=_GENOME,
-        error_type="sec_read_as_stop",
-        error_title="Selenocysteine codon read as a stop",
-        certainty="medium",
+        error_type="truncated_model",
+        error_title="Model too short",
+        certainty="high",
         impact=0.4,
         reviewed_impact=0.9,
     )
 
 
-def test_a_finding_line_with_no_review_or_error_type() -> None:
-    line = finding_line(_record(8, None, None, None), None)
+def test_a_finding_line_the_review_rejects_keeps_the_stored_type() -> None:
+    line = finding_line(
+        _record(7, "sec_read_as_stop", "medium", 0.4, _review("no_error"))
+    )
 
-    assert (line.error_title, line.reviewed_impact) == (None, None)
+    assert (
+        line.error_type,
+        line.error_title,
+        line.certainty,
+        line.reviewed_impact,
+    ) == (
+        "sec_read_as_stop",
+        "Selenocysteine codon read as a stop",
+        "medium",
+        None,
+    )
+
+
+def test_a_finding_line_with_no_review_or_error_type() -> None:
+    line = finding_line(_record(8, None, None, None))
+
+    assert (line.error_title, line.certainty, line.reviewed_impact) == (
+        None,
+        None,
+        None,
+    )
 
 
 def _line(finding_id: int, error_type: ErrorType = "truncated_model") -> FindingLine:
-    return finding_line(_record(finding_id, error_type, "high", 0.5), None)
+    return finding_line(_record(finding_id, error_type, "high", 0.5))
+
+
+def _split(finding_id: int, certainty: Certainty, genome: str = _GENOME) -> FindingLine:
+    verdict = _review().verdict.model_copy(
+        update={"error_type": "split_model", "certainty": certainty}
+    )
+    review = _review().model_copy(update={"verdict": verdict})
+    record = _record(finding_id, "truncated_model", "high", 0.5, review)
+    return finding_line(record.model_copy(update={"genome": genome}))
+
+
+def test_a_section_of_a_type_the_review_gave_has_its_own_entry() -> None:
+    lines = {1: _split(1, "medium")}
+    synthesis = Synthesis(
+        sections=(
+            ErrorTypeSection(
+                error_type="split_model",
+                cause="The two models are one gene.",
+                confirmed_by="The relatives hold one protein.",
+                finding_ids=(1,),
+            ),
+        ),
+        headline=(1,),
+        summary="One kept.",
+        agreement=ReviewAgreement(sampled=0, agreed=0),
+    )
+
+    found = error_type_views([("truncated_model", "G", "high", 1)], synthesis, lines)
+
+    assert [(v.error_type, v.count, v.reviewed) for v in found] == [
+        ("truncated_model", 1, []),
+        ("split_model", 1, [lines[1]]),
+    ]
+    split = found[1]
+    assert (split.genomes, split.certainty, split.cause, split.confirmed_by) == (
+        [_GENOME],
+        "medium",
+        "The two models are one gene.",
+        "The relatives hold one protein.",
+    )
+    assert (lines[1].error_type, lines[1].error_title) == (
+        "split_model",
+        "One gene split into two models",
+    )
+
+
+def test_a_reviewed_type_counts_its_section_genomes_and_highest_certainty() -> None:
+    lines = {1: _split(1, "low"), 2: _split(2, "high", _OTHER), 3: _split(3, "medium")}
+    synthesis = Synthesis(
+        sections=(
+            ErrorTypeSection(
+                error_type="split_model",
+                cause="The models are one gene.",
+                confirmed_by="The relatives hold one protein.",
+                finding_ids=(2, 1, 3),
+            ),
+        ),
+        headline=(2,),
+        summary="Three kept.",
+        agreement=ReviewAgreement(sampled=0, agreed=0),
+    )
+
+    (split,) = error_type_views([], synthesis, lines)
+
+    assert (split.count, split.genomes, split.certainty) == (
+        3,
+        [_OTHER, _GENOME],
+        "high",
+    )
 
 
 _TALLY: list[tuple[ErrorType, str, Certainty, int]] = [

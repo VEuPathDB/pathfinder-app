@@ -22,9 +22,9 @@ from veupathdb_mcp.audit import (
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.domain.audit.stages import RunStages
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
 )
 from pathfinder.services.audit import checks, collect, confirm, screen, tie_break

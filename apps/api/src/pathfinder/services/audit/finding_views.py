@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
@@ -30,11 +30,10 @@ from pathfinder.domain.audit.words import (
     verdict_sentence,
 )
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
-from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.audit.review_views import (
     ReviewLine,
@@ -158,7 +157,6 @@ def _view(
     *,
     verdict: FindingVerdict | None,
     from_target: bool,
-    review: FindingReview | None,
 ) -> FindingView:
     return FindingView(
         id=record.id,
@@ -180,7 +178,7 @@ def _view(
         reviewed=record.reviewed,
         verdict=verdict,
         from_target=from_target,
-        review_line=None if review is None else review_line(review),
+        review_line=None if record.review is None else review_line(record.review),
     )
 
 
@@ -208,7 +206,6 @@ def _views(
     found: Iterable[AuditFindingRecord],
     evidence: Iterable[AuditEvidenceRecord],
     target_keys: Collection[str],
-    reviews: Mapping[int, FindingReview],
 ) -> list[FindingView]:
     verdicts = _verdicts(evidence)
     return [
@@ -216,7 +213,6 @@ def _views(
             record,
             verdict=verdicts.get(record.id),
             from_target=record.target.key in target_keys,
-            review=reviews.get(record.id),
         )
         for record in found
     ]
@@ -236,14 +232,14 @@ async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> Find
             limit=query.limit,
             by_impact=True,
         )
-        ids = [record.id for record in found]
-        evidence = await repo.evidence(run_id, ids, kinds=("confirmation",))
-        reviews = await AuditReviewRepository(session).reviews_of(run_id, ids)
+        evidence = await repo.evidence(
+            run_id, [record.id for record in found], kinds=("confirmation",)
+        )
     return FindingPage(
         site_id=run.site_id,
         total=total,
         offset=query.offset,
-        findings=_views(found, evidence, set(target_keys), reviews),
+        findings=_views(found, evidence, set(target_keys)),
     )
 
 
@@ -258,9 +254,8 @@ async def finding_detail(run_id: UUID, finding_id: int, user_id: UUID) -> Findin
                 detail=f"no finding {finding_id} in run {run_id}",
             )
         evidence = await repo.evidence(run_id, [finding_id])
-        review = await AuditReviewRepository(session).review_of(finding_id)
-    reviews = {} if review is None else {finding_id: review}
-    (finding,) = _views([found], evidence, {t.key for t in run.scope.targets}, reviews)
+    review = found.review
+    (finding,) = _views([found], evidence, {t.key for t in run.scope.targets})
     return FindingDetail(
         site_id=run.site_id,
         finding=finding,

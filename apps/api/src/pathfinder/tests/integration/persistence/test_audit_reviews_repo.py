@@ -22,9 +22,9 @@ from pathfinder.domain.audit.verdicts import (
     finding_cite,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
@@ -309,19 +309,24 @@ async def test_a_purge_deletes_one_sites_verdicts_or_every_sites() -> None:
             )
 
 
-async def test_reviews_of_reads_the_named_findings_reviews_in_the_run() -> None:
+async def test_a_finding_reads_with_its_review_in_one_join() -> None:
     _, run_id, ids = await _run_with_findings([0.3, 1.0, 0.075])
-    _, other_run, other_ids = await _run_with_findings([1.0])
     await _add_review(run_id, ids[1.0])
-    await _add_review(run_id, ids[0.3])
-    await _add_review(other_run, other_ids[1.0])
 
     async with async_session_factory() as session:
-        found = await AuditReviewRepository(session).reviews_of(
-            run_id, [ids[1.0], ids[0.075], other_ids[1.0]]
-        )
+        repo = AuditFindingRepository(session)
+        found = await repo.findings(run_id, FindingFilter(), by_impact=True)
+        one = await repo.finding(run_id, ids[1.0])
+        other = await repo.finding(run_id, ids[0.3])
 
-    assert found == {ids[1.0]: _review("EXA_0001", ids[1.0])}
+    assert [(f.id, f.review, f.reviewed) for f in found] == [
+        (ids[1.0], _review("EXA_0001", ids[1.0]), True),
+        (ids[0.3], None, False),
+        (ids[0.075], None, False),
+    ]
+    assert one is not None
+    assert other is not None
+    assert (one.review, other.review) == (_review("EXA_0001", ids[1.0]), None)
 
 
 async def test_the_error_type_tally_counts_named_findings_by_genome_and_certainty() -> (

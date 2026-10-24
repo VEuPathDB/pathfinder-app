@@ -14,9 +14,9 @@ from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services import wdk_identity

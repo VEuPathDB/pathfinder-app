@@ -46,11 +46,15 @@ charged like a reviewer run.
 
 **What the report reads.** `services/audit/review_views.py` states the stored
 reviews and the synthesis in the words of `domain/audit/words.py`. Each finding
-on a page carries its `review_line` (one `reviews_of` query for the page) and
-the finding detail its `review_text`. The run view carries `error_types`, one
-per error type its confirmed findings name, in `ERROR_TYPE_TITLES` order, with
-the count, the model genomes, the highest certainty and, from the synthesis
-section, the cause, how it was confirmed and its findings; `headline`;
+on a page carries its `review_line` and the finding detail its `review_text`;
+a finding read joins its review row, so `reviewed` is `review is not None` and
+the page reads both in one query. The run view carries `error_types`, one per
+error type its confirmed findings name or a synthesis section names, in
+`ERROR_TYPE_TITLES` order, with the count, the model genomes, the highest
+certainty and, from the synthesis section, the cause, how it was confirmed and
+its findings. A type that only a review gave counts the section's findings and
+takes the reviews' certainty. A finding line shows the error type and certainty
+of the review that keeps it, and the stored ones otherwise; `headline`;
 `review_state`; and `agreement`, the synthesis's or else the one the stored
 reviews give, with its sentence. A finding's reviewed impact is shown beside
 the stored impact, which keeps the page order. No share of kept findings is

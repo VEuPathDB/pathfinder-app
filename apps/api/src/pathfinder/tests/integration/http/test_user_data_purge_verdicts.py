@@ -15,9 +15,9 @@ from pathfinder.domain.audit.verdicts import (
     finding_cite,
 )
 from pathfinder.persistence.models import User
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )

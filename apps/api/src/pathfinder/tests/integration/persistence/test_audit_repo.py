@@ -17,9 +17,9 @@ from pathfinder.persistence.repositories.audit import (
     CollectedGenome,
     UnitNotOpenError,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
 )
 from pathfinder.tests._support.audit import NF54, gene_row

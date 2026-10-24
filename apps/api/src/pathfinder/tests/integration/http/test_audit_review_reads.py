@@ -19,9 +19,9 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
@@ -41,12 +41,26 @@ _GENOME = "Examplea alpha A"
 _ORGANELLE_GENOME = "Examplea beta B"
 SAMPLE_CAUSE = "The strain's DNA encodes the whole protein its reference encodes."
 SAMPLE_FIX = "Remove the pseudogene call and annotate the full coding sequence."
-_GENES = {"piga": "EXA_0101", "yip1": "EXA_0102", "organelle": "EXA_0103"}
+_GENES = {
+    "piga": "EXA_0101",
+    "yip1": "EXA_0102",
+    "organelle": "EXA_0103",
+    "kinase": "EXA_0104",
+}
 _NAMED: dict[str, tuple[str, ErrorType, Certainty]] = {
     "piga": (_GENOME, "intact_gene_called_pseudogene", "high"),
     "yip1": (_GENOME, "truncated_model", "medium"),
     "organelle": (_ORGANELLE_GENOME, "organelle_split_at_join", "low"),
+    "kinase": (_GENOME, "sec_read_as_stop", "medium"),
 }
+_REVIEWED_AS: dict[str, tuple[ErrorType, Certainty]] = {
+    **{
+        name: (error_type, certainty)
+        for name, (_, error_type, certainty) in _NAMED.items()
+    },
+    "kinase": ("split_model", "low"),
+}
+_SPLIT_CAUSE = "The two models are parts of one protein, in order on one strand."
 
 
 def _target(name: str) -> SingleGeneTarget:
@@ -65,7 +79,8 @@ def _weighing(name: str) -> Weighing:
 def _review(
     finding_id: int, name: str, verdict: VerdictKind, impact: float | None
 ) -> FindingReview:
-    genome, error_type, certainty = _NAMED[name]
+    genome = _NAMED[name][0]
+    error_type, certainty = _REVIEWED_AS[name]
     named = verdict == "error"
     return FindingReview(
         verdict=GeneModelVerdict(
@@ -139,6 +154,12 @@ async def reviewed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
             review=_review(ids["yip1"], "yip1", "no_error", None),
             model_id="test:reviewer",
         )
+        await reviews.add_review(
+            run_id=run_id,
+            finding_id=ids["kinase"],
+            review=_review(ids["kinase"], "kinase", "error", None),
+            model_id="test:reviewer",
+        )
         await reviews.set_synthesis(
             run_id,
             Synthesis(
@@ -149,14 +170,20 @@ async def reviewed_run() -> tuple[RunOwner, UUID, dict[str, int]]:
                         confirmed_by="The strain's DNA was read against its reference.",
                         finding_ids=(ids["piga"],),
                     ),
+                    ErrorTypeSection(
+                        error_type="split_model",
+                        cause=_SPLIT_CAUSE,
+                        confirmed_by="The relatives hold one protein across both.",
+                        finding_ids=(ids["kinase"],),
+                    ),
                 ),
-                headline=(ids["piga"],),
+                headline=(ids["piga"], ids["kinase"]),
                 summary="The review kept 1 finding as an error and rejected 1.",
                 agreement=ReviewAgreement(sampled=2, agreed=1),
             ),
         )
         await reviews.set_review(
-            run_id, ReviewProgress(status="synthesized", done=2, total=2)
+            run_id, ReviewProgress(status="synthesized", done=3, total=3)
         )
         await session.commit()
     return owner, run_id, ids
@@ -170,7 +197,7 @@ async def test_the_run_reads_its_headline_and_error_type_sections(app: FastAPI) 
         kept = (
             await client.get(f"/api/v1/audits/{run_id}/findings/{ids['piga']}")
         ).json()
-    assert [line["id"] for line in run["headline"]] == [ids["piga"]]
+    assert [line["id"] for line in run["headline"]] == [ids["piga"], ids["kinase"]]
     (section,) = [
         t
         for t in run["errorTypes"]
@@ -201,8 +228,8 @@ async def test_the_run_reads_its_headline_and_error_type_sections(app: FastAPI) 
     assert run["reviewState"] == {
         "status": "synthesized",
         "text": "Reviewed and summarized",
-        "done": 2,
-        "total": 2,
+        "done": 3,
+        "total": 3,
         "message": "",
     }
     lines = {f["id"]: f["reviewLine"] for f in page["findings"]}
@@ -234,7 +261,17 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
         "impact": _weighing("piga").impact,
         "reviewedImpact": 0.8,
     }
-    assert run["headline"] == [piga]
+    kinase = {
+        "id": ids["kinase"],
+        "genes": [_GENES["kinase"]],
+        "genome": _GENOME,
+        "errorType": "split_model",
+        "errorTitle": "One gene split into two models",
+        "certainty": "low",
+        "impact": _weighing("kinase").impact,
+        "reviewedImpact": None,
+    }
+    assert run["headline"] == [piga, kinase]
     assert run["errorTypes"] == [
         {
             "errorType": "intact_gene_called_pseudogene",
@@ -251,6 +288,20 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
             "reviewed": [piga],
         },
         {
+            "errorType": "sec_read_as_stop",
+            "title": "Selenocysteine codon read as a stop",
+            "description": (
+                "The model stops at a TGA codon that the gene reads as selenocysteine, "
+                "so the protein it states is cut short."
+            ),
+            "count": 1,
+            "genomes": [_GENOME],
+            "certainty": "medium",
+            "cause": None,
+            "confirmedBy": None,
+            "reviewed": [],
+        },
+        {
             "errorType": "truncated_model",
             "title": "Model too short",
             "description": (
@@ -263,6 +314,20 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
             "cause": None,
             "confirmedBy": None,
             "reviewed": [],
+        },
+        {
+            "errorType": "split_model",
+            "title": "One gene split into two models",
+            "description": (
+                "Two neighbouring models are parts of one protein, in order on one "
+                "strand."
+            ),
+            "count": 1,
+            "genomes": [_GENOME],
+            "certainty": "low",
+            "cause": _SPLIT_CAUSE,
+            "confirmedBy": "The relatives hold one protein across both.",
+            "reviewed": [kinase],
         },
         {
             "errorType": "organelle_split_at_join",
@@ -334,9 +399,10 @@ async def test_a_run_with_no_review_reads_no_review_words(app: FastAPI) -> None:
         for t in run["errorTypes"]
     ] == [
         ("intact_gene_called_pseudogene", None, None, []),
+        ("sec_read_as_stop", None, None, []),
         ("truncated_model", None, None, []),
         ("organelle_split_at_join", None, None, []),
     ]
     assert (run["headline"], run["reviewState"], run["agreement"]) == ([], None, None)
-    assert [f["reviewLine"] for f in page["findings"]] == [None, None, None]
+    assert [f["reviewLine"] for f in page["findings"]] == [None, None, None, None]
     assert (detail["reviewText"], detail["finding"]["reviewLine"]) == (None, None)

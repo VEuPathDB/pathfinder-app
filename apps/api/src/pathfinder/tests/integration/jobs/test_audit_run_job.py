@@ -18,9 +18,9 @@ from sqlalchemy import func, select
 from pathfinder.domain.audit.findings import FindingCounts, RelativesEvidence
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.persistence.repositories.audit import STOPPED_MESSAGE, AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.job import outcome, start_run

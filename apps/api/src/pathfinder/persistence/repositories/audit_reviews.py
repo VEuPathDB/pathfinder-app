@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from uuid import UUID
 
 from assistant_core.platform.context import calling_application
-from pydantic import BaseModel, ConfigDict
 from sqlalchemy import delete, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,13 +24,6 @@ from pathfinder.persistence.models import (
 from pathfinder.persistence.rows import rows_changed
 
 _PENDING = ("waiting", "reviewing")
-
-
-class _Reviewed(BaseModel):
-    model_config = ConfigDict(frozen=True, from_attributes=True)
-
-    finding_id: int
-    review: FindingReview
 
 
 class AuditReviewRepository:
@@ -102,29 +93,6 @@ class AuditReviewRepository:
             .order_by(AuditVerdict.id)
         )
         return [AuditVerdictRecord.model_validate(row) for row in found]
-
-    async def review_of(self, finding_id: int) -> FindingReview | None:
-        found = await self.session.scalar(
-            select(AuditVerdict).where(AuditVerdict.finding_id == finding_id)
-        )
-        return (
-            None if found is None else AuditVerdictRecord.model_validate(found).review
-        )
-
-    async def reviews_of(
-        self, run_id: UUID, finding_ids: Sequence[int]
-    ) -> dict[int, FindingReview]:
-        found = await self.session.scalars(
-            select(AuditVerdict).where(
-                AuditVerdict.run_id == run_id,
-                AuditVerdict.finding_id.in_(finding_ids),
-            )
-        )
-        reviewed = [
-            _Reviewed.model_validate(AuditVerdictRecord.model_validate(row))
-            for row in found
-        ]
-        return {row.finding_id: row.review for row in reviewed}
 
     async def of_conversation(
         self, conversation_id: UUID, user_id: UUID

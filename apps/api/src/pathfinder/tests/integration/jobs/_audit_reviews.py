@@ -32,9 +32,9 @@ from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview, Synthesis
 from pathfinder.jobs.impls.audit_review_impl import run_review_job
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
-    FindingFilter,
     NewFinding,
     SettledFinding,
 )
