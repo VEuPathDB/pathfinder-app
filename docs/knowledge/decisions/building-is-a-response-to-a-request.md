@@ -13,8 +13,11 @@ status: stable
 Three `IntentClassification` values name a turn that asks for no strategy:
 `context_statement` ("I'm investigating virulence factors in Leishmania major"),
 `memory_request` ("Please remember for future sessions: ...") and
-`gene_model_audit` (an audit request, a question about an audit's progress, or
-a question whether a gene's model is right). Six name a
+`gene_model_audit` (a request to check the gene models of a genome or of named
+genes for errors, a question about an audit's progress, or a question whether a
+gene's model is right). The `classification` field holds the one definition, built
+from the audit check titles, and names a find or list request by a model property
+("Find pseudogenes in P. falciparum NF54") a build. Six name a
 turn that does: `new_strategy`, `extend_strategy`, `edit_strategy`,
 `clarification_response`, `slot_answer`, `approval`. The set lives in
 `ai/lead/intent.py::BUILDING_INTENTS`.
@@ -45,6 +48,17 @@ turn, a turn that answers the start card, or a thread that holds a run
 (`intent_gate.turn_reads_audits`). A `gene_model_audit` message records no
 requirement, no withdrawal and no request text on the thread
 (`intent.UNRECORDED_INTENTS`).
+
+**A turn that started an audit reaches no tool.** Once the turn holds an
+`audit_start` fact (`TurnMarkers.started_an_audit`), `tools_the_turn_offers` offers
+nothing, so the reply says the run started and the turn ends. The run works in the
+background and is read on a later turn; an audit is not a durable task, so the
+deferral that parks a durable call does not apply.
+
+**The classification gate holds the records the conversation showed last.** A
+named gene id passes the gate when the message types it, when a file it attaches
+shows it, or when `StrategyDomainState.shown_records` holds it: the records the
+latest facts part showed, read as typed records and not from the text.
 
 **Once building**, each phase tool answers for its own precondition
 (`unmet_preconditions`):

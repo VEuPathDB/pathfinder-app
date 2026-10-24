@@ -6,16 +6,19 @@
   `checks` list in a plan request lets the planner choose the screens (`PlanAsk.checks` is a
   tuple, never null). A plan with no scope is refused to the Lead with its reason, and a genome
   the site does not hold is refused with the organisms its words name and the rule that a
-  request of gene targets names no genome. A stored verdict names a genome the site holds
-  (`verdict_tool.unheld_genomes`), for the investigator and the auditor alike. The turn
-  contract refuses a reply that says an audit ran when the turn started and read no run
-  (`claimed_audit_run`, read off `TurnMarkers.audit_runs`), and the failed-check rule does not
-  ask an audit turn that changed nothing about the strategy. The classification gate holds a
-  gene id the conversation showed last. A turn that started an audit reaches no tool after
-  the start, so the reply says it started and the turn ends, and a budget stop on an audit turn
-  says what the turn started or read. A run read and a review hold the genes of the run's
-  targets, headline and reviewed findings as records a reply cites. The classifier names every
-  audit check as `gene_model_audit`, never a build.
+  request of gene targets names no genome. A stored verdict names a genome the reads of its
+  genes placed it in: each check read now reads the organism of each gene it names and hands it
+  to the model, and a finding read places its genes in the finding's genomes
+  (`AuditDeps.misplaced_genome`), for the investigator and the auditor alike. A run's state
+  reaches a reply only through a reference to a run the turn started or read by id; a listed
+  run is not held. The failed-check rule does not ask an audit turn about the strategy, and a
+  digest whose strategy the site no longer holds is dropped when the turn arrives. The
+  classification gate holds a gene id the conversation showed last. A turn that started an
+  audit reaches no tool after the start, so the reply says it started and the turn ends, and a
+  budget stop says what an audit turn started or read and names only the limit it spent. A run
+  read and a review hold the genes of the run's targets, headline and reviewed findings as
+  records a reply cites. The classifier defines `gene_model_audit` once, as a check of gene
+  models for errors, and names a find or list request by a model property a build.
 
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
