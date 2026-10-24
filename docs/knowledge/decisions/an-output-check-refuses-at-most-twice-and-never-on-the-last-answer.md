@@ -67,9 +67,14 @@ product text outside a reference, or a reference the facts cannot render
 (`turn_contract.WITHHELD_FAULTS`), is withheld: its prose becomes
 `WITHHELD_REPLY`, or `WITHHELD_ALONE` on a turn with no facts, and it keeps its
 questions, its state and its unverified reason, so the same prose gets the same
-verdict on every answer. A reply whose only fault is its shape (a number word in
-a reference's clause, a noun after a count, a malformed bracket) goes through
-unchecked. A card's reply goes through with every reference it cannot render
+verdict on every answer. A reply whose only faults are a number word in a
+reference's clause, a noun after a count, a link written out
+(`link`), a bracket that is no reference (`malformed_reference`) or a variant's
+size on its own (`standalone_count`) goes through unchecked: none of them
+puts a figure the facts do not hold in front of the researcher: a link names a
+page and states no number, a malformed bracket is shown as its plain words, and
+a variant's size on its own is a count the facts hold, only quoted without its
+count in the strategy. The facts part marks the reply unchecked. A card's reply goes through with every reference it cannot render
 shown as its plain words, and the facts part carries a note that the reply holds
 statements not checked against the result (`TurnFacts.unchecked`). Past the budget, or on a second answer
 after the one correction, the contract still runs `reconcile` and marks any

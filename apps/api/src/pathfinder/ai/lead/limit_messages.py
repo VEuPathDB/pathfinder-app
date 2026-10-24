@@ -25,12 +25,13 @@ def unfollowed_reach_message(reach: StepReach) -> str:
 
 def unmet_requirement_message(requirements: tuple[str, ...]) -> str:
     stated = ", ".join(f"'{text}'" for text in requirements)
-    it = "it" if len(requirements) == 1 else "them"
+    one = len(requirements) == 1
+    it, stays = ("it", "stays") if one else ("them", "stay")
     return (
-        f"The researcher stated {stated}, and nothing in the strategy answers "
-        f"{it}, so the turn is not complete and the strategy does not answer the "
-        f"request. Apply {it} with edit_strategy, or say in the reply that the "
-        f"strategy leaves {it} unmet and set nextState to await_user."
+        f"The researcher stated {stated}, and the strategy does not answer {it}, "
+        "so the turn is not complete. Set nextState to await_user and say in the "
+        f"reply that {stated} {stays} unmet. When a search can state {it}, apply "
+        f"{it} with edit_strategy first."
     )
 
 

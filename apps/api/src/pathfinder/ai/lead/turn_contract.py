@@ -50,6 +50,7 @@ from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.reply_references import (
+    FaultKind,
     prose_faults,
     render_reply,
     unheld_references,
@@ -72,7 +73,7 @@ WITHHELD_ALONE = (
 WITHHELD_REPLY = (
     f"{WITHHELD_ALONE} The facts beside this reply show what this turn found."
 )
-WITHHELD_FAULTS = frozenset(
+WITHHELD_FAULTS: frozenset[FaultKind] = frozenset(
     {"number", "identifier", "product_text", "unheld_reference"}
 )
 
@@ -341,7 +342,7 @@ def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
 
 def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
     unmet = record.unmet_requirements
-    if not unmet or report.next_state != "complete" or record.audit_turn:
+    if not unmet or report.next_state != "complete":
         return None
     return unmet_requirement_message(unmet)
 

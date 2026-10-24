@@ -89,10 +89,6 @@ class TurnRecord(CamelModel):
     unmet_requirements: tuple[str, ...] = ()
 
     @property
-    def audit_turn(self) -> bool:
-        return False
-
-    @property
     def check_could_not_finish(self) -> bool:
         stop = self.last_phase_stop
         return (

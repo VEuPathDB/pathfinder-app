@@ -167,6 +167,8 @@ def _retained(
 
 def _proposed(result: IntronAudit, model: ModelSpans) -> ProposedModel | None:
     unread = result.unread or []
+    if result.corrected_cds is not None and result.corrected_exons is None:
+        return None
     return _corrected(result, unread) or _retained(result, model, unread)
 
 
