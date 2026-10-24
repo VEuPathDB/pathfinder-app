@@ -13,7 +13,10 @@
 * **A usage row counts a cached token once.** pydantic-ai's `input_tokens` already holds
   the cache reads and writes, so `_charge_token_delta` charges input plus output tokens
   only. The dollar amount was already right: `genai_prices` prices the cache tokens as
-  parts of the input.
+  parts of the input. The current period's `monthly_usage` token totals written before
+  this fix overstate tokens by about 2x; the dollars and every quota decision were always
+  right, and no reader decides anything from the token totals. No backfill is possible,
+  because the Lead's cache tokens are not stored.
 * **A step is listed and counted by any column through the tool server.** veupathdb-py
   0.1.0b24 and veupathdb-mcp 0.2.0b48 are taken. The Lead's new `step_columns` lists a built
   step's columns (`list_step_columns`, filtered by `name` and `countable_only`, 100 a page, a
