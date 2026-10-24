@@ -20,7 +20,7 @@ hold still renders, by its JSON type.
 
 | leaf | row value | `StatisticRowFact.form` |
 |---|---|---|
-| a number | the number as the answer writes it, a whole number of 1,000 or more with thousands separators (`7,364`); a `Share` as a percentage (`88.9%`); an `Identifier` (a finding id) as written, with no separator | `number` |
+| a number | the number as the answer writes it, a number of 1,000 or more with thousands separators (`7,364`, `1,234.5`), so a reply that lists placed values separates them with `; `; a `Share` as a percentage (`88.9%`); an `Identifier` (a finding id) as written, with no separator | `number` |
 | an enum or a constant | its words: a code table where `domain/audit/facts.py::CODE_WORDS` holds one, else underscores as spaces and, for an enum whose members are underscored capitals, lower case; `code` keeps the wire value | `word` |
 | a boolean | `yes` or `no`, lower case since a row stands inside a sentence | `word` |
 | a field typed `Sentence` (free text: a cause, a description, a card or review text, a message) | the string | `sentence` |

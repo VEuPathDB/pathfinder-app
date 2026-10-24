@@ -17,18 +17,24 @@ decision *a compare past one expression is computed from group clouds*) returns
 `ComputedComparison`: the group count, `bothHeld`, `leftOnly`, `rightOnly`, `ties`,
 `residualGroups`, each set's genomes, species, groups and proteins, the probe and compute
 requests, a `factId` and a `groups:` handle. The group ids stay in
-`computed_comparisons` (`domain/strategy/computed_groups.py::HeldComparison`) for the
-turn and are dropped when it ends; the statistic outlives it.
+`computed_comparisons` (`domain/strategy/computed_groups.py::HeldComparison`). At the
+turn end they are kept only while an open question, a declined proposal, a separation
+offer or a pending approval names the handle, the check that keeps an `expr:` handle
+(`ai/graph/expression_store.py`); the statistic outlives them. Nothing is uploaded when
+the comparison is computed: the save is the researcher's to ask for, and a card that
+offers it keeps the ids until the answer.
 
 **The step.** `set_criterion(computed_groups=<handle>)` saves the ids with
 `frozen_step_id(..., record_type="group")`, which uploads them as an id list dataset in
 the researcher's account, builds a `GroupsByNameList` step on it and refuses a step whose
-count is not the list (`IdListStepCountError`, a retry). The criterion takes that step's
+count is not the list (`IdListStepCountError`). That refusal is a failed call, not a
+retry: the ids come from the site's own clouds, so a rebuild meets the same count, and
+the counted answer stands. The criterion takes that step's
 search and its `group_names` dataset, as a saved gene set takes `GeneByLocusTag` and its
 dataset (`_frame_gene_set.py`), so BUILD makes an ordinary leaf of it that combines,
 transforms and counts in the step tally. Its title is the question with "computed
-snapshot" and the day; its value's basis says it is a snapshot of that day's data, not a
-search the site re-runs. The comparison's reading check holds the computed criterion too
+snapshot" and the day; its value's basis says the ids are fixed and that a later release
+maps each id to the groups it became, so the step's count can change. The comparison's reading check holds the computed criterion too
 (`bound_comparisons`).
 
 **The internal strategy stays, for now.** `frozen_step_id` keeps the step it made in
@@ -44,7 +50,9 @@ release whose id-list save deletes it and caches nothing.
 **The facts.** `HeldComparison.facts()` is `ComparisonFacts`, registered in
 `FACT_SOURCES`, so every row takes its display form from its type: counts as numbers,
 shares of the groups and of each set's genomes as percentages, the route as its words.
-Its statements say the groups are a snapshot and which species leads each set. A
+Its statements say the groups are a snapshot, that `ties` counts over every group either
+set holds and is no part of the selected groups, and which species leads each set, or
+that two species tie for it. A
 framing pass records the statistic when the Lead applies the pass, and the Lead reads it
 under its references.
 
