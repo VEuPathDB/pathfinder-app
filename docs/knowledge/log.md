@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+* **The web lists a researcher's audits at `/audits`.** `features/audit/AuditRunsPage.tsx` reads
+  `GET /api/v1/audits` and the served words, and shows one row per run in the order the API
+  lists them: the day it started, linked to the run's page, its site, what it examines, its
+  checks in the served words and its phase. With no run, it says to ask the audit assistant.
 * **The web tests read the sample audit run through the generated schemas.**
   `features/audit/__fixtures__/sampleRun.ts` parses the recorded `sampleRun.json` into
   `SAMPLE_RUN`, `SAMPLE_FINDINGS` and `SAMPLE_DETAILS`; `sampleDetail(check)` gives the detail of
