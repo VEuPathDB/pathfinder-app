@@ -17,7 +17,11 @@
   `shown` false and no `refusedStatus` fails validation with the error type
   `unreadable_column_fit` (`domain/column_fit.py`), and `StrategyDomainState` loads a
   `verification_digest` or `last_evidence_card` that fails with it as no verdict, so a stored
-  refusal never reads as a fit of none; the next check writes the verdict again. The sample
+  refusal never reads as a fit of none; the next check writes the verdict again. The turn's
+  own `TurnMarkers.column_fits` loads such a list as empty, so the conversation still
+  continues, and a test walks every type a conversation keeps and finds no column fit
+  outside that refusal (`ai/graph/stored_verdicts.py`). A record that fails for any other
+  reason as well still fails. The sample
   note states each column's reason: the site's refusal with its status, or no record holding a
   value. The classifier names a count per value that needs a build a build, with
   `asks_a_change` set on a strategy so it is never held as a question.
