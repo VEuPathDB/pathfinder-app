@@ -22,10 +22,20 @@ from assistant_core.models.scripted import (
 )
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
+from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.profiles import ModelProfile
 
+from pathfinder.ai.audit.mock_investigation import (
+    INVESTIGATOR,
+    PSEUDOGENE_CALL,
+    PSEUDOGENE_QUESTION,
+    check_read,
+    gene_pair,
+    investigator_script,
+    last_tool_return,
+    pseudogene_verdict,
+)
 from pathfinder.ai.audit.mock_run import JUDGE_REQUEST, judge_the_run
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.lead.retrieval_toolset import ResearchAnswer
@@ -34,18 +44,14 @@ from pathfinder.domain.audit.verdicts import (
     MAX_CITES,
     MAX_HEADLINES,
     finding_cite,
-    read_cite,
 )
 
 AUDITOR = "auditor"
-INVESTIGATOR = "investigator"
 PLAN_TOOL = "plan_gene_model_audit"
 LIST_RUNS_TOOL = "list_audit_runs"
 READ_RUN_TOOL = "read_audit_run"
 VERDICT_TOOL = "record_gene_model_verdicts"
 RATE_TOOL = "rate_with_interval"
-PSEUDOGENE_CALL = "audit_pseudogene_call"
-PSEUDOGENE_QUESTION = "pseudogene call"
 PROGRESS_QUESTIONS = ("how is the audit", "how far is the audit")
 CHECK_FOREVER = "check every gene"
 SPELL_OUT = "spell out"
@@ -53,7 +59,6 @@ LITERATURE_TOOL = "research_literature_search"
 MOCK_REVIEWER_MODEL_ID = "mock:reviewer"
 MOCK_SYNTHESIS_MODEL_ID = "mock:synthesis"
 AUDITOR_GREETING = "I plan, start and read audits of the gene models on this site."
-_GENE = re.compile(r"\b[A-Za-z0-9]+_\d+\b")
 _AUDIT_REQUEST = re.compile(
     r"audit the gene models of (?P<genome>[^.?!]+)", re.IGNORECASE
 )
@@ -65,91 +70,17 @@ class _Read(CamelModel):
     fact_id: str
 
 
-class _Verdict(CamelModel):
-    model_config = ConfigDict(extra="ignore", from_attributes=True)
-
-    verdict: str
-    strain_cds_length: int | None = None
-
-
-class _CheckRead(CamelModel):
-    model_config = ConfigDict(extra="ignore", from_attributes=True)
-
-    answer: _Verdict
-    fact_id: str
-
-
-def _pair(text: str) -> tuple[str, str] | None:
-    match _GENE.findall(text):
-        case [strain, reference, *_]:
-            return strain, reference
-        case _:
-            return None
-
-
-def _returned(messages: list[ModelMessage], tool_name: str) -> ToolReturnPart | None:
-    returned = [p for p in tool_return_parts(messages) if p.tool_name == tool_name]
-    return returned[-1] if returned else None
-
-
-def _read_of(messages: list[ModelMessage], tool_name: str) -> _CheckRead | None:
-    returned = _returned(messages, tool_name)
-    if returned is None or returned.outcome != "success":
-        return None
-    return _CheckRead.model_validate(returned.content, from_attributes=True)
-
-
-def _pseudogene_verdict(
-    strain: str, reference: str, read: _CheckRead
-) -> dict[str, object]:
-    intact = read.answer.verdict == "INTACT"
-    return {
-        "genes": [strain],
-        "modelGenome": f"the genome of {strain}",
-        "verdict": "error" if intact else "undecided",
-        "errorType": "intact_gene_called_pseudogene" if intact else None,
-        "certainty": "high" if intact else None,
-        "cause": f"The check reads {strain} against {reference} as {read.answer.verdict}.",
-        "cites": [read_cite(PSEUDOGENE_CALL, strain, reference)],
-    }
-
-
-def _investigator_script(messages: list[ModelMessage]) -> ScriptedPart:
-    turn = current_turn(messages)
-    text = last_user_text(turn)
-    pair = _pair(text) if PSEUDOGENE_QUESTION in text.lower() else None
-    if pair is None:
-        return terminal_call(
-            {"answer": "No check answers this question.", "verdicts": []}
-        )
-    strain, reference = pair
-    read = _read_of(turn, PSEUDOGENE_CALL)
-    if read is None:
-        return scripted_call(
-            PSEUDOGENE_CALL, {"strain_gene": strain, "reference_gene": reference}
-        )
-    return terminal_call(
-        {
-            "answer": (
-                f"The check reads the model of [record:{strain}] as "
-                f"[stat:{read.fact_id}.verdict]."
-            ),
-            "verdicts": [_pseudogene_verdict(strain, reference, read)],
-        }
-    )
-
-
 def _judged(
     turn: list[ModelMessage], strain: str, reference: str, *, spelled: bool
 ) -> ScriptedPart:
-    read = _read_of(turn, PSEUDOGENE_CALL)
+    read = check_read(turn, PSEUDOGENE_CALL)
     if read is None:
         return scripted_call(
             PSEUDOGENE_CALL, {"strain_gene": strain, "reference_gene": reference}
         )
-    if _returned(turn, VERDICT_TOOL) is None:
+    if last_tool_return(turn, VERDICT_TOOL) is None:
         return scripted_call(
-            VERDICT_TOOL, {"verdicts": [_pseudogene_verdict(strain, reference, read)]}
+            VERDICT_TOOL, {"verdicts": [pseudogene_verdict(strain, reference, read)]}
         )
     written = spelled and not retry_prompt_parts(turn)
     length = (
@@ -174,13 +105,13 @@ class _PlanRead(_Read):
 
 def _audit(turn: list[ModelMessage], genome: str) -> ScriptedPart:
     request = {"genomes": [genome]}
-    planned = _returned(turn, PLAN_TOOL)
+    planned = last_tool_return(turn, PLAN_TOOL)
     if planned is None:
         return scripted_call(PLAN_TOOL, {"request": request})
     scope = _PlanRead.model_validate(planned.content, from_attributes=True).answer.scope
     if scope is None:
         return terminal_call({"prose": "The planner starts no audit for this request."})
-    started = _returned(turn, START_TOOL)
+    started = last_tool_return(turn, START_TOOL)
     if started is None:
         dumped = scope.model_dump(mode="json", by_alias=True)
         return scripted_call(START_TOOL, {"request": request, "scope": dumped})
@@ -232,13 +163,13 @@ def _progress_reply(read: _RunRead) -> str:
 
 
 def _progress(turn: list[ModelMessage]) -> ScriptedPart:
-    listed = _returned(turn, LIST_RUNS_TOOL)
+    listed = last_tool_return(turn, LIST_RUNS_TOOL)
     if listed is None:
         return scripted_call(LIST_RUNS_TOOL, {})
     runs = _RunsRead.model_validate(listed.content, from_attributes=True).answer
     if not runs:
         return terminal_call({"prose": "No audit run is stored for this researcher."})
-    read = _returned(turn, READ_RUN_TOOL)
+    read = last_tool_return(turn, READ_RUN_TOOL)
     if read is None:
         return scripted_call(READ_RUN_TOOL, {"run_id": str(runs[0].id)})
     view = _RunRead.model_validate(read.content, from_attributes=True)
@@ -265,7 +196,7 @@ def _auditor_script(messages: list[ModelMessage]) -> ScriptedPart:
     judged = JUDGE_REQUEST.search(text)
     if judged is not None:
         return judge_the_run(turn, judged.group("run"))
-    pair = _pair(text) if PSEUDOGENE_QUESTION in lowered else None
+    pair = gene_pair(text) if PSEUDOGENE_QUESTION in lowered else None
     if pair is not None:
         return _judged(turn, *pair, spelled=SPELL_OUT in lowered)
     return terminal_call({"prose": AUDITOR_GREETING})
@@ -281,7 +212,7 @@ _SCRIPT = ScriptedModel(
         RoleMarkers(role=AUDITOR, markers=frozenset({PLAN_TOOL})),
         RoleMarkers(role=INVESTIGATOR, markers=frozenset({PSEUDOGENE_CALL})),
     ),
-    scripts={AUDITOR: _auditor_script, INVESTIGATOR: _investigator_script},
+    scripts={AUDITOR: _auditor_script, INVESTIGATOR: investigator_script},
     unknown=_title_script,
 )
 
@@ -313,10 +244,10 @@ class _ReviewPrompt(CamelModel):
 
 
 def _literature(turn: list[ModelMessage]) -> list[str] | None:
-    returned = _returned(turn, LITERATURE_TOOL)
-    if returned is None:
+    found = last_tool_return(turn, LITERATURE_TOOL)
+    if found is None:
         return None
-    return ResearchAnswer.model_validate(returned.content).references()[:MAX_CITES]
+    return ResearchAnswer.model_validate(found.content).references()[:MAX_CITES]
 
 
 def _known(found: list[str] | None) -> str:
