@@ -12,7 +12,8 @@ status: proposed
 **Coming question.** PathFinder stores an audit run unit by unit (`audit_runs`,
 `audit_genomes`, `audit_findings`, `audit_evidence`), carries it through collect,
 screen, confirm and tie-break in jobs on the `audit` queue, and serves it
-read-only at `GET /api/v1/audits` and its findings routes; no agent tool starts a
+at `GET /api/v1/audits` and its findings routes, starts a stored run again at
+`POST /api/v1/audits/{run_id}/start`; no agent tool starts a
 run yet. A standalone prototype outside this repository measures the tools and the
 model first.
 

@@ -4083,6 +4083,103 @@
         }
       }
     },
+    "/api/v1/audits/{run_id}/start": {
+      "post": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "Resume a stopped audit run, or retry what a finished one left unread.",
+        "operationId": "start_audit_run_api_v1_audits__run_id__start_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditStart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRunView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audits/{run_id}/findings": {
       "get": {
         "tags": [
@@ -6473,6 +6570,24 @@
           "siteId"
         ],
         "title": "AuditScope"
+      },
+      "AuditStart": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "resume",
+              "retry"
+            ],
+            "title": "Action"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "AuditStart"
       },
       "AuthStatusResponse": {
         "properties": {
@@ -19530,6 +19645,7 @@
           "PROVIDER_KEYS_DISABLED",
           "AUDITS_DISABLED",
           "AUDIT_NEEDS_A_THREAD",
+          "AUDIT_NOT_STARTABLE",
           "ATTACHMENT_TOO_LARGE",
           "ATTACHMENT_NOT_READABLE"
         ],

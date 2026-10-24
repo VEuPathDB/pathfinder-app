@@ -16,3 +16,13 @@ class AuditNeedsAThreadError(AppError):
                 "this call has no conversation."
             ),
         )
+
+
+class AuditNotStartableError(AppError):
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            code=ErrorCode.AUDIT_NOT_STARTABLE,
+            title="This audit cannot be started now",
+            status=409,
+            detail=detail,
+        )
