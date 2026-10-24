@@ -30,7 +30,6 @@ from pathfinder.services.parameter_optimization.config import (
     SweepVariantResult,
     SweepVariantSpec,
 )
-from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
 
@@ -104,12 +103,11 @@ async def optimize_search_parameters_impl(
     progress.batch_size = 8
 
     step = await get_strategy_api(context.site_id).find_step(wdk_step_id)
-    listed = await search_record_types(context.site_id, [step.search_name])
-    record_type = step.record_class_name or listed.get(step.search_name)
+    record_type = step.record_class_name
     if record_type is None:
         msg = (
-            f"The site lists no record type for {step.search_name}, so step "
-            f"{wdk_step_id} cannot be swept."
+            f"The site names no record class for step {wdk_step_id} "
+            f"({step.search_name}), so it cannot be swept."
         )
         raise ValueError(msg)
     plan = await sweep_plan_for_step(

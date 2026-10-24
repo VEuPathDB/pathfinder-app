@@ -31,11 +31,16 @@ from veupathdb.domain.strategy import (
 from veupathdb.errors import DataParsingError, VEuPathDBError
 from veupathdb.wdk import (
     WDKSearchConfig,
+    WDKStep,
     WDKStrategyDetails,
     encode_params,
     get_strategy_api,
 )
-from veupathdb_mcp.wdk import build_snapshot_from_wdk, canonicalize_synced_parameters
+from veupathdb_mcp.wdk import (
+    WireStep,
+    build_snapshot_from_wdk,
+    canonicalize_synced_parameters,
+)
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
@@ -45,7 +50,6 @@ from pathfinder.services.strategies.live_counts import read_the_live_strategy
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
-from pathfinder.services.strategies.record_classes import step_record_class
 from pathfinder.services.strategies.session_factory import stored_strategy_session
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from pathfinder.services.strategies.write_lock import strategy_write_lock
@@ -58,8 +62,6 @@ __all__ = [
     "take_the_sites_edits",
     "take_what_the_site_holds",
 ]
-
-Wire = Mapping[str, str]
 
 
 class SiteEdits(BaseModel):
@@ -83,7 +85,7 @@ class _SiteTree(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     ast: StrategyAst
-    wire: dict[str, dict[str, str]]
+    wire: dict[str, WireStep]
 
 
 async def take_the_sites_edits(
@@ -213,27 +215,20 @@ async def _take_the_sites_values(
         if step.kind is StepKind.COMBINE:
             taken = _take_the_operator(step, operators.get(wdk_key))
         else:
-            own = wdk_step.record_class_name or await step_record_class(
-                site_id, graph.steps, step.id
-            )
-            if own is None:
-                logger.warning(
-                    "The site lists no record type for the step's search, so its "
-                    "values were not read",
-                    step_id=step.id,
-                    search_name=wdk_step.search_name,
-                )
-            taken = own is not None and await _take_the_parameters(
-                step,
-                wdk_step.search_name,
-                wdk_step.search_config.parameters,
-                record_type=own,
-                site_id=site_id,
+            taken = await _take_the_parameters(
+                step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
             )
         weighed = _take_the_weight(step, wdk_step.search_config)
         if taken or weighed:
             moved.append(step.id)
     return moved
+
+
+def _wire_of(step: WDKStep) -> WireStep:
+    return WireStep(
+        record_class=step.record_class_name,
+        parameters=dict(step.search_config.parameters),
+    )
 
 
 def _take_the_weight(step: StrategyStep, config: WDKSearchConfig) -> bool:
@@ -259,9 +254,8 @@ def _take_the_operator(step: StrategyStep, operator: CombineOp | None) -> bool:
 async def _take_the_parameters(
     step: StrategyStep,
     search_name: str,
-    wire: Wire,
+    wire: WireStep,
     *,
-    record_type: str,
     site_id: str,
 ) -> bool:
     """Take each value the site holds in neither form the step holds it in.
@@ -269,10 +263,14 @@ async def _take_the_parameters(
     Only names the step holds are read: a name it lacks is one of WDK's own.
     """
     held = encode_params(step.parameters)
-    names = [name for name, value in held.items() if wire.get(name, value) != value]
+    names = [
+        name
+        for name, value in held.items()
+        if name in wire.parameters and wire.parameters[name] != value
+    ]
     if not names:
         return False
-    decoded = await _decoded(step.id, search_name, wire, record_type, site_id)
+    decoded = await _decoded(step.id, search_name, wire, site_id)
     taken = {
         name: decoded[name]
         for name in names
@@ -285,16 +283,23 @@ async def _take_the_parameters(
 
 
 async def _decoded(
-    step_id: str, search_name: str, wire: Wire, record_type: str, site_id: str
+    step_id: str, search_name: str, wire: WireStep, site_id: str
 ) -> dict[str, ParamValue]:
     """The typed values of one step's wire values, empty when none decode."""
+    if wire.record_class is None:
+        logger.warning(
+            "The site names no record class for the step, so its values were not read",
+            step_id=step_id,
+            search_name=search_name,
+        )
+        return {}
     payload = StrategyAst(
-        record_type=record_type,
+        record_type=wire.record_class,
         root=StrategyStepNode(id=step_id, search_name=search_name),
     )
     try:
         await canonicalize_synced_parameters(
-            payload, get_strategy_api(site_id), {step_id: dict(wire)}
+            payload, get_strategy_api(site_id), {step_id: wire}
         )
     except VEuPathDBError, OSError:
         logger.warning("The site's values did not decode", step_id=step_id)
@@ -343,12 +348,18 @@ async def _take_the_sites_shape(
     return True
 
 
+def _decodable(wire: WireStep) -> bool:
+    return wire.record_class is not None and bool(wire.parameters)
+
+
 async def _arrivals_decoded(
     tree: _SiteTree, arrivals: Mapping[str, StrategyStepNode], site_id: str
 ) -> bool:
     """Decode the values of each step the site added; False when one does not."""
     wire = {
-        step_id: tree.wire[step_id] for step_id in arrivals if tree.wire.get(step_id)
+        step_id: tree.wire[step_id]
+        for step_id in arrivals
+        if step_id in tree.wire and _decodable(tree.wire[step_id])
     }
     if not wire:
         return True

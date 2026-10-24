@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 from veupathdb.wdk import WDKSearchConfig, WDKStep, WDKStepTree, WDKStrategyDetails
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import record_classes, site_changes
@@ -79,44 +80,30 @@ def _live(record_class_name: str | None, search_name: str) -> WDKStrategyDetails
     )
 
 
-@pytest.mark.parametrize(
-    ("record_class_name", "search_name", "decoded_under"),
-    [
-        ("group", "GroupsByPhyleticPattern", ["group"]),
-        (None, "GroupsByPhyleticPattern", ["group"]),
-        (None, "Unlisted", []),
-    ],
-)
-async def test_a_site_edit_is_decoded_under_the_steps_own_class(
-    monkeypatch: pytest.MonkeyPatch,
-    record_class_name: str | None,
-    search_name: str,
-    decoded_under: list[str],
+@pytest.mark.parametrize("record_class_name", ["group", None])
+async def test_a_site_edit_is_decoded_under_the_class_wdk_states_for_the_step(
+    monkeypatch: pytest.MonkeyPatch, record_class_name: str | None
 ) -> None:
     _serve_listing(monkeypatch)
-    asked: list[str] = []
+    asked: list[str | None] = []
 
     async def _decoded(
-        _step_id: str,
-        _search_name: str,
-        _wire: object,
-        record_type: str,
-        _site_id: str,
+        _step_id: str, _search_name: str, wire: WireStep, _site_id: str
     ) -> dict[str, ParamValue]:
-        asked.append(record_type)
+        asked.append(wire.record_class)
         return {}
 
     monkeypatch.setattr(site_changes, "_decoded", _decoded)
 
     await site_changes._take_the_sites_values(
-        _groups_in_a_gene_strategy(search_name),
+        _groups_in_a_gene_strategy("GroupsByPhyleticPattern"),
         {_GROUPS_STEP: "step_groups"},
-        _live(record_class_name, search_name),
+        _live(record_class_name, "GroupsByPhyleticPattern"),
         None,
         "orthomcl",
     )
 
-    assert asked == decoded_under
+    assert asked == [record_class_name]
 
 
 def _colocation(primary: StrategyStepNode) -> StrategyStepNode:

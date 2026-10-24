@@ -11,7 +11,7 @@ from veupathdb.devtools import WDKExchange
 from veupathdb.domain.parameters import PhyleticTree
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 from veupathdb.wdk import WDKStrategyDetails
-from veupathdb_mcp.wdk import build_snapshot_from_wdk
+from veupathdb_mcp.wdk import WireStep, build_snapshot_from_wdk
 
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.devtools.gates import Gate, consult_labels, gate_end
@@ -100,14 +100,13 @@ def _verified(turn: Path) -> bool | None:
     return None if digest is None else digest.passed
 
 
-def _tree(ast: StrategyAst, wire: dict[str, dict[str, str]]) -> ComparisonNode:
+def _tree(ast: StrategyAst, wire: dict[str, WireStep]) -> ComparisonNode:
     def node(step: StrategyStepNode, inputs: list[ComparisonNode]) -> ComparisonNode:
+        combine = step.infer_kind() == "combine"
         return ComparisonNode(
-            search_name=(
-                COMBINE_LABEL if step.infer_kind() == "combine" else step.search_name
-            ),
+            search_name=COMBINE_LABEL if combine else step.search_name,
             operator=step.operator.value if step.operator is not None else None,
-            parameters=wire.get(step.id, {}),
+            parameters={} if combine else wire[step.id].parameters,
             children=tuple(inputs),
         )
 

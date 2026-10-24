@@ -15,6 +15,7 @@ from typing import Any
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.wdk import StrategyAPI, WDKStepTree, WDKStrategyDetails
+from veupathdb_mcp.wdk import WireStep
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import live_counts, site_changes
@@ -109,7 +110,7 @@ class TheSite:
         return self.details()
 
     async def decode(
-        self, payload: StrategyAst, api: StrategyAPI, wire: dict[str, dict[str, str]]
+        self, payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
     ) -> None:
         """Decode a wire value back to the value the researcher set."""
         del api
@@ -119,9 +120,11 @@ class TheSite:
             for value in values.values()
         }
         for node in walk(payload.root):
+            if node.id not in wire:
+                continue
             node.parameters = {
                 name: by_wire[value]
-                for name, value in wire.get(node.id, {}).items()
+                for name, value in wire[node.id].parameters.items()
                 if value in by_wire
             }
 

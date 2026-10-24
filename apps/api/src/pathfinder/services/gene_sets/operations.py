@@ -104,11 +104,8 @@ class GeneSetService:
         name: str,
         site_id: str,
         wdk_strategy_id: int,
-        record_type: str | None,
     ) -> GeneSet:
-        taken = await read_strategy_genes(
-            site_id, wdk_strategy_id, record_type=record_type
-        )
+        taken = await read_strategy_genes(site_id, wdk_strategy_id)
         if not taken.genes.gene_ids:
             raise EmptyGeneSetError(name)
         gs = GeneSet(
@@ -159,9 +156,7 @@ class GeneSetService:
         if gs is None:
             return None
         try:
-            taken = await read_strategy_genes(
-                site_id, wdk_strategy_id, record_type=gs.record_type
-            )
+            taken = await read_strategy_genes(site_id, wdk_strategy_id)
         except (TooManyGenesError, RecordsAreNotGenesError) as exc:
             await self._mark_out_of_date(gs, exc.reason())
             raise

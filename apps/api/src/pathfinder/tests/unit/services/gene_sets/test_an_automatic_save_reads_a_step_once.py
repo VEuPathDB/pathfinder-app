@@ -269,7 +269,6 @@ async def test_a_step_above_the_cap_is_refused_with_its_count(
             name="singletons",
             site_id="orthomcl",
             wdk_strategy_id=STRATEGY_ID,
-            record_type="sequence",
         )
 
     assert (caught.value.count, caught.value.cap, site.reads) == (
@@ -462,8 +461,6 @@ async def test_a_strategy_that_omits_its_root_is_refused_unread(
     monkeypatch.setattr(site, "get_strategy", AsyncMock(return_value=rootless))
 
     with pytest.raises(DataParsingError):
-        await strategy_genes.read_strategy_genes(
-            "orthomcl", STRATEGY_ID, record_type="sequence"
-        )
+        await strategy_genes.read_strategy_genes("orthomcl", STRATEGY_ID)
 
     assert site.reads == []

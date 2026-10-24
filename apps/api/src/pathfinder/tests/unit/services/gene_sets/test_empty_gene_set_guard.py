@@ -13,12 +13,12 @@ from uuid import uuid4
 
 import pytest
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
+from pathfinder.services.gene_sets.types import StrategyRootContext
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 
@@ -26,13 +26,17 @@ def _stub_resolve(
     monkeypatch: pytest.MonkeyPatch,
     resolved: list[str],
 ) -> None:
-    async def _fake(
-        site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
-        del site_id, record_type
+    async def _fake(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
+        del site_id
         return StrategyGenes(
             genes=StepGenes(gene_ids=resolved, homes={}, record_class="transcript"),
-            context=GeneSetWdkContext(wdk_strategy_id=wdk_strategy_id),
+            context=StrategyRootContext(
+                wdk_strategy_id=wdk_strategy_id,
+                wdk_step_id=439858930,
+                search_name="GenesByTaxon",
+                record_type="transcript",
+                parameters={},
+            ),
             step_count=1,
         )
 
@@ -51,7 +55,6 @@ async def test_creating_an_empty_gene_set_is_rejected(
             name="Gametocyte markers",
             site_id="plasmodb",
             wdk_strategy_id=330517023,
-            record_type=None,
         )
 
     # The message must say what to do, not just that something failed.
@@ -70,7 +73,6 @@ async def test_a_resolved_gene_set_is_still_created(
         name="Gametocyte markers",
         site_id="plasmodb",
         wdk_strategy_id=330517023,
-        record_type=None,
     )
 
     assert gs.gene_ids == ["PF3D7_0100100", "PF3D7_0100200"]
