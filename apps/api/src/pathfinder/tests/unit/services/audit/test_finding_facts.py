@@ -21,6 +21,10 @@ _RELATIVES = RelativesEvidence(
     reference_length=461,
     model_length=461,
     relatives_median=None,
+    relative_lengths={},
+    relatives_tier=None,
+    side=None,
+    reference_organism=None,
 )
 _RECORDS = GeneEvidencePayload(genes=(PIGA,), evidence=(PIGA_EVIDENCE,))
 

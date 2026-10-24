@@ -16,6 +16,7 @@ from veupathdb_mcp.audit import (
     IntronVerdict,
     MissingVerdict,
     OrganelleVerdict,
+    RelativeTier,
     SideVerdict,
     StrainModelAudit,
 )
@@ -325,8 +326,17 @@ class RelativesEvidence(CamelModel):
     reference_length: int | None
     model_length: int | None
     relatives_median: float | None
-    side: SideVerdict | None = None
-    reference_organism: str | None = None
+    relative_lengths: dict[str, int]
+    relatives_tier: RelativeTier | None
+    side: SideVerdict | None
+    reference_organism: str | None
+
+    @model_validator(mode="after")
+    def _tier_with_lengths(self) -> Self:
+        if (self.relatives_tier is None) != (not self.relative_lengths):
+            msg = "the relatives' tier is stored with their lengths"
+            raise ValueError(msg)
+        return self
 
 
 class GeneEvidencePayload(CamelModel):

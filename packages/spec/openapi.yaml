@@ -6089,6 +6089,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/FindingReview'
           - type: 'null'
+        genes:
+          items:
+            $ref: '#/components/schemas/GeneLink'
+          type: array
+          title: Genes
       type: object
       required:
       - siteId
@@ -6096,6 +6101,7 @@ components:
       - evidence
       - facts
       - review
+      - genes
       title: FindingDetail
     FindingPage:
       properties:
@@ -6372,6 +6378,11 @@ components:
         fromTarget:
           type: boolean
           title: Fromtarget
+        genes:
+          items:
+            $ref: '#/components/schemas/GeneLink'
+          type: array
+          title: Genes
         check:
           type: string
           enum:
@@ -6423,6 +6434,7 @@ components:
       - reviewed
       - verdict
       - fromTarget
+      - genes
       - check
       - verdictText
       - checkTitle
@@ -6810,6 +6822,19 @@ components:
       - code
       - codeInferred
       title: GeneLengthAudit
+    GeneLink:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        url:
+          type: string
+          title: Url
+      type: object
+      required:
+      - gene
+      - url
+      title: GeneLink
     GeneModelVerdict:
       properties:
         genes:
@@ -9507,6 +9532,15 @@ components:
           - type: number
           - type: 'null'
           title: Relativesmedian
+        relativeLengths:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Relativelengths
+        relativesTier:
+          anyOf:
+          - $ref: '#/components/schemas/RelativeTier'
+          - type: 'null'
         side:
           anyOf:
           - $ref: '#/components/schemas/SideVerdict'
@@ -9522,6 +9556,10 @@ components:
       - referenceLength
       - modelLength
       - relativesMedian
+      - relativeLengths
+      - relativesTier
+      - side
+      - referenceOrganism
       title: RelativesEvidence
     ReplaceStrategyOp:
       properties:

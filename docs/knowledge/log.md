@@ -27,7 +27,7 @@
   its input such as the pseudogene pair-size guard, as `DeclinedCheck`; the confirm stage stores
   the finding `declined` with the check's words, and `Unresolved.declined`,
   `FindingCounts.declined` and `UNCHECKED_SENTENCES["declined"]` name it apart from a read that
-  failed. Migration `2026_10_24_0001` widens `ck_audit_findings_status`.
+  failed. Migration `2026_10_24_0003` widens `ck_audit_findings_status`.
 * **An investigation writes its usage row.** `investigate()` charges the tokens and cost its
   run spent, also when it stops at its budget, through `ai/audit/charges.py`, the one helper the
   auditor turn's `charge_usage` and the review job use too: `charge` writes the row on
@@ -38,6 +38,23 @@
   answer of `NOT_CHECKED` classifies as not judged (`domain/audit/findings.py`, `_LENGTH_UNREAD`),
   so the confirm stage stores it confirmed with `judged` false and its reason, and the run view's
   rates count it under `unjudged` beside the rate instead of as a clean model.
+* **An audit finding links its genes to their pages on the site.** `domain/audit/genes.py` holds
+  `named_genes`, the target's genes as the stored confirmation's `gene_ids` resolved them (a
+  confirmation that does not name a target gene raises; with none stored, the target's own), and
+  `evidence_genes`, the relatives' reference gene and the genes whose records were read, in
+  order and once each. `FindingView.genes` links the finding's own genes and
+  `FindingDetail.genes` those and every gene its evidence names, each a `GeneLink {gene, url}`
+  built by `services/record_pages.py::record_page_url`, the one record-page helper.
+* **The relatives evidence of a length finding keeps each relative's length.**
+  `RelativesEvidence.relative_lengths` maps each relative organism to its longest copy, taken
+  from the same `relatives_of` read that gives the median, so the dot plot needs no new read.
+  `relatives_tier` keeps the library's tier (same genus or other genera) beside them, and a model
+  validator stores the two together. Every key of `RelativesEvidence` is required: `{}` and
+  null state a read that found no reference row or too few relatives. Alembic `2026_10_24_0002`
+  writes those values into the relatives rows stored without the keys. The
+  relatives facts add "Related genomes read" (the count and the range of lengths) and "Related
+  genomes from" (the tier, in the words `TIER_WORDS` gives the strain facts too) when they are
+  stored.
 * **The first-run hint opens Settings on the Model tab.** The words "Settings -> Model" in
   `ChatEmptyState` are a button. The Settings modal's open state and tab live in
   `state/useSettingsModalStore.ts`, which also owns `SettingsTab`; `useModalState` and the nav

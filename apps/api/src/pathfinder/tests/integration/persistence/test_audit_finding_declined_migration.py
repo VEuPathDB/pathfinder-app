@@ -20,8 +20,8 @@ from pathfinder.tests.integration.persistence._migration_db import (
     rows,
 )
 
-PREVIOUS_REVISION = "2026_10_23_0001"
-REVISION = "2026_10_24_0001"
+PREVIOUS_REVISION = "2026_10_24_0002"
+REVISION = "2026_10_24_0003"
 _TARGET = SingleGeneTarget(check="gene_length", genes=("NF54_SHORT",))
 _DECLINE = "UPDATE audit_findings SET status = 'declined'"
 

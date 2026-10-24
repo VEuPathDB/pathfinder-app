@@ -1,7 +1,7 @@
 ---
 type: Backlog
-title: Two site bugs are reported to VEuPathDB
-description: OrthoMCL's Single Copy Orthogroups search runs the genome-count query, and WDK answers 500 instead of 422 when a hidden parameter empties a dependent vocabulary; both are VEuPathDB's to fix and are measured on QA.
+title: Three site bugs are reported to VEuPathDB
+description: OrthoMCL's Single Copy Orthogroups search runs the genome-count query, WDK answers 500 instead of 422 when a hidden parameter empties a dependent vocabulary, and OrthoMCL's phyletic expression parser recurses once per operator with no bound; all three are VEuPathDB's to fix and are measured on QA.
 tags: [upstream, orthomcl, wdk]
 status: proposed
 ---
@@ -32,12 +32,26 @@ An invalid `profileset_generic` answers a clean 422 that names the value. The 50
 value is wrong. PathFinder no longer sends a hidden value the website would not send
 (veupathdb-mcp 0.2.0b40), so this is reported for WDK's own error contract.
 
+## The phyletic expression parser recurses with no bound
+
+`org.orthomcl.service.core.phyletic.ExpressionParser.parseNode` (`ExpressionParser.java:50-75`)
+splits at the first AND or OR and recurses on the rest, and `replaceBlocks` (131-162)
+re-scans the remaining string at each level, so stack depth grows with the operator count
+and time with operators times length. `phyletic_expression` declares no length
+(`groupParams.xml:96-104`, live metadata `"length":0`). On QA OrthoMCL one
+`GroupsByPhyleticPattern` request of 2,598,778 characters (250 terms) left the whole
+OrthoMCL Tomcat instance unresponsive, its `catalina.out` ending in repeated
+`parseNode(ExpressionParser.java:69)` frames, until the instance was restarted. Every webapp
+in the instance stops with it. PathFinder caps the expressions it writes at measured-safe
+sizes (veupathdb-mcp 0.2.0b47), so this is reported for the parser's own bound.
+
 # Change
 
-Report both to VEuPathDB with the evidence above: OrthoMCLModel gives the question a
+Report all three to VEuPathDB with the evidence above: OrthoMCLModel gives the question a
 single-copy query or removes it; WDK answers 422 naming the dependent parameter when a
-vocabulary query returns nothing for the values given.
+vocabulary query returns nothing for the values given; the phyletic parser bounds its depth
+or the parameter declares a length.
 
 # Done when
 
-Both are filed with VEuPathDB, and this item is removed with a log line naming the issues.
+All three are filed with VEuPathDB, and this item is removed with a log line naming the issues.

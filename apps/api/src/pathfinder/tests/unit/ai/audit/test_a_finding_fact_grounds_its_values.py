@@ -73,6 +73,7 @@ def _fact() -> StatisticFact:
                 reviewed=False,
                 verdict="INTACT",
                 from_target=True,
+                genes=[],
             ),
             evidence=[
                 EvidenceView(
@@ -89,6 +90,7 @@ def _fact() -> StatisticFact:
             ],
             facts=[],
             review=None,
+            genes=[],
         ),
     )
 

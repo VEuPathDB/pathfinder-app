@@ -1,15 +1,15 @@
 """An audit finding the check declines is stored declined.
 
-Revision ID: 2026_10_24_0001
-Revises: 2026_10_23_0001
+Revision ID: 2026_10_24_0003
+Revises: 2026_10_24_0002
 """
 
 from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "2026_10_24_0001"
-down_revision: str | Sequence[str] | None = "2026_10_23_0001"
+revision: str = "2026_10_24_0003"
+down_revision: str | Sequence[str] | None = "2026_10_24_0002"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -50,6 +50,10 @@ _RELATIVES = RelativesEvidence(
     reference_length=400,
     model_length=200,
     relatives_median=400.0,
+    relative_lengths={},
+    relatives_tier=None,
+    side=None,
+    reference_organism=None,
 )
 
 
@@ -76,6 +80,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
             reviewed=False,
             verdict=None,
             from_target=True,
+            genes=[],
         ),
         evidence=[
             EvidenceView(
@@ -99,6 +104,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
         ],
         facts=[evidence_facts(_RELATIVES)],
         review=None,
+        genes=[],
     )
 
 

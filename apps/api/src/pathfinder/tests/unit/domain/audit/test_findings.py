@@ -298,6 +298,35 @@ def test_an_error_type_is_never_stored_without_its_certainty() -> None:
         Classification(certainty="high")
 
 
+def test_relative_lengths_and_their_tier_are_stored_together() -> None:
+    with pytest.raises(
+        ValidationError, match="relatives' tier is stored with their lengths"
+    ):
+        RelativesEvidence(
+            reference_gene="R1",
+            reference_length=400,
+            model_length=200,
+            relatives_median=400.0,
+            relative_lengths={"P. vivax": 401, "P. knowlesi": 399},
+            relatives_tier=None,
+            side=None,
+            reference_organism=None,
+        )
+    with pytest.raises(
+        ValidationError, match="relatives' tier is stored with their lengths"
+    ):
+        RelativesEvidence(
+            reference_gene="R1",
+            reference_length=400,
+            model_length=200,
+            relatives_median=None,
+            relatives_tier="OTHER_GENERA",
+            relative_lengths={},
+            side=None,
+            reference_organism=None,
+        )
+
+
 def test_evidence_reads_back_by_its_kind() -> None:
     confirmation = ConfirmationEvidence(
         confirmation=PseudogeneConfirmation(result=PIGA_INTACT)
@@ -312,7 +341,10 @@ def test_evidence_reads_back_by_its_kind() -> None:
         reference_length=400,
         model_length=200,
         relatives_median=400.0,
+        relative_lengths={"P. vivax": 401, "P. knowlesi": 399},
+        relatives_tier="SAME_GENUS",
         side="STRAIN_SHORT",
+        reference_organism=None,
     )
     evidence = GeneEvidencePayload(genes=(K13,), evidence=(K13_EVIDENCE,))
     for payload in (confirmation, split, relatives, evidence):
@@ -326,19 +358,26 @@ def test_evidence_reads_back_by_its_kind() -> None:
         "referenceLength": 400,
         "modelLength": 200,
         "relativesMedian": 400.0,
+        "relativeLengths": {"P. vivax": 401, "P. knowlesi": 399},
+        "relativesTier": "SAME_GENUS",
         "side": "STRAIN_SHORT",
         "referenceOrganism": None,
     }
-    stored_before_sides = {
+    keyless = {
         "kind": "relatives",
         "referenceGene": "R1",
         "referenceLength": 400,
         "modelLength": 200,
         "relativesMedian": 400.0,
     }
-    assert _PAYLOAD.validate_python(stored_before_sides) == relatives.model_copy(
-        update={"side": None}
-    )
+    with pytest.raises(ValidationError) as refused:
+        _PAYLOAD.validate_python(keyless)
+    assert sorted(error["loc"][-1] for error in refused.value.errors()) == [
+        "referenceOrganism",
+        "relativeLengths",
+        "relativesTier",
+        "side",
+    ]
     (read,) = _PAYLOAD.dump_python(evidence, by_alias=True, mode="json")["evidence"]
     assert (read["gene"], read["pubmed"], read["comments"]) == (K13, 44, 9)
 
