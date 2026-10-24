@@ -2,6 +2,13 @@
 
 ## 2026-10-24
 
+* **An off-topic classification is held to the site's own record types.** The classification
+  gate (`ai/lead/classification_gate.py`) reads the record types of the site's loaded catalog
+  (`held_record_types`, no request) when a message is classified `off_topic`, and refuses that
+  classification when the message holds a record type's display name or its plural as one run
+  of words. The refusal lists every record type of the site, so the Lead reads the site's own
+  record words as in scope. No word list is kept.
+
 * **Each piece of an audit finding's evidence states its facts in plain words.**
   `domain/audit/facts.py` holds `Fact {label, value}`, `EvidenceFacts {kind, facts}`, the facts of
   a relatives read and of a gene record, and `evidence_summary`, every fact as `label: value`

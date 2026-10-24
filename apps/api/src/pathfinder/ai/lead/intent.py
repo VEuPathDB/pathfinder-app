@@ -313,9 +313,9 @@ def unstated_operator_refusal(intent: UserIntent, message: str) -> str | None:
     return None
 
 
-def _occurs_in(gene_id: str, message: str) -> bool:
-    """Whether the id's words stand in the message as one consecutive run."""
-    wanted = words_of(gene_id)
+def occurs_in(text: str, message: str) -> bool:
+    """Whether the text's words stand in the message as one consecutive run."""
+    wanted = words_of(text)
     held = words_of(message)
     size = len(wanted)
     return size > 0 and any(
@@ -332,9 +332,7 @@ def named_ids(intent: UserIntent) -> list[str]:
 
 def untyped_ids(intent: UserIntent, message: str) -> list[str]:
     """The gene ids the intent names that the message text does not hold."""
-    return [
-        gene_id for gene_id in named_ids(intent) if not _occurs_in(gene_id, message)
-    ]
+    return [gene_id for gene_id in named_ids(intent) if not occurs_in(gene_id, message)]
 
 
 def unstated_ids_message(ids: list[str]) -> str:
