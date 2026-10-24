@@ -30,6 +30,7 @@ from pathfinder.ai.audit.review import (
     review_finding,
     review_settings,
 )
+from pathfinder.domain.audit.check_facts import evidence_facts
 from pathfinder.domain.audit.findings import RelativesEvidence
 from pathfinder.domain.audit.scope import SingleGeneTarget
 from pathfinder.domain.audit.verdicts import FindingReview, evidence_cite, finding_cite
@@ -44,6 +45,12 @@ from pathfinder.services.audit.reviews import ReviewedRun
 _GENOME = "Examplea alpha A"
 _GENE = "EXA_0001"
 _DOI = "10.1000/example.1"
+_RELATIVES = RelativesEvidence(
+    reference_gene="EXB_0001",
+    reference_length=400,
+    model_length=200,
+    relatives_median=400.0,
+)
 
 
 def _detail(finding_id: int = 7) -> FindingDetail:
@@ -74,12 +81,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
             EvidenceView(
                 kind="relatives",
                 status="stored",
-                payload=RelativesEvidence(
-                    reference_gene="EXB_0001",
-                    reference_length=400,
-                    model_length=200,
-                    relatives_median=400.0,
-                ),
+                payload=_RELATIVES,
                 requests=1,
                 attempts=1,
                 stopped=0,
@@ -95,6 +97,7 @@ def _detail(finding_id: int = 7) -> FindingDetail:
                 message="the site refused the read",
             ),
         ],
+        facts=[evidence_facts(_RELATIVES)],
         review=None,
     )
 
