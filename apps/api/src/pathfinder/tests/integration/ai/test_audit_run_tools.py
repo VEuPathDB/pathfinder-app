@@ -395,7 +395,7 @@ async def test_every_audit_read_records_its_fact(
         str(run_id),
         str(finding_id),
     )
-    assert [r.record_id for r in ctx.deps.records] == [_STRAIN, _REFERENCE]
+    assert [r.record_id for r in ctx.deps.records] == [_STRAIN, _REFERENCE] * 2
     assert ctx.deps.runs == [run_id, run_id, run_id]
     assert [
         plan.value("scope.confirmLimit"),
