@@ -24,6 +24,7 @@ from pathfinder.domain.reference_grammar import (
 from pathfinder.domain.reference_placement import misplacements
 from pathfinder.domain.scratchpad_facts import hard_facts
 from pathfinder.domain.statistic_facts import (
+    statistic_group_references,
     statistic_references,
     statistic_value,
     statistic_word_references,
@@ -48,6 +49,7 @@ _A_NUMBER = re.compile(rf"[+-]?{_NUM}(?:[-/]{_NUM})*(?:%|-?[A-Za-z]{{1,4}})?|log
 _AN_ACCESSION = re.compile(r"PF\d{5}|IPR\d{6}|ENS[A-Z]*[GTP]\d{11}")
 # The count a comparison reference names after its variant.
 _COMPARED = ("unique", "result", "shared")
+_GROUP_SHOWN = 6
 # The link a record reference renders: the record's id, then its page.
 _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
@@ -437,21 +439,34 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
     return list(dict.fromkeys([*brackets, *links, *tokens, *placed]))
 
 
+def _unheld(prose: str, facts: TurnFacts) -> Iterator[re.Match[str]]:
+    for match in A_REFERENCE.finditer(prose):
+        if _rendered(match, facts) is None:
+            yield match
+
+
 def unheld_references(prose: str, facts: TurnFacts) -> list[str]:
     """Each reference of the prose that names nothing the facts hold."""
-    return [
-        match.group()
-        for match in A_REFERENCE.finditer(prose)
-        if _rendered(match, facts) is None
-    ]
+    return [match.group() for match in _unheld(prose, facts)]
+
+
+def _held_under(match: re.Match[str], facts: TurnFacts) -> tuple[str, ...]:
+    if reference_kind(match) != "stat":
+        return ()
+    held = statistic_group_references(facts.statistics, match.group("body") or "")
+    return held[:_GROUP_SHOWN]
 
 
 def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
     """Each reference that names nothing the facts hold, then each fact the
     prose writes outside a reference."""
     unheld = [
-        ProseFault(token=reference, kind="unheld_reference")
-        for reference in unheld_references(prose, facts)
+        ProseFault(
+            token=match.group(),
+            kind="unheld_reference",
+            references=_held_under(match, facts),
+        )
+        for match in _unheld(prose, facts)
     ]
     return list(dict.fromkeys([*unheld, *shape_faults(prose, facts)]))
 

@@ -106,6 +106,22 @@ def statistic_value(statistics: Sequence[StatisticFact], body: str) -> str | Non
     return next((s.value(name) for s in reversed(statistics) if s.id == held_id), None)
 
 
+def statistic_group_references(
+    statistics: Sequence[StatisticFact], body: str
+) -> tuple[str, ...]:
+    held_id, _, name = body.partition(".")
+    prefix = f"{name}." if name else ""
+    return tuple(
+        dict.fromkeys(
+            f"[stat:{statistic.id}.{row.name}]"
+            for statistic in statistics
+            if statistic.id == held_id
+            for row in statistic.rows
+            if row.name.startswith(prefix)
+        )
+    )
+
+
 def statistic_references(
     statistics: Sequence[StatisticFact], number: str
 ) -> Iterator[str]:

@@ -329,6 +329,12 @@ def _placement_sentence(fault: ProseFault) -> str | None:
 
 
 def _fault_sentence(fault: ProseFault) -> str:
+    if fault.kind == "unheld_reference" and fault.references:
+        written = " or ".join(f"``{r}``" for r in fault.references)
+        return (
+            f"``{fault.token}`` names a group of values, not one value: write "
+            f"{written} in place of the value it states, or take it out."
+        )
     if fault.kind == "unheld_reference":
         return f"``{fault.token}`` names nothing the facts hold."
     if fault.kind == "malformed_reference":

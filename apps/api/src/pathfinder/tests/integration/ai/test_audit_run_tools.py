@@ -310,7 +310,7 @@ async def test_reading_a_finding_records_its_facts() -> None:
         "audit_finding",
         fact.id,
     )
-    assert fact.value("confirmation.confirmation.result.strainCdsLength") == "900"
+    assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert [(r.record_id, r.url) for r in ctx.deps.records] == [
         (gene, gene_record_url("plasmodb", gene)) for gene in (_STRAIN, _REFERENCE)
     ]

@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **A finding's fact names each value by its path in the answer.** `audit_finding_fact` holds one
+  row per scalar of the `FindingDetail` the tool returned, so
+  `[stat:<id>.evidence.0.payload.confirmation.result.<field>]` renders the value the auditor read.
+  A `stat` reference that names a group of rows, an object, a list or a fact id alone, is refused
+  with the rows under it (`statistic_group_references`, at most six), so the retry names one value
+  instead of rendering "a value not shown".
 * **A finding the check declines is stored declined, not failed.** `confirm_target`
   (`services/audit/checks.py`) answers a `ToolError` with no cause, the library's own refusal of
   its input such as the pseudogene pair-size guard, as `DeclinedCheck`; the confirm stage stores
