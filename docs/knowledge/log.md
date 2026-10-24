@@ -2,6 +2,14 @@
 
 ## 2026-10-24
 
+* **A requirement the bound phyletic expression states is not reported unmet.** A
+  `RequirementReport` carries `clause`, the requirement as one pattern term, and
+  `hold_the_reports_to_the_bound_patterns` refuses a `site_has_no_search` or `stand_in_bound`
+  report whose clause a term of the bound pattern states (`states_clause`,
+  `domain/strategy/pattern_clauses.py`), so no drop card asks about it; a report with no clause
+  is sent back once with the expression's reading. The clause is JSON on FRAME's output and
+  parsed at the check, so the output type checks only shape. See
+  [the decision](decisions/a-requirement-a-bound-pattern-states-is-met.md).
 * **A comparison of two genome sets is bound in the reading FRAME classed it by.**
   `FrameResult.comparison_reading` is FRAME's typed class of a request that compares how many
   proteins two sets of genomes hold, one rule per reading (`READING_RULES` in

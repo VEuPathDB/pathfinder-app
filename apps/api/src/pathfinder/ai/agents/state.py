@@ -222,6 +222,8 @@ class AgentToolState:
         default_factory=dict
     )
     built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
+    # The reported requirements this pass was asked to state a clause for.
+    clause_asked: set[str] = field(default_factory=set)
     refusals: int = 0
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.

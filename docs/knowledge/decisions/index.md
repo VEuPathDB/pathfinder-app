@@ -26,6 +26,7 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 
 ## Agents
 
+- [A requirement a bound phyletic pattern states is met](a-requirement-a-bound-pattern-states-is-met.md) - a report carries its requirement as a pattern term and is refused when the bound pattern states that term; a word match against the reading was rejected
 - [Preserved is computed, never written](preserved-is-computed-never-written.md) - an edit turn's "the rest is unchanged" is read from a diff of the two specs, and FRAME writes no disposition of its own
 - [The ledger outranks the verification digest](the-ledger-outranks-the-verification-digest.md) - a success the build does not support is rewritten where the digest is recorded, because a ModelRetry runs out and the same flag decides the memory auto-write and the eval verdict
 - [An edit is a delta, not a rebuild](an-edit-is-a-delta-not-a-rebuild.md) - the diff becomes graph operations over the live strategy, so an untouched step keeps its WDK id and its hand edits
