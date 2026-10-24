@@ -21,7 +21,11 @@ from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import REVIEWER_INSTRUCTIONS
 from pathfinder.ai.audit.mock import build_review_mock, build_synthesis_mock
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
-from pathfinder.ai.audit.synthesis import SynthesisStoppedError, synthesize
+from pathfinder.ai.audit.synthesis import (
+    SynthesisStoppedError,
+    kept_findings,
+    synthesize,
+)
 from pathfinder.ai.audit.verdict_tool import unheld_cites_message
 from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.domain.audit.verdicts import (
@@ -268,22 +272,28 @@ async def _review_all(reviewer: _Reviewer, started: float) -> None:
 
 async def _synthesize(reviewer: _Reviewer) -> None:
     run = reviewer.run
-    if await reviewer.budget_used():
+    found = await stored_reviews(run.run_id)
+    impacts = await stored_impacts(run.run_id)
+    if kept_findings(found, impacts) and await reviewer.budget_used():
         await record_progress(run, "stopped", BUDGET_USED)
         return
     view = await run_view(run.run_id, run.user_id)
-    found = await stored_reviews(run.run_id)
-    impacts = await stored_impacts(run.run_id)
     model = synthesis_model(reviewer.model_id)
+    usage = RunUsage()
     try:
-        synthesis, usage = await synthesize(
-            view, found, impacts=impacts, model=model, settings=reviewer.settings
+        synthesis = await synthesize(
+            view,
+            found,
+            impacts=impacts,
+            model=model,
+            usage=usage,
+            settings=reviewer.settings,
         )
-    except SynthesisStoppedError as stopped:
-        await _charge(run, stopped.usage, model, reviewer.model_id)
+    except SynthesisStoppedError:
         await record_progress(run, "stopped", SYNTHESIS_STOPPED)
         return
-    await _charge(run, usage, model, reviewer.model_id)
+    finally:
+        await _charge(run, usage, model, reviewer.model_id)
     await store_synthesis(run.run_id, synthesis)
     await record_progress(run, "synthesized")
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
@@ -11,7 +11,9 @@ from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage, UsageLimits
 
+from pathfinder.ai.audit.facts import audit_run_fact, json_rows
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
+from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
@@ -19,6 +21,9 @@ from pathfinder.domain.audit.verdicts import (
     SynthesisDraft,
     review_agreement,
 )
+from pathfinder.domain.reply_references import prose_faults, render_reply
+from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
 from pathfinder.services.audit.verdicts import VerdictView
@@ -26,15 +31,6 @@ from pathfinder.services.audit.views import AuditRunView
 
 SYNTHESIS_LIMITS = UsageLimits(request_limit=4, tool_calls_limit=0)
 NO_FINDING_KEPT = "The review kept no finding of this run as an error."
-SHARE_WRITTEN = (
-    "The summary states a percentage or a share of the kept findings. State the "
-    "counts the review kept and rejected only, and no rate of them."
-)
-_SHARE = re.compile(
-    r"%|\bper ?cent\b|\bshare\b|\bproportion\b|\bfraction\b"
-    r"|\b\d+\s*(?:/|of|out of)\s*\d+\b",
-    re.IGNORECASE,
-)
 
 
 class KeptFinding(CamelModel):
@@ -45,20 +41,35 @@ class KeptFinding(CamelModel):
     impact: float | None
 
 
+class SynthesisCounts(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kept: int
+    rejected: int
+    undecided: int
+    kept_genomes: int
+    genomes: int
+    agreement: ReviewAgreement
+
+
 class SynthesisPrompt(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     run: AuditRunView
     kept_findings: tuple[KeptFinding, ...]
-    rejected: int
-    undecided: int
-    agreement: ReviewAgreement
+    counts: SynthesisCounts
+    run_fact: str
+    counts_fact: str
+
+
+@dataclass(frozen=True)
+class SynthesisDeps:
+    kept: Mapping[int, KeptFinding]
+    facts: TurnFacts
 
 
 class SynthesisStoppedError(Exception):
-    def __init__(self, usage: RunUsage) -> None:
-        super().__init__("the synthesis stopped before it wrote a valid synthesis")
-        self.usage = usage
+    pass
 
 
 def kept_findings(
@@ -68,13 +79,22 @@ def kept_findings(
         KeptFinding(
             finding_id=view.finding_id,
             verdict=view.verdict,
-            impact=impacts.get(view.finding_id)
+            impact=impacts[view.finding_id]
             if view.review is None or view.review.impact is None
             else view.review.impact,
         )
         for view in reviews
         if view.finding_id is not None and view.verdict.verdict == "error"
     ]
+
+
+def synthesis_counts_fact(view: AuditRunView, counts: SynthesisCounts) -> StatisticFact:
+    return StatisticFact(
+        id=statistic_id("audit_synthesis", [str(view.run.id)]),
+        kind="audit_synthesis",
+        title=f"The reviews of audit run {view.run.id}",
+        rows=json_rows("", counts.model_dump(mode="json", by_alias=True)),
+    )
 
 
 def _ids(ids: Sequence[int]) -> str:
@@ -87,7 +107,7 @@ def _rank(impact: float | None) -> float:
 
 def _unkept(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str | None:
     named = [f for section in draft.sections for f in section.finding_ids]
-    outside = [f for f in dict.fromkeys([*named, *draft.headline]) if f not in kept]
+    outside = [f for f in dict.fromkeys(named) if f not in kept]
     if not outside:
         return None
     return (
@@ -113,7 +133,7 @@ def _mistyped(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str | N
 
 def _misordered(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str | None:
     ordered = sorted(draft.headline, key=lambda f: _rank(kept[f].impact), reverse=True)
-    if [kept[f].impact for f in ordered] == [kept[f].impact for f in draft.headline]:
+    if ordered == list(draft.headline):
         return None
     return (
         "The headline is not in descending order of impact. Order it so: "
@@ -122,23 +142,24 @@ def _misordered(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str |
 
 
 def _synthesizable(
-    ctx: RunContext[SynthesisPrompt], output: SynthesisDraft
+    ctx: RunContext[SynthesisDeps], output: SynthesisDraft
 ) -> SynthesisDraft:
-    kept = {k.finding_id: k for k in ctx.deps.kept_findings}
+    kept = ctx.deps.kept
     problem = (
         _unkept(output, kept) or _mistyped(output, kept) or _misordered(output, kept)
     )
     if problem is not None:
         raise ModelRetry(problem)
-    if _SHARE.search(output.summary):
-        raise ModelRetry(SHARE_WRITTEN)
+    faults = prose_faults(output.summary, ctx.deps.facts)
+    if faults:
+        raise ModelRetry(unrendered_prose_message(faults))
     return output
 
 
-def build_synthesis_agent() -> Agent[SynthesisPrompt, SynthesisDraft]:
+def build_synthesis_agent() -> Agent[SynthesisDeps, SynthesisDraft]:
     agent = Agent(
         output_type=SynthesisDraft,
-        deps_type=SynthesisPrompt,
+        deps_type=SynthesisDeps,
         instructions=SYNTHESIS_INSTRUCTIONS,
         capabilities=agent_capabilities([]),
         retries=3,
@@ -149,46 +170,61 @@ def build_synthesis_agent() -> Agent[SynthesisPrompt, SynthesisDraft]:
     return agent
 
 
+def _prompt(
+    view: AuditRunView, reviews: Sequence[VerdictView], kept: Sequence[KeptFinding]
+) -> tuple[SynthesisPrompt, TurnFacts]:
+    verdicts = [v.verdict.verdict for v in reviews]
+    counts = SynthesisCounts(
+        kept=len(kept),
+        rejected=verdicts.count("no_error"),
+        undecided=verdicts.count("undecided"),
+        kept_genomes=len({k.verdict.model_genome for k in kept}),
+        genomes=len(view.run.genomes),
+        agreement=review_agreement([v.review for v in reviews if v.review is not None]),
+    )
+    run_fact = audit_run_fact(view)
+    counts_fact = synthesis_counts_fact(view, counts)
+    prompt = SynthesisPrompt(
+        run=view,
+        kept_findings=tuple(kept),
+        counts=counts,
+        run_fact=run_fact.id,
+        counts_fact=counts_fact.id,
+    )
+    return prompt, TurnFacts(statistics=[run_fact, counts_fact])
+
+
 async def synthesize(
     view: AuditRunView,
     reviews: Sequence[VerdictView],
     *,
     impacts: Mapping[int, float | None],
     model: Model,
+    usage: RunUsage,
     settings: ModelSettings | None = None,
-) -> tuple[Synthesis, RunUsage]:
+) -> Synthesis:
     agreement = review_agreement([v.review for v in reviews if v.review is not None])
     kept = kept_findings(reviews, impacts)
-    usage = RunUsage()
     if not kept:
-        empty = Synthesis(
+        return Synthesis(
             sections=(), headline=(), summary=NO_FINDING_KEPT, agreement=agreement
         )
-        return empty, usage
-    verdicts = [v.verdict.verdict for v in reviews]
-    prompt = SynthesisPrompt(
-        run=view,
-        kept_findings=tuple(kept),
-        rejected=verdicts.count("no_error"),
-        undecided=verdicts.count("undecided"),
-        agreement=agreement,
-    )
+    prompt, facts = _prompt(view, reviews, kept)
     try:
         result = await build_synthesis_agent().run(
             prompt.model_dump_json(by_alias=True),
-            deps=prompt,
+            deps=SynthesisDeps(kept={k.finding_id: k for k in kept}, facts=facts),
             model=model,
             model_settings=settings,
             usage=usage,
             usage_limits=SYNTHESIS_LIMITS,
         )
     except (UsageLimitExceeded, UnexpectedModelBehavior) as stopped:
-        raise SynthesisStoppedError(usage) from stopped
+        raise SynthesisStoppedError from stopped
     draft = result.output
-    synthesis = Synthesis(
+    return Synthesis(
         sections=draft.sections,
         headline=draft.headline,
-        summary=draft.summary,
+        summary=render_reply(draft.summary, facts),
         agreement=agreement,
     )
-    return synthesis, usage

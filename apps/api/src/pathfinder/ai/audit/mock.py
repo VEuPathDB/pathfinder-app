@@ -379,7 +379,7 @@ class _SynthesisPrompt(CamelModel):
     model_config = ConfigDict(extra="ignore")
 
     kept_findings: list[_Kept]
-    rejected: int
+    counts_fact: str
 
 
 def _impact_rank(kept: _Kept) -> float:
@@ -407,8 +407,8 @@ def _synthesis_part(messages: list[ModelMessage], info: AgentInfo) -> ModelRespo
         "sections": [_synthesis_section(group) for group in grouped.values()],
         "headline": [k.finding_id for k in ranked[:MAX_HEADLINES]],
         "summary": (
-            f"The review kept {len(ranked)} findings as errors and rejected "
-            f"{prompt.rejected}."
+            f"The review kept [stat:{prompt.counts_fact}.kept] findings as errors and "
+            f"rejected [stat:{prompt.counts_fact}.rejected]."
         ),
     }
     return ModelResponse(parts=[terminal_call(draft)])

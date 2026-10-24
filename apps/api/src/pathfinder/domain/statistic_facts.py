@@ -37,6 +37,7 @@ type StatisticKind = Literal[
     "audit_plan",
     "audit_rate",
     "audit_start",
+    "audit_synthesis",
 ]
 
 TURN_STATISTICS: frozenset[StatisticKind] = frozenset(

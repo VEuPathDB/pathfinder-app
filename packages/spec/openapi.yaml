@@ -17068,6 +17068,7 @@ components:
       - audit_plan
       - audit_rate
       - audit_start
+      - audit_synthesis
       type: string
     StatisticRowFact:
       description: One value of a statistic, under the name a reference gives it.

@@ -186,7 +186,9 @@ def finding_lines(records: Iterable[AuditFindingRecord]) -> dict[int, FindingLin
 
 
 def _reviewed_rows(
-    synthesis: Synthesis | None, lines: Mapping[int, FindingLine], tallied: set[str]
+    synthesis: Synthesis | None,
+    lines: Mapping[int, FindingLine],
+    tallied: set[ErrorType],
 ) -> Iterator[tuple[ErrorType, str, Certainty, int]]:
     sections = () if synthesis is None else synthesis.sections
     for section in sections:
@@ -204,7 +206,7 @@ def error_type_views(
     lines: Mapping[int, FindingLine],
 ) -> list[ErrorTypeView]:
     stored = list(tally)
-    tallied: set[str] = {row[0] for row in stored}
+    tallied: set[ErrorType] = {row[0] for row in stored}
     counts: Counter[ErrorType] = Counter()
     genomes: defaultdict[ErrorType, dict[str, None]] = defaultdict(dict)
     certainties: defaultdict[ErrorType, list[Certainty]] = defaultdict(list)

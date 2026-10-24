@@ -263,17 +263,20 @@ def spent_tokens(monkeypatch: pytest.MonkeyPatch) -> list[int]:
         *,
         impacts: Mapping[int, float | None],
         model: Model,
+        usage: RunUsage,
         settings: ModelSettings | None = None,
-    ) -> tuple[Synthesis, RunUsage]:
+    ) -> Synthesis:
         try:
-            found, usage = await synthesized(
-                view, reviews, impacts=impacts, model=model, settings=settings
+            return await synthesized(
+                view,
+                reviews,
+                impacts=impacts,
+                model=model,
+                usage=usage,
+                settings=settings,
             )
-        except synthesis.SynthesisStoppedError as stopped:
-            tokens.append(stopped.usage.total_tokens)
-            raise
-        tokens.append(usage.total_tokens)
-        return found, usage
+        finally:
+            tokens.append(usage.total_tokens)
 
     monkeypatch.setattr(review, "synthesize", synthesis_counted)
     return tokens

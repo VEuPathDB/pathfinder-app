@@ -14,9 +14,10 @@
 * **A reviewed audit run ends with its synthesis.** `ai/audit/synthesis.py` runs one bounded
   synthesis agent over the kept reviews once the review loop has nothing left, attaches the
   agreement it computes from the stored reviews, and refuses a draft that names an unkept finding,
-  mixes error types, ranks the headline out of impact order or writes a share of kept findings.
-  A run with no kept finding stores `NO_FINDING_KEPT` without a model call; a stopped synthesis
-  stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
+  mixes error types, ranks the headline out of impact order or states a number no fact holds: the
+  summary is held by `prose_faults` over the run fact and an `audit_synthesis` counts fact, and
+  stored rendered. A run with no kept finding stores `NO_FINDING_KEPT` without a model call; each
+  review pass clears the earlier synthesis, and a stopped synthesis stops the review. See `decisions/a-finished-audit-run-is-reviewed-by-a-job-of-its-own.md`.
 
 * **An audit run's findings filter by certainty and by gene target.** `GET
   /api/v1/audits/{run_id}/findings` takes `certainty` (`high`, `medium` or `low`) and `target`

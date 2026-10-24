@@ -12,13 +12,14 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import PaidBy
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
+from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
 from pathfinder.ai.audit import review
-from pathfinder.ai.audit.mock import MOCK_SYNTHESIS_MODEL_ID
-from pathfinder.ai.audit.synthesis import NO_FINDING_KEPT, SHARE_WRITTEN
+from pathfinder.ai.audit.mock import MOCK_SYNTHESIS_MODEL_ID, build_synthesis_mock
+from pathfinder.ai.audit.synthesis import NO_FINDING_KEPT
 from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
@@ -26,11 +27,13 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
+from pathfinder.domain.statistic_facts import statistic_id
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.reviews import (
     defer_review,
     reviewed_run,
+    start_review,
     store_review,
 )
 from pathfinder.services.audit.runs import RunOwner, owned_run
@@ -39,9 +42,11 @@ from pathfinder.tests.integration.http.conftest import client_for
 from pathfinder.tests.integration.jobs._audit_jobs import TOKEN, holding, registered
 from pathfinder.tests.integration.jobs._audit_reviews import (
     GENOME,
+    add_named,
     finished_run,
     gene,
     high,
+    recorded_reviewer,
     spent_tokens,
     weighed,
     work_reviews,
@@ -102,6 +107,35 @@ async def _stored(
         await store_review(
             run, finding_id, _review(finding_id, number, verdict, second), "test:r"
         )
+
+
+def _counts(run_id: UUID) -> str:
+    return statistic_id("audit_synthesis", [str(run_id)])
+
+
+async def _paid(owner: RunOwner) -> int:
+    async with async_session_factory() as session:
+        totals = await quota.get_period_totals(
+            session, owner.user_id, paid_by=PaidBy.DEPLOYMENT
+        )
+    return totals.tokens
+
+
+async def _spend_the_budget(owner: RunOwner) -> None:
+    async with async_session_factory() as session:
+        await session.execute(
+            update(User)
+            .where(User.id == owner.user_id)
+            .values(monthly_cost_limit_usd=1.0)
+        )
+        await quota.accumulate(
+            session,
+            user_id=owner.user_id,
+            tokens=10,
+            cost_usd=Decimal("1.0"),
+            paid_by=PaidBy.DEPLOYMENT,
+        )
+        await session.commit()
 
 
 def _refusing(called: list[int]) -> FunctionModel:
@@ -165,11 +199,16 @@ async def test_the_synthesis_carries_the_review_agreement(
     retries: list[RetryPromptPart] = []
     ids = list(stored.values())
     kept = "The review kept 3 findings as errors and rejected 0."
+    counts = _counts(run_id)
+    written = (
+        f"The review kept [stat:{counts}.kept] findings as errors and rejected "
+        f"[stat:{counts}.rejected]."
+    )
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
         retries.extend(retry_prompt_parts(messages))
-        summary = kept if retries else "80% of the findings were kept"
+        summary = written if retries else "80% of the findings were kept"
         section = {
             "errorType": "truncated_model",
             "cause": "The models stop early.",
@@ -186,7 +225,8 @@ async def test_the_synthesis_carries_the_review_agreement(
 
     await work_reviews(jobs)
 
-    assert [r.content for r in retries] == [SHARE_WRITTEN]
+    (retry,) = retries
+    assert "80" in str(retry.content)
     run = await _read_run(app, owner, run_id)
     assert run["synthesis"]["agreement"] == {"sampled": 3, "agreed": 2, "share": 0.667}
     assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (kept, ids)
@@ -236,11 +276,7 @@ async def test_a_synthesis_whose_retries_are_spent_stops_the_review(
     run = await owned_run(run_id, owner)
     assert (len(called), run.synthesis) == (4, None)
     assert (len(tokens), tokens[-1] > 0) == (3, True)
-    async with async_session_factory() as session:
-        paid = await quota.get_period_totals(
-            session, owner.user_id, paid_by=PaidBy.DEPLOYMENT
-        )
-    assert paid.tokens == sum(tokens)
+    assert await _paid(owner) == sum(tokens)
     assert run.review == ReviewProgress(
         status="stopped", done=1, total=1, message=review.SYNTHESIS_STOPPED
     )
@@ -254,20 +290,7 @@ async def test_a_used_budget_stops_before_the_synthesis(
 ) -> None:
     owner, run_id, stored = await finished_run({1: high(1)})
     await _stored(run_id, stored, {1: ("error", "error")})
-    async with async_session_factory() as session:
-        await session.execute(
-            update(User)
-            .where(User.id == owner.user_id)
-            .values(monthly_cost_limit_usd=1.0)
-        )
-        await quota.accumulate(
-            session,
-            user_id=owner.user_id,
-            tokens=10,
-            cost_usd=Decimal("1.0"),
-            paid_by=PaidBy.DEPLOYMENT,
-        )
-        await session.commit()
+    await _spend_the_budget(owner)
     called: list[int] = []
     monkeypatch.setattr(review, "synthesis_model", lambda model_id: _refusing(called))
     await defer_review(run_id)
@@ -285,3 +308,107 @@ def test_the_mock_deployment_synthesizes_on_the_synthesis_script() -> None:
     model = review.synthesis_model("openai:gpt-5.6-luna")
 
     assert model.model_name == MOCK_SYNTHESIS_MODEL_ID
+
+
+async def test_a_used_budget_with_nothing_kept_still_synthesizes(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner, run_id, stored = await finished_run({1: high(1)})
+    await _stored(run_id, stored, {1: ("no_error", "no_error")})
+    await _spend_the_budget(owner)
+    called: list[int] = []
+    monkeypatch.setattr(review, "synthesis_model", lambda model_id: _refusing(called))
+    await defer_review(run_id)
+
+    await work_reviews(jobs)
+
+    run = await owned_run(run_id, owner)
+    assert called == []
+    assert run.synthesis is not None
+    assert run.synthesis.summary == NO_FINDING_KEPT
+    assert run.review == ReviewProgress(status="synthesized", done=1, total=1)
+
+
+async def test_a_provider_error_after_paid_requests_is_charged_once(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tokens = spent_tokens(monkeypatch)
+    owner, run_id, stored = await finished_run({1: high(1)})
+    await _stored(run_id, stored, {1: ("error", "error")})
+    asked: list[int] = []
+
+    def fail_second(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        asked.append(1)
+        if len(asked) == 2:
+            raise ModelHTTPError(status_code=503, model_name="test:synthesis")
+        return ModelResponse(parts=[terminal_call({})])
+
+    monkeypatch.setattr(
+        review, "synthesis_model", lambda model_id: FunctionModel(fail_second)
+    )
+    await defer_review(run_id)
+
+    with pytest.raises(ModelHTTPError):
+        await work_reviews(jobs)
+
+    (spent,) = tokens
+    assert (len(asked), spent > 0) == (2, True)
+    assert await _paid(owner) == spent
+    run = await owned_run(run_id, owner)
+    assert run.synthesis is None
+
+
+async def test_a_stopped_synthesis_clears_the_runs_earlier_synthesis(
+    jobs: InMemoryConnector, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner, run_id, _ = await finished_run({1: high(1)})
+    await defer_review(run_id)
+    await work_reviews(jobs)
+    assert (await owned_run(run_id, owner)).synthesis is not None
+
+    await add_named(run_id, {2: high(2)})
+    assert await start_review(run_id, owner) == ReviewProgress(status="waiting")
+    waiting = await _read_run(app, owner, run_id)
+    assert (waiting["synthesis"], waiting["headline"]) == (None, [])
+    assert waiting["agreement"]["sampled"] == 1
+
+    called: list[int] = []
+    monkeypatch.setattr(review, "synthesis_model", lambda model_id: _refusing(called))
+    await work_reviews(jobs)
+
+    run = await _read_run(app, owner, run_id)
+    assert (run["synthesis"], run["headline"], len(called)) == (None, [], 4)
+    assert run["review"]["status"] == "stopped"
+    assert run["agreement"] == {
+        "sampled": 2,
+        "agreed": 2,
+        "share": 1.0,
+        "text": "Two independent reviews agreed on 2 of 2 sampled findings (100%)",
+    }
+
+
+async def test_a_later_start_reruns_only_the_stopped_synthesis(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner, run_id, stored = await finished_run({1: high(1)})
+    called: list[int] = []
+    monkeypatch.setattr(review, "synthesis_model", lambda model_id: _refusing(called))
+    await defer_review(run_id)
+    await work_reviews(jobs)
+    stopped = await owned_run(run_id, owner)
+    assert stopped.review is not None
+    assert stopped.review.message == review.SYNTHESIS_STOPPED
+    recorder = recorded_reviewer(monkeypatch)
+    monkeypatch.setattr(
+        review, "synthesis_model", lambda model_id: build_synthesis_mock()
+    )
+
+    assert await start_review(run_id, owner) == ReviewProgress(status="waiting")
+    await work_reviews(jobs)
+
+    run = await owned_run(run_id, owner)
+    assert recorder.runs() == []
+    assert run.synthesis is not None
+    assert run.synthesis.headline == (stored[gene(1)],)
+    assert run.review == ReviewProgress(status="synthesized", done=1, total=1)

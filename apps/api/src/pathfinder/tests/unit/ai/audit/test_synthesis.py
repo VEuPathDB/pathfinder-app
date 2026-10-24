@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
+from uuid import UUID
 
 import pytest
 from assistant_core.models.scripted import retry_prompt_parts, terminal_call, user_texts
 from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.usage import RunUsage
 
+from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.mock import build_synthesis_mock
 from pathfinder.ai.audit.synthesis import (
     NO_FINDING_KEPT,
-    SHARE_WRITTEN,
     SYNTHESIS_LIMITS,
     KeptFinding,
     SynthesisStoppedError,
@@ -33,27 +34,30 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
+from pathfinder.domain.statistic_facts import statistic_id
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
 _GENOME = "Examplea alpha A"
+_OTHER = "Examplea beta B"
 _NOW = datetime(2026, 10, 24, tzinfo=UTC)
+_RUN = UUID("00000000-0000-4000-8000-000000000001")
 _TRUNCATED: ErrorType = "truncated_model"
 _SPLIT: ErrorType = "split_model"
+_COUNTS = statistic_id("audit_synthesis", [str(_RUN)])
 
 
-def _view() -> AuditRunView:
-    run_id = uuid4()
+def _view(genomes: tuple[str, ...] = ()) -> AuditRunView:
     return AuditRunView(
         run=AuditRunSummary(
-            id=run_id,
+            id=_RUN,
             site_id="plasmodb",
             conversation_id=None,
             release=None,
             status="finished",
             phase="finished",
             deadline_at=None,
-            genomes=[],
+            genomes=list(genomes),
             checks=["gene_length"],
             targets=1,
             created_at=_NOW,
@@ -86,6 +90,9 @@ def _view() -> AuditRunView:
     )
 
 
+_RUN_FACT = audit_run_fact(_view()).id
+
+
 def _stored(
     finding_id: int,
     verdict: VerdictKind = "error",
@@ -93,34 +100,28 @@ def _stored(
     error_type: ErrorType = _TRUNCATED,
     second: VerdictKind | None = None,
     impact: float | None = None,
+    genome: str = _GENOME,
 ) -> VerdictView:
     named = verdict == "error"
+    judged = GeneModelVerdict(
+        genes=(f"EXA_{finding_id:04d}",),
+        model_genome=genome,
+        verdict=verdict,
+        error_type=error_type if named else None,
+        certainty="high" if named else None,
+        cause=f"The relatives of the model are longer, case {finding_id}.",
+        cites=(finding_cite(finding_id),),
+    )
     return VerdictView(
         id=finding_id,
-        run_id=uuid4(),
+        run_id=_RUN,
         finding_id=finding_id,
         origin="review",
-        verdict=GeneModelVerdict(
-            genes=(f"EXA_{finding_id:04d}",),
-            model_genome=_GENOME,
-            verdict=verdict,
-            error_type=error_type if named else None,
-            certainty="high" if named else None,
-            cause=f"The relatives of finding {finding_id} are longer.",
-            cites=(finding_cite(finding_id),),
-        ),
+        verdict=judged,
         review=FindingReview(
-            verdict=GeneModelVerdict(
-                genes=(f"EXA_{finding_id:04d}",),
-                model_genome=_GENOME,
-                verdict=verdict,
-                error_type=error_type if named else None,
-                certainty="high" if named else None,
-                cause=f"The relatives of finding {finding_id} are longer.",
-                cites=(finding_cite(finding_id),),
-            ),
+            verdict=judged,
             already_known="not_searched",
-            card_text=f"Finding {finding_id} is a synthetic model.",
+            card_text="A synthetic model.",
             impact=impact,
             impact_reason=None if impact is None else "The reviewer weighed it.",
             second_verdict=second,
@@ -160,12 +161,17 @@ def _first_then(
     return FunctionModel(answer)
 
 
-_IMPACTS = {1: 0.9, 2: 0.5, 3: 0.7, 4: 0.2}
+_IMPACTS: dict[int, float | None] = {1: 0.9, 2: 0.5, 3: 0.7, 4: 0.2, 5: None, 6: 0.1}
 
 
-async def _synthesized(reviews: list[VerdictView], model: FunctionModel) -> Synthesis:
-    found, _ = await synthesize(_view(), reviews, impacts=_IMPACTS, model=model)
-    return found
+async def _synthesized(
+    reviews: list[VerdictView],
+    model: FunctionModel,
+    view: AuditRunView | None = None,
+) -> Synthesis:
+    return await synthesize(
+        view or _view(), reviews, impacts=_IMPACTS, model=model, usage=RunUsage()
+    )
 
 
 def test_the_synthesis_limits() -> None:
@@ -178,20 +184,19 @@ def test_kept_findings_carry_the_reviews_impact_over_the_stored_one() -> None:
         _stored(2),
         _stored(3, "no_error"),
         _stored(4, "undecided"),
+        _stored(5),
     ]
 
-    assert kept_findings(reviews, {1: 0.9, 2: 0.5}) == [
+    assert kept_findings(reviews, _IMPACTS) == [
         KeptFinding(finding_id=1, verdict=reviews[0].verdict, impact=0.3),
         KeptFinding(finding_id=2, verdict=reviews[1].verdict, impact=0.5),
+        KeptFinding(finding_id=5, verdict=reviews[4].verdict, impact=None),
     ]
 
 
-def test_a_kept_finding_with_no_stored_impact_has_none() -> None:
-    reviews = [_stored(5)]
-
-    assert kept_findings(reviews, {}) == [
-        KeptFinding(finding_id=5, verdict=reviews[0].verdict, impact=None)
-    ]
+def test_a_kept_finding_with_no_stored_impact_row_fails() -> None:
+    with pytest.raises(KeyError):
+        kept_findings([_stored(9)], _IMPACTS)
 
 
 async def test_a_section_naming_a_rejected_finding_is_retried() -> None:
@@ -206,19 +211,6 @@ async def test_a_section_naming_a_rejected_finding_is_retried() -> None:
         "Name only the kept findings: 1, 2."
     )
     assert found.sections[0].finding_ids == (1, 2)
-
-
-async def test_a_headline_naming_an_unreviewed_finding_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
-    reviews = [_stored(1), _stored(2), _stored(4, "undecided")]
-    wrong = _draft([_section(_TRUNCATED, 1, 2), _section(_SPLIT, 4)], [1, 4])
-
-    await _synthesized(reviews, _first_then(wrong, retries))
-
-    assert retries[0].content == (
-        "These findings have no review that keeps them as an error: 4. "
-        "Name only the kept findings: 1, 2."
-    )
 
 
 async def test_a_section_of_another_error_type_is_retried() -> None:
@@ -264,53 +256,83 @@ async def test_the_headline_orders_by_the_reviews_impact_and_none_last() -> None
     assert found.headline == (2, 1, 5)
 
 
-async def test_a_headline_of_equal_impacts_is_accepted() -> None:
+@pytest.mark.parametrize("headline", [[1, 2], [2, 1]])
+async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
+    headline: list[int],
+) -> None:
     retries: list[RetryPromptPart] = []
     reviews = [_stored(1, impact=0.5), _stored(2)]
-    right = _draft([_section(_TRUNCATED, 1, 2)], [1, 2])
+    right = _draft([_section(_TRUNCATED, 1, 2)], headline)
 
     found = await _synthesized(reviews, _first_then(right, retries))
 
-    assert (retries, found.headline) == ([], (1, 2))
+    assert (retries, list(found.headline)) == ([], headline)
 
 
 @pytest.mark.parametrize(
-    "summary",
+    ("summary", "token"),
     [
-        "80% of the findings were kept",
-        "80 % of the findings were kept",
-        "Forty percent of the findings were kept.",
-        "Forty per cent of the findings were kept.",
-        "Most of the share of findings was kept.",
-        "A large proportion was kept.",
-        "A fraction was kept.",
-        "4 of 5 findings were kept.",
-        "4 out of 5 findings were kept.",
-        "4/5 findings were kept.",
+        ("80% of the findings were kept.", "80"),
+        ("The review kept 2 findings.", "2"),
+        (f"The review kept [stat:{_COUNTS}.keptShare] of the findings.", "keptShare"),
+        ("The review kept [stat:stat_00000000.kept] findings.", "stat_00000000"),
     ],
 )
-async def test_a_summary_writing_a_share_of_kept_findings_is_retried(
-    summary: str,
+async def test_a_summary_that_states_a_fact_no_fact_holds_is_retried(
+    summary: str, token: str
 ) -> None:
     retries: list[RetryPromptPart] = []
     wrong = _draft([_section(_TRUNCATED, 1, 2)], [1, 2], summary)
 
     found = await _synthesized([_stored(1), _stored(2)], _first_then(wrong, retries))
 
-    assert retries[0].content == SHARE_WRITTEN
+    (retry,) = retries
+    assert token in str(retry.content)
     assert found.summary == "Two kept."
 
 
-async def test_a_summary_stating_counts_is_accepted() -> None:
+@pytest.mark.parametrize(
+    ("summary", "rendered"),
+    [
+        (
+            (
+                f"The kept errors lie in [stat:{_COUNTS}.keptGenomes] of "
+                f"[stat:{_COUNTS}.genomes] genomes."
+            ),
+            "The kept errors lie in 2 of 3 genomes.",
+        ),
+        (
+            (
+                "Two independent reviews agreed on "
+                f"[stat:{_COUNTS}.agreement.agreed] of "
+                f"[stat:{_COUNTS}.agreement.sampled] sampled findings."
+            ),
+            "Two independent reviews agreed on 1 of 2 sampled findings.",
+        ),
+        (
+            (
+                f"The review kept [stat:{_COUNTS}.kept] findings and rejected "
+                f"[stat:{_COUNTS}.rejected], over [stat:{_RUN_FACT}.run.targets] target."
+            ),
+            "The review kept 2 findings and rejected 1, over 1 target.",
+        ),
+    ],
+)
+async def test_a_summary_of_held_facts_is_stored_rendered(
+    summary: str, rendered: str
+) -> None:
     retries: list[RetryPromptPart] = []
-    said = "The review kept 2 findings as errors and rejected 1."
-    right = _draft([_section(_TRUNCATED, 1, 2)], [1, 2], said)
+    reviews = [
+        _stored(1, second="error"),
+        _stored(2, second="no_error", genome=_OTHER),
+        _stored(3, "no_error"),
+    ]
+    right = _draft([_section(_TRUNCATED, 1, 2)], [1, 2], summary)
+    view = _view(("Examplea alpha A", "Examplea beta B", "Examplea gamma C"))
 
-    found = await _synthesized(
-        [_stored(1), _stored(2), _stored(3, "no_error")], _first_then(right, retries)
-    )
+    found = await _synthesized(reviews, _first_then(right, retries), view)
 
-    assert (retries, found.summary) == ([], said)
+    assert (retries, found.summary) == ([], rendered)
 
 
 async def test_the_agreement_is_computed_from_the_reviews() -> None:
@@ -332,7 +354,7 @@ async def test_the_agreement_is_computed_from_the_reviews() -> None:
     }
 
 
-async def test_the_model_reads_the_kept_findings_and_the_counts() -> None:
+async def test_the_model_reads_the_kept_findings_the_counts_and_the_fact_ids() -> None:
     seen: list[str] = []
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
@@ -344,10 +366,13 @@ async def test_the_model_reads_the_kept_findings_and_the_counts() -> None:
     await _synthesized(reviews, FunctionModel(answer))
 
     (prompt,) = seen
-    assert '"rejected":1,"undecided":1' in prompt
     assert '"keptFindings":[{"findingId":1,' in prompt
     assert '"impact":0.9}' in prompt
-    assert '"agreement":{"sampled":0,"agreed":0,"share":null}' in prompt
+    assert (
+        '"counts":{"kept":2,"rejected":1,"undecided":1,"keptGenomes":1,"genomes":0,'
+        '"agreement":{"sampled":0,"agreed":0,"share":null}}'
+    ) in prompt
+    assert f'"runFact":"{_RUN_FACT}","countsFact":"{_COUNTS}"' in prompt
     assert '"run":{"run":{"id":' in prompt
 
 
@@ -356,9 +381,10 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
         raise AssertionError((messages, info))
 
     reviews = [_stored(3, "no_error", second="undecided"), _stored(4, "undecided")]
+    usage = RunUsage()
 
-    found, usage = await synthesize(
-        _view(), reviews, impacts=_IMPACTS, model=FunctionModel(refuse)
+    found = await synthesize(
+        _view(), reviews, impacts=_IMPACTS, model=FunctionModel(refuse), usage=usage
     )
 
     assert found == Synthesis(
@@ -371,15 +397,22 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
     assert usage.requests == 0
 
 
-async def test_a_synthesis_whose_retries_are_spent_stops() -> None:
+async def test_a_synthesis_whose_retries_are_spent_stops_with_its_usage() -> None:
     def always_wrong(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del messages, info
         return ModelResponse(parts=[terminal_call(_draft([_section(_SPLIT, 1)], [1]))])
 
-    with pytest.raises(SynthesisStoppedError) as stopped:
-        await _synthesized([_stored(1)], FunctionModel(always_wrong))
+    usage = RunUsage()
+    with pytest.raises(SynthesisStoppedError):
+        await synthesize(
+            _view(),
+            [_stored(1)],
+            impacts=_IMPACTS,
+            model=FunctionModel(always_wrong),
+            usage=usage,
+        )
 
-    assert stopped.value.usage.requests == 4
+    assert usage.requests == 4
 
 
 async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
@@ -397,13 +430,13 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
         sections=(
             ErrorTypeSection(
                 error_type=_TRUNCATED,
-                cause="The relatives of finding 3 are longer.",
+                cause="The relatives of the model are longer, case 3.",
                 confirmed_by="The stored evidence of findings 3, 2, 1 confirms it.",
                 finding_ids=(3, 2, 1),
             ),
             ErrorTypeSection(
                 error_type=_SPLIT,
-                cause="The relatives of finding 4 are longer.",
+                cause="The relatives of the model are longer, case 4.",
                 confirmed_by="The stored evidence of findings 4 confirms it.",
                 finding_ids=(4,),
             ),

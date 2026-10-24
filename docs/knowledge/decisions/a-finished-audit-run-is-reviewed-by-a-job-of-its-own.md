@@ -37,12 +37,20 @@ the model never writes it, so no rate rests on one judgement. The output
 validator retries a draft that names a finding no review keeps as an `error`, a
 section whose findings' reviews name another error type, a headline out of
 descending impact (the review's impact when set, else the stored one, a
-finding with none last), or a summary that writes a percentage or a share of
-kept findings. With no kept finding the job makes no model call and stores
-`NO_FINDING_KEPT` with no section. A synthesis that spends its retries or its
-limit stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget
-stops it before the call; a later start reruns only the synthesis. The run is
-charged like a reviewer run.
+finding with none last), or a summary that states a fact no fact holds. The
+summary is held like the auditor's reply: its numbers are `[stat:...]`
+references to the run fact (`audit_run_fact`) or to the counts fact, which
+holds the kept, rejected and undecided counts, the genomes and the agreement;
+`prose_faults` refuses any other number, so a share of kept findings has no
+fact to render from, and `render_reply` stores the rendered text. With no kept
+finding the job makes no model call, reads no budget, and stores
+`NO_FINDING_KEPT` with no section. Every review pass starts by clearing the
+run's synthesis (`defer_review`), so a pass that stops never shows an earlier
+synthesis beside its state. A synthesis that spends its retries or its limit
+stores none and stops the review with `SYNTHESIS_STOPPED`; a used budget stops
+it before the call; a later start reruns only the synthesis. The run is
+charged in a `finally`, like a reviewer run, so a provider error after paid
+requests is charged once.
 
 **What the report reads.** `services/audit/review_views.py` states the stored
 reviews and the synthesis in the words of `domain/audit/words.py`. Each finding
