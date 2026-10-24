@@ -2,6 +2,12 @@
 
 ## 2026-10-24
 
+* **The audit pages format numbers and text in one module.** `features/audit/format.ts` holds
+  `percent`, `shareText`, `rateText` (the rate and its Wilson interval), `rangeText` (the floor
+  and ceiling the unresolved findings allow), `plural`, `joinWords`, `dayText` (the UTC day),
+  `impactText`, `scopeText` and `unresolvedText` (the unresolved count by status). `percent`
+  rounds a half to the even percent, as `domain/audit/words.py::percent` does, so a page and the
+  API state one rate in one number.
 * **The web names every value the audit routes send in plain words.**
   `features/audit/words.ts` holds one table per generated enum (checks, error types, certainty,
   the finding, genome and evidence statuses, the evidence kinds, the stages, the genome roles, the
