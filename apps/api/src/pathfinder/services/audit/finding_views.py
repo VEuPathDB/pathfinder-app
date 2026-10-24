@@ -134,18 +134,22 @@ class FindingQuery(CamelModel):
     sampled: bool | None = None
     status: FindingStatus | None = None
     error_type: ErrorType | None = None
+    certainty: Certainty | None = None
+    target: bool | None = None
     offset: int = Field(default=0, ge=0, le=MAX_ROW_ID)
     limit: int = Field(default=DEFAULT_PAGE, ge=1, le=MAX_PAGE)
 
-    @property
-    def where(self) -> FindingFilter:
+    def where(self, target_keys: tuple[str, ...]) -> FindingFilter:
         return FindingFilter(
             checks=() if self.check is None else (self.check,),
             statuses=() if self.status is None else (self.status,),
             error_types=() if self.error_type is None else (self.error_type,),
+            certainties=() if self.certainty is None else (self.certainty,),
             genome=self.genome,
             screened_genome=self.screened_genome,
             sampled=self.sampled,
+            keys=target_keys if self.target is True else None,
+            excluded_keys=target_keys if self.target is False else (),
         )
 
 
@@ -220,12 +224,14 @@ def _views(
 
 async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> FindingPage:
     run = await readable_run(run_id, user_id)
+    target_keys = tuple(t.key for t in run.scope.targets)
+    where = query.where(target_keys)
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
-        total = await repo.count_findings(run_id, query.where)
+        total = await repo.count_findings(run_id, where)
         found = await repo.findings(
             run_id,
-            query.where,
+            where,
             offset=query.offset,
             limit=query.limit,
             by_impact=True,
@@ -233,12 +239,11 @@ async def finding_page(run_id: UUID, user_id: UUID, query: FindingQuery) -> Find
         ids = [record.id for record in found]
         evidence = await repo.evidence(run_id, ids, kinds=("confirmation",))
         reviews = await AuditReviewRepository(session).reviews_of(run_id, ids)
-    keys = {t.key for t in run.scope.targets}
     return FindingPage(
         site_id=run.site_id,
         total=total,
         offset=query.offset,
-        findings=_views(found, evidence, keys, reviews),
+        findings=_views(found, evidence, set(target_keys), reviews),
     )
 
 
