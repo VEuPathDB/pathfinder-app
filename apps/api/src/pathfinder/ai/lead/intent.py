@@ -96,11 +96,17 @@ _ANSWERS: frozenset[IntentClassification] = frozenset(
 )
 
 
+def _in_a_sentence(title: str) -> str:
+    return title[:1].lower() + title[1:]
+
+
 AUDIT_CLASSIFICATION = (
     "gene_model_audit is a request to check the gene models of a genome or of "
     "named genes for errors, whatever its verb: "
-    f"{'; '.join(title.lower() for title in CHECK_TITLES.values())}. Such a "
-    "request is never a build, also when it names an organism and a gene class."
+    f"{'; '.join(_in_a_sentence(title) for title in CHECK_TITLES.values())}. "
+    "A request to find or list genes by a property of their models asks for no "
+    'error check and is a build: "Find pseudogenes in P. falciparum NF54" and '
+    '"List genes longer than 10 kb in 3D7" are new_strategy.'
 )
 
 
