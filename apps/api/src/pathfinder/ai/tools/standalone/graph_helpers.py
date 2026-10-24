@@ -158,6 +158,11 @@ def counted_noun(record_type: str | None) -> str:
     return _COUNTED_AS.get(record_type, record_type.replace("_", " "))
 
 
+def record_noun(record_type: str) -> str:
+    """The noun of one record of that record type, as a column report counts it."""
+    return "protein" if record_type == "sequence" else record_type.replace("_", " ")
+
+
 def counted_records(count: int, record_type: str | None) -> str:
     """The count in the noun the site counts that record type in."""
     return count_noun(count, counted_noun(record_type))

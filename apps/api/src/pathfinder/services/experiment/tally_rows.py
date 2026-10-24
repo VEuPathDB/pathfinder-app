@@ -26,9 +26,13 @@ def shown_value(bin_: WDKHistogramBin) -> str:
     return strip_html_tags(bin_.bin_label or bin_.bin_start).strip()
 
 
+def counted_rows(counts: Iterable[tuple[str, int]]) -> list[TallyRow]:
+    """Each value as the site shows it, without markup, with its records."""
+    shown = ((strip_html_tags(value).strip(), count) for value, count in counts)
+    return sorted_rows(TallyRow(value=v, count=n) for v, n in shown if v)
+
+
 def distribution_rows(distribution: WDKColumnDistribution) -> list[TallyRow]:
-    return sorted_rows(
-        TallyRow(value=shown_value(b), count=b.value)
-        for b in distribution.histogram
-        if shown_value(b)
+    return counted_rows(
+        (b.bin_label or b.bin_start, b.value) for b in distribution.histogram
     )

@@ -62,6 +62,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "count_search",
         "count_by_column",
         "count_step_by_column",
+        "step_columns",
         "genes_in_search",
         # A repeat under one message answers from the first test.
         "run_control_tests_on_step",

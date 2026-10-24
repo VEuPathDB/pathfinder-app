@@ -1,136 +1,65 @@
-"""A built step is counted by one column: with the site's byValue reporter where
-the column offers it, else with its word cloud when the words are the records."""
+"""A built step is counted by one column: a column of genome codes the site
+counts only by its word cloud is counted by it when the words are the records,
+and every other column goes to the tool server."""
 
 from __future__ import annotations
 
 import pytest
-from pydantic import JsonValue
-from veupathdb.errors import WDKError, validate_response
-from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
-from veupathdb.wdk import WDKColumnDistribution, WDKRecordType, WDKWordCounts
+from veupathdb.wdk import WDKRecordType
+from veupathdb_mcp.wdk import ColumnNotCountedError, StepColumn, StepColumns
 
 from pathfinder.domain.tally_facts import tally_id
-from pathfinder.services.experiment import step_tally
 from pathfinder.services.experiment.column_tally import ColumnTallyRefusedError
-from pathfinder.services.experiment.step_tally import CountedStep, run_step_tally
-from pathfinder.tests._support.ortho_taxonomy import recorded_ortho_taxonomy
-from pathfinder.tests._support.qa_recording import SUITE_WDK_STORE, qa_recording
+from pathfinder.services.experiment.step_tally import (
+    countable_columns,
+    run_step_tally,
+)
+from pathfinder.tests._support.step_tally_site import (
+    STEP,
+    STEP_URL,
+    TallySite,
+    ToolServer,
+    counted_step,
+    sequence_record_type,
+    serve,
+    singleton_counts,
+)
 
-_STEP = 227284080
-_STEP_URL = "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/1/227284080"
-
-
-def _step(
-    record_type: str,
-    search_name: str,
-    noun: str,
-    step_url: str | None,
-    refused: frozenset[str] = frozenset(),
-) -> CountedStep:
-    return CountedStep(
-        site_id="orthomcl",
-        wdk_step_id=_STEP,
-        record_type=record_type,
-        search_name=search_name,
-        record_noun=noun,
-        step_url=step_url,
-        refused=refused,
-    )
+_LISTED = "The step_columns tool lists the columns this step can be counted by."
 
 
-def _recorded(name: str) -> RecordedWDKResponse:
-    return RecordedWDKResponse.model_validate_json(
-        qa_recording(SUITE_WDK_STORE / name).read_text()
-    )
-
-
-def _sequence_record_type() -> WDKRecordType:
-    return WDKRecordType.model_validate(
-        _recorded("orthomcl_sequence_record_type.json").body
-    )
-
-
-def _singleton_counts() -> WDKWordCounts:
-    return WDKWordCounts.model_validate(
-        _recorded("orthomcl_singleton_word_counts.json").body
-    )
-
-
-class _Site:
-    def __init__(
-        self,
-        record_type: WDKRecordType,
-        *,
-        step_count: int,
-        words: JsonValue = None,
-        distribution: WDKColumnDistribution | None = None,
-    ) -> None:
-        self.record_type = record_type
-        self.step_count = step_count
-        self.words = words
-        self.distribution = distribution
-        self.reports: list[tuple[int, str]] = []
-        self.distributions: list[tuple[int, str]] = []
-
-    async def get_record_type_info(self, record_type: str) -> WDKRecordType:
-        assert record_type == self.record_type.url_segment
-        return self.record_type
-
-    async def get_step_word_counts(self, step_id: int, reporter: str) -> WDKWordCounts:
-        self.reports.append((step_id, reporter))
-        return validate_response(
-            WDKWordCounts, self.words, f"{reporter} report for step {step_id}"
-        )
-
-    async def get_step_count(self, step_id: int) -> int:
-        assert step_id == _STEP
-        return self.step_count
-
-    async def get_column_distribution(
-        self, step_id: int, column_name: str, *, budget_seconds: float | None = None
-    ) -> WDKColumnDistribution:
-        del budget_seconds
-        self.distributions.append((step_id, column_name))
-        if self.distribution is None:
-            msg = "Unknown column report"
-            raise WDKError(msg, status=422)
-        return self.distribution
-
-
-def _serve(monkeypatch: pytest.MonkeyPatch, site: _Site) -> _Site:
-    tree = recorded_ortho_taxonomy()
-    names = {node.code: node.label for node in tree.nodes() if not node.clade}
-
-    async def genome_names(site_id: str) -> dict[str, str]:
-        assert site_id == "orthomcl"
-        return names
-
-    monkeypatch.setattr(step_tally, "get_strategy_api", lambda _site_id: site)
-    monkeypatch.setattr(step_tally, "genome_names", genome_names)
-    return site
-
-
-def _singletons(monkeypatch: pytest.MonkeyPatch, *, step_count: int) -> _Site:
-    return _serve(
+def _singletons(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    step_count: int,
+    server: ToolServer | None = None,
+) -> TallySite:
+    return serve(
         monkeypatch,
-        _Site(
-            _sequence_record_type(),
+        TallySite(
+            sequence_record_type(),
             step_count=step_count,
-            words=_singleton_counts().model_dump(mode="json"),
+            words=singleton_counts().model_dump(mode="json"),
         ),
+        server or ToolServer(),
     )
+
+
+def _no_count(column: str) -> ToolServer:
+    return ToolServer(refusal=ColumnNotCountedError(STEP, column, "NUMBER", ()))
 
 
 async def test_the_proteins_of_a_step_are_counted_per_genome_by_their_word_cloud(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _singletons(monkeypatch, step_count=523795)
+    server = ToolServer()
+    site = _singletons(monkeypatch, step_count=523795, server=server)
 
     tally = await run_step_tally(
-        _step("sequence", "FromGroups", "protein", _STEP_URL), "abbreviation"
+        counted_step("sequence", "FromGroups", "protein", STEP_URL), "abbreviation", 200
     )
 
-    assert site.reports == [(_STEP, "abbreviation-wordCloud")]
+    assert (site.reports, server.counted) == ([(STEP, "abbreviation-wordCloud")], [])
     assert (tally.total, tally.distinct, len(tally.rows)) == (523795, 840, 200)
     assert [(row.value, row.count) for row in tally.rows[:10]] == [
         ("bpli", 18260),
@@ -148,11 +77,67 @@ async def test_the_proteins_of_a_step_are_counted_per_genome_by_their_word_cloud
     assert tally.title == "Proteins by Taxon Code"
     assert (tally.site_id, tally.step_url, tally.column_label) == (
         "orthomcl",
-        _STEP_URL,
+        STEP_URL,
         "Taxon Code",
     )
-    assert tally.id == tally_id("orthomcl", f"step {_STEP}", "abbreviation", None)
+    assert tally.id == tally_id("orthomcl", f"step {STEP}", "abbreviation", None)
     assert tally.fact().count("bpli") == 18260
+
+
+async def test_a_word_cloud_count_keeps_the_top_values_asked_for(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _singletons(monkeypatch, step_count=523795)
+
+    tally = await run_step_tally(
+        counted_step("sequence", "FromGroups", "protein"), "abbreviation", 3
+    )
+
+    assert [(row.value, row.count) for row in tally.rows] == [
+        ("bpli", 18260),
+        ("osat", 9365),
+        ("tvag", 9301),
+    ]
+    assert tally.distinct == 840
+
+
+async def test_the_listed_columns_count_a_genome_code_column_by_its_word_cloud(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    listed = StepColumns(
+        step_id=STEP,
+        record_type="sequence",
+        search_name="FromGroups",
+        columns=(
+            StepColumn(
+                name="abbreviation",
+                display_name="Taxon Code",
+                data_type="STRING",
+                countable=False,
+            ),
+            StepColumn(
+                name="taxon_name",
+                display_name="Taxon Name",
+                data_type="STRING",
+                countable=False,
+            ),
+            StepColumn(
+                name="length", display_name="Length", data_type="NUMBER", countable=True
+            ),
+        ),
+    )
+    server = ToolServer(listed=listed)
+    _singletons(monkeypatch, step_count=1, server=server)
+
+    columns = await countable_columns("orthomcl", STEP)
+
+    assert server.listed_for == [("orthomcl", STEP)]
+    assert [(c.name, c.countable) for c in columns.columns] == [
+        ("abbreviation", True),
+        ("taxon_name", False),
+        ("length", True),
+    ]
+    assert (columns.record_type, columns.search_name) == ("sequence", "FromGroups")
 
 
 async def test_word_counts_that_are_not_the_steps_records_are_refused(
@@ -162,7 +147,7 @@ async def test_word_counts_that_are_not_the_steps_records_are_refused(
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
-            _step("sequence", "FromGroups", "protein", None), "abbreviation"
+            counted_step("sequence", "FromGroups", "protein"), "abbreviation", 200
         )
 
     message = str(refused.value)
@@ -174,71 +159,60 @@ async def test_word_counts_that_are_not_the_steps_records_are_refused(
 async def test_a_column_with_no_count_is_refused_with_the_columns_that_have_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _singletons(monkeypatch, step_count=523795)
+    server = _no_count("length")
+    site = _singletons(monkeypatch, step_count=523795, server=server)
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
-        await run_step_tally(_step("sequence", "FromGroups", "protein", None), "length")
-
-    message = str(refused.value)
-    assert message == (
-        "protein records cannot be counted by length. The columns counted by their "
-        "word cloud when every value is a genome code: abbreviation (Taxon Code)."
-    )
-    assert [
-        name
-        for name in (
-            "product",
-            "pfam_domains",
-            "taxon_name",
-            "ec_numbers",
-            "group_link",
+        await run_step_tally(
+            counted_step("sequence", "FromGroups", "protein"), "length", 200
         )
-        if name in message
-    ] == []
-    assert site.reports == []
+
+    assert str(refused.value) == (
+        "protein records of step 227284080 cannot be counted by length: the site "
+        "has no count of its NUMBER values. The columns it can be counted by: "
+        "abbreviation."
+    )
+    assert (server.counted, site.reports) == ([("orthomcl", STEP, "length", 200)], [])
 
 
 async def test_a_column_refused_in_this_pass_is_not_offered_again(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _singletons(monkeypatch, step_count=523795)
+    _singletons(monkeypatch, step_count=523795, server=_no_count("length"))
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
-            _step(
-                "sequence",
-                "FromGroups",
-                "protein",
-                None,
-                refused=frozenset({"abbreviation"}),
+            counted_step(
+                "sequence", "FromGroups", "protein", refused=frozenset({"abbreviation"})
             ),
             "length",
+            200,
         )
 
     assert str(refused.value) == (
-        "protein records cannot be counted by length. No other column of these "
-        "records can be counted."
+        "protein records of step 227284080 cannot be counted by length: the site "
+        "has no count of its NUMBER values. No other column of these records can "
+        "be counted."
     )
 
 
 async def test_a_word_cloud_column_that_holds_no_genome_codes_is_refused_unread(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _singletons(monkeypatch, step_count=523795)
+    server = ToolServer()
+    site = _singletons(monkeypatch, step_count=523795, server=server)
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
-            _step("sequence", "FromGroups", "protein", None), "taxon_name"
+            counted_step("sequence", "FromGroups", "protein"), "taxon_name", 200
         )
 
     assert str(refused.value) == (
         "taxon_name (Taxon Name) cannot be counted on step 227284080: the site "
         "counts it only by its word cloud, which splits and folds values into "
-        "words, so only a column of genome codes is counted that way. The columns "
-        "counted by their word cloud when every value is a genome code: "
-        "abbreviation (Taxon Code)."
+        f"words, so only a column of genome codes is counted that way. {_LISTED}"
     )
-    assert site.reports == []
+    assert (site.reports, server.counted) == ([], [])
 
 
 async def test_a_record_type_with_no_countable_column_says_so(
@@ -257,32 +231,34 @@ async def test_a_record_type_with_no_countable_column_says_so(
             ],
         }
     )
-    _serve(monkeypatch, _Site(record_type, step_count=1))
+    serve(monkeypatch, TallySite(record_type, step_count=1), _no_count("length"))
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
-        await run_step_tally(_step("sequence", "FromGroups", "protein", None), "length")
+        await run_step_tally(
+            counted_step("sequence", "FromGroups", "protein"), "length", 200
+        )
 
-    assert str(refused.value) == (
-        "protein records cannot be counted by length. No other column of these "
-        "records can be counted."
+    assert str(refused.value).endswith(
+        "No other column of these records can be counted."
     )
 
 
 async def test_a_word_cloud_at_the_sites_cap_is_refused_by_name(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _serve(
+    serve(
         monkeypatch,
-        _Site(
-            _sequence_record_type(),
+        TallySite(
+            sequence_record_type(),
             step_count=523795,
             words={"tags": [{"word": "Too many words", "count": 1}]},
         ),
+        ToolServer(),
     )
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
-            _step("sequence", "FromGroups", "protein", None), "abbreviation"
+            counted_step("sequence", "FromGroups", "protein"), "abbreviation", 200
         )
 
     message = str(refused.value)
@@ -291,177 +267,31 @@ async def test_a_word_cloud_at_the_sites_cap_is_refused_by_name(
         "word cloud answered no counts ("
     )
     assert "cap of 10,000 distinct words" in message
-    assert message.endswith("No other column of these records can be counted.")
+    assert message.endswith(_LISTED)
 
 
 async def test_words_that_are_not_genome_codes_are_refused_though_they_sum(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _serve(
+    site = serve(
         monkeypatch,
-        _Site(
-            _sequence_record_type(),
+        TallySite(
+            sequence_record_type(),
             step_count=2,
             words={"tags": [{"word": "kinase", "count": 2}]},
         ),
+        ToolServer(),
     )
 
     with pytest.raises(ColumnTallyRefusedError) as refused:
         await run_step_tally(
-            _step("sequence", "FromGroups", "protein", None), "abbreviation"
+            counted_step("sequence", "FromGroups", "protein"), "abbreviation", 200
         )
 
     assert str(refused.value) == (
         "abbreviation (Taxon Code) cannot be counted on step 227284080: the site "
         "counts it only by its word cloud, which splits and folds values into words, "
         "so its counts are taken only when every word is a genome code, and kinase "
-        "is not. No other column of these records can be counted."
+        f"is not. {_LISTED}"
     )
-    assert site.reports == [(_STEP, "abbreviation-wordCloud")]
-
-
-async def test_a_column_with_a_by_value_report_is_counted_by_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    record_type = WDKRecordType.model_validate(
-        {
-            "urlSegment": "transcript",
-            "attributes": [
-                {
-                    "name": "organism",
-                    "displayName": "Organism",
-                    "columnDataType": "STRING",
-                    "tools": {"reports": ["byValue"], "filters": ["byValue"]},
-                    "formats": [
-                        {"name": "organism-wordCloud", "type": "wordCloud"},
-                    ],
-                }
-            ],
-        }
-    )
-    distribution = WDKColumnDistribution.model_validate(
-        {
-            "statistics": {
-                "subsetSize": 412,
-                "numDistinctValues": 2,
-                "numMissingCases": 3,
-            },
-            "histogram": [
-                {"value": 103, "binLabel": "<i>Plasmodium vivax</i> P01"},
-                {"value": 306, "binLabel": "<i>Plasmodium falciparum</i> 3D7"},
-            ],
-        }
-    )
-    site = _serve(
-        monkeypatch,
-        _Site(record_type, step_count=412, distribution=distribution),
-    )
-
-    tally = await run_step_tally(
-        _step("transcript", "GenesByTaxon", "gene", None), "organism"
-    )
-
-    assert site.distributions == [(_STEP, "organism")]
-    assert site.reports == []
-    assert [(row.value, row.count, row.label) for row in tally.rows] == [
-        ("Plasmodium falciparum 3D7", 306, ""),
-        ("Plasmodium vivax P01", 103, ""),
-    ]
-    assert (tally.total, tally.distinct, tally.missing) == (412, 2, 3)
-
-
-_ORGANISM = WDKRecordType.model_validate(
-    {
-        "urlSegment": "transcript",
-        "attributes": [
-            {
-                "name": "organism",
-                "displayName": "Organism",
-                "columnDataType": "STRING",
-                "tools": {"reports": ["byValue"], "filters": ["byValue"]},
-            },
-            {
-                "name": "gene_type",
-                "displayName": "Gene Type",
-                "columnDataType": "STRING",
-                "tools": {"reports": ["byValue"], "filters": ["byValue"]},
-            },
-        ],
-    }
-)
-
-
-async def test_a_report_the_site_refuses_is_a_refusal_naming_its_status(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    site = _serve(monkeypatch, _Site(_ORGANISM, step_count=412))
-
-    with pytest.raises(ColumnTallyRefusedError) as refused:
-        await run_step_tally(
-            _step("transcript", "GenesByTaxon", "gene", None), "organism"
-        )
-
-    assert str(refused.value) == (
-        "The site refused to count organism (Organism) on step 227284080 "
-        "(HTTP 422). The columns the site counts by value: gene_type (Gene Type)."
-    )
-    assert (site.distributions, site.reports) == ([(_STEP, "organism")], [])
-
-
-async def test_a_step_of_no_records_counts_nothing(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _serve(
-        monkeypatch,
-        _Site(_ORGANISM, step_count=0, distribution=WDKColumnDistribution()),
-    )
-
-    tally = await run_step_tally(
-        _step("transcript", "GenesByTaxon", "gene", None), "organism"
-    )
-
-    assert (tally.total, tally.distinct, tally.rows) == (0, 0, [])
-
-
-async def test_a_column_no_record_holds_a_value_in_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    empty = WDKColumnDistribution.model_validate(
-        {"statistics": {"subsetSize": 412, "numMissingCases": 412}, "histogram": []}
-    )
-    _serve(monkeypatch, _Site(_ORGANISM, step_count=412, distribution=empty))
-
-    with pytest.raises(ColumnTallyRefusedError) as refused:
-        await run_step_tally(
-            _step("transcript", "GenesByTaxon", "gene", None), "organism"
-        )
-
-    assert str(refused.value) == (
-        "None of the 412 gene records of step 227284080 has a value for organism "
-        "(Organism), so it counts nothing. The columns the site counts by value: "
-        "gene_type (Gene Type)."
-    )
-
-
-async def test_rows_are_named_only_when_every_value_is_a_genome_code(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    mixed = WDKColumnDistribution.model_validate(
-        {
-            "statistics": {"subsetSize": 9, "numDistinctValues": 2},
-            "histogram": [
-                {"value": 5, "binLabel": "pfal"},
-                {"value": 4, "binLabel": "Plasmodium vivax P01"},
-            ],
-        }
-    )
-    _serve(monkeypatch, _Site(_ORGANISM, step_count=9, distribution=mixed))
-
-    tally = await run_step_tally(
-        _step("transcript", "GenesByTaxon", "gene", None), "organism"
-    )
-
-    assert [(row.value, row.label) for row in tally.rows] == [
-        ("pfal", ""),
-        ("Plasmodium vivax P01", ""),
-    ]
+    assert site.reports == [(STEP, "abbreviation-wordCloud")]

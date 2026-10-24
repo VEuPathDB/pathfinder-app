@@ -93,7 +93,10 @@ from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_sc
 from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_search
 from pathfinder.ai.tools.standalone.separation import separate_controls
 from pathfinder.ai.tools.standalone.step_ids import read_step_ids
-from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
+from pathfinder.ai.tools.standalone.step_tally import (
+    count_step_by_column,
+    step_columns,
+)
 from pathfinder.ai.tools.standalone.strategy_rename import rename_strategy
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
@@ -146,6 +149,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(compare_search_variants),
             Tool(count_search),
             Tool(count_by_column, max_retries=COLUMN_TALLY_REFUSALS),
+            Tool(step_columns),
             Tool(count_step_by_column, max_retries=COLUMN_TALLY_REFUSALS),
             Tool(genes_in_search),
             Tool(build_control_set),

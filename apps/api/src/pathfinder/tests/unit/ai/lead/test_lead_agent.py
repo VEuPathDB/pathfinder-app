@@ -51,6 +51,7 @@ LEAD_TOOL_NAMES = frozenset(
         "count_search",
         "count_by_column",
         "count_step_by_column",
+        "step_columns",
         "delete_step",
         "edit_strategy",
         "export_gene_set",
