@@ -2,6 +2,15 @@
 
 ## 2026-10-24
 
+* **A comparison of two genome sets is bound in the reading FRAME classed it by.**
+  `FrameResult.comparison_reading` is FRAME's typed class of a request that compares how many
+  proteins two sets of genomes hold, one rule per reading (`READING_RULES` in
+  `domain/strategy/compare_readings.py`: `per_genome` for each genome, `totals` for the sets
+  pooled, `averages` for proteins per genome, an average or a ratio). The output validator
+  `hold_a_comparison_to_its_reading` (`ai/agents/frame_compare_checks.py`) refuses a pass whose
+  bound expressions hold no compare term, or a compare of another reading where a set holds
+  more than one genome. `build_phyletic_expression` states the same three rules. Rejected: reading
+  the reading off the question's words; the class is FRAME's own typed field.
 * **A set's genome count is read from the site's taxonomy, never stated.**
   `build_phyletic_expression` answers `sets`, each set the pattern names with the genomes its
   codes cover on the site's taxonomy (`domain/strategy/pattern_sets.py`, `set_sizes`), and

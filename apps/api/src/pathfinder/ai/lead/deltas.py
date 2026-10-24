@@ -14,6 +14,10 @@ from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
+from pathfinder.domain.strategy.compare_readings import (
+    READING_RULES,
+    CompareReading,
+)
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
@@ -50,6 +54,7 @@ PassGapKind = Literal[
     "question_decides_nothing",
     "questions_bind_nothing",
     "every_genome_unasked",
+    "comparison_reading_departs",
     "expression_handle_unknown",
     "group_genomes_left_out",
     "group_scope_missing",
@@ -118,6 +123,15 @@ class FrameResult(CamelModel):
             "One entry for each genus, species or clade whose genomes the units "
             "of a phyletic expression name more than one of: whether the "
             "request means the whole taxon, or exactly the units written."
+        ),
+    )
+    comparison_reading: CompareReading | None = Field(
+        default=None,
+        description=(
+            "Only when the request compares how many proteins two sets of genomes "
+            "hold: which comparison it asks for. "
+            + "; ".join(READING_RULES.values())
+            + ". None for any other request."
         ),
     )
     chosen_reading: ChosenReading | None = Field(

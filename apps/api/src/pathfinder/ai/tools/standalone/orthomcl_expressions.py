@@ -52,9 +52,12 @@ async def build_phyletic_expression(
       protein in any genome of the set, with no measure and no value.
     - compare: {"kind": "compare", "left": SET, "right": SET, "reading": R,
       "condition": C, "factor": F} holds when left C F times right, F defaulting
-      to 1. per_genome compares each genome of left with each genome of right;
-      totals compares the protein totals of the two sets; averages compares
-      proteins per genome, each total divided by its set's genome count.
+      to 1. per_genome answers a question about each genome: every genome of
+      left against every genome of right. totals answers a question about the
+      sets pooled: all proteins of left against all proteins of right. averages
+      answers a question about proteins per genome, an average or a ratio: each
+      set's proteins divided by its genome count. A comparison of two sets of
+      genomes is a compare, never a count over one genome of each.
     - all_of, any_of, none_of: {"kind": "all_of", "terms": [PATTERN, ...]} holds
       when every term holds, any_of when one does, none_of when none does.
 

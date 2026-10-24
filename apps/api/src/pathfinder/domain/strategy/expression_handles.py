@@ -79,14 +79,29 @@ def shown_parameters(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
     }
 
 
-def _bound_expressions(spec: OperationalSpec | None) -> dict[str, str]:
+def _bound_texts(spec: OperationalSpec | None) -> list[tuple[str, str]]:
     bound = [] if spec is None else spec.criteria
-    return {
-        expression_handle(text): text
+    return [
+        (criterion.id, text)
         for criterion in bound
         if (value := criterion.param_values.get(PHYLETIC_EXPRESSION_PARAM))
         and (text := to_wire(value))
-    }
+    ]
+
+
+def _bound_expressions(spec: OperationalSpec | None) -> dict[str, str]:
+    return {expression_handle(text): text for _, text in _bound_texts(spec)}
+
+
+def bound_patterns(
+    built: Mapping[str, BuiltPattern], spec: OperationalSpec
+) -> list[tuple[str, PhyleticPattern]]:
+    """The pattern of each criterion bound to an expression this conversation built."""
+    return [
+        (criterion_id, built[handle].pattern)
+        for criterion_id, text in _bound_texts(spec)
+        if (handle := expression_handle(text)) in built
+    ]
 
 
 def expression_reading(text: str, tree: PhyleticTree) -> str:
@@ -131,6 +146,7 @@ __all__ = [
     "READING_LIMIT",
     "BuiltPattern",
     "UnknownExpressionError",
+    "bound_patterns",
     "expression_handle",
     "expression_reading",
     "handles_in",
