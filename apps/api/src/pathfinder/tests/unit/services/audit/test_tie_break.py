@@ -85,6 +85,7 @@ def test_a_model_with_a_part_of_no_length_has_no_model_length() -> None:
         relative_lengths=RELATIVES,
         relatives_tier="SAME_GENUS",
         reference_organism="Plasmodium falciparum 3D7",
+        side=None,
     )
 
 
@@ -97,6 +98,7 @@ def test_a_model_part_the_rows_do_not_hold_has_no_model_length() -> None:
         relative_lengths=RELATIVES,
         relatives_tier="SAME_GENUS",
         reference_organism="Plasmodium falciparum 3D7",
+        side=None,
     )
 
 
@@ -107,6 +109,9 @@ def test_a_reference_the_rows_do_not_hold_has_no_lengths() -> None:
         model_length=110,
         relatives_median=None,
         relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
     )
 
 
@@ -119,16 +124,8 @@ def test_too_few_relatives_store_no_lengths() -> None:
         relative_lengths={},
         side="NO_RELATIVES",
         reference_organism="Plasmodium falciparum 3D7",
+        relatives_tier=None,
     )
-
-
-def test_evidence_stored_without_the_lengths_loads_with_no_lengths() -> None:
-    stored = RelativesEvidence.model_validate_json(
-        '{"kind": "relatives", "referenceGene": "REF", "referenceLength": 319,'
-        ' "modelLength": 110, "relativesMedian": 300.0}'
-    )
-    assert (stored.relative_lengths, stored.relatives_tier) == ({}, None)
-    assert stored.model_dump(by_alias=True)["relativeLengths"] == {}
 
 
 def test_a_model_the_rows_do_not_hold_is_a_failed_unit() -> None:

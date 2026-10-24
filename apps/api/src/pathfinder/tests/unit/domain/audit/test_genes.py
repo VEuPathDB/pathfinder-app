@@ -68,6 +68,10 @@ def test_evidence_names_the_reference_and_the_genes_it_read_once_each() -> None:
             reference_length=461,
             model_length=461,
             relatives_median=461.0,
+            relative_lengths={},
+            relatives_tier=None,
+            side=None,
+            reference_organism=None,
         ),
         GeneEvidencePayload(
             genes=(PIGA, K13), evidence=(PIGA_EVIDENCE, evidence_of(K13))

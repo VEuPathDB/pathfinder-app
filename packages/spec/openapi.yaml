@@ -9572,6 +9572,10 @@ components:
       - referenceLength
       - modelLength
       - relativesMedian
+      - relativeLengths
+      - relativesTier
+      - side
+      - referenceOrganism
       title: RelativesEvidence
     ReplaceStrategyOp:
       properties:

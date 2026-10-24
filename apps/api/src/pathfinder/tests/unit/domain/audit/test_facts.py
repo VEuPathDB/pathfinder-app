@@ -177,12 +177,18 @@ def test_relatives_state_their_numbers() -> None:
         relatives_median=300.0,
         side="STRAIN_SHORT",
         reference_organism="Plasmodium falciparum 3D7",
+        relative_lengths={},
+        relatives_tier=None,
     )
     unmeasured = RelativesEvidence(
         reference_gene="REF",
         reference_length=None,
         model_length=None,
         relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
     )
     assert _pairs(relatives_facts(relatives)) == [
         ("Reference model", "REF in Plasmodium falciparum 3D7, 319 residues"),
@@ -209,6 +215,8 @@ def test_stored_relative_lengths_state_their_count_and_range() -> None:
         relatives_median=1300.0,
         relative_lengths={"P. vivax": 1300, "P. knowlesi": 1302, "P. berghei": 1298},
         relatives_tier="SAME_GENUS",
+        side=None,
+        reference_organism=None,
     )
     other_genera = relatives.model_copy(
         update={
@@ -266,6 +274,10 @@ def test_the_summary_joins_every_fact_of_every_group() -> None:
         reference_length=319,
         model_length=110,
         relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
     )
     records = GeneEvidencePayload(genes=(PIGA,), evidence=(PIGA_EVIDENCE,))
     assert evidence_summary([evidence_facts(relatives), evidence_facts(records)]) == (

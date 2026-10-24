@@ -14558,7 +14558,11 @@
           "referenceGene",
           "referenceLength",
           "modelLength",
-          "relativesMedian"
+          "relativesMedian",
+          "relativeLengths",
+          "relativesTier",
+          "side",
+          "referenceOrganism"
         ],
         "title": "RelativesEvidence"
       },

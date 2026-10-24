@@ -66,6 +66,10 @@ _RELATIVES = RelativesEvidence(
     reference_length=420,
     model_length=210,
     relatives_median=418.0,
+    relative_lengths={},
+    relatives_tier=None,
+    side=None,
+    reference_organism=None,
 )
 
 

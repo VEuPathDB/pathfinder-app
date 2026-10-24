@@ -305,10 +305,10 @@ class RelativesEvidence(CamelModel):
     reference_length: int | None
     model_length: int | None
     relatives_median: float | None
-    relative_lengths: dict[str, int] = Field(default_factory=dict)
-    relatives_tier: RelativeTier | None = None
-    side: SideVerdict | None = None
-    reference_organism: str | None = None
+    relative_lengths: dict[str, int]
+    relatives_tier: RelativeTier | None
+    side: SideVerdict | None
+    reference_organism: str | None
 
     @model_validator(mode="after")
     def _tier_with_lengths(self) -> Self:

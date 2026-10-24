@@ -11,9 +11,11 @@
   built by `services/record_pages.py::record_page_url`, the one record-page helper.
 * **The relatives evidence of a length finding keeps each relative's length.**
   `RelativesEvidence.relative_lengths` maps each relative organism to its longest copy, taken
-  from the same `relatives_of` read that gives the median, so the dot plot needs no new read; a
-  payload stored without the key loads with `{}`. `relatives_tier` keeps the library's tier
-  (same genus or other genera) beside them, and a model validator stores the two together. The
+  from the same `relatives_of` read that gives the median, so the dot plot needs no new read.
+  `relatives_tier` keeps the library's tier (same genus or other genera) beside them, and a model
+  validator stores the two together. Every key of `RelativesEvidence` is required: `{}` and
+  null state a read that found no reference row or too few relatives. Alembic `2026_10_24_0002`
+  writes those values into the relatives rows stored without the keys. The
   relatives facts add "Related genomes read" (the count and the range of lengths) and "Related
   genomes from" (the tier, in the words `TIER_WORDS` gives the strain facts too) when they are
   stored.
