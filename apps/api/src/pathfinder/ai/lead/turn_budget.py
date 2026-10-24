@@ -119,6 +119,13 @@ def _this_turn(turn: TurnMarkers) -> str:
         return f"This turn added {count_noun(len(added), 'step')}: {named}."
     if turn.changed_strategy:
         return "This turn changed the strategy and added no step."
+    if turn.started_an_audit:
+        return (
+            "This turn started an audit run. It works in the background; ask "
+            "about it to read its findings."
+        )
+    if turn.audit_runs:
+        return "This turn read an audit run and changed no strategy."
     return "This turn changed nothing."
 
 
@@ -140,8 +147,10 @@ def budget_stop_report(
     questions: Sequence[OpenQuestion],
 ) -> str:
     """What a turn at its whole budget produced, then the stop itself."""
+    graph = session.graph
+    audit_only = bool(turn.audit_runs) and (graph is None or not graph.steps)
     parts = [
-        _strategy_state(ledger, session),
+        *([] if audit_only else [_strategy_state(ledger, session)]),
         _this_turn(turn),
         *_verification(ledger, session),
         *(q.question for q in questions),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
+from uuid import uuid4
 
 import pytest
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
@@ -21,6 +22,7 @@ from pathfinder.ai.lead.turn_budget import (
     lead_turn_budget_message,
     lead_usage_limits,
 )
+from pathfinder.domain.statistic_facts import StatisticFact, StatisticKind
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
@@ -176,6 +178,34 @@ def test_a_budget_stop_that_built_nothing_says_so() -> None:
     report = _report(BuildSection(), None, _nothing_built(), turn=TurnMarkers())
 
     assert report == f"Nothing was built.\n\n{CHANGED_NOTHING}\n\n{BUDGET}"
+
+
+def _audit_turn(kind: StatisticKind) -> TurnMarkers:
+    turn = TurnMarkers()
+    turn.record_audit_facts([StatisticFact(id="stat_a", kind=kind, title="Audit")])
+    turn.record_audit_runs([uuid4()])
+    return turn
+
+
+def test_a_budget_stop_after_an_audit_started_says_it_started() -> None:
+    report = _report(
+        BuildSection(), None, _nothing_built(), turn=_audit_turn("audit_start")
+    )
+
+    assert report == (
+        "This turn started an audit run. It works in the background; ask about "
+        f"it to read its findings.\n\n{BUDGET}"
+    )
+
+
+def test_a_budget_stop_after_an_audit_read_says_it_read_one() -> None:
+    report = _report(
+        BuildSection(), None, _nothing_built(), turn=_audit_turn("audit_run")
+    )
+
+    assert report == (
+        f"This turn read an audit run and changed no strategy.\n\n{BUDGET}"
+    )
 
 
 def test_a_budget_stop_keeps_frames_question_verbatim() -> None:
