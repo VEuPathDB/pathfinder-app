@@ -40,6 +40,7 @@ from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
+from pathfinder.tests._support.orthomcl_step_columns import serve_step_columns
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 
@@ -61,6 +62,7 @@ class _Refusal(BaseModel):
 @pytest.fixture(autouse=True)
 def _orthomcl(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_orthomcl_record_classes(monkeypatch)
+    serve_step_columns(monkeypatch, "group", _PATTERN_STEP, "GroupsByPhyleticPattern")
 
 
 def _protein_and_groups() -> StrategySession:

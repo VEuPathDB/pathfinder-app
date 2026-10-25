@@ -32,6 +32,7 @@ from pathfinder.ai.tools.standalone._result_models import (
     _validate_sample_inputs,
     no_column,
     unread_note,
+    with_countable,
 )
 from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
 from pathfinder.ai.tools.standalone._sample_page import (
@@ -55,10 +56,12 @@ from pathfinder.ai.tools.standalone._step_read import (
     read_as,
 )
 from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.column_reach import ReachedColumn
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.services.experiment.step_tally import countable_columns
 
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
@@ -344,6 +347,7 @@ async def read_step_columns(
     whose search shows no such column, or several that do not all hold every
     gene, says so, and only then is the root sampled. A column whose report
     the site refuses is stated as refused, and the other columns are still read.
+    An answer with no fit names the columns the step's records count by.
 
     On an OrthoMCL group step whose criterion binds ``phyletic_expression``,
     the answer is ``expression_fit`` alone: the step's first groups, with their
@@ -372,4 +376,24 @@ async def read_step_columns(
         judged = StepColumns(wdk_step_id=wdk_step_id, expression_fit=fit)
         return with_summary(judged, fit.sentence, ctx=ctx)
     columns, summary = await _read_columns(ctx, wdk_step_id, target)
+    if not columns.fits:
+        columns, summary = with_countable(
+            columns, summary, await _countable(ctx, wdk_step_id)
+        )
     return with_summary(columns, summary, ctx=ctx)
+
+
+async def _countable(
+    ctx: RunContext[AgentDeps], wdk_step_id: int
+) -> list[ReachedColumn]:
+    listed = await read_in_time(
+        "read_step_columns",
+        f"step {wdk_step_id}",
+        countable_columns(ctx.deps.strategy_session.site_id, wdk_step_id),
+        deadline=READ_DEADLINE_SECONDS,
+    )
+    return [
+        ReachedColumn(name=c.name, display_name=c.display_name)
+        for c in listed.columns
+        if c.countable
+    ]

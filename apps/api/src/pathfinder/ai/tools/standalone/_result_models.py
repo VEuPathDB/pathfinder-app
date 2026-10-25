@@ -7,7 +7,10 @@ from pydantic import Field
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.column_reach import ReachedColumn
 from pathfinder.domain.expression_fit import ExpressionFit
+
+NAMED_COLUMNS = 20
 
 
 class EstimatedSizeResult(CamelModel):
@@ -25,6 +28,7 @@ class StepColumns(CamelModel):
     # What to read instead when no column shows a value the step binds.
     note: str = ""
     expression_fit: ExpressionFit | None = None
+    countable: list[ReachedColumn] = Field(default_factory=list)
 
 
 def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
@@ -33,6 +37,22 @@ def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
         note=f"{why} Sample the root with get_sample_records for this criterion.",
     )
     return columns, f"No column of step {wdk_step_id}"
+
+
+def with_countable(
+    columns: StepColumns, summary: str, countable: list[ReachedColumn]
+) -> tuple[StepColumns, str]:
+    if not countable:
+        return columns, summary
+    shown = countable[:NAMED_COLUMNS]
+    named = ", ".join(f"{c.name} ({c.display_name})" for c in shown)
+    more = len(countable) - len(shown)
+    rest = f", and {more:,} more that step_columns lists" if more else ""
+    counts = f"Its records count by {named}{rest}."
+    held = columns.model_copy(
+        update={"countable": shown, "note": f"{columns.note} {counts}".strip()}
+    )
+    return held, f"{summary}. {counts}"
 
 
 def _unread_reason(wdk_step_id: int, fit: ColumnFit) -> str:

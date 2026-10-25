@@ -42,6 +42,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.ortho_taxonomy import recorded_ortho_taxonomy
+from pathfinder.tests._support.orthomcl_step_columns import serve_step_columns
 from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -127,6 +128,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch, site: _Site) -> _Taxonomy:
     taxonomy = _Taxonomy()
     monkeypatch.setattr(_expression_check, "get_strategy_api", lambda site_id: site)
     monkeypatch.setattr(_expression_check, "ortho_taxonomy", taxonomy)
+    serve_step_columns(monkeypatch, "group", _STEP, PHYLETIC_EXPRESSION_SEARCH)
     return taxonomy
 
 

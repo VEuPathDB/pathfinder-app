@@ -7,8 +7,9 @@ import pytest
 from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.tools.standalone import results
-from pathfinder.ai.tools.standalone._result_models import StepColumns
+from pathfinder.ai.tools.standalone._result_models import NAMED_COLUMNS, StepColumns
 from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.column_reach import ReachedColumn
 from pathfinder.tests._support.column_reads import (
     TM_PARAMS,
     TM_TEXT,
@@ -25,6 +26,9 @@ from pathfinder.tests._support.recorded_columns import (
     by_value,
 )
 from pathfinder.tests._support.tool_returns import returned
+
+COUNTS = " Its records count by "
+GENE_ID = ReachedColumn(name="primary_key", display_name="Gene ID")
 
 
 async def test_the_tm_count_column_fits_every_gene_of_the_step(
@@ -122,7 +126,8 @@ async def test_rival_search_columns_that_disagree_name_the_sample_instead(
         await results.read_step_columns(ctx, PERCENTILE_STEP), StepColumns
     )
 
-    assert (answer.fits, answer.note, ctx.deps.turn_markers.column_fits) == (
+    note, counts = answer.note.split(COUNTS, 1)
+    assert (answer.fits, note, ctx.deps.turn_markers.column_fits) == (
         [],
         (
             f"2 columns of {PERCENTILE_SEARCH} may show the bound values and "
@@ -130,6 +135,11 @@ async def test_rival_search_columns_that_disagree_name_the_sample_instead(
             "get_sample_records for this criterion."
         ),
         [],
+    )
+    assert (counts.split(", ")[0], answer.countable[0], len(answer.countable)) == (
+        "primary_key (Gene ID)",
+        GENE_ID,
+        NAMED_COLUMNS,
     )
     assert sorted(site.asked) == [
         f"{PERCENTILE_STEP}/reports/max_percentile_chosen-histogram",
@@ -162,7 +172,8 @@ async def test_a_search_with_no_column_names_the_sample_instead(
 
     answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
 
-    assert (answer.fits, answer.note, site.asked) == (
+    note, counts = answer.note.split(COUNTS, 1)
+    assert (answer.fits, note, site.asked) == (
         [],
         (
             "No column of GenesByText shows a numeric value its criterion "
@@ -170,3 +181,5 @@ async def test_a_search_with_no_column_names_the_sample_instead(
         ),
         [],
     )
+    assert counts.endswith(" more that step_columns lists.")
+    assert answer.countable[0] == GENE_ID
