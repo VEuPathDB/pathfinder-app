@@ -176,11 +176,9 @@ async def test_the_job_ends_with_the_runs_synthesis_stored(
             {
                 "errorType": "truncated_model",
                 "cause": f"The stored checks of {gene(2)} confirm the finding.",
-                "confirmedBy": (
-                    f"The stored evidence of findings {ids[0]}, {ids[1]}, {ids[2]} "
-                    "confirms it."
-                ),
+                "confirmedBy": "The stored evidence of the kept findings confirms it.",
                 "findingIds": ids,
+                "count": 3,
             }
         ],
         "headline": ids,
