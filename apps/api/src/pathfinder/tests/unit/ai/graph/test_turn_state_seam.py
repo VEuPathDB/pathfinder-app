@@ -98,6 +98,7 @@ STRATEGY_RESOURCES = {
     "ledger_summary",
     "service_outage",
     "user_prompt",
+    "intent",
     "verification_scope",
     "exchanges",
     "meter",

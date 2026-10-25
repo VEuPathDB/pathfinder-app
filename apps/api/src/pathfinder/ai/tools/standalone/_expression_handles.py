@@ -8,6 +8,7 @@ from veupathdb_mcp.catalog import PhyleticPattern
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
+from pathfinder.domain.strategy.computed_groups import is_comparison_handle
 from pathfinder.domain.strategy.expression_handles import (
     BuiltPattern,
     UnknownExpressionError,
@@ -31,6 +32,13 @@ def with_stored_expressions(
     state: AgentToolState, call: CriterionCall
 ) -> CriterionCall:
     match call.params.get(PHYLETIC_EXPRESSION_PARAM):
+        case str() as text if is_comparison_handle(text):
+            msg = (
+                f"{PHYLETIC_EXPRESSION_PARAM} names {text.strip()}, the handle of a "
+                "computed comparison, which no expression states. Pass it to "
+                "set_criterion as computed_groups instead; nothing was recorded."
+            )
+            raise ModelRetry(msg)
         case str() as text:
             proposed = {PHYLETIC_EXPRESSION_PARAM: text}
         case _:

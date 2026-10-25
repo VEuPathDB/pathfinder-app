@@ -76,11 +76,11 @@ _COMPUTED_LIMITS: list[tuple[ValidationError, str]] = [
     (AbsentGroupsCompareError("at_least", Fraction(1)), _REFUSED),
     (
         NestedCompareTooLargeError(ValidationError(title="Too large", detail=_LIMIT)),
-        _REFUSED,
+        _STOPPED,
     ),
     (PerGenomeNeedsTaskError(76, 228), _REFUSED),
     (ComparisonRequestsError(30, [("tgon", "tgca")]), _STOPPED),
-    (GenomePastCloudCapError("hsap", 12000), _REFUSED),
+    (GenomePastCloudCapError("hsap", 12000), _STOPPED),
     (ComparisonOutOfTimeError(9), _STOPPED),
     (GroupCloudCappedError(["tgon", "tgca"]), _STOPPED),
 ]

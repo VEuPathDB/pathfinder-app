@@ -213,6 +213,7 @@ class TurnMarkers(CamelModel):
     unchecked_reply: bool = False
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
+    saves_asked: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
     # Every control result this turn read, in the order each one answered.

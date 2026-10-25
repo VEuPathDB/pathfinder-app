@@ -33,6 +33,10 @@ def comparison_handle(group_ids: Sequence[str]) -> str:
     return f"{COMPARISON_PREFIX}{digest[:_DIGITS]}"
 
 
+def is_comparison_handle(text: str) -> bool:
+    return text.strip().startswith(COMPARISON_PREFIX)
+
+
 def _share(part: int, whole: int) -> float:
     return 0.0 if whole == 0 else part / whole
 
@@ -233,4 +237,5 @@ __all__ = [
     "SpeciesFacts",
     "bound_comparisons",
     "comparison_handle",
+    "is_comparison_handle",
 ]

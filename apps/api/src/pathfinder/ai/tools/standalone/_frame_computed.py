@@ -3,11 +3,11 @@ from __future__ import annotations
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from pydantic_ai import ModelRetry, RunContext, ToolFailed
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import InputDatasetValue
-from veupathdb.wdk import get_site, get_strategy_api
-from veupathdb_mcp.wdk import IdListStepCountError, frozen_step_id
+from veupathdb.wdk import get_site
+from veupathdb_mcp.wdk import IdListDataset, IdListStepCountError, counted_id_list
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead.intent import REQUEST_INTENTS
 from pathfinder.ai.tools.standalone._frame_eda import refuse_a_waiting_criterion
 from pathfinder.ai.tools.standalone._frame_result import (
     ComputedGroupsBinding,
@@ -40,13 +40,25 @@ def _held(ctx: RunContext[AgentDeps], handle: str) -> HeldComparison:
     return held
 
 
-async def _saved_step(site_id: str, held: HeldComparison, name: str) -> int:
+def _refuse_an_unasked_save(ctx: RunContext[AgentDeps], handle: str) -> None:
+    deps = ctx.deps
+    if deps.intent in REQUEST_INTENTS or handle in deps.turn_markers.saves_asked:
+        return
+    msg = (
+        f"Saving {handle} uploads its groups to the researcher's account, and this "
+        "turn neither asks for a strategy nor answers a card that offered the save. "
+        "Answer from the counts; the card offers the save. Nothing was recorded."
+    )
+    raise ModelRetry(msg)
+
+
+async def _saved_list(site_id: str, held: HeldComparison, name: str) -> IdListDataset:
     try:
-        step_id = await frozen_step_id(
+        return await counted_id_list(
             site_id,
             list(held.answer.group_ids),
-            strategy_name=name,
             record_type="group",
+            strategy_name=name,
         )
     except IdListStepCountError as exc:
         msg = (
@@ -56,10 +68,6 @@ async def _saved_step(site_id: str, held: HeldComparison, name: str) -> int:
             "again to save it."
         )
         raise ToolFailed(msg) from exc
-    if step_id is None:
-        msg = f"The computed comparison {held.handle} holds no group id to save."
-        raise ModelRetry(msg)
-    return step_id
 
 
 async def set_computed_criterion(
@@ -69,35 +77,33 @@ async def set_computed_criterion(
     refuse_a_waiting_criterion(state, stated.id)
     refuse_a_transform_on_a_saved_input(stated.id, stated.role, "computed comparison")
     held = _held(ctx, handle)
+    _refuse_an_unasked_save(ctx, held.handle)
     site_id = ctx.deps.site_id
     name = held.step_name(stated.text)
     description = held.description(get_site(site_id).name)
-    step = await get_strategy_api(site_id).find_step(
-        await _saved_step(site_id, held, name)
-    )
-    params = step.search_config.parameters
+    saved = await _saved_list(site_id, held, name)
     state.frame_set_criterion(
         stated.model_copy(
             update={
-                "search_name": step.search_name,
-                "record_class": step.record_class_name,
+                "search_name": saved.search_name,
+                "record_class": saved.record_type,
                 "search_display_name": name,
-                "param_display_names": dict.fromkeys(params, GROUPS_DISPLAY_NAME),
+                "param_display_names": {saved.param_name: GROUPS_DISPLAY_NAME},
                 "resolved_params": {
                     param: BoundValue(
-                        value=InputDatasetValue(dataset_id=dataset),
+                        value=value,
                         source="chosen",
                         basis=description,
                         label=held.label(),
                     )
-                    for param, dataset in params.items()
+                    for param, value in saved.params().items()
                 },
                 "result_count": held.answer.groups,
             }
         )
     )
     state.computed_comparisons[held.handle] = held.model_copy(
-        update={"dataset_id": next(iter(params.values()), None)}
+        update={"dataset_id": str(saved.dataset_id)}
     )
     binding = ComputedGroupsBinding(
         handle=held.handle,
@@ -108,7 +114,7 @@ async def set_computed_criterion(
     return with_summary(
         SetCriterionResult(
             criterion_id=stated.id,
-            search_name=step.search_name,
+            search_name=saved.search_name,
             result_count=held.answer.groups,
             computed_groups=binding,
         ),

@@ -51,21 +51,6 @@ class GroupListSite:
             },
         )
 
-    async def found(self, request: httpx.Request) -> httpx.Response:
-        del request
-        sent = self.steps[-1]
-        return httpx.Response(
-            200,
-            json={
-                "id": STEP,
-                "searchName": sent["searchName"],
-                "searchConfig": sent["searchConfig"],
-                "recordClassName": "group",
-                "estimatedSize": self.counted,
-                "strategyId": STRATEGY,
-            },
-        )
-
     async def removed(self, request: httpx.Request) -> httpx.Response:
         del request
         self.deleted.append(STRATEGY)
@@ -105,7 +90,6 @@ def served_group_list(
             router.post(f"{users}/steps/{STEP}/reports/standard").mock(
                 side_effect=site.count
             )
-            router.get(f"{users}/steps/{STEP}").mock(side_effect=site.found)
             router.delete(f"{users}/strategies/{STRATEGY}").mock(
                 side_effect=site.removed
             )

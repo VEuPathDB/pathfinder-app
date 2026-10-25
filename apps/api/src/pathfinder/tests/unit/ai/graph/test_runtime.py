@@ -57,6 +57,7 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "service_outage",
         "tool_repetition_guard",
         "user_prompt",
+        "intent",
         "verification_scope",
         "exchanges",
         "meter",

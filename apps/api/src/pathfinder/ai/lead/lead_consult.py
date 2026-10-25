@@ -11,7 +11,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardReply
 from pathfinder.ai.lead.readings import refused_picks
@@ -33,6 +33,7 @@ from pathfinder.domain.strategy.expression_handles import shown_wire
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.question_options import (
     Keep,
+    SaveComputedGroups,
     SetValues,
     TypedOption,
     Withdraw,
@@ -178,10 +179,11 @@ def _answer_requirement(
 
 
 def _apply(
-    domain: StrategyDomainState,
+    state: PipelineState,
     option: TypedOption,
     sheets: Mapping[str, Sequence[ParameterInfo]],
 ) -> None:
+    domain = state.domain
     spec = domain.operational_spec
     match option.binding:
         case SetValues() as values if spec is not None:
@@ -206,7 +208,9 @@ def _apply(
             )
         case Withdraw(constraint_id=key):
             domain.withdraw(c for c in domain.requirements if c.key == key)
-        case SetValues() | ReadValues() | Keep():
+        case SaveComputedGroups(handle=handle, save=True):
+            state.turn_markers.saves_asked.append(handle)
+        case SetValues() | ReadValues() | Keep() | SaveComputedGroups():
             pass
 
 
@@ -241,7 +245,7 @@ def apply_option_bindings(
                     domain.record_request_text(label)
                     words.append(label)
                 continue
-            _apply(domain, option, sheets)
+            _apply(state, option, sheets)
         dimension = (
             question.dimension
             if question is not None

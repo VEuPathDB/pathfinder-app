@@ -8,11 +8,13 @@ from datetime import date
 
 import pytest
 from pydantic import TypeAdapter
-from pydantic_ai import ModelRetry, ToolFailed
+from pydantic_ai import ModelRetry, RunContext, ToolFailed
 from veupathdb.domain.parameters import InputDatasetValue
 from veupathdb_mcp.catalog import PhyleticPattern
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import (
@@ -46,11 +48,16 @@ _PATTERN: PhyleticPattern = TypeAdapter(PhyleticPattern).validate_python(
 _HELD = held_comparison(_PATTERN, date(2026, 10, 25))
 
 
+def _asked(ctx: RunContext[AgentDeps]) -> RunContext[AgentDeps]:
+    ctx.deps.intent = IntentClassification.NEW_STRATEGY
+    return ctx
+
+
 def _state() -> AgentToolState:
     return AgentToolState(computed_comparisons={_HELD.handle: _HELD})
 
 
-async def test_the_groups_are_uploaded_and_bound_as_a_named_snapshot(
+async def test_the_groups_are_uploaded_bound_and_leave_no_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state = _state()
@@ -58,7 +65,7 @@ async def test_the_groups_are_uploaded_and_bound_as_a_named_snapshot(
     with served_group_list(monkeypatch, counted=3) as site:
         result = returned(
             await set_criterion(
-                agent_run_context(site_id=_SITE, agent_state=state),
+                _asked(agent_run_context(site_id=_SITE, agent_state=state)),
                 criterion_id="c_more_in_toxo",
                 text=_QUESTION,
                 role="seed",
@@ -73,7 +80,7 @@ async def test_the_groups_are_uploaded_and_bound_as_a_named_snapshot(
         "comparison selected, uploaded as a list. The ids are fixed; a later "
         "release maps each id to the groups it became, so the count can change."
     )
-    assert site.uploaded == [list(GROUP_IDS)]
+    assert (site.uploaded, site.deleted) == ([list(GROUP_IDS)], [STRATEGY])
     assert [(s["searchName"], s["searchConfig"]) for s in site.steps] == [
         ("GroupsByNameList", {"parameters": {"group_names": str(DATASET)}})
     ]
@@ -103,7 +110,7 @@ async def test_the_build_leaf_runs_the_list_search_on_the_saved_dataset(
     state = _state()
     with served_group_list(monkeypatch, counted=3):
         await set_criterion(
-            agent_run_context(site_id=_SITE, agent_state=state),
+            _asked(agent_run_context(site_id=_SITE, agent_state=state)),
             criterion_id="c_more_in_toxo",
             text=_QUESTION,
             role="seed",
@@ -136,7 +143,7 @@ async def test_a_step_that_does_not_hold_the_list_fails_with_no_rebuild(
         pytest.raises(ToolFailed) as refused,
     ):
         await set_criterion(
-            agent_run_context(site_id=_SITE, agent_state=state),
+            _asked(agent_run_context(site_id=_SITE, agent_state=state)),
             criterion_id="c_more_in_toxo",
             text=_QUESTION,
             role="seed",
@@ -159,7 +166,7 @@ async def test_a_handle_no_comparison_holds_is_sent_back() -> None:
 
     with pytest.raises(ModelRetry) as refused:
         await set_criterion(
-            agent_run_context(site_id=_SITE, agent_state=state),
+            _asked(agent_run_context(site_id=_SITE, agent_state=state)),
             criterion_id="c_more_in_toxo",
             text=_QUESTION,
             role="seed",
@@ -190,7 +197,7 @@ async def test_a_comparison_of_no_group_saves_nothing() -> None:
 
     with pytest.raises(ModelRetry) as refused:
         await set_criterion(
-            agent_run_context(site_id=_SITE, agent_state=state),
+            _asked(agent_run_context(site_id=_SITE, agent_state=state)),
             criterion_id="c_more_in_toxo",
             text=_QUESTION,
             role="seed",

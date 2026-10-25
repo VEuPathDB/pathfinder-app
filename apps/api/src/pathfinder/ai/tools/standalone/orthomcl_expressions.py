@@ -18,7 +18,9 @@ from veupathdb_mcp.wdk import (
     ComparisonRequestsError,
     ComputedComparisonResult,
     ComputedSet,
+    GenomePastCloudCapError,
     GroupCloudCappedError,
+    NestedCompareTooLargeError,
     answer_phyletic_pattern,
 )
 
@@ -92,6 +94,8 @@ def _builder_limit(refused: ValidationError) -> str:
             ComparisonOutOfTimeError()
             | ComparisonRequestsError()
             | GroupCloudCappedError()
+            | GenomePastCloudCapError()
+            | NestedCompareTooLargeError()
         ):
             stopped = (
                 "build_phyletic_expression stopped the comparison after it sent "
@@ -198,8 +202,8 @@ async def build_phyletic_expression(
     residualGroups, each set's genomes, species, groups and proteins, the
     requests spent and factId, and holds the group ids under a "groups:"
     handle. Saving them as a step uploads them to the researcher's account:
-    pass the handle to set_criterion as computed_groups only when the
-    researcher asks for that, else offer it on a question. The computed route
+    set_criterion takes the handle as computed_groups on a turn that asks for a
+    strategy or answers the card that offers the save. The computed route
     refuses at_least, at_most and exactly (they hold at 0 against 0); state
     more_than or fewer_than. A per_genome compare that reads more than 24
     requests needs a background task and is refused; compare averages or totals.

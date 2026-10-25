@@ -171,9 +171,8 @@ async def set_criterion(
     Pass ``computed_groups`` INSTEAD of ``search_name`` when the criterion is
     the groups of a computed comparison: give the ``groups:`` handle
     ``build_phyletic_expression`` returned. The groups are uploaded to the
-    researcher's account as an id list, so pass it only when the researcher
-    asked to save the groups; otherwise offer the save on a question that
-    names the handle.
+    researcher's account as an id list, so it binds only on a turn that asks
+    for a strategy or answers the card that offered the save.
 
     Call this ONCE with no ``params`` to open the PARAMETER SHEET: every
     visible parameter of the search with its type, help, default, dependency,

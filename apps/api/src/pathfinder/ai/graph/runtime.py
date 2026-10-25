@@ -16,6 +16,7 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.ai.agents.state import AgentToolState, CatalogRead
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.domain.evidence import EvidenceCard, NamedControlSet
 from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.separation import AttachedControls
@@ -124,6 +125,7 @@ class AgentDeps(AssistantDeps):
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
     # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
+    intent: IntentClassification | None = None
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
     # The conversation's last exchanges, as the researcher read them.
     exchanges: list[Exchange] = Field(default_factory=list)

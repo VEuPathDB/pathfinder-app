@@ -38,8 +38,17 @@ class Keep(CamelModel):
     constraint_id: str
 
 
+class SaveComputedGroups(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["save_computed_groups"] = "save_computed_groups"
+    handle: str
+    save: bool
+
+
 OptionBinding = Annotated[
-    SetValues | ReadValues | Withdraw | Keep, Discriminator("kind")
+    SetValues | ReadValues | Withdraw | Keep | SaveComputedGroups,
+    Discriminator("kind"),
 ]
 
 
@@ -88,6 +97,8 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             )
         case Withdraw(constraint_id=key) | Keep(constraint_id=key):
             return (option.binding.kind, key)
+        case SaveComputedGroups(handle=handle, save=save):
+            return (option.binding.kind, handle, str(save))
 
 
 def refuse_a_single_option(question: str, labels: Sequence[str]) -> None:

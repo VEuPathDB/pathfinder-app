@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.requirement_reports import (
     refused_requirements,
     reported_requirements,
 )
+from pathfinder.domain.strategy.save_offers import with_save_offers
 
 
 def requirements_the_site_lacks(
@@ -87,16 +88,19 @@ def questions_for_the_card(
         c for c in requirements_no_search_states(deps, lacking) if c.key not in kept
     ]
     return unanswered_questions(
-        with_refusals(
-            with_withdrawals(
-                result.questions(
-                    domain.operational_spec,
-                    domain.requirements,
-                    held_readings(domain.built_expressions),
+        with_save_offers(
+            with_refusals(
+                with_withdrawals(
+                    result.questions(
+                        domain.operational_spec,
+                        domain.requirements,
+                        held_readings(domain.built_expressions),
+                    ),
+                    unstated,
                 ),
-                unstated,
+                refused,
             ),
-            refused,
+            domain.computed_comparisons,
         ),
         answered=[q.question for q in domain.answered_questions],
     )
