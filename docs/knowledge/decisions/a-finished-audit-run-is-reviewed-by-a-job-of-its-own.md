@@ -71,8 +71,12 @@ reviews disagree (`reviewsDisagree`, with `disagreementText` naming both
 verdicts), read from the stored review row and never from the synthesis prose.
 A finding whose reviews disagree may stay in a section and in the headline,
 because every line of both carries the disagreement; `headline`;
-`review_state`; and `agreement`, the synthesis's or else the one the stored
-reviews give, with its sentence. A finding's reviewed impact is shown beside
+`review_state`; `agreement`, the synthesis's or else the one the stored
+reviews give, with its sentence; and `disputed`, the line of each finding whose
+two reviews disagree, also one no section names. A reply that reads a run fact
+names each disputed finding (`domain/dispute_references.py`). A synthesis
+section counts its findings (`count`, the length of `findingIds`), and its
+cause and what confirms it write no number. A finding's reviewed impact is shown beside
 the stored impact, which keeps the page order. No share of kept findings is
 shown.
 

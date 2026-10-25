@@ -2,6 +2,13 @@
 
 ## 2026-10-25
 
+* **An audit reply reads typed run state.** The start tool returns the run's `phase`
+  (`queued` once a job is deferred), a reference that names a list item by a value it
+  holds is refused with the item's place, a reply that reads a run names each finding
+  under `disputed`, a synthesis section counts its findings and writes no number, stage
+  messages name a target by its check title and genes and a verdict by its sentence, an
+  upper-case enum of whole words renders in lower case, and a question whether a model
+  is right classifies as `gene_model_audit`.
 * **Every process fits one database connection budget.** The estate Postgres allows 100
   connections and the deployment keeps 90 of them, so every pool is sized by a setting
   (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `LOCK_POOL_SIZE`, `LOCK_POOL_OVERFLOW`,
