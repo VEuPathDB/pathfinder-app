@@ -16,8 +16,8 @@ from veupathdb_mcp.audit import (
 )
 
 from pathfinder.ai.audit.synthesis import SynthesisCounts
-from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import ScopeProposal
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.statistic_rows import fact_schema
 from pathfinder.domain.strategy.computed_groups import ComparisonFacts
 from pathfinder.services.audit.finding_views import FindingDetail, FindingPage

@@ -113,7 +113,7 @@ async def test_a_start_queues_one_job_on_the_audit_queue_and_no_task_row(
         "pause": 30.0,
     }
     assert abs(run.deadline_at - (asked_at + timedelta(hours=6))) < _TOLERANCE
-    assert (started.status, started.halted) == ("planned", None)
+    assert (started.phase, started.halted) == ("queued", None)
     kept = await sealed(run_id)
     assert kept is not None
     assert TOKEN.encode() not in kept
@@ -152,7 +152,7 @@ async def test_a_job_carries_a_run_through_four_stages_on_the_kept_sign_in(
     assert await work_through(jobs) == 1
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.release, done.requests, done.unfinished) == (
+    assert (done.phase, done.release, done.requests, done.unfinished) == (
         "finished",
         "71",
         0,
@@ -316,7 +316,7 @@ async def test_a_genome_read_late_leaves_the_first_sample_alone(
     await work_through(jobs)
 
     second = await outcome(run_id, owner)
-    assert (second.status, second.unreached_genomes) == ("finished", ())
+    assert (second.phase, second.unreached_genomes) == ("finished", ())
     assert wired.site.genome_reads.count(late) == 2
     async with async_session_factory() as session:
         after = await AuditFindingRepository(session).findings(run_id, FindingFilter())
@@ -339,7 +339,7 @@ async def test_a_finished_run_starts_nothing(
 
     done = await start_run(run_id, owner, retry_unreached=True)
 
-    assert done.status == "finished"
+    assert done.phase == "finished"
     assert (len(audit_jobs(jobs)), len(wired.asked)) == (1, asked)
 
 

@@ -13,7 +13,7 @@ from procrastinate.testing import InMemoryConnector
 from veupathdb import NoObserver, set_observer
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
-from pathfinder.domain.audit.findings import AuditOutcome
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -89,7 +89,7 @@ async def test_the_recorded_positives_are_confirmed_on_qa(
             ),
         )
         run_id, done = await _run(in_memory_jobs, "plasmodb", plasmo)
-        assert (done.status, done.requests > 0) == ("finished", True)
+        assert (done.phase, done.requests > 0) == ("finished", True)
         async with async_session_factory() as session:
             (piga,) = await AuditFindingRepository(session).findings(
                 run_id, FindingFilter()
@@ -134,7 +134,7 @@ async def test_one_genome_is_screened_and_confirmed_on_qa(
             found = await AuditFindingRepository(session).findings(
                 run_id, FindingFilter()
             )
-        assert (done.status, done.unfinished) == ("finished", ())
+        assert (done.phase, done.unfinished) == ("finished", ())
         assert done.requests > 9
         assert sorted(s.status for s in states) == ["collected"] * 9
         assert {f.status for f in found} <= _SETTLED

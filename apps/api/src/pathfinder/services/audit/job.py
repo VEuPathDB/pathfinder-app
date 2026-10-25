@@ -17,7 +17,8 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb_mcp.search_line import told_while_waiting
 
-from pathfinder.domain.audit.findings import AuditOutcome, counts_of
+from pathfinder.domain.audit.findings import counts_of
+from pathfinder.domain.audit.run_state import AuditOutcome, run_phase
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
 from pathfinder.persistence.models import AuditRunRecord
@@ -113,7 +114,11 @@ async def _outcome(run: AuditRunRecord) -> AuditOutcome:
         genomes = await AuditRepository(session).genome_states(run.id)
     return AuditOutcome(
         run_id=run.id,
-        status=run.status,
+        phase=run_phase(
+            run.status,
+            halted=run.stages.halted is not None,
+            deadline_at=run.deadline_at,
+        ),
         release=run.release,
         requests=run.stages.requests,
         unfinished=run.stages.unfinished,

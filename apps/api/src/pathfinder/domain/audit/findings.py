@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterable
 from typing import Annotated, Literal, Self
-from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, model_validator
@@ -33,8 +32,6 @@ from pathfinder.domain.audit.confirmations import (
     StrainConfirmation,
 )
 from pathfinder.domain.audit.scope import CheckName
-from pathfinder.domain.audit.stages import RunStatus, StageName
-from pathfinder.domain.statistic_facts import Sentence
 
 FindingStatus = Literal[
     "screened",
@@ -425,18 +422,3 @@ def counts_of(tally: Iterable[FindingTally]) -> FindingCounts:
         if not row.judged:
             by_status["unjudged"] += row.count
     return FindingCounts.model_validate(by_status)
-
-
-class AuditOutcome(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    run_id: UUID
-    status: RunStatus
-    release: str | None
-    requests: int
-    unfinished: tuple[StageName, ...]
-    counts: FindingCounts
-    failed_genomes: tuple[str, ...]
-    unreached_genomes: tuple[str, ...]
-    unread_genomes: tuple[str, ...]
-    halted: Sentence | None = None

@@ -10,8 +10,8 @@ from pydantic import BaseModel, ConfigDict
 from veupathdb_mcp.audit import RateBounds
 
 from pathfinder.ai.graph.turn_records import ReadRecord
-from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import PlanRequest, ScopeProposal
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
 from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.services.audit.finding_views import FindingDetail, FindingPage

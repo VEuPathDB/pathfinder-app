@@ -119,7 +119,7 @@ def _audit(turn: list[ModelMessage], genome: str) -> ScriptedPart:
         return terminal_call({"prose": "The audit was not started, as you answered."})
     fact = _Read.model_validate(started.content, from_attributes=True).fact_id
     return terminal_call(
-        {"prose": f"Audit run [stat:{fact}.runId] is [stat:{fact}.status]."}
+        {"prose": f"Audit run [stat:{fact}.runId] is [stat:{fact}.phase]."}
     )
 
 

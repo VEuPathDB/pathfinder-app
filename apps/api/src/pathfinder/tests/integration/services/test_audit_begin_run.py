@@ -138,9 +138,9 @@ async def test_a_start_queues_one_job(in_memory_jobs: InMemoryConnector) -> None
     started = await begin_run(owner=owner, scope=_SCOPE)
 
     (run,) = await _runs(owner.user_id)
-    assert (started.run_id, started.status, started.halted) == (
+    assert (started.run_id, started.phase, started.halted) == (
         run.id,
-        "planned",
+        "queued",
         None,
     )
     assert (run.scope, run.conversation_id) == (_SCOPE, owner.conversation_id)

@@ -30,8 +30,8 @@ from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent_gate import turn_reads_audits
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import gene_model_investigation
-from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import PlanAsk, ScopeProposal
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.services.audit.finding_views import (
     FindingDetail,

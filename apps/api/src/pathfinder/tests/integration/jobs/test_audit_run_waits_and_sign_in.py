@@ -106,7 +106,7 @@ async def test_a_wait_for_a_site_ends_the_job_and_schedules_its_continuation(
     await work(jobs, later)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.counts.confirmed, done.counts.errors) == (
+    assert (done.phase, done.counts.confirmed, done.counts.errors) == (
         "finished",
         3,
         3,
@@ -158,7 +158,7 @@ async def test_a_continuation_picked_up_after_the_deadline_reads_nothing(
     assert wired.asked.count(SPLIT) == 1
     assert queued(jobs) == []
     done = await outcome(run_id, owner)
-    assert (done.status, done.counts.unreached) == ("finished", 1)
+    assert (done.phase, done.counts.unreached) == ("finished", 1)
     split = await split_finding(run_id)
     assert (split.attempts, split.message) == (1, str(unanswered()))
 
@@ -218,7 +218,7 @@ async def test_a_forbidden_read_on_a_valid_sign_in_fails_only_its_unit(
     await work_through(jobs)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted, done.counts.failed, done.counts.confirmed) == (
+    assert (done.phase, done.halted, done.counts.failed, done.counts.confirmed) == (
         "finished",
         None,
         1,
@@ -271,7 +271,7 @@ async def test_a_refused_sign_in_halts_the_run_and_a_new_one_resumes_it(
     await work_through(jobs)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted, done.counts.confirmed) == ("finished", None, 3)
+    assert (done.phase, done.halted, done.counts.confirmed) == ("finished", None, 3)
     split = await split_finding(run_id)
     assert (split.status, split.attempts, split.stopped) == ("confirmed", 2, 0)
     assert len(wired.site.genome_reads) == 10
@@ -375,7 +375,7 @@ async def test_three_forbidden_units_in_a_row_halt_as_a_revoked_sign_in(
     await work_through(jobs)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted, done.counts.confirmed) == ("finished", None, 3)
+    assert (done.phase, done.halted, done.counts.confirmed) == ("finished", None, 3)
 
 
 async def test_two_forbidden_units_then_an_answer_fail_only_those_two(
@@ -390,7 +390,7 @@ async def test_two_forbidden_units_then_an_answer_fail_only_those_two(
     await work_through(jobs)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted, done.counts.failed, done.counts.confirmed) == (
+    assert (done.phase, done.halted, done.counts.failed, done.counts.confirmed) == (
         "finished",
         None,
         2,

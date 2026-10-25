@@ -24,7 +24,6 @@ from pathfinder.domain.audit.confirmations import (
 )
 from pathfinder.domain.audit.findings import (
     NO_ERROR,
-    AuditOutcome,
     Classification,
     ConfirmationEvidence,
     EvidencePayload,
@@ -34,6 +33,7 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
     classify_confirmation,
 )
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.tests._support.audit import (
     PIGA_INTACT,
     SELK_STOPS,
@@ -271,7 +271,7 @@ def test_a_length_confirmation_holds_the_genes_its_check_reads(
 _RUN = UUID("00000000-0000-0000-0000-000000000007")
 _OUTCOME = {
     "run_id": _RUN,
-    "status": "finished",
+    "phase": "finished",
     "requests": 12,
     "unfinished": (),
     "counts": FindingCounts(),

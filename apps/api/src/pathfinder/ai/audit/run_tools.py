@@ -29,7 +29,6 @@ from pathfinder.ai.audit.facts import (
     start_fact,
 )
 from pathfinder.ai.fact_sources import warm_fact_schemas
-from pathfinder.domain.audit.findings import AuditOutcome
 from pathfinder.domain.audit.planning import (
     PlanAsk,
     PlanRequest,
@@ -37,6 +36,7 @@ from pathfinder.domain.audit.planning import (
     ScopeProposal,
     same_scope,
 )
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.verdicts import evidence_cite, finding_cite
 from pathfinder.platform.audit_errors import AuditNeedsAThreadError
@@ -201,7 +201,7 @@ async def start_gene_model_audit_tool(
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(outcome.run_id)
     read = AuditRead[AuditOutcome](answer=outcome, fact_id=fact.id)
-    return with_summary(read, f"Audit run {outcome.status}", ctx=ctx)
+    return with_summary(read, f"Audit run {outcome.phase}", ctx=ctx)
 
 
 async def audit_can_start(

@@ -136,7 +136,7 @@ async def test_a_retry_waits_while_the_runs_review_is_queued(
 
     again = await start_run(run_id, owner, retry_unreached=True)
 
-    assert again.status == "finished"
+    assert again.phase == "finished"
     assert [j["status"] for j in audit_jobs(jobs)] == ["succeeded"]
     assert len(queued_reviews(jobs)) == 1
 

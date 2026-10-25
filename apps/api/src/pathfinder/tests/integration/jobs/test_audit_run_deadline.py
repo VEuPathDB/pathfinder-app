@@ -103,7 +103,7 @@ async def test_units_a_late_continuation_never_read_are_stored_unread_and_retrie
         "10 genomes not read before the run's deadline",
     )
     done = await outcome(run_id, owner)
-    assert (done.status, len(done.unread_genomes), done.unreached_genomes) == (
+    assert (done.phase, len(done.unread_genomes), done.unreached_genomes) == (
         "finished",
         10,
         (),
@@ -114,7 +114,7 @@ async def test_units_a_late_continuation_never_read_are_stored_unread_and_retrie
     await work_through(jobs)
 
     again = await outcome(run_id, owner)
-    assert (again.status, again.unread_genomes, again.counts.confirmed) == (
+    assert (again.phase, again.unread_genomes, again.counts.confirmed) == (
         "finished",
         (),
         3,

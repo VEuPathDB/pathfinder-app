@@ -114,7 +114,7 @@ async def test_a_halt_that_refused_units_of_a_finished_stage_reads_them_again(
     await work_through(jobs)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted) == ("finished", None)
+    assert (done.phase, done.halted) == ("finished", None)
     assert (done.counts.screened, done.counts.failed, done.counts.confirmed) == (
         0,
         0,
@@ -326,6 +326,6 @@ async def test_an_unanswered_check_near_the_deadline_waits_to_the_deadline_unrea
     await work(jobs, later)
 
     done = await outcome(run_id, owner)
-    assert (done.status, done.halted, len(asked)) == ("finished", None, 2)
+    assert (done.phase, done.halted, len(asked)) == ("finished", None, 2)
     assert (wired.site.genome_reads, wired.asked) == ([], [])
     assert len(done.unread_genomes) == 10

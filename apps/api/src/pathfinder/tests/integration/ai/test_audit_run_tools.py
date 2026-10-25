@@ -256,10 +256,10 @@ async def test_an_approved_start_queues_the_approved_scope_and_records_it(
     (fact,) = deps.facts
     assert (run.conversation_id, run.scope) == (owner.conversation_id, approved)
     assert (job["task_name"], started.outcome) == (AUDIT_JOB, "success")
-    assert (fact.kind, fact.value("runId"), fact.value("status")) == (
+    assert (fact.kind, fact.value("runId"), fact.value("phase")) == (
         "audit_start",
         str(run.id),
-        "planned",
+        "queued",
     )
 
 

@@ -5,14 +5,21 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
-from pathfinder.domain.audit.findings import EvidenceKind, EvidenceStatus, FindingTally
+from pathfinder.domain.audit.findings import (
+    EvidenceKind,
+    EvidenceStatus,
+    FindingCounts,
+    FindingTally,
+)
 from pathfinder.domain.audit.scope import GenomeStatus
-from pathfinder.domain.audit.stages import RunStatus
+from pathfinder.domain.audit.stages import RunStatus, StageName
 from pathfinder.domain.audit.verdicts import ReviewProgress
+from pathfinder.domain.statistic_facts import Sentence
 
 RunPhase = Literal["not_started", "queued", "running", "halted", "finished"]
 RunAction = Literal["resume", "retry"]
@@ -66,6 +73,21 @@ def run_phase(
             return "not_started"
         case _:
             return "queued"
+
+
+class AuditOutcome(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    run_id: UUID
+    phase: RunPhase
+    release: str | None
+    requests: int
+    unfinished: tuple[StageName, ...]
+    counts: FindingCounts
+    failed_genomes: tuple[str, ...]
+    unreached_genomes: tuple[str, ...]
+    unread_genomes: tuple[str, ...]
+    halted: Sentence | None = None
 
 
 def reviews_running(phase: RunPhase, review: ReviewProgress | None) -> bool:

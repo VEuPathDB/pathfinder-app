@@ -3,12 +3,13 @@ from __future__ import annotations
 from uuid import UUID
 
 from pathfinder.ai.audit.facts import plan_fact, start_fact
-from pathfinder.domain.audit.findings import AuditOutcome, FindingCounts
+from pathfinder.domain.audit.findings import FindingCounts
 from pathfinder.domain.audit.planning import (
     PlanRequest,
     RunEstimate,
     ScopeProposal,
 )
+from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
@@ -22,7 +23,7 @@ def _facts() -> TurnFacts:
     started = start_fact(
         AuditOutcome(
             run_id=_RUN,
-            status="planned",
+            phase="queued",
             release=None,
             requests=0,
             unfinished=(),
