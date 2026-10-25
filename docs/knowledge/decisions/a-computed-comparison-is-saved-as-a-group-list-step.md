@@ -57,6 +57,27 @@ that two species tie for it. A
 framing pass records the statistic when the Lead applies the pass, and the Lead reads it
 under its references.
 
+**The reply.** A group that one set alone holds is absent from the other set, not larger
+in it, so the count alone overstates the comparison. The turn contract's
+`unplaced_breakdown` rule (`ai/lead/turn_contract.py`, over
+`TurnRecord.comparisons`, each a `PlacedComparison`) reads the references the reply
+writes, never its words. A reply that places the group count, as `[stat:<fact>.groups]`,
+as the `[count:]` of a step bound to the comparison's dataset, or as `[root]` when that
+step is the root, also places `[stat:<fact>.bothHeld]` and each one-sided count above 0,
+`residualGroups` above 0, and `leadingSpecies` with `leadingSpeciesShare` of each set
+whose `leadingSpeciesLeads` holds: one species has the most genomes alone and more than
+`LEADING_SHARE` (a quarter) of them, so it weighs on the set's average. The refusal names
+each missing path and is asked once per turn.
+
+**On the site.** WDK shows the list search's own description on the step and lets a
+client set only `customName`, `expanded`, `expandedName` and `displayPreferences` on it
+(`PATCH /users/{id}/steps/{id}`). The strategy takes a `description` when it is created.
+A build whose spec binds a saved comparison (`snapshot_note`) creates its strategy with
+`SNAPSHOT_NOTE`: each step named as a computed snapshot holds a saved list of group ids,
+the ids are fixed, and a later release maps each id to the groups it became, so the count
+can change. The client's `update_strategy` sends no description, so a computed step added
+to a strategy the site already holds leaves the description as it was.
+
 **Refusals.** Every `ValidationError` of the computed route is the builder's own limit, a
 retry. `GroupTagError` and `GroupCloudSumError` are data the site served that the
 builder cannot use: a failed call, recorded against the phyletic search.
@@ -77,5 +98,9 @@ builder cannot use: a failed call, recorded against the phyletic search.
 mean: 7,364 groups, 1,884 both held, 5,480 left only, 0 right only, 371 ties, 1,969
 residual, 17 probe and 6 compute requests),
 `tests/unit/ai/lead/test_a_computed_comparison_reaches_the_facts.py`,
-`tests/unit/ai/tools/test_computed_groups_are_saved_as_a_step.py` and
-`tests/unit/ai/tools/test_a_builder_limit_is_no_site_failure.py`.
+`tests/unit/ai/tools/test_computed_groups_are_saved_as_a_step.py`,
+`tests/unit/ai/tools/test_a_builder_limit_is_no_site_failure.py`,
+`tests/unit/ai/lead/test_a_computed_breakdown_is_placed.py`,
+`tests/unit/domain/strategy/test_a_comparison_names_its_breakdown.py`,
+`tests/unit/ai/lead/test_a_snapshot_build_takes_its_note.py` and
+`tests/unit/services/strategies/test_a_snapshot_strategy_carries_its_note.py`.

@@ -31,6 +31,8 @@ what left.
 
 56. [A histogram fit and a byValue fit agree on one step](a-histogram-fit-and-a-by-value-fit-agree-on-one-step.md) - the recorded tm_count histogram sums to 854 transcripts and the byValue report of the same search to 840, with no request bodies kept; record one step with both reports, `totalCount` and the bodies, since until then a histogram fit may overstate its total.
 
+57. [A computed step added later carries the snapshot note](a-computed-step-added-later-carries-the-snapshot-note.md) - a build on a saved computed comparison creates its WDK strategy with the snapshot note as its description, but `update_strategy` sends no description, so a computed step added to a strategy the site holds shows none; release veupathdb-py with a description on update and send it from the edit path.
+
 54. [Three site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
 
 ## Known and accepted
