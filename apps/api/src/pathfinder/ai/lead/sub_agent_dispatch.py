@@ -48,6 +48,7 @@ from pathfinder.ai.tools.standalone.strategy_refusals import (
 )
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.computed_groups import snapshot_note
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
@@ -151,6 +152,7 @@ async def build_the_minted(
     context = replace(
         agent_deps.to_strategy_context(),
         step_words=step_words(spec, built.step_id_by_criterion),
+        wdk_description=snapshot_note(deps.state.domain.computed_comparisons, spec),
     )
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(

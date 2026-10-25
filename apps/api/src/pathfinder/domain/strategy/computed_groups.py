@@ -25,6 +25,14 @@ COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
 LEADING_SHARE = 0.25
+SNAPSHOT_CAVEAT = (
+    "The ids are fixed; a later release maps each id to the groups it became, "
+    "so the count can change."
+)
+SNAPSHOT_NOTE = (
+    f"Each step named as a {COMPUTED_ROUTE} holds a saved list of group ids. "
+    f"{SNAPSHOT_CAVEAT}"
+)
 
 type Route = Literal["computed snapshot"]
 
@@ -210,8 +218,7 @@ class HeldComparison(CamelModel):
             f"A {COMPUTED_ROUTE} of {site_name}'s data on "
             f"{self.computed_on.isoformat()}: the "
             f"{count_noun(self.answer.groups, 'group')} the comparison selected, "
-            "uploaded as a list. The ids are fixed; a later release maps each id "
-            "to the groups it became, so the count can change."
+            f"uploaded as a list. {SNAPSHOT_CAVEAT}"
         )
 
     def label(self) -> str:
@@ -277,10 +284,18 @@ def bound_comparisons(
     return [(step, one.pattern) for one in held.values() for step in one.bound_in(spec)]
 
 
+def snapshot_note(
+    held: Mapping[str, HeldComparison], spec: OperationalSpec
+) -> str | None:
+    return SNAPSHOT_NOTE if bound_comparisons(held, spec) else None
+
+
 __all__ = [
     "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
     "LEADING_SHARE",
+    "SNAPSHOT_CAVEAT",
+    "SNAPSHOT_NOTE",
     "ComparisonFacts",
     "HeldComparison",
     "PlacedComparison",
@@ -289,4 +304,5 @@ __all__ = [
     "bound_comparisons",
     "comparison_handle",
     "is_comparison_handle",
+    "snapshot_note",
 ]

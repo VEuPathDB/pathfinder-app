@@ -145,6 +145,7 @@ async def _create_or_update_wdk_strategy(
     step_tree: WDKStepTree,
     name: str,
     sync_state: WDKSyncState,
+    description: str | None = None,
 ) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
@@ -154,7 +155,7 @@ async def _create_or_update_wdk_strategy(
     wdk_strategy_id = sync_state.wdk_strategy_id
 
     if wdk_strategy_id is None:
-        result = await api.create_strategy(step_tree, name)
+        result = await api.create_strategy(step_tree, name, description=description)
         sync_state.wdk_strategy_name = name
         logger.info("Created WDK strategy", wdk_strategy_id=result.id)
         return _PushedStrategy(result.id, created=True)
@@ -172,7 +173,7 @@ async def _create_or_update_wdk_strategy(
                 wdk_strategy_id=wdk_strategy_id,
                 error=str(update_err),
             )
-            result = await api.create_strategy(step_tree, name)
+            result = await api.create_strategy(step_tree, name, description=description)
             sync_state.wdk_strategy_name = name
             return _PushedStrategy(result.id, created=True)
         else:
@@ -264,6 +265,7 @@ async def sync_strategy_for_site(
     site_id: str,
     strategy_name: str | None = None,
     user_prompt: str = "",
+    description: str | None = None,
 ) -> SyncResult:
     """Sync graph state to WDK: build step tree, create or update strategy, fetch counts.
 
@@ -305,7 +307,9 @@ async def sync_strategy_for_site(
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
     name = strategy_name or name_for_the_push(graph, user_prompt)
-    pushed = await _create_or_update_wdk_strategy(api, step_tree, name, sync_state)
+    pushed = await _create_or_update_wdk_strategy(
+        api, step_tree, name, sync_state, description
+    )
     wdk_strategy_id = pushed.wdk_strategy_id
 
     # A filter narrows what its step answers, so the read follows it. Reading
