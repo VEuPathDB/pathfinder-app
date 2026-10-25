@@ -11,6 +11,20 @@
   description carries `SNAPSHOT_NOTE` once a build or an edit binds a saved comparison, and
   every WDK strategy create sends the graph's description.
   See [a computed comparison is saved as a group list step](decisions/a-computed-comparison-is-saved-as-a-group-list-step.md).
+* **A tally answers about the result only when it counts the result step.** A step
+  tally names the step it counted, the facts hold the strategy's current result step,
+  and a reply that cites a tally of another step while no tally counts the result is
+  refused. A values reference renders the number alone, and a clause that names no
+  values after it is refused. A fact-guard hint names a value reference only when
+  that reference renders the one value it replaces; a token one value of a
+  multi-pick holds is told to be cited another way or taken out, and a word of the
+  label of a tally row the reply cites is held. A word for none just before a
+  reference that renders 0 is refused. An unmet check row whose words carry
+  only requirements a met row answers names none of them, so the requirement stays
+  grounded and no card offers to drop it. The Lead's own card may offer the readings
+  a framing pass named, on the dimension other
+  ([a card option is a binding](decisions/a-card-option-is-a-binding.md)).
+
 * **Every process fits one database connection budget.** The estate Postgres allows 100
   connections and the deployment keeps 90 of them, so every pool is sized by a setting
   (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `LOCK_POOL_SIZE`, `LOCK_POOL_OVERFLOW`,

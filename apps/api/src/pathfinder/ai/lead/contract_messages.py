@@ -12,6 +12,7 @@ from assistant_core.graph.tool_summary import count_noun
 from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
 from pathfinder.ai.lead.edit_messages import recut_call
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.reference_fault_messages import reference_sentence
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -364,7 +365,9 @@ def _fault_sentence(fault: ProseFault) -> str:
             f"``{fault.token}`` is no reference the product reads: write one of "
             "the references above, or take the brackets out."
         )
-    placed = _kind_sentence(fault) or _placement_sentence(fault)
+    placed = (
+        _kind_sentence(fault) or reference_sentence(fault) or _placement_sentence(fault)
+    )
     if placed is not None:
         return placed
     if fault.references:

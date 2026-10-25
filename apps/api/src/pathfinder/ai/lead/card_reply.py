@@ -42,7 +42,8 @@ REPLY_REFERENCES = (
     "for the genes two share), [stat:<id>.<row>] one value of a statistic the EDA service "
     "computed this turn, [tally:<id>.<value>] the records a column tally of "
     "this turn counted for a value, [tally:<id>] the records it counted in all, "
-    "[tally:<id>:values] how many values it counted, "
+    "[tally:<id>:values] how many values it counted, a number the noun of the "
+    "values follows, "
     f"[record:<record_id>] {CITABLE_RECORDS}, [url] the strategy's "
     f"link. {PLACEMENT_RULES}"
 )

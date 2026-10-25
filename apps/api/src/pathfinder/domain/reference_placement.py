@@ -10,7 +10,8 @@ from typing import Literal
 
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
-    COUNTED_REFERENCES,
+    TALLY_VALUES,
+    carries_its_noun,
     reference_kind,
 )
 
@@ -63,7 +64,9 @@ _CONTINUATIONS = frozenset(
 )
 _MASK = "\0"
 
-type MisplacementKind = Literal["number_word", "noun_after_count"]
+type MisplacementKind = Literal[
+    "number_word", "noun_after_count", "values_without_noun"
+]
 
 
 @dataclass(frozen=True)
@@ -115,12 +118,22 @@ def _in_clause(
         clause = prose[start:stop].strip()
         yield Misplacement("number_word", clause, numbered[0].group())
     for match in references:
-        if reference_kind(match) not in COUNTED_REFERENCES:
+        body = match.group("body") or ""
+        if reference_kind(match) == "tally" and body.endswith(TALLY_VALUES):
+            tail = masked[match.end() : stop].split(_MASK, 1)[0]
+            if _A_WORD.search(tail) is None:
+                yield Misplacement("values_without_noun", match.group(), match.group())
+        if not carries_its_noun(match):
             continue
         noun_end = _noun_after(masked, match.end(), stop, nouns)
         if noun_end >= 0:
             token = prose[match.start() : noun_end]
             yield Misplacement("noun_after_count", token, match.group())
+
+
+def clause_texts(prose: str) -> list[str]:
+    masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
+    return [prose[start:stop] for start, stop in _clauses(masked)]
 
 
 def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]:
@@ -135,4 +148,4 @@ def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]
     ]
 
 
-__all__ = ["Misplacement", "misplacements"]
+__all__ = ["Misplacement", "clause_texts", "misplacements"]

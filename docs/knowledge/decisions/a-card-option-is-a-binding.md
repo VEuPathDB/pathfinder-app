@@ -67,7 +67,12 @@ question states, the organism while a criterion names its organism parameter, an
 the dimension of each parameter a criterion holds (`dimension_of_parameter`). A
 question of the Lead's own offers no option, or 'Drop <requirement>' and 'Keep
 <requirement>' of a requirement the thread holds, which bind as `Withdraw` and
-`Keep`; a value a parameter sets is asked by the pass that binds it. An answer applies its option before the
+`Keep`, or, on the dimension other, the readings a framing pass named as its
+`chosenReading` (the one it built and each other), which the thread keeps in
+`namedReadings`; a value a parameter sets is asked by the pass that binds it. A
+picked reading states that reading as a requirement on the dimension other, and is
+never recorded as the researcher's words: the pass typed the label, so it is no
+free-text option. An answer applies its option before the
 Lead reads it: the value is written into the spec as a `card` value whose basis is
 the option id, in the kind of the value it replaces or of the open slot it fills
 (an `OpenSlot` carries the parameter kind its sheet gives), and the FRAME re-bind

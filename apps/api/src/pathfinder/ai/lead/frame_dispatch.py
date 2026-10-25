@@ -214,6 +214,7 @@ async def run_frame(
             c.requested_value for c in lacking
         ]
         deps.state.turn_markers.record_reading(result.chosen_reading)
+        domain.name_reading(result.chosen_reading)
         reported = resolved_reports(result.requirement_problems, domain.requirements)
         domain.record_roles |= record_roles(result.record_types, domain.requirements)
         domain.group_scopes = merged_scopes(domain.group_scopes, result.group_scopes)

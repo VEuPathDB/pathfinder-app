@@ -15,7 +15,7 @@ from pathfinder.domain.count_words import counted
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
-    COUNTED_REFERENCES,
+    carries_its_noun,
     malformed_brackets,
     reference_and_its_noun,
     reference_kind,
@@ -28,9 +28,11 @@ from pathfinder.domain.reply_suggestions import (
     an_identifier,
     last_change,
     link_references,
+    listed_value_references,
     number_references,
     product_of,
     record_references,
+    token_words,
     value_word_references,
 )
 from pathfinder.domain.statistic_facts import (
@@ -39,8 +41,10 @@ from pathfinder.domain.statistic_facts import (
     statistic_word_references,
 )
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import tally_count
+from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
+from pathfinder.domain.tally_labels import held_label_words
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
+from pathfinder.domain.zero_words import words_for_none
 
 _A_LINK = re.compile(
     r"(?:https?:[\\/]*|www\.|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
@@ -78,6 +82,10 @@ type FaultKind = Literal[
     "standalone_count",
     "sentence_in_place",
     "cited_number",
+    "listed_value",
+    "tally_of_a_step",
+    "zero_word",
+    "values_without_noun",
 ]
 
 
@@ -267,7 +275,7 @@ def _rendered_with_notes(
         rendered = _rendered(match, facts)
         noun = match.group("noun") or ""
         shown = _unheld_words(match) if rendered is None else rendered
-        kept = shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
+        kept = shown if carries_its_noun(match) else shown + noun
         return match.group("gap") + kept
 
     return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose), notes
@@ -295,18 +303,15 @@ def shown_reply(prose: str, facts: TurnFacts, label: str) -> str:
     return text + notes.block()
 
 
-def _words(text: str) -> set[str]:
-    """The whole tokens of the text, case folded."""
-    return {found.strip(EDGE_MARKS).casefold() for found in A_TOKEN.findall(text)}
-
-
-def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
+def _token_faults(text: str, facts: TurnFacts, held: set[str]) -> Iterator[ProseFault]:
     """Each number and identifier token. A name that mixes letters and digits
     in neither shape ("PfEMP1", "3D7", "SignalP-6.0") is prose, and so is a
     number a request message writes as a whole token."""
-    said = {word for message in facts.request_messages for word in _words(message)}
+    said = {word for message in facts.request_messages for word in token_words(message)}
     for found in A_TOKEN.findall(text):
         token = found.strip(EDGE_MARKS)
+        if token.casefold() in held:
+            continue
         identifier = bool(token) and an_identifier(token)
         if not identifier and (
             _A_NUMBER.fullmatch(token) is None or token.casefold() in said
@@ -328,17 +333,21 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
             if digits is None
             else number_references(facts, digits.group().replace(",", ""))
         )
-        yield ProseFault(
-            token=token,
-            kind="identifier" if identifier else "number",
-            references=record_references(facts, token)
+        rendering = (
+            record_references(facts, token)
             or value_word_references(facts, token)
             or (
                 statistic_word_references(facts.cited_statistics(), token)
                 if identifier
                 else ()
             )
-            or numbered,
+            or numbered
+        )
+        listed = () if rendering else listed_value_references(facts, token)
+        yield ProseFault(
+            token=token,
+            kind="listed_value" if listed else "identifier" if identifier else "number",
+            references=rendering or listed,
         )
 
 
@@ -357,7 +366,8 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
         ProseFault(token=link, kind="link", references=link_references(held, link))
         for link in _A_LINK.findall(text)
     ]
-    tokens = list(_token_faults(_A_LINK.sub(" ", text), held))
+    labelled = held_label_words(prose, held.tallies)
+    tokens = list(_token_faults(_A_LINK.sub(" ", text), held, labelled))
     brackets = [
         ProseFault(token=token, kind="malformed_reference")
         for token in malformed_brackets(prose)
@@ -422,7 +432,24 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    found = [*unheld, *alone, *misused, *shape_faults(prose, facts)]
+    elsewhere = [
+        ProseFault(token=token, kind="tally_of_a_step")
+        for token in tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
+    ]
+    zeros = [
+        ProseFault(token=token, kind="zero_word", references=(reference,))
+        for token, reference in words_for_none(
+            prose, lambda match: _rendered(match, facts)
+        )
+    ]
+    found = [
+        *unheld,
+        *alone,
+        *misused,
+        *elsewhere,
+        *zeros,
+        *shape_faults(prose, facts),
+    ]
     return list(dict.fromkeys(found))
 
 

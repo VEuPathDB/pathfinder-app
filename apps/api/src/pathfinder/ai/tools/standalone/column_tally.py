@@ -26,7 +26,8 @@ COLUMN_TALLY_REFUSALS = 6
 def tally_line(tally: ColumnTally) -> str:
     top = tally.rows[0] if tally.rows else None
     most = "" if top is None else f", most {top.value} ({top.count:,})"
-    return f"{tally.title}: {tally.distinct:,} values{most}"
+    heading = tally.fact().heading(tally.result_step_id)
+    return f"{heading}: {tally.distinct:,} values{most}"
 
 
 async def count_by_column(
@@ -47,7 +48,8 @@ async def count_by_column(
     organism (``organism_prefix``). A value that lists several entries counts as
     one value of its own. The table shows every count; state the total with
     ``[tally:<id>]``, one value's count with ``[tally:<id>.<value>]`` and the
-    number of values with ``[tally:<id>:values]``. A
+    number of values with ``[tally:<id>:values]`` and the noun of its values
+    after it. A
     column the site cannot count is refused with the columns it can.
 
     Args:

@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     InputDatasetValue,
+    MultiPickValue,
     to_wire,
 )
 from veupathdb.domain.strategy import StrategyStep
@@ -101,22 +102,25 @@ def _notes(criterion: Criterion, param: str, bound: BoundValue, noun: str) -> li
             return read_pick_clauses(criterion, param, noun=noun)
 
 
-def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str]:
+def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str, int]:
     """The value and its label as a researcher reads them. A list reads as what
     it holds, never as the site's id for it."""
     match bound.value:
         case InputDatasetValue():
-            return bound.label or "an uploaded list", ""
+            return bound.label or "an uploaded list", "", 1
         case _ if bound.taxon is not None:
-            return bound.taxon.name, bound.taxon.label()
+            return bound.taxon.name, bound.taxon.label(), 1
         case _ if name == PHYLETIC_EXPRESSION_PARAM:
-            return bound.label, ""
+            return bound.label, "", 1
         case _ if bound.words:
-            return bound.words, ""
+            return bound.words, "", 1
+        case MultiPickValue(values=values):
+            return plain_value(bound.value), _label(criterion, name, bound), len(values)
         case _:
             return (
                 bound.rounded() or plain_value(bound.value),
                 _label(criterion, name, bound),
+                1,
             )
 
 
@@ -135,7 +139,7 @@ def _parameter(
             label="site placeholder",
             source=bound.source,
         )
-    value, label = _shown(criterion, name, bound)
+    value, label, picks = _shown(criterion, name, bound)
     return ParameterFact(
         name=name,
         display_name=shown,
@@ -143,6 +147,7 @@ def _parameter(
         label=label,
         source=bound.source,
         notes=_notes(criterion, name, bound, noun),
+        picks=picks,
     )
 
 
@@ -423,6 +428,9 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         statistics=list(domain.statistics),
         audit_statistics=list(markers.audit_facts),
         tallies=list(markers.tallies),
+        result_step_id=None
+        if not built or session.sync_state is None
+        else session.sync_state.wdk_root_step_id,
         stopped_check=""
         if stop is None or stop.role != "verification"
         else stop.render(),

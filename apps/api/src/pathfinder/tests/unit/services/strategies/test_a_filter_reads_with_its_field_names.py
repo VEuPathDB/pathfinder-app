@@ -49,4 +49,5 @@ def test_the_facts_row_shows_the_words_and_no_joined_label() -> None:
     assert _shown(criterion, _SAMPLES, bound) == (
         "sex: female; Collection Year: 2010 to 2015; VAR_00000000: PfSample or unknown",
         "",
+        1,
     )

@@ -69,7 +69,7 @@ def test_a_tally_shows_its_title_its_total_and_each_count() -> None:
     assert _TALLY.lines() == [
         "Datasets by Organism(s), where Category is RNASeq",
         f"[tally:{_ID}] = 379 datasets",
-        f"[tally:{_ID}:values] = 58 values",
+        f"[tally:{_ID}:values] = 58",
         f"[tally:{_ID}.Anopheles gambiae PEST] = 40",
         f"[tally:{_ID}.Anopheles coluzzii AcolN3] = 11",
     ]
@@ -79,8 +79,8 @@ def test_a_tally_values_reference_renders_how_many_values_it_counted() -> None:
     facts = TurnFacts(tallies=[_TALLY])
 
     assert render_reply(
-        f"It has [tally:{_ID}] across [tally:{_ID}:values].", facts
-    ) == ("It has 379 datasets across 58 values.")
+        f"It has [tally:{_ID}] across [tally:{_ID}:values] organisms.", facts
+    ) == ("It has 379 datasets across 58 organisms.")
     assert render_reply(f"Across [tally:{_ID}:values] values.", facts) == (
         "Across 58 values."
     )

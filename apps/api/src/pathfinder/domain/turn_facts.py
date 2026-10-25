@@ -54,6 +54,7 @@ class ParameterFact(CamelModel):
     label: str = ""
     source: ValueSource
     notes: list[str] = Field(default_factory=list)
+    picks: int = 1
 
     @field_validator("label", mode="after")
     @classmethod
@@ -242,6 +243,7 @@ class TurnFacts(CamelModel):
     audit_statistics: list[StatisticFact] = Field(default_factory=list, exclude=True)
     # The column tallies this turn ran. Their card shows them.
     tallies: list[TallyFact] = Field(default_factory=list)
+    result_step_id: int | None = None
     stopped_check: str = ""
     refusal: str = ""
     unchecked: str = ""
@@ -379,7 +381,7 @@ class TurnFacts(CamelModel):
             *(v.row(noun) for c in self.comparisons for v in c.variants),
             *(line for m in self.memberships for line in m.lines()),
             *(line for s in self.statistics for line in s.lines()),
-            *(line for t in self.tallies for line in t.lines()),
+            *(line for t in self.tallies for line in t.lines(self.result_step_id)),
             *(s.line() for s in self.sources if not s.step_id),
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),

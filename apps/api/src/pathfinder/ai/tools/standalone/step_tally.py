@@ -62,6 +62,11 @@ def _require_strategy_step(session: StrategySession, wdk_step_id: int) -> None:
     raise ModelRetry(msg)
 
 
+def _result_step(session: StrategySession) -> int | None:
+    sync = session.sync_state
+    return None if sync is None else sync.wdk_root_step_id
+
+
 def _matches(column: StepColumn, name: str, countable_only: bool) -> bool:
     if countable_only and not column.countable:
         return False
@@ -165,8 +170,13 @@ async def count_step_by_column(
     word is a genome code and the counts sum to the step's records. The table
     links the step on the site; state the total with ``[tally:<id>]``, one value's
     count with ``[tally:<id>.<value>]`` and the number of values with
-    ``[tally:<id>:values]``. A column that cannot be counted is refused with the
-    columns that can.
+    ``[tally:<id>:values]`` and the noun of its values after it. A column that
+    cannot be counted is refused with the columns that can.
+
+    Count the strategy's result step, the root, which holds the records the
+    question asks about, or the step a transform adds over it. A tally of
+    another step names the result step it is not, and a reply never cites it
+    while no tally of this turn counts the result.
 
     Args:
         wdk_step_id: The WDK step ID of a built step of this strategy.
@@ -201,6 +211,7 @@ async def count_step_by_column(
     except ColumnTallyRefusedError as refusal:
         refused.add(column)
         raise ModelRetry(str(refusal)) from refusal
+    tally = tally.model_copy(update={"result_step_id": _result_step(session)})
     ctx.deps.state.turn_markers.record_tally(tally.fact())
     chunk = DataChunk(
         type="data-column-tally", data=tally.model_dump(by_alias=True, mode="json")

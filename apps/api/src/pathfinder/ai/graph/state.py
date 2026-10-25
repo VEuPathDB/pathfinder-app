@@ -273,6 +273,7 @@ class StrategyDomainState(ThreadRequirements):
         self.answered_questions = []
         self.recommendations = []
         self.open_questions = []
+        self.named_readings = []
         self.original_request = ""
         self.request_messages = []
         self.researcher_asks = []
