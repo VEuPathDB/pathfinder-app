@@ -104,9 +104,12 @@ AUDIT_CLASSIFICATION = (
     "gene_model_audit is a request to check the gene models of a genome or of "
     "named genes for errors, whatever its verb: "
     f"{'; '.join(_in_a_sentence(title) for title in CHECK_TITLES.values())}. "
-    "A request to find or list genes by a property of their models asks for no "
-    'error check and is a build: "Find pseudogenes in P. falciparum NF54" and '
-    '"List genes longer than 10 kb in 3D7" are new_strategy.'
+    "A question whether a model is right is an audit, and a request for the "
+    "genes that hold a property of their models is a build: "
+    '"Which NF54 pseudogenes are intact?" asks whether the pseudogene calls are '
+    'right and is gene_model_audit, while "Find pseudogenes in P. falciparum '
+    'NF54" finds genes by their gene type and is new_strategy, as is "List '
+    'genes longer than 10 kb in 3D7".'
 )
 
 
