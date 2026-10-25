@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A computed comparison is saved as a group list step
-description: A compare that veupathdb-mcp answers on its computed route is held by a `groups:` handle and becomes a criterion on the site's group id list search, through the same criterion path a saved gene set takes, its ids uploaded to the researcher's account by `frozen_step_id`; its counts are a `group_comparison` statistic the reply places with `[stat:]`. Inlining the ids, a step outside the spec, and a parallel step-building path were rejected.
+description: A compare that veupathdb-mcp answers on its computed route is held by a `groups:` handle and becomes a criterion on the site's group id list search, through the same criterion path a saved gene set takes, its ids uploaded to the researcher's account by `counted_id_list`; its counts are a `group_comparison` statistic the reply places with `[stat:]`. Inlining the ids, a step outside the spec, and a parallel step-building path were rejected.
 tags: [orthomcl, phyletic, frame, strategy, facts]
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T00:00:00Z }
 status: stable
@@ -21,31 +21,32 @@ requests, a `factId` and a `groups:` handle. The group ids stay in
 turn end they are kept only while an open question, a declined proposal, a separation
 offer or a pending approval names the handle, the check that keeps an `expr:` handle
 (`ai/graph/expression_store.py`); the statistic outlives them. Nothing is uploaded when
-the comparison is computed: the save is the researcher's to ask for, and a card that
-offers it keeps the ids until the answer.
+the comparison is computed: the save is the researcher's to ask for. A framing pass that
+holds an unsaved comparison ends with a card, "Save these 7,364 groups as a step?", whose
+two options carry a `SaveComputedGroups` binding with the handle, so the researcher reads
+no hash and the binding keeps the ids until the answer. `set_criterion(computed_groups=...)`
+binds only on a turn whose intent asks for a strategy (`REQUEST_INTENTS`) or that picked
+the card's save option (`TurnMarkers.saves_asked`), and a `groups:` handle bound as a
+phyletic expression is sent back to be passed as `computed_groups`.
 
 **The step.** `set_criterion(computed_groups=<handle>)` saves the ids with
-`frozen_step_id(..., record_type="group")`, which uploads them as an id list dataset in
-the researcher's account, builds a `GroupsByNameList` step on it and refuses a step whose
-count is not the list (`IdListStepCountError`). That refusal is a failed call, not a
-retry: the ids come from the site's own clouds, so a rebuild meets the same count, and
-the counted answer stands. The criterion takes that step's
-search and its `group_names` dataset, as a saved gene set takes `GeneByLocusTag` and its
-dataset (`_frame_gene_set.py`), so BUILD makes an ordinary leaf of it that combines,
-transforms and counts in the step tally. Its title is the question with "computed
-snapshot" and the day; its value's basis says the ids are fixed and that a later release
-maps each id to the groups it became, so the step's count can change. The comparison's reading check holds the computed criterion too
+`counted_id_list(..., record_type="group")`, which uploads them as an id list dataset in
+the researcher's account, counts a `GroupsByNameList` step on it in an internal strategy,
+deletes that strategy whatever the count, and refuses a list whose count is not the ids
+(`IdListStepCountError`). That refusal is a failed call, not a retry: the ids come from the
+site's own clouds, so a rebuild meets the same count, and the counted answer stands. The
+criterion takes the returned search, record type and `group_names` dataset, as a saved gene
+set takes `GeneByLocusTag` and its dataset (`_frame_gene_set.py`), so BUILD makes an
+ordinary leaf of it that combines, transforms and counts in the step tally. Its title is
+the question with "computed snapshot" and the day; its value's basis says the ids are fixed
+and that a later release maps each id to the groups it became, so the step's count can
+change. The comparison's reading check holds the computed criterion too
 (`bound_comparisons`).
 
-**The internal strategy stays, for now.** `frozen_step_id` keeps the step it made in
-an internal strategy of the researcher's account and caches the step id per account and
-membership, so a later call with the same groups returns that step. Deleting the
-strategy after the read would leave the cache naming a step whose strategy is deleted.
 WDK's `DELETE /users/{id}/strategies/{id}` only marks the strategy row deleted
 (`StrategyService.deleteStrategy` -> `StepFactory.updateStrategy`), and WDK does not track
 which steps use a dataset (`StepFactory.cloneDatasetParam`), so the uploaded dataset the
-criterion holds outlives the strategy. Removing the strategy waits for a veupathdb-mcp
-release whose id-list save deletes it and caches nothing.
+criterion holds outlives the internal strategy, and no strategy is left in the account.
 
 **The facts.** `HeldComparison.facts()` is `ComparisonFacts`, registered in
 `FACT_SOURCES`, so every row takes its display form from its type: counts as numbers,
@@ -64,8 +65,9 @@ builder cannot use: a failed call, recorded against the phyletic search.
 
 - **The ids in the tool return.** A genus comparison selects thousands of groups; the
   model reads counts and a handle.
-- **Binding the frozen step itself.** WDK holds a step in one strategy, and the frozen
-  step belongs to an internal one; the criterion reuses its dataset instead.
+- **Binding the counted step itself, or `frozen_step_id`.** WDK holds a step in one
+  strategy, and the counted step belongs to an internal one; `frozen_step_id` keeps that
+  strategy and caches its step. The criterion holds the dataset alone.
 - **A step-building path of its own.** A criterion on the list search reaches combines,
   edits and the tally with no new code.
 
