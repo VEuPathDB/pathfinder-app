@@ -443,6 +443,16 @@ def unstated_reading_message(reading: ChosenReading) -> str:
     )
 
 
+def unplaced_breakdown_message(references: Sequence[str]) -> str:
+    return (
+        "The reply places the group count of a computed comparison and not how "
+        "those groups divide. A group that one set alone holds is absent from the "
+        "other set, not larger in it, and the residual groups and a species that "
+        "leads a set change what the count means. Place each of these references "
+        f"with the words that say what it counts: {', '.join(references)}."
+    )
+
+
 UNBACKED_ABSENCE = (
     "Your reply says a search is absent, and this turn looked nothing up in the "
     "catalog. Call count_search with the search's name: a name the catalog does "

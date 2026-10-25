@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import date
 from typing import Literal
 
@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
+LEADING_SHARE = 0.25
 
 type Route = Literal["computed snapshot"]
 
@@ -59,17 +60,19 @@ class SetFacts(CamelModel):
     leading_species_genomes: int
     leading_species_share: Share
     species: tuple[SpeciesFacts, ...]
+    leading_species_leads: bool
 
     @classmethod
     def of(cls, held: ComputedSet) -> SetFacts:
         leading = held.species[0]
+        share = _share(leading.genomes, held.genomes)
         return cls(
             genomes=held.genomes,
             groups=held.groups,
             proteins=held.proteins,
             leading_species=_named(_leaders(held)),
             leading_species_genomes=leading.genomes,
-            leading_species_share=_share(leading.genomes, held.genomes),
+            leading_species_share=share,
             species=tuple(
                 SpeciesFacts(
                     species=one.species,
@@ -78,6 +81,7 @@ class SetFacts(CamelModel):
                 )
                 for one in held.species
             ),
+            leading_species_leads=len(_leaders(held)) == 1 and share > LEADING_SHARE,
         )
 
 
@@ -101,6 +105,33 @@ class ComparisonFacts(CamelModel):
     compute_requests: int
     left: SetFacts
     right: SetFacts
+
+    def breakdown(self) -> tuple[str, ...]:
+        sides = (("leftOnly", self.left_only), ("rightOnly", self.right_only))
+        one_sided = [path for path, count in sides if count]
+        split = ["bothHeld", *one_sided] if one_sided else []
+        residual = ["residualGroups"] if self.residual_groups else []
+        leading = [
+            f"{side}.{path}"
+            for side, held in (("left", self.left), ("right", self.right))
+            if held.leading_species_leads
+            for path in ("leadingSpecies", "leadingSpeciesShare")
+        ]
+        return (*split, *residual, *leading)
+
+
+class PlacedComparison(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    fact_id: str
+    facts: ComparisonFacts
+    count_references: tuple[str, ...]
+
+    def unplaced(self, written: Collection[str]) -> list[str]:
+        if not any(reference in written for reference in self.count_references):
+            return []
+        wanted = (f"[stat:{self.fact_id}.{path}]" for path in self.facts.breakdown())
+        return [reference for reference in wanted if reference not in written]
 
 
 def _leaders(held: ComputedSet) -> list[str]:
@@ -147,6 +178,30 @@ class HeldComparison(CamelModel):
     def handle(self) -> str:
         return comparison_handle(self.answer.group_ids)
 
+    @property
+    def fact_id(self) -> str:
+        return statistic_id("group_comparison", [self.handle])
+
+    def bound_in(self, spec: OperationalSpec) -> list[str]:
+        return [
+            criterion.id
+            for criterion in spec.criteria
+            for value in criterion.param_values.values()
+            if self.dataset_id is not None and _dataset(value) == self.dataset_id
+        ]
+
+    def placed(self, spec: OperationalSpec, root_id: str | None) -> PlacedComparison:
+        steps = self.bound_in(spec)
+        return PlacedComparison(
+            fact_id=self.fact_id,
+            facts=self.facts(),
+            count_references=(
+                f"[stat:{self.fact_id}.groups]",
+                *(f"[count:{step}]" for step in steps),
+                *(["[root]"] if root_id in steps else []),
+            ),
+        )
+
     def step_name(self, question: str) -> str:
         return f"{question} ({COMPUTED_ROUTE}, {self.computed_on.isoformat()})"
 
@@ -188,7 +243,7 @@ class HeldComparison(CamelModel):
     def fact(self) -> StatisticFact:
         left, right = self.answer.sets
         return StatisticFact(
-            id=statistic_id("group_comparison", [self.handle]),
+            id=self.fact_id,
             kind="group_comparison",
             title=f"Computed comparison: {self.answer.reading}",
             rows=model_rows(self.facts()),
@@ -219,20 +274,16 @@ def _dataset(value: ParamValue) -> str | None:
 def bound_comparisons(
     held: Mapping[str, HeldComparison], spec: OperationalSpec
 ) -> list[tuple[str, PhyleticPattern]]:
-    saved = {one.dataset_id: one for one in held.values() if one.dataset_id}
-    return [
-        (criterion.id, saved[dataset].pattern)
-        for criterion in spec.criteria
-        for value in criterion.param_values.values()
-        if (dataset := _dataset(value)) is not None and dataset in saved
-    ]
+    return [(step, one.pattern) for one in held.values() for step in one.bound_in(spec)]
 
 
 __all__ = [
     "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
+    "LEADING_SHARE",
     "ComparisonFacts",
     "HeldComparison",
+    "PlacedComparison",
     "SetFacts",
     "SpeciesFacts",
     "bound_comparisons",
