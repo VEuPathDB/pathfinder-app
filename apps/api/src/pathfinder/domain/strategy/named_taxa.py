@@ -8,6 +8,7 @@ from collections.abc import Iterator, Sequence
 from pydantic import ConfigDict, Field
 from veupathdb.domain.parameters import (
     FAKE_ALL_SENTINEL,
+    PhyleticTree,
     WDKTreeBoxVocabNode,
     collect_leaf_terms,
 )
@@ -91,16 +92,16 @@ def _label(node: WDKTreeBoxVocabNode) -> str:
     return node.data.display or node.data.term
 
 
-def _genera(leaves: Sequence[WDKTreeBoxVocabNode]) -> list[Taxon]:
+def _genera(leaves: Sequence[tuple[str, str]]) -> list[Taxon]:
     """Each genus the leaf labels begin with, and the leaves whose label does."""
     named: dict[str, str] = {}
     under: dict[str, set[str]] = {}
-    for leaf in leaves:
-        head = spelled_words(_label(leaf))[:1]
+    for label, term in leaves:
+        head = spelled_words(label)[:1]
         if head:
             key = head[0].casefold()
             named.setdefault(key, head[0])
-            under.setdefault(key, set()).add(leaf.data.term)
+            under.setdefault(key, set()).add(term)
     return [
         Taxon(name=named[key], leaves=frozenset(terms)) for key, terms in under.items()
     ]
@@ -119,7 +120,7 @@ def _organism_tree(root: WDKTreeBoxVocabNode) -> OrganismTree:
                 for n in nodes
                 if n.children
             ),
-            *_genera([n for n in nodes if not n.children]),
+            *_genera([(_label(n), n.data.term) for n in nodes if not n.children]),
         ],
         parents=parents,
         labels=[_label(n) for n in nodes],
@@ -138,4 +139,20 @@ def organism_trees(definition: WDKSearch) -> dict[str, OrganismTree]:
     return trees
 
 
-__all__ = ["NamedTaxon", "OrganismTree", "organism_trees"]
+def phyletic_organism_tree(tree: PhyleticTree) -> OrganismTree:
+    """The taxa of a phyletic tree: each clade, then each genus of its genomes."""
+    nodes = list(tree.nodes())
+    parents = {
+        n.code: frozenset(tree.genomes_under([n.code])) for n in nodes if n.clade
+    }
+    return OrganismTree(
+        taxa=[
+            *(Taxon(name=n.label, leaves=parents[n.code]) for n in nodes if n.clade),
+            *_genera([(n.label, n.code) for n in nodes if not n.clade]),
+        ],
+        parents=parents,
+        labels=[n.label for n in nodes],
+    )
+
+
+__all__ = ["NamedTaxon", "OrganismTree", "organism_trees", "phyletic_organism_tree"]

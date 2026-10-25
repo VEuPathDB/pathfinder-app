@@ -373,6 +373,7 @@ async def _bind_the_search(
         state,
         call,
         resolved.params,
+        site_id=ctx.deps.site_id,
         definition=definition,
         infos=infos,
         fetch_at=fetch_at,

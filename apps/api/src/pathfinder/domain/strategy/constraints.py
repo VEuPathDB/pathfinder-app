@@ -140,6 +140,10 @@ class GroundedConstraint(CamelModel):
         """Whether the researcher withdrew the requirement or another replaced it."""
         return self.lifecycle.state in ("withdrawn", "replaced")
 
+    @property
+    def answered_by_a_parameter(self) -> bool:
+        return self.status is ConstraintStatus.GROUNDED and bool(self.realized_param)
+
 
 def message_states(message: str, value: str) -> bool:
     """Whether the message carries every word of this value.

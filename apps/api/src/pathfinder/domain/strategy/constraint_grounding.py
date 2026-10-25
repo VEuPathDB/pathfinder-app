@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
 from pathfinder.domain.strategy.operational_spec import OperationalSpec, SpecStructure
+from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 
 _SIGNIFICANCE_RE = re.compile(
@@ -234,6 +235,21 @@ def _ground_combination(c: Constraint, realized: RealizedSpec) -> GroundedConstr
     )
 
 
+def _ground_organism(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    for criterion in realized.criteria:
+        for name, held in criterion.resolved_params.items():
+            if held.taxon is not None and stated_organisms(
+                c.requested_value, [held.taxon.name]
+            ):
+                return GroundedConstraint(
+                    constraint=c,
+                    status=ConstraintStatus.GROUNDED,
+                    realized_value=held.taxon.name,
+                    realized_param=name,
+                )
+    return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
+
+
 _NO_MARKS = DataMarks()
 
 _HANDLERS = {
@@ -242,6 +258,7 @@ _HANDLERS = {
     ConstraintKind.FOLD_CHANGE: ground_fold_change,
     ConstraintKind.PERCENTILE: _ground_percentile,
     ConstraintKind.COMBINATION: _ground_combination,
+    ConstraintKind.ORGANISM: _ground_organism,
 }
 
 

@@ -26,7 +26,8 @@ def requirement_naming(
 ) -> GroundedConstraint | None:
     """The one requirement of the researcher the text names, by its key.
 
-    A requirement a ``met`` row names is not the one the text misses, so a
+    A requirement a ``met`` row names, or a parameter of a step answers, is
+    not the one the text misses, so a
     text that names only those names none. A text that names several of the
     rest, or none, names no one requirement, so the order the requirements
     come in decides nothing.
@@ -40,7 +41,8 @@ def requirement_naming(
     missing = [
         held
         for held in named.values()
-        if not any(_names(row, held.constraint.requested_value) for row in met)
+        if not held.answered_by_a_parameter
+        and not any(_names(row, held.constraint.requested_value) for row in met)
     ]
     return missing[0] if len(missing) == 1 else None
 
