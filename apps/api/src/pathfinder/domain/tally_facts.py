@@ -131,17 +131,3 @@ def tallies_of_another_step(
         for match in A_REFERENCE.finditer(prose)
         if reference_kind(match) == "tally" and _tally_id(match) in elsewhere
     ]
-
-
-def cited_row_labels(prose: str, tallies: Sequence[TallyFact]) -> list[str]:
-    by_id = {t.id: t for t in tallies}
-    labels: list[str] = []
-    for match in A_REFERENCE.finditer(prose):
-        body = match.group("body") or ""
-        if reference_kind(match) != "tally" or body.endswith(TALLY_VALUES):
-            continue
-        held_id, _, value = body.partition(".")
-        tally = by_id.get(held_id)
-        rows = [] if tally is None else tally.rows
-        labels.extend(r.label for r in rows if r.value == value and r.label)
-    return labels

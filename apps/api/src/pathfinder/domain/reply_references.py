@@ -32,6 +32,7 @@ from pathfinder.domain.reply_suggestions import (
     number_references,
     product_of,
     record_references,
+    token_words,
     value_word_references,
 )
 from pathfinder.domain.statistic_facts import (
@@ -40,11 +41,8 @@ from pathfinder.domain.statistic_facts import (
     statistic_word_references,
 )
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import (
-    cited_row_labels,
-    tallies_of_another_step,
-    tally_count,
-)
+from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
+from pathfinder.domain.tally_labels import held_label_words
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 from pathfinder.domain.zero_words import words_for_none
 
@@ -305,16 +303,11 @@ def shown_reply(prose: str, facts: TurnFacts, label: str) -> str:
     return text + notes.block()
 
 
-def _words(text: str) -> set[str]:
-    """The whole tokens of the text, case folded."""
-    return {found.strip(EDGE_MARKS).casefold() for found in A_TOKEN.findall(text)}
-
-
 def _token_faults(text: str, facts: TurnFacts, held: set[str]) -> Iterator[ProseFault]:
     """Each number and identifier token. A name that mixes letters and digits
     in neither shape ("PfEMP1", "3D7", "SignalP-6.0") is prose, and so is a
     number a request message writes as a whole token."""
-    said = {word for message in facts.request_messages for word in _words(message)}
+    said = {word for message in facts.request_messages for word in token_words(message)}
     for found in A_TOKEN.findall(text):
         token = found.strip(EDGE_MARKS)
         if token.casefold() in held:
@@ -373,9 +366,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
         ProseFault(token=link, kind="link", references=link_references(held, link))
         for link in _A_LINK.findall(text)
     ]
-    labelled = {
-        w for label in cited_row_labels(prose, held.tallies) for w in _words(label)
-    }
+    labelled = held_label_words(prose, held.tallies)
     tokens = list(_token_faults(_A_LINK.sub(" ", text), held, labelled))
     brackets = [
         ProseFault(token=token, kind="malformed_reference")

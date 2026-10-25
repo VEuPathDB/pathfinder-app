@@ -103,3 +103,47 @@ def test_the_name_of_a_tally_row_the_reply_cites_is_held() -> None:
         )
         == []
     )
+
+
+_TWO_ROWS = TurnFacts(
+    tallies=[
+        _ROOT_TALLY.model_copy(
+            update={
+                "rows": [
+                    TallyRowFact(
+                        value="pyxn", count=90, label="Plasmodium yoelii yoelii 17XNL"
+                    ),
+                    TallyRowFact(
+                        value="pyoe", count=80, label="Plasmodium yoelii yoelii 17X"
+                    ),
+                ]
+            }
+        )
+    ],
+    result_step_id=227288280,
+    record_noun="protein",
+)
+
+
+def test_a_name_only_another_row_holds_is_not_held_by_the_cited_row() -> None:
+    faults = prose_faults("Strain 17XNL leads: [tally:tally_root.pyoe].", _TWO_ROWS)
+
+    assert [(f.token, f.kind) for f in faults] == [("17XNL", "number")]
+
+
+def test_two_cited_rows_cannot_swap_their_names_across_clauses() -> None:
+    swapped = prose_faults(
+        "P. yoelii 17XNL has [tally:tally_root.pyoe] and P. yoelii 17X has "
+        "[tally:tally_root.pyxn].",
+        _TWO_ROWS,
+    )
+    paired = prose_faults(
+        "P. yoelii 17XNL has [tally:tally_root.pyxn] and P. yoelii 17X has "
+        "[tally:tally_root.pyoe].",
+        _TWO_ROWS,
+    )
+
+    assert ([(f.token, f.kind) for f in swapped], paired) == (
+        [("17XNL", "number"), ("17X", "number")],
+        [],
+    )

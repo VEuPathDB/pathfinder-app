@@ -91,7 +91,9 @@ strategy's page at that step). Each row, the total and the number of values are 
 `TallyFact` the reply quotes as `[tally:<id>.<value>]`, `[tally:<id>]` and
 `[tally:<id>:values]`. The values reference renders the number alone, so the noun
 the reply writes after it names the values once. A row keeps its genome name as
-its `label`, so a reply that cites the row may name the genome. A step tally
+its `label`, so a reply that cites the row may name the genome in the clause that
+cites it, or in a clause just before it that cites no row ("17XNL leads: [tally]"),
+and two cited rows cannot trade names across clauses (`tally_labels`). A step tally
 carries the step it counted, and the facts carry the strategy's result step as it
 stands when the reply is checked; a tally of another step says so in its title,
 and a reply that cites it while no tally of the turn counts the result is refused

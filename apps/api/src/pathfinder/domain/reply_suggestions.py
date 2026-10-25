@@ -107,6 +107,11 @@ def _holds_the_word(parameter: ParameterFact, token: str) -> bool:
     return token in parameter.value.split() or token in parameter.label.split()
 
 
+def token_words(text: str) -> set[str]:
+    """The whole tokens of the text, case folded."""
+    return {found.strip(EDGE_MARKS).casefold() for found in A_TOKEN.findall(text)}
+
+
 def value_word_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
     """The value references of one value whose value or label holds the token
     as a word."""
@@ -149,5 +154,6 @@ __all__ = [
     "number_references",
     "product_of",
     "record_references",
+    "token_words",
     "value_word_references",
 ]

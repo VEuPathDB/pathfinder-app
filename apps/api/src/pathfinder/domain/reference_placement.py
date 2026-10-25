@@ -131,6 +131,11 @@ def _in_clause(
             yield Misplacement("noun_after_count", token, match.group())
 
 
+def clause_texts(prose: str) -> list[str]:
+    masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
+    return [prose[start:stop] for start, stop in _clauses(masked)]
+
+
 def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]:
     """Each clause that writes a number word beside a count or value reference,
     and each count reference with a count noun after it."""
@@ -143,4 +148,4 @@ def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]
     ]
 
 
-__all__ = ["Misplacement", "misplacements"]
+__all__ = ["Misplacement", "clause_texts", "misplacements"]
