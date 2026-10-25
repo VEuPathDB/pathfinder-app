@@ -37,6 +37,7 @@ _FORMATS: Mapping[str, LeafKind] = {
     "sentence": "sentence",
 }
 _SEPARATED = 1000
+_ACRONYM_LETTERS = 4
 
 
 class NoDisplayFormError(ValueError):
@@ -83,7 +84,10 @@ class SchemaNode(BaseModel):
         if self.title in CODE_WORDS and code in CODE_WORDS[self.title]:
             return CODE_WORDS[self.title][code]
         spaced = code.replace("_", " ")
-        coded = any("_" in str(member) for member in self.codes)
+        coded = any(
+            "_" in str(member) or len(str(member)) > _ACRONYM_LETTERS
+            for member in self.codes
+        )
         return spaced.lower() if coded and code.isupper() else spaced
 
     def members(self) -> tuple[SchemaNode, ...]:

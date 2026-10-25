@@ -8,7 +8,7 @@ from typing import Literal
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, JsonValue
-from veupathdb_mcp.audit import GeneticCode
+from veupathdb_mcp.audit import GeneLengthAudit, GeneticCode
 
 from pathfinder.ai import fact_sources
 from pathfinder.ai.audit.check_tools import build_check_toolset
@@ -89,6 +89,16 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
         StatisticRowFact(
             name="code", value="CTG read as serine", form="word", code="ctg_serine"
         ),
+    ]
+
+
+def test_a_code_of_an_enum_of_whole_words_renders_in_plain_words() -> None:
+    rows = schema_rows(GeneLengthAudit, {"lengthClass": "TYPICAL"})
+
+    assert rows == [
+        StatisticRowFact(
+            name="lengthClass", value="typical", form="word", code="TYPICAL"
+        )
     ]
 
 
