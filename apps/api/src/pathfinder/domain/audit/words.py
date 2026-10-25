@@ -18,7 +18,7 @@ from veupathdb_mcp.audit import (
 
 from pathfinder.domain.audit.confirmations import FindingVerdict
 from pathfinder.domain.audit.findings import ErrorType, FindingStatus, UnresolvedStatus
-from pathfinder.domain.audit.scope import CheckName
+from pathfinder.domain.audit.scope import CheckName, GeneTarget
 from pathfinder.domain.audit.stages import HaltKind
 from pathfinder.domain.audit.verdicts import (
     LiteratureStatus,
@@ -334,3 +334,7 @@ def paper_sentence(*, depends: bool | None) -> str:
 
 def verdict_sentence(check: CheckName, verdict: FindingVerdict) -> str:
     return _SENTENCES[check, verdict]
+
+
+def target_words(target: GeneTarget) -> str:
+    return f"{CHECK_TITLES[target.check]}, {' and '.join(target.genes)}"

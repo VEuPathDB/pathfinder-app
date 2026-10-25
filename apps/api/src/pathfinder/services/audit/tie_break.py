@@ -25,6 +25,7 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
     remodeled_by_side,
 )
+from pathfinder.domain.audit.words import target_words
 from pathfinder.persistence.models import (
     AuditEvidenceRecord,
     AuditFindingRecord,
@@ -286,7 +287,7 @@ async def _weigh(run: AuditRunRecord, unit: _Unit, references: References) -> _R
 
 
 def _said(unit: _Unit, read: _Read) -> tuple[bool, str]:
-    named = unit.finding.target.key
+    named = target_words(unit.finding.target)
     said = f"{named}: gene evidence" if _kind(unit) == "gene_evidence" else f"{named}:"
     match read:
         case UnitFailure(status=status, message=message):

@@ -11,6 +11,7 @@ from veupathdb_mcp.audit import record_rows
 from pathfinder.domain.audit.confirmations import Confirmation, StrainConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence, classify_confirmation
 from pathfinder.domain.audit.scope import paired_genome
+from pathfinder.domain.audit.words import target_words, verdict_sentence
 from pathfinder.persistence.models import AuditFindingRecord, AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -150,7 +151,7 @@ def _settled(
                 message=named.message,
             )
             evidence = ConfirmationEvidence(confirmation=reached)
-            return confirmed, evidence, reached.verdict
+            return confirmed, evidence, verdict_sentence(reached.check, reached.verdict)
 
 
 async def _settle(
@@ -197,7 +198,7 @@ async def run_confirm_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) 
         answered = settled.status != "unreached"
         done += answered
         await lane.update(
-            done=done, total=total, message=f"{finding.target.key}: {said}"
+            done=done, total=total, message=f"{target_words(finding.target)}: {said}"
         )
         return answered
 

@@ -189,6 +189,14 @@ async def test_a_job_carries_a_run_through_four_stages_on_the_kept_sign_in(
         ("confirm", True, True),
         ("tie_break", True, True),
     ]
+    named = f"Pseudogene calls on intact genes, {NF54_PIGA} and {PIGA}"
+    assert [s.message for s in stages[2:]] == [
+        (
+            f"{named}: The strain's DNA encodes the whole protein, so the "
+            "pseudogene call is wrong"
+        ),
+        f"{named}: gene evidence stored",
+    ]
 
 
 async def test_a_run_whose_job_crashed_resumes_under_the_same_lock(
