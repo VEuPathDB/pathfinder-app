@@ -17758,6 +17758,23 @@ components:
       - value
       title: StatisticRowFact
       type: object
+    StepAbove:
+      properties:
+        wdkStepId:
+          title: Wdkstepid
+          type: integer
+        displayName:
+          title: Displayname
+          type: string
+        transformsOnly:
+          title: Transformsonly
+          type: boolean
+      required:
+      - wdkStepId
+      - displayName
+      - transformsOnly
+      title: StepAbove
+      type: object
     StepFact:
       description: 'One step of the strategy, or of the draft while nothing is built.
 
@@ -18116,6 +18133,10 @@ components:
           - type: integer
           - type: 'null'
           title: Wdkstepid
+        path:
+          anyOf:
+          - $ref: '#/components/schemas/TallyPath'
+          - type: 'null'
       required:
       - id
       - title
@@ -18138,6 +18159,25 @@ components:
       - column
       - values
       title: TallyOnly
+      type: object
+    TallyPath:
+      properties:
+        talliedStepId:
+          title: Talliedstepid
+          type: integer
+        recordType:
+          title: Recordtype
+          type: string
+        above:
+          items:
+            $ref: '#/components/schemas/StepAbove'
+          title: Above
+          type: array
+      required:
+      - talliedStepId
+      - recordType
+      - above
+      title: TallyPath
       type: object
     TallyRow:
       properties:

@@ -330,7 +330,9 @@ def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
     reach = record.unfollowed_reach
     if reach is None or report.asked_questions or record.ends_on_a_card:
         return None
-    return unfollowed_reach_message(reach)
+    return unfollowed_reach_message(
+        reach, [t.path for t in record.facts.tallies if t.path is not None]
+    )
 
 
 def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:

@@ -17,6 +17,7 @@ from pathfinder.domain.reference_grammar import (
     TALLY_VALUES,
     reference_kind,
 )
+from pathfinder.domain.tally_paths import TallyPath
 
 type TallyFilter = tuple[str, tuple[str, ...]]
 
@@ -53,6 +54,7 @@ class TallyFact(CamelModel):
     distinct: int
     rows: list[TallyRowFact] = Field(default_factory=list)
     wdk_step_id: int | None = None
+    path: TallyPath | None = None
 
     def counts_another_step(self, result_step_id: int | None) -> bool:
         return (
@@ -120,14 +122,18 @@ def _tally_id(match: re.Match[str]) -> str:
 
 def tallies_of_another_step(
     prose: str, tallies: Sequence[TallyFact], result_step_id: int | None
-) -> list[str]:
+) -> list[tuple[str, str]]:
     if result_step_id is not None and any(
         t.wdk_step_id == result_step_id for t in tallies
     ):
         return []
-    elsewhere = {t.id for t in tallies if t.counts_another_step(result_step_id)}
+    elsewhere = {
+        t.id: "" if t.path is None or not t.path.removable else t.path.names()
+        for t in tallies
+        if t.counts_another_step(result_step_id)
+    }
     return [
-        match.group()
+        (match.group(), elsewhere[_tally_id(match)])
         for match in A_REFERENCE.finditer(prose)
         if reference_kind(match) == "tally" and _tally_id(match) in elsewhere
     ]

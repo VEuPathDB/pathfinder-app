@@ -104,6 +104,7 @@ class ProseFault(CamelModel):
     references: tuple[str, ...] = ()
     # The record whose product holds the token.
     record_id: str = ""
+    removable: str = ""
 
 
 def _parameter(facts: TurnFacts, body: str) -> ParameterFact | None:
@@ -440,9 +441,10 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=d.token, kind="unnamed_dispute", references=(d.reference,))
         for d in unnamed_disputes(prose, facts.cited_statistics())
     ]
+    tallied = tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
     elsewhere = [
-        ProseFault(token=token, kind="tally_of_a_step")
-        for token in tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
+        ProseFault(token=token, kind="tally_of_a_step", removable=above)
+        for token, above in tallied
     ]
     zeros = [
         ProseFault(token=token, kind="zero_word", references=(reference,))

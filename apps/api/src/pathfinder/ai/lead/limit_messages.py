@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pathfinder.domain.column_reach import StepReach, TransformReach
+from pathfinder.domain.tally_paths import TallyPath
 
 
 def _reached(transform: TransformReach) -> str:
@@ -11,8 +14,21 @@ def _reached(transform: TransformReach) -> str:
     )
 
 
-def unfollowed_reach_message(reach: StepReach) -> str:
-    reached = "; ".join(_reached(t) for t in reach.transforms if t.countable)
+def unfollowed_reach_message(reach: StepReach, paths: Sequence[TallyPath] = ()) -> str:
+    back = [p for p in paths for t in reach.transforms if p.leads_back(reach, t)]
+    offered = [
+        t
+        for t in reach.transforms
+        if t.countable and not any(p.leads_back(reach, t) for p in paths)
+    ]
+    if back and not offered:
+        return (
+            f"step_columns found no countable column on step {reach.wdk_step_id}, "
+            f"and a tally this turn already counted step {back[0].tallied_step_id}, "
+            f"which {back[0].names()} only transform. Remove those steps with "
+            "edit_strategy so the tallied step is the result, then cite its tally."
+        )
+    reached = "; ".join(_reached(t) for t in offered)
     return (
         f"step_columns found no countable column on step {reach.wdk_step_id} "
         f"({reach.record_type} records) for this count. {reached}. If one of "

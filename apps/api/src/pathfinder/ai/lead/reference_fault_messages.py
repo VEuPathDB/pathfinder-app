@@ -7,6 +7,14 @@ from pathfinder.domain.reply_references import ProseFault
 
 
 def reference_sentence(fault: ProseFault) -> str | None:
+    if fault.kind == "tally_of_a_step" and fault.removable:
+        return (
+            f"``{fault.token}`` counts a step that is not the strategy's result, as "
+            "its tally's title says. Either count the result step with "
+            "count_step_by_column and cite that tally, or remove "
+            f"{fault.removable} with edit_strategy, which only transform the "
+            "tallied step's records, so the tallied step is the result again."
+        )
     if fault.kind == "tally_of_a_step":
         return (
             f"``{fault.token}`` counts a step that is not the strategy's result, as "

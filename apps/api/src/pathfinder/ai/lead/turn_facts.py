@@ -25,6 +25,7 @@ from pathfinder.ai.lead.facts_reads import (
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.tally_steps import tallies_with_paths
 from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import (
@@ -427,7 +428,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         memberships=list(markers.memberships),
         statistics=list(domain.statistics),
         audit_statistics=list(markers.audit_facts),
-        tallies=list(markers.tallies),
+        tallies=tallies_with_paths(session, markers.tallies),
         result_step_id=None
         if not built or session.sync_state is None
         else session.sync_state.wdk_root_step_id,
