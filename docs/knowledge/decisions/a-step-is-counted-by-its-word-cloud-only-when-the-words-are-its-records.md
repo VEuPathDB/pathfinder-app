@@ -89,7 +89,11 @@ carries the genome's name as its `label`, and the card shows it beside the code.
 values, and its card links the step on the site (`ColumnTally.step_url`, the
 strategy's page at that step). Each row, the total and the number of values are a
 `TallyFact` the reply quotes as `[tally:<id>.<value>]`, `[tally:<id>]` and
-`[tally:<id>:values]`.
+`[tally:<id>:values]`. The values reference renders the number alone, so the noun
+the reply writes after it names the values once. A step tally carries the step it
+counted and the strategy's result step; a tally of another step says so in its
+title, and a reply that cites it while no tally of the turn counts the result is
+refused (`tallies_of_another_step`).
 
 **A count of a result's members goes through the transform.** The Lead's rule:
 a count of a result's members by a column (the proteins of a set of groups by

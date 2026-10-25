@@ -2,6 +2,18 @@
 
 ## 2026-10-25
 
+* **A tally answers about the result only when it counts the result step.** A step
+  tally names the step it counted and the strategy's result step, and a reply that
+  cites a tally of another step while no tally counts the result is refused. A values
+  reference renders the number alone. A fact-guard hint names a value reference only
+  when that reference renders the one value it replaces; a token one value of a
+  multi-pick holds is told to be cited another way or taken out. "Empty" and "zero"
+  are number words beside a count reference. An unmet check row whose words carry
+  only requirements a met row answers names none of them, so the requirement stays
+  grounded and no card offers to drop it. The Lead's own card may offer the readings
+  a framing pass named, on the dimension other
+  ([a card option is a binding](decisions/a-card-option-is-a-binding.md)).
+
 * **Every process fits one database connection budget.** The estate Postgres allows 100
   connections and the deployment keeps 90 of them, so every pool is sized by a setting
   (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `LOCK_POOL_SIZE`, `LOCK_POOL_OVERFLOW`,
