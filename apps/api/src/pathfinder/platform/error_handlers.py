@@ -9,6 +9,7 @@ from assistant_core.errors import (
     AssistantCoreError,
     ConversationForbiddenError,
     ConversationNotFoundError,
+    MessageOwnedElsewhereError,
     TurnStillRunningError,
 )
 from assistant_core.platform.types import JSONArray
@@ -48,6 +49,11 @@ _RUNTIME_REFUSALS: dict[type[AssistantCoreError], tuple[int, ErrorCode, str]] = 
         HTTPStatus.CONFLICT,
         ErrorCode.SESSION_CONFLICT,
         "A turn is still running",
+    ),
+    MessageOwnedElsewhereError: (
+        HTTPStatus.CONFLICT,
+        ErrorCode.SESSION_CONFLICT,
+        "The message belongs to another conversation",
     ),
 }
 

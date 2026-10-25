@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from assistant_core.errors import MessageOwnedElsewhereError
 from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform import db
@@ -65,6 +66,61 @@ async def test_upsert_replaces_metadata(
         assert final.metadata_ == {
             "usage": {"totalTokens": 250, "costUsd": "0.03"},
         }
+
+
+@pytest.mark.asyncio
+async def test_an_upsert_from_a_branch_leaves_the_parent_row_unchanged(
+    patch_app_db_engine: None,
+    db_cleaner: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner
+    user_id = uuid4()
+    parent_id, branch_id = uuid4(), uuid4()
+    message_id = uuid4()
+    parent_metadata = {"usage": {"totalTokens": 120, "costUsd": "0.01"}}
+
+    async with db.async_session_factory() as session:
+        session.add(User(id=user_id))
+        for conversation_id in (parent_id, branch_id):
+            session.add(
+                Conversation(
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                    id=conversation_id,
+                    user_id=user_id,
+                    site_id="plasmodb",
+                    name="t",
+                ),
+            )
+        await session.commit()
+
+    async with db.async_session_factory() as session:
+        await MessagesRepository(session).upsert_message(
+            message_id=message_id,
+            conversation_id=parent_id,
+            role="assistant",
+            metadata=parent_metadata,
+        )
+        await session.commit()
+
+    async with db.async_session_factory() as session:
+        with pytest.raises(MessageOwnedElsewhereError):
+            await MessagesRepository(session).upsert_message(
+                message_id=message_id,
+                conversation_id=branch_id,
+                role="assistant",
+                metadata={"usage": {"totalTokens": 999, "costUsd": "0.75"}},
+            )
+        await session.commit()
+
+    async with db.async_session_factory() as session:
+        row = (
+            await session.execute(
+                select(Message.conversation_id, Message.metadata_).where(
+                    Message.id == message_id,
+                ),
+            )
+        ).one()
+    assert (row[0], row[1]) == (parent_id, parent_metadata)
 
 
 @pytest.mark.asyncio
