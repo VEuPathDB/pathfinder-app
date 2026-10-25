@@ -3,12 +3,13 @@
 ## 2026-10-25
 
 * **A reply that places a computed comparison's count places how it divides.** The turn
-  contract's `unplaced_breakdown` rule reads the reply's references: a reply that places
-  the group count (`[stat:<fact>.groups]`, the saved step's `[count:]`, or `[root]` on that
-  step) also places `bothHeld` and each one-sided count above 0, `residualGroups` above 0,
-  and the leading species and its share of a set whose single leader holds more than
-  `LEADING_SHARE` (a quarter) of its genomes (`SetFacts.leading_species_leads`). A strategy
-  the build creates on a saved comparison carries `SNAPSHOT_NOTE` as its WDK description.
+  contract's `unplaced_breakdown` rule parses the reply's references: a reply that places
+  the group count (`[stat:]` or `[cite:]` of `groups`, the saved step's `[count:]`, or
+  `[root]` on that step) also places the both-held and one-sided counts or their shares,
+  the residual groups or their share, and the leading species with its share or genomes of
+  a set where one species has at least twice the genomes of the next. The graph's
+  description carries `SNAPSHOT_NOTE` once a build or an edit binds a saved comparison, and
+  every WDK strategy create sends the graph's description.
   See [a computed comparison is saved as a group list step](decisions/a-computed-comparison-is-saved-as-a-group-list-step.md).
 * **Every process fits one database connection budget.** The estate Postgres allows 100
   connections and the deployment keeps 90 of them, so every pool is sized by a setting
