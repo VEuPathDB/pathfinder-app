@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from pathfinder.domain.audit.scope import GenePairTarget, SingleGeneTarget
+from pathfinder.domain.audit.scope import (
+    GenePairTarget,
+    MissingGeneTarget,
+    SingleGeneTarget,
+)
 from pathfinder.domain.audit.words import target_words, verdict_sentence
 
 _PAIR = GenePairTarget(
@@ -20,6 +24,18 @@ def test_a_single_gene_target_names_its_one_gene() -> None:
     target = SingleGeneTarget(check="intron_support", genes=("NCU00776",))
 
     assert target_words(target) == "Exon structure against RNA-seq, NCU00776"
+
+
+def test_a_target_with_a_genome_names_it() -> None:
+    target = MissingGeneTarget(
+        check="missing_gene",
+        genes=("TGARI_257090",),
+        absent_organism="Toxoplasma gondii GT1",
+    )
+
+    assert target_words(target) == (
+        "Genes missing from the annotation, TGARI_257090 in Toxoplasma gondii GT1"
+    )
 
 
 def test_a_verdict_code_has_its_sentence() -> None:

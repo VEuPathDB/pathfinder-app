@@ -131,7 +131,7 @@ def audit_start(messages: list[ModelMessage]) -> list[ToolCallPart]:
     if started is None:
         return [*head, start, lead_final(NOT_STARTED, "await_user")]
     fact = started.fact_id
-    said = f"Audit run [stat:{fact}.runId] is [stat:{fact}.status]."
+    said = f"Audit run [stat:{fact}.runId] is [stat:{fact}.phase]."
     return [*head, start, lead_final(said, "complete")]
 
 

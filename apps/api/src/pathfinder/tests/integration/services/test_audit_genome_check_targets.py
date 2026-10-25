@@ -155,8 +155,24 @@ async def test_an_answer_that_names_no_error_keeps_what_its_check_could_not_judg
         PCYM_PKAC: (STRAIN_M, "confirmed", "truncated_model", "high", None),
     }
     assert lane.updates == [
-        (1, 2, "missing_gene:TGARI_257090:Toxoplasma gondii GT1: GAP"),
-        (2, 2, "strain_model:PcyM_0736700+PCYB_074210: STRAIN_SHORT"),
+        (
+            1,
+            2,
+            (
+                "Genes missing from the annotation, TGARI_257090 in Toxoplasma gondii "
+                "GT1: An assembly gap sits where the gene should be, so the check "
+                "cannot judge it"
+            ),
+        ),
+        (
+            2,
+            2,
+            (
+                "Strain model against its reference, PcyM_0736700 and PCYB_074210: "
+                "Related genomes match the reference, so the strain model is "
+                "too short"
+            ),
+        ),
     ]
 
 

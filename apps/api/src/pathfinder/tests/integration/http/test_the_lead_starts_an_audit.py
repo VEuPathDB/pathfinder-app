@@ -114,7 +114,7 @@ async def test_the_lead_asks_before_an_audit_starts(
         (run,) = await AuditRepository(session).runs(user_id=owner.user_id)
     assert run.conversation_id == thread
     assert len(audit_jobs(in_memory_jobs)) == 1
-    assert text(started).endswith(f"Audit run {run.id} is planned.")
+    assert text(started).endswith(f"Audit run {run.id} is queued.")
 
 
 @pytest.mark.usefixtures("signed_in")

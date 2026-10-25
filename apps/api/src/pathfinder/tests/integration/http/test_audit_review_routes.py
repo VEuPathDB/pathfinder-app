@@ -147,6 +147,7 @@ async def test_a_run_reads_with_its_review_and_synthesis(app: FastAPI) -> None:
                 "cause": _CAUSE,
                 "confirmedBy": "The relatives of the gene are longer.",
                 "findingIds": [reviewed_id],
+                "count": 1,
             }
         ],
         "headline": [reviewed_id],

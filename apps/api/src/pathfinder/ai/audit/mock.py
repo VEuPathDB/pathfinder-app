@@ -152,7 +152,7 @@ class _RunRead(_Read):
 def _progress_reply(read: _RunRead) -> str:
     fact = read.fact_id
     said = (
-        f"Audit run [stat:{fact}.run.id] is [stat:{fact}.run.status]. Its "
+        f"Audit run [stat:{fact}.run.id] is [stat:{fact}.run.phase]. Its "
         f"confirmation stage has checked [stat:{fact}.stages.stages.2.done] of "
         f"[stat:{fact}.stages.stages.2.total] candidates."
     )

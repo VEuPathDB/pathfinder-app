@@ -14,6 +14,7 @@ from pathfinder.domain.audit.findings import (
     RelativesEvidence,
 )
 from pathfinder.domain.audit.scope import GenePairTarget
+from pathfinder.domain.audit.words import target_words
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
 )
@@ -86,9 +87,9 @@ async def test_tie_break_weighs_each_confirmed_length_error_against_its_relative
     assert tools.ortholog_reads == ["NF54_SHORT"]
     assert tools.evidence_reads == ["NF54_SHORT", NF54_PIGA]
     assert lane.updates == [
-        (1, 3, "gene_length:NF54_SHORT: stored"),
-        (2, 3, "gene_length:NF54_SHORT: gene evidence stored"),
-        (3, 3, f"{PAIR.key}: gene evidence stored"),
+        (1, 3, "Gene length against orthologs, NF54_SHORT: stored"),
+        (2, 3, "Gene length against orthologs, NF54_SHORT: gene evidence stored"),
+        (3, 3, f"{target_words(PAIR)}: gene evidence stored"),
     ]
     assert await stage_requests(run) == {
         "collect": 0,
@@ -157,10 +158,14 @@ async def test_a_tie_break_read_the_site_answers_late_is_waited_for(
         3,
     )
     assert lane.updates == [
-        (0, 2, "gene_length:NF54_SHORT: unreached (connection refused)"),
+        (
+            0,
+            2,
+            "Gene length against orthologs, NF54_SHORT: unreached (connection refused)",
+        ),
         (0, 2, "waiting 30 s for plasmodb, 2 findings unanswered"),
-        (1, 2, "gene_length:NF54_SHORT: stored"),
-        (2, 2, "gene_length:NF54_SHORT: gene evidence stored"),
+        (1, 2, "Gene length against orthologs, NF54_SHORT: stored"),
+        (2, 2, "Gene length against orthologs, NF54_SHORT: gene evidence stored"),
     ]
     assert (await stage_requests(run))["tie_break"] == 4
 
@@ -243,10 +248,10 @@ async def test_a_confirmation_naming_no_reference_is_failed_without_a_read(
     ) == ("failed", None, 1, 0, reason)
     assert tools.ortholog_reads == ["NF54_SHORT2"]
     assert lane.updates == [
-        (1, 4, f"gene_length:NF54_SHORT: failed ({reason})"),
-        (2, 4, "gene_length:NF54_SHORT2: stored"),
-        (3, 4, "gene_length:NF54_SHORT: gene evidence stored"),
-        (4, 4, "gene_length:NF54_SHORT2: gene evidence stored"),
+        (1, 4, f"Gene length against orthologs, NF54_SHORT: failed ({reason})"),
+        (2, 4, "Gene length against orthologs, NF54_SHORT2: stored"),
+        (3, 4, "Gene length against orthologs, NF54_SHORT: gene evidence stored"),
+        (4, 4, "Gene length against orthologs, NF54_SHORT2: gene evidence stored"),
     ]
     assert (await stage_requests(run))["tie_break"] == 4
 
@@ -269,8 +274,8 @@ async def test_a_named_finding_with_no_confirmation_is_failed_without_a_read(
     ) == ("failed", None, 1, 0, reason)
     assert tools.ortholog_reads == []
     assert lane.updates == [
-        (1, 2, f"gene_length:NF54_SHORT: failed ({reason})"),
-        (2, 2, "gene_length:NF54_SHORT: gene evidence stored"),
+        (1, 2, f"Gene length against orthologs, NF54_SHORT: failed ({reason})"),
+        (2, 2, "Gene length against orthologs, NF54_SHORT: gene evidence stored"),
     ]
 
 

@@ -14,6 +14,7 @@ from veupathdb_mcp.audit import rate_with_bounds
 from pathfinder.domain.audit.confirmations import LengthConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import SingleGeneTarget
+from pathfinder.domain.audit.words import target_words
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     NewFinding,
@@ -53,7 +54,7 @@ from pathfinder.tests.integration.services._audit_confirm import (
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
-PAIR_KEY = PAIR.key
+PAIR_WORDS = target_words(PAIR)
 TOO_LARGE = (
     "PF3D7_0310200 spans 14855 bases and the PfNF54_030015100:pseudogene window "
     "19628 bases; the check aligns pairs whose product is at most 200000000"
@@ -146,8 +147,19 @@ async def test_confirm_settles_each_sampled_finding_and_stores_its_answer(
         "tie_break": 0,
     }
     assert lane.updates == [
-        (1, 2, "gene_length:NF54_SHORT: GENOME_ENCODES"),
-        (2, 2, "gene_length:NF54_TYPICAL: NOT_CHECKED"),
+        (
+            1,
+            2,
+            "Gene length against orthologs, NF54_SHORT: The genome's DNA encodes the part the model lacks",
+        ),
+        (
+            2,
+            2,
+            (
+                "Gene length against orthologs, NF54_TYPICAL: The site's whole ortholog group does not "
+                "class the model as short, so its DNA was not read"
+            ),
+        ),
     ]
 
 
@@ -166,9 +178,16 @@ async def test_a_check_the_site_answers_late_is_waited_for(tools: CheckTools) ->
     ) == ("confirmed", "intact_gene_called_pseudogene", 2, 2, None)
     assert (await stage_requests(run))["confirm"] == 2
     assert lane.updates == [
-        (0, 1, f"{PAIR_KEY}: unreached ({UNANSWERED})"),
+        (0, 1, f"{PAIR_WORDS}: unreached ({UNANSWERED})"),
         (0, 1, "waiting 30 s for plasmodb, 1 finding unanswered"),
-        (1, 1, f"{PAIR_KEY}: INTACT"),
+        (
+            1,
+            1,
+            (
+                f"{PAIR_WORDS}: The strain's DNA encodes the whole protein, so the "
+                "pseudogene call is wrong"
+            ),
+        ),
     ]
 
 
@@ -240,7 +259,9 @@ async def test_a_target_the_site_serves_no_gene_row_for_is_failed(
         finding.requests,
         finding.message,
     ) == ("", "failed", None, 1, 1, reason)
-    assert lane.updates == [(1, 1, f"gene_length:NF54_GONE: failed ({reason})")]
+    assert lane.updates == [
+        (1, 1, f"Gene length against orthologs, NF54_GONE: failed ({reason})")
+    ]
 
 
 async def test_an_unplaced_target_the_site_does_not_answer_for_stays_unreached(

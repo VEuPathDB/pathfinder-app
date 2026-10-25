@@ -337,4 +337,6 @@ def verdict_sentence(check: CheckName, verdict: FindingVerdict) -> str:
 
 
 def target_words(target: GeneTarget) -> str:
-    return f"{CHECK_TITLES[target.check]}, {' and '.join(target.genes)}"
+    genes = " and ".join(target.genes)
+    where = "" if target.genome is None else f" in {target.genome}"
+    return f"{CHECK_TITLES[target.check]}, {genes}{where}"
