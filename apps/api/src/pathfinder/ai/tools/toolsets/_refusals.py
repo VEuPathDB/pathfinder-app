@@ -1,4 +1,4 @@
-"""A refused call is not run again with the same arguments until a call has run."""
+"""A refused call is not run again with the same arguments until a call other than a read has run."""
 
 from __future__ import annotations
 
@@ -30,12 +30,14 @@ def _digest(tool_args: dict[str, Any]) -> str:
 
 @dataclass
 class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
-    """Holds each refusal until a call runs.
+    """Holds each refusal until a call outside ``reads`` runs.
 
     The same call sent again fails with the refusal and does not run, and
     spends no retry. Sent a third time it is the refusal again, which the
     library counts against the tool's retries, so a loop ends the pass.
     """
+
+    reads: frozenset[str] = frozenset()
 
     @property
     def id(self) -> str | None:
@@ -61,8 +63,8 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
         if held is not None and not held.sent_again:
             held.sent_again = True
             msg = (
-                f"{held.refusal} This call was refused with these arguments and "
-                f"nothing ran since, so it did not run again."
+                f"{held.refusal} This call was refused before with these "
+                "arguments, and only reads ran since, so it did not run again."
             )
             raise CallRefused(msg)
         if held is not None:
@@ -76,5 +78,6 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
                 )
             )
             raise
-        markers.refused_calls.clear()
+        if name not in self.reads:
+            markers.refused_calls.clear()
         return result

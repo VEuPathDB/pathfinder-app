@@ -290,12 +290,12 @@ def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str])
     for criterion in spec.criteria:
         if criterion.id in named and criterion.search_name:
             carriers[criterion.search_name].append(criterion)
-    wanted = set(unplaced)
-    problems = [
-        _unplaced_option(criterion, carriers[criterion.search_name])
-        for criterion in spec.criteria
-        if criterion.id in wanted
-    ]
+    ids = set(unplaced)
+    wanted = [c for c in spec.criteria if c.id in ids]
+    left_out = [c for c in wanted if not c.resolved_params]
+    if left_out:
+        return _left_out_message(left_out)
+    problems = [_unplaced_option(c, carriers[c.search_name]) for c in wanted]
     return (
         f"The build cannot place the value(s) these criteria state: "
         f"{'; '.join(problems)}. Nothing was built and the strategy is "
@@ -304,6 +304,22 @@ def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str])
         f"search, with the value in its params, and drop_criterion on the one "
         f"that states it alone. A criterion that runs a search of its own "
         f"belongs in set_structure instead."
+    )
+
+
+def _left_out_message(left_out: Sequence[Criterion]) -> str:
+    named = "; ".join(
+        f"{c.id} ({c.text[:80]}) runs {c.search_name}, states no value and is not "
+        "in the structure"
+        for c in left_out
+    )
+    ids = ", ".join(c.id for c in left_out)
+    return (
+        f"The build cannot place these criteria: {named}. Nothing was built and "
+        "the strategy is unchanged. A criterion that runs a search of its own is "
+        "a node of the structure: call set_structure again with a structure that "
+        f"includes {ids}, and drop_criterion on a criterion the strategy does not "
+        "need."
     )
 
 

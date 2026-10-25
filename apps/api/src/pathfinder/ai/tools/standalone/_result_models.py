@@ -42,13 +42,15 @@ def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
 def with_countable(
     columns: StepColumns, summary: str, countable: list[ReachedColumn]
 ) -> tuple[StepColumns, str]:
-    if not countable:
-        return columns, summary
     shown = countable[:NAMED_COLUMNS]
     named = ", ".join(f"{c.name} ({c.display_name})" for c in shown)
     more = len(countable) - len(shown)
     rest = f", and {more:,} more that step_columns lists" if more else ""
-    counts = f"Its records count by {named}{rest}."
+    counts = (
+        f"Its records count by {named}{rest}."
+        if shown
+        else "None of its columns counts its records."
+    )
     held = columns.model_copy(
         update={"countable": shown, "note": f"{columns.note} {counts}".strip()}
     )

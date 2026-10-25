@@ -1,0 +1,289 @@
+{
+ "run": {
+  "id": "cae8f3a8-0688-4335-b9eb-8a725fb7ee6b",
+  "siteId": "fungidb",
+  "conversationId": "4505bb43-cf94-440a-b968-b13bbc60d0b7",
+  "release": "71",
+  "status": "finished",
+  "phase": "finished",
+  "deadlineAt": "2026-10-25T10:52:16.282273Z",
+  "genomes": [],
+  "checks": [
+   "intron_support"
+  ],
+  "targets": 2,
+  "createdAt": "2026-10-25T04:52:16.270349Z",
+  "finishedAt": "2026-10-25T04:52:32.755432Z"
+ },
+ "scope": {
+  "siteId": "fungidb",
+  "genomes": [],
+  "comparison": [],
+  "checks": [],
+  "targets": [
+   {
+    "check": "intron_support",
+    "genes": [
+     "Afu2g18040"
+    ]
+   },
+   {
+    "check": "intron_support",
+    "genes": [
+     "NCU00776"
+    ]
+   }
+  ],
+  "referenceGenome": null,
+  "confirmLimit": 150
+ },
+ "stages": {
+  "stages": [
+   {
+    "name": "collect",
+    "finished": true,
+    "requests": 1,
+    "storeReads": 0,
+    "done": 0,
+    "total": 0,
+    "message": ""
+   },
+   {
+    "name": "screen",
+    "finished": true,
+    "requests": 3,
+    "storeReads": 0,
+    "done": 1,
+    "total": 1,
+    "message": "0 candidates in 0 genomes, 0 sampled; 2 gene targets"
+   },
+   {
+    "name": "confirm",
+    "finished": true,
+    "requests": 74,
+    "storeReads": 14,
+    "done": 2,
+    "total": 2,
+    "message": "Exon structure against RNA-seq, NCU00776: RNA-seq reads join the exons a few bases away from the annotated splice site"
+   },
+   {
+    "name": "tie_break",
+    "finished": true,
+    "requests": 5,
+    "storeReads": 0,
+    "done": 2,
+    "total": 2,
+    "message": "Exon structure against RNA-seq, NCU00776: gene evidence stored"
+   }
+  ],
+  "halted": null,
+  "targetFailure": null
+ },
+ "requests": 83,
+ "storeReads": 14,
+ "unfinished": [],
+ "genomes": [],
+ "counts": [
+  {
+   "genome": "Aspergillus fumigatus Af293",
+   "check": "intron_support",
+   "status": "confirmed",
+   "errorType": "shifted_splice_site",
+   "judged": true,
+   "modelGenome": "Aspergillus fumigatus Af293",
+   "count": 1
+  },
+  {
+   "genome": "Neurospora crassa OR74A",
+   "check": "intron_support",
+   "status": "confirmed",
+   "errorType": "shifted_splice_site",
+   "judged": true,
+   "modelGenome": "Neurospora crassa OR74A",
+   "count": 1
+  }
+ ],
+ "rates": [],
+ "targets": {
+  "genomes": [
+   {
+    "genome": "Aspergillus fumigatus Af293",
+    "check": "intron_support",
+    "checked": 1,
+    "errors": 1,
+    "unjudged": 0,
+    "unresolvedByStatus": {
+     "screened": 0,
+     "unsampled": 0,
+     "trying": 0,
+     "failed": 0,
+     "declined": 0,
+     "unreached": 0,
+     "unread": 0,
+     "total": 0
+    },
+    "unresolved": 0
+   },
+   {
+    "genome": "Neurospora crassa OR74A",
+    "check": "intron_support",
+    "checked": 1,
+    "errors": 1,
+    "unjudged": 0,
+    "unresolvedByStatus": {
+     "screened": 0,
+     "unsampled": 0,
+     "trying": 0,
+     "failed": 0,
+     "declined": 0,
+     "unreached": 0,
+     "unread": 0,
+     "total": 0
+    },
+    "unresolved": 0
+   }
+  ],
+  "unplaced": 0
+ },
+ "review": {
+  "status": "synthesized",
+  "done": 2,
+  "total": 2,
+  "message": ""
+ },
+ "synthesis": {
+  "sections": [
+   {
+    "errorType": "shifted_splice_site",
+    "cause": "The annotated splice junctions lack RNA-seq support, while alternative nearby junctions are supported and preserve the coding structure, showing that the splice sites are shifted.",
+    "confirmedBy": "RNA-seq confirmation evidence supports replacement junctions and contradicts the annotated junctions for both genes.",
+    "findingIds": [
+     1,
+     2
+    ],
+    "count": 2
+   }
+  ],
+  "headline": [
+   1,
+   2
+  ],
+  "summary": "The two independent reviews agreed on 2 of 2 sampled findings; this agreement retained 2 findings and rejected 0. Both retained findings are shifted splice-site errors supported by RNA-seq evidence.",
+  "agreement": {
+   "sampled": 2,
+   "agreed": 2,
+   "share": 1.0
+  }
+ },
+ "reviewed": 2,
+ "action": null,
+ "reviewsRunning": false,
+ "halt": null,
+ "left": {
+  "genomes": 0,
+  "findings": 0,
+  "evidence": 0,
+  "total": 0
+ },
+ "evidence": [
+  {
+   "kind": "confirmation",
+   "status": "stored",
+   "count": 2
+  },
+  {
+   "kind": "gene_evidence",
+   "status": "stored",
+   "count": 2
+  }
+ ],
+ "errorTypes": [
+  {
+   "errorType": "shifted_splice_site",
+   "title": "Splice site shifted",
+   "description": "RNA-seq reads join the exons at another site than the model's: a few bases away, or by a junction that replaces the annotated intron.",
+   "count": 2,
+   "genomes": [
+    "Aspergillus fumigatus Af293",
+    "Neurospora crassa OR74A"
+   ],
+   "certainty": "high",
+   "cause": "The annotated splice junctions lack RNA-seq support, while alternative nearby junctions are supported and preserve the coding structure, showing that the splice sites are shifted.",
+   "confirmedBy": "RNA-seq confirmation evidence supports replacement junctions and contradicts the annotated junctions for both genes.",
+   "reviewed": [
+    {
+     "id": 1,
+     "genes": [
+      "Afu2g18040"
+     ],
+     "genome": "Aspergillus fumigatus Af293",
+     "errorType": "shifted_splice_site",
+     "errorTitle": "Splice site shifted",
+     "certainty": "medium",
+     "impact": 0.3,
+     "reviewedImpact": 0.3,
+     "reviewsDisagree": false,
+     "disagreementText": null
+    },
+    {
+     "id": 2,
+     "genes": [
+      "NCU00776"
+     ],
+     "genome": "Neurospora crassa OR74A",
+     "errorType": "shifted_splice_site",
+     "errorTitle": "Splice site shifted",
+     "certainty": "medium",
+     "impact": 0.3,
+     "reviewedImpact": 0.3,
+     "reviewsDisagree": false,
+     "disagreementText": null
+    }
+   ]
+  }
+ ],
+ "headline": [
+  {
+   "id": 1,
+   "genes": [
+    "Afu2g18040"
+   ],
+   "genome": "Aspergillus fumigatus Af293",
+   "errorType": "shifted_splice_site",
+   "errorTitle": "Splice site shifted",
+   "certainty": "medium",
+   "impact": 0.3,
+   "reviewedImpact": 0.3,
+   "reviewsDisagree": false,
+   "disagreementText": null
+  },
+  {
+   "id": 2,
+   "genes": [
+    "NCU00776"
+   ],
+   "genome": "Neurospora crassa OR74A",
+   "errorType": "shifted_splice_site",
+   "errorTitle": "Splice site shifted",
+   "certainty": "medium",
+   "impact": 0.3,
+   "reviewedImpact": 0.3,
+   "reviewsDisagree": false,
+   "disagreementText": null
+  }
+ ],
+ "reviewState": {
+  "status": "synthesized",
+  "text": "Reviewed and summarized",
+  "done": 2,
+  "total": 2,
+  "message": ""
+ },
+ "agreement": {
+  "sampled": 2,
+  "agreed": 2,
+  "share": 1.0,
+  "text": "Two independent reviews agreed on 2 of 2 sampled findings (100%)"
+ },
+ "disputed": []
+}

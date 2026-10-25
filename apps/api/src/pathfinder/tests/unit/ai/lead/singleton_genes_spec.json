@@ -1,0 +1,187 @@
+{
+ "goal": "Which Plasmodium species has the most singleton genes, meaning genes in a group of their own?",
+ "interpretedGoal": "",
+ "organismScope": null,
+ "title": "",
+ "criteria": [
+  {
+   "id": "c_singleton_groups",
+   "text": "Orthologous groups containing exactly one protein in total (singleton groups)",
+   "searchName": "GroupsBySequenceCount",
+   "searchDisplayName": "Number of Sequences",
+   "savedStrategyRef": null,
+   "recordClass": "group",
+   "role": "seed",
+   "organismParam": null,
+   "datasetOrganisms": [],
+   "resolvedParams": {
+    "all_count": {
+     "value": {
+      "type": "number-range",
+      "min": 1.0,
+      "max": 1.0
+     },
+     "source": "chosen",
+     "basis": "Singleton orthologous groups are defined by exactly one protein in the group.",
+     "carriedFrom": "",
+     "displayName": "Number of All Proteins",
+     "label": "",
+     "placeholder": false,
+     "atDefault": false,
+     "visible": true,
+     "number": false,
+     "decimals": null,
+     "taxon": null,
+     "words": ""
+    },
+    "core_count": {
+     "value": {
+      "type": "number-range",
+      "min": 0.0,
+      "max": 100000.0
+     },
+     "source": "default",
+     "basis": "",
+     "carriedFrom": "",
+     "displayName": "Number of Core Proteins",
+     "label": "",
+     "placeholder": false,
+     "atDefault": true,
+     "visible": true,
+     "number": false,
+     "decimals": null,
+     "taxon": null,
+     "words": ""
+    },
+    "peripheral_count": {
+     "value": {
+      "type": "number-range",
+      "min": 0.0,
+      "max": 100000.0
+     },
+     "source": "default",
+     "basis": "",
+     "carriedFrom": "",
+     "displayName": "Number of Peripheral Proteins",
+     "label": "",
+     "placeholder": false,
+     "atDefault": true,
+     "visible": true,
+     "number": false,
+     "decimals": null,
+     "taxon": null,
+     "words": ""
+    }
+   },
+   "paramDisplayNames": {
+    "all_count": "Number of All Proteins",
+    "core_count": "Number of Core Proteins",
+    "peripheral_count": "Number of Peripheral Proteins"
+   },
+   "measurements": [
+    {
+     "kind": "loosest_bound",
+     "param": "all_count",
+     "count": 819539,
+     "label": "",
+     "reading": "1 to 100000",
+     "unchosen": [],
+     "unchosenCount": 0
+    }
+   ],
+   "openParams": [],
+   "confidence": 0.0,
+   "alternatives": [],
+   "resultCount": 523795,
+   "analysis": null,
+   "needsAnalysisOn": null,
+   "rationale": {
+    "kind": "search",
+    "searchName": "GroupsBySequenceCount",
+    "basis": "parameter",
+    "term": "Number of All Proteins",
+    "reason": "Singleton orthologous groups are defined by exactly one protein in the group.",
+    "similarity": null,
+    "compared": [],
+    "answered": 13,
+    "query": "",
+    "toolCallId": "call_uIBzqT7533jf1JdPNr92DKhe",
+    "sources": [],
+    "derivedFrom": {
+     "all_count": "{\"min\": 1.0, \"max\": 1.0}",
+     "core_count": "{\"min\": 0.0, \"max\": 100000.0}",
+     "peripheral_count": "{\"min\": 0.0, \"max\": 100000.0}"
+    },
+    "short": "sets Number of All Proteins",
+    "sentence": "Number of All Proteins: Singleton orthologous groups are defined by exactly one protein in the group."
+   },
+   "unexpressedQualifiers": [],
+   "acceptedReading": null
+  },
+  {
+   "id": "c_singleton_genes",
+   "text": "Transform Groups to Proteins",
+   "searchName": "FromGroups",
+   "searchDisplayName": "Transform Groups to Proteins",
+   "savedStrategyRef": null,
+   "recordClass": "sequence",
+   "role": "transform",
+   "organismParam": null,
+   "datasetOrganisms": [],
+   "resolvedParams": {},
+   "paramDisplayNames": {},
+   "measurements": [],
+   "openParams": [],
+   "confidence": 0.0,
+   "alternatives": [],
+   "resultCount": null,
+   "analysis": null,
+   "needsAnalysisOn": null,
+   "rationale": {
+    "kind": "search",
+    "searchName": "FromGroups",
+    "basis": "only_match",
+    "term": "Transform Groups to Proteins",
+    "reason": "The catalog describes this as the transform that returns proteins from selected ortholog groups.",
+    "similarity": 0.3614107446097591,
+    "compared": [
+     {
+      "name": "ByTaxonomy",
+      "displayName": "Taxonomy",
+      "similarity": 0.4195627460483582
+     },
+     {
+      "name": "ByIdList",
+      "displayName": "Protein ID(s) or VEuPathDB GeneID(s)",
+      "similarity": 0.39681864654008425
+     },
+     {
+      "name": "BySharedOrthologFromSequenceList",
+      "displayName": "Shared Orthologs From List",
+      "similarity": 0.3893040451358293
+     }
+    ],
+    "answered": 14,
+    "query": "species-level search countable species column aggregate count genes per species rank largest singleton groups",
+    "toolCallId": "call_zWWfFOJNq7Aa8I6CWDIT08sP",
+    "sources": [],
+    "derivedFrom": {},
+    "short": "only search naming Transform Groups to Proteins",
+    "sentence": "Transform Groups to Proteins: The catalog describes this as the transform that returns proteins from selected ortholog groups."
+   },
+   "unexpressedQualifiers": [],
+   "acceptedReading": null
+  }
+ ],
+ "structure": {
+  "root": {
+   "kind": "leaf",
+   "criterionId": "c_singleton_groups",
+   "operator": null,
+   "inputs": []
+  }
+ },
+ "dropped": [],
+ "openSlots": [],
+ "constraints": []
+}

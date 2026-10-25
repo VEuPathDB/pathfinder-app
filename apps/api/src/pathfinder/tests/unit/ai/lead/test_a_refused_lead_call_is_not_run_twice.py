@@ -69,7 +69,7 @@ async def test_a_refused_lead_call_sent_again_fails_and_a_third_is_refused() -> 
 
     assert first.value.message == NO_STRATEGY
     assert second.value.message == (
-        f"{NO_STRATEGY} This call was refused with these arguments and nothing "
-        "ran since, so it did not run again."
+        f"{NO_STRATEGY} This call was refused before with these arguments, and "
+        "only reads ran since, so it did not run again."
     )
     assert third.value.message == NO_STRATEGY

@@ -217,6 +217,12 @@ def test_a_kept_finding_line_shows_the_reviews_type_beside_the_stored_impact() -
     )
 
 
+def test_a_finding_line_the_review_keeps_as_typed_shows_the_stored_certainty() -> None:
+    line = finding_line(_record(7, "truncated_model", "medium", 0.4, _review()))
+
+    assert (line.error_type, line.certainty) == ("truncated_model", "medium")
+
+
 _DISAGREE = "The two independent reviews disagree"
 
 

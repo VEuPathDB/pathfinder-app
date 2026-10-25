@@ -14,6 +14,12 @@ def list_sentence(fault: ProseFault) -> str | None:
             f"by their record references and write ``{fault.references[0]}`` after "
             "your words for the disagreement."
         )
+    if fault.kind == "group_certainty":
+        return (
+            f"``{fault.token}`` is the certainty of a group of findings, and the "
+            f"reply gives it to one gene: write ``{fault.references[0]}``, the "
+            "certainty of that gene's own finding."
+        )
     if fault.kind == "keyed_reference":
         written = " or ".join(f"``{r}``" for r in fault.references)
         return (

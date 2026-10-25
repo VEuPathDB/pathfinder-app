@@ -172,7 +172,8 @@ def _kept_as(review: FindingReview | None) -> _Named | None:
 def finding_line(record: AuditFindingRecord) -> FindingLine:
     review = record.review
     kept = _kept_as(review)
-    error_type = record.error_type if kept is None else kept.error_type
+    retyped = None if kept is None or kept.error_type == record.error_type else kept
+    error_type = record.error_type if retyped is None else retyped.error_type
     disagreement = None if review is None else review.disagreement
     return FindingLine(
         id=record.id,
@@ -180,7 +181,7 @@ def finding_line(record: AuditFindingRecord) -> FindingLine:
         genome=record.genome,
         error_type=error_type,
         error_title=None if error_type is None else ERROR_TYPE_TITLES[error_type],
-        certainty=record.certainty if kept is None else kept.certainty,
+        certainty=record.certainty if retyped is None else retyped.certainty,
         impact=record.impact,
         reviewed_impact=None if review is None else review.impact,
         reviews_disagree=disagreement is not None,

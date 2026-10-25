@@ -162,7 +162,8 @@ async def test_the_columns_of_a_group_step_are_not_read_as_genes() -> None:
         wdk_step_id=_PATTERN_STEP,
         note=(
             f"Step {_PATTERN_STEP} is not a gene search step a criterion binds. "
-            "Sample the root with get_sample_records for this criterion."
+            "Sample the root with get_sample_records for this criterion. "
+            "None of its columns counts its records."
         ),
     )
 

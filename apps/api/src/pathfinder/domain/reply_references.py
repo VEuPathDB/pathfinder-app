@@ -12,7 +12,6 @@ from pydantic import ConfigDict
 
 from pathfinder.domain.comparison_facts import ComparedVariant
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.dispute_references import unnamed_disputes
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
@@ -90,6 +89,7 @@ type FaultKind = Literal[
     "zero_word",
     "values_without_noun",
     "unnamed_dispute",
+    "group_certainty",
 ]
 
 
@@ -379,7 +379,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
     ]
     placed = [
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
-        for m in misplacements(prose, held.counted_nouns())
+        for m in misplacements(prose, held.counted_nouns(), held.steps)
     ]
     return list(dict.fromkeys([*brackets, *links, *tokens, *placed]))
 
@@ -437,10 +437,6 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    disputes = [
-        ProseFault(token=d.token, kind="unnamed_dispute", references=(d.reference,))
-        for d in unnamed_disputes(prose, facts.cited_statistics())
-    ]
     tallied = tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
     elsewhere = [
         ProseFault(token=token, kind="tally_of_a_step", removable=above)
@@ -458,7 +454,6 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         *misused,
         *elsewhere,
         *zeros,
-        *disputes,
         *shape_faults(prose, facts),
     ]
     return list(dict.fromkeys(found))

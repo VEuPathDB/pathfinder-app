@@ -90,8 +90,8 @@ async def test_the_same_refused_call_fails_without_running() -> None:
     assert isinstance(second, ToolReturnPart)
     assert second.outcome == "failed"
     assert second.content == (
-        f"{_REFUSAL} This call was refused with these arguments and nothing ran "
-        "since, so it did not run again."
+        f"{_REFUSAL} This call was refused before with these arguments, and only "
+        "reads ran since, so it did not run again."
     )
 
 

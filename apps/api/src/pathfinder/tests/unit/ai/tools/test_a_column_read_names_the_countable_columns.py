@@ -7,7 +7,11 @@ import pytest
 from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone._result_models import StepColumns
+from pathfinder.ai.tools.standalone._result_models import (
+    StepColumns,
+    no_column,
+    with_countable,
+)
 from pathfinder.ai.tools.standalone.results import read_step_columns
 from pathfinder.domain.column_reach import ReachedColumn
 from pathfinder.domain.strategy.operational_spec import Criterion
@@ -61,3 +65,16 @@ async def test_the_recorded_protein_step_names_the_taxon_code_column(
         "Sample the root with get_sample_records for this criterion. "
         "Its records count by abbreviation (Taxon Code)."
     )
+
+
+def test_the_recorded_group_step_says_no_column_counts_its_records() -> None:
+    group_step = 227288450
+    why = f"Step {group_step} is not a gene search step a criterion binds."
+
+    columns, summary = with_countable(*no_column(group_step, why), [])
+
+    assert (columns.countable, summary) == (
+        [],
+        f"No column of step {group_step}. None of its columns counts its records.",
+    )
+    assert columns.note.endswith("None of its columns counts its records.")

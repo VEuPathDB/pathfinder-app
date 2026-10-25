@@ -14,6 +14,7 @@ from pathfinder.domain.reference_grammar import (
     carries_its_noun,
     reference_kind,
 )
+from pathfinder.domain.turn_facts import StepFact
 
 # "both" names two inputs, as in the genes an intersect keeps in both.
 _NUMBER_WORDS = (
@@ -99,7 +100,9 @@ def _clauses(masked: str) -> Iterator[tuple[int, int]]:
     yield start, len(masked)
 
 
-def _noun_after(masked: str, end: int, stop: int, nouns: frozenset[str]) -> int:
+def _noun_after(
+    masked: str, end: int, stop: int, nouns: frozenset[str], between: frozenset[str]
+) -> int:
     """The end of the count noun that follows a reference, next or after only
     continuation words, or -1."""
     tail = masked[end:stop].split(_MASK, 1)[0]
@@ -107,13 +110,17 @@ def _noun_after(masked: str, end: int, stop: int, nouns: frozenset[str]) -> int:
         said = word.group().casefold()
         if said in nouns:
             return end + word.end()
-        if said not in _CONTINUATIONS:
+        if said not in between:
             return -1
     return -1
 
 
 def _in_clause(
-    prose: str, masked: str, span: tuple[int, int], nouns: frozenset[str]
+    prose: str,
+    masked: str,
+    span: tuple[int, int],
+    nouns: frozenset[str],
+    between: frozenset[str],
 ) -> Iterator[Misplacement]:
     start, stop = span
     references = [m for m in A_REFERENCE.finditer(prose) if start <= m.start() < stop]
@@ -129,7 +136,7 @@ def _in_clause(
                 yield Misplacement("values_without_noun", match.group(), match.group())
         if not carries_its_noun(match):
             continue
-        noun_end = _noun_after(masked, match.end(), stop, nouns)
+        noun_end = _noun_after(masked, match.end(), stop, nouns, between)
         if noun_end >= 0:
             token = prose[match.start() : noun_end]
             yield Misplacement("noun_after_count", token, match.group())
@@ -140,15 +147,21 @@ def clause_texts(prose: str) -> list[str]:
     return [prose[start:stop] for start, stop in _clauses(masked)]
 
 
-def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]:
+def misplacements(
+    prose: str, record_nouns: Sequence[str], steps: Sequence[StepFact] = ()
+) -> list[Misplacement]:
     """Each clause that writes a number word beside a count or value reference,
-    and each count reference with a count noun after it."""
+    and each count reference with a count noun after it, next or after only
+    continuation words and the words that name the steps."""
     masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
     nouns = _count_nouns(record_nouns)
+    texts = (t for s in steps for t in (s.display_name, s.reason))
+    named = (w.group().casefold() for t in texts for w in _A_WORD.finditer(t))
+    between = _CONTINUATIONS | frozenset(named)
     return [
         found
         for span in _clauses(masked)
-        for found in _in_clause(prose, masked, span, nouns)
+        for found in _in_clause(prose, masked, span, nouns, between)
     ]
 
 
