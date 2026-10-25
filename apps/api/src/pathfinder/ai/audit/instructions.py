@@ -78,6 +78,8 @@ section for each error type, with its cause and what confirms it, a headline \
 of the findings a curator reads first, and a summary.
 - A section names only findings a review keeps as an error, and each of them \
 under the error type its review names.
+- A section's cause and what confirms it write no number: the section's count \
+is the findings it lists, and the run shows that count beside it.
 - The headline lists findings in descending order of impact: the review's \
 impact when the review set one, else the stored impact, and a finding with no \
 impact last.

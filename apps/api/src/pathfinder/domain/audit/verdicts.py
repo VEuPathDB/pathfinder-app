@@ -130,6 +130,10 @@ class ErrorTypeSection(CamelModel):
     confirmed_by: Sentence = Field(min_length=1, max_length=MAX_CAUSE)
     finding_ids: tuple[Identifier, ...] = Field(min_length=1)
 
+    @computed
+    def count(self) -> int:
+        return len(self.finding_ids)
+
 
 class ReviewAgreement(CamelModel):
     model_config = ConfigDict(frozen=True)

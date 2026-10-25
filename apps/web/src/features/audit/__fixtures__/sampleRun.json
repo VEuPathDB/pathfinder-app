@@ -353,25 +353,29 @@
           "errorType": "intact_gene_called_pseudogene",
           "cause": "Sample review: rebuilt through the reference coding sequence, the strain's DNA encodes all 1,386 bases with no stop inside.",
           "confirmedBy": "Sample: the pseudogene check rebuilt the strain's DNA through the reference coding sequence.",
-          "findingIds": [1]
+          "findingIds": [1],
+          "count": 1
         },
         {
           "errorType": "truncated_model",
           "cause": "Sample review: the strain model lacks reference residues 41 to 100, which the strain's genome encodes.",
           "confirmedBy": "Sample: the strain check read reference residues 41 to 100 in the strain's genome.",
-          "findingIds": [8]
+          "findingIds": [8],
+          "count": 1
         },
         {
           "errorType": "organelle_split_at_join",
           "cause": "Sample review: the reference protein is whole only across the join of CM019798.1.",
           "confirmedBy": "Sample: the organelle check aligned the reference protein across the join of the circular contig.",
-          "findingIds": [9]
+          "findingIds": [9],
+          "count": 1
         },
         {
           "errorType": "missing_exon",
           "cause": "Sample review: RNA-seq junctions of 1,436 and 1,686 reads join the exon 1,381,887 to 1,382,044 the model lacks.",
           "confirmedBy": "Sample: the intron check read the RNA-seq junctions that join the exon the model lacks.",
-          "findingIds": [10]
+          "findingIds": [10],
+          "count": 1
         }
       ],
       "headline": [1, 8, 9, 10],

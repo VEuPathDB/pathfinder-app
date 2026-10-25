@@ -9332,6 +9332,11 @@
             "type": "array",
             "minItems": 1,
             "title": "Findingids"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -9339,7 +9344,8 @@
           "errorType",
           "cause",
           "confirmedBy",
-          "findingIds"
+          "findingIds",
+          "count"
         ],
         "title": "ErrorTypeSection"
       },

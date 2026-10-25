@@ -6035,12 +6035,17 @@ components:
           type: array
           minItems: 1
           title: Findingids
+        count:
+          type: integer
+          title: Count
+          readOnly: true
       type: object
       required:
       - errorType
       - cause
       - confirmedBy
       - findingIds
+      - count
       title: ErrorTypeSection
     ErrorTypeView:
       properties:

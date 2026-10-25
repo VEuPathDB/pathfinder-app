@@ -322,11 +322,10 @@ def _impact_rank(kept: _Kept) -> float:
 
 
 def _synthesis_section(kept: list[_Kept]) -> dict[str, object]:
-    ids = ", ".join(str(k.finding_id) for k in kept)
     return {
         "errorType": kept[0].verdict.error_type,
         "cause": kept[0].verdict.cause,
-        "confirmedBy": f"The stored evidence of findings {ids} confirms it.",
+        "confirmedBy": "The stored evidence of the kept findings confirms it.",
         "findingIds": [k.finding_id for k in kept],
     }
 

@@ -113,7 +113,7 @@ def _stored(
         verdict=verdict,
         error_type=error_type if named else None,
         certainty="high" if named else None,
-        cause=f"The relatives of the model are longer, case {finding_id}.",
+        cause=f"The relatives of EXA_{finding_id:04d} are longer.",
         cites=(finding_cite(finding_id),),
     )
     return VerdictView(
@@ -423,14 +423,14 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
         sections=(
             ErrorTypeSection(
                 error_type=_TRUNCATED,
-                cause="The relatives of the model are longer, case 3.",
-                confirmed_by="The stored evidence of findings 3, 2, 1 confirms it.",
+                cause="The relatives of EXA_0003 are longer.",
+                confirmed_by="The stored evidence of the kept findings confirms it.",
                 finding_ids=(3, 2, 1),
             ),
             ErrorTypeSection(
                 error_type=_SPLIT,
-                cause="The relatives of the model are longer, case 4.",
-                confirmed_by="The stored evidence of findings 4 confirms it.",
+                cause="The relatives of EXA_0004 are longer.",
+                confirmed_by="The stored evidence of the kept findings confirms it.",
                 finding_ids=(4,),
             ),
         ),

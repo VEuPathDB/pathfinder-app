@@ -22,6 +22,7 @@ from pathfinder.domain.audit.verdicts import (
     SynthesisDraft,
     review_agreement,
 )
+from pathfinder.domain.reference_placement import written_numbers
 from pathfinder.domain.reply_notes import referenced_facts
 from pathfinder.domain.reply_references import nested_text, prose_faults
 from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
@@ -144,12 +145,28 @@ def _misordered(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str |
     )
 
 
+def _counted(draft: SynthesisDraft) -> str | None:
+    for section in draft.sections:
+        written = written_numbers(f"{section.cause} {section.confirmed_by}")
+        if written:
+            return (
+                f"The section {section.error_type} writes {', '.join(written)} in "
+                "its cause or in what confirms it. A section's count is the "
+                "findings its findingIds list, which the run shows beside it, so "
+                "neither sentence writes a number."
+            )
+    return None
+
+
 def _synthesizable(
     ctx: RunContext[SynthesisDeps], output: SynthesisDraft
 ) -> SynthesisDraft:
     kept = ctx.deps.kept
     problem = (
-        _unkept(output, kept) or _mistyped(output, kept) or _misordered(output, kept)
+        _unkept(output, kept)
+        or _mistyped(output, kept)
+        or _misordered(output, kept)
+        or _counted(output)
     )
     if problem is not None:
         raise ModelRetry(problem)

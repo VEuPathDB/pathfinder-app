@@ -41,6 +41,10 @@ _NUMBER_WORDS = (
 _A_NUMBER_WORD = re.compile(
     rf"\b(?:[a-z]+-fold|{'|'.join(_NUMBER_WORDS)})\b", re.IGNORECASE
 )
+_A_WRITTEN_NUMBER = re.compile(
+    rf"{_A_NUMBER_WORD.pattern}|(?<![\w:.,-])\d[\d,]*(?:\.\d+)?(?![\w:-]|[.,]\d)",
+    re.IGNORECASE,
+)
 # The references whose clause writes no number word.
 _IN_PLACE_OF_A_NUMBER = frozenset(
     {"value", "count", "before", "diff", "root", "root_before", "last_change"}
@@ -135,4 +139,8 @@ def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]
     ]
 
 
-__all__ = ["Misplacement", "misplacements"]
+def written_numbers(text: str) -> list[str]:
+    return [found.group() for found in _A_WRITTEN_NUMBER.finditer(text)]
+
+
+__all__ = ["Misplacement", "misplacements", "written_numbers"]
