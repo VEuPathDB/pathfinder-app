@@ -25,6 +25,7 @@ from pathfinder.ai.lead.contract_messages import (
     unfinished_work_message,
     unmade_change_message,
     unnamed_record_organism_message,
+    unplaced_breakdown_message,
     unrecorded_offer_message,
     unrendered_prose_message,
     unreported_change_message,
@@ -129,6 +130,7 @@ MismatchKind = Literal[
     "unstated_reading",
     "unfollowed_reach",
     "unmet_requirement",
+    "unplaced_breakdown",
 ]
 
 
@@ -343,9 +345,15 @@ def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
     return unstated_reading_message(unstated[0]) if unstated else None
 
 
-_RULES: tuple[
-    tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
-] = (
+def _unplaced_breakdown(report: LeadResponse, record: TurnRecord) -> str | None:
+    unplaced = [r for held in record.comparisons for r in held.unplaced(report.prose)]
+    return unplaced_breakdown_message(unplaced) if unplaced else None
+
+
+type _Rule = tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]]
+
+_WRITTEN_RULES: tuple[_Rule, ...] = (("unplaced_breakdown", _unplaced_breakdown),)
+_RULES: tuple[_Rule, ...] = (
     ("unverified_build", _unverified_build),
     ("misreported_change", _misreported_change),
     ("claimed_frame", _claimed_frame),
@@ -376,15 +384,15 @@ def _as_read(report: LeadResponse, record: TurnRecord) -> LeadResponse:
 
 
 def reconcile(report: LeadResponse, record: TurnRecord) -> list[Mismatch]:
-    """Every way this reply, as the researcher reads it, disagrees with the turn
-    it answers, in rule order."""
+    """Every way this reply disagrees with the turn it answers, in rule order:
+    first as the researcher reads it, then by the references it writes."""
     shown = _as_read(report, record)
-    found: list[Mismatch] = []
-    for kind, rule in _RULES:
-        sentence = rule(shown, record)
-        if sentence is not None:
-            found.append(Mismatch(kind=kind, sentence=sentence))
-    return found
+    checks = [*((r, shown) for r in _RULES), *((r, report) for r in _WRITTEN_RULES)]
+    return [
+        Mismatch(kind=kind, sentence=sentence)
+        for (kind, rule), read in checks
+        if (sentence := rule(read, record)) is not None
+    ]
 
 
 def unrendered_prose(replies: Sequence[str], record: TurnRecord) -> Mismatch | None:

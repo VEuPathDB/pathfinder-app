@@ -57,6 +57,38 @@ that two species tie for it. A
 framing pass records the statistic when the Lead applies the pass, and the Lead reads it
 under its references.
 
+**The reply.** A group that one set alone holds is absent from the other set, not larger
+in it, so the count alone overstates the comparison. The turn contract's
+`unplaced_breakdown` rule (`ai/lead/turn_contract.py`, over `TurnRecord.comparisons`,
+each a `PlacedComparison` from `domain/strategy/comparison_placement.py`) parses the
+references the reply writes into their kind and body, never its words. A reply places the
+group count with `[stat:]` or `[cite:]` of the fact's `groups`, the `[count:]` of a step
+bound to the comparison's dataset, or `[root]` when that step is the root. It then places
+one row of each item `ComparisonFacts.breakdown()` names, as `[stat:]` or `[cite:]`:
+`bothHeld` or its share, and each one-sided count above 0 or its share, when a one-sided
+count is above 0; `residualGroups` or its share when above 0; and, for a set whose leading
+species leads, `leadingSpecies` and `leadingSpeciesShare` or `leadingSpeciesGenomes`. A
+species leads (`SetFacts.leading_species_leads`, a property and so no row of the card)
+when its set holds more than one species and it has at least `LEADS_BY` (twice) the
+genomes of the next one; the recorded right set leads with 20 genomes against 7, and a
+set of one species states nothing new. The refusal names each missing item. It is asked
+once per turn, so a turn that saves the groups after a card asks again when its reply
+places the count of the saved step.
+
+**On the site.** WDK shows the list search's own description on the step and lets a
+client set only `customName`, `expanded`, `expandedName` and `displayPreferences` on it
+(`PATCH /users/{id}/steps/{id}`). The strategy takes a `description` when it is created.
+The note lives on the graph's `description`: a build (`build_the_minted`, through
+`build_strategy_from_spec(description=)`) and an edit (an `UpdateStrategyMetaOp`) whose
+spec binds a saved comparison write `noted_description(...)`, which appends
+`SNAPSHOT_NOTE` to a description the researcher wrote and adds it once. Each step named as
+a computed snapshot holds a saved list of group ids, the ids are fixed, and a later release
+maps each id to the groups it became, so the count can change. `sync_strategy_for_site`
+sends the graph's description on every create, the first push and the create after a
+refused update alike, so a build, an edit, a resync and a materialized copy all carry it.
+The client's `update_strategy` sends no description, so a strategy the site already holds
+keeps the description it has.
+
 **Refusals.** Every `ValidationError` of the computed route is the builder's own limit, a
 retry. `GroupTagError` and `GroupCloudSumError` are data the site served that the
 builder cannot use: a failed call, recorded against the phyletic search.
@@ -77,5 +109,9 @@ builder cannot use: a failed call, recorded against the phyletic search.
 mean: 7,364 groups, 1,884 both held, 5,480 left only, 0 right only, 371 ties, 1,969
 residual, 17 probe and 6 compute requests),
 `tests/unit/ai/lead/test_a_computed_comparison_reaches_the_facts.py`,
-`tests/unit/ai/tools/test_computed_groups_are_saved_as_a_step.py` and
-`tests/unit/ai/tools/test_a_builder_limit_is_no_site_failure.py`.
+`tests/unit/ai/tools/test_computed_groups_are_saved_as_a_step.py`,
+`tests/unit/ai/tools/test_a_builder_limit_is_no_site_failure.py`,
+`tests/unit/ai/lead/test_a_computed_breakdown_is_placed.py`,
+`tests/unit/domain/strategy/test_a_comparison_names_its_breakdown.py`,
+`tests/unit/ai/lead/test_a_snapshot_build_takes_its_note.py` and
+`tests/unit/services/strategies/test_a_snapshot_strategy_carries_its_note.py`.

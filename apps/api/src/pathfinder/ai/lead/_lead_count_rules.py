@@ -21,13 +21,16 @@ COUNT_RULES = """\
   search is absent only when that lookup finds none.
 - **A count per value of a column is counted on the step that holds the records.** \
   ``step_columns`` names the step's columns, then ``count_step_by_column`` counts one marked \
-  countable. When no step holds those records, the question is a build (``new_strategy`` \
+  countable. The records are the strategy's result, so the step is its result step, the root, \
+  or a transform's step over it; a tally of another step states nothing about the result. \
+  When no step holds those records, the question is a build (``new_strategy`` \
   with no strategy, ``extend_strategy`` on one), and the count follows the build, through a \
   transform when the records are a result's members. ``count_by_column`` counts only one \
   catalog search's whole result, unchanged, with no step, and only by a search name the \
   catalog lists. Name the value with the most and its count with \
   ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and the number of values with \
-  ``[tally:<id>:values]``; never a value's count for another number.
+  ``[tally:<id>:values]`` with the noun of its values after it; never a value's count for \
+  another number.
 - **"Which of these genes also ..." is ``genes_in_search``.** It runs the search over the \
   gene ids, by default the records this conversation showed last, and changes nothing. A \
   record read never answers it. State each gene with ``[record:<id>]`` and the genes held with \

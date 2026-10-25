@@ -161,10 +161,17 @@ class StubAPI:
         )
 
     async def create_strategy(
-        self, step_tree: WDKStepTree, name: str, user_id: str | None = None
+        self,
+        step_tree: WDKStepTree,
+        name: str,
+        description: str | None = None,
+        *,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del user_id
-        self._record("create_strategy", step_tree=step_tree, name=name)
+        self._record(
+            "create_strategy", step_tree=step_tree, name=name, description=description
+        )
         return WDKIdentifier(id=self._alloc())
 
     async def update_strategy(

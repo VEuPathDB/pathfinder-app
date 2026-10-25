@@ -90,12 +90,14 @@ def refuse_a_card_that_binds_nothing(
 
     The card carries every recorded question that offers options as recorded,
     whatever the call writes. A question of the Lead's own offers no option,
-    or the drop and keep options of a requirement the thread holds; one with
+    the drop and keep options of a requirement the thread holds, or on the
+    dimension other the readings a framing pass of the thread named; one with
     no option asks no dimension a parameter of the spec holds. A question the
     researcher answered is never asked again.
     """
     del reply
     domain = ctx.deps.state.domain
+    readings = domain.reading_labels()
     recorded = [q for q in domain.open_questions if q.options]
     offered = {o.label for q in recorded for o in q.options}
     prompts = {q.question for q in recorded}
@@ -105,13 +107,20 @@ def refuse_a_card_that_binds_nothing(
     unbound = [
         (q.prompt, labels)
         for q in own
-        if q.prompt not in reused and (labels := _unbound_labels(q, choices))
+        if q.prompt not in reused
+        and (labels := _unbound_labels(q, [*choices, *readings]))
+    ]
+    scoped = [
+        q.prompt
+        for q in own
+        if q.dimension is not ConstraintKind.OTHER
+        and set(readings) & {o.label for o in q.options}
     ]
     held = _held_dimensions(recorded, domain.operational_spec)
     claimed = [q for q in own if not q.options and q.dimension in held]
     decided = {q.question for q in domain.answered_questions}
     again = [q.prompt for q in questions if q.prompt[:_QUESTION_LIMIT] in decided]
-    if not reused and not unbound and not claimed and not again:
+    if not reused and not unbound and not scoped and not claimed and not again:
         return
     expected = [
         f"{q.prompt!r} with the options {[o.label for o in q.options]}"
@@ -125,6 +134,11 @@ def refuse_a_card_that_binds_nothing(
             for prompt, labels in unbound
         ),
         *(
+            f"{prompt!r} offers a reading, which states a requirement of its own, "
+            "so its dimension is other"
+            for prompt in scoped
+        ),
+        *(
             f"{q.prompt!r} asks the {q.dimension.value}, which a parameter of the "
             f"spec sets, so an answer in words binds nothing"
             for q in claimed
@@ -135,15 +149,17 @@ def refuse_a_card_that_binds_nothing(
         f"{q.prompt!r}: {sorted(o.label for o in q.options)}" for q in questions
     )
     held_choices = ", ".join(repr(label) for label in choices)
+    named = ", ".join(repr(label) for label in readings)
     msg = (
         f"The card binds nothing for these questions: {'; '.join(problems)}. The "
         f"card asked {got}. The card asks these as recorded, whatever the call "
         f"writes: {'; '.join(expected) or 'none'}. A question of your own offers no "
         f"options, for an answer in the researcher's words about something no "
         f"parameter of the spec sets, or offers 'Drop <requirement>' and 'Keep "
-        f"<requirement>' for a requirement the conversation holds. The "
+        f"<requirement>' for a requirement the conversation holds, or offers on "
+        f"the dimension other the readings a framing pass named. The "
         f"requirements the conversation holds offer: {held_choices or 'none'}. "
-        f"A value a "
+        f"The readings the framing pass named offer: {named or 'none'}. A value a "
         f"parameter sets is asked by the pass that binds it: dispatch "
         f"edit_strategy, or frame_problem over a spec with no built step, with "
         f"the question, and ask the card its result carries. {CARD_NOT_SHOWN}"
@@ -223,8 +239,9 @@ def apply_option_bindings(
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
-    A value binds and a withdrawal retires; typed words and the note, never an
-    offered label, become a requirement on the dimension ``asked`` names. That
+    A value binds and a withdrawal retires; typed words, a picked reading a
+    framing pass named and the note, never another offered label, become a
+    requirement on the dimension ``asked`` names. That
     requirement replaces each one a question that asks for a stand-in names.
     """
     domain = state.domain
@@ -233,6 +250,7 @@ def apply_option_bindings(
     dimensions = {q.prompt: q.dimension for q in asked}
     labels = {q.prompt: {o.label for o in q.options} for q in asked}
     choices = requirement_choices(domain.requirements)
+    readings = domain.reading_labels()
     for answer in answers:
         question = recorded.get(answer.prompt)
         options = {o.label: o for o in question.options} if question else choices
@@ -240,12 +258,13 @@ def apply_option_bindings(
         domain.record_request_text(answer.note)
         for label in answer.chosen_labels:
             option = options.get(label)
-            if option is None:
-                if label not in labels.get(answer.prompt, set()):
-                    domain.record_request_text(label)
-                    words.append(label)
-                continue
-            _apply(state, option, sheets)
+            if option is not None:
+                _apply(state, option, sheets)
+            elif label in readings:
+                words.append(label)
+            elif label not in labels.get(answer.prompt, set()):
+                domain.record_request_text(label)
+                words.append(label)
         dimension = (
             question.dimension
             if question is not None
@@ -359,7 +378,9 @@ async def consult_user(
     which binds a value. A question of your own offers no options and is
     answered in the researcher's words, about something no parameter of the
     spec sets; or it offers 'Drop <requirement>' and 'Keep <requirement>' for
-    a requirement the conversation holds.
+    a requirement the conversation holds; or, on the dimension ``other``, it
+    offers as written the readings a framing pass named, the one it built and
+    each other, and the pick states that reading.
 
     This pauses the turn: the user answers each question in a carousel
     (options + optional free-text note). A picked value is bound into the

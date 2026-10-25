@@ -48,6 +48,7 @@ from pathfinder.ai.tools.standalone.strategy_refusals import (
 )
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.computed_groups import noted_description
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
@@ -152,9 +153,14 @@ async def build_the_minted(
         agent_deps.to_strategy_context(),
         step_words=step_words(spec, built.step_id_by_criterion),
     )
+    current = agent_deps.strategy_session.get_graph(None)
+    described = None if current is None else current.description
+    comparisons = deps.state.domain.computed_comparisons
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(
-            deps=context, root=built.root
+            deps=context,
+            root=built.root,
+            description=noted_description(described, comparisons, spec),
         )
     except ApplyError as exc:
         raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc

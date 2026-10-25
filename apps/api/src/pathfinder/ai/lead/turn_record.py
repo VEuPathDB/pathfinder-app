@@ -32,8 +32,16 @@ from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
+from pathfinder.domain.strategy.comparison_placement import (
+    PlacedComparison,
+    placed_comparison,
+)
 from pathfinder.domain.strategy.constraints import is_blocking
-from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    pending_analyses,
+)
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.eda.export import open_analysis_exports
@@ -89,6 +97,7 @@ class TurnRecord(CamelModel):
     unfollowed_reach: StepReach | None = None
     unmet_requirements: tuple[str, ...] = ()
     audit_turn: bool = False
+    comparisons: tuple[PlacedComparison, ...] = ()
 
     @property
     def check_could_not_finish(self) -> bool:
@@ -171,6 +180,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     ledger = derive_ledger(deps.state, deps.intent)
     withdrawn, stated = _edit_values(deps)
     graph = deps.runtime.strategy_session.get_graph(None)
+    root_id = None if graph is None else graph.primary_root_id()
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=deps.build_unverified,
@@ -207,4 +217,10 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
             if is_blocking(g)
         ),
         audit_turn=turn_is_an_audit(deps),
+        comparisons=tuple(
+            placed_comparison(
+                held, deps.state.domain.operational_spec or OperationalSpec(), root_id
+            )
+            for held in deps.state.domain.computed_comparisons.values()
+        ),
     )

@@ -7,7 +7,7 @@ from typing import Literal
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import ConfigDict
-from veupathdb.domain.parameters import InputDatasetValue, ParamValue
+from veupathdb.domain.parameters import InputDatasetValue
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 from veupathdb_mcp.wdk import ComputedComparisonResult, ComputedSet
@@ -24,6 +24,15 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
+LEADS_BY = 2
+SNAPSHOT_CAVEAT = (
+    "The ids are fixed; a later release maps each id to the groups it became, "
+    "so the count can change."
+)
+SNAPSHOT_NOTE = (
+    f"Each step named as a {COMPUTED_ROUTE} holds a saved list of group ids. "
+    f"{SNAPSHOT_CAVEAT}"
+)
 
 type Route = Literal["computed snapshot"]
 
@@ -59,6 +68,11 @@ class SetFacts(CamelModel):
     leading_species_genomes: int
     leading_species_share: Share
     species: tuple[SpeciesFacts, ...]
+
+    @property
+    def leading_species_leads(self) -> bool:
+        first, *rest = self.species
+        return bool(rest) and first.genomes >= LEADS_BY * rest[0].genomes
 
     @classmethod
     def of(cls, held: ComputedSet) -> SetFacts:
@@ -101,6 +115,23 @@ class ComparisonFacts(CamelModel):
     compute_requests: int
     left: SetFacts
     right: SetFacts
+
+    def breakdown(self) -> tuple[tuple[str, ...], ...]:
+        sides = (("leftOnly", self.left_only), ("rightOnly", self.right_only))
+        one_sided = [path for path, count in sides if count]
+        split = ["bothHeld", *one_sided] if one_sided else []
+        residual = ["residualGroups"] if self.residual_groups else []
+        counted = tuple((path, f"{path}Share") for path in (*split, *residual))
+        leading = tuple(
+            need
+            for side, held in (("left", self.left), ("right", self.right))
+            if held.leading_species_leads
+            for need in (
+                (f"{side}.leadingSpecies",),
+                (f"{side}.leadingSpeciesShare", f"{side}.leadingSpeciesGenomes"),
+            )
+        )
+        return (*counted, *leading)
 
 
 def _leaders(held: ComputedSet) -> list[str]:
@@ -147,6 +178,16 @@ class HeldComparison(CamelModel):
     def handle(self) -> str:
         return comparison_handle(self.answer.group_ids)
 
+    @property
+    def fact_id(self) -> str:
+        return statistic_id("group_comparison", [self.handle])
+
+    def bound_in(self, spec: OperationalSpec) -> list[str]:
+        if self.dataset_id is None:
+            return []
+        saved = InputDatasetValue(dataset_id=self.dataset_id)
+        return [c.id for c in spec.criteria if saved in c.param_values.values()]
+
     def step_name(self, question: str) -> str:
         return f"{question} ({COMPUTED_ROUTE}, {self.computed_on.isoformat()})"
 
@@ -155,8 +196,7 @@ class HeldComparison(CamelModel):
             f"A {COMPUTED_ROUTE} of {site_name}'s data on "
             f"{self.computed_on.isoformat()}: the "
             f"{count_noun(self.answer.groups, 'group')} the comparison selected, "
-            "uploaded as a list. The ids are fixed; a later release maps each id "
-            "to the groups it became, so the count can change."
+            f"uploaded as a list. {SNAPSHOT_CAVEAT}"
         )
 
     def label(self) -> str:
@@ -188,7 +228,7 @@ class HeldComparison(CamelModel):
     def fact(self) -> StatisticFact:
         left, right = self.answer.sets
         return StatisticFact(
-            id=statistic_id("group_comparison", [self.handle]),
+            id=self.fact_id,
             kind="group_comparison",
             title=f"Computed comparison: {self.answer.reading}",
             rows=model_rows(self.facts()),
@@ -208,29 +248,30 @@ class HeldComparison(CamelModel):
         )
 
 
-def _dataset(value: ParamValue) -> str | None:
-    match value:
-        case InputDatasetValue(dataset_id=dataset_id):
-            return dataset_id
-        case _:
-            return None
-
-
 def bound_comparisons(
     held: Mapping[str, HeldComparison], spec: OperationalSpec
 ) -> list[tuple[str, PhyleticPattern]]:
-    saved = {one.dataset_id: one for one in held.values() if one.dataset_id}
-    return [
-        (criterion.id, saved[dataset].pattern)
-        for criterion in spec.criteria
-        for value in criterion.param_values.values()
-        if (dataset := _dataset(value)) is not None and dataset in saved
-    ]
+    return [(step, one.pattern) for one in held.values() for step in one.bound_in(spec)]
+
+
+def noted_description(
+    described: str | None, held: Mapping[str, HeldComparison], spec: OperationalSpec
+) -> str | None:
+    if not bound_comparisons(held, spec):
+        return described
+    if described is None or not described.strip():
+        return SNAPSHOT_NOTE
+    if SNAPSHOT_NOTE in described:
+        return described
+    return f"{described.rstrip()} {SNAPSHOT_NOTE}"
 
 
 __all__ = [
     "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
+    "LEADS_BY",
+    "SNAPSHOT_CAVEAT",
+    "SNAPSHOT_NOTE",
     "ComparisonFacts",
     "HeldComparison",
     "SetFacts",
@@ -238,4 +279,5 @@ __all__ = [
     "bound_comparisons",
     "comparison_handle",
     "is_comparison_handle",
+    "noted_description",
 ]

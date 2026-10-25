@@ -124,8 +124,12 @@ async def test_a_transform_step_is_counted_and_linked_on_the_site(ran: _Ran) -> 
         )
     ]
     assert ran.tops == [20]
-    (tally,) = ran.returned
+    tally = ran.returned[0].model_copy(update={"result_step_id": _PROTEINS_STEP})
     assert ctx.deps.state.turn_markers.tallies == [tally.fact()]
+    assert [r.label for r in ctx.deps.state.turn_markers.tallies[0].rows] == [
+        "Brachionus plicatilis",
+        "Oryza sativa Japonica Group",
+    ]
     chunks = [
         c
         for c in result.metadata or []
@@ -264,7 +268,7 @@ async def test_the_counts_are_facts_a_reply_quotes(ran: _Ran) -> None:
     assert [
         tally_count(tallies, body)
         for body in ("tally_5e6f7a8b", "tally_5e6f7a8b.bpli", "tally_5e6f7a8b:values")
-    ] == ["523,795 proteins", "18,260 proteins", "840 values"]
+    ] == ["523,795 proteins", "18,260 proteins", "840"]
     assert tally_count(tallies, "tally_5e6f7a8b.pfal") is None
 
 

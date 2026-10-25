@@ -21644,6 +21644,28 @@
               }
             ],
             "title": "Stepurl"
+          },
+          "wdkStepId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wdkstepid"
+          },
+          "resultStepId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultstepid"
           }
         },
         "required": [
@@ -25093,6 +25115,11 @@
             },
             "title": "Notes",
             "type": "array"
+          },
+          "picks": {
+            "default": 1,
+            "title": "Picks",
+            "type": "integer"
           }
         },
         "required": [
@@ -26919,6 +26946,17 @@
             },
             "title": "Rows",
             "type": "array"
+          },
+          "wdkStepId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wdkstepid"
           }
         },
         "required": [
@@ -26984,6 +27022,11 @@
           "count": {
             "title": "Count",
             "type": "integer"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
           }
         },
         "required": [
@@ -27382,6 +27425,17 @@
             },
             "title": "Tallies",
             "type": "array"
+          },
+          "resultStepId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultstepid"
           },
           "stoppedCheck": {
             "default": "",

@@ -11,7 +11,9 @@ from assistant_core.graph.tool_summary import count_noun
 
 from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
 from pathfinder.ai.lead.edit_messages import recut_call
+from pathfinder.ai.lead.list_fault_messages import list_sentence
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.reference_fault_messages import reference_sentence
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -316,20 +318,6 @@ def _kind_sentence(fault: ProseFault) -> str | None:
             f"``{fault.token}`` names a number, which the reply writes in place: "
             f"write ``{fault.references[0]}``."
         )
-    if fault.kind == "unnamed_dispute":
-        return (
-            f"``{fault.token}``: the two reviews of this finding disagree, and a "
-            "reply that reads this run names each disputed finding: name its genes "
-            f"by their record references and write ``{fault.references[0]}`` after "
-            "your words for the disagreement."
-        )
-    if fault.kind == "keyed_reference":
-        written = " or ".join(f"``{r}``" for r in fault.references)
-        return (
-            f"``{fault.token}`` names a list item by a value it holds, and a row "
-            f"names each item by its place in the list: write {written}, which "
-            "renders it."
-        )
     return None
 
 
@@ -378,7 +366,12 @@ def _fault_sentence(fault: ProseFault) -> str:
             f"``{fault.token}`` is no reference the product reads: write one of "
             "the references above, or take the brackets out."
         )
-    placed = _kind_sentence(fault) or _placement_sentence(fault)
+    placed = (
+        _kind_sentence(fault)
+        or list_sentence(fault)
+        or reference_sentence(fault)
+        or _placement_sentence(fault)
+    )
     if placed is not None:
         return placed
     if fault.references:
@@ -454,6 +447,16 @@ def unstated_reading_message(reading: ChosenReading) -> str:
         "The request reads more than one way, and the framing pass built "
         f"'{reading.chosen}' without asking. Say in the reply which reading the "
         f"strategy answers and name the {other}: {others}."
+    )
+
+
+def unplaced_breakdown_message(references: Sequence[str]) -> str:
+    return (
+        "The reply places the group count of a computed comparison and not how "
+        "those groups divide. A group that one set alone holds is absent from the "
+        "other set, not larger in it, and the residual groups and a species that "
+        "leads a set change what the count means. Place one reference of each item "
+        f"with the words that say what it counts: {'; '.join(references)}."
     )
 
 

@@ -3,35 +3,17 @@ group ids held by handle and its counts read from the recorded clouds."""
 
 from __future__ import annotations
 
-from pydantic import TypeAdapter
-from veupathdb_mcp.catalog import PhyleticPattern
-
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone.orthomcl_expressions import (
     ComputedComparison,
     build_phyletic_expression,
 )
 from pathfinder.domain.strategy.computed_groups import comparison_handle
-from pathfinder.tests._support.orthomcl_clouds import served_genus_clouds, set_codes
+from pathfinder.tests._support.orthomcl_clouds import genus_mean, served_genus_clouds
 from pathfinder.tests._support.orthomcl_counts import SITE
 from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context, summary_of
-
-_PATTERN: TypeAdapter[PhyleticPattern] = TypeAdapter(PhyleticPattern)
-
-
-def genus_mean() -> PhyleticPattern:
-    codes = set_codes()
-    return _PATTERN.validate_python(
-        {
-            "kind": "compare",
-            "left": {"kind": "codes", "codes": sorted(codes.tox)},
-            "right": {"kind": "codes", "codes": sorted(codes.plas)},
-            "reading": "averages",
-            "condition": "more_than",
-        }
-    )
 
 
 async def test_the_genus_mean_is_computed_and_held_by_handle() -> None:
