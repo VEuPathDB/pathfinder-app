@@ -44,6 +44,7 @@ class StepColumnPage(CamelModel):
     record_type: str
     search_name: str
     total: int
+    matched: int
     countable: int
     offset: int
     columns: list[StepColumn]
@@ -90,11 +91,12 @@ async def step_columns(
     of the strategy can be listed, a transform or a combine included; its columns
     are those of the records it holds. A step lists up to thousands of columns,
     so narrow the list with ``name`` and ``countable_only``; it answers 100 per
-    page in the site's order, ``total`` is the number of columns that match and
-    ``offset`` reads the next page.
+    page in the site's order, ``matched`` is the number of columns that match,
+    ``total`` the number listed and ``offset`` reads the next page. When no
+    column matches ``name``, the list holds every countable column of the step.
 
     ``reach`` says where a countable column is. ``step``: on this step.
-    ``transform``: no column of this step that matches can be counted, and
+    ``transform``: no column of this step can be counted, and
     ``transforms`` names each transform the site offers that turns these
     records into another record type, with that record type's countable
     columns; when one of them answers the question, add the transform with
@@ -112,12 +114,12 @@ async def step_columns(
     _require_strategy_step(session, wdk_step_id)
     listed = await countable_columns(session.site_id, wdk_step_id)
     matching = [c for c in listed.columns if _matches(c, name, countable_only)]
-    countable = sum(c.countable for c in matching)
+    own = [c for c in listed.columns if c.countable]
+    shown = matching or own
+    countable = sum(c.countable for c in shown)
     markers = ctx.deps.state.turn_markers
     reached = (
-        None
-        if countable
-        else await step_reach(session.site_id, listed, len(markers.tallies))
+        None if own else await step_reach(session.site_id, listed, len(markers.tallies))
     )
     if reached is not None:
         markers.column_reaches.append(reached)
@@ -125,10 +127,11 @@ async def step_columns(
         wdk_step_id=wdk_step_id,
         record_type=listed.record_type,
         search_name=listed.search_name,
-        total=len(matching),
+        total=len(shown),
+        matched=len(matching),
         countable=countable,
         offset=offset,
-        columns=matching[offset : offset + COLUMN_PAGE],
+        columns=shown[offset : offset + COLUMN_PAGE],
         reach="step" if reached is None else reached.reach,
         transforms=[] if reached is None else reached.transforms,
     )

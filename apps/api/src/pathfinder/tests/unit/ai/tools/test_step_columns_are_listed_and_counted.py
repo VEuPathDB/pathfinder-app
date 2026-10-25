@@ -211,11 +211,12 @@ async def test_a_steps_columns_are_found_by_name_and_countable(
         StepColumnPage,
     )
     assert (
+        counted_links.matched,
         counted_links.total,
-        counted_links.columns,
         counted_links.reach,
         counted_links.transforms,
-    ) == (0, [], "none", [])
+    ) == (0, sum(c.countable for c in _listed().columns), "step", [])
+    assert all(c.countable for c in counted_links.columns)
 
 
 async def test_a_step_the_strategy_does_not_hold_is_not_listed(
