@@ -22,7 +22,11 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
 from pathfinder.platform.metrics import CHAT_TURNS_STARTED
-from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.conversations.begin import (
+    begin_conversation,
+    refuse_a_thread_of_another_caller,
+)
+from pathfinder.services.conversations.thread_lock import hold_thread
 from pathfinder.services.conversations.turn_slots import require_a_free_turn
 
 
@@ -33,7 +37,29 @@ async def dispatch(
     user_id: UUID,
     spec: AssistantSpec,
 ) -> Response:
-    """Scan user input, persist it, enqueue a turn job, tail the event stream.
+    await refuse_a_thread_of_another_caller(
+        session,
+        conversation_id=body.conversation_id,
+        user_id=user_id,
+    )
+    async with hold_thread(body.conversation_id):
+        after = await _enqueue_turn(
+            body=body,
+            session=session,
+            user_id=user_id,
+            spec=spec,
+        )
+    return event_tail(body.conversation_id, after=after)
+
+
+async def _enqueue_turn(
+    *,
+    body: ChatRequestBody,
+    session: AsyncSession,
+    user_id: UUID,
+    spec: AssistantSpec,
+) -> int:
+    """Scan user input, persist it, and enqueue a turn job.
 
     Two trigger modes:
 
@@ -119,8 +145,7 @@ async def dispatch(
         payload=payload.model_dump(mode="json", by_alias=True),
     )
     CHAT_TURNS_STARTED.labels(spec.assistant_id).inc()
-
-    return event_tail(body.conversation_id, after=after)
+    return after
 
 
 __all__ = ["ChatRequestBody", "dispatch"]

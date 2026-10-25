@@ -99,7 +99,7 @@ class _AmainRun:
     observability: list[str]
     metrics_servers: list[tuple[int, str]]
     observers: list[object]
-    search_lines: list[tuple[str, object]]
+    search_lines: list[tuple[str, object, dict[str, object]]]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -130,7 +130,7 @@ async def _run_amain(
     observability: list[str] = []
     metrics_servers: list[tuple[int, str]] = []
     observers: list[object] = []
-    search_lines: list[tuple[str, object]] = []
+    search_lines: list[tuple[str, object, dict[str, object]]] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         name = "audit-run" if "name" in kwargs else "run"
@@ -175,7 +175,9 @@ async def _run_amain(
         patch("pathfinder.jobs.worker.set_observer", side_effect=observers.append),
         patch(
             "pathfinder.jobs.worker.install_search_line",
-            side_effect=lambda url, expensive: search_lines.append((url, expensive)),
+            side_effect=lambda url, expensive, **pool: search_lines.append(
+                (url, expensive, pool)
+            ),
         ),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch.object(AuditRepository, "resumable_runs", read_runs),
@@ -195,6 +197,9 @@ async def _run_amain(
                 audit_concurrency=2,
                 worker_heartbeat_interval_seconds=heartbeat_interval,
                 database_url="postgresql+asyncpg://user@host/db",
+                search_line_pool_size=1,
+                search_line_max_overflow=1,
+                search_line_pool_timeout_seconds=None,
                 input_screening_enabled=screening,
                 metrics_port=metrics[0],
                 metrics_addr=metrics[1],
@@ -227,7 +232,11 @@ async def test_amain_installs_the_observer_and_the_search_line() -> None:
 
     assert [type(observer) for observer in run.observers] == [PathfinderObserver]
     assert run.search_lines == [
-        ("postgresql+asyncpg://user@host/db", runs_on_the_deployment_line)
+        (
+            "postgresql+asyncpg://user@host/db",
+            runs_on_the_deployment_line,
+            {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
+        )
     ]
 
 

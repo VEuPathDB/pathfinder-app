@@ -5,7 +5,6 @@ from __future__ import annotations
 from time import monotonic
 
 from assistant_core.platform.db import async_session_factory
-from assistant_core.platform.lease import advisory_lease
 from pydantic import JsonValue
 
 from pathfinder.ai.audit.review import review_until_done
@@ -16,7 +15,7 @@ from pathfinder.platform.identity import AUDIT_ASSISTANT_ID
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.platform.model_keys import attach_keyring
 from pathfinder.platform.tiers import REVIEW_ROLE
-from pathfinder.services.audit.queue import audit_lock
+from pathfinder.services.audit.lease_pool import audit_lease
 from pathfinder.services.audit.reviews import (
     ReviewedRun,
     ReviewJob,
@@ -57,7 +56,7 @@ async def _review(run: ReviewedRun) -> None:
 
 async def run_review_job(payload: dict[str, JsonValue]) -> None:
     job = ReviewJob.model_validate(payload)
-    async with attach_application(), advisory_lease(audit_lock(job.run_id)) as held:
+    async with attach_application(), audit_lease(job.run_id) as held:
         run = await reviewed_run(job.run_id) if held else None
         if run is None or run.status != "finished":
             return

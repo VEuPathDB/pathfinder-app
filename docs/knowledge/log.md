@@ -2,11 +2,19 @@
 
 ## 2026-10-25
 
+* **Every process fits one database connection budget.** The estate Postgres allows 100
+  connections and the deployment keeps 90 of them, so every pool is sized by a setting
+  (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `LOCK_POOL_SIZE`, `LOCK_POOL_OVERFLOW`,
+  `JOB_QUEUE_POOL_MIN_SIZE`, `JOB_QUEUE_POOL_MAX_SIZE`, and veupathdb-mcp 0.2.0b52's
+  `SEARCH_LINE_POOL_SIZE`, `SEARCH_LINE_MAX_OVERFLOW`, `EMBEDDING_DB_POOL_SIZE` and
+  `EMBEDDING_DB_MAX_OVERFLOW`) whose defaults sum to 83. Audit leases hold a pool of their own. The chat streams share one LISTEN
+  connection per process (assistant-core 0.3.0b13), where each stream held its own. See
+  `conventions/database-connection-budget.md`.
 * **A compare past the expression caps is computed, saved as a group list step, and
-  stated from its facts.** PathFinder takes veupathdb-mcp v0.2.0-b51.
+  stated from its facts.** PathFinder takes veupathdb-mcp v0.2.0-b52.
   `build_phyletic_expression` answers through `answer_phyletic_pattern`; a computed
   answer returns its counts and a `groups:` handle, `set_criterion(computed_groups=...)`
-  saves the ids with `frozen_step_id(record_type="group")` as a `GroupsByNameList`
+  saves the ids with `counted_id_list(record_type="group")` as a `GroupsByNameList`
   criterion, and a `group_comparison` statistic carries the route, the breakdown, the
   residual groups and each set's leading species. See
   [a computed comparison is saved as a group list step](decisions/a-computed-comparison-is-saved-as-a-group-list-step.md).
@@ -18,6 +26,35 @@
 
 ## 2026-10-24
 
+* **A turn no longer writes a site preference on its own.** `ai/lead/memory_candidates.py`
+  offered a `preferred_site:<site>` preference after three assistant messages whose metadata
+  held `phase == "verification"` and `turnCompleted == true`. No turn writes either key, so it
+  never fired; had it fired, it would have pinned a preference with no card, against
+  `decisions/a-preference-is-pinned-only-on-the-researchers-yes.md`. The candidate, its gate
+  and `collect_turn_memory_candidates` are removed; `finalize_turn` reads
+  `collect_memory_candidates`, and a preference reaches the store only through the Lead's
+  approved `remember`.
+* **A branch and a revert wait for the thread to settle.** Both take the thread lock
+  `thread:<conversation id>` for their transaction (`services/conversations/thread_lock.py`)
+  and are refused with 409 (`FORK_REFUSED`, and the new `REVERT_REFUSED`) while a queued or
+  running `chat_turn` job locks the thread, the newest checkpoint parks an approval, a task is
+  active, or a dispatch holds the lock (`services/conversations/thread_busy.py`). The dispatcher
+  refuses a thread of another caller first, then holds the same lock as a transaction lock on a
+  connection of its own until the job is deferred, and refuses with `ThreadBusyError` after 45
+  seconds of waiting; that transaction ends after 120 idle seconds, and it takes its connection
+  from a pool of its own (`LOCK_POOL_SIZE` 2 plus `LOCK_POOL_OVERFLOW` 18), so dispatches never
+  wait on the request pool for their own locks; the 45-second wait covers the pool checkout and
+  the lock attempts together. A branch or a revert that does not commit
+  deletes the WDK strategy and the EDA document it made, after a fresh session confirms within
+  5 seconds that no committed row names them (and keeps them when it cannot) (`services/conversations/surgery_commit.py`). A branch pushes its
+  strategy as its last VEuPathDB write and deletes that mint when anything after the push
+  fails, the commit included. An EDA document a surgery opened is deleted when its subset or
+  its binding fails. The checkpoint tables are named once, in
+  `persistence/repositories/checkpoint_rows.py`, which a schema test holds equal to what the
+  installed checkpointer creates. A branch copies only the blobs its checkpoints name, and a
+  revert deletes the blobs no surviving checkpoint names. Message upserts are scoped to their
+  conversation in assistant-core 0.3.0b13. See
+  `conventions/thread-surgery-invariants.md` (F11 to F14, R9 to R11, S1 to S3).
 * **A stored value renders in the form its type gives it; `stat` places it and `cite`
   cites it.** An audit read's rows come from the answer's serialization schema
   (`domain/statistic_rows.py`): a number and a share render as numbers, an enum as its

@@ -208,6 +208,11 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     input_screening_enabled: bool = True
     input_screening_model: str = DEFAULT_MODEL_ID
 
+    lock_pool_size: int = Field(default=2, ge=1)
+    lock_pool_overflow: int = Field(default=18, ge=0)
+    job_queue_pool_min_size: int = Field(default=1, ge=1)
+    job_queue_pool_max_size: int = Field(default=4, ge=1)
+
     # Background worker
     max_turns_in_flight_per_user: int = Field(default=2, ge=1)
     worker_concurrency: int = Field(

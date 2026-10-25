@@ -1,62 +1,53 @@
 from __future__ import annotations
 
-from datetime import datetime
 from uuid import UUID, uuid4
 
 from assistant_core.conversation.authz import owned_by_caller
-from assistant_core.persistence.models import BackgroundTask, Conversation, Message
-from assistant_core.persistence.repositories.background_tasks import (
-    ACTIVE_TASK_STATES,
-)
+from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import ConversationStrategy
+from pathfinder.persistence.repositories.checkpoint_rows import copy_checkpoints
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.platform.errors import ForkRefusedError
-from pathfinder.services.conversations.fork_copy import (
-    copy_checkpoint_state,
-    copy_conversation_events,
-)
+from pathfinder.services.conversations.fork_copy import copy_conversation_events
 from pathfinder.services.conversations.fork_ids import IdMint
 from pathfinder.services.conversations.fork_strategy import (
     anchor_snapshot,
     write_forked_strategy,
 )
-from pathfinder.services.eda.thread_surgery import branch_thread_binding
+from pathfinder.services.conversations.thread_busy import (
+    ThreadBusy,
+    claim_settled_thread,
+)
+from pathfinder.services.eda.thread_surgery import (
+    branch_thread_binding,
+    delete_released_document,
+)
 
 
 class ForkError(ValueError):
     """Raised when the fork request references missing or unauthorized rows."""
 
 
-async def _refuse_while_a_task_runs(
-    session: AsyncSession,
-    *,
-    source_conversation_id: UUID,
-    cutoff_ts: datetime | None,
-) -> None:
-    """Refuse a branch whose checkpoints park a call no worker will answer.
-
-    The worker resumes a durable call on the thread that deferred it, so a
-    copy of that checkpoint stays mid-turn for good.
-    """
-    stmt = select(BackgroundTask.id).where(
-        BackgroundTask.conversation_id == source_conversation_id,
-        BackgroundTask.status.in_(ACTIVE_TASK_STATES),
-    )
-    if cutoff_ts is not None:
-        stmt = stmt.where(BackgroundTask.created_at < cutoff_ts)
-    running = await session.scalar(stmt.limit(1))
-    if running is None:
-        return
-    msg = (
+_REFUSALS = {
+    ThreadBusy.LOCKED: (
+        "This chat is changing right now. Try the branch again in a moment."
+    ),
+    ThreadBusy.TURN: (
+        "This chat is still answering. Branch it once the reply has finished."
+    ),
+    ThreadBusy.APPROVAL: (
+        "This chat is waiting for your answer to a request. Answer it, then branch."
+    ),
+    ThreadBusy.TASK: (
         "This chat is running a background task. Branch it once the task has finished."
-    )
-    raise ForkRefusedError(msg)
+    ),
+}
 
 
 async def fork_conversation(
@@ -74,6 +65,9 @@ async def fork_conversation(
     if source is None or not owned_by_caller(source, user_id):
         msg = "Source conversation not found"
         raise ForkError(msg)
+    busy = await claim_settled_thread(session, source_conversation_id)
+    if busy is not None:
+        raise ForkRefusedError(_REFUSALS[busy])
     source_strategy_row = await session.get(
         ConversationStrategy,
         source_conversation_id,
@@ -107,11 +101,6 @@ async def fork_conversation(
         )
         .order_by(asc(Message.created_at))
         .limit(1),
-    )
-    await _refuse_while_a_task_runs(
-        session,
-        source_conversation_id=source_conversation_id,
-        cutoff_ts=next_message_ts,
     )
     snapshot = await anchor_snapshot(
         session,
@@ -171,7 +160,17 @@ async def fork_conversation(
         cutoff=next_message_ts,
         message_id_map=messages.mapping,
     )
-    if snapshot is not None and source_strategy_row is not None:
+    await copy_checkpoints(
+        session,
+        source_thread_id=str(source_conversation_id),
+        target_thread_id=str(new_conv_id),
+        cutoff=next_message_ts,
+    )
+    # The copied log carries the binding states of the turns it holds.
+    document = await branch_thread_binding(session, conversation_id=new_conv_id)
+    if snapshot is None or source_strategy_row is None:
+        return fork
+    try:
         await write_forked_strategy(
             session,
             branch=fork,
@@ -180,12 +179,7 @@ async def fork_conversation(
             new_conversation_id=new_conv_id,
             anchor_message_id=UUID(messages.of(str(anchor.id))),
         )
-    await copy_checkpoint_state(
-        session,
-        source_thread_id=str(source_conversation_id),
-        new_thread_id=str(new_conv_id),
-        cutoff_ts=next_message_ts,
-    )
-    # The copied log carries the binding states of the turns it holds.
-    await branch_thread_binding(session, conversation_id=new_conv_id)
+    except Exception:
+        await delete_released_document(document)
+        raise
     return fork

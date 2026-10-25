@@ -9,6 +9,7 @@ from pathfinder.services.conversations.revert import (
     RevertError,
     revert_conversation_to_message,
 )
+from pathfinder.services.conversations.surgery_commit import commit_or_release
 from pathfinder.services.strategies.abandoned_mint import delete_released_mint
 from pathfinder.transport.http.deps import (
     CurrentUser,
@@ -38,7 +39,7 @@ async def revert_to_message(
     user_id: CurrentUser,
 ) -> None:
     try:
-        release = await revert_conversation_to_message(
+        outcome = await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,
             target_message_id=request.message_id,
@@ -46,5 +47,5 @@ async def revert_to_message(
         )
     except RevertError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    await session.commit()
-    await delete_released_mint(release)
+    await commit_or_release(session, outcome.made)
+    await delete_released_mint(outcome.released)

@@ -45,6 +45,7 @@ from pathfinder.platform.metrics import PathfinderObserver, serve_metrics
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
+from pathfinder.services.audit.lease_pool import close_audit_lease_engine
 from pathfinder.services.audit.queue import AUDIT_QUEUE
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 
@@ -157,7 +158,13 @@ async def amain() -> None:
     settings = get_settings()
     serve_metrics(settings.metrics_port, settings.metrics_addr)
     set_observer(PathfinderObserver())
-    install_search_line(settings.database_url, runs_on_the_deployment_line)
+    install_search_line(
+        settings.database_url,
+        runs_on_the_deployment_line,
+        pool_size=settings.search_line_pool_size,
+        max_overflow=settings.search_line_max_overflow,
+        pool_timeout=settings.search_line_pool_timeout_seconds,
+    )
     procrastinate_app.perform_import_paths()
     # The workers are built here rather than through run_worker_async so each
     # heartbeat thread can read the worker id procrastinate registers.
@@ -171,6 +178,7 @@ async def amain() -> None:
         finally:
             for heartbeat in heartbeats:
                 heartbeat.stop()
+            await close_audit_lease_engine()
             shutdown_observability()
             shutdown_langfuse()
 

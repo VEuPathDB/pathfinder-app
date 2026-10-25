@@ -109,7 +109,9 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
     monkeypatch.setattr(main, "serve_metrics", lambda port, addr: None)
     monkeypatch.setattr(main, "set_observer", lambda observer: None)
-    monkeypatch.setattr(main, "install_search_line", lambda url, expensive: None)
+    monkeypatch.setattr(
+        main, "install_search_line", lambda url, expensive, **pool: None
+    )
 
 
 async def test_startup_returns_while_warm_up_still_runs(
@@ -143,7 +145,7 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
     """Every WDK call reports through the observer, and searches wait in the line."""
     del isolated_lifespan
     installed: list[object] = []
-    lines: list[tuple[str, object]] = []
+    lines: list[tuple[str, object, dict[str, object]]] = []
 
     async def _no_warm_up() -> None:
         return None
@@ -153,7 +155,7 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
     monkeypatch.setattr(
         main,
         "install_search_line",
-        lambda url, expensive: lines.append((url, expensive)),
+        lambda url, expensive, **pool: lines.append((url, expensive, pool)),
     )
 
     app = FastAPI()
@@ -161,7 +163,13 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
         pass
 
     assert [type(observer) for observer in installed] == [PathfinderObserver]
-    assert lines == [(get_settings().database_url, runs_on_the_deployment_line)]
+    assert lines == [
+        (
+            get_settings().database_url,
+            runs_on_the_deployment_line,
+            {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
+        )
+    ]
 
 
 async def test_the_lifespan_meters_at_the_catalog_prices(

@@ -47,6 +47,17 @@ class BeginResult:
     is_new: bool
 
 
+async def refuse_a_thread_of_another_caller(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    user_id: UUID,
+) -> None:
+    repo = ConversationRepository(session)
+    if await repo.get_by_id(conversation_id) is not None:
+        await get_visible_conversation(repo, conversation_id, user_id)
+
+
 async def begin_conversation(
     *,
     session: AsyncSession,

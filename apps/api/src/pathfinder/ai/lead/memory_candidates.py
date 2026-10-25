@@ -8,16 +8,9 @@ than duplicating it.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
 
 from assistant_core.memory.autowrite import MemoryCandidate
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
-from assistant_core.memory.tombstones import SessionFactory
-from assistant_core.persistence.models import Conversation, Message
-from assistant_core.platform.context import calling_application
-from assistant_core.platform.db import async_session_factory
-from sqlalchemy import exists, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -25,12 +18,7 @@ from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.intent import BUILDING_INTENTS
 from pathfinder.domain.strategy.build_outcome import BuiltCounts
 
-__all__ = [
-    "collect_memory_candidates",
-    "collect_turn_memory_candidates",
-]
-
-PREFERENCE_MIN_SUCCESSES = 3
+__all__ = ["collect_memory_candidates"]
 
 
 def _asked_to_build(domain: StrategyDomainState) -> bool:
@@ -75,29 +63,6 @@ def collect_memory_candidates(
                 )
             )
     candidates.extend(collect_case_candidates(state, counts=counts))
-    return candidates
-
-
-async def collect_turn_memory_candidates(
-    state: PipelineState,
-    *,
-    counts: BuiltCounts,
-    session_factory: SessionFactory = async_session_factory,
-) -> list[MemoryCandidate]:
-    """Every candidate of one turn, including the site preference the user
-    earns after enough successful verifications."""
-    candidates = collect_memory_candidates(state, counts=counts)
-    if not state.site_id:
-        return candidates
-    earned = await _has_min_successful_verifications(
-        user_id=state.user_id,
-        session_factory=session_factory,
-        threshold=PREFERENCE_MIN_SUCCESSES,
-    )
-    if earned:
-        candidates.append(
-            (_build_preference_value(state), f"preferred_site:{state.site_id}")
-        )
     return candidates
 
 
@@ -165,58 +130,6 @@ def _build_knowledge_value(
         source_conversation_id=state.conversation_id,
         created_at=datetime.now(UTC),
     )
-
-
-def _build_preference_value(state: PipelineState) -> MemoryValue:
-    return MemoryValue(
-        kind="preference",
-        name=f"preferred_site:{state.site_id}",
-        summary=f"Frequently uses {state.site_id}",
-        tags=[state.site_id] if state.site_id else [],
-        site_id=state.site_id,
-        content={"preferred_site": state.site_id},
-        source_conversation_id=state.conversation_id,
-        created_at=datetime.now(UTC),
-    )
-
-
-async def _has_min_successful_verifications(
-    *,
-    user_id: UUID,
-    session_factory: SessionFactory,
-    threshold: int,
-) -> bool:
-    """Return True iff the user has ``>= threshold`` successful verifications.
-
-    Uses EXISTS with LIMIT to avoid an unbounded COUNT(*) over the user's full
-    message history. The query is O(threshold) rows in the worst case.
-    """
-    async with session_factory() as session:
-        return await _check_verifications_threshold(session, user_id, threshold)
-
-
-async def _check_verifications_threshold(
-    session: AsyncSession,
-    user_id: UUID,
-    threshold: int,
-) -> bool:
-    inner = (
-        select(Message.id)
-        .join(Conversation, Message.conversation_id == Conversation.id)
-        .where(
-            Conversation.user_id == user_id,
-            Conversation.application_id == calling_application(),
-            Message.role == "assistant",
-            Message.metadata_["phase"].as_string() == "verification",
-            Message.metadata_["turnCompleted"].as_boolean().is_(True),
-        )
-        .limit(threshold)
-    ).subquery()
-    row_count_stmt = select(
-        exists().select_from(select(inner.c.id).offset(threshold - 1).subquery())
-    )
-    result = await session.execute(row_count_stmt)
-    return bool(result.scalar())
 
 
 def _summarize_spec(state: PipelineState) -> str:

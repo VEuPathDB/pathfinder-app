@@ -215,7 +215,7 @@ async def test_a_written_note_leaves_the_created_list(
     async def _nothing(**kwargs: Any) -> None:
         del kwargs
 
-    async def _no_candidates(_state: PipelineState, **_kwargs: object) -> list[Any]:
+    def _no_candidates(_state: PipelineState, **_kwargs: object) -> list[Any]:
         return []
 
     async def _wrote(turn: TurnMemories, **kwargs: Any) -> int:
@@ -223,7 +223,7 @@ async def test_a_written_note_leaves_the_created_list(
         return 1
 
     monkeypatch.setattr(nodes, "write_turn_message", _nothing)
-    monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _no_candidates)
+    monkeypatch.setattr(nodes, "collect_memory_candidates", _no_candidates)
     monkeypatch.setattr(nodes, "write_turn_memories", _wrote)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
     monkeypatch.setattr(nodes, "compact_scratchpad", _nothing)

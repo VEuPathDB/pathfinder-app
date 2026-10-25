@@ -3,12 +3,14 @@ before the message is logged, so the log never interleaves two turns."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.errors import ConversationNotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.conversation import dispatcher
@@ -73,6 +75,20 @@ def order(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     async def nothing(*_: object, **__: object) -> None:
         return None
 
+    async def deferred(**_: object) -> int:
+        calls.append("deferred")
+        return 1
+
+    @asynccontextmanager
+    async def held(conversation_id: UUID) -> AsyncIterator[None]:
+        del conversation_id
+        calls.append("held")
+        yield
+        calls.append("released")
+
+    async def owned(*_: object, **__: object) -> None:
+        calls.append("owned")
+
     async def begun(**_: object) -> SimpleNamespace:
         return SimpleNamespace(
             conversation=SimpleNamespace(assistant_id=_SPEC.assistant_id), is_new=False
@@ -83,7 +99,9 @@ def order(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     monkeypatch.setattr(dispatcher, "latest_turn_boundary", boundary)
     monkeypatch.setattr(dispatcher, "require_a_free_turn", nothing)
     monkeypatch.setattr(dispatcher, "scan_user_input", nothing)
-    monkeypatch.setattr(dispatcher, "defer_chat_turn", nothing)
+    monkeypatch.setattr(dispatcher, "defer_chat_turn", deferred)
+    monkeypatch.setattr(dispatcher, "hold_thread", held)
+    monkeypatch.setattr(dispatcher, "refuse_a_thread_of_another_caller", owned)
     monkeypatch.setattr(dispatcher, "begin_conversation", begun)
     monkeypatch.setattr(dispatcher, "MessagesRepository", _Messages)
     monkeypatch.setattr(dispatcher, "ChatEventWriter", _Writer)
@@ -101,4 +119,34 @@ async def test_the_running_turn_closes_before_the_new_message_is_logged(
         spec=_SPEC,
     )
 
-    assert order == ["stop", "logged", "boundary"]
+    assert order == [
+        "owned",
+        "held",
+        "stop",
+        "logged",
+        "boundary",
+        "deferred",
+        "released",
+    ]
+
+
+async def test_a_thread_of_another_caller_is_refused_before_the_lock(
+    order: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    conversation_id = uuid4()
+
+    async def foreign(*_: object, **__: object) -> None:
+        raise ConversationNotFoundError(conversation_id)
+
+    monkeypatch.setattr(dispatcher, "refuse_a_thread_of_another_caller", foreign)
+
+    with pytest.raises(ConversationNotFoundError):
+        await dispatcher.dispatch(
+            body=_body(conversation_id),
+            session=AsyncSession(),
+            user_id=uuid4(),
+            spec=_SPEC,
+        )
+
+    assert order == []

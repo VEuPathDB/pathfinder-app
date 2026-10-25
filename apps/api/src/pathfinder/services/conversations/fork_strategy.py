@@ -16,6 +16,11 @@ from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.platform.errors import ForkRefusedError
+from pathfinder.services.strategies.abandoned_mint import (
+    ReleasableMint,
+    delete_released_mint,
+    fresh_mint,
+)
 from pathfinder.services.strategies.materialize import (
     materialize_strategy_snapshot,
 )
@@ -52,6 +57,21 @@ async def anchor_snapshot(
     raise ForkRefusedError(msg)
 
 
+async def branch_mint(
+    session: AsyncSession,
+    branch: Conversation,
+) -> ReleasableMint | None:
+    row = await session.get(ConversationStrategy, branch.id)
+    if row is None:
+        return None
+    return fresh_mint(
+        conversation_id=branch.id,
+        site_id=branch.site_id,
+        wdk_strategy_id=row.wdk_strategy_id,
+        created=row.wdk_strategy_created_here,
+    )
+
+
 async def write_forked_strategy(
     session: AsyncSession,
     *,
@@ -77,31 +97,41 @@ async def write_forked_strategy(
         record_type=snapshot.record_type,
         step_count=snapshot.step_count,
     )
-    session.add(
-        ConversationStrategy(
-            conversation_id=new_conversation_id,
-            record_type=materialized.record_type,
-            strategy_ast=materialized.strategy_ast,
-            step_count=materialized.step_count,
-            # A gene set taken from a strategy is re-synced against whatever
-            # strategy its thread holds, so a branch that inherited the link
-            # would rewrite its source's set. The branch imports its own.
-            gene_set_id=None,
-            gene_set_auto_imported=False,
-            wdk_strategy_id=materialized.wdk_strategy_id,
-            wdk_strategy_created_here=materialized.created_wdk_strategy,
-            # The fork still embeds the imported subtrees, so it keeps
-            # the references.
-            imported_saved_strategy_ids=list(
-                source_strategy.imported_saved_strategy_ids,
+    release = fresh_mint(
+        conversation_id=branch.id,
+        site_id=branch.site_id,
+        wdk_strategy_id=materialized.wdk_strategy_id,
+        created=materialized.created_wdk_strategy,
+    )
+    try:
+        session.add(
+            ConversationStrategy(
+                conversation_id=new_conversation_id,
+                record_type=materialized.record_type,
+                strategy_ast=materialized.strategy_ast,
+                step_count=materialized.step_count,
+                # A gene set taken from a strategy is re-synced against whatever
+                # strategy its thread holds, so a branch that inherited the link
+                # would rewrite its source's set. The branch imports its own.
+                gene_set_id=None,
+                gene_set_auto_imported=False,
+                wdk_strategy_id=materialized.wdk_strategy_id,
+                wdk_strategy_created_here=materialized.created_wdk_strategy,
+                # The fork still embeds the imported subtrees, so it keeps
+                # the references.
+                imported_saved_strategy_ids=list(
+                    source_strategy.imported_saved_strategy_ids,
+                ),
             ),
-        ),
-    )
-    await session.flush()
-    await StrategyRevisionRepository(session).record(
-        new_conversation_id,
-        strategy_view_of(
-            await session.get(ConversationStrategy, new_conversation_id),
-        ),
-        message_id=anchor_message_id,
-    )
+        )
+        await session.flush()
+        await StrategyRevisionRepository(session).record(
+            new_conversation_id,
+            strategy_view_of(
+                await session.get(ConversationStrategy, new_conversation_id),
+            ),
+            message_id=anchor_message_id,
+        )
+    except Exception:
+        await delete_released_mint(release)
+        raise

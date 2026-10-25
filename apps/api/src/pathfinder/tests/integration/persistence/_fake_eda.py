@@ -27,6 +27,10 @@ class FakeEda:
     documents: dict[str, list[EdaFilter]] = field(default_factory=dict)
     created: list[tuple[str, str]] = field(default_factory=list)
     patched: list[tuple[str, list[EdaFilter]]] = field(default_factory=list)
+    deleted: list[str] = field(default_factory=list)
+    delete_attempts: list[str] = field(default_factory=list)
+    refuse_delete: bool = False
+    refuse_patch_of: set[str] = field(default_factory=set)
     refuse_create: bool = False
     fresh: int = 0
     user_study: bool = True
@@ -77,11 +81,24 @@ class FakeEda:
         filters: Sequence[EdaFilter],
     ) -> EdaAnalysisDetail:
         del site_id, dataset_id
+        if analysis_id in self.refuse_patch_of:
+            msg = f"PATCH /users/1/analyses/{analysis_id}: the service is unavailable"
+            raise EdaServerError(msg, 503)
         # A document that is gone refuses the patch, as the service does.
         self._detail(analysis_id)
         self.documents[analysis_id] = list(filters)
         self.patched.append((analysis_id, list(filters)))
         return self._detail(analysis_id)
+
+    async def delete_analysis(self, site_id: str, *, analysis_id: str) -> None:
+        del site_id
+        self.delete_attempts.append(analysis_id)
+        if self.refuse_delete:
+            msg = f"DELETE /users/1/analyses/{analysis_id}: the service is unavailable"
+            raise EdaServerError(msg, 503)
+        self._detail(analysis_id)
+        del self.documents[analysis_id]
+        self.deleted.append(analysis_id)
 
     async def read_analysis(
         self,
@@ -105,5 +122,6 @@ def install_fake_eda(monkeypatch: pytest.MonkeyPatch) -> FakeEda:
     monkeypatch.setattr(thread_surgery, "open_analysis", fake.open_analysis)
     monkeypatch.setattr(thread_surgery, "patch_subset", fake.patch_subset)
     monkeypatch.setattr(thread_surgery, "read_analysis", fake.read_analysis)
+    monkeypatch.setattr(thread_surgery, "delete_analysis", fake.delete_analysis)
     monkeypatch.setattr(thread_surgery, "resolve_dataset", fake.resolve_dataset)
     return fake

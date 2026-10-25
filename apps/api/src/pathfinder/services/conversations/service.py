@@ -42,16 +42,22 @@ from pathfinder.services.conversations.duplicate import (
     duplicate_conversation,
 )
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
+from pathfinder.services.conversations.fork_strategy import branch_mint
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
     build_conversation_response,
     build_conversation_summaries,
     build_conversation_summary,
 )
+from pathfinder.services.conversations.surgery_commit import (
+    SurgeryMade,
+    commit_or_release,
+)
 from pathfinder.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
 )
+from pathfinder.services.eda.thread_surgery import bound_document
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -209,7 +215,13 @@ class ConversationService:
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title=str(exc),
             ) from exc
-        await self._session.commit()
+        await commit_or_release(
+            self._session,
+            SurgeryMade(
+                mint=await branch_mint(self._session, fork),
+                document=await bound_document(self._session, conversation_id=fork.id),
+            ),
+        )
         refreshed = await self._repo.get_with_strategy(fork.id)
         if refreshed is None:
             raise NotFoundError(

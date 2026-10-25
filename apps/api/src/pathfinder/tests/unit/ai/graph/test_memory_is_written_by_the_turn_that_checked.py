@@ -77,7 +77,7 @@ async def _finalize(
     async def _no_turn_message(**kwargs: Any) -> None:
         del kwargs
 
-    async def _one_candidate(
+    def _one_candidate(
         _: PipelineState, **_kwargs: object
     ) -> Sequence[tuple[MemoryValue, str]]:
         return [
@@ -107,7 +107,7 @@ async def _finalize(
 
     store = _RecordingStore()
     monkeypatch.setattr(nodes, "write_turn_message", _no_turn_message)
-    monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _one_candidate)
+    monkeypatch.setattr(nodes, "collect_memory_candidates", _one_candidate)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
     monkeypatch.setattr(nodes, "write_turn_memories", _count_write)
     monkeypatch.setattr(nodes, "compact_scratchpad", _count_compaction)

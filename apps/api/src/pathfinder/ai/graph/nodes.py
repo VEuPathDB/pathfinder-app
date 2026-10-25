@@ -22,7 +22,7 @@ from pathfinder.ai.graph._lead_capture import turn_with_spend
 from pathfinder.ai.graph.expression_store import kept_comparisons, kept_expressions
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.services.conversations.message_ratings import (
     TurnMemories,
@@ -89,7 +89,7 @@ async def _write_the_notes(
         return False
     try:
         session = context.strategy_session
-        candidates = await collect_turn_memory_candidates(
+        candidates = collect_memory_candidates(
             state, counts=built_counts(session.get_graph(None), session.sync_state)
         )
         async with memory_store_deadline("the memory auto-write"):

@@ -29,10 +29,15 @@ from pathfinder.persistence.repositories.conversation_analysis import (
     read_analysis_row,
     unbind_analysis_row,
 )
-from pathfinder.services.eda.authoring import open_analysis, patch_subset
+from pathfinder.services.eda.authoring import (
+    delete_analysis,
+    open_analysis,
+    patch_subset,
+)
 from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.catalog import resolve_dataset
 from pathfinder.services.eda.study_site import refuse_a_study_another_site_publishes
+from pathfinder.services.strategies.abandoned_mint import RELEASE_FAILURES
 
 logger = get_logger(__name__)
 
@@ -150,6 +155,49 @@ async def _refuse_another_sites_study(recorded: EdaAnalysisState) -> None:
     )
 
 
+@dataclass(frozen=True)
+class ReleasableDocument:
+    site_id: str
+    analysis_id: str
+
+
+@dataclass(frozen=True)
+class _Opened:
+    analysis_id: str
+    fresh: bool
+
+
+async def delete_released_document(document: ReleasableDocument | None) -> None:
+    if document is None:
+        return
+    try:
+        await delete_analysis(document.site_id, analysis_id=document.analysis_id)
+    except RELEASE_FAILURES as exc:
+        logger.warning(
+            "kept an EDA document the surgery opened: the study service refused",
+            analysis_id=document.analysis_id,
+            site=document.site_id,
+            error=str(exc),
+        )
+        return
+    logger.info(
+        "deleted an EDA document a surgery opened and did not keep",
+        analysis_id=document.analysis_id,
+        site=document.site_id,
+    )
+
+
+async def bound_document(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> ReleasableDocument | None:
+    bound = await read_analysis_row(session, conversation_id=conversation_id)
+    if bound is None:
+        return None
+    return ReleasableDocument(site_id=bound.site_id, analysis_id=bound.analysis_id)
+
+
 async def _fresh_document(
     recorded: EdaAnalysisState,
     filters: Sequence[EdaFilter],
@@ -161,20 +209,27 @@ async def _fresh_document(
         dataset_id=recorded.dataset_id,
         display_name=recorded.display_name,
     )
-    if filters:
+    if not filters:
+        return analysis_id
+    try:
         await patch_subset(
             recorded.site_id,
             analysis_id=analysis_id,
             dataset_id=recorded.dataset_id,
             filters=filters,
         )
+    except Exception:
+        await delete_released_document(
+            ReleasableDocument(site_id=recorded.site_id, analysis_id=analysis_id),
+        )
+        raise
     return analysis_id
 
 
 async def _recorded_or_fresh_document(
     recorded: EdaAnalysisState,
     filters: Sequence[EdaFilter],
-) -> str:
+) -> _Opened:
     """The recorded document with its recorded subset, or a new one when it is gone.
 
     Replacing a binding leaves the document it replaced on the service, so the
@@ -190,8 +245,28 @@ async def _recorded_or_fresh_document(
             filters=filters,
         )
     except EdaNotFoundError:
-        return await _fresh_document(recorded, filters)
-    return recorded_id
+        return _Opened(analysis_id=await _fresh_document(recorded, filters), fresh=True)
+    return _Opened(analysis_id=recorded_id, fresh=False)
+
+
+async def _bind_opened(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    recorded: EdaAnalysisState,
+    document: ReleasableDocument,
+) -> ReleasableDocument:
+    try:
+        await _bind_and_count(
+            session,
+            conversation_id=conversation_id,
+            recorded=recorded,
+            analysis_id=document.analysis_id,
+        )
+    except Exception:
+        await delete_released_document(document)
+        raise
+    return document
 
 
 async def _bind_and_count(
@@ -216,20 +291,31 @@ async def _adopt(
     *,
     conversation_id: UUID,
     plan: AdoptBinding,
-) -> None:
+) -> ReleasableDocument | None:
     recorded = plan.recorded
     filters = _FILTERS.validate_python(recorded.filters)
     if plan.rebind:
-        await _bind_and_count(
+        opened = await _recorded_or_fresh_document(recorded, filters)
+        if not opened.fresh:
+            await _bind_and_count(
+                session,
+                conversation_id=conversation_id,
+                recorded=recorded,
+                analysis_id=opened.analysis_id,
+            )
+            return None
+        return await _bind_opened(
             session,
             conversation_id=conversation_id,
             recorded=recorded,
-            analysis_id=await _recorded_or_fresh_document(recorded, filters),
+            document=ReleasableDocument(
+                site_id=recorded.site_id,
+                analysis_id=opened.analysis_id,
+            ),
         )
-        return
     live = await read_analysis(recorded.site_id, analysis_id=recorded.analysis_id)
     if list(live.descriptor.subset.descriptor) == filters:
-        return
+        return None
     await patch_subset(
         recorded.site_id,
         analysis_id=recorded.analysis_id,
@@ -237,6 +323,7 @@ async def _adopt(
         filters=filters,
     )
     await changed_subset_row(session, conversation_id=conversation_id)
+    return None
 
 
 async def restore_thread_binding(
@@ -244,7 +331,7 @@ async def restore_thread_binding(
     *,
     conversation_id: UUID,
     logged: bool,
-) -> None:
+) -> ReleasableDocument | None:
     """Put the binding back where the surviving log leaves it.
 
     ``logged`` comes from :func:`logs_a_binding`, read before the cut. A
@@ -258,12 +345,13 @@ async def restore_thread_binding(
     )
     match plan:
         case KeepBinding():
-            return
+            return None
         case DropBinding():
             await unbind_analysis_row(session, conversation_id=conversation_id)
+            return None
         case AdoptBinding():
             try:
-                await _adopt(session, conversation_id=conversation_id, plan=plan)
+                return await _adopt(session, conversation_id=conversation_id, plan=plan)
             except VEuPathDBError as exc:
                 logger.warning(
                     "revert kept the EDA binding: the study service refused",
@@ -271,13 +359,14 @@ async def restore_thread_binding(
                     analysis_id=plan.recorded.analysis_id,
                     error=str(exc),
                 )
+                return None
 
 
 async def branch_thread_binding(
     session: AsyncSession,
     *,
     conversation_id: UUID,
-) -> None:
+) -> ReleasableDocument | None:
     """Open a document of the branch's own for the state its copied log records.
 
     A branch never authors its source's analysis, so the descriptor is copied
@@ -285,7 +374,7 @@ async def branch_thread_binding(
     """
     recorded = await newest_analysis_state(session, conversation_id=conversation_id)
     if recorded is None:
-        return
+        return None
     filters = _FILTERS.validate_python(recorded.filters)
     try:
         analysis_id = await _fresh_document(recorded, filters)
@@ -296,10 +385,10 @@ async def branch_thread_binding(
             source_analysis_id=recorded.analysis_id,
             error=str(exc),
         )
-        return
-    await _bind_and_count(
+        return None
+    return await _bind_opened(
         session,
         conversation_id=conversation_id,
         recorded=recorded,
-        analysis_id=analysis_id,
+        document=ReleasableDocument(site_id=recorded.site_id, analysis_id=analysis_id),
     )

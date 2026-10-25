@@ -14,13 +14,22 @@ __all__ = ["job_holds_thread", "turns_in_flight"]
 # reports; procrastinate names those two states, and both write to the thread.
 _HOLDS_THREAD = text(
     "SELECT EXISTS (SELECT 1 FROM procrastinate_jobs "
-    "WHERE lock = :lock AND status IN ('todo', 'doing'))",
+    "WHERE lock = :lock AND status IN ('todo', 'doing') "
+    "AND (CAST(:task AS text) IS NULL OR task_name = :task))",
 )
 
 
-async def job_holds_thread(session: AsyncSession, *, conversation_id: UUID) -> bool:
-    """Whether a queued or running job locks this thread."""
-    result = await session.execute(_HOLDS_THREAD, {"lock": str(conversation_id)})
+async def job_holds_thread(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    task: str | None = None,
+) -> bool:
+    """Whether a queued or running job locks this thread, of ``task`` when named."""
+    result = await session.execute(
+        _HOLDS_THREAD,
+        {"lock": str(conversation_id), "task": task},
+    )
     return bool(result.scalar_one())
 
 
