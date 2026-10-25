@@ -48,7 +48,6 @@ class StrategyMutationContext:
     """
     user_prompt: str = ""
     """The request the thread answers. A strategy with no name yet takes it."""
-    wdk_description: str | None = None
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.
 

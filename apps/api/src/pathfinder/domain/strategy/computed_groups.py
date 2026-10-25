@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Literal
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import ConfigDict
-from veupathdb.domain.parameters import InputDatasetValue, ParamValue
+from veupathdb.domain.parameters import InputDatasetValue
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 from veupathdb_mcp.wdk import ComputedComparisonResult, ComputedSet
@@ -24,7 +24,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
-LEADING_SHARE = 0.25
+LEADS_BY = 2
 SNAPSHOT_CAVEAT = (
     "The ids are fixed; a later release maps each id to the groups it became, "
     "so the count can change."
@@ -68,19 +68,22 @@ class SetFacts(CamelModel):
     leading_species_genomes: int
     leading_species_share: Share
     species: tuple[SpeciesFacts, ...]
-    leading_species_leads: bool
+
+    @property
+    def leading_species_leads(self) -> bool:
+        first, *rest = self.species
+        return bool(rest) and first.genomes >= LEADS_BY * rest[0].genomes
 
     @classmethod
     def of(cls, held: ComputedSet) -> SetFacts:
         leading = held.species[0]
-        share = _share(leading.genomes, held.genomes)
         return cls(
             genomes=held.genomes,
             groups=held.groups,
             proteins=held.proteins,
             leading_species=_named(_leaders(held)),
             leading_species_genomes=leading.genomes,
-            leading_species_share=share,
+            leading_species_share=_share(leading.genomes, held.genomes),
             species=tuple(
                 SpeciesFacts(
                     species=one.species,
@@ -89,7 +92,6 @@ class SetFacts(CamelModel):
                 )
                 for one in held.species
             ),
-            leading_species_leads=len(_leaders(held)) == 1 and share > LEADING_SHARE,
         )
 
 
@@ -114,32 +116,22 @@ class ComparisonFacts(CamelModel):
     left: SetFacts
     right: SetFacts
 
-    def breakdown(self) -> tuple[str, ...]:
+    def breakdown(self) -> tuple[tuple[str, ...], ...]:
         sides = (("leftOnly", self.left_only), ("rightOnly", self.right_only))
         one_sided = [path for path, count in sides if count]
         split = ["bothHeld", *one_sided] if one_sided else []
         residual = ["residualGroups"] if self.residual_groups else []
-        leading = [
-            f"{side}.{path}"
+        counted = tuple((path, f"{path}Share") for path in (*split, *residual))
+        leading = tuple(
+            need
             for side, held in (("left", self.left), ("right", self.right))
             if held.leading_species_leads
-            for path in ("leadingSpecies", "leadingSpeciesShare")
-        ]
-        return (*split, *residual, *leading)
-
-
-class PlacedComparison(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    fact_id: str
-    facts: ComparisonFacts
-    count_references: tuple[str, ...]
-
-    def unplaced(self, written: Collection[str]) -> list[str]:
-        if not any(reference in written for reference in self.count_references):
-            return []
-        wanted = (f"[stat:{self.fact_id}.{path}]" for path in self.facts.breakdown())
-        return [reference for reference in wanted if reference not in written]
+            for need in (
+                (f"{side}.leadingSpecies",),
+                (f"{side}.leadingSpeciesShare", f"{side}.leadingSpeciesGenomes"),
+            )
+        )
+        return (*counted, *leading)
 
 
 def _leaders(held: ComputedSet) -> list[str]:
@@ -191,24 +183,10 @@ class HeldComparison(CamelModel):
         return statistic_id("group_comparison", [self.handle])
 
     def bound_in(self, spec: OperationalSpec) -> list[str]:
-        return [
-            criterion.id
-            for criterion in spec.criteria
-            for value in criterion.param_values.values()
-            if self.dataset_id is not None and _dataset(value) == self.dataset_id
-        ]
-
-    def placed(self, spec: OperationalSpec, root_id: str | None) -> PlacedComparison:
-        steps = self.bound_in(spec)
-        return PlacedComparison(
-            fact_id=self.fact_id,
-            facts=self.facts(),
-            count_references=(
-                f"[stat:{self.fact_id}.groups]",
-                *(f"[count:{step}]" for step in steps),
-                *(["[root]"] if root_id in steps else []),
-            ),
-        )
+        if self.dataset_id is None:
+            return []
+        saved = InputDatasetValue(dataset_id=self.dataset_id)
+        return [c.id for c in spec.criteria if saved in c.param_values.values()]
 
     def step_name(self, question: str) -> str:
         return f"{question} ({COMPUTED_ROUTE}, {self.computed_on.isoformat()})"
@@ -270,39 +248,36 @@ class HeldComparison(CamelModel):
         )
 
 
-def _dataset(value: ParamValue) -> str | None:
-    match value:
-        case InputDatasetValue(dataset_id=dataset_id):
-            return dataset_id
-        case _:
-            return None
-
-
 def bound_comparisons(
     held: Mapping[str, HeldComparison], spec: OperationalSpec
 ) -> list[tuple[str, PhyleticPattern]]:
     return [(step, one.pattern) for one in held.values() for step in one.bound_in(spec)]
 
 
-def snapshot_note(
-    held: Mapping[str, HeldComparison], spec: OperationalSpec
+def noted_description(
+    described: str | None, held: Mapping[str, HeldComparison], spec: OperationalSpec
 ) -> str | None:
-    return SNAPSHOT_NOTE if bound_comparisons(held, spec) else None
+    if not bound_comparisons(held, spec):
+        return described
+    if described is None or not described.strip():
+        return SNAPSHOT_NOTE
+    if SNAPSHOT_NOTE in described:
+        return described
+    return f"{described.rstrip()} {SNAPSHOT_NOTE}"
 
 
 __all__ = [
     "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
-    "LEADING_SHARE",
+    "LEADS_BY",
     "SNAPSHOT_CAVEAT",
     "SNAPSHOT_NOTE",
     "ComparisonFacts",
     "HeldComparison",
-    "PlacedComparison",
     "SetFacts",
     "SpeciesFacts",
     "bound_comparisons",
     "comparison_handle",
     "is_comparison_handle",
-    "snapshot_note",
+    "noted_description",
 ]

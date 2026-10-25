@@ -145,7 +145,7 @@ async def _create_or_update_wdk_strategy(
     step_tree: WDKStepTree,
     name: str,
     sync_state: WDKSyncState,
-    description: str | None = None,
+    description: str | None,
 ) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
@@ -265,7 +265,6 @@ async def sync_strategy_for_site(
     site_id: str,
     strategy_name: str | None = None,
     user_prompt: str = "",
-    description: str | None = None,
 ) -> SyncResult:
     """Sync graph state to WDK: build step tree, create or update strategy, fetch counts.
 
@@ -308,7 +307,7 @@ async def sync_strategy_for_site(
 
     name = strategy_name or name_for_the_push(graph, user_prompt)
     pushed = await _create_or_update_wdk_strategy(
-        api, step_tree, name, sync_state, description
+        api, step_tree, name, sync_state, graph.description
     )
     wdk_strategy_id = pushed.wdk_strategy_id
 

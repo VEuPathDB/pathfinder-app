@@ -55,8 +55,10 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
+from pathfinder.domain.strategy.computed_groups import noted_description
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operations import UpdateStrategyMetaOp
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.orthology import organism_move_refusal
 from pathfinder.domain.strategy.revision import parse_strategy_ast, strategy_revision
@@ -274,6 +276,10 @@ async def _push_the_edit(
             ),
             preserved_step_ids=preserved,
         )
+    comparisons = deps.state.domain.computed_comparisons
+    noted = noted_description(graph.description, comparisons, planned)
+    if noted != graph.description:
+        ops = [*ops, UpdateStrategyMetaOp(description=noted)]
     current = strategy_revision(graph.to_strategy_ast())
     if current != base.revision:
         refuse_and_restore(deps, changed_revision_message(base.revision, current))

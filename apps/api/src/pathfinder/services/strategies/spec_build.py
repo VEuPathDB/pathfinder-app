@@ -248,7 +248,6 @@ async def build_strategy_from_spec(
             sync_state=sync_state,
             site_id=deps.site_id,
             user_prompt=deps.user_prompt,
-            description=deps.wdk_description,
         )
     except VEuPathDBError as exc:
         logger.warning("strategy sync failed", error=str(exc))

@@ -104,7 +104,10 @@ def _misshapen_verifier() -> Any:
 
 
 async def _push(
-    *, deps: StrategyMutationContext, root: StrategyStepNode
+    *,
+    deps: StrategyMutationContext,
+    root: StrategyStepNode,
+    description: str | None = None,
 ) -> BuildOutcome:
     hold_the_built_step(deps.strategy_session, root.id)
     return built_outcome(root.id)

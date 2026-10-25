@@ -29,7 +29,7 @@ from pathfinder.ai.tools.standalone.orthomcl_expressions import (
 )
 from pathfinder.domain.strategy.save_offers import with_save_offers
 from pathfinder.tests._support.group_list_site import served_group_list
-from pathfinder.tests._support.orthomcl_clouds import served_genus_clouds
+from pathfinder.tests._support.orthomcl_clouds import genus_mean, served_genus_clouds
 from pathfinder.tests._support.orthomcl_counts import SITE
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.tool_returns import returned
@@ -39,9 +39,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     user_intent,
 )
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
-from pathfinder.tests.unit.ai.tools.test_a_compare_past_the_caps_is_computed import (
-    genus_mean,
-)
 
 _QUESTION = "groups with more proteins per genome in Toxoplasma than Plasmodium"
 

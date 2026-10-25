@@ -448,8 +448,8 @@ def unplaced_breakdown_message(references: Sequence[str]) -> str:
         "The reply places the group count of a computed comparison and not how "
         "those groups divide. A group that one set alone holds is absent from the "
         "other set, not larger in it, and the residual groups and a species that "
-        "leads a set change what the count means. Place each of these references "
-        f"with the words that say what it counts: {', '.join(references)}."
+        "leads a set change what the count means. Place one reference of each item "
+        f"with the words that say what it counts: {'; '.join(references)}."
     )
 
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 import httpx
 import respx
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     PHYLETIC_EXPRESSION_SEARCH,
@@ -22,6 +22,7 @@ from veupathdb.wdk import (
     get_site,
     ortho_taxonomy_of,
 )
+from veupathdb_mcp.catalog import PhyleticPattern
 from veupathdb_mcp.testing import ORTHOMCL_GROUP_CLOUDS
 
 from pathfinder.tests._support.orthomcl_counts import SITE
@@ -78,6 +79,19 @@ def _recorded(name: str) -> JsonValue:
 def set_codes() -> SetCodes:
     return SetCodes.model_validate_json(
         qa_recording(ORTHOMCL_GROUP_CLOUDS / "codes.json").read_text()
+    )
+
+
+def genus_mean() -> PhyleticPattern:
+    codes = set_codes()
+    return TypeAdapter(PhyleticPattern).validate_python(
+        {
+            "kind": "compare",
+            "left": {"kind": "codes", "codes": sorted(codes.tox)},
+            "right": {"kind": "codes", "codes": sorted(codes.plas)},
+            "reading": "averages",
+            "condition": "more_than",
+        }
     )
 
 

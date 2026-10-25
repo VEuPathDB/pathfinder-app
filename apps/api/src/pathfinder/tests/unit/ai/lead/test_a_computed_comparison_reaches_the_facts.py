@@ -4,46 +4,21 @@ Lead reads it by reference and a reply places its values."""
 from __future__ import annotations
 
 from typing import cast
-from uuid import uuid4
 
 from langgraph.runtime import Runtime
 
-from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph import nodes
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.lead_pins import pinned_statistics
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.ai.tools.standalone.orthomcl_expressions import (
-    ComputedComparison,
-    build_phyletic_expression,
-)
 from pathfinder.domain.reply_references import render_reply
-from pathfinder.tests._support.orthomcl_clouds import served_genus_clouds
-from pathfinder.tests._support.orthomcl_counts import SITE
+from pathfinder.tests._support.computed_comparison import framed_comparison
 from pathfinder.tests._support.run_context import run_context_for
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
-from pathfinder.tests.unit.ai.tools.test_a_compare_past_the_caps_is_computed import (
-    genus_mean,
-)
-
-
-async def _framed() -> tuple[LeadDeps, ComputedComparison]:
-    deps = lead_deps(pipeline_state(SITE, user_message_id=uuid4()))
-    state = AgentToolState()
-    with served_genus_clouds():
-        result = await build_phyletic_expression(
-            agent_run_context(site_id=SITE, agent_state=state), genus_mean()
-        )
-    apply_agent_state(deps, agent_run_context(site_id=SITE, agent_state=state).deps)
-    return deps, returned(result, ComputedComparison)
 
 
 async def test_a_reply_places_the_groups_and_the_breakdown() -> None:
-    deps, computed = await _framed()
+    deps, computed = await framed_comparison()
     fact = computed.fact_id
 
     rendered = render_reply(
@@ -60,7 +35,7 @@ async def test_a_reply_places_the_groups_and_the_breakdown() -> None:
 
 
 async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
-    deps, computed = await _framed()
+    deps, computed = await framed_comparison()
     fact = computed.fact_id
     species = len(computed.sets[1].species)
 
@@ -123,7 +98,7 @@ async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
 
 
 async def test_the_turn_end_drops_the_ids_and_keeps_the_statistic() -> None:
-    deps, computed = await _framed()
+    deps, computed = await framed_comparison()
     state = deps.state
 
     command = await nodes.finalize_turn_node(

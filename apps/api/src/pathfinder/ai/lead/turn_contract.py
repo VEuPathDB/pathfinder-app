@@ -51,7 +51,6 @@ from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
 from pathfinder.ai.lead.withheld_reply import withheld_prose, withholds
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
-from pathfinder.domain.reference_grammar import A_REFERENCE
 from pathfinder.domain.reply_references import (
     prose_faults,
     render_reply,
@@ -347,8 +346,7 @@ def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
 
 
 def _unplaced_breakdown(report: LeadResponse, record: TurnRecord) -> str | None:
-    written = {match.group() for match in A_REFERENCE.finditer(report.prose)}
-    unplaced = [ref for held in record.comparisons for ref in held.unplaced(written)]
+    unplaced = [r for held in record.comparisons for r in held.unplaced(report.prose)]
     return unplaced_breakdown_message(unplaced) if unplaced else None
 
 

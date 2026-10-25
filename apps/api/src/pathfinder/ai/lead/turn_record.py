@@ -32,7 +32,10 @@ from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
-from pathfinder.domain.strategy.computed_groups import PlacedComparison
+from pathfinder.domain.strategy.comparison_placement import (
+    PlacedComparison,
+    placed_comparison,
+)
 from pathfinder.domain.strategy.constraints import is_blocking
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -215,8 +218,8 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         ),
         audit_turn=turn_is_an_audit(deps),
         comparisons=tuple(
-            held.placed(
-                deps.state.domain.operational_spec or OperationalSpec(), root_id
+            placed_comparison(
+                held, deps.state.domain.operational_spec or OperationalSpec(), root_id
             )
             for held in deps.state.domain.computed_comparisons.values()
         ),
