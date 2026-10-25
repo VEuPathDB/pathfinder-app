@@ -7,6 +7,7 @@ what left.
 
 ## Ranked
 
+57. [A count per species groups the genome codes of each species](a-count-per-species-groups-the-genome-codes.md) - asked to aggregate a per-genome tally to species, an edit bound a phyletic filter every species must meet and emptied the result; count the result step by genome code and sum each species' codes from the site's taxonomy.
 51. [A clarifying question offers what the site can build](a-clarifying-question-offers-what-the-site-can-build.md) - a consult asks for raw search parameters and then still refuses; it offers two or three buildable readings in the user's terms, builds the one picked, and refuses once with the nearest buildable thing.
 50. [A copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md) - "more genes per genome in Toxoplasma than Plasmodium" is refused although `build_phyletic_expression` writes a clade-average comparison; guide the Lead to that pattern, offer it in the question and state the clade-average caveat.
 49. [An audit screens a genome for selenoproteins](an-audit-screens-a-genome-for-selenoproteins.md) - a genome-scope run screens length and split candidates from the gene reports; the selenoprotein check needs each genome's proteins with a `U`, which no library function reads per genome, so until one does it runs on explicit gene targets only.

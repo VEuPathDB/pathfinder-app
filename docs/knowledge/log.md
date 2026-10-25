@@ -3,12 +3,14 @@
 ## 2026-10-25
 
 * **A tally answers about the result only when it counts the result step.** A step
-  tally names the step it counted and the strategy's result step, and a reply that
-  cites a tally of another step while no tally counts the result is refused. A values
-  reference renders the number alone. A fact-guard hint names a value reference only
-  when that reference renders the one value it replaces; a token one value of a
-  multi-pick holds is told to be cited another way or taken out. "Empty" and "zero"
-  are number words beside a count reference. An unmet check row whose words carry
+  tally names the step it counted, the facts hold the strategy's current result step,
+  and a reply that cites a tally of another step while no tally counts the result is
+  refused. A values reference renders the number alone, and a clause that names no
+  values after it is refused. A fact-guard hint names a value reference only when
+  that reference renders the one value it replaces; a token one value of a
+  multi-pick holds is told to be cited another way or taken out, and a word of the
+  label of a tally row the reply cites is held. A word for none just before a
+  reference that renders 0 is refused. An unmet check row whose words carry
   only requirements a met row answers names none of them, so the requirement stays
   grounded and no card offers to drop it. The Lead's own card may offer the readings
   a framing pass named, on the dimension other
