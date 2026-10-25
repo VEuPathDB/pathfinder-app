@@ -53,6 +53,8 @@ class ColumnTally(CamelModel):
     rows: list[TallyRow] = Field(default_factory=list)
     site_id: str
     step_url: str | None = None
+    wdk_step_id: int | None = None
+    result_step_id: int | None = None
 
     def fact(self) -> TallyFact:
         return TallyFact(
@@ -62,6 +64,8 @@ class ColumnTally(CamelModel):
             total=self.total,
             distinct=self.distinct,
             rows=[TallyRowFact(value=row.value, count=row.count) for row in self.rows],
+            wdk_step_id=self.wdk_step_id,
+            result_step_id=self.result_step_id,
         )
 
 

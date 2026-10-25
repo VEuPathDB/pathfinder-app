@@ -15,7 +15,7 @@ from pathfinder.domain.count_words import counted
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
-    COUNTED_REFERENCES,
+    carries_its_noun,
     malformed_brackets,
     reference_and_its_noun,
     reference_kind,
@@ -28,6 +28,7 @@ from pathfinder.domain.reply_suggestions import (
     an_identifier,
     last_change,
     link_references,
+    listed_value_references,
     number_references,
     product_of,
     record_references,
@@ -39,7 +40,7 @@ from pathfinder.domain.statistic_facts import (
     statistic_word_references,
 )
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import tally_count
+from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
 _A_LINK = re.compile(
@@ -78,6 +79,8 @@ type FaultKind = Literal[
     "standalone_count",
     "sentence_in_place",
     "cited_number",
+    "listed_value",
+    "tally_of_a_step",
 ]
 
 
@@ -267,7 +270,7 @@ def _rendered_with_notes(
         rendered = _rendered(match, facts)
         noun = match.group("noun") or ""
         shown = _unheld_words(match) if rendered is None else rendered
-        kept = shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
+        kept = shown if carries_its_noun(match) else shown + noun
         return match.group("gap") + kept
 
     return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose), notes
@@ -328,17 +331,21 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
             if digits is None
             else number_references(facts, digits.group().replace(",", ""))
         )
-        yield ProseFault(
-            token=token,
-            kind="identifier" if identifier else "number",
-            references=record_references(facts, token)
+        rendering = (
+            record_references(facts, token)
             or value_word_references(facts, token)
             or (
                 statistic_word_references(facts.cited_statistics(), token)
                 if identifier
                 else ()
             )
-            or numbered,
+            or numbered
+        )
+        listed = () if rendering else listed_value_references(facts, token)
+        yield ProseFault(
+            token=token,
+            kind="listed_value" if listed else "identifier" if identifier else "number",
+            references=rendering or listed,
         )
 
 
@@ -422,7 +429,11 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    found = [*unheld, *alone, *misused, *shape_faults(prose, facts)]
+    elsewhere = [
+        ProseFault(token=token, kind="tally_of_a_step")
+        for token in tallies_of_another_step(prose, facts.tallies)
+    ]
+    found = [*unheld, *alone, *misused, *elsewhere, *shape_faults(prose, facts)]
     return list(dict.fromkeys(found))
 
 

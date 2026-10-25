@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     InputDatasetValue,
+    MultiPickValue,
     to_wire,
 )
 from veupathdb.domain.strategy import StrategyStep
@@ -120,6 +121,14 @@ def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str
             )
 
 
+def _picks(bound: BoundValue) -> int:
+    match bound.value:
+        case MultiPickValue(values=values) if bound.taxon is None:
+            return len(values)
+        case _:
+            return 1
+
+
 def _parameter(
     criterion: Criterion, name: str, bound: BoundValue, noun: str
 ) -> ParameterFact:
@@ -143,6 +152,7 @@ def _parameter(
         label=label,
         source=bound.source,
         notes=_notes(criterion, name, bound, noun),
+        picks=_picks(bound),
     )
 
 

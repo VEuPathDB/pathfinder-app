@@ -376,5 +376,6 @@ def test_the_reply_references_name_the_statistic_and_the_tally() -> None:
     assert (
         "[tally:<id>.<value>] the records a column tally of this turn counted "
         "for a value, [tally:<id>] the records it counted in all, "
-        "[tally:<id>:values] how many values it counted" in REPLY_REFERENCES
+        "[tally:<id>:values] how many values it counted, a number the noun of "
+        "the values follows" in REPLY_REFERENCES
     )

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.domain.strategy.card_answers import spec_with_reading
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import (
     STRATEGY_SCOPES,
     Constraint,
@@ -68,6 +69,16 @@ class ThreadRequirements(BaseModel):
     # The recommended values the thread's requirements leave standing. A
     # requirement on the same dimension replaces one.
     recommendations: list[Constraint] = Field(default_factory=list)
+    named_readings: list[ChosenReading] = Field(default_factory=list)
+
+    def name_reading(self, reading: ChosenReading | None) -> None:
+        if reading is not None and reading not in self.named_readings:
+            self.named_readings.append(reading)
+
+    def reading_labels(self) -> list[str]:
+        return list(
+            dict.fromkeys(label for r in self.named_readings for label in r.labels())
+        )
 
     def answer_open_questions(self, answer: str, *, on_card: bool = False) -> None:
         """Close every question open now, whatever the answer says.

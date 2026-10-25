@@ -10,7 +10,7 @@ from typing import Literal
 
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
-    COUNTED_REFERENCES,
+    carries_its_noun,
     reference_kind,
 )
 
@@ -28,6 +28,8 @@ _NUMBER_WORDS = (
     "ten",
     "eleven",
     "twelve",
+    "zero",
+    "empty",
     "twice",
     "times",
     "dozen",
@@ -115,7 +117,7 @@ def _in_clause(
         clause = prose[start:stop].strip()
         yield Misplacement("number_word", clause, numbered[0].group())
     for match in references:
-        if reference_kind(match) not in COUNTED_REFERENCES:
+        if not carries_its_noun(match):
             continue
         noun_end = _noun_after(masked, match.end(), stop, nouns)
         if noun_end >= 0:

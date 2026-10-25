@@ -130,7 +130,7 @@ async def test_the_counts_of_a_step_are_facts_a_reply_quotes(
             f"{held}.Plasmodium falciparum IT",
             f"{held}:values",
         )
-    ] == ["840 transcripts", "21 transcripts", "3 values"]
+    ] == ["840 transcripts", "21 transcripts", "3"]
 
 
 async def test_an_unknown_column_goes_back_naming_the_countable_columns(

@@ -1,0 +1,78 @@
+"""A fact-guard hint names a value reference only when that reference renders
+the one value it replaces. A token one value of a multi-pick holds has no such
+reference, so the hint says to cite it another way or drop it."""
+
+from __future__ import annotations
+
+from pathfinder.ai.lead.contract_messages import unrendered_prose_message
+from pathfinder.domain.reply_references import ProseFault, prose_faults
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
+
+_TAXA = ParameterFact(
+    name="taxon_type_ahead",
+    display_name="Taxon",
+    value="pfac, pyxn, pyyx",
+    label=(
+        "pfac (Plasmodium falciparum CD01), pyxn (Plasmodium yoelii yoelii 17XNL), "
+        "pyyx (Plasmodium yoelii yoelii 17XNL 2023)"
+    ),
+    source="chosen",
+    picks=3,
+)
+_STRAIN = ParameterFact(
+    name="strain", display_name="Strain", value="17XNL", source="stated"
+)
+
+
+def _facts(parameter: ParameterFact) -> TurnFacts:
+    return TurnFacts(
+        steps=[
+            StepFact(
+                step_id="step_5ebea5e6",
+                display_name="Taxonomy",
+                count=333932,
+                parameters=[parameter],
+                record_noun="protein",
+            )
+        ],
+        record_noun="protein",
+    )
+
+
+_PROSE = "Plasmodium yoelii yoelii 17XNL has the most singleton proteins."
+
+
+def test_a_token_of_a_multi_pick_names_no_reference_that_renders_it() -> None:
+    faults = prose_faults(_PROSE, _facts(_TAXA))
+
+    assert faults == [
+        ProseFault(
+            token="17XNL",
+            kind="listed_value",
+            references=("[value:step_5ebea5e6.taxon_type_ahead]",),
+        )
+    ]
+    message = unrendered_prose_message(faults)
+    assert "write ``[value:step_5ebea5e6.taxon_type_ahead]``" not in message
+    assert (
+        "- ``17XNL`` is one of the values ``[value:step_5ebea5e6.taxon_type_ahead]`` "
+        "holds, and that reference renders every one of them, so no reference "
+        "renders it alone: cite it through a fact that holds it alone, or take "
+        "it out."
+    ) in message
+
+
+def test_a_token_of_a_single_value_names_its_value_reference() -> None:
+    faults = prose_faults(_PROSE, _facts(_STRAIN))
+
+    assert faults == [
+        ProseFault(
+            token="17XNL",
+            kind="number",
+            references=("[value:step_5ebea5e6.strain]",),
+        )
+    ]
+    assert (
+        "- ``17XNL``: write ``[value:step_5ebea5e6.strain]``, which renders it."
+        in unrendered_prose_message(faults)
+    )

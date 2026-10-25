@@ -54,6 +54,7 @@ class ParameterFact(CamelModel):
     label: str = ""
     source: ValueSource
     notes: list[str] = Field(default_factory=list)
+    picks: int = 1
 
     @field_validator("label", mode="after")
     @classmethod

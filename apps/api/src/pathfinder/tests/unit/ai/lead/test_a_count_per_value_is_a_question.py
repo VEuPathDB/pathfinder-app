@@ -40,15 +40,18 @@ def _count_rule() -> str:
 def test_the_lead_counts_per_value_on_the_step_that_holds_the_records() -> None:
     assert _count_rule() == (
         f"{_RULE_HEAD}** ``step_columns`` names the step's columns, then "
-        "``count_step_by_column`` counts one marked countable. When no step holds "
+        "``count_step_by_column`` counts one marked countable. The records are the "
+        "strategy's result, so the step is its result step, the root, or a "
+        "transform's step over it; a tally of another step states nothing about "
+        "the result. When no step holds "
         "those records, the question is a build (``new_strategy`` with no strategy, "
         "``extend_strategy`` on one), and the count follows the build, through a "
         "transform when the records are a result's members. ``count_by_column`` "
         "counts only one catalog search's whole result, unchanged, with no step, and "
         "only by a search name the catalog lists. Name the value with the most and "
         "its count with ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and "
-        "the number of values with ``[tally:<id>:values]``; never a value's count for "
-        "another number. "
+        "the number of values with ``[tally:<id>:values]`` with the noun of its "
+        "values after it; never a value's count for another number. "
     )
 
 

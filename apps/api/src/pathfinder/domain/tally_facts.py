@@ -5,17 +5,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable, Iterator, Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
 from pathfinder.domain.count_words import counted
+from pathfinder.domain.reference_grammar import (
+    A_REFERENCE,
+    TALLY_VALUES,
+    reference_kind,
+)
 
 type TallyFilter = tuple[str, tuple[str, ...]]
 
 VALUE_NOUN = "value"
-_VALUES = ":values"
 
 
 def tally_id(
@@ -46,6 +51,24 @@ class TallyFact(CamelModel):
     total: int
     distinct: int
     rows: list[TallyRowFact] = Field(default_factory=list)
+    wdk_step_id: int | None = None
+    result_step_id: int | None = None
+
+    @property
+    def counts_another_step(self) -> bool:
+        return (
+            self.wdk_step_id is not None
+            and self.result_step_id is not None
+            and self.wdk_step_id != self.result_step_id
+        )
+
+    def heading(self) -> str:
+        if not self.counts_another_step:
+            return self.title
+        return (
+            f"{self.title}, counted on step {self.wdk_step_id}, not on the result "
+            f"step {self.result_step_id}"
+        )
 
     def count(self, value: str) -> int | None:
         """The records that hold the value, or the total for no value."""
@@ -55,9 +78,9 @@ class TallyFact(CamelModel):
 
     def lines(self) -> list[str]:
         return [
-            self.title,
+            self.heading(),
             f"[tally:{self.id}] = {counted(self.total, self.record_noun)}",
-            f"[tally:{self.id}{_VALUES}] = {counted(self.distinct, VALUE_NOUN)}",
+            f"[tally:{self.id}{TALLY_VALUES}] = {self.distinct:,}",
             *(f"[tally:{self.id}.{row.value}] = {row.count}" for row in self.rows),
         ]
 
@@ -67,10 +90,10 @@ class TallyFact(CamelModel):
 
 def tally_count(tallies: Sequence[TallyFact], body: str) -> str | None:
     """The count a ``tally`` reference names as ``<id>`` or ``<id>.<value>``,
-    in the tally's noun, or the values ``<id>:values`` names."""
+    in the tally's noun, or the number of values ``<id>:values`` names."""
     by_id = {t.id: t for t in tallies}
-    if body.endswith(_VALUES) and body.removesuffix(_VALUES) in by_id:
-        return counted(by_id[body.removesuffix(_VALUES)].distinct, VALUE_NOUN)
+    if body.endswith(TALLY_VALUES) and body.removesuffix(TALLY_VALUES) in by_id:
+        return f"{by_id[body.removesuffix(TALLY_VALUES)].distinct:,}"
     held_id, _, value = body.partition(".")
     tally = by_id.get(held_id)
     if tally is None:
@@ -85,7 +108,23 @@ def tally_references(tallies: Sequence[TallyFact], number: str) -> Iterator[str]
         if str(tally.total) == number:
             yield f"[tally:{tally.id}]"
         if str(tally.distinct) == number:
-            yield f"[tally:{tally.id}{_VALUES}]"
+            yield f"[tally:{tally.id}{TALLY_VALUES}]"
         for row in tally.rows:
             if str(row.count) == number:
                 yield f"[tally:{tally.id}.{row.value}]"
+
+
+def _tally_id(match: re.Match[str]) -> str:
+    body = match.group("body") or ""
+    return body.removesuffix(TALLY_VALUES).partition(".")[0]
+
+
+def tallies_of_another_step(prose: str, tallies: Sequence[TallyFact]) -> list[str]:
+    if any(t.result_step_id is not None and not t.counts_another_step for t in tallies):
+        return []
+    elsewhere = {t.id for t in tallies if t.counts_another_step}
+    return [
+        match.group()
+        for match in A_REFERENCE.finditer(prose)
+        if reference_kind(match) == "tally" and _tally_id(match) in elsewhere
+    ]

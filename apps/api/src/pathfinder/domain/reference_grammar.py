@@ -44,9 +44,19 @@ COUNTED_REFERENCES = frozenset(
 )
 
 
+TALLY_VALUES = ":values"
+
+
 def reference_kind(match: re.Match[str]) -> str:
     """The kind of one match of ``A_REFERENCE``."""
     return match.group("bare") or match.group("kind")
+
+
+def carries_its_noun(match: re.Match[str]) -> bool:
+    body = match.group("body") or ""
+    if reference_kind(match) == "tally" and body.endswith(TALLY_VALUES):
+        return False
+    return reference_kind(match) in COUNTED_REFERENCES
 
 
 def reference_and_its_noun(nouns: Sequence[str]) -> re.Pattern[str]:
@@ -107,6 +117,8 @@ __all__ = [
     "BARE_REFERENCES",
     "COUNTED_REFERENCES",
     "REFERENCE_KINDS",
+    "TALLY_VALUES",
+    "carries_its_noun",
     "malformed_brackets",
     "reference_and_its_noun",
     "reference_kind",

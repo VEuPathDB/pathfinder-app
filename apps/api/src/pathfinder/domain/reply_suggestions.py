@@ -7,7 +7,7 @@ from itertools import combinations
 from pathfinder.domain.scratchpad_facts import hard_facts
 from pathfinder.domain.statistic_facts import statistic_references
 from pathfinder.domain.tally_facts import tally_references
-from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
 A_TOKEN = re.compile(r"[\w:./,%+-]+")
 EDGE_MARKS = ".,:;/+-_"
@@ -103,13 +103,27 @@ def an_identifier(token: str) -> bool:
     return shaped or accession is not None
 
 
+def _holds_the_word(parameter: ParameterFact, token: str) -> bool:
+    return token in parameter.value.split() or token in parameter.label.split()
+
+
 def value_word_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
-    """The value references whose value or label holds the token as a word."""
+    """The value references of one value whose value or label holds the token
+    as a word."""
     return tuple(
         f"[value:{step.step_id}.{p.name}]"
         for step in facts.steps
         for p in step.parameters
-        if token in p.value.split() or token in p.label.split()
+        if p.picks <= 1 and _holds_the_word(p, token)
+    )
+
+
+def listed_value_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
+    return tuple(
+        f"[value:{step.step_id}.{p.name}]"
+        for step in facts.steps
+        for p in step.parameters
+        if p.picks > 1 and _holds_the_word(p, token)
     )
 
 
@@ -131,6 +145,7 @@ __all__ = [
     "an_identifier",
     "last_change",
     "link_references",
+    "listed_value_references",
     "number_references",
     "product_of",
     "record_references",

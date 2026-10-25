@@ -18,9 +18,11 @@ class ChosenReading(CamelModel):
         description="A short label of each other reading the request allows.",
     )
 
+    def labels(self) -> list[str]:
+        return [self.chosen, *self.alternatives]
+
     def unstated_in(self, prose: str) -> bool:
-        labels = [self.chosen, *self.alternatives]
-        return not all(named_in_prose(prose, label) for label in labels)
+        return not all(named_in_prose(prose, label) for label in self.labels())
 
 
 __all__ = ["ChosenReading"]

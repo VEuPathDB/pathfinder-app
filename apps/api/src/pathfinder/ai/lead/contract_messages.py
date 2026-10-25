@@ -311,6 +311,20 @@ def _kind_sentence(fault: ProseFault) -> str | None:
             f"``{fault.token}`` names a stored sentence, which never stands in the "
             f"reply: say it in your words and write ``{fault.references[0]}`` after them."
         )
+    if fault.kind == "tally_of_a_step":
+        return (
+            f"``{fault.token}`` counts a step that is not the strategy's result, as "
+            "its tally's title says, so it states nothing about the result: count "
+            "the result step with count_step_by_column and cite that tally, or take "
+            "it out."
+        )
+    if fault.kind == "listed_value":
+        return (
+            f"``{fault.token}`` is one of the values ``{fault.references[0]}`` "
+            "holds, and that reference renders every one of them, so no reference "
+            "renders it alone: cite it through a fact that holds it alone, or take "
+            "it out."
+        )
     if fault.kind == "cited_number":
         return (
             f"``{fault.token}`` names a number, which the reply writes in place: "
