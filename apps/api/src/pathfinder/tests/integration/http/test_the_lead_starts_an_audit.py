@@ -224,7 +224,7 @@ async def test_the_lead_answers_with_the_plans_request_count(
 
     assert called(chunks) == ["classify_user_intent", "plan_gene_model_audit"]
     said = re.fullmatch(
-        rf"The run reads the site {proposal.estimate.wdk_requests} times, and the "
+        rf"The run reads the site {proposal.estimate.wdk_requests:,} times, and the "
         r"plan leaves out a genome\[\^(?P<label>n[0-9a-f]{8}-)1\]\.\n\n"
         rf"\[\^(?P=label)1\]: left out: {re.escape(proposal.left_out[0])}",
         text(chunks),
