@@ -38,6 +38,7 @@ class TallyRowFact(CamelModel):
 
     value: str
     count: int
+    label: str = ""
 
 
 class TallyFact(CamelModel):
@@ -52,22 +53,20 @@ class TallyFact(CamelModel):
     distinct: int
     rows: list[TallyRowFact] = Field(default_factory=list)
     wdk_step_id: int | None = None
-    result_step_id: int | None = None
 
-    @property
-    def counts_another_step(self) -> bool:
+    def counts_another_step(self, result_step_id: int | None) -> bool:
         return (
             self.wdk_step_id is not None
-            and self.result_step_id is not None
-            and self.wdk_step_id != self.result_step_id
+            and result_step_id is not None
+            and self.wdk_step_id != result_step_id
         )
 
-    def heading(self) -> str:
-        if not self.counts_another_step:
+    def heading(self, result_step_id: int | None) -> str:
+        if not self.counts_another_step(result_step_id):
             return self.title
         return (
             f"{self.title}, counted on step {self.wdk_step_id}, not on the result "
-            f"step {self.result_step_id}"
+            f"step {result_step_id}"
         )
 
     def count(self, value: str) -> int | None:
@@ -76,9 +75,9 @@ class TallyFact(CamelModel):
             return self.total
         return next((row.count for row in self.rows if row.value == value), None)
 
-    def lines(self) -> list[str]:
+    def lines(self, result_step_id: int | None = None) -> list[str]:
         return [
-            self.heading(),
+            self.heading(result_step_id),
             f"[tally:{self.id}] = {counted(self.total, self.record_noun)}",
             f"[tally:{self.id}{TALLY_VALUES}] = {self.distinct:,}",
             *(f"[tally:{self.id}.{row.value}] = {row.count}" for row in self.rows),
@@ -119,12 +118,30 @@ def _tally_id(match: re.Match[str]) -> str:
     return body.removesuffix(TALLY_VALUES).partition(".")[0]
 
 
-def tallies_of_another_step(prose: str, tallies: Sequence[TallyFact]) -> list[str]:
-    if any(t.result_step_id is not None and not t.counts_another_step for t in tallies):
+def tallies_of_another_step(
+    prose: str, tallies: Sequence[TallyFact], result_step_id: int | None
+) -> list[str]:
+    if result_step_id is not None and any(
+        t.wdk_step_id == result_step_id for t in tallies
+    ):
         return []
-    elsewhere = {t.id for t in tallies if t.counts_another_step}
+    elsewhere = {t.id for t in tallies if t.counts_another_step(result_step_id)}
     return [
         match.group()
         for match in A_REFERENCE.finditer(prose)
         if reference_kind(match) == "tally" and _tally_id(match) in elsewhere
     ]
+
+
+def cited_row_labels(prose: str, tallies: Sequence[TallyFact]) -> list[str]:
+    by_id = {t.id: t for t in tallies}
+    labels: list[str] = []
+    for match in A_REFERENCE.finditer(prose):
+        body = match.group("body") or ""
+        if reference_kind(match) != "tally" or body.endswith(TALLY_VALUES):
+            continue
+        held_id, _, value = body.partition(".")
+        tally = by_id.get(held_id)
+        rows = [] if tally is None else tally.rows
+        labels.extend(r.label for r in rows if r.value == value and r.label)
+    return labels

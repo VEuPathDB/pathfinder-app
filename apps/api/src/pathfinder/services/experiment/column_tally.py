@@ -63,9 +63,11 @@ class ColumnTally(CamelModel):
             record_noun=self.record_noun,
             total=self.total,
             distinct=self.distinct,
-            rows=[TallyRowFact(value=row.value, count=row.count) for row in self.rows],
+            rows=[
+                TallyRowFact(value=row.value, count=row.count, label=row.label)
+                for row in self.rows
+            ],
             wdk_step_id=self.wdk_step_id,
-            result_step_id=self.result_step_id,
         )
 
 

@@ -84,6 +84,7 @@ async def test_a_column_is_counted_by_its_ranked_values(
     assert (tally.total, tally.distinct) == (412, 2)
     assert (tally.title, tally.column_label) == ("Genes by Organism", "Organism")
     assert tally.id == tally_id("orthomcl", f"step {STEP}", "organism", None)
+    assert tally.wdk_step_id == STEP
 
 
 async def test_a_column_of_the_steps_own_search_is_counted(

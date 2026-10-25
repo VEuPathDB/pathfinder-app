@@ -18105,11 +18105,6 @@ components:
           - type: integer
           - type: 'null'
           title: Wdkstepid
-        resultStepId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Resultstepid
       required:
       - id
       - title
@@ -18158,6 +18153,10 @@ components:
         count:
           title: Count
           type: integer
+        label:
+          default: ''
+          title: Label
+          type: string
       required:
       - value
       - count
@@ -18419,6 +18418,11 @@ components:
             $ref: '#/components/schemas/TallyFact'
           title: Tallies
           type: array
+        resultStepId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resultstepid
         stoppedCheck:
           default: ''
           title: Stoppedcheck

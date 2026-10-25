@@ -243,6 +243,7 @@ async def run_step_tally(step: CountedStep, column: str, top: int) -> ColumnTall
         rows=counts.rows,
         site_id=step.site_id,
         step_url=step.step_url,
+        wdk_step_id=step.wdk_step_id,
     )
 
 

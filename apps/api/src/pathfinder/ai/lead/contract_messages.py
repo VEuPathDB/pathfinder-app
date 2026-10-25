@@ -12,6 +12,7 @@ from assistant_core.graph.tool_summary import count_noun
 from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
 from pathfinder.ai.lead.edit_messages import recut_call
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.reference_fault_messages import reference_sentence
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -311,20 +312,6 @@ def _kind_sentence(fault: ProseFault) -> str | None:
             f"``{fault.token}`` names a stored sentence, which never stands in the "
             f"reply: say it in your words and write ``{fault.references[0]}`` after them."
         )
-    if fault.kind == "tally_of_a_step":
-        return (
-            f"``{fault.token}`` counts a step that is not the strategy's result, as "
-            "its tally's title says, so it states nothing about the result: count "
-            "the result step with count_step_by_column and cite that tally, or take "
-            "it out."
-        )
-    if fault.kind == "listed_value":
-        return (
-            f"``{fault.token}`` is one of the values ``{fault.references[0]}`` "
-            "holds, and that reference renders every one of them, so no reference "
-            "renders it alone: cite it through a fact that holds it alone, or take "
-            "it out."
-        )
     if fault.kind == "cited_number":
         return (
             f"``{fault.token}`` names a number, which the reply writes in place: "
@@ -378,7 +365,9 @@ def _fault_sentence(fault: ProseFault) -> str:
             f"``{fault.token}`` is no reference the product reads: write one of "
             "the references above, or take the brackets out."
         )
-    placed = _kind_sentence(fault) or _placement_sentence(fault)
+    placed = (
+        _kind_sentence(fault) or reference_sentence(fault) or _placement_sentence(fault)
+    )
     if placed is not None:
         return placed
     if fault.references:

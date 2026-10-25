@@ -1,8 +1,10 @@
 """A tally's values reference renders the number of values alone, so the noun the
-prose writes after it names them once, and an empty count beside a count
-reference is a number word."""
+prose writes after it names them once and a clause names them, and a word for
+none just before a reference that renders 0 says the count twice."""
 
 from __future__ import annotations
+
+import pytest
 
 from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
@@ -56,16 +58,44 @@ _EMPTY = TurnFacts(
 )
 
 
-def test_an_empty_count_beside_a_root_reference_is_a_number_word() -> None:
-    prose = "Their intersection and the final result are empty [root]."
+@pytest.mark.parametrize("word", ["empty", "no"])
+def test_a_word_for_none_before_a_reference_that_renders_0_is_refused(
+    word: str,
+) -> None:
+    prose = f"Their intersection and the final result are {word} [root]."
 
     assert prose_faults(prose, _EMPTY) == [
-        ProseFault(
-            token="Their intersection and the final result are empty [root]",
-            kind="number_word",
-            references=("[root]",),
-        )
+        ProseFault(token=f"{word} [root]", kind="zero_word", references=("[root]",))
     ]
     assert render_reply("The final result holds [root].", _EMPTY) == (
         "The final result holds 0 proteins."
     )
+
+
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "The build recovered from a zero-result search and returns [root].",
+        "The empty step was dropped, and the final result holds [root].",
+    ],
+)
+def test_a_word_for_none_elsewhere_in_the_clause_stands(prose: str) -> None:
+    assert prose_faults(prose, _EMPTY) == []
+
+
+def test_a_word_for_none_before_a_count_that_is_not_0_stands() -> None:
+    facts = _EMPTY.model_copy(update={"root_count": 2744})
+
+    assert prose_faults("The result holds no [root].", facts) == []
+
+
+def test_a_values_reference_with_no_noun_before_the_clause_ends_is_misplaced() -> None:
+    prose = f"The comparison covered [tally:{_ID}:values]."
+
+    assert prose_faults(prose, _FACTS) == [
+        ProseFault(
+            token=f"[tally:{_ID}:values]",
+            kind="values_without_noun",
+            references=(f"[tally:{_ID}:values]",),
+        )
+    ]

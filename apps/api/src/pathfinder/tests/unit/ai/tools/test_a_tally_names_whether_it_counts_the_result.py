@@ -13,12 +13,14 @@ from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
 from pathfinder.domain.reply_references import ProseFault, prose_faults
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment.column_tally import ColumnTally
 from pathfinder.services.experiment.step_tally import CountedStep
 from pathfinder.services.experiment.tally_rows import TallyRow
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 _GROUPS = 227288250
 _TAXA = 227288270
@@ -76,6 +78,7 @@ async def _tally(step: CountedStep, column: str, top: int) -> ColumnTally:
         distinct=61,
         rows=[TallyRow(value="pyxn", count=7666 if step.wdk_step_id == _TAXA else 90)],
         site_id=step.site_id,
+        wdk_step_id=step.wdk_step_id,
     )
 
 
@@ -87,12 +90,15 @@ def _counted(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_a_tally_of_a_leaf_names_the_result_step_it_is_not() -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
 
-    await count_step_by_column(ctx, _TAXA, "abbreviation")
+    result = await count_step_by_column(ctx, _TAXA, "abbreviation")
 
     (fact,) = ctx.deps.state.turn_markers.tallies
-    assert (fact.wdk_step_id, fact.result_step_id) == (_TAXA, _ROOT)
-    assert fact.counts_another_step
-    assert fact.lines()[0] == (
+    assert (fact.wdk_step_id, returned(result, ColumnTally).result_step_id) == (
+        _TAXA,
+        _ROOT,
+    )
+    assert fact.counts_another_step(_ROOT)
+    assert fact.lines(_ROOT)[0] == (
         f"Proteins by Taxon Code, counted on step {_TAXA}, not on the result "
         f"step {_ROOT}"
     )
@@ -101,12 +107,15 @@ async def test_a_tally_of_a_leaf_names_the_result_step_it_is_not() -> None:
 async def test_a_tally_of_the_root_counts_the_result() -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
 
-    await count_step_by_column(ctx, _ROOT, "abbreviation")
+    result = await count_step_by_column(ctx, _ROOT, "abbreviation")
 
     (fact,) = ctx.deps.state.turn_markers.tallies
-    assert (fact.wdk_step_id, fact.result_step_id) == (_ROOT, _ROOT)
-    assert not fact.counts_another_step
-    assert fact.lines()[0] == "Proteins by Taxon Code"
+    assert (fact.wdk_step_id, returned(result, ColumnTally).result_step_id) == (
+        _ROOT,
+        _ROOT,
+    )
+    assert not fact.counts_another_step(_ROOT)
+    assert fact.lines(_ROOT)[0] == "Proteins by Taxon Code"
 
 
 _REPLY = "The leading taxon holds [tally:tally_{step}.pyxn]."
@@ -115,7 +124,7 @@ _REPLY = "The leading taxon holds [tally:tally_{step}.pyxn]."
 async def test_a_reply_citing_only_a_leaf_tally_is_refused() -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
     await count_step_by_column(ctx, _TAXA, "abbreviation")
-    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies)
+    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies, result_step_id=_ROOT)
 
     faults = prose_faults(_REPLY.format(step=_TAXA), facts)
 
@@ -134,7 +143,24 @@ async def test_a_leaf_tally_beside_a_tally_of_the_result_is_no_fault() -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
     await count_step_by_column(ctx, _TAXA, "abbreviation")
     await count_step_by_column(ctx, _ROOT, "abbreviation")
-    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies)
+    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies, result_step_id=_ROOT)
 
     assert prose_faults(_REPLY.format(step=_ROOT), facts) == []
     assert prose_faults(_REPLY.format(step=_TAXA), facts) == []
+
+
+def test_a_tally_of_the_root_counts_another_step_once_the_root_moves() -> None:
+    tally = TallyFact(
+        id="tally_old_root",
+        title="Proteins by Taxon Code",
+        record_noun="protein",
+        total=333932,
+        distinct=61,
+        wdk_step_id=_TAXA,
+    )
+    prose = "The result holds [tally:tally_old_root]."
+
+    assert prose_faults(prose, TurnFacts(tallies=[tally], result_step_id=_TAXA)) == []
+    assert prose_faults(prose, TurnFacts(tallies=[tally], result_step_id=_ROOT)) == [
+        ProseFault(token="[tally:tally_old_root]", kind="tally_of_a_step")
+    ]

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from assistant_core.conversation.serde import build_checkpoint_serde
 from assistant_core.graph.turn_state import (
     ConsultOption,
     PendingApproval,
@@ -20,6 +21,7 @@ from pathfinder.ai.lead.lead_consult import (
     refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.tests._support.run_context import run_context_for
@@ -120,3 +122,20 @@ async def test_the_picked_reading_is_a_requirement_beside_the_held_ones() -> Non
     assert deps.state.researcher_messages() == [
         "Aggregate the strains to species level."
     ]
+
+
+def test_a_request_set_aside_offers_none_of_its_readings() -> None:
+    domain = _deps().state.domain
+
+    domain.set_the_request_aside()
+
+    assert (domain.named_readings, domain.reading_labels()) == ([], [])
+
+
+def test_the_named_readings_survive_the_checkpoint() -> None:
+    domain = _deps().state.domain
+    serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
+
+    restored = serde.loads_typed(serde.dumps_typed(domain))
+
+    assert restored.named_readings == [_READING]

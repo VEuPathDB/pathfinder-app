@@ -185,6 +185,7 @@ async def _recorded_tally(step: CountedStep, column: str, top: int) -> ColumnTal
         else [],
         site_id=step.site_id,
         step_url=step.step_url,
+        wdk_step_id=step.wdk_step_id,
     )
 
 
@@ -219,8 +220,9 @@ async def test_turn_one_tally_of_the_taxonomy_leaf_is_no_answer() -> None:
     await count_step_by_column(run_context_for(deps), _TAXA, "abbreviation", 200)
 
     (fact,) = deps.state.turn_markers.tallies
-    assert (fact.wdk_step_id, fact.result_step_id) == (_TAXA, _ROOT)
-    faults = prose_faults(_FIRST_REPLY, turn_facts(deps))
+    facts = turn_facts(deps)
+    assert (fact.wdk_step_id, facts.result_step_id) == (_TAXA, _ROOT)
+    faults = prose_faults(_FIRST_REPLY, facts)
     assert [(f.token, f.kind) for f in faults if f.kind == "tally_of_a_step"] == [
         (f"[tally:{_TALLY_ID}.pyxn]", "tally_of_a_step"),
         (f"[tally:{_TALLY_ID}:values]", "tally_of_a_step"),
@@ -234,7 +236,7 @@ async def test_turn_one_tally_of_the_root_is_the_answer() -> None:
     await count_step_by_column(run_context_for(deps), _ROOT, "abbreviation", 200)
 
     (fact,) = deps.state.turn_markers.tallies
-    assert (fact.wdk_step_id, fact.result_step_id) == (_ROOT, _ROOT)
+    assert (fact.wdk_step_id, turn_facts(deps).result_step_id) == (_ROOT, _ROOT)
     assert prose_faults("The result holds [tally:tally_root].", turn_facts(deps)) == []
 
 
@@ -244,7 +246,8 @@ async def test_turn_one_hint_names_no_reference_of_the_whole_taxon_list() -> Non
     facts = turn_facts(deps)
 
     (taxon,) = facts.steps[2].parameters
-    faults = [f for f in prose_faults(_FIRST_REPLY, facts) if f.token == "17XNL"]
+    named = "**Plasmodium yoelii yoelii 17XNL** has the most singleton proteins."
+    faults = prose_faults(named, facts)
 
     assert (taxon.name, taxon.picks) == ("taxon_type_ahead", 5)
     assert [(f.kind, f.references) for f in faults] == [

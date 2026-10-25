@@ -26,7 +26,8 @@ COLUMN_TALLY_REFUSALS = 6
 def tally_line(tally: ColumnTally) -> str:
     top = tally.rows[0] if tally.rows else None
     most = "" if top is None else f", most {top.value} ({top.count:,})"
-    return f"{tally.fact().heading()}: {tally.distinct:,} values{most}"
+    heading = tally.fact().heading(tally.result_step_id)
+    return f"{heading}: {tally.distinct:,} values{most}"
 
 
 async def count_by_column(

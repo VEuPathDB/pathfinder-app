@@ -40,8 +40,13 @@ from pathfinder.domain.statistic_facts import (
     statistic_word_references,
 )
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
+from pathfinder.domain.tally_facts import (
+    cited_row_labels,
+    tallies_of_another_step,
+    tally_count,
+)
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
+from pathfinder.domain.zero_words import words_for_none
 
 _A_LINK = re.compile(
     r"(?:https?:[\\/]*|www\.|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
@@ -81,6 +86,8 @@ type FaultKind = Literal[
     "cited_number",
     "listed_value",
     "tally_of_a_step",
+    "zero_word",
+    "values_without_noun",
 ]
 
 
@@ -303,13 +310,15 @@ def _words(text: str) -> set[str]:
     return {found.strip(EDGE_MARKS).casefold() for found in A_TOKEN.findall(text)}
 
 
-def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
+def _token_faults(text: str, facts: TurnFacts, held: set[str]) -> Iterator[ProseFault]:
     """Each number and identifier token. A name that mixes letters and digits
     in neither shape ("PfEMP1", "3D7", "SignalP-6.0") is prose, and so is a
     number a request message writes as a whole token."""
     said = {word for message in facts.request_messages for word in _words(message)}
     for found in A_TOKEN.findall(text):
         token = found.strip(EDGE_MARKS)
+        if token.casefold() in held:
+            continue
         identifier = bool(token) and an_identifier(token)
         if not identifier and (
             _A_NUMBER.fullmatch(token) is None or token.casefold() in said
@@ -364,7 +373,10 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
         ProseFault(token=link, kind="link", references=link_references(held, link))
         for link in _A_LINK.findall(text)
     ]
-    tokens = list(_token_faults(_A_LINK.sub(" ", text), held))
+    labelled = {
+        w for label in cited_row_labels(prose, held.tallies) for w in _words(label)
+    }
+    tokens = list(_token_faults(_A_LINK.sub(" ", text), held, labelled))
     brackets = [
         ProseFault(token=token, kind="malformed_reference")
         for token in malformed_brackets(prose)
@@ -431,9 +443,22 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
     ]
     elsewhere = [
         ProseFault(token=token, kind="tally_of_a_step")
-        for token in tallies_of_another_step(prose, facts.tallies)
+        for token in tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
     ]
-    found = [*unheld, *alone, *misused, *elsewhere, *shape_faults(prose, facts)]
+    zeros = [
+        ProseFault(token=token, kind="zero_word", references=(reference,))
+        for token, reference in words_for_none(
+            prose, lambda match: _rendered(match, facts)
+        )
+    ]
+    found = [
+        *unheld,
+        *alone,
+        *misused,
+        *elsewhere,
+        *zeros,
+        *shape_faults(prose, facts),
+    ]
     return list(dict.fromkeys(found))
 
 

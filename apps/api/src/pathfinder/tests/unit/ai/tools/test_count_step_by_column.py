@@ -124,10 +124,12 @@ async def test_a_transform_step_is_counted_and_linked_on_the_site(ran: _Ran) -> 
         )
     ]
     assert ran.tops == [20]
-    tally = ran.returned[0].model_copy(
-        update={"wdk_step_id": _PROTEINS_STEP, "result_step_id": _PROTEINS_STEP}
-    )
+    tally = ran.returned[0].model_copy(update={"result_step_id": _PROTEINS_STEP})
     assert ctx.deps.state.turn_markers.tallies == [tally.fact()]
+    assert [r.label for r in ctx.deps.state.turn_markers.tallies[0].rows] == [
+        "Brachionus plicatilis",
+        "Oryza sativa Japonica Group",
+    ]
     chunks = [
         c
         for c in result.metadata or []

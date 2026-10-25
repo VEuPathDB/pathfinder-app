@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.reply_references import ProseFault, prose_faults
+from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
 _TAXA = ParameterFact(
@@ -75,4 +76,30 @@ def test_a_token_of_a_single_value_names_its_value_reference() -> None:
     assert (
         "- ``17XNL``: write ``[value:step_5ebea5e6.strain]``, which renders it."
         in unrendered_prose_message(faults)
+    )
+
+
+_ROOT_TALLY = TallyFact(
+    id="tally_root",
+    title="Proteins by Taxon Code",
+    record_noun="protein",
+    total=2744,
+    distinct=61,
+    rows=[TallyRowFact(value="pyxn", count=90, label="Plasmodium yoelii yoelii 17XNL")],
+    wdk_step_id=227288280,
+)
+
+
+def test_the_name_of_a_tally_row_the_reply_cites_is_held() -> None:
+    facts = _facts(_TAXA).model_copy(
+        update={"tallies": [_ROOT_TALLY], "result_step_id": 227288280}
+    )
+
+    assert (
+        prose_faults(
+            "Plasmodium yoelii yoelii 17XNL has the most singleton proteins: "
+            "[tally:tally_root.pyxn].",
+            facts,
+        )
+        == []
     )
