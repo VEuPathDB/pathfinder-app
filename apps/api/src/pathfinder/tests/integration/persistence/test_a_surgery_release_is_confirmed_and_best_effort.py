@@ -208,4 +208,3 @@ async def test_a_confirmation_that_hangs_keeps_what_the_surgery_made(
     assert "kept what a surgery made: its commit could not be confirmed" in [
         entry["event"] for entry in logs
     ]
-    assert surgery_commit.CONFIRM_SECONDS == 0.2

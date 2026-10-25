@@ -10,7 +10,6 @@ from uuid import UUID
 
 import httpx
 from assistant_core.platform.db import async_session_factory
-from assistant_core.platform.lease import advisory_lease
 from assistant_core.tasks.app import task_app
 from procrastinate.exceptions import AlreadyEnqueued
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,6 +29,7 @@ from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.services.audit import units
 from pathfinder.services.audit.collect import run_collect_stage
 from pathfinder.services.audit.confirm import run_confirm_stage
+from pathfinder.services.audit.lease_pool import audit_lease
 from pathfinder.services.audit.progress import (
     RunLanes,
     StageLane,
@@ -296,7 +296,7 @@ def _run_log_ids(run: AuditRunRecord) -> LogIds:
 
 
 async def carry_run(job: AuditJob) -> None:
-    async with advisory_lease(audit_lock(job.run_id)) as held:
+    async with audit_lease(job.run_id) as held:
         run = await _stored(job.run_id) if held else None
         if run is None or run.status == "finished" or run.stages.halted:
             return

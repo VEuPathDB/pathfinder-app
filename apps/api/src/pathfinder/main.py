@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from assistant_core import registry
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
+from assistant_core.conversation.listen_hub import close_listen_hub
 from assistant_core.embeddings.embedder import (
     EmbeddingUnavailableError,
     get_embedder,
@@ -213,7 +214,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_observability(service_name="pathfinder-api", engine=get_engine())
     metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
     set_observer(PathfinderObserver())
-    install_search_line(settings.database_url, runs_on_the_deployment_line)
+    install_search_line(
+        settings.database_url,
+        runs_on_the_deployment_line,
+        pool_size=settings.search_line_pool_size,
+        max_overflow=settings.search_line_max_overflow,
+        pool_timeout=settings.search_line_pool_timeout_seconds,
+    )
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415
 
@@ -274,6 +281,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         metrics_server.server_close()
     await close_all_clients()
     await close_all_eda_clients()
+    await close_listen_hub()
     await close_lock_engine()
     await close_db()
     shutdown_observability()

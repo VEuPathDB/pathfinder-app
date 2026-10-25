@@ -32,10 +32,11 @@ async def one_connection(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Async
 
 @pytest.fixture
 async def request_pool() -> AsyncIterator[AsyncEngine]:
+    settings = get_settings()
     engine = create_async_engine(
-        get_settings().database_url,
-        pool_size=5,
-        max_overflow=10,
+        settings.database_url,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
         pool_timeout=REQUEST_POOL_TIMEOUT_SECONDS,
     )
     yield engine
@@ -71,7 +72,13 @@ async def test_a_full_request_pool_of_dispatches_never_waits_on_its_own_locks(
     )
 
     assert finished == [None] * DISPATCHES
-    assert (thread_lock.LOCK_POOL_SIZE, thread_lock.LOCK_POOL_OVERFLOW) == (2, 18)
+    settings = get_settings()
+    assert (
+        settings.db_pool_size,
+        settings.db_max_overflow,
+        settings.lock_pool_size,
+        settings.lock_pool_overflow,
+    ) == (2, 10, 2, 18)
 
 
 async def test_locks_on_the_request_pool_starve_the_dispatches_holding_them(
@@ -80,10 +87,11 @@ async def test_locks_on_the_request_pool_starve_the_dispatches_holding_them(
 ) -> None:
     monkeypatch.setattr(thread_lock, "lock_engine", lambda: request_pool)
 
-    all_locked = asyncio.Barrier(DISPATCHES)
+    settings = get_settings()
+    filling = settings.db_pool_size + settings.db_max_overflow
+    all_locked = asyncio.Barrier(filling)
     dispatches = [
-        asyncio.create_task(_dispatch(request_pool, all_locked))
-        for _ in range(DISPATCHES)
+        asyncio.create_task(_dispatch(request_pool, all_locked)) for _ in range(filling)
     ]
     finished, _ = await asyncio.wait(
         dispatches,

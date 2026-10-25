@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-25
+
+* **Every process fits one database connection budget.** The estate Postgres allows 100
+  connections and the deployment keeps 90 of them, so every pool is sized by a setting
+  (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `LOCK_POOL_SIZE`, `LOCK_POOL_OVERFLOW`,
+  `JOB_QUEUE_POOL_MIN_SIZE`, `JOB_QUEUE_POOL_MAX_SIZE`, and veupathdb-mcp 0.2.0b52's
+  `SEARCH_LINE_POOL_SIZE`, `SEARCH_LINE_MAX_OVERFLOW`, `EMBEDDING_DB_POOL_SIZE` and
+  `EMBEDDING_DB_MAX_OVERFLOW`) whose defaults sum to 83. Audit leases hold a pool of their own. The chat streams share one LISTEN
+  connection per process (assistant-core 0.3.0b13), where each stream held its own. See
+  `conventions/database-connection-budget.md`.
+
 ## 2026-10-24
 
 * **A turn no longer writes a site preference on its own.** `ai/lead/memory_candidates.py`

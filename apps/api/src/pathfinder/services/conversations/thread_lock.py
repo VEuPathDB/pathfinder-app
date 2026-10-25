@@ -21,8 +21,6 @@ from pathfinder.platform.errors import ThreadBusyError
 __all__ = [
     "HOLD_IDLE_SECONDS",
     "HOLD_WAIT_SECONDS",
-    "LOCK_POOL_OVERFLOW",
-    "LOCK_POOL_SIZE",
     "close_lock_engine",
     "hold_thread",
     "lock_engine",
@@ -33,8 +31,6 @@ logger = get_logger(__name__)
 
 HOLD_WAIT_SECONDS = 45.0
 HOLD_IDLE_SECONDS = 120.0
-LOCK_POOL_SIZE = 2
-LOCK_POOL_OVERFLOW = 18
 _RETRY_SECONDS = 0.1
 _IDLE_BOUND = text(
     "SELECT set_config('idle_in_transaction_session_timeout', :bound, true)",
@@ -50,11 +46,12 @@ class _LockEngine:
 
 def lock_engine() -> AsyncEngine:
     if _LockEngine.engine is None:
+        settings = get_settings()
         _LockEngine.engine = create_async_engine(
-            get_settings().database_url,
+            settings.database_url,
             pool_pre_ping=True,
-            pool_size=LOCK_POOL_SIZE,
-            max_overflow=LOCK_POOL_OVERFLOW,
+            pool_size=settings.lock_pool_size,
+            max_overflow=settings.lock_pool_overflow,
             pool_timeout=HOLD_WAIT_SECONDS,
         )
     return _LockEngine.engine

@@ -16,8 +16,11 @@ FINISHED_JOBS_DELETED = DeleteJobCondition.ALWAYS
 
 def _build_connector() -> procrastinate.PsycopgConnector:
     """Build a PsycopgConnector pointing at the app's Postgres database."""
+    settings = get_settings()
     return procrastinate.PsycopgConnector(
-        conninfo=to_psycopg_url(get_settings().database_url),
+        conninfo=to_psycopg_url(settings.database_url),
+        min_size=settings.job_queue_pool_min_size,
+        max_size=settings.job_queue_pool_max_size,
     )
 
 
