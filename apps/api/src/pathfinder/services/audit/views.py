@@ -133,11 +133,13 @@ class AuditRunView(CamelModel):
     headline: list[FindingLine]
     review_state: ReviewState | None
     agreement: AgreementView | None
+    disputed: list[FindingLine]
 
     def named_genes(self) -> list[str]:
         lines = [
             *self.headline,
             *(f for kind in self.error_types for f in kind.reviewed),
+            *self.disputed,
         ]
         targets = (gene for target in self.scope.targets for gene in target.genes)
         found = (gene for line in lines for gene in line.genes)
@@ -240,4 +242,5 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         headline=report.headline,
         review_state=None if run.review is None else review_state(run.review),
         agreement=report.agreement,
+        disputed=report.disputed,
     )

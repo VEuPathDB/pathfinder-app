@@ -102,6 +102,7 @@ def _view() -> AuditRunView:
         headline=[_line(13, _PSEUDOGENE, _REFERENCE)],
         review_state=None,
         agreement=None,
+        disputed=[],
     )
 
 
@@ -191,3 +192,16 @@ def test_the_model_reads_a_run_in_the_spelling_its_references_name() -> None:
         0.25,
         "0.25",
     )
+
+
+def test_a_run_names_the_genes_of_a_disputed_finding() -> None:
+    disputed = _view().model_copy(
+        update={"disputed": [_line(28, "PfNF54_130012200:pseudogene")]}
+    )
+
+    assert disputed.named_genes() == [
+        _TRUNCATED,
+        _PSEUDOGENE,
+        _REFERENCE,
+        "PfNF54_130012200:pseudogene",
+    ]

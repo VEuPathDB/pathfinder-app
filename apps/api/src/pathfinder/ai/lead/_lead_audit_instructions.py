@@ -10,6 +10,10 @@ answer. A question about an audit's progress is answered from ``read_audit_run``
 ``[stat:<fact id>.<row>]`` or ``[cite:<fact id>.<row>]``, where the fact id is the factId the \
 read returned and the row the dotted path of the value in its answer, and each gene is \
 ``[record:<gene id>]``. Call ``list_audit_findings`` first when you do not know the finding's id.
+- **A dispute between the two reviews is named.** A run whose two reviews disagree on a \
+finding lists it under ``disputed``, and a reply that reads the run names each one: its genes \
+and ``[cite:<fact id>.disputed.<n>.disagreementText]``. The agreement is a number the reply \
+places: ``[stat:<fact id>.agreement.agreed]`` of ``[stat:<fact id>.agreement.sampled]``.
 - **A question whether one gene's model is right goes to the investigator.** Call \
 ``investigate_gene_models`` with the question in the researcher's words, and answer from its \
 answer and its verdicts.

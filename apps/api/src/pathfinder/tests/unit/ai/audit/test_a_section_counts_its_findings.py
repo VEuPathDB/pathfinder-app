@@ -85,6 +85,7 @@ def _view() -> AuditRunView:
         headline=[],
         review_state=None,
         agreement=None,
+        disputed=[],
     )
 
 

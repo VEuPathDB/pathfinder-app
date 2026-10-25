@@ -31,7 +31,7 @@ from pathfinder.domain.audit.words import (
     paper_sentence,
 )
 from pathfinder.domain.statistic_facts import Identifier, Sentence, Share
-from pathfinder.persistence.models import AuditFindingRecord
+from pathfinder.persistence.models import AuditFindingRecord, AuditVerdictRecord
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -251,6 +251,7 @@ class ReviewReport(CamelModel):
     error_types: list[ErrorTypeView]
     headline: list[FindingLine]
     agreement: AgreementView | None
+    disputed: list[FindingLine]
 
 
 def _named(synthesis: Synthesis) -> tuple[int, ...]:
@@ -258,27 +259,40 @@ def _named(synthesis: Synthesis) -> tuple[int, ...]:
     return tuple(dict.fromkeys([*sections, *synthesis.headline]))
 
 
+def _disputed(reviews: Iterable[AuditVerdictRecord]) -> tuple[int, ...]:
+    return tuple(
+        dict.fromkeys(
+            r.finding_id
+            for r in reviews
+            if r.finding_id is not None
+            and r.review is not None
+            and r.review.disagreement is not None
+        )
+    )
+
+
 async def review_report(
     session: AsyncSession, run_id: UUID, synthesis: Synthesis | None
 ) -> ReviewReport:
     tally = await AuditTallyRepository(session).error_type_tally(run_id)
-    reviews = AuditReviewRepository(session)
+    stored = await AuditReviewRepository(session).of_run(run_id)
+    disputed = _disputed(stored)
+    named = () if synthesis is None else _named(synthesis)
+    found = await AuditFindingRepository(session).findings(
+        run_id, FindingFilter(ids=tuple(dict.fromkeys([*named, *disputed])))
+    )
+    lines = finding_lines(found)
     if synthesis is None:
-        stored = [
-            r.review for r in await reviews.of_run(run_id) if r.review is not None
-        ]
+        reviews = [r.review for r in stored if r.review is not None]
         return ReviewReport(
             error_types=error_type_views(tally, None, {}),
             headline=[],
-            agreement=agreement_view(review_agreement(stored)) if stored else None,
+            agreement=agreement_view(review_agreement(reviews)) if reviews else None,
+            disputed=[lines[f] for f in disputed],
         )
-    ids = _named(synthesis)
-    found = await AuditFindingRepository(session).findings(
-        run_id, FindingFilter(ids=ids)
-    )
-    lines = finding_lines(found)
     return ReviewReport(
         error_types=error_type_views(tally, synthesis, lines),
         headline=[lines[f] for f in synthesis.headline],
         agreement=agreement_view(synthesis.agreement),
+        disputed=[lines[f] for f in disputed],
     )

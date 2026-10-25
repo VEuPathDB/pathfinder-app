@@ -91,6 +91,7 @@ def _view(genomes: tuple[str, ...] = ()) -> AuditRunView:
         headline=[],
         review_state=None,
         agreement=None,
+        disputed=[],
     )
 
 

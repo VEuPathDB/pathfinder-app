@@ -316,6 +316,13 @@ def _kind_sentence(fault: ProseFault) -> str | None:
             f"``{fault.token}`` names a number, which the reply writes in place: "
             f"write ``{fault.references[0]}``."
         )
+    if fault.kind == "unnamed_dispute":
+        return (
+            f"``{fault.token}``: the two reviews of this finding disagree, and a "
+            "reply that reads this run names each disputed finding: name its genes "
+            f"by their record references and write ``{fault.references[0]}`` after "
+            "your words for the disagreement."
+        )
     if fault.kind == "keyed_reference":
         written = " or ".join(f"``{r}``" for r in fault.references)
         return (

@@ -578,7 +578,21 @@
       "agreed": 1,
       "share": 0.5,
       "text": "Two independent reviews agreed on 1 of 2 sampled findings (50%)"
-    }
+    },
+    "disputed": [
+      {
+        "id": 2,
+        "genes": ["PfDd2_140076300"],
+        "genome": "Plasmodium falciparum Dd2",
+        "errorType": "truncated_model",
+        "errorTitle": "Model too short",
+        "certainty": "high",
+        "impact": 0.25,
+        "reviewedImpact": null,
+        "reviewsDisagree": true,
+        "disagreementText": "The two independent reviews disagree: the first finds no error, the second keeps the error"
+      }
+    ]
   },
   "findings": {
     "siteId": "plasmodb",

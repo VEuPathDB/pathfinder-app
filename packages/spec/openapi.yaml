@@ -4039,6 +4039,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/AgreementView'
           - type: 'null'
+        disputed:
+          items:
+            $ref: '#/components/schemas/FindingLine'
+          type: array
+          title: Disputed
       type: object
       required:
       - run
@@ -4063,6 +4068,7 @@ components:
       - headline
       - reviewState
       - agreement
+      - disputed
       title: AuditRunView
     AuditScope:
       properties:

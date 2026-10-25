@@ -158,7 +158,7 @@ def statistic_group_references(
             for statistic in statistics
             if statistic.id == held_id
             for row in statistic.rows
-            if row.name.startswith(prefix)
+            if row.name.startswith(prefix) and row.form != "sentence"
         )
     )
 

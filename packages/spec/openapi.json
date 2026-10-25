@@ -6496,6 +6496,13 @@
                 "type": "null"
               }
             ]
+          },
+          "disputed": {
+            "items": {
+              "$ref": "#/components/schemas/FindingLine"
+            },
+            "type": "array",
+            "title": "Disputed"
           }
         },
         "type": "object",
@@ -6521,7 +6528,8 @@
           "errorTypes",
           "headline",
           "reviewState",
-          "agreement"
+          "agreement",
+          "disputed"
         ],
         "title": "AuditRunView"
       },

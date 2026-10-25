@@ -12,6 +12,7 @@ from pydantic import ConfigDict
 
 from pathfinder.domain.comparison_facts import ComparedVariant
 from pathfinder.domain.count_words import counted
+from pathfinder.domain.dispute_references import unnamed_disputes
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
@@ -80,6 +81,7 @@ type FaultKind = Literal[
     "standalone_count",
     "sentence_in_place",
     "cited_number",
+    "unnamed_dispute",
 ]
 
 
@@ -424,7 +426,11 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    found = [*unheld, *alone, *misused, *shape_faults(prose, facts)]
+    disputes = [
+        ProseFault(token=d.token, kind="unnamed_dispute", references=(d.reference,))
+        for d in unnamed_disputes(prose, facts.cited_statistics())
+    ]
+    found = [*unheld, *alone, *misused, *disputes, *shape_faults(prose, facts)]
     return list(dict.fromkeys(found))
 
 
