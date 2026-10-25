@@ -11,7 +11,7 @@ WITHHELD_REPLY = (
     f"{WITHHELD_ALONE} The facts beside this reply show what this turn found."
 )
 WITHHELD_FAULTS: frozenset[FaultKind] = frozenset(
-    {"number", "identifier", "product_text", "unheld_reference"}
+    {"number", "identifier", "product_text", "unheld_reference", "keyed_reference"}
 )
 
 

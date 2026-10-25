@@ -316,6 +316,13 @@ def _kind_sentence(fault: ProseFault) -> str | None:
             f"``{fault.token}`` names a number, which the reply writes in place: "
             f"write ``{fault.references[0]}``."
         )
+    if fault.kind == "keyed_reference":
+        written = " or ".join(f"``{r}``" for r in fault.references)
+        return (
+            f"``{fault.token}`` names a list item by a value it holds, and a row "
+            f"names each item by its place in the list: write {written}, which "
+            "renders it."
+        )
     return None
 
 

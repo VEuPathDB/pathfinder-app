@@ -163,6 +163,48 @@ def statistic_group_references(
     )
 
 
+def _item_keys(rows: Sequence[StatisticRowFact]) -> dict[str, set[str]]:
+    keys: dict[str, set[str]] = {}
+    for row in rows:
+        item, _, _ = row.name.rpartition(".")
+        if item.rpartition(".")[2].isdigit():
+            keys.setdefault(item, set()).update(
+                held for held in (row.value, row.code) if held is not None
+            )
+    return keys
+
+
+def _keyed_as(
+    written: Sequence[str], held: Sequence[str], keys: dict[str, set[str]]
+) -> bool:
+    return len(written) == len(held) and all(
+        w == h
+        or (
+            h.isdigit()
+            and not w.isdigit()
+            and w in keys.get(".".join(held[: i + 1]), set())
+        )
+        for i, (w, h) in enumerate(zip(written, held, strict=True))
+    )
+
+
+def statistic_keyed_references(
+    statistics: Sequence[StatisticFact], body: str, kind: str
+) -> tuple[str, ...]:
+    held_id, _, name = body.partition(".")
+    written = name.split(".")
+    return tuple(
+        dict.fromkeys(
+            f"[{kind}:{statistic.id}.{row.name}]"
+            for statistic in statistics
+            if statistic.id == held_id
+            for keys in (_item_keys(statistic.rows),)
+            for row in statistic.rows
+            if _keyed_as(written, row.name.split("."), keys)
+        )
+    )
+
+
 def statistic_references(
     statistics: Sequence[StatisticFact], number: str
 ) -> Iterator[str]:

@@ -35,6 +35,7 @@ from pathfinder.domain.reply_suggestions import (
 )
 from pathfinder.domain.statistic_facts import (
     statistic_group_references,
+    statistic_keyed_references,
     statistic_value,
     statistic_word_references,
 )
@@ -71,6 +72,7 @@ type FaultKind = Literal[
     "identifier",
     "link",
     "unheld_reference",
+    "keyed_reference",
     "malformed_reference",
     "number_word",
     "noun_after_count",
@@ -380,13 +382,20 @@ def unheld_references(prose: str, facts: TurnFacts) -> list[str]:
     return [match.group() for match in _unheld(prose, facts)]
 
 
-def _held_under(match: re.Match[str], facts: TurnFacts) -> tuple[str, ...]:
-    if reference_kind(match) != "stat":
-        return ()
-    held = statistic_group_references(
-        facts.cited_statistics(), match.group("body") or ""
+def _unheld_fault(match: re.Match[str], facts: TurnFacts) -> ProseFault:
+    kind, body = reference_kind(match), match.group("body") or ""
+    statistics = facts.cited_statistics()
+    if kind in {"stat", "cite"}:
+        keyed = statistic_keyed_references(statistics, body, kind)
+        if keyed:
+            shown = keyed[:_GROUP_SHOWN]
+            return ProseFault(
+                token=match.group(), kind="keyed_reference", references=shown
+            )
+    held = statistic_group_references(statistics, body) if kind == "stat" else ()
+    return ProseFault(
+        token=match.group(), kind="unheld_reference", references=held[:_GROUP_SHOWN]
     )
-    return held[:_GROUP_SHOWN]
 
 
 def standalone_counts(prose: str, facts: TurnFacts) -> list[ProseFault]:
@@ -409,14 +418,7 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
     """Each reference that names nothing the facts hold, each variant size alone
     quoted without its count in the strategy, then each fact the prose writes
     outside a reference."""
-    unheld = [
-        ProseFault(
-            token=match.group(),
-            kind="unheld_reference",
-            references=_held_under(match, facts),
-        )
-        for match in _unheld(prose, facts)
-    ]
+    unheld = [_unheld_fault(match, facts) for match in _unheld(prose, facts)]
     alone = standalone_counts(prose, facts)
     misused = [
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
