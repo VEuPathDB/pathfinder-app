@@ -445,7 +445,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^The structure is refused: Cannot INTERSECT steps with different organism scopes/,
     );
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
   });
 

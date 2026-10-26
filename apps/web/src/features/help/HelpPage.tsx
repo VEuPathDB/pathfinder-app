@@ -1,6 +1,7 @@
 import { yourDataUrl } from "@/lib/routes";
 
 import { InfoList, InfoPage, InfoSection, InternalLink } from "./InfoPage";
+import { SettingsTabLink } from "./SettingsTabLink";
 
 export function HelpPage() {
   return (
@@ -59,14 +60,14 @@ export function HelpPage() {
       <InfoSection id="models" title="Models">
         <p>
           Unless you pick a model, PathFinder uses the default model of the deployment,
-          which is an OpenAI model. To change it, choose AI model in the left bar, or
-          open Settings and the Model tab.
+          which is an OpenAI model. To change it, open Settings and the{" "}
+          <SettingsTabLink tab="model">Model</SettingsTabLink> tab.
         </p>
         <p>
-          In Settings, under Provider keys, you can add your own OpenAI, Anthropic or
-          Google key. Your key unlocks models that the deployment does not pay for, such
-          as Claude Sonnet 5.5 and Claude Opus 5.5. The model list marks these models
-          &quot;needs your key&quot;.
+          In Settings, under <SettingsTabLink tab="keys">Provider keys</SettingsTabLink>
+          , you can add your own OpenAI, Anthropic or Google key. Your key unlocks
+          models that the deployment does not pay for, such as Claude Sonnet 5.5 and
+          Claude Opus 5.5. The model list marks these models &quot;needs your key&quot;.
         </p>
       </InfoSection>
 

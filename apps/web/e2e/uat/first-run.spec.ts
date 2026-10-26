@@ -41,7 +41,7 @@ import { LAYOUTS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
 import {
   expectBuild,
   openTrace,
-  strategyFigure,
+  resultFigure,
   traceRows,
 } from "../fixtures/build-checks";
 import { availableSiteId } from "../fixtures/available-site";
@@ -53,7 +53,7 @@ import {
   siteCounts,
   siteOrganism,
   storedNodes,
-  strategyCaption,
+  resultLine,
 } from "../fixtures/site-reads";
 import { signInAsWdkAccount } from "../fixtures/website-login";
 import { ChatPage } from "../pages/chat.page";
@@ -84,9 +84,9 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** The reply that carries the `Strategy updated` figure of `steps` and `genes`. */
-function captionPattern(steps: number, genes: number): RegExp {
-  return new RegExp(escapeRegExp(strategyCaption(steps, genes)));
+/** The reply whose facts state `genes` as the strategy's result. */
+function resultPattern(genes: number): RegExp {
+  return new RegExp(escapeRegExp(resultLine(genes)));
 }
 
 /** The one node running `searchName`. */
@@ -660,9 +660,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     expect(edited.root).not.toBe(first.root);
     const parent = await readConversation(apiClient, parentId);
 
-    const branchId = await chatPage.branchFromAssistantReply(
-      captionPattern(LAYOUTS.minus.steps, first.root),
-    );
+    const branchId = await chatPage.branchFromAssistantReply(resultPattern(first.root));
     expect(branchId).not.toBe(parentId);
     await expect(chatPage.userMessage(buildText)).toHaveCount(1, { timeout: 30_000 });
     await expect(chatPage.userMessages).toHaveCount(1);
@@ -698,23 +696,21 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     expect(leafParameters(await readNodes(apiClient, branchId))).toEqual(firstLeaves);
 
     await chatPage.sendAndSettle(prompt("recap", COUNT_QUESTION));
+    await expect(chatPage.assistantMessages).toHaveCount(2);
     const recap = chatPage.assistantMessages.filter({
-      hasNot: page.getByTestId("data-graph-snapshot"),
+      hasNot: page.getByTestId("data-sub-agent-call"),
     });
     await expect(recap).toHaveCount(1);
     await expect(recap.getByTestId("facts-root-count")).toHaveAttribute(
       "data-count",
       String(first.root),
     );
-    await expect(recap.getByTestId("data-sub-agent-call")).toHaveCount(0);
 
     await page.goto(`conversation/${parentId}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expect(chatPage.userMessages).toHaveCount(2, { timeout: 30_000 });
     await expect(chatPage.userMessage(editText)).toHaveCount(1);
-    await expect(
-      strategyFigure(page, LAYOUTS.minus.steps, edited.root),
-    ).not.toHaveCount(0);
+    await expect(resultFigure(page, edited.root)).not.toHaveCount(0);
     expect((await siteCounts(apiClient, parentId, siteId)).root).toBe(edited.root);
 
     await branchRow.hover();
@@ -751,7 +747,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     await expect(chatPage.userMessage(editText)).toHaveCount(0, { timeout: 30_000 });
     await expect(chatPage.userMessage(buildText)).toHaveCount(1);
     await expect(chatPage.editDialogError).toHaveCount(0);
-    await chatPage.awaitTurn(captionPattern(LAYOUTS.minus.steps, first.root));
+    await chatPage.awaitTurn(resultPattern(first.root));
     const rebuilt = await expectBuild(page, apiClient, id, siteId, LAYOUTS.minus);
     expect(rebuilt.root).toBe(first.root);
     expect(leafParameters(await readNodes(apiClient, id))).toEqual(firstLeaves);
@@ -944,7 +940,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
 
     const bMemories = await memoryItems(other.request);
     expect(bMemories.map((item) => item.key)).toEqual([]);
-    await bPage.getByTestId("nav-rail-settings-button").click();
+    await bPage.getByTestId("settings-button").click();
     const settings = bPage.getByRole("dialog", { name: "Settings", exact: true });
     await settings.getByRole("tab", { name: "Memory", exact: true }).click();
     await settings.getByRole("button", { name: /^Preferences/ }).click();
@@ -1036,9 +1032,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     });
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
 
-    const reply = chatPage.assistantMessages.filter({
-      has: page.getByTestId("data-graph-snapshot"),
-    });
+    const reply = chatPage.replyCounting(counts.root);
     await expect(reply).toHaveCount(1);
     await reply.hover();
     await context.setOffline(true);

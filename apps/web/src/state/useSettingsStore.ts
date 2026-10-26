@@ -101,6 +101,15 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
   },
 );
 
+export function usesDefaultModels(
+  state: Pick<SettingsState, "phaseModels" | "phaseReasoning">,
+): boolean {
+  return (
+    Object.keys(state.phaseModels).length === 0 &&
+    Object.keys(state.phaseReasoning).length === 0
+  );
+}
+
 /** Clear the stored settings, sidebar and right rail under the keys they persist to. */
 export function resetAllPersistedSettings(): void {
   for (const store of [useSettingsStore, useLeftSidebarStore, useRightRailStore]) {

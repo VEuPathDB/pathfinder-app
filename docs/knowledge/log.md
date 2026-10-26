@@ -1,5 +1,19 @@
 # Log
 
+## 2026-10-26
+
+* **A mention of Settings opens Settings.** Each Settings tab the help pages name
+  (Model, Provider keys, Data, Memory, Privacy) is a link to the conversation route
+  that opens Settings on that tab, the way the first-run notice does. The Settings
+  gear sits beside Help at the foot of the right rail; a page with no right rail
+  (saved strategies, audits, a site that is down) shows the same foot in a column of
+  its own, and the left rail carries no gear. The first-run notice shows only while
+  no role has a model or an effort of its own, so a changed provider, tier or model
+  hides it.
+* **The appendix draws no "Strategy updated" section.** The graph snapshot still opens
+  the rail's Strategy panel; its figure repeated the Strategy section and named every
+  record a gene.
+
 ## 2026-10-25
 
 * **An audit reply reads typed run state.** The start tool returns the run's `phase`

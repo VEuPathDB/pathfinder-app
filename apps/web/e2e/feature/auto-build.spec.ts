@@ -102,12 +102,10 @@ test.describe("Echo replies", () => {
   test("a message with no arc token is echoed and builds nothing", async ({
     chatPage,
     apiClient,
-    page,
   }) => {
     await chatPage.sendTurn("hello world", /\[mock\].*hello world/);
 
     await expect(chatPage.assistantReply(/\[mock\].*hello world/)).toHaveCount(1);
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     const id = chatPage.lastStrategyId ?? "";
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
   });

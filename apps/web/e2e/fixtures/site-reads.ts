@@ -119,9 +119,9 @@ export function countPattern(count: number): RegExp {
   return new RegExp(`(^|[^\\d,])(${forms})([^\\d,]|$)`);
 }
 
-/** The caption the `Strategy updated` figure writes. */
-export function strategyCaption(steps: number, genes: number): string {
-  return `${printed(steps)} ${steps === 1 ? "step" : "steps"}, ${printed(genes)} genes`;
+/** The result line a reply's facts write for a strategy of `genes`. */
+export function resultLine(genes: number): string {
+  return `Result: ${printed(genes)} ${genes === 1 ? "gene" : "genes"}`;
 }
 
 /** The site's row in the api's site list. */

@@ -25,7 +25,7 @@ import {
   siteGeneIdPrefix,
   siteOrganism,
   storedNodes,
-  strategyCaption,
+  resultLine,
 } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
@@ -291,7 +291,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     const { id, counts } = await buildS2(chatPage, apiClient, page, portal);
 
     const branch = await chatPage.branchFromAssistantReply(
-      new RegExp(escaped(strategyCaption(LAYOUTS.intersect.steps, counts.root))),
+      new RegExp(escaped(resultLine(counts.root))),
     );
     await chatPage.sendAndSettle(prompt("syntenic-orthologs", SYNTENIC_TEXT));
     const empty = await expectBuild(page, apiClient, branch, portal, LAYOUTS.orthologs);

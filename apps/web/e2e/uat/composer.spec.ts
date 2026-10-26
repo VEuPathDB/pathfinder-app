@@ -513,14 +513,12 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
   test("C10 - /summarize", async ({ page, chatPage, apiClient, siteId }) => {
     const { id, counts } = await buildIntersect(page, chatPage, apiClient, siteId);
     const stepsBefore = await wdkStepIds(apiClient, id);
-    const figures = await page.getByTestId("data-graph-snapshot").count();
 
     await runSlash(page, chatPage, "/summarize");
     await expect(chatPage.userMessages).toHaveCount(1);
     await sendPrefill(chatPage, SUMMARIZE_PROMPT, "recap");
 
     await chatPage.expectRootCount(counts.root);
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(figures);
     expect(await wdkStepIds(apiClient, id)).toEqual(stepsBefore);
   });
 

@@ -146,7 +146,6 @@ for (const journey of JOURNEYS) {
             continue;
           }
           await chatPage.sendAndSettle(prompt("context", round.text));
-          await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
           expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
         }
 

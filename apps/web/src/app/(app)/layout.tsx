@@ -28,7 +28,8 @@ import { ConversationSidebar } from "@/features/sidebar/components/ConversationS
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
-import { chatRoot, conversationIdFromPath } from "@/lib/routes";
+import { RailFoot } from "@/lib/components/RailFoot";
+import { chatRoot, conversationIdFromPath, isChatPath } from "@/lib/routes";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -45,7 +46,8 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const conversationId = conversationIdFromPath(usePathname());
+  const pathname = usePathname();
+  const conversationId = conversationIdFromPath(pathname);
   const { siteId: selectedSite, locked, conversationSite } = useCurrentSite();
   const elsewhereSite =
     locked !== undefined && conversationSite !== locked.id ? conversationSite : null;
@@ -91,6 +93,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // A site PathFinder cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
   const siteDown = access.kind === "down";
+  const showsElsewhere = elsewhereSite !== null && conversationId !== null;
+  const rightRailShown = isChatPath(pathname) && !siteDown && !showsElsewhere;
   const forcedSignIn = access.kind === "up" && !access.signedIn;
   const signInGate = siteDown ? null : <VeupathdbSignInGate forced={forcedSignIn} />;
 
@@ -143,7 +147,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <SiteAvailabilityGate siteId={selectedSite} down={siteDown}>
-            {elsewhereSite !== null && conversationId !== null ? (
+            {showsElsewhere ? (
               <ConversationElsewhereNotice
                 siteId={elsewhereSite}
                 conversationId={conversationId}
@@ -153,6 +157,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             )}
           </SiteAvailabilityGate>
         </div>
+
+        {!rightRailShown && (
+          <aside
+            aria-label="Help and settings"
+            className="flex h-full w-11 shrink-0 flex-col items-center border-l border-border bg-sidebar py-2"
+          >
+            <RailFoot onOpenSettings={() => modals.openSettings()} />
+          </aside>
+        )}
       </div>
 
       <SettingsPage

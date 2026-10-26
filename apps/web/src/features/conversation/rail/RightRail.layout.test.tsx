@@ -4,6 +4,7 @@
 import type { UIMessage } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -11,6 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { RightRail } from "./RightRail";
 
@@ -113,13 +115,28 @@ describe("the right rail ends with the PathFinder mark", () => {
     );
   });
 
-  it("puts help directly above the mark", () => {
+  it("puts help and the settings gear together, directly above the mark", () => {
     renderRail("c-help", []);
 
     const help = screen.getByRole("link", { name: "Help" });
+    const gear = screen.getByRole("button", { name: "Settings" });
     const mark = screen.getByRole("img", { name: "PathFinder" });
     expect(help).toHaveAttribute("href", "/help");
     expect(help.parentElement).toBe(mark.closest("[data-rail-foot]"));
-    expect(help.nextElementSibling?.contains(mark)).toBe(true);
+    expect(help.nextElementSibling).toBe(gear);
+    expect(gear.nextElementSibling?.contains(mark)).toBe(true);
+  });
+
+  it("opens Settings from the gear beside help", async () => {
+    useSettingsModalStore.setState({ isOpen: false, tab: "keys" });
+    renderRail("c-gear", []);
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(useSettingsModalStore.getState()).toMatchObject({
+      isOpen: true,
+      tab: "keys",
+    });
+    useSettingsModalStore.setState({ isOpen: false, tab: "model" });
   });
 });

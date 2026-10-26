@@ -230,9 +230,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       )
       .toEqual([siteOrganism(siteId)]);
 
-    await expect(page.getByTestId("data-graph-snapshot")).not.toHaveCount(0, {
-      timeout: 240_000,
-    });
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
     const layout = layoutOf(await readNodes(apiClient, id));
     expect(layout.steps).toBeGreaterThan(0);
@@ -282,7 +279,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     chatPage,
     graphPage,
     apiClient,
-    page,
     siteId,
   }) => {
     const id = await buildOn(
@@ -294,7 +290,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       ),
     );
 
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     await expectNoStrategy(graphPage, apiClient, id);
   });
 
@@ -614,7 +609,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       await expect(offer.getByTestId("proposal-decision")).toHaveText("You said no.");
       await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
     }
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     await expectNoStrategy(graphPage, apiClient, id);
   });
 

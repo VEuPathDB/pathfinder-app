@@ -1,6 +1,6 @@
 /**
  * What every build shows, asserted against what the site answers: the stored
- * layout, the `Strategy updated` caption, the rail's step list and the
+ * layout, the facts' result count, the rail's step list and the
  * evidence card. The counts are read from the site at run time.
  */
 
@@ -8,22 +8,16 @@ import { type Locator, type Page, expect } from "@playwright/test";
 
 import type { ApiClient } from "./api-client";
 import { type Layout, layoutOf } from "./arc-layouts";
-import {
-  printed,
-  siteCounts,
-  type SiteCounts,
-  storedNodes,
-  strategyCaption,
-} from "./site-reads";
+import { printed, siteCounts, type SiteCounts, storedNodes } from "./site-reads";
 import { GraphPage } from "../pages/graph.page";
 
 const LAYOUT_BUDGET_MS = 60_000;
 
-/** The one `Strategy updated` figure whose caption states `steps` and `genes`. */
-export function strategyFigure(page: Page, steps: number, genes: number): Locator {
-  return page
-    .getByTestId("data-graph-snapshot")
-    .filter({ hasText: strategyCaption(steps, genes) });
+/** The facts figures that state `genes` as the strategy's result. */
+export function resultFigure(page: Page, genes: number): Locator {
+  return page.getByTestId("data-facts").filter({
+    has: page.locator(`[data-testid="facts-root-count"][data-count="${genes}"]`),
+  });
 }
 
 /**
@@ -66,7 +60,7 @@ export async function expectBuild(
     .toEqual(layout);
   const counts = await siteCounts(api, conversationId, siteId);
 
-  await expect(strategyFigure(page, layout.steps, counts.root)).not.toHaveCount(0);
+  await expect(resultFigure(page, counts.root)).not.toHaveCount(0);
 
   const graph = new GraphPage(page);
   await graph.openRailStrategyPanel();

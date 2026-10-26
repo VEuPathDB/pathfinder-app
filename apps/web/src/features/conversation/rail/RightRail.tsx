@@ -2,7 +2,6 @@
 
 import {
   Brain,
-  CircleHelp,
   FlaskConical,
   Notebook,
   ScrollText,
@@ -11,12 +10,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
 import { useState } from "react";
 
 import type { Strategy } from "@pathfinder/shared";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { PathFinderMark } from "@/lib/components/PathFinderMark";
+import { Button } from "@/components/ui/button";
+import { RailFoot } from "@/lib/components/RailFoot";
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +22,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { viewportIsNarrow } from "@/lib/layout/viewport";
-import { helpUrl } from "@/lib/routes";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
@@ -34,6 +31,7 @@ import {
   useRightRailStore,
   type RightRailPanel,
 } from "@/state/useRightRailStore";
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { computeRailActivity } from "./railActivity";
 import { RAIL_PANEL_WIDTH } from "./railLayout";
@@ -77,6 +75,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
   const togglePanel = useRightRailStore((s) => s.togglePanel);
   const autoOpenedConversation = useRightRailStore((s) => s.autoOpenedConversation);
   const autoOpen = useRightRailStore((s) => s.autoOpen);
+  const openSettings = useSettingsModalStore((s) => s.open);
 
   const strategyStepCount = strategy?.steps.length ?? 0;
   const chat = useChatHelpers();
@@ -216,21 +215,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
             </Tooltip>
           );
         })}
-        <div data-rail-foot className="mt-auto flex flex-col items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href={helpUrl()}
-                aria-label="Help"
-                className={buttonVariants({ variant: "ghost", size: "icon" })}
-              >
-                <CircleHelp className="h-4 w-4" aria-hidden />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="left">Help</TooltipContent>
-          </Tooltip>
-          <PathFinderMark />
-        </div>
+        <RailFoot onOpenSettings={() => openSettings()} />
       </div>
     </TooltipProvider>
   );

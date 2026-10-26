@@ -407,7 +407,6 @@ test.describe("Studies", () => {
         prompt("eda-compare-no-step", await compareText(apiClient, siteId)),
       );
       const { viz } = await expectComparisonInThread(page, apiClient, siteId, id);
-      await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
       expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
 
       await page.goto(`conversation/${id}/eda`);
@@ -464,7 +463,6 @@ test.describe("Studies", () => {
       ).not.toHaveCount(0);
 
       await expect(page.getByTestId("data-eda-analysis-state")).toHaveCount(0);
-      await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
       expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
       expect(await readAnalysis(apiClient, id)).toBeNull();
       await graphPage.showRailStrategy();

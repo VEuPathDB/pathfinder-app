@@ -54,8 +54,6 @@ const PORTAL_DOWN = site({
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
-import { useSettingsModalStore } from "@/state/useSettingsModalStore";
-
 import { AppNavRail } from "./AppNavRail";
 
 function draw(siteSwitchable = true) {
@@ -148,29 +146,16 @@ describe("AppNavRail section links", () => {
 
   it("offers no site switch on a website locked to its own site", async () => {
     draw(false);
-    await screen.findByRole("button", { name: "Settings" });
+    await screen.findByRole("img", { name: "Monthly spend" });
 
     expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
   });
 
-  it("opens the settings modal from the gear", async () => {
-    useSettingsModalStore.setState({ isOpen: false, tab: "keys" });
+  it("carries no settings gear, which sits beside Help", async () => {
     draw();
+    await screen.findByRole("img", { name: "Monthly spend" });
 
-    await userEvent.click(await screen.findByRole("button", { name: "Settings" }));
-
-    expect(useSettingsModalStore.getState()).toMatchObject({
-      isOpen: true,
-      tab: "keys",
-    });
-    useSettingsModalStore.setState({ isOpen: false, tab: "model" });
-  });
-
-  it("closes the bottom group with the settings", async () => {
-    draw();
-    const settings = await screen.findByRole("button", { name: "Settings" });
-
-    expect(settings.parentElement?.lastElementChild).toBe(settings);
+    expect(screen.queryAllByRole("button", { name: "Settings" })).toHaveLength(0);
   });
 });
 
@@ -185,24 +170,22 @@ describe("AppNavRail spending meter", () => {
     expect(screen.queryByRole("img", { name: "PathFinder" })).toBeNull();
   });
 
-  it("opens the bottom group with the spending meter, before the settings", async () => {
+  it("opens the bottom group with the spending meter, before the site switch", async () => {
     draw();
     const meter = await screen.findByRole("img", { name: "Monthly spend" });
-    const settings = screen.getByRole("button", { name: "Settings" });
+    const sites = await screen.findByRole("button", { name: "Switch site" });
 
-    expect(meter.parentElement).toBe(settings.parentElement);
+    expect(meter.parentElement).toBe(sites.parentElement);
     expect(meter.parentElement?.firstElementChild).toBe(meter);
-    expect(
-      meter.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
   });
 
-  it("reaches the model settings only through Settings, which opens on them", async () => {
+  it("offers no model settings button of its own", async () => {
     draw();
     await screen.findByRole("img", { name: "Monthly spend" });
 
-    expect(screen.queryByRole("button", { name: "AI model settings" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Settings" })).toBeVisible();
+    expect(screen.queryAllByRole("button", { name: "AI model settings" })).toHaveLength(
+      0,
+    );
   });
 });
 

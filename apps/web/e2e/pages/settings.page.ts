@@ -14,9 +14,9 @@ export class SettingsPage {
     return this.dialog().getByRole("tab", { name: tabName, exact: true });
   }
 
-  /** Open settings via the nav rail settings button. */
+  /** Open settings from the gear beside Help. */
   async open() {
-    await this.page.getByTestId("nav-rail-settings-button").click();
+    await this.page.getByTestId("settings-button").click();
     await expect(this.dialog()).toBeVisible();
   }
 

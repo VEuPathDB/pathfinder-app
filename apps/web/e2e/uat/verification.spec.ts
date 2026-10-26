@@ -444,9 +444,9 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       timeout: 90_000,
     });
 
-    await expect(page.getByTestId("data-graph-snapshot")).not.toHaveCount(0, {
-      timeout: 240_000,
-    });
+    await expect
+      .poll(async () => (await readNodes(apiClient, id)).length, { timeout: 240_000 })
+      .toBeGreaterThan(0);
     await expect(
       page.getByTestId("task-row").filter({ hasText: "Run control tests" }),
     ).not.toHaveCount(0, { timeout: 120_000 });
@@ -494,7 +494,6 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       timeout: 90_000,
     });
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
     await graphPage.showRailStrategy();
     await expect(graphPage.railEmptyHeading).toBeVisible();

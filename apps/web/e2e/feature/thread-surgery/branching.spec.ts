@@ -11,7 +11,7 @@ import {
 } from "../../fixtures/api-client";
 import { LAYOUTS } from "../../fixtures/arc-layouts";
 import { expectBuild } from "../../fixtures/build-checks";
-import { siteOrganism, strategyCaption } from "../../fixtures/site-reads";
+import { resultLine, siteOrganism } from "../../fixtures/site-reads";
 
 const ASK_COUNT = "how many genes are in this strategy?";
 const ASK_AGAIN = "and how many now?";
@@ -46,10 +46,8 @@ test.describe("Thread branching", { tag: "@turn" }, () => {
     await chatPage.sendAndSettle(build);
     const parentId = chatPage.lastStrategyId ?? "";
     const counts = await expectBuild(page, apiClient, parentId, siteId, LAYOUTS.single);
-    // The build reply is the only one that carries its figure's caption.
-    const built = new RegExp(
-      escapeRegExp(strategyCaption(LAYOUTS.single.steps, counts.root)),
-    );
+    // The build reply is the only one whose facts state the result.
+    const built = new RegExp(escapeRegExp(resultLine(counts.root)));
     await chatPage.sendTurn(ASK_COUNT, echoOf(ASK_COUNT));
 
     const childId = await chatPage.branchFromAssistantReply(built);

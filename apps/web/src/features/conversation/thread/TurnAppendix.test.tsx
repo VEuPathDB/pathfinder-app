@@ -162,6 +162,26 @@ describe("TurnAppendix", () => {
     ]);
   });
 
+  it("draws no section for the strategy's graph snapshot", () => {
+    const snapshot = {
+      type: "data-graph-snapshot" as const,
+      data: {
+        strategyId: "s1",
+        geneCount: 797,
+        detachedStepCount: 0,
+        nodes: [{ id: "1", searchName: "GroupsByPhyleticPattern", estimatedSize: 797 }],
+        edges: [],
+      },
+    };
+    render(<Thread content={[snapshot, FACTS, REPLY]} />);
+
+    expect(headings()).toEqual(["A. Strategy"]);
+    expect(screen.getByTestId("turn-appendix")).not.toHaveTextContent(
+      "Strategy updated",
+    );
+    expect(screen.queryAllByTestId("data-graph-snapshot")).toHaveLength(0);
+  });
+
   it("keeps only the last of a part that restates the strategy's state", () => {
     render(<Thread content={[link("first"), link("second"), REPLY]} />);
 

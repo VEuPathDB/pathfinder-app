@@ -3,10 +3,16 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { HelpPage } from "./HelpPage";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  useSettingsModalStore.setState({ isOpen: false, tab: "model" });
+});
 
 const HEADINGS = [
   "What PathFinder does",
@@ -51,6 +57,28 @@ describe("HelpPage", () => {
     expect(screen.getByRole("link", { name: "Back to PathFinder" })).toHaveAttribute(
       "href",
       "/",
+    );
+  });
+
+  it.each([
+    ["Model", "model"],
+    ["Provider keys", "keys"],
+  ] as const)("opens Settings on the %s tab from its mention", async (name, tab) => {
+    useSettingsModalStore.setState({ isOpen: false, tab: "advanced" });
+    render(<HelpPage />);
+
+    const link = screen.getByRole("link", { name });
+    expect(link).toHaveAttribute("href", "/conversation");
+    await userEvent.click(link);
+
+    expect(useSettingsModalStore.getState()).toMatchObject({ isOpen: true, tab });
+  });
+
+  it("names Settings as the only way to the model", () => {
+    const { container } = render(<HelpPage />);
+
+    expect(container.querySelector("section#models")).toHaveTextContent(
+      "To change it, open Settings and the Model tab.",
     );
   });
 });

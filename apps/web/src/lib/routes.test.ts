@@ -8,6 +8,7 @@ import {
   conversationIdFromPath,
   edaTabUrl,
   helpUrl,
+  isChatPath,
   savedUrl,
   strategyCanvasUrl,
   strategyStepUrl,
@@ -57,5 +58,19 @@ describe("route builders", () => {
     expect(auditFindingUrl("0a1b", 7, "?check=gene_length")).toBe(
       "/audits/0a1b/findings/7?check=gene_length",
     );
+  });
+});
+
+describe("isChatPath", () => {
+  it("holds for the draft route and every conversation route", () => {
+    expect(isChatPath("/conversation")).toBe(true);
+    expect(isChatPath("/conversation/c1")).toBe(true);
+    expect(isChatPath("/conversation/c1/strategy")).toBe(true);
+  });
+
+  it("fails for the other pages", () => {
+    expect(isChatPath("/saved")).toBe(false);
+    expect(isChatPath("/audits")).toBe(false);
+    expect(isChatPath("/conversations")).toBe(false);
   });
 });

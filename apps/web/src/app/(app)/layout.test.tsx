@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const pushMock = vi.fn();
@@ -243,16 +243,55 @@ describe("AppShellLayout settings modal", () => {
       useMemoryFocusStore.getState().clearFocus();
       useSettingsModalStore.setState({ isOpen: false, tab: "model" });
     });
+    address.path = "/conversation";
   });
 
-  it("opens from the gear", async () => {
+  it("opens from the gear beside Help on a page with no right rail", async () => {
+    address.path = "/saved";
     drawSession(true);
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "false");
+    const foot = screen.getByLabelText("Help and settings");
+    const help = within(foot).getByRole("link", { name: "Help" });
+    expect(help.nextElementSibling).toBe(
+      within(foot).getByRole("button", { name: "Settings" }),
+    );
 
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    await userEvent.click(within(foot).getByRole("button", { name: "Settings" }));
 
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "true");
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-tab", "model");
+  });
+
+  it("leaves the gear to the conversation's right rail", () => {
+    address.path = "/conversation";
+    drawSession(true);
+
+    expect(screen.queryAllByLabelText("Help and settings")).toHaveLength(0);
+    expect(screen.queryAllByRole("button", { name: "Settings" })).toHaveLength(0);
+  });
+
+  it("keeps the gear on a conversation route whose site is down", () => {
+    address.path = "/conversation";
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+      signedIn: true,
+    });
+    queryClient.setQueryData(sitesOptions().queryKey, [
+      siteRow({ available: false, unavailableReason: "TimeoutError" }),
+    ]);
+    render(
+      <Wrapper>
+        <AppShellLayout>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>,
+    );
+
+    expect(
+      within(screen.getByLabelText("Help and settings")).getByRole("button", {
+        name: "Settings",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("opens on the tab a caller outside the shell names", () => {

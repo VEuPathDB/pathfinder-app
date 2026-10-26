@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   MessageCircle,
   PanelLeft,
-  Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -40,7 +39,6 @@ import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";
 import { auditsUrl, chatRoot, conversationIdFromPath, savedUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { RailQuotaMeter } from "./RailQuotaMeter";
 
@@ -72,7 +70,6 @@ export function AppNavRail({
   sidebarExpanded,
 }: AppNavRailProps) {
   const pathname = usePathname();
-  const openSettings = useSettingsModalStore((s) => s.open);
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -136,21 +133,6 @@ export function AppNavRail({
           {siteSwitchable && (
             <SiteSwitcherButton siteId={siteId} onChange={onSiteChange} />
           )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => openSettings()}
-                aria-label="Settings"
-                data-testid="nav-rail-settings-button"
-              >
-                <Settings className="h-4 w-4" aria-hidden />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
-          </Tooltip>
         </div>
       </div>
     </TooltipProvider>

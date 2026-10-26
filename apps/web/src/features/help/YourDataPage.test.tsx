@@ -2,12 +2,18 @@
  * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { YourDataPage } from "./YourDataPage";
 import { YOUR_DATA_IN_BRIEF } from "./yourDataBrief";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  useSettingsModalStore.setState({ isOpen: false, tab: "model" });
+});
 
 const HEADINGS = [
   "In brief",
@@ -148,4 +154,26 @@ describe("YourDataPage", () => {
       "mailto:help@veupathdb.org",
     );
   });
+
+  it.each([
+    ["deleting", "Memory", "memory"],
+    ["deleting", "Provider keys", "keys"],
+    ["deleting", "Data", "data"],
+    ["learning", "Privacy", "privacy"],
+    ["your-key", "Provider keys", "keys"],
+  ] as const)(
+    "opens Settings from the %s section on the %s tab",
+    async (section, name, tab) => {
+      useSettingsModalStore.setState({ isOpen: false, tab: "advanced" });
+      const { container } = render(<YourDataPage />);
+      const body = container.querySelector<HTMLElement>(`section#${section}`);
+      if (body === null) throw new Error(`no section ${section}`);
+
+      const link = within(body).getByRole("link", { name });
+      expect(link).toHaveAttribute("href", "/conversation");
+      await userEvent.click(link);
+
+      expect(useSettingsModalStore.getState()).toMatchObject({ isOpen: true, tab });
+    },
+  );
 });

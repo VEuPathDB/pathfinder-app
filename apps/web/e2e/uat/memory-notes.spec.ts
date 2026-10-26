@@ -569,7 +569,6 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(row).toContainText("Preference");
     const stated = new RegExp(escaped(preference.value.summary));
     await expect(chatPage.assistantReply(stated)).not.toHaveCount(0);
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     expect((await readConversation(apiClient, asked)).steps ?? []).toEqual([]);
 
     const other = await secondUser(

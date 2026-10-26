@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { YourDataSection } from "@/lib/routes";
 
 import { ExternalLink, InfoList, InfoPage, InfoSection } from "./InfoPage";
+import { SettingsTabLink } from "./SettingsTabLink";
 import { YOUR_DATA_IN_BRIEF, YOUR_DATA_LAST_UPDATED } from "./yourDataBrief";
 
 function Section({
@@ -128,7 +129,9 @@ export function YourDataPage() {
           copy waiting for review, but not its audits. Its strategy stays in your
           VEuPathDB account unless you tick Also delete strategy from the site. Settings
           deletes memories, provider keys and everything at once, audits included, on
-          its Memory, Provider keys and Data tabs.
+          its <SettingsTabLink tab="memory">Memory</SettingsTabLink>,{" "}
+          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> and{" "}
+          <SettingsTabLink tab="data">Data</SettingsTabLink> tabs.
         </p>
         <p>
           Deleting does not remove your monthly spend, the email address of your
@@ -139,8 +142,9 @@ export function YourDataPage() {
       <Section id="learning" title="Learning from your strategies">
         <p>
           This is your choice. You make it when you first sign in, and you can change it
-          at any time in Settings, on the Privacy tab. Nothing is copied until you have
-          seen the notice for this version of the statement.
+          at any time in Settings, on the{" "}
+          <SettingsTabLink tab="privacy">Privacy</SettingsTabLink> tab. Nothing is
+          copied until you have seen the notice for this version of the statement.
         </p>
         <p>
           When it is on, PathFinder may use copies of your conversations and strategies
@@ -187,11 +191,12 @@ export function YourDataPage() {
 
       <Section id="your-key" title="Using your own key">
         <p>
-          Add a key in Settings, on the Provider keys tab. PathFinder checks it with one
-          short request, stores it sealed and sends it only to its provider, which then
-          bills you for every model of that provider except the check for hidden
-          instructions. Claude Sonnet 5.5 and Claude Opus 5.5 run only on your own
-          Anthropic key.
+          Add a key in Settings, on the{" "}
+          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab. PathFinder
+          checks it with one short request, stores it sealed and sends it only to its
+          provider, which then bills you for every model of that provider except the
+          check for hidden instructions. Claude Sonnet 5.5 and Claude Opus 5.5 run only
+          on your own Anthropic key.
         </p>
       </Section>
 

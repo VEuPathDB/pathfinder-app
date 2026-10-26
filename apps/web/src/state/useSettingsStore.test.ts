@@ -2,7 +2,11 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { resetAllPersistedSettings, useSettingsStore } from "./useSettingsStore";
+import {
+  resetAllPersistedSettings,
+  usesDefaultModels,
+  useSettingsStore,
+} from "./useSettingsStore";
 import {
   ANTHROPIC_SMALL,
   OPENAI_FLAGSHIP,
@@ -113,5 +117,40 @@ describe("state/useSettingsStore", () => {
     expect(
       Object.keys(window.localStorage).filter((key) => key.startsWith("pathfinder-")),
     ).toEqual([]);
+  });
+});
+
+describe("usesDefaultModels", () => {
+  it("holds for the default settings", () => {
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(true);
+  });
+
+  it("fails once a role has a model of its own", () => {
+    useSettingsStore.getState().setPhaseModel("lead", OPENAI_SMALL.id);
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(false);
+  });
+
+  it("fails once a role has an effort of its own", () => {
+    useSettingsStore.getState().setPhaseReasoning("lead", "high");
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(false);
+  });
+
+  it("fails once a tier preset is applied", () => {
+    useSettingsStore
+      .getState()
+      .applyPhasePreset({ lead: OPENAI_FLAGSHIP.id }, { lead: "medium" });
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(false);
+  });
+
+  it("holds again after the settings are reset", () => {
+    useSettingsStore.getState().setPhaseModel("lead", OPENAI_SMALL.id);
+    useSettingsStore.getState().resetToDefaults();
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(true);
+  });
+
+  it("ignores settings that choose no model", () => {
+    useSettingsStore.getState().setShowTokenUsage(false);
+    useSettingsStore.getState().dismissFirstRunHint();
+    expect(usesDefaultModels(useSettingsStore.getState())).toBe(true);
   });
 });

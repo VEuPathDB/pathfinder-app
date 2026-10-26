@@ -580,7 +580,6 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     chatPage,
     graphPage,
     apiClient,
-    page,
     siteId,
   }) => {
     const [gene] = siteControlSets(siteId).flatMap((set) => set.positive_ids);
@@ -591,7 +590,6 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     // The literature figure needs the research tool source, which the e2e stack does not start.
     await expect(chatPage.assistantMessages).toHaveCount(1);
-    await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
     await graphPage.showRailStrategy();
     await expect(graphPage.railEmptyHeading).toBeVisible();

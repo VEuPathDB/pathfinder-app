@@ -46,7 +46,7 @@ describe("ChatEmptyState", () => {
 describe("ChatEmptyState first-run hint", () => {
   beforeEach(() => {
     useSessionStore.getState().setSelectedSite("plasmodb");
-    useSettingsStore.setState({ firstRunHintDismissed: false });
+    useSettingsStore.getState().resetToDefaults();
     useSettingsModalStore.setState({ isOpen: false, tab: "keys" });
   });
   afterEach(() => {
@@ -72,5 +72,61 @@ describe("ChatEmptyState first-run hint", () => {
       isOpen: true,
       tab: "model",
     });
+  });
+
+  function drawHint(): void {
+    render(
+      <EmptyThread>
+        <ChatEmptyState assistantId="pathfinder" />
+      </EmptyThread>,
+    );
+  }
+
+  it("shows the notice while the model settings are the defaults", () => {
+    drawHint();
+
+    expect(
+      screen.getByRole("button", { name: "Settings -> Model" }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the notice once a role runs on a model of its own", () => {
+    useSettingsStore.getState().setPhaseModel("lead", "openai:gpt-5.6-mini");
+    drawHint();
+
+    expect(screen.queryAllByRole("button", { name: "Settings -> Model" })).toHaveLength(
+      0,
+    );
+  });
+
+  it("hides the notice once a role runs at an effort of its own", () => {
+    useSettingsStore.getState().setPhaseReasoning("lead", "high");
+    drawHint();
+
+    expect(screen.queryAllByRole("button", { name: "Settings -> Model" })).toHaveLength(
+      0,
+    );
+  });
+
+  it("hides the notice once a tier or a provider is picked", () => {
+    useSettingsStore
+      .getState()
+      .applyPhasePreset({ lead: "anthropic:claude-sonnet-5-5" }, { lead: "medium" });
+    drawHint();
+
+    expect(screen.queryAllByRole("button", { name: "Settings -> Model" })).toHaveLength(
+      0,
+    );
+  });
+
+  it("hides the notice once it is dismissed", async () => {
+    drawHint();
+
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss hint" }));
+
+    expect(screen.queryAllByRole("button", { name: "Settings -> Model" })).toHaveLength(
+      0,
+    );
+    expect(useSettingsStore.getState().firstRunHintDismissed).toBe(true);
   });
 });

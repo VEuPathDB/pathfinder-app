@@ -13,6 +13,10 @@ export function chatRoot(): string {
   return "/conversation";
 }
 
+export function isChatPath(pathname: string): boolean {
+  return pathname === chatRoot() || pathname.startsWith(`${chatRoot()}/`);
+}
+
 export function savedUrl(): string {
   return "/saved";
 }

@@ -285,8 +285,8 @@ test.describe("Layout and access", () => {
       await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
 
       await chatPage.messageInput.focus();
-      const settingsButton = page.getByTestId("nav-rail-settings-button");
-      await keyTo(page, settingsButton, "Shift+Tab");
+      const settingsButton = page.getByTestId("settings-button");
+      await keyTo(page, settingsButton, "Tab");
       await keyboard.press("Enter");
       const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
       await expect(dialog).toBeVisible();

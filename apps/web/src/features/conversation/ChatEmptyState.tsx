@@ -16,7 +16,7 @@ import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
-import { useSettingsStore } from "@/state/useSettingsStore";
+import { usesDefaultModels, useSettingsStore } from "@/state/useSettingsStore";
 
 type SuggestionsBySite = Record<string, readonly string[] | undefined>;
 
@@ -36,7 +36,9 @@ const suggestionEase = [0.22, 1, 0.36, 1] as const;
 
 export function ChatEmptyState({ assistantId }: { assistantId: string }) {
   const siteId = useSessionStore((s) => s.selectedSite);
-  const hintDismissed = useSettingsStore((s) => s.firstRunHintDismissed);
+  const showHint = useSettingsStore(
+    (s) => !s.firstRunHintDismissed && usesDefaultModels(s),
+  );
   const dismissHint = useSettingsStore((s) => s.dismissFirstRunHint);
   const openSettings = useSettingsModalStore((s) => s.open);
   const choice = assistantChoice(assistantId);
@@ -87,7 +89,7 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
           </motion.p>
         )}
 
-        {!hintDismissed && (
+        {showHint && (
           <motion.div
             {...hintEntrance}
             animate={{ opacity: 1, y: 0 }}
