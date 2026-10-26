@@ -137,7 +137,8 @@ place of the number, so its clause writes no number word ... A number a step set
 protein count of a group, is its [value:<step_id>.<param>]" (`ai/lead/_lead_instructions.py`,
 `card_reply.PLACEMENT_RULES`). A count noun ("gene", "record", their plurals, the strategy's record noun)
 next after a count reference, or after only continuation words ("more", "fewer", "additional",
-"matching"), is refused, since the reference renders with its
+"matching"), the words that name a step, or a hyphenated compound with at most one word after
+it ("single-copy ortholog groups"), is refused, since the reference renders with its
 noun. Elsewhere a small count of steps in words is structure. Its correction
 (`contract_messages.unrendered_prose_message`) names each token with the references that
 render it: a count, a difference of two counts, a comparison count, a value, a record or the

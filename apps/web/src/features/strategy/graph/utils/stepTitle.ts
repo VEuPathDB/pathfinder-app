@@ -37,7 +37,7 @@ export function stepReason(step: Step, kind: StepKind): string {
   return step.rationale?.short ?? "";
 }
 
-/** The reason in full, and the searches it was chosen over with their scores. */
+/** The reason in full, and the names of the searches it was chosen over. */
 export function reasonDetail(rationale: StepRationale): string {
   if (rationale.kind === "analysis") return rationale.reason;
   if (rationale.kind === "controls") {
@@ -46,12 +46,8 @@ export function reasonDetail(rationale: StepRationale): string {
       `${rationale.resultSize.toLocaleString("en-US")} genes (${rationale.basis})`
     );
   }
-  const over = (rationale.compared ?? []).map((search) =>
-    search.similarity == null
-      ? search.displayName
-      : `${search.displayName} ${search.similarity.toFixed(2)}`,
-  );
-  return over.length === 0
+  const considered = (rationale.compared ?? []).map((search) => search.displayName);
+  return considered.length === 0
     ? rationale.sentence
-    : `${rationale.sentence} (over ${over.join(", ")})`;
+    : `${rationale.sentence}\nAlso considered: ${considered.join(", ")}`;
 }

@@ -67,8 +67,8 @@ describe("NodeShell rationale", () => {
     expect(line).toHaveTextContent("why: nearest to GPI anchor");
     expect(line).toHaveAttribute(
       "title",
-      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest " +
-        "(over Gene Text Search 0.41)",
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest\n" +
+        "Also considered: Gene Text Search",
     );
   });
 

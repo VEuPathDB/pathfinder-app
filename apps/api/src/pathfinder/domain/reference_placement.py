@@ -53,6 +53,7 @@ _IN_PLACE_OF_A_NUMBER = frozenset(
 )
 _CLAUSE_END = re.compile(r"[.;:,!?\n]")
 _A_WORD = re.compile(r"[A-Za-z][\w'-]*")
+_A_COMPOUND = re.compile(r"[a-z]+(?:-[a-z]+)+")
 # The words that may stand between a count reference and the noun it repeats.
 _CONTINUATIONS = frozenset(
     {
@@ -104,14 +105,17 @@ def _noun_after(
     masked: str, end: int, stop: int, nouns: frozenset[str], between: frozenset[str]
 ) -> int:
     """The end of the count noun that follows a reference, next or after only
-    continuation words, or -1."""
+    continuation words and compound modifiers, each with one word after it, or -1."""
     tail = masked[end:stop].split(_MASK, 1)[0]
+    modified = False
     for word in _A_WORD.finditer(tail):
         said = word.group().casefold()
         if said in nouns:
             return end + word.end()
-        if said not in between:
+        compound = _A_COMPOUND.fullmatch(said) is not None
+        if not (said in between or compound or modified):
             return -1
+        modified = compound
     return -1
 
 

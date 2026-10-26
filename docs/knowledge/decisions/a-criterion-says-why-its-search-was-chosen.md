@@ -61,7 +61,7 @@ wherever the document is read, a re-import included.
 criterion texts and the analysis kinds, and is the one value the commit, the
 build and the export pass to the graph. `StepResponse.rationale` serves it, the
 canvas node draws `why: <short>` under the subtitle with the reason and the
-compared searches on hover, the step editor's results section opens with it, the
+names of the compared searches on hover, never their scores, the step editor's results section opens with it, the
 rail's criterion card shows it before anything is built, the Lead's ledger
 prints a `WHY` line, and `addedSearches` and the out-of-budget reply carry it.
 The case memory records the basis and the searches it was chosen over, never the

@@ -100,10 +100,30 @@ describe("stepReason", () => {
     expect(stepReason(chosen, "search")).toBe("nearest to GPI anchor");
   });
 
-  test("the detail is the term, the reason and what the search was chosen over", () => {
+  test("the detail is the reason and the searches also considered, unscored", () => {
     expect(chosen.rationale != null && reasonDetail(chosen.rationale)).toBe(
-      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest " +
-        "(over Gene Text Search 0.41, Predicted Signal Peptide)",
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest\n" +
+        "Also considered: Gene Text Search, Predicted Signal Peptide",
+    );
+  });
+
+  test("a search that was compared with none shows its reason alone", () => {
+    expect(
+      reasonDetail({
+        kind: "search",
+        searchName: "GenesByExportPrediction",
+        basis: "nearest",
+        term: "GPI anchor",
+        reason: "no search states a GPI anchor; Exported Protein scored nearest",
+        sentence:
+          "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
+        similarity: 0.44,
+        compared: [],
+        toolCallId: "call_gpi",
+        short: "nearest to GPI anchor",
+      }),
+    ).toBe(
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
     );
   });
 
