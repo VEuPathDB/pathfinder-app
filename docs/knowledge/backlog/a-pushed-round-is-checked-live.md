@@ -16,3 +16,9 @@ Commit f380eb090 gives a gene its own finding certainty and stops a refused buil
 ## Done when
 
 A live audit follow-up names a gene's own certainty; a live build refused once is not resent unchanged; 'which organisms have the most singletons' answers from a tally of the result step across all organisms.
+
+## Live run 2026-10-26
+
+- The all-organism singleton count passed: the result step's tally named the leading organism across 840 organisms.
+- The audit follow-up could not be checked: for a request naming only genes, the Lead passed the site name as a genome to the audit planner, did not retry after its refusal, and answered from the investigator instead of starting a run.
+- Facts rendered as bare values in prose ("no RNA-seq junction support 0", "preserves the reading frame yes").
