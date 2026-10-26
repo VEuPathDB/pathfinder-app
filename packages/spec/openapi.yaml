@@ -16782,6 +16782,10 @@ components:
           default: 1
           title: Picks
           type: integer
+        expression:
+          default: ''
+          title: Expression
+          type: string
       required:
       - name
       - displayName
@@ -17801,6 +17805,11 @@ components:
           default: ''
           title: Reason
           type: string
+        alsoConsidered:
+          items:
+            type: string
+          title: Alsoconsidered
+          type: array
         parameters:
           items:
             $ref: '#/components/schemas/ParameterFact'

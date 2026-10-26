@@ -12,12 +12,25 @@ describe("DataEvidenceCard", () => {
     vi.restoreAllMocks();
   });
 
-  it("captions the control counts and the steps the site counted", () => {
+  it("captions the control counts and no count of the steps the table lists", () => {
     render(<DataEvidenceCard data={EVIDENCE_CARD} />);
 
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "2 of 3 positive controls returned, 0 of 2 negative controls returned, 1 step counted on the site.",
+      "2 of 3 positive controls returned, 0 of 2 negative controls returned.",
     );
+  });
+
+  it("writes no caption when the card holds no count to state", () => {
+    render(
+      <DataEvidenceCard
+        data={{
+          ...REVIEWED_CARD,
+          review: { ...REVIEWED_CARD.review, sampledGenes: [] },
+        }}
+      />,
+    );
+
+    expect(screen.queryAllByTestId("figure-caption")).toHaveLength(0);
   });
 
   it("lists every control id on the list the test filed it under", () => {
@@ -46,24 +59,15 @@ describe("DataEvidenceCard", () => {
     );
   });
 
-  it("links the strategy and the site's enrichment on its step page", () => {
+  it("links the site's enrichment and leaves opening the strategy to the facts", () => {
     render(<DataEvidenceCard data={EVIDENCE_CARD} />);
 
-    const strategy = screen.getByRole("link", { name: "Open in PlasmoDB" });
-    expect([
-      strategy.getAttribute("data-testid"),
-      strategy.textContent,
-      strategy.getAttribute("href"),
-    ]).toEqual([
-      "evidence-strategy-link",
-      "Open in PlasmoDB",
+    expect(screen.queryAllByRole("link", { name: "Open in PlasmoDB" })).toHaveLength(0);
+    const enrichment = screen.getByTestId("evidence-enrichment-link");
+    expect([enrichment.textContent, enrichment.getAttribute("href")]).toEqual([
+      "Run GO, pathway or word enrichment in PlasmoDB",
       EVIDENCE_CARD.strategyUrl,
     ]);
-    expect(
-      screen
-        .getByText("Run GO, pathway or word enrichment in PlasmoDB")
-        .getAttribute("href"),
-    ).toBe(EVIDENCE_CARD.strategyUrl);
   });
 
   it("draws the facts of the check and no verdict", () => {
@@ -142,7 +146,7 @@ describe("DataEvidenceCard", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "8 of 8 sampled genes unclear, 3 steps counted on the site.",
+      "8 of 8 sampled genes unclear.",
     );
   });
 
@@ -154,10 +158,10 @@ describe("DataEvidenceCard", () => {
     );
     expect(rows.map((row) => row.textContent)).toEqual([
       "RequirementAnswered byHow",
-      'P. falciparum 3D7 genesMessage 1. Both component searches use `organism=["Plasmodium falciparum 3D7"]`.step_80bbac4f, step_e7a86f13by a parameter',
-      "with a signal peptideMessage 1. `GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.step_80bbac4fby a search",
-      "at least 2 transmembrane domainsMessage 1. `GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.step_e7a86f13by a parameter",
-      "signal peptide and at least 2 transmembrane domainsMessage 1. The root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.step_901d23ccby the structure",
+      'P. falciparum 3D7 genesBoth component searches use `organism=["Plasmodium falciparum 3D7"]`.Predicted Signal Peptide, Transmembrane Domain Countby a parameter',
+      "with a signal peptide`GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.Predicted Signal Peptideby a search",
+      "at least 2 transmembrane domains`GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.Transmembrane Domain Countby a parameter",
+      "signal peptide and at least 2 transmembrane domainsThe root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.Intersectby the structure",
     ]);
   });
 
@@ -166,7 +170,7 @@ describe("DataEvidenceCard", () => {
     const answered = (how: "transform" | "analysis", text: string) => ({
       text,
       turn: 2,
-      answeredBy: ["step_3c1d9a02"],
+      answeredBy: ["step_80bbac4f"],
       how,
       status: "met" as const,
       note: "",
@@ -191,8 +195,8 @@ describe("DataEvidenceCard", () => {
     );
     expect(rows.map((row) => row.textContent)).toEqual([
       "RequirementAnswered byHow",
-      "orthologs in P. vivaxMessage 2step_3c1d9a02by a transform",
-      "up in gametocytesMessage 2step_3c1d9a02by an analysis",
+      "orthologs in P. vivaxPredicted Signal Peptideby a transform",
+      "up in gametocytesPredicted Signal Peptideby an analysis",
     ]);
   });
 

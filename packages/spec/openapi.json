@@ -25120,6 +25120,11 @@
             "default": 1,
             "title": "Picks",
             "type": "integer"
+          },
+          "expression": {
+            "default": "",
+            "title": "Expression",
+            "type": "string"
           }
         },
         "required": [
@@ -26496,6 +26501,13 @@
             "default": "",
             "title": "Reason",
             "type": "string"
+          },
+          "alsoConsidered": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Alsoconsidered",
+            "type": "array"
           },
           "parameters": {
             "items": {

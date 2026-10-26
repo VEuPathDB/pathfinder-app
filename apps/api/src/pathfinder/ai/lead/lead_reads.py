@@ -11,6 +11,7 @@ from pydantic_ai.messages import ToolReturn
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone.graph_helpers import count_summary
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -37,20 +38,8 @@ async def get_live_strategy_state(
     )
     if not live.step_count:
         return with_summary(live, "No strategy yet", ctx=ctx, status="empty")
-    genes = live.root_count
-    if genes is None:
-        return with_summary(
-            live,
-            f"{live.step_count} steps, count not available",
-            ctx=ctx,
-            status="warn",
-        )
-    return with_summary(
-        live,
-        f"{live.step_count} steps, {genes:,} genes",
-        ctx=ctx,
-        status="ok" if genes else "empty",
-    )
+    summary, status = count_summary(live.step_count, live.root_count, live.record_type)
+    return with_summary(live, summary, ctx=ctx, status=status)
 
 
 def read_ledger_section(

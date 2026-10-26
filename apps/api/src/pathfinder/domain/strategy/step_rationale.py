@@ -113,6 +113,12 @@ class SearchRationale(CamelModel):
         over = ", ".join(search.label() for search in self.compared)
         return f"{self.sentence} (over {over})"
 
+    def facts_line(self) -> str:
+        return self.sentence
+
+    def considered(self) -> list[str]:
+        return [search.display_name for search in self.compared]
+
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""
         return [self.reason, self.term, self.query, *self.sources]
@@ -175,6 +181,12 @@ class AnalysisRationale(CamelModel):
     def line(self) -> str:
         return self.reason
 
+    def facts_line(self) -> str:
+        return self.line()
+
+    def considered(self) -> list[str]:
+        return []
+
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""
         return [self.reason, self.term]
@@ -229,6 +241,12 @@ class ControlsRationale(CamelModel):
             f"chosen by the controls: {self.short}, {self.result_size:,} genes "
             f"({self.basis})"
         )
+
+    def facts_line(self) -> str:
+        return self.line()
+
+    def considered(self) -> list[str]:
+        return []
 
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""

@@ -72,8 +72,11 @@ export function sampleCountLine(genes: readonly SampledGene[]): string {
   return clauses.join(", ");
 }
 
-/** The ids that answer a row, or what the site or the strategy lacks for it. */
-function answeredBy(row: RequirementCheck): ReactElement {
+/** The steps that answer a row by name, or what the site or the strategy lacks for it. */
+function answeredBy(
+  row: RequirementCheck,
+  stepTitles: ReadonlyMap<string, string>,
+): ReactElement {
   const ids = row.answeredBy ?? [];
   if (row.status === "unexpressed" || ids.length === 0) {
     return (
@@ -85,27 +88,28 @@ function answeredBy(row: RequirementCheck): ReactElement {
     );
   }
   return (
-    <span
-      key="by"
-      data-testid="evidence-requirement-answer"
-      className="font-mono break-all"
-    >
-      {ids.join(", ")}
+    <span key="by" data-testid="evidence-requirement-answer">
+      {ids.map((id) => stepTitles.get(id) ?? id).join(", ")}
     </span>
   );
 }
 
-function requirementRow(row: RequirementCheck, index: number): ExhibitRow {
+function requirementRow(
+  row: RequirementCheck,
+  index: number,
+  stepTitles: ReadonlyMap<string, string>,
+): ExhibitRow {
+  const note = row.note ?? "";
   return {
     key: `${index}-${row.text}`,
     cells: [
       <div key="text">
         <p>{row.text}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {`Message ${row.turn}${row.note == null || row.note === "" ? "" : `. ${row.note}`}`}
-        </p>
+        {note === "" ? null : (
+          <p className="text-[11px] text-muted-foreground">{note}</p>
+        )}
       </div>,
-      answeredBy(row),
+      answeredBy(row, stepTitles),
       HOW_WORDS[row.how],
     ],
   };
@@ -205,8 +209,10 @@ function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null
  * sources it chose to read. */
 export function EvidenceReview({
   review,
+  stepTitles,
 }: {
   review: VerificationReview | undefined;
+  stepTitles: ReadonlyMap<string, string>;
 }): ReactElement | null {
   const rows = review?.requirements ?? [];
   const fits = review?.columnFits ?? [];
@@ -220,7 +226,10 @@ export function EvidenceReview({
     <div data-testid="evidence-review" className="space-y-3">
       {rows.length > 0 ? (
         <div data-testid="evidence-requirements">
-          <ExhibitTable columns={REQUIREMENT_COLUMNS} rows={rows.map(requirementRow)} />
+          <ExhibitTable
+            columns={REQUIREMENT_COLUMNS}
+            rows={rows.map((row, index) => requirementRow(row, index, stepTitles))}
+          />
         </div>
       ) : null}
       {fits.length > 0 ? (

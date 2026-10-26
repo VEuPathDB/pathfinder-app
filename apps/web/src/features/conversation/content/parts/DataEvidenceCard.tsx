@@ -13,7 +13,7 @@ function setClause(set: ControlSetEvidence | null | undefined, kind: string): st
 }
 
 /** The counts the card holds, in one sentence under the figure. */
-function caption(card: EvidenceCard): string {
+function caption(card: EvidenceCard): string | null {
   const genes = card.review?.sampledGenes ?? [];
   const clauses = [
     ...(genes.length > 0 ? [sampleCountLine(genes)] : []),
@@ -22,13 +22,13 @@ function caption(card: EvidenceCard): string {
       ...setClause(test.negative, "negative"),
     ]),
   ];
-  const noun = card.steps.length === 1 ? "step" : "steps";
-  const steps = {
-    read: `${card.steps.length} ${noun} counted on the site`,
-    not_answered: "the site did not answer the count read",
-    not_read: "the strategy is not on the site yet",
+  const site = {
+    read: [],
+    not_answered: ["the site did not answer the count read"],
+    not_read: ["the strategy is not on the site yet"],
   }[card.siteRead];
-  return `${[...clauses, steps].join(", ")}.`;
+  const all = [...clauses, ...site];
+  return all.length === 0 ? null : `${all.join(", ")}.`;
 }
 
 /** The evidence behind one check, under the check in the thread. */

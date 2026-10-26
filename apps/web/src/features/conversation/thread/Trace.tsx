@@ -49,7 +49,7 @@ function usageLine(usage: TraceUsageView): string {
 }
 
 /** A turn the Lead ran alone needs no heading over its one group. */
-function isBare(groups: readonly TraceGroupView[]): boolean {
+export function isBare(groups: readonly TraceGroupView[]): boolean {
   const only = groups.length === 1 ? groups[0] : undefined;
   return only?.key === LEAD;
 }

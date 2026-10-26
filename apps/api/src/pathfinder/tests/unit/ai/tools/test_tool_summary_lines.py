@@ -21,6 +21,7 @@ from veupathdb_mcp.wdk import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.lead import lead_reads
+from pathfinder.ai.lead.live_state import LiveStrategyState
 from pathfinder.ai.tools.standalone import (
     catalog_discovery,
     eda_analysis,
@@ -134,6 +135,39 @@ class TestASilentZeroReportsEmpty:
         )
         assert chunk.data["summary"] == "No strategy yet"
         assert chunk.data["status"] == "empty"
+
+    @pytest.mark.parametrize(
+        ("live", "summary"),
+        [
+            (
+                LiveStrategyState(step_count=1, root_count=797, record_type="group"),
+                "1 step, 797 groups",
+            ),
+            (
+                LiveStrategyState(step_count=1, root_count=1, record_type="group"),
+                "1 step, 1 group",
+            ),
+            (
+                LiveStrategyState(
+                    step_count=2, root_count=1342, record_type="transcript"
+                ),
+                "2 steps, 1,342 genes",
+            ),
+        ],
+    )
+    async def test_get_live_strategy_state_counts_in_its_records(
+        self, monkeypatch: pytest.MonkeyPatch, live: LiveStrategyState, summary: str
+    ) -> None:
+        async def _read(*_args: Any) -> LiveStrategyState:
+            return live
+
+        monkeypatch.setattr(lead_reads, "read_live_state", _read)
+        chunk = summary_of(
+            await lead_reads.get_live_strategy_state(
+                lead_run_context(tool_call_id="call_1")
+            )
+        )
+        assert (chunk.data["summary"], chunk.data["status"]) == (summary, "ok")
 
     async def test_lookup_gene_records(self, monkeypatch: pytest.MonkeyPatch) -> None:
         async def _none(*_args: Any, **_kwargs: Any) -> GeneSearchResult:

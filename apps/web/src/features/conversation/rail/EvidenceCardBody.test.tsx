@@ -140,7 +140,7 @@ describe("EvidenceCardBody site link", () => {
     );
 
     const links = screen.getAllByRole("link");
-    expect(links.length).toBeGreaterThan(2);
+    expect(links.length).toBeGreaterThan(1);
     expect(links.map((a) => a.getAttribute("target"))).toEqual(
       links.map(() => "_blank"),
     );
@@ -152,7 +152,7 @@ describe("EvidenceCardBody site link", () => {
   it("records strategy_opened with the card's site and WDK strategy id", () => {
     render(<EvidenceCardBody card={EVIDENCE_CARD} />);
 
-    fireEvent.click(screen.getByTestId("evidence-strategy-link"));
+    fireEvent.click(screen.getByTestId("evidence-enrichment-link"));
 
     expect(recordProductEvent).toHaveBeenCalledWith({
       event: "strategy_opened",

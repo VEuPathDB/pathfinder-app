@@ -5,7 +5,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import FilterValue
 from veupathdb_mcp.catalog import format_param_info_typed
 
-from pathfinder.ai.lead.turn_facts import _shown
+from pathfinder.ai.lead.parameter_facts import _shown
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.tests._support.recorded_searches import suite_search

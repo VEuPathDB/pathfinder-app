@@ -138,6 +138,73 @@ describe("DataFacts", () => {
     );
   });
 
+  it("names the searches a step was chosen over on one plain line", () => {
+    render(
+      <DataFacts
+        data={{
+          recordNoun: "group",
+          steps: [
+            {
+              stepId: "step_7b388339",
+              displayName: "Phyletic Pattern",
+              count: 797,
+              reason:
+                "Expression: The phyletic expression requires every Plasmodium genome.",
+              alsoConsidered: [
+                "Single Copy Orthogroups",
+                "Transform Proteins to Groups",
+                "All Groups",
+              ],
+              recordNoun: "group",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-step-considered").textContent).toBe(
+      "Also considered: Single Copy Orthogroups, Transform Proteins to Groups, All Groups",
+    );
+    expect(screen.getByTestId("facts-step-reason").textContent).not.toContain("0.47");
+  });
+
+  it("shows a phyletic expression as its own text in a block a reader can copy", () => {
+    const expression = "pfal+pviv+pber>=3T AND tgon=0T AND hsap+mmus=0T";
+    render(
+      <DataFacts
+        data={{
+          recordNoun: "group",
+          steps: [
+            {
+              stepId: "step_7b388339",
+              displayName: "Phyletic Pattern",
+              count: 797,
+              recordNoun: "group",
+              parameters: [
+                {
+                  name: "phyletic_expression",
+                  displayName: "Expression",
+                  value: "names 9 codes in 3 AND clauses, 47 characters",
+                  source: "chosen",
+                  expression,
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    const row = screen.getByTestId("facts-param");
+    expect(within(row).getByTestId("facts-param-expression").textContent).toBe(
+      expression,
+    );
+    expect(row.textContent).not.toContain("names 9 codes");
+    expect(
+      within(row).getAllByRole("button", { name: "Copy the expression" }),
+    ).toHaveLength(1);
+  });
+
   it("shows who set each value and the measurement of a default", () => {
     render(<DataFacts data={FACTS} />);
 

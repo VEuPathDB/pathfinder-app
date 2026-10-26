@@ -196,9 +196,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     await expect(card).toHaveCount(1, { timeout: 60_000 });
 
     await expect(card.getByTestId("figure-caption")).toHaveText(
-      new RegExp(
-        `^(\\d+) of \\1 sampled genes? fits?, ${LAYOUTS.intersect.steps} steps counted on the site\\.$`,
-      ),
+      new RegExp(`^(\\d+) of \\1 sampled genes? fits?\\.$`),
     );
     await expect(card.getByTestId("evidence-verdict")).toHaveCount(0);
     await expectStepTable(card, counts);
@@ -210,8 +208,10 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       "How",
     ]);
     await expectEveryRequirementAnswered(card);
-    for (const row of await bodyCells(requirements))
-      expect(row[0]).toContain("Message 1");
+    for (const row of await bodyCells(requirements)) {
+      expect(row[0]).not.toMatch(/Message \d/);
+      expect(row[1]).not.toMatch(/step_[0-9a-f]{8}/);
+    }
 
     const sampled = card.getByTestId("evidence-sampled-genes");
     await expect(sampled.getByRole("columnheader")).toHaveText([
@@ -231,8 +231,13 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     const web = site.baseUrl
       .replace(/\/service$/, "")
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const link = card.getByTestId("evidence-strategy-link");
-    await expect(link).toHaveText(`Open in ${siteShortName(siteId)}`);
+    await expect(
+      card.getByRole("link", { name: `Open in ${siteShortName(siteId)}` }),
+    ).toHaveCount(0);
+    const link = card.getByTestId("evidence-enrichment-link");
+    await expect(link).toHaveText(
+      `Run GO, pathway or word enrichment in ${siteShortName(siteId)}`,
+    );
     await expect(link).toHaveAttribute(
       "href",
       new RegExp(`^${web}/app/workspace/strategies/\\d+/\\d+$`),

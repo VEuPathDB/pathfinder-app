@@ -41,6 +41,7 @@ class LiveStrategyState(CamelModel):
 
     wdk_strategy_id: int | None = None
     step_count: int = 0
+    record_type: str | None = None
     root_count: int | None = None
     """What the whole strategy returns now. ``None`` means unknown."""
 
@@ -87,6 +88,7 @@ async def read_live_state(
     return LiveStrategyState(
         wdk_strategy_id=sync_state.wdk_strategy_id if sync_state else None,
         step_count=len(graph.steps),
+        record_type=graph.record_type,
         root_count=root_count,
         steps=steps,
     )

@@ -13,6 +13,17 @@
 * **The appendix draws no "Strategy updated" section.** The graph snapshot still opens
   the rail's Strategy panel; its figure repeated the Strategy section and named every
   record a gene.
+* **The appendix states what a step runs, in the researcher's terms.** A step's reason
+  carries no search scores, and the searches it was chosen over are one line of names
+  (`StepFact.also_considered`). A phyletic expression row shows the expression itself
+  (`ParameterFact.expression`) in a block a reader can copy, and a reading too long to
+  describe counts the clauses by the join they use. The evidence card names each
+  requirement's answering step by its title, drops the message number, keeps the
+  enrichment link and leaves opening the strategy to the facts, and its caption states
+  no count of the steps its table lists.
+* **The trace counts the Lead's work in its own records.** The first Assistant header
+  of a turn with sub-agents shows the Lead's tokens and cost, which the wire reports
+  once per turn. The Lead's strategy read reads "1 step, 797 groups" on OrthoMCL.
 
 ## 2026-10-25
 

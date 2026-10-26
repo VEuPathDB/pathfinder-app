@@ -12,6 +12,8 @@ import {
   RecordsTable,
 } from "@/features/conversation/content/parts/FactsRecords";
 
+import { FactsExpression } from "./FactsExpression";
+
 const SOURCE_LABELS: Record<ParameterFact["source"], string> = {
   stated: "stated",
   chosen: "chosen",
@@ -52,14 +54,18 @@ function lastChangeLine(change: LastChange, noun: string): string {
 
 function Parameter({ fact }: { fact: ParameterFact }): ReactElement {
   const label = fact.label ?? "";
+  const expression = fact.expression ?? "";
   return (
     <li data-testid="facts-param" data-source={fact.source} className="text-xs">
       <span className="text-muted-foreground">{fact.displayName}: </span>
-      <span data-testid="facts-param-value">
-        {fact.value}
-        {label === "" ? null : ` (${label})`}
-      </span>
+      {expression === "" ? (
+        <span data-testid="facts-param-value">
+          {fact.value}
+          {label === "" ? null : ` (${label})`}
+        </span>
+      ) : null}
       <span className="ml-1 text-muted-foreground">({SOURCE_LABELS[fact.source]})</span>
+      {expression === "" ? null : <FactsExpression expression={expression} />}
       {(fact.notes ?? []).map((note) => (
         <div
           key={note}
@@ -91,6 +97,14 @@ function Step({ step }: { step: StepFact }): ReactElement {
       {(step.reason ?? "") === "" ? null : (
         <div data-testid="facts-step-reason" className="text-xs text-muted-foreground">
           {step.reason}
+        </div>
+      )}
+      {(step.alsoConsidered ?? []).length === 0 ? null : (
+        <div
+          data-testid="facts-step-considered"
+          className="text-xs text-muted-foreground"
+        >
+          {`Also considered: ${(step.alsoConsidered ?? []).join(", ")}`}
         </div>
       )}
       {(step.parameters ?? []).length === 0 ? null : (

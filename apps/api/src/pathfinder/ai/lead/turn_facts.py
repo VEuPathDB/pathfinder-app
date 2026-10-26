@@ -4,16 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from veupathdb.domain.parameters import (
-    PHYLETIC_EXPRESSION_PARAM,
-    InputDatasetValue,
-    MultiPickValue,
-    to_wire,
-)
 from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.analysis_facts import analysis_parameters
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.facts_reads import (
     listed_ids,
@@ -24,6 +17,7 @@ from pathfinder.ai.lead.facts_reads import (
 )
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
+from pathfinder.ai.lead.parameter_facts import step_parameters
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.tally_steps import tallies_with_paths
 from pathfinder.ai.lead.unsaved_set import result_not_saved
@@ -42,28 +36,20 @@ from pathfinder.domain.control_result_facts import control_result_fact
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.last_change import LastChange, change_since
-from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.expression_handles import held_readings
-from pathfinder.domain.strategy.measurement_clauses import (
-    counted_clauses,
-    read_pick_clauses,
-)
 from pathfinder.domain.strategy.operational_spec import (
-    BoundValue,
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.option_labels import option_label, with_readings
+from pathfinder.domain.strategy.option_labels import with_readings
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.turn_facts import (
     UNCHECKED_PROSE,
     UNVERIFIED_BUILD,
-    ParameterFact,
     RetiredFact,
     StepFact,
     StrategyLinkFact,
@@ -81,92 +67,16 @@ def _strategy_link(
     return None if url is None else StrategyLinkFact(site_id=site_id, url=url)
 
 
-def _label(criterion: Criterion, param: str, bound: BoundValue) -> str:
-    """The label the vocabulary gives the value, else the fold a log2 value is."""
-    return bound.label or fold_label(
-        criterion.display_name_of(param), plain_value(bound.value)
-    )
-
-
-def _notes(criterion: Criterion, param: str, bound: BoundValue, noun: str) -> list[str]:
-    """The measurements of a default or chosen value, the option of a card value,
-    and for every value the pick taken from a vocabulary read."""
-    match bound.source:
-        case "default" | "chosen":
-            return counted_clauses(criterion, param, noun=noun)
-        case "card":
-            return [
-                option_label(criterion, param, to_wire(bound.value), noun=noun),
-                *read_pick_clauses(criterion, param, noun=noun),
-            ]
-        case _:
-            return read_pick_clauses(criterion, param, noun=noun)
-
-
-def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str, int]:
-    """The value and its label as a researcher reads them. A list reads as what
-    it holds, never as the site's id for it."""
-    match bound.value:
-        case InputDatasetValue():
-            return bound.label or "an uploaded list", "", 1
-        case _ if bound.taxon is not None:
-            return bound.taxon.name, bound.taxon.label(), 1
-        case _ if name == PHYLETIC_EXPRESSION_PARAM:
-            return bound.label, "", 1
-        case _ if bound.words:
-            return bound.words, "", 1
-        case MultiPickValue(values=values):
-            return plain_value(bound.value), _label(criterion, name, bound), len(values)
-        case _:
-            return (
-                bound.rounded() or plain_value(bound.value),
-                _label(criterion, name, bound),
-                1,
-            )
-
-
-def _parameter(
-    criterion: Criterion, name: str, bound: BoundValue, noun: str
-) -> ParameterFact:
-    """One bound value's row. A placeholder the site left states no value, so
-    it is shown as not set and nothing measures it. A pick a message names by
-    its taxon is shown as that taxon and its organism count."""
-    shown = criterion.display_name_of(name)
-    if bound.placeholder:
-        return ParameterFact(
-            name=name,
-            display_name=shown,
-            value="not set",
-            label="site placeholder",
-            source=bound.source,
-        )
-    value, label, picks = _shown(criterion, name, bound)
-    return ParameterFact(
-        name=name,
-        display_name=shown,
-        value=value,
-        label=label,
-        source=bound.source,
-        notes=_notes(criterion, name, bound, noun),
-        picks=picks,
-    )
-
-
-def _parameters(
-    criterion: Criterion, noun: str, said: Sequence[str]
-) -> list[ParameterFact]:
-    if criterion.analysis is not None:
-        return analysis_parameters(criterion.analysis, said, noun)
-    return [
-        _parameter(criterion, name, bound, noun)
-        for name, bound in criterion.shown_values.items()
-    ]
-
-
 def _reason(criterion: Criterion | None) -> str:
     if criterion is None or criterion.rationale is None:
         return ""
-    return criterion.rationale.line()
+    return criterion.rationale.facts_line()
+
+
+def _considered(criterion: Criterion | None) -> list[str]:
+    if criterion is None or criterion.rationale is None:
+        return []
+    return criterion.rationale.considered()
 
 
 def _step_fact(
@@ -187,7 +97,8 @@ def _step_fact(
         operator=None if step.operator is None else step.operator.value,
         count=counts.get(step.id),
         reason=_reason(criterion),
-        parameters=[] if criterion is None else _parameters(criterion, noun, said),
+        also_considered=_considered(criterion),
+        parameters=[] if criterion is None else step_parameters(criterion, noun, said),
         error=errors.get(step.id, ""),
         record_noun=noun,
     )
@@ -252,7 +163,8 @@ def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[Step
             display_name=c.search_display_name or c.text,
             count=c.result_count,
             reason=_reason(c),
-            parameters=_parameters(c, noun, said),
+            also_considered=_considered(c),
+            parameters=step_parameters(c, noun, said),
             record_noun=noun,
         )
         for c in spec.criteria

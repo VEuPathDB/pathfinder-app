@@ -99,7 +99,7 @@ describe("the Verification tab draws the check's evidence card", () => {
     expect(
       screen.getByText("https://doi.org/10.1038/nature12970").getAttribute("href"),
     ).toBe("https://doi.org/10.1038/nature12970");
-    expect(screen.getByTestId("evidence-strategy-link").getAttribute("href")).toBe(
+    expect(screen.getByTestId("evidence-enrichment-link").getAttribute("href")).toBe(
       EVIDENCE_CARD.strategyUrl,
     );
     expect(screen.queryByTestId("evidence-superseded")).toBeNull();

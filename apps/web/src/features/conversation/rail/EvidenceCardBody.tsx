@@ -224,17 +224,7 @@ function SiteLinks({
   return (
     <div className="flex flex-col gap-0.5 text-xs">
       <a
-        data-testid="evidence-strategy-link"
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={`Open in ${site}`}
-        className={link}
-        onClick={recordOpen}
-      >
-        {`Open in ${site}`}
-      </a>
-      <a
+        data-testid="evidence-enrichment-link"
         href={url}
         target="_blank"
         rel="noreferrer"
@@ -284,7 +274,10 @@ export function EvidenceCardBody({
         </div>
       ) : null}
       <ExpressionFits card={card} />
-      <EvidenceReview review={card.review} />
+      <EvidenceReview
+        review={card.review}
+        stepTitles={new Map(card.steps.map((step) => [step.stepId, step.title]))}
+      />
       <Citations cited={card.citations} />
       {card.strategyUrl == null ? null : (
         <SiteLinks

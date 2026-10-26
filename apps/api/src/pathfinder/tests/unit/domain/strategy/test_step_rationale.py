@@ -63,6 +63,26 @@ def test_the_line_names_what_the_search_was_chosen_over() -> None:
     )
 
 
+def test_the_facts_line_is_the_sentence_with_no_scores() -> None:
+    chosen = _chosen("nearest", "GPI anchor", compared=_OVER)
+
+    assert chosen.facts_line() == (
+        "GPI anchor: no search states it; GPI anchor is the closest"
+    )
+
+
+def test_the_searches_considered_are_named_without_scores() -> None:
+    chosen = _chosen("nearest", "GPI anchor", compared=_OVER)
+
+    assert chosen.considered() == ["Gene Text Search", "Signal Peptide"]
+
+
+def test_an_analysis_considered_no_other_search() -> None:
+    analysed = AnalysisRationale.of(binding())
+
+    assert (analysed.facts_line(), analysed.considered()) == (analysed.line(), [])
+
+
 def test_a_line_with_nothing_compared_is_the_sentence() -> None:
     assert _chosen("parameter", "Organism").line() == (
         "Organism: no search states it; Organism is the closest"

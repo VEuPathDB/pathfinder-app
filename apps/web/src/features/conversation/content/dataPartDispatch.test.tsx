@@ -215,7 +215,7 @@ describe("message dispatch", () => {
     render(<Thread content={[{ type: "data-evidence-card", data: EVIDENCE_CARD }]} />);
     expect(screen.getByTestId("data-evidence-card")).toBeInTheDocument();
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "2 of 3 positive controls returned, 0 of 2 negative controls returned, 1 step counted on the site.",
+      "2 of 3 positive controls returned, 0 of 2 negative controls returned.",
     );
     expect(toastError).not.toHaveBeenCalled();
   });

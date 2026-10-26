@@ -272,6 +272,27 @@ describe("TraceAnchor", () => {
     ]);
   });
 
+  it("puts the Lead's own spend on the first Assistant header and no other", () => {
+    const view = anchorFor("call_1", "search_eda_studies");
+    const headers = view
+      .getAllByTestId("trace-group")
+      .map((header) => [
+        header.querySelector("[data-testid='trace-group-label']")?.textContent,
+        header.querySelector("[data-testid='trace-group-usage']")?.textContent ?? null,
+      ]);
+
+    expect(headers[0]).toEqual(["Assistant", "41.8K, $0.01"]);
+    expect(headers[1]?.[0]).toBe("Planning");
+    expect(headers[1]?.[1]).not.toBeNull();
+    expect(headers[2]).toEqual(["Assistant", null]);
+  });
+
+  it("puts the Lead's spend on no header of a run the Lead ran alone", () => {
+    const view = anchorFor("call_b", "set_criterion", twoRuns());
+
+    expect(view.queryAllByTestId("trace-group-usage")).toHaveLength(0);
+  });
+
   it("carries the approval the run is waiting on", () => {
     const view = anchorFor("call_1", "search_eda_studies");
     expect(view.getAllByTestId("approval-card")).toHaveLength(1);

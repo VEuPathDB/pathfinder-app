@@ -16,6 +16,7 @@ import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subA
 
 import { parseModelString } from "@/lib/models/providerMeta";
 import {
+  isBare,
   Trace,
   type TraceRunView,
   type TraceUsageView,
@@ -80,6 +81,27 @@ export function turnUsageOf(parts: readonly MessagePart[]): TraceUsageView | nul
     costUsd: String(usage.total.costUsd),
     ...(effort === null ? {} : { effort }),
   };
+}
+
+/** The runs with the Lead's own spend on the first Assistant header a reader sees. */
+function withLeadSpend(runs: Run[], parts: readonly MessagePart[]): Run[] {
+  const lead = turnUsage(parts).lead;
+  if (lead === null) return runs;
+  const at = runs.findIndex(
+    (run) => !isBare(run.groups) && run.groups.some((group) => group.key === LEAD),
+  );
+  return runs.map((run, index) => {
+    if (index !== at) return run;
+    const first = run.groups.findIndex((group) => group.key === LEAD);
+    return {
+      ...run,
+      groups: run.groups.map((group, place) =>
+        place === first
+          ? { ...group, tokens: lead.tokens, costUsd: String(lead.costUsd) }
+          : group,
+      ),
+    };
+  });
 }
 
 /** The id a part anchors, or null when the part bears no row of its own. */
@@ -173,9 +195,10 @@ function anchored(
     renderingKinds: traceRenderingKinds(),
     turnEnded: turnEnded(chat, message),
   });
-  const runs = answeredInALaterMessage(chat.messages, messageId)
-    ? built.map(withNoWait)
-    : built;
+  const runs = withLeadSpend(
+    answeredInALaterMessage(chat.messages, messageId) ? built.map(withNoWait) : built,
+    parts,
+  );
   const index = runs.findIndex((each) => idsOf(each).has(anchorId));
   const run = runs[index];
   if (run === undefined) return null;

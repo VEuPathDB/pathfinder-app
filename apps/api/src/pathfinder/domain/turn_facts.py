@@ -9,7 +9,8 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
-from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
+from pathfinder.domain.caveat_rows import drawn_by_a_row, sampled_column
+from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
@@ -20,12 +21,7 @@ from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.tally_facts import VALUE_NOUN, TallyFact
-from pathfinder.domain.value_caveats import (
-    AssumedValueCaveat,
-    ChoiceCaveat,
-    UnmeasuredValueCaveat,
-    ValueCaveat,
-)
+from pathfinder.domain.value_caveats import ValueCaveat
 
 type SavedKind = Literal["gene_set", "control_set"]
 type RetiredState = Literal["withdrawn", "replaced"]
@@ -55,6 +51,7 @@ class ParameterFact(CamelModel):
     source: ValueSource
     notes: list[str] = Field(default_factory=list)
     picks: int = 1
+    expression: str = ""
 
     @field_validator("label", mode="after")
     @classmethod
@@ -75,6 +72,7 @@ class ParameterFact(CamelModel):
                 "value": redact(self.value),
                 "label": redact(self.label),
                 "notes": [redact(note) for note in self.notes],
+                "expression": redact(self.expression),
             }
         )
 
@@ -93,6 +91,7 @@ class StepFact(CamelModel):
     count: int | None = None
     # Why the step runs its search, as its recorded reason reads.
     reason: str = ""
+    also_considered: list[str] = Field(default_factory=list)
     parameters: list[ParameterFact] = Field(default_factory=list)
     # What the site answered when it refused the step, whole.
     error: str = ""
@@ -109,6 +108,11 @@ class StepFact(CamelModel):
         return [
             f"{title}: {_with_before(self.count, self.count_before, self.record_noun)}",
             *([self.reason] if self.reason else []),
+            *(
+                [f"Also considered: {', '.join(self.also_considered)}"]
+                if self.also_considered
+                else []
+            ),
             *(line for p in self.parameters for line in p.lines()),
             *([self.error] if self.error else []),
         ]
@@ -118,6 +122,7 @@ class StepFact(CamelModel):
             update={
                 "display_name": redact(self.display_name),
                 "reason": redact(self.reason),
+                "also_considered": [redact(name) for name in self.also_considered],
                 "parameters": [p.redacted(redact) for p in self.parameters],
                 "error": redact(self.error),
             }
@@ -264,7 +269,7 @@ class TurnFacts(CamelModel):
             for p in step.parameters
             if p.notes
         }
-        return [c for c in caveats if not _drawn_by_a_row(c, noted)]
+        return [c for c in caveats if not drawn_by_a_row(c, noted)]
 
     @field_validator("column_fits", mode="after")
     @classmethod
@@ -273,7 +278,7 @@ class TurnFacts(CamelModel):
     ) -> list[ColumnFit]:
         """A column is one row: its latest read, and none when a caveat shows it."""
         caveats: list[Caveat] = info.data.get("caveats", [])
-        drawn = {key for c in caveats if (key := _sampled_column(c)) is not None}
+        drawn = {key for c in caveats if (key := sampled_column(c)) is not None}
         latest = {fit.column_key: fit for fit in fits}
         return [fit for key, fit in latest.items() if key not in drawn]
 
@@ -451,27 +456,6 @@ class TurnFacts(CamelModel):
                 "refusal": redact(self.refusal),
             }
         )
-
-
-def _sampled_column(caveat: Caveat) -> tuple[int, str] | None:
-    match caveat:
-        case SampleCaveat():
-            return caveat.fit.column_key
-        case _:
-            return None
-
-
-def _drawn_by_a_row(caveat: Caveat, noted: set[tuple[str, str]]) -> bool:
-    match caveat:
-        case (
-            AssumedValueCaveat()
-            | UnmeasuredValueCaveat()
-            | ChoiceCaveat()
-            | PhraseCaveat()
-        ):
-            return (caveat.criterion_id, caveat.param_display_name) in noted
-        case _:
-            return False
 
 
 __all__ = [

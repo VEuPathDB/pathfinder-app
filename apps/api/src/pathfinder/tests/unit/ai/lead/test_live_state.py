@@ -121,6 +121,16 @@ async def test_the_root_count_is_the_sites_count_not_the_stored_one(
     assert live.step_count == 3
 
 
+async def test_the_state_names_the_record_type_it_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install(monkeypatch, _site(_SITE_SIZES))
+
+    live = await read_live_state(_session(), _SITE_ID)
+
+    assert live.record_type == "transcript"
+
+
 async def test_the_edited_step_reports_the_count_the_site_holds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

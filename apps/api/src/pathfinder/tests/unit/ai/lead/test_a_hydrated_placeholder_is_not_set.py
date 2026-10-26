@@ -14,8 +14,8 @@ from veupathdb.wdk import WDKSearch
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.lead.parameter_facts import step_parameters
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
-from pathfinder.ai.lead.turn_facts import _parameters
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import sheet_params
 from pathfinder.tests._support.database import no_database
@@ -81,7 +81,7 @@ async def _sequence_row(sequence: str) -> list[str]:
     [criterion] = spec.criteria
     return [
         line
-        for fact in _parameters(criterion, "gene", [])
+        for fact in step_parameters(criterion, "gene", [])
         if fact.name == "sequenceId"
         for line in fact.lines()
     ]

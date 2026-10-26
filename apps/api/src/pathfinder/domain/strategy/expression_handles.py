@@ -111,10 +111,15 @@ def expression_reading(text: str, tree: PhyleticTree) -> str:
         described = expression.describe(tree)
         if len(described) <= READING_LIMIT:
             return described
-    terms = len(expression.site_reading().root.operands("OR"))
+    root = expression.site_reading().root
+    terms = root.operands("OR")
+    joined = (
+        f"{len(terms)} OR terms"
+        if len(terms) > 1
+        else f"{len(root.operands('AND'))} AND clauses"
+    )
     return (
-        f"names {len(expression.codes())} codes; written as {terms} OR terms, "
-        f"{len(text)} characters"
+        f"names {len(expression.codes())} codes in {joined}, {len(text):,} characters"
     )
 
 
