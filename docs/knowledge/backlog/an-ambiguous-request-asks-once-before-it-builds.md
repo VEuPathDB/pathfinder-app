@@ -11,8 +11,8 @@ status: proposed
 
 ## What happens
 
-The branch (commits 758cc3129, 03307fb02, eaa95dfe9 and the round that closes the typed-words binding holes) asks once per request, before BUILD, with counted options, a union option for alternative searches, a coverage option for 'all of X', a remember offer for a picked definition, and a setting that uses the recommended reading. It passed review except the last round's items. It was not merged because the QA sites were down and the change alters how the Lead and FRAME behave.
+The branch (commits 758cc3129, 03307fb02, eaa95dfe9 and eb7d290d2) asks once per request, before BUILD, with counted options, a union option for alternative searches, a coverage option for 'all of X', a remember offer for a picked definition, and a setting that uses the recommended reading. Two review rounds are closed; eb7d290d2 (typed words bound only by a reading other than the built one, a renamed criterion judged by the same rule, the records budget started at the send) has not had its scoped review. It was not merged because the QA sites were down and the change alters how the Lead and FRAME behave.
 
 ## Done when
 
-Live run on QA: an 'all of a genus' request and a single-copy request each ask one card before any build, and the answer builds once with no repeated discovery; a concept with several definitions asks with a union option and offers to remember the pick; two clear requests ask nothing. Then merge the branch into main.
+A scoped review of eb7d290d2. Then a live run on QA: an 'all of a genus' request and a single-copy request each ask one card before any build, and the answer builds once with no repeated discovery; a concept with several definitions asks with a union option and offers to remember the pick; two clear requests ask nothing. Then merge the branch into main.
