@@ -2,6 +2,8 @@
 
 ## 2026-10-26
 
+* **Open work is filed as backlog 59 to 68.** The ask-once change waits on its branch for a live run; the rest (a live check of the last pushed round, an unfounded approval claim, a phyletic set described twice in veupathdb-py, guards that refuse too much, a direct link to the result list, the edited browser tests, thread surgery as a runtime primitive, the remaining audit phases and catalog prices for every model) is described in each card.
+
 * **A mention of Settings opens Settings.** Each Settings tab the help pages name
   (Model, Provider keys, Data, Memory, Privacy) is a link to the conversation route
   that opens Settings on that tab, the way the first-run notice does. The Settings
