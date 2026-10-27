@@ -11,6 +11,7 @@ from pydantic import Field, ValidationError, model_validator
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
+from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -146,6 +147,7 @@ class SlotQuestion(AskedQuestion):
     param_name: str = ""
     readings: list[Reading] = Field(default_factory=list)
     requirements: list[str] = Field(default_factory=list)
+    labels: Annotated[dict[str, str], OmittedFromInput] = Field(default_factory=dict)
 
     @model_validator(mode="before")
     @classmethod
@@ -248,7 +250,7 @@ class SlotQuestion(AskedQuestion):
                         self.param_name,
                         wire,
                         noun=noun,
-                        readings=readings,
+                        readings={**readings, **self.labels},
                     ),
                     binding=SetValues(
                         criterion_id=self.criterion_id,

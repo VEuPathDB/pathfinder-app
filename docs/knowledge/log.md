@@ -25,6 +25,13 @@
   the step and count it with `count_step_by_column`. A `[stat:]` or `[cite:]` path that
   names no row of a held fact is told the rows it can mean (`misnamed_reference`).
   Backlog 59 (the branch's ask-once card) leaves: the branch is not merged.
+* **An unsettled vocabulary pick is asked.** With `DECISIONS_ENABLED`, a FRAME lookup
+  names the requirement it serves (`get_parameter_options(requirement=...)`), the read's
+  Decisions pick is recorded with a note FRAME reads, and a value FRAME chose under a pick
+  that is not settled becomes a slot question with the pick and the kept entries
+  ([decision](decisions/an-unsettled-vocabulary-pick-is-asked.md)). `search_for_searches`
+  shows `decisionProbability`. The import contract names the modules veupathdb-mcp
+  0.2.0b53 and 0.2.0b54 added.
 
 ## 2026-10-26
 

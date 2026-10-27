@@ -25,6 +25,7 @@ from pathfinder.ai.agents.frame_expression_checks import (
 from pathfinder.ai.agents.frame_option_checks import (
     hold_an_option_to_a_held_expression,
 )
+from pathfinder.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
 from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from pathfinder.ai.agents.frame_result_checks import (
     hold_an_organism_to_a_step,
@@ -213,7 +214,8 @@ Procedure:
    `get_parameter_options(search_name, parameter_id, query="<keyword>")` ONLY for a
    typeahead vocabulary, or for one the sheet marks as shortlisted when the entry you
    need is not among the shown ones -- never to discover parameter names, which come
-   from the sheet alone. If
+   from the sheet alone. Pass `requirement` with the number of the requirement the
+   lookup finds a value for; its `note` names the entry that states it. If
    the entry does not exist, that search cannot realize the criterion: choose a different
    search or `drop_criterion`.
    A wrong name or value comes back as a retry with the real names or nearest values; that
@@ -410,4 +412,5 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_taxa_to_their_scope)
     agent.output_validator(hold_an_every_genome_presence_to_a_question)
     agent.output_validator(hold_a_comparison_to_its_reading)
+    agent.output_validator(hold_an_unsettled_pick_to_a_question)
     return agent

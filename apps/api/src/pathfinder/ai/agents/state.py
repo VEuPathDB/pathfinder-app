@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.orthology_request import OrthologyRequest
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.domain.strategy.vocab_picks import PickRead
 from pathfinder.services.strategies.cut_picks import OptionsRead
 from pathfinder.services.strategies.measurements import TurnCounts
 
@@ -193,6 +194,7 @@ class AgentToolState:
     read_param_options: set[str] = field(default_factory=set)
     # The entries the lookups of each (search, parameter) matched this pass.
     looked_up: dict[tuple[str, str], LookupRecord] = field(default_factory=dict)
+    vocab_picks: dict[tuple[str, str], PickRead] = field(default_factory=dict)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
     # The organisms this investigation states. A capped vocabulary renders the
     # branches that match them first.
@@ -427,6 +429,9 @@ class AgentToolState:
         """Add the entries a query of the parameter matched to its lookups."""
         key = (search_name, parameter_id)
         self.looked_up[key] = self.looked_up.get(key, LookupRecord()).merged(lookup)
+
+    def record_pick(self, read: PickRead) -> None:
+        self.vocab_picks[(read.search_name, read.param_name)] = read
 
     def mark_param_read(self, key: str) -> None:
         self.read_param_options.add(key)

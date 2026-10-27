@@ -9,15 +9,14 @@ from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import (
     MAX_NEAREST_ENTRIES,
     FilterValue,
-    MultiPickValue,
     ParamValue,
-    SinglePickValue,
     VocabOption,
     nearest_entries,
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.domain.strategy.value_binding import pick_terms
 from pathfinder.domain.strategy.value_label import term_labels
 from pathfinder.services.strategies.parameter_rules import rules_of
 
@@ -35,17 +34,6 @@ class UnlabelledPick(BaseModel):
 class VocabularyLabels(BaseModel):
     labels: list[Measurement]
     unlabelled: list[UnlabelledPick]
-
-
-def pick_terms(value: ParamValue) -> list[str]:
-    """The vocabulary terms a pick holds; none for any other value."""
-    match value:
-        case MultiPickValue(values=values):
-            return list(values)
-        case SinglePickValue(value=term):
-            return [term]
-        case _:
-            return []
 
 
 def _nearest(options: Sequence[VocabOption], term: str) -> list[str]:
@@ -103,6 +91,5 @@ def vocabulary_labels(
 __all__ = [
     "UnlabelledPick",
     "VocabularyLabels",
-    "pick_terms",
     "vocabulary_labels",
 ]
