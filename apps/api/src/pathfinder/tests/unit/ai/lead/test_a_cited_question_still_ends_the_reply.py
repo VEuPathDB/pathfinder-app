@@ -7,7 +7,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
-    building_deps,
     kinds,
     reading_deps,
     reply,
@@ -28,14 +27,6 @@ _OFFER = (
 def _cited(deps: LeadDeps) -> LeadDeps:
     deps.state.turn_markers.record_audit_facts([_FACT])
     return deps
-
-
-def test_an_offer_closed_by_a_cite_is_an_unrecorded_question() -> None:
-    deps = _cited(building_deps())
-
-    assert kinds(deps, reply(_OFFER, changed=True, next_state="complete")) == [
-        "unrecorded_question"
-    ]
 
 
 def test_a_question_closed_by_a_cite_asks_about_a_failed_check() -> None:

@@ -17,6 +17,7 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.security import create_user_token
+from pathfinder.tests._support.audit_planning import FakeSite, faked_site
 
 CHAT_TURN_TASK = "chat_turn:run"
 WDK_AUTH_HEADER = "X-VEUPATHDB-AUTH"
@@ -67,6 +68,11 @@ def bearer_client_for(app: ASGIApp, user_id: UUID) -> httpx.AsyncClient:
         base_url="http://test",
         headers={"Authorization": f"Bearer {create_user_token(user_id)}"},
     )
+
+
+@pytest.fixture
+def audit_site(monkeypatch: pytest.MonkeyPatch) -> FakeSite:
+    return faked_site(monkeypatch)
 
 
 @pytest.fixture

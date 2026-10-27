@@ -15,7 +15,7 @@ constraints = [
     { name = "langsmith", specifier = ">=0.8.18" },
     { name = "mako", specifier = ">=1.4.2" },
     { name = "mcp", specifier = ">=1.28.1,<2" },
-    { name = "msgpack", specifier = ">=1.2.1" },
+    { name = "msgpack", specifier = ">=1.2.3" },
     { name = "pip", specifier = ">=26.2" },
     { name = "pyasn1", specifier = ">=0.6.4" },
     { name = "soupsieve", specifier = ">=2.8.4" },
@@ -2583,8 +2583,8 @@ requires-dist = [
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b52" },
-    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0b24" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b54" },
+    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0b25" },
 ]
 
 [package.metadata.requires-dev]
@@ -4117,8 +4117,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.2.0b52"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b52#9bb431a7adeaed0c79daba621cdaab6471901b86" }
+version = "0.2.0b54"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b54#f7eb810ace99a2ffe084c27d00e70587a38bd6e3" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -4153,8 +4153,8 @@ dependencies = [
 
 [[package]]
 name = "veupathdb-py"
-version = "0.1.0b24"
-source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0b24#4e5ded04b907dee0879d5ca3217bb8b8ede80438" }
+version = "0.1.0b25"
+source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0b25#38fdc8bfb3b096f12aa9f700b311874f86e7baa7" }
 dependencies = [
     { name = "httpx" },
     { name = "json5" },

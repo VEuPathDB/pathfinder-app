@@ -14,10 +14,6 @@ from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
-from pathfinder.domain.strategy.compare_readings import (
-    READING_RULES,
-    CompareReading,
-)
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
@@ -28,7 +24,6 @@ from pathfinder.domain.strategy.questions import (
 from pathfinder.domain.strategy.requirement_reports import (
     RecordTypeRole,
     ReportedRequirement,
-    RequirementProblem,
     RequirementReport,
     numbered_requirements,
     stated_numbers,
@@ -53,8 +48,6 @@ PassGapKind = Literal[
     "report_dropped",
     "question_decides_nothing",
     "questions_bind_nothing",
-    "every_genome_unasked",
-    "comparison_reading_departs",
     "expression_handle_unknown",
     "group_genomes_left_out",
     "group_scope_missing",
@@ -126,15 +119,6 @@ class FrameResult(CamelModel):
             "request means the whole taxon, or exactly the units written."
         ),
     )
-    comparison_reading: CompareReading | None = Field(
-        default=None,
-        description=(
-            "Only when the request compares how many proteins two sets of genomes "
-            "hold: which comparison it asks for. "
-            + "; ".join(READING_RULES.values())
-            + ". None for any other request."
-        ),
-    )
     chosen_reading: ChosenReading | None = Field(
         default=None,
         description=(
@@ -169,25 +153,6 @@ class FrameResult(CamelModel):
 
     def with_gap(self, kind: PassGapKind, sentence: str) -> FrameResult:
         return self.with_gaps([PassGap(kind=kind, sentence=sentence)])
-
-    def left_open_without_a_choice(self, spec: OperationalSpec) -> list[str]:
-        by_id = {c.id: c for c in spec.criteria}
-        choices = [
-            q
-            for q in self.open_questions
-            if q.names_a_slot
-            and q.criterion_id in by_id
-            and not q.asks_a_value_in_words(by_id[q.criterion_id])
-        ]
-        keyed = {key for q in choices for key in q.requirements}
-        unkeyed = sum(1 for q in choices if not q.requirements)
-        left = [
-            r.requirement
-            for r in self.requirement_problems
-            if r.problem is RequirementProblem.REQUEST_LEAVES_IT_OPEN
-            and r.requirement not in keyed
-        ]
-        return left[unkeyed:]
 
     @property
     def undecided_questions(self) -> list[str]:

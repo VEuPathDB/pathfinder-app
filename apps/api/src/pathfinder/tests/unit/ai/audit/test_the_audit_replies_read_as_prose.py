@@ -269,29 +269,6 @@ _F_T1_PROSE = (
     "records are available here: [record:Afu2g18040] and "
     "[record:NCU00776]."
 )
-_F_T1_SHOWN = (
-    "The model audit is complete. Both gene models are judged incorrect"
-    " as deposited, with high-confidence evidence of a shifted splice "
-    "site rather than support for the annotated intron structure.\n\n- "
-    "**Afu2g18040:** the first annotated intron has no supporting "
-    "junction reads, while an alternative junction supports a shifted "
-    "boundary. The other annotated intron is supported. The audit "
-    "therefore recommends replacing the first junction with the "
-    "supported alternative; the corrected coding frame is retained. See"
-    " the audit evidence for the unsupported junction and its "
-    "replacement: unsupported shifted, 0, 1,226, yes.\n\n- **NCU00776:** "
-    "the second annotated intron has no supporting junction reads, "
-    "while an alternative junction supports a downstream boundary "
-    "shift. The other annotated intron is supported. The audit "
-    "therefore recommends using the alternative boundary; the corrected"
-    " coding frame is retained. See unsupported shifted, 0, 723, yes.\n\n"
-    "These are RNA-seq junction-supported model corrections, not "
-    "evidence that either gene is absent or that the entire model "
-    "should be discarded. The gene records are available here: [Afu2g18"
-    "040](https://qa.fungidb.org/fungidb.qa/app/record/gene/Afu2g18040)"
-    " and [NCU00776](https://qa.fungidb.org/fungidb.qa/app/record/gene/"
-    "NCU00776)."
-)
 _F_T2_PROSE = (
     "For [record:Afu2g18040], the audit found a localized shifted-"
     f"splice-site error in the deposited model{_DASH}not a missing or "
@@ -396,7 +373,6 @@ _REPLIES = {
     "P/t2": (_P_T2_PROSE, _P_T2_SHOWN),
     "V/t2": (_V_T2_PROSE, _V_T2_SHOWN),
     "V/t1": (_V_T1_PROSE, _V_T1_SHOWN),
-    "F/t1": (_F_T1_PROSE, _F_T1_SHOWN),
     "F/t2": (_F_T2_PROSE, _F_T2_SHOWN),
     "S/t2": (_S_T2_PROSE, _S_T2_SHOWN),
 }
@@ -408,3 +384,16 @@ def test_a_recorded_reply_renders_as_single_prose(run: str) -> None:
 
     assert prose_faults(prose, _FACTS[run]) == []
     assert shown_reply(prose, _FACTS[run], "") == shown
+
+
+def test_a_recorded_reply_that_places_a_yes_is_refused_with_its_cite() -> None:
+    faults = prose_faults(_F_T1_PROSE, _FACTS["F/t1"])
+
+    assert [(f.token, f.kind, f.references) for f in faults] == [
+        (
+            f"[stat:{fact}.frameKept]",
+            "boolean_in_place",
+            (f"[cite:{fact}.frameKept]",),
+        )
+        for fact in ("stat_6694be4b", "stat_8dbbce57")
+    ]

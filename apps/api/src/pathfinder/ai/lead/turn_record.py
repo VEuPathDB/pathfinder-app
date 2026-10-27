@@ -9,7 +9,6 @@ from pydantic_ai import RunContext
 from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import (
-    IntentClassification,
     NamedControls,
     RefusedClassification,
 )
@@ -29,9 +28,9 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.domain.audit.planning import PlanRefusal
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.comparison_placement import (
     PlacedComparison,
     placed_comparison,
@@ -42,9 +41,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     pending_analyses,
 )
-from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
-from pathfinder.services.eda.export import open_analysis_exports
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
 # sub-agent, and an accepted offer runs an edit or a build; each is refused the
@@ -71,7 +68,6 @@ class TurnRecord(CamelModel):
     refused_dispatches: tuple[str, ...]
     build_section: BuildSection
     verification_section: VerificationSection
-    frame_diff: SpecDiff | None
     created_control_sets: tuple[CreatedControlSet, ...]
     # What the turn shows beside its reply, which the reply's references name.
     facts: TurnFacts = TurnFacts()
@@ -86,18 +82,23 @@ class TurnRecord(CamelModel):
     resumes_parked_call: bool = False
     # The controls the accepted classification says the message names.
     named_controls: NamedControls | None = None
-    # The values an accepted edit classification takes back and states.
-    withdrawn_values: tuple[str, ...] = ()
-    stated_values: tuple[str, ...] = ()
-    # The steps of the strategy that hold an analysis export.
-    export_step_ids: tuple[str, ...] = ()
-    # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
-    looked_up_the_catalog: bool = False
-    chosen_readings: tuple[ChosenReading, ...] = ()
     unfollowed_reach: StepReach | None = None
     unmet_requirements: tuple[str, ...] = ()
     audit_turn: bool = False
+    refused_plan: PlanRefusal | None = None
     comparisons: tuple[PlacedComparison, ...] = ()
+
+    def unplanned_audit(self, *, asked: bool) -> str | None:
+        refused = self.refused_plan
+        if refused is None or not refused.replannable:
+            return None
+        if self.ends_on_a_card or asked:
+            return None
+        return (
+            "The planner refused this turn's audit plan, so no audit ran and no "
+            f'card was shown. It said: "{refused.sentence}" Call '
+            "plan_gene_model_audit again with what it names, or ask the researcher."
+        )
 
     @property
     def check_could_not_finish(self) -> bool:
@@ -156,29 +157,12 @@ def _frame_open_questions(deps: LeadDeps, frame: FrameSection) -> tuple[str, ...
     return tuple(slot.question or slot.param_name for slot in frame.open_slots())
 
 
-def _edit_values(deps: LeadDeps) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """The values an accepted edit classification takes back and states.
-
-    Any other classification asks for no change to the strategy's values.
-    """
-    intent = deps.intent
-    if not turn_is_classified(deps) or intent is None:
-        return (), ()
-    if intent.classification is not IntentClassification.EDIT_STRATEGY:
-        return (), ()
-    return (
-        tuple(c.requested_value for c in intent.withdrawn),
-        tuple(c.requested_value for c in intent.explicit_constraints),
-    )
-
-
 def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     """Everything the contract reads about the turn this reply answers."""
     deps = ctx.deps
     markers = deps.state.turn_markers
     classified = turn_is_classified(deps)
     ledger = derive_ledger(deps.state, deps.intent)
-    withdrawn, stated = _edit_values(deps)
     graph = deps.runtime.strategy_session.get_graph(None)
     root_id = None if graph is None else graph.primary_root_id()
     return TurnRecord(
@@ -193,7 +177,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         refused_dispatches=_refused_dispatches(ctx),
         build_section=ledger.build,
         verification_section=ledger.verification,
-        frame_diff=ledger.frame.spec_diff(),
         created_control_sets=tuple(markers.created_control_sets),
         facts=turn_facts(deps, refusal=markers.unbound_edit),
         frame_open_questions=_frame_open_questions(deps, ledger.frame),
@@ -203,13 +186,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         named_controls=deps.intent.named_controls
         if classified and deps.intent is not None
         else None,
-        withdrawn_values=withdrawn,
-        stated_values=stated,
-        export_step_ids=tuple(
-            open_analysis_exports(graph, deps.state.domain.open_eda_analysis)
-        ),
-        looked_up_the_catalog=markers.catalog_looked_up,
-        chosen_readings=tuple(markers.chosen_readings),
         unfollowed_reach=markers.unfollowed_reach(),
         unmet_requirements=tuple(
             g.constraint.requested_value
@@ -217,6 +193,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
             if is_blocking(g)
         ),
         audit_turn=turn_is_an_audit(deps),
+        refused_plan=markers.refused_plan,
         comparisons=tuple(
             placed_comparison(
                 held, deps.state.domain.operational_spec or OperationalSpec(), root_id

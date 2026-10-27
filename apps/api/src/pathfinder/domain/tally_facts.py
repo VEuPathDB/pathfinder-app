@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from collections.abc import Callable, Iterator, Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -13,9 +12,7 @@ from pydantic import ConfigDict, Field
 
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.reference_grammar import (
-    A_REFERENCE,
     TALLY_VALUES,
-    reference_kind,
 )
 from pathfinder.domain.tally_paths import TallyPath
 
@@ -113,27 +110,3 @@ def tally_references(tallies: Sequence[TallyFact], number: str) -> Iterator[str]
         for row in tally.rows:
             if str(row.count) == number:
                 yield f"[tally:{tally.id}.{row.value}]"
-
-
-def _tally_id(match: re.Match[str]) -> str:
-    body = match.group("body") or ""
-    return body.removesuffix(TALLY_VALUES).partition(".")[0]
-
-
-def tallies_of_another_step(
-    prose: str, tallies: Sequence[TallyFact], result_step_id: int | None
-) -> list[tuple[str, str]]:
-    if result_step_id is not None and any(
-        t.wdk_step_id == result_step_id for t in tallies
-    ):
-        return []
-    elsewhere = {
-        t.id: "" if t.path is None or not t.path.removable else t.path.names()
-        for t in tallies
-        if t.counts_another_step(result_step_id)
-    }
-    return [
-        (match.group(), elsewhere[_tally_id(match)])
-        for match in A_REFERENCE.finditer(prose)
-        if reference_kind(match) == "tally" and _tally_id(match) in elsewhere
-    ]

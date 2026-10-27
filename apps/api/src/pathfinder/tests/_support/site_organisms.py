@@ -8,6 +8,7 @@ import pytest
 from veupathdb.model import CamelModel
 
 from pathfinder.ai.lead import classification_gate
+from pathfinder.services.audit import planning
 from pathfinder.tests._support.qa_recording import qa_recording
 
 _RECORDED = Path(__file__).resolve().parents[1] / "fixtures" / "organisms"
@@ -36,3 +37,14 @@ def serve_recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
     return reads
+
+
+def serve_planned_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Serve the audit planner each recorded site's organisms, and none elsewhere."""
+
+    async def _organisms(site_id: str) -> list[str]:
+        if not (_RECORDED / f"{site_id}.json").exists():
+            return []
+        return recorded_organisms(site_id)
+
+    monkeypatch.setattr(planning, "list_organisms", _organisms)

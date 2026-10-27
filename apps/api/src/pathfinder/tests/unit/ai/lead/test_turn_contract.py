@@ -13,20 +13,17 @@ from pathfinder.ai.lead.turn_contract import (
 )
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     ASKING_REPLY,
-    BLAMING_REPLY,
     CLAIMS_A_CHANGE,
     CLEAN_REPLY,
     CRITERION,
     DATASET,
     EDA_PROSE,
-    REAL_FAILURE_REPLY,
     REDIRECT,
     REPORTS_THE_STRATEGY,
     WITH_CODE,
@@ -173,43 +170,6 @@ class TestTheUnbuiltEdaCriterionRule:
         deps = eda_deps(classification=IntentClassification.FOLLOW_UP_QUESTION)
 
         assert kinds(deps, reply(EDA_PROSE)) == []
-
-
-class TestTheBlamedSiteRule:
-    def test_a_blaming_reply_is_a_mismatch_and_names_the_real_stop(self) -> None:
-        deps = blame_deps()
-        deps.last_phase_stop = PhaseStop(
-            role="frame",
-            reason=PhaseStopReason.BUDGET,
-            tool_calls=60,
-            criteria_bound=3,
-            criteria_declared=8,
-        )
-
-        mismatches = reconcile(
-            reply(BLAMING_REPLY),
-            turn_record(run_context_for(deps)),
-        )
-
-        assert [m.kind for m in mismatches] == ["blamed_the_site", "unfinished_work"]
-        assert (
-            "the framing pass stopped on its call budget after 60 calls"
-            in mismatches[0].sentence
-        )
-
-    def test_a_reply_naming_a_real_wdk_failure_stands(self) -> None:
-        deps = blame_deps()
-        deps.state.domain.last_build_outcome = BuildOutcome(
-            pushed_step_ids=["s1", "s2"],
-            failed_steps=[
-                StepPushFailure(step_id="s3", search_name="GenesByTaxon", error="422"),
-            ],
-        )
-
-        assert kinds(deps, reply(REAL_FAILURE_REPLY)) == []
-
-    def test_a_reply_that_blames_nothing_stands(self) -> None:
-        assert kinds(blame_deps(), reply(CLEAN_REPLY)) == []
 
 
 class TestTheUnrecordedQuestionRule:

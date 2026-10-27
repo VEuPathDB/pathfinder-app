@@ -28,10 +28,13 @@ from veupathdb_mcp.catalog import (
     read_parameter_options,
 )
 
-from pathfinder.ai.agents.state import ParamVocabSnapshot
+from pathfinder.ai.agents.state import AgentToolState, ParamVocabSnapshot
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_elsewhere import joined
 from pathfinder.ai.tools.standalone._catalog_models import register_search
+from pathfinder.domain.strategy.requirement_reports import numbered_requirements
+from pathfinder.domain.strategy.vocab_picks import PickRead
+from pathfinder.platform.config import get_settings
 
 
 class AlreadyReadNotice(CamelModel):
@@ -105,6 +108,8 @@ async def get_parameter_options(
     record_type: str | None = None,
     context_values: dict[str, Any] | None = None,
     query: str | list[str] | None = None,
+    *,
+    requirement: str | None = None,
 ) -> ToolReturn[GetParameterOptionsResult | AlreadyReadNotice]:
     """Get detailed parameter info including vocabulary/allowed values.
 
@@ -136,6 +141,12 @@ async def get_parameter_options(
             narrows the vocabulary. Hyphen and space match alike, and a phrase
             also matches its words in any order. For a concept with several
             names pass them all, e.g. ["RNA binding", "RNA recognition", "KH"].
+        requirement: The number, such as R2, of the requirement in
+            "Requirements the researcher stated" whose value this read finds.
+            The read judges the entry it picks against the researcher's words
+            for that requirement. A narrowed read's ``vocabPick`` and ``note``
+            name the entry that states it and whether that settles it; a
+            binding the pick does not settle is asked of the researcher.
     """
     deps = ctx.deps
     explicit = coerce_context_values(context_values) if context_values else {}
@@ -151,7 +162,15 @@ async def get_parameter_options(
     typed_context = merged or None
     asked = VocabNarrowing(query=query, organism_hints=deps.agent_state.organism_hints)
     narrowing = replace(
-        asked, request=deps.agent_state.phrasings_the_request_states(asked.terms)
+        asked,
+        request=list(
+            dict.fromkeys(
+                [
+                    *_requirement_words(deps.agent_state, requirement),
+                    *deps.agent_state.phrasings_the_request_states(asked.terms),
+                ]
+            )
+        ),
     )
     read_key = deps.agent_state.param_read_key(
         search_name, parameter_id, context_values=typed_context, terms=narrowing.terms
@@ -204,12 +223,40 @@ async def get_parameter_options(
     deps.agent_state.mark_param_read(read_key)
     if result.vocab_lookup is not None:
         deps.agent_state.record_lookup(search_name, parameter_id, result.vocab_lookup)
+    if result.vocab_pick is not None:
+        read = PickRead(
+            search_name=search_name,
+            param_name=parameter_id,
+            requirement="; ".join(narrowing.request_terms or narrowing.terms),
+            pick=result.vocab_pick,
+            kept=result.vocabulary()[: result.vocab_pick.offered],
+        )
+        deps.agent_state.record_pick(read)
+        result = result.model_copy(update={"note": _with_note(result.note, read)})
     return with_summary(
         result,
         _options_summary(parameter_id, result),
         ctx=ctx,
         status=_options_status(result),
     )
+
+
+def _requirement_words(state: AgentToolState, number: str | None) -> list[str]:
+    if number is None:
+        return []
+    held = numbered_requirements(state.stated_requirements)
+    if number not in held:
+        msg = (
+            f"requirement {number!r} is no number of 'Requirements the researcher "
+            f"stated'; it holds {', '.join(held) or 'none'}. Pass one of those, or "
+            "no requirement."
+        )
+        raise ModelRetry(msg)
+    return [held[number].requested_value] if get_settings().decisions_enabled else []
+
+
+def _with_note(note: str | None, read: PickRead) -> str:
+    return " ".join(filter(None, [note, read.note()]))
 
 
 def _has_vocabulary_type(info: ParameterInfo) -> bool:

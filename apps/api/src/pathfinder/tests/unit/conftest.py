@@ -14,6 +14,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.network_guard import refuse_every_connection
 from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
+from pathfinder.tests._support.site_organisms import serve_planned_organisms
 
 # Input screening.
 
@@ -53,10 +54,11 @@ def _no_network(
 
 @pytest.fixture(autouse=True)
 def _catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answers each search's organism parameter and record classes from
-    recorded catalog answers."""
+    """Answers each search's organism parameter, record classes and site
+    organisms from recorded catalog answers."""
     serve_catalog_marks(monkeypatch)
     serve_record_classes(monkeypatch)
+    serve_planned_organisms(monkeypatch)
 
 
 @pytest.fixture

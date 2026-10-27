@@ -19,7 +19,7 @@ _FACT = StatisticFact(
     title="Finding 1 of audit run 0b6f3a52-6a1e-4c55-9a62-1f1d2a3b4c5d",
     rows=[
         StatisticRowFact(name="finding.certainty", value="high", form="word"),
-        StatisticRowFact(name="finding.frameKept", value="yes", form="word"),
+        StatisticRowFact(name="finding.frameKept", value="yes", form="boolean"),
         StatisticRowFact(
             name="review.cause", value="The junction has no reads.", form="sentence"
         ),

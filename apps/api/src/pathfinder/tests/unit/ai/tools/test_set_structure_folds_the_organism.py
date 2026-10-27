@@ -192,9 +192,7 @@ async def test_a_binding_that_matches_every_gene_holds_its_requirement_open(
     assert [d.met for d in result.dropped] == [False]
     assert universe == [("vectorbase", "transcript", "GenesByTaxon", (PEST,))]
     draft = state.operational_spec_draft
-    assert [(c.id, c.unexpressed_qualifiers) for c in draft.criteria] == [
-        ("c_signal", [])
-    ]
+    assert [c.id for c in draft.criteria] == ["c_signal"]
     assert [(d.text, d.requirement) for d in draft.dropped] == [
         ("PEST gene annotation", ANNOTATED)
     ]

@@ -28,12 +28,12 @@ from pathfinder.domain.strategy.operational_spec import (
     Measurement,
 )
 from pathfinder.domain.strategy.text_expression import TextExpression
+from pathfinder.domain.strategy.value_binding import pick_terms
 from pathfinder.services.strategies.expression_readings import expression_readings
 from pathfinder.services.strategies.parameter_rules import rules_of, text_query
 from pathfinder.services.strategies.pick_readings import default_reading, tree_note
 from pathfinder.services.strategies.slow_searches import counts_slowly, timed
 from pathfinder.services.strategies.species_readings import species_readings
-from pathfinder.services.strategies.value_labels import pick_terms
 
 logger = get_logger(__name__)
 
@@ -412,6 +412,7 @@ async def measure_binding(
         and bound.source in _MEASURED_SOURCES
         and rules_of(by_name[name]).measurement != "expression_reading"
         and _has_readings(by_name[name], bound)
+        and not set(by_name[name].controls_vocab_of or ()) & values.keys()
     }
     if binding.count is None:
         return [

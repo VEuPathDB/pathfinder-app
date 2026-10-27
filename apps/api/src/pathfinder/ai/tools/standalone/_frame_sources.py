@@ -26,14 +26,13 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
-from pathfinder.domain.strategy.value_binding import bind_values
+from pathfinder.domain.strategy.value_binding import bind_values, pick_terms
 from pathfinder.domain.strategy.value_source import (
     cut_from,
     stated_words,
     value_source,
 )
 from pathfinder.services.strategies.parameter_rules import rules_of
-from pathfinder.services.strategies.value_labels import pick_terms
 
 _NO_CARD: Mapping[str, BoundValue] = MappingProxyType({})
 _TEXT: ParamKind = "string"

@@ -11,6 +11,7 @@ from pydantic import Field, ValidationError, model_validator
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
+from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -44,7 +45,6 @@ from pathfinder.domain.strategy.words import words_of
 _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
 _OPTIONS_LIMIT = 8
-_A_CHOICE = 2
 
 
 _NO_READINGS: Mapping[str, str] = MappingProxyType({})
@@ -146,6 +146,7 @@ class SlotQuestion(AskedQuestion):
     param_name: str = ""
     readings: list[Reading] = Field(default_factory=list)
     requirements: list[str] = Field(default_factory=list)
+    labels: Annotated[dict[str, str], OmittedFromInput] = Field(default_factory=dict)
 
     @model_validator(mode="before")
     @classmethod
@@ -201,13 +202,6 @@ class SlotQuestion(AskedQuestion):
             or len(self._by_wire(criterion)) != 1
         )
 
-    def asks_a_value_in_words(self, criterion: Criterion | None) -> bool:
-        if not self.names_a_slot:
-            return len(self.options) > _A_CHOICE
-        if criterion is None or self.readings:
-            return False
-        return not criterion.why_no_readings(self.param_name)
-
     def typed(
         self,
         criterion: Criterion | None = None,
@@ -248,7 +242,7 @@ class SlotQuestion(AskedQuestion):
                         self.param_name,
                         wire,
                         noun=noun,
-                        readings=readings,
+                        readings={**readings, **self.labels},
                     ),
                     binding=SetValues(
                         criterion_id=self.criterion_id,

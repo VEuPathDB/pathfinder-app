@@ -14,7 +14,6 @@ from veupathdb.model import CamelModel
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 
 __all__ = [
-    "MAX_REASON_CHARS",
     "AnalysisRationale",
     "ChosenRationale",
     "ComparedSearch",
@@ -43,10 +42,6 @@ _SHORT: dict[RationaleBasis, str] = {
 # A paragraph ends at a blank line, and a top-level list item starts a block of
 # its own. An indented line or sub-bullet belongs to the item above it.
 _BLOCK_BREAK = re.compile(r"\n\s*\n|\n(?= ?(?:[-*+]|\d+\.)\s)")
-
-
-# A reason is one line a reply can repeat beside the step.
-MAX_REASON_CHARS = 160
 
 
 class ComparedSearch(CamelModel):
@@ -80,7 +75,7 @@ class SearchRationale(CamelModel):
     # What decides it, as the researcher reads it: a parameter's display name,
     # an organism, a record type, or the phrase no other search names.
     term: str
-    reason: str = Field(max_length=MAX_REASON_CHARS)
+    reason: str
     # The bound search's own score in the read, None for a listing.
     similarity: float | None = None
     compared: list[ComparedSearch] = Field(default_factory=list, max_length=3)

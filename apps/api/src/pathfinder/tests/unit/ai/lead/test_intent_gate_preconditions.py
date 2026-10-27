@@ -16,7 +16,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
+from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -120,24 +120,6 @@ def _failed_build() -> BuildOutcome:
             ),
         ],
     )
-
-
-def test_a_prior_turns_intent_does_not_unlock_this_turn() -> None:
-    """A building classification carried over from an earlier message is stale."""
-    offered = _offered(
-        _deps(
-            classification=IntentClassification.NEW_STRATEGY,
-            classified_this_turn=False,
-        ),
-    )
-
-    assert not (offered & BUILDING_TOOLS)
-    assert "classify_user_intent" in offered
-
-
-def test_an_unclassified_turn_reaches_only_the_always_on_tools() -> None:
-    """The two served reads are absent: this turn resolved no research source."""
-    assert _offered(_deps()) == UNCLASSIFIED_TOOLS - _SERVED_TOOLS
 
 
 def test_a_classified_build_turn_reaches_frame_and_build() -> None:
@@ -368,54 +350,6 @@ def _classify_args(classification: IntentClassification) -> dict[str, Any]:
             "inferredGoal": "what the user asked for",
         },
     }
-
-
-def test_classifying_this_turn_marks_the_turn_and_unlocks_the_tools() -> None:
-    """The degrade path: one classification, and the tools are back."""
-    seen = OfferedTools()
-
-    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        del messages
-        if seen.record(info) == 1:
-            return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        tool_name="classify_user_intent",
-                        args=_classify_args(IntentClassification.NEW_STRATEGY),
-                        tool_call_id="call_classify",
-                    ),
-                ],
-            )
-        return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    tool_name="final_result",
-                    args={
-                        "prose": _PROSE,
-                        "nextState": "await_user",
-                        "strategyChanged": False,
-                    },
-                    tool_call_id="call_final",
-                ),
-            ],
-        )
-
-    deps = _deps(
-        classification=IntentClassification.FOLLOW_UP_QUESTION,
-        classified_this_turn=False,
-    )
-    result = asyncio.run(
-        build_lead_agent().run(
-            _PROMPT,
-            deps=deps,
-            model=FunctionModel(_fn, model_name="scripted"),
-        ),
-    )
-
-    assert isinstance(result.output, LeadResponse)
-    assert seen.steps[0] == UNCLASSIFIED_TOOLS - _SERVED_TOOLS
-    assert {"frame_problem", "build_strategy"} <= seen.steps[1]
-    assert deps.state.turn_markers.intent_classified
 
 
 def _replies_twice(seen: OfferedTools) -> FunctionModel:

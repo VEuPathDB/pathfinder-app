@@ -6,7 +6,7 @@ the two ways a dispatch ends before it returns a delta.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection
+from collections.abc import Callable
 from typing import NoReturn
 
 from assistant_core.capabilities.refused_calls import CallRefused
@@ -138,7 +138,6 @@ def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
             stated_requirements=list(state.domain.requirements),
             held_record_roles=dict(state.domain.record_roles),
             held_group_scopes=dict(state.domain.group_scopes),
-            spec_the_dispatch_found=found,
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),
             turn_counts=deps.turn_counts,
@@ -230,29 +229,6 @@ def the_edit_the_strategy_owes(
     return answered, diff_specs(
         spec_without_pending_analyses(answered), spec_without_pending_analyses(found)
     )
-
-
-def refuse_and_keep_what_it_bound(
-    deps: LeadDeps, message: str, *, refused: Collection[str] = ()
-) -> NoReturn:
-    """Reject the pass, and keep each bound criterion the dispatch did not find
-    and the refusal does not name.
-
-    Every criterion the dispatch found is put back as it was found, so the
-    retry keeps new work and never a change to what was there.
-    """
-    before = deps.state.domain.spec_before_dispatch
-    draft = deps.state.domain.operational_spec
-    if before is not None and draft is not None:
-        found = {c.id for c in before.criteria}
-        kept = before.model_copy(deep=True)
-        kept.criteria += [
-            c.model_copy(deep=True)
-            for c in draft.criteria
-            if c.bound and c.id not in found and c.id not in refused
-        ]
-        deps.state.domain.operational_spec = kept
-    raise ModelRetry(message)
 
 
 def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:

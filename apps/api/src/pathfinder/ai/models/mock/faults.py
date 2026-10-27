@@ -45,10 +45,6 @@ class Fault:
         return None
 
 
-# A FRAME tool may be refused three times, and an identical call refused again
-# fails once without counting, so the fifth identical call stops the pass.
-_UNTIL_THE_PASS_STOPS = 5
-
 FAULTS: dict[str, Fault] = {
     "syntenic-left-off": Fault("frame", fault_calls.syntenic_left_off),
     # The arc's own test is the first of the two identical calls.
@@ -57,11 +53,8 @@ FAULTS: dict[str, Fault] = {
     ),
     "all-unclear": Fault("verification", fault_calls.all_unclear),
     "sweep-without-controls": Fault("lead", fault_calls.sweep_without_controls),
-    "long-reason": Fault("frame", fault_calls.long_reason, _UNTIL_THE_PASS_STOPS),
     "short-card-reply": Fault("lead", fault_calls.short_card_reply),
     "unlisted-search": Fault("frame", fault_calls.unlisted_search),
-    "value-as-term": Fault("frame", fault_calls.value_as_term, stands=True),
-    "display-name-term": Fault("frame", fault_calls.display_name_term, stands=True),
     "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
     "unshown-count": Fault("lead", reply_faults.unshown_count),
     "organism-split": Fault("lead", reply_faults.organism_split, stands=True),

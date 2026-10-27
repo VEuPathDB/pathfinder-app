@@ -35,7 +35,7 @@ from pathfinder.tests.integration.http.conftest import client_for, make_user
 from pathfinder.tests.integration.jobs._audit_jobs import TOKEN
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
+    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "audit_site"
 )
 
 _GENOME = STRAINS[0]

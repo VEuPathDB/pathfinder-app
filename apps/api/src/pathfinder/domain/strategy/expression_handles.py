@@ -95,16 +95,6 @@ def _bound_expressions(spec: OperationalSpec | None) -> dict[str, str]:
     return {expression_handle(text): text for _, text in _bound_texts(spec)}
 
 
-def bound_patterns(
-    built: Mapping[str, BuiltPattern], spec: OperationalSpec
-) -> list[tuple[str, PhyleticPattern]]:
-    return [
-        (criterion_id, built[handle].pattern)
-        for criterion_id, text in _bound_texts(spec)
-        if (handle := expression_handle(text)) in built
-    ]
-
-
 def expression_reading(text: str, tree: PhyleticTree) -> str:
     expression = PhyleticExpression.parse(text)
     if len(text) <= READING_LIMIT:
@@ -148,11 +138,17 @@ def resolved_params(
     return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
 
 
+def site_values(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
+    held = values.get(PHYLETIC_EXPRESSION_PARAM)
+    if held is not None and is_handle(to_wire(held)):
+        raise UnknownExpressionError(to_wire(held).strip())
+    return dict(values)
+
+
 __all__ = [
     "READING_LIMIT",
     "BuiltPattern",
     "UnknownExpressionError",
-    "bound_patterns",
     "expression_handle",
     "expression_reading",
     "handles_in",
@@ -164,5 +160,6 @@ __all__ = [
     "shown_params",
     "shown_value",
     "shown_wire",
+    "site_values",
     "spec_handles",
 ]

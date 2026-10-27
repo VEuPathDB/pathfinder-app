@@ -85,44 +85,6 @@ def _records_the_pending_choice() -> Draft:
     return _draft
 
 
-async def test_a_pass_that_asks_before_it_records_the_choice_is_told(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The question reaches no criterion, so the pass is told to record it."""
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        _read_the_listing_only(),
-        disposition="needs_user",
-        asks=[WHICH_ONE],
-    )
-
-    await thread.edit()
-
-    [told] = thread.sent_back
-    assert WHICH_ONE.question in told
-    assert thread.criteria == [SURFACE, STAGE]
-
-
-async def test_the_pass_is_told_a_way_a_saved_strategy_question_can_follow(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A saved-strategy criterion has no sheet, so nulling a parameter is no path."""
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        _read_the_listing_only(),
-        disposition="needs_user",
-        asks=[WHICH_ONE],
-    )
-
-    await thread.edit()
-
-    [told] = thread.sent_back
-    assert "saved_strategy" in told
-    assert "set_criterion" in told
-
-
 async def test_a_pass_that_records_the_pending_choice_stands(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

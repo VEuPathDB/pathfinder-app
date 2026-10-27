@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead import classification_gate
@@ -158,18 +158,6 @@ def test_the_classifier_is_told_never_to_hoist_an_inner_or() -> None:
     assert 'An "or" inside one requirement stays inside it' in guidance
     assert 'joined by commas and "and" is AND' in guidance
     assert "Never hoist" in guidance
-
-
-async def test_a_second_classification_that_changes_nothing_is_refused() -> None:
-    state = pipeline_state(user_prompt=VACCINE)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    await classify_user_intent(ctx, _intent("AND"))
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(ctx, _intent("AND"))
-
-    assert "already classified as new_strategy" in refused.value.message
-    assert len(state.domain.requirements) == 1
 
 
 async def test_a_second_classification_may_change_the_classification() -> None:

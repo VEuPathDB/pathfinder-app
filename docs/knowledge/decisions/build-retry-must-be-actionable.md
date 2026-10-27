@@ -122,7 +122,7 @@ The invariant: `ai/tools/toolsets/_refusals.py::RefusalMemoryToolset`, which
 wraps the Lead's own tools and sweep (`ai/lead/lead_agent.py::build_lead_toolset`)
 and the FRAME, VERIFY, execution and EDA toolsets,
 `ai/tools/standalone/_frame_schema.py::name_the_open_sheets`,
-`_frame_proposals.py::left_to_the_site`, `_frame_rationale_terms.py::_headed_by`,
+`_frame_proposals.py::left_to_the_site`,
 `_frame_rationale.py::rationale_for`, `experiment.py::_answered_from_this_message`.
 Guarded by `tests/unit/ai/tools/test_a_refusal_is_a_correction.py`,
 `tests/unit/ai/tools/toolsets/test_a_refused_call_is_not_run_twice.py`,

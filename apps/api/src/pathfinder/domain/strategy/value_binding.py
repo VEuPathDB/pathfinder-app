@@ -142,6 +142,17 @@ def parents_moved(
     )
 
 
+def pick_terms(value: ParamValue) -> list[str]:
+    """The vocabulary terms a pick holds; none for any other value."""
+    match value:
+        case MultiPickValue(values=values):
+            return list(values)
+        case SinglePickValue(value=term):
+            return [term]
+        case _:
+            return []
+
+
 def plain_value(value: ParamValue) -> str:
     """A vocabulary term in readable form instead of its JSON wire form."""
     match value:

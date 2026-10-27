@@ -37,7 +37,6 @@ from pathfinder.services.audit.views import run_view
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit_planning import (
     STRAINS,
-    faked_site,
     serve_gene_genomes,
 )
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
@@ -56,7 +55,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
 )
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
+    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "audit_site"
 )
 
 _OK = 200
@@ -206,9 +205,7 @@ async def test_the_auditor_plans_and_asks_before_starting(
     app: FastAPI,
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
     owner = await make_user(db_session)
 
     chunks = await _parked(app, owner.id, in_memory_jobs, uuid4())
@@ -228,9 +225,7 @@ async def test_an_approved_audit_starts_and_reads_its_progress(
     app: FastAPI,
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
     owner = await make_user(db_session)
     thread = uuid4()
     (asked,) = _of_type(

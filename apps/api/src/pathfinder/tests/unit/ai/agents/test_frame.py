@@ -70,23 +70,6 @@ def test_frame_instructions_fill_the_vocabulary_half_of_a_radio_pair() -> None:
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
-def test_frame_instructions_read_every_phrasing_of_a_concept() -> None:
-    # One substring misses "RNA-binding" and every family named another way,
-    # and a word alone matches entries that are not the concept.
-    text = _normalized(_FRAME_INSTRUCTIONS)
-    assert (
-        "a concept or a wildcard you would have typed is one "
-        "`get_parameter_options(query=[...])` over the vocabulary that lists every "
-        'phrasing of the concept, e.g. `["RNA binding", "RNA recognition", "KH"]`'
-    ) in text
-    assert (
-        "Bind the entries a phrase matched (`vocabLookup` reach `phrase` or "
-        "`every_word`); never bind the entries a single word matched (reach "
-        "`word`) without asking the user"
-    ) in text
-    assert "then every entry it covers" not in text
-
-
 def test_frame_instructions_read_a_typeahead_vocabulary_before_binding_it() -> None:
     assert (
         "A typeahead vocabulary (GO term, InterPro domain, EC number) is always read "
@@ -139,15 +122,6 @@ def test_get_parameter_options_is_only_the_shortlist_escape_hatch() -> None:
     assert "never to discover parameter names" in _FRAME_INSTRUCTIONS
 
 
-def test_frame_instructions_select_every_matching_sample() -> None:
-    # A named sample class is answered from the sheet, not turned into a
-    # question the user already answered.
-    assert "SELECT every matching sample" in _normalized(_FRAME_INSTRUCTIONS)
-    assert "Only when nothing on the sheet matches do you ask the user" in (
-        _FRAME_INSTRUCTIONS
-    )
-
-
 def test_frame_instructions_say_the_tool_records_who_set_each_value() -> None:
     # The tool decides the source of a value, so the model states the reason.
     assert (
@@ -158,40 +132,11 @@ def test_frame_instructions_say_the_tool_records_who_set_each_value() -> None:
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
-def test_frame_instructions_send_the_model_to_a_past_case_before_binding() -> None:
-    # A verified run leaves a case; nothing reads it unless the procedure says so.
-    assert (
-        'Before step 1, read what already worked: `search_memory(query, kind="case")` '
-        "returns cases from this user's verified runs - each names the searches, the "
-        "params and the count that landed - and `search_example_plans(query)` returns "
-        "public VEuPathDB strategies ranked against the goal. Both are reading; "
-        "neither binds a criterion."
-    ) in _normalized(_FRAME_INSTRUCTIONS)
-
-
 def test_frame_instructions_bind_only_a_search_that_states_the_criterion() -> None:
     text = _normalized(_FRAME_INSTRUCTIONS)
 
     assert ("Bind a search only if its summary states what the criterion asks.") in text
     assert 'do not bind the nearest one: set disposition="needs_user"' in text
-
-
-def test_frame_instructions_keep_the_source_genes_by_a_round_trip() -> None:
-    text = _normalized(_FRAME_INSTRUCTIONS)
-    assert '`{"kind": "copy", "inputs": [<subtree>]}`' in text
-    assert (
-        "the source INTERSECT a transform back to the source organism over a "
-        "transform to X over a copy of the source"
-    ) in text
-    assert "a word of the criterion that a parameter states" in text
-    assert "is recorded unmet" in text
-
-
-def test_frame_instructions_allow_the_profile_only_without_synteny() -> None:
-    # Without synteny, the profile and the round trip read the same OrthoMCL groups.
-    text = _normalized(_FRAME_INSTRUCTIONS)
-    assert 'without "syntenic", may bind the phylogenetic-profile search' in text
-    assert "the same OrthoMCL groups as the round trip in one step" in text
 
 
 def test_frame_instructions_say_another_sites_experiment_never_binds() -> None:
@@ -220,37 +165,4 @@ def test_frame_instructions_keep_the_organism_a_value() -> None:
     assert (
         "The organism the request names is a value of each search's organism "
         "parameter, never a criterion of its own."
-    ) in _normalized(_FRAME_INSTRUCTIONS)
-
-
-def test_frame_instructions_build_every_phyletic_expression_and_bind_its_handle() -> (
-    None
-):
-    text = _normalized(_FRAME_INSTRUCTIONS)
-
-    assert (
-        "On OrthoMCL, describe the groups to `build_phyletic_expression(pattern)` "
-        "with the codes `lookup_phyletic_codes` returns, and bind "
-        "`phyletic_expression` to the handle it returns; a compare past the "
-        "expression caps comes back with route `computed`, a snapshot whose "
-        "`groups:` handle `set_criterion` takes as `computed_groups`."
-    ) in text
-    assert "A genus with no clade code is the list of its genome codes." in text
-    assert "Single copy often returns few groups." in text
-    assert "recipe" not in text
-    assert (
-        "On a phyletic expression, each reading's `value` is a handle "
-        "`build_phyletic_expression` returned for that reading."
-    ) in text
-    assert "The site drops parentheses" not in text
-    assert "<=(N-k)T" not in text
-    assert "correct the pattern and build it again." in text
-
-
-def test_frame_instructions_ask_for_the_scope_of_a_taxon_an_expression_spans() -> None:
-    assert (
-        "When an expression names genomes of several species or strains of one "
-        "taxon, state the taxon's scope in `group_scopes`: whole, with "
-        "`except_codes` for the genomes the request leaves out, or named, exactly "
-        "the genomes the units write."
     ) in _normalized(_FRAME_INSTRUCTIONS)

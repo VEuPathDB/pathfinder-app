@@ -78,23 +78,6 @@ def _binds_with_an_open_slot(thread: DisagreementThread) -> None:
     )
 
 
-async def test_a_pass_that_asks_without_binding_is_told_inside_its_run(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The questions reach no criterion, so the pass is told to record one."""
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    _asks_without_binding(thread)
-
-    await thread.edit()
-
-    [told] = thread.sent_back
-    assert "set_criterion" in told
-    assert THRESHOLD.question in told
-    assert thread.criteria == [SURFACE, STAGE]
-    assert thread.committed == []
-
-
 async def test_a_pass_that_binds_before_it_asks_stands(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -109,28 +92,6 @@ async def test_a_pass_that_binds_before_it_asks_stands(
     assert delta.disposition == "needs_user"
     assert thread.committed == []
     assert _open_params(thread) == [PROTEOME_PARAM]
-
-
-async def test_a_pass_that_binds_and_asks_about_nothing_open_is_told(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A draft with every value decided holds no slot the answer lands in.
-
-    The pass keeps the criterion it bound.
-    """
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        with_the_proteome(2),
-        disposition="needs_user",
-        asks=[THRESHOLD],
-    )
-
-    await thread.edit()
-
-    [told] = thread.sent_back
-    assert "open slot" in told
-    assert thread.criteria == [SURFACE, STAGE, PROTEOME]
 
 
 async def test_a_pass_that_still_asks_about_nothing_reaches_the_lead(

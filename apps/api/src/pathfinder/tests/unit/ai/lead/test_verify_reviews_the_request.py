@@ -47,7 +47,7 @@ _RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/{}"
 pytestmark = pytest.mark.usefixtures("collector")
 
 
-def _deps(*, unexpressed: list[str] | None = None) -> LeadDeps:
+def _deps() -> LeadDeps:
     state = pipeline_state("plasmodb", user_prompt=_ADDED)
     state.domain.original_request = _ASKED
     state.domain.request_messages = [_ASKED]
@@ -61,7 +61,6 @@ def _deps(*, unexpressed: list[str] | None = None) -> LeadDeps:
                 id="s1",
                 text="genes with a signal peptide",
                 search_name="GenesWithSignalPeptide",
-                unexpressed_qualifiers=list(unexpressed or []),
             )
         ],
     )

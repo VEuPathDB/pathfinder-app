@@ -103,8 +103,12 @@ def _reference_strain(answer: WDKAnswer, organism: str) -> bool | None:
     return None if provenance is None else provenance.reference_strain
 
 
+async def site_organisms(site_id: str) -> tuple[str, ...]:
+    return tuple(await list_organisms(site_id))
+
+
 async def site_genomes(site_id: str) -> list[SiteGenome]:
-    organisms = await list_organisms(site_id)
+    organisms = await site_organisms(site_id)
     answer = await organism_report(site_id, GENOME_ATTRIBUTES)
     gaps = {p.organism: p.gap for p in await genome_priorities(site_id)}
     return [
@@ -381,7 +385,7 @@ async def propose_scope(request: PlanRequest) -> ScopeProposal:
 
 
 async def unresolved_names(scope: AuditScope) -> tuple[str, ...]:
-    held = set(await list_organisms(scope.site_id))
+    held = set(await site_organisms(scope.site_id))
     named = (
         *scope.collected,
         scope.reference_genome,

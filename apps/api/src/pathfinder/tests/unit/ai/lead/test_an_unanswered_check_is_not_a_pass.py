@@ -6,12 +6,10 @@ from pathfinder.ai.graph._lead_events import _summarize_sub_agent_result
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead import turn_budget
 from pathfinder.ai.lead.deltas import VerificationDelta
-from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.ledger_render import render_verification_full
-from pathfinder.ai.lead.ledger_sections import BuildSection, VerificationSection
+from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.site_checks import SiteCheck, unanswered_checks
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
 
 _NO_CHECK = SiteCheck(
     kind="bound_values",
@@ -65,17 +63,3 @@ def test_every_reader_says_the_site_did_not_answer() -> None:
     ]
     lines = render_verification_full(VerificationSection(digest=_UNANSWERED))
     assert "- verdict: not checked, the site did not answer" in lines.splitlines()
-
-
-def test_a_reply_that_asks_to_try_again_later_stands_when_the_site_did_not_answer() -> (
-    None
-):
-    reply = "VEuPathDB did not answer the check, so try again later."
-    clean = BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
-
-    assert [
-        blamed_the_site(
-            reply, build=clean, verification=VerificationSection(digest=digest)
-        )
-        for digest in (_UNANSWERED, _digest(_NO_CHECK))
-    ] == [None, "it names 'veupathdb' together with 'again later'"]

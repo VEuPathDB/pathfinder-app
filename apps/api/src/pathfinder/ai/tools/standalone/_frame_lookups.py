@@ -16,9 +16,9 @@ from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values, stem
 from pathfinder.domain.strategy.constraints import content_words
 from pathfinder.domain.strategy.operational_spec import BoundValue
+from pathfinder.domain.strategy.value_binding import pick_terms
 from pathfinder.domain.strategy.value_label import label_term
 from pathfinder.domain.strategy.words import words_of
-from pathfinder.services.strategies.value_labels import pick_terms
 
 # WDK draws a vocabulary it means to be searched as a type-ahead box.
 _TYPEAHEAD = "typeAhead"

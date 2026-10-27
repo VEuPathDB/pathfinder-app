@@ -140,11 +140,6 @@ async def tree_record_class_refusal(
     return transform_input_refusal(root, own, transforms, names)
 
 
-async def record_type_names(site_id: str, record_type: str) -> list[str]:
-    """The record type's own name, then each other name the site shows it by."""
-    return (await names_of_every_record_type(site_id)).get(record_type, [record_type])
-
-
 async def names_of_every_record_type(site_id: str) -> dict[str, list[str]]:
     return record_names_of(await get_raw_record_types(site_id))
 

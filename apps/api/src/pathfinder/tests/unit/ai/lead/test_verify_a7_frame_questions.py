@@ -83,28 +83,6 @@ def _asks_over_an_unchanged_draft(thread: DisagreementThread) -> None:
     )
 
 
-async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Case (a): a design fork with every value bound is told once.
-
-    The pass is asked for a null parameter and keeps the criteria it bound.
-    """
-    thread = _fresh_thread(monkeypatch)
-    thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
-
-    await thread.frame()
-
-    [told] = thread.sent_back
-    assert "no criterion of the spec holds an open slot" in told
-    assert "null for every parameter" in told
-    spec = thread.deps.state.domain.operational_spec
-    assert spec is not None
-    assert [c.id for c in spec.criteria] == [
-        c.id for c in _binds_everything(OperationalSpec()).criteria
-    ]
-
-
 async def test_1a_a_pass_that_keeps_the_same_fork_is_accepted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -143,57 +121,6 @@ def _moves_a_built_value(found: OperationalSpec) -> OperationalSpec:
     stage = next(c for c in found.criteria if c.id == STAGE)
     stage.resolved_params[STAGE_PERCENTILE] = stated(NumberValue(value=90))
     return found
-
-
-async def test_1c_an_edit_that_moves_a_value_and_asks_goes_back_as_found(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Case (c): no open slot anywhere, the value moved, one question asked.
-
-    The question binds nothing, and the spec goes back as found.
-    """
-    thread = _built_thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        _moves_a_built_value,
-        disposition="needs_user",
-        asks=[THRESHOLD],
-    )
-
-    result = await thread.edit()
-
-    [told] = thread.sent_back
-    assert "and no criterion o" in told
-    assert isinstance(result, EditDelta), result
-    assert (result.disposition, thread.committed) == ("needs_user", [])
-    stage = next(c for c in thread.spec.criteria if c.id == STAGE)
-    assert stage.param_values[STAGE_PERCENTILE] == NumberValue(value=80)
-
-
-async def test_1d_a_pass_that_asks_over_nothing_records_its_questions(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Case (d): the questions are recorded; the next turn reads the
-    recommendation, and its pass is told once again."""
-    thread = _built_thread(monkeypatch)
-    await thread.next_turn()
-    _asks_over_an_unchanged_draft(thread)
-    delta = await thread.edit()
-    assert isinstance(delta, EditDelta)
-
-    domain = thread.deps.state.domain
-    assert [q.question for q in domain.open_questions] == [THRESHOLD.question]
-    assert thread.criteria == [SURFACE, STAGE]
-
-    await thread.next_turn()
-    domain = thread.deps.state.domain
-    domain.record_recommendations()
-    assert [c.requested_value for c in domain.recommendations] == ["2"]
-    assert domain.requirements == []
-    _asks_over_an_unchanged_draft(thread)
-    again = await thread.edit()
-    assert isinstance(again, EditDelta), again
-    assert len(thread.sent_back) == 2
 
 
 def _drops_stage_and_binds_proteome_open(found: OperationalSpec) -> OperationalSpec:

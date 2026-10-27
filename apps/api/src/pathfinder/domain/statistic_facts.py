@@ -57,7 +57,7 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
     }
 )
 
-type RowForm = Literal["number", "word", "sentence"]
+type RowForm = Literal["number", "word", "boolean", "sentence"]
 
 
 @dataclass(frozen=True)
@@ -158,7 +158,7 @@ def statistic_group_references(
             for statistic in statistics
             if statistic.id == held_id
             for row in statistic.rows
-            if row.name.startswith(prefix) and row.form != "sentence"
+            if row.name.startswith(prefix) and row.form not in {"sentence", "boolean"}
         )
     )
 
@@ -203,6 +203,22 @@ def statistic_keyed_references(
             if _keyed_as(written, row.name.split("."), keys)
         )
     )
+
+
+def statistic_named_rows(
+    statistics: Sequence[StatisticFact], body: str, kind: str
+) -> tuple[str, ...]:
+    held_id, _, name = body.partition(".")
+    written = name.split(".")
+    held = next((s for s in reversed(statistics) if s.id == held_id), None)
+    rows = [
+        row.name
+        for row in ([] if held is None else held.rows)
+        if kind == "cite" or row.form not in {"sentence", "boolean"}
+    ]
+    ending = [r for r in rows if r.split(".")[-len(written) :] == written]
+    named = ending or [r for r in rows if r.split(".")[-1] == written[-1]]
+    return tuple(f"[{kind}:{held_id}.{row}]" for row in named)
 
 
 def statistic_references(
@@ -346,6 +362,7 @@ __all__ = [
     "StatisticRowFact",
     "pca_fact",
     "statistic_id",
+    "statistic_named_rows",
     "statistic_references",
     "statistic_row",
     "statistic_value",

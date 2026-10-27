@@ -14,38 +14,23 @@ from pydantic_ai.exceptions import ModelRetry
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import (
-    UNBACKED_ABSENCE,
-    blamed_the_site_message,
     claimed_change_message,
-    claimed_frame_message,
     eda_criterion_not_built_message,
     failed_check_message,
     off_topic_essay_message,
     unclassified_turn_message,
-    unfinished_work_message,
-    unmade_change_message,
     unnamed_record_organism_message,
     unplaced_breakdown_message,
-    unrecorded_offer_message,
     unrendered_prose_message,
     unreported_change_message,
     unsaved_controls_message,
-    unstated_reading_message,
     unverified_build_message,
 )
-from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.limit_messages import (
     unfollowed_reach_message,
     unmet_requirement_message,
 )
-from pathfinder.ai.lead.reply_claims import (
-    CLAIMED_A_FRAME,
-    claims,
-    denies,
-    ends_with_a_question,
-    names_an_organism,
-    says_a_search_is_absent,
-)
+from pathfinder.ai.lead.reply_claims import ends_with_a_question, names_an_organism
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
@@ -112,12 +97,8 @@ class LeadResponse(CamelModel):
 MismatchKind = Literal[
     "unverified_build",
     "misreported_change",
-    "claimed_frame",
     "unbuilt_eda_criterion",
-    "blamed_the_site",
     "open_value_in_prose",
-    "unrecorded_question",
-    "unfinished_work",
     "stopped_check",
     "unclassified_turn",
     "unsaved_controls",
@@ -125,12 +106,10 @@ MismatchKind = Literal[
     "unnamed_record_organism",
     "unrendered_prose",
     "failed_check",
-    "unmade_change",
-    "unbacked_absence",
-    "unstated_reading",
     "unfollowed_reach",
     "unmet_requirement",
     "unplaced_breakdown",
+    "unplanned_audit",
 ]
 
 
@@ -170,16 +149,6 @@ def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
     return claimed_change_message(record.build_outcome, record.facts.root_count)
 
 
-def _claimed_frame(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A criterion the reply reports as framed is one the spec diff states."""
-    diff = record.frame_diff
-    if diff is None or diff.added_count or diff.changed_count:
-        return None
-    if not claims(report.prose, CLAIMED_A_FRAME):
-        return None
-    return claimed_frame_message(diff)
-
-
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
     """Only the EDA tools build a criterion waiting for its analysis."""
     del report
@@ -188,52 +157,10 @@ def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | No
     return eda_criterion_not_built_message(record.eda_criterion_pending)
 
 
-def _blamed_the_site(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A pass that ran out of calls is this turn's own limit."""
-    blame = blamed_the_site(
-        report.prose,
-        build=record.build_section,
-        verification=record.verification_section,
-    )
-    if blame is None:
-        return None
-    return blamed_the_site_message(blame, record.last_phase_stop)
-
-
 def _open_value_in_prose(report: LeadResponse, record: TurnRecord) -> str | None:
     """A value the frame leaves open is asked on the question card."""
     del report
     return open_value_in_prose(record)
-
-
-def _unrecorded_question(report: LeadResponse, record: TurnRecord) -> str | None:
-    """The next turn binds what the reply recorded, not what its prose asks.
-
-    A reply that ends on a question is an offer whatever the turn did, so it
-    stands only beside a recorded question or a card the researcher answered.
-    A value the frame leaves open is the question card's rule.
-    """
-    if report.asked_questions or record.answered_a_card or record.ends_on_a_card:
-        return None
-    if record.frame_open_questions:
-        return None
-    if ends_with_a_question(report.prose):
-        return unrecorded_offer_message()
-    return None
-
-
-def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn whose work did not run ends by asking the user, not by promising.
-
-    The state the reply claims decides nothing: work that did not run is undone
-    whether the reply waits on the user or calls the turn resolved. A card is a
-    question to the user.
-    """
-    if record.changed_strategy or report.asked_questions or record.ends_on_a_card:
-        return None
-    if not record.refused_dispatches and record.last_phase_stop is None:
-        return None
-    return unfinished_work_message(record.refused_dispatches, record.last_phase_stop)
 
 
 def _stopped_check(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -303,29 +230,6 @@ def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
     return failed_check_message(digest.reason, digest.unanswered)
 
 
-def _unmade_change(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A change an edit asks for is made, raised on a card, or refused in the reply."""
-    asked = [*record.withdrawn_values, *record.stated_values]
-    if not asked or record.changed_strategy or record.ends_on_a_card:
-        return None
-    if report.asked_questions or record.facts.refusal:
-        return None
-    if record.refused_dispatches or record.last_phase_stop is not None:
-        return None
-    if all(denies(report.prose, value) for value in asked):
-        return None
-    return unmade_change_message(
-        record.withdrawn_values, record.stated_values, record.export_step_ids
-    )
-
-
-def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A search is said absent only after a catalog lookup of this turn."""
-    if record.looked_up_the_catalog or not says_a_search_is_absent(report.prose):
-        return None
-    return UNBACKED_ABSENCE
-
-
 def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
     reach = record.unfollowed_reach
     if reach is None or report.asked_questions or record.ends_on_a_card:
@@ -342,11 +246,6 @@ def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
     return unmet_requirement_message(unmet)
 
 
-def _unstated_reading(report: LeadResponse, record: TurnRecord) -> str | None:
-    unstated = [r for r in record.chosen_readings if r.unstated_in(report.prose)]
-    return unstated_reading_message(unstated[0]) if unstated else None
-
-
 def _unplaced_breakdown(report: LeadResponse, record: TurnRecord) -> str | None:
     unplaced = [r for held in record.comparisons for r in held.unplaced(report.prose)]
     return unplaced_breakdown_message(unplaced) if unplaced else None
@@ -358,23 +257,17 @@ _WRITTEN_RULES: tuple[_Rule, ...] = (("unplaced_breakdown", _unplaced_breakdown)
 _RULES: tuple[_Rule, ...] = (
     ("unverified_build", _unverified_build),
     ("misreported_change", _misreported_change),
-    ("claimed_frame", _claimed_frame),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
-    ("blamed_the_site", _blamed_the_site),
     ("open_value_in_prose", _open_value_in_prose),
-    ("unrecorded_question", _unrecorded_question),
-    ("unfinished_work", _unfinished_work),
     ("stopped_check", _stopped_check),
     ("unclassified_turn", _unclassified_turn),
     ("unsaved_controls", _unsaved_controls),
     ("off_topic_essay", _off_topic_essay),
     ("unnamed_record_organism", _unnamed_record_organism),
     ("failed_check", _failed_check),
-    ("unmade_change", _unmade_change),
-    ("unbacked_absence", _unbacked_absence),
-    ("unstated_reading", _unstated_reading),
     ("unfollowed_reach", _unfollowed_reach),
     ("unmet_requirement", _unmet_requirement),
+    ("unplanned_audit", lambda r, t: t.unplanned_audit(asked=bool(r.asked_questions))),
 )
 
 

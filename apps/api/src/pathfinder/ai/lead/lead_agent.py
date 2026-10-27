@@ -35,7 +35,6 @@ from pathfinder.ai.lead.lead_audit import (
 )
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
-    refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.lead_memory_tools import remember, search_memory
 from pathfinder.ai.lead.lead_pins import (
@@ -166,11 +165,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(rename_strategy),
             Tool(clear_strategy, requires_approval=True),
             Tool(delete_step, requires_approval=True),
-            Tool(
-                consult_user,
-                requires_approval=True,
-                args_validator=refuse_a_card_that_binds_nothing,
-            ),
+            Tool(consult_user, requires_approval=True),
             Tool(
                 propose_changes,
                 requires_approval=True,

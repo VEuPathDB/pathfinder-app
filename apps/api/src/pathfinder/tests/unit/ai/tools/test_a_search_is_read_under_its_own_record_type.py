@@ -4,14 +4,9 @@ import pytest
 from pydantic_ai import ModelRetry
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone._frame_qualifiers import (
-    refuse_a_qualifier_the_search_drops,
-)
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.orthomcl_site import (
-    GROUPS_FROM_SEQUENCES,
     TYPED_GENE_ID,
 )
 from pathfinder.tests._support.tool_returns import returned
@@ -70,24 +65,3 @@ async def test_a_search_no_record_type_lists_is_refused_by_name(
     assert state.operational_spec_draft.criteria == []
     assert list(state.unserved_searches) == ["ByProteinId"]
     assert state.refused_searches == {}
-
-
-async def test_a_transform_reads_the_search_it_maps_under_that_search_s_type(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    reads = serve_orthomcl(monkeypatch).reads
-    state = AgentToolState(request_messages=[_TEXT])
-    state.frame_set_criterion(
-        Criterion(id="c_protein", text=_TEXT, search_name="ByIdList", role="seed")
-    )
-
-    unread = await refuse_a_qualifier_the_search_drops(
-        group_strategy_ctx(state),
-        "group",
-        GROUPS_FROM_SEQUENCES,
-        Criterion(id="c_groups", text=_TEXT, role="transform"),
-    )
-
-    assert unread == []
-    assert ("sequence", "ByIdList") in reads
-    assert ("group", "ByIdList") not in reads

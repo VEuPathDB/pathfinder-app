@@ -8,7 +8,6 @@ definitions and the transcript listing are the ones plasmodb published.
 from __future__ import annotations
 
 import pytest
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -105,28 +104,6 @@ async def _bind(state: AgentToolState, syntenic: str | None) -> None:
 
 
 @pytest.mark.asyncio
-async def test_the_profile_is_refused_naming_the_transform_and_its_parameter(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _serve(monkeypatch)
-    state = _state()
-
-    with pytest.raises(ModelRetry) as exc:
-        await _open(state, _PROFILE, "filter")
-
-    assert str(exc.value) == (
-        "c_to_pviv: Orthology Phylogenetic Profile has no parameter that states "
-        "'syntenic'. On plasmodb, Transform by Orthology carries 'syntenic' "
-        "(Syntenic Orthologs Only?). Bind that search as a transform; to keep "
-        "the source genes, state the round trip: the source INTERSECT a "
-        "transform back to the source organism over a transform to the named "
-        "organism over a copy of the source. Nothing was recorded."
-    )
-    assert state.operational_spec_draft.criteria == []
-    assert state.open_sheets == {}
-
-
-@pytest.mark.asyncio
 async def test_the_transform_opens_its_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     _serve(monkeypatch)
     state = _state()
@@ -134,25 +111,6 @@ async def test_the_transform_opens_its_sheet(monkeypatch: pytest.MonkeyPatch) ->
     await _open(state, _TRANSFORM, "transform")
 
     assert list(state.open_sheets) == ["c_to_pviv"]
-
-
-@pytest.mark.parametrize("syntenic", [None, "no"])
-@pytest.mark.asyncio
-async def test_the_transform_without_synteny_is_refused(
-    monkeypatch: pytest.MonkeyPatch, syntenic: str | None
-) -> None:
-    _serve(monkeypatch)
-    state = _state()
-
-    with pytest.raises(ModelRetry) as exc:
-        await _bind(state, syntenic)
-
-    assert str(exc.value) == (
-        "c_to_pviv states 'syntenic', and Transform by Orthology states it only "
-        "through Syntenic Orthologs Only? (isSyntenic), which this call leaves at "
-        "its default or switched off. Set isSyntenic to yes. Nothing was recorded."
-    )
-    assert state.operational_spec_draft.criteria == []
 
 
 @pytest.mark.asyncio
@@ -175,7 +133,6 @@ async def test_the_transform_with_synteny_binds_on_its_parameter(
     assert criterion.rationale.basis == "parameter"
     assert criterion.rationale.term == "Syntenic Orthologs Only?"
     assert [c.name for c in criterion.rationale.compared] == [_PROFILE]
-    assert criterion.unexpressed_qualifiers == []
 
 
 @pytest.mark.asyncio

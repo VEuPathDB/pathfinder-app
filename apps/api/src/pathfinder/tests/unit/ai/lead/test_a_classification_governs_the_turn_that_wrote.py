@@ -11,7 +11,6 @@ import asyncio
 from typing import Any
 
 import pytest
-from pydantic_ai.exceptions import ToolFailed
 from pydantic_ai.messages import (
     ModelMessage,
     RetryPromptPart,
@@ -22,14 +21,12 @@ from pydantic_ai.messages import (
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, tools_the_turn_offers
 from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     final_result_part,
     lead_deps,
@@ -53,18 +50,6 @@ def _classify_args(classification: IntentClassification, goal: str) -> dict[str,
     return {
         "intent": {"classification": classification.value, "inferredGoal": goal},
     }
-
-
-async def test_a_repeated_classification_fails_without_a_retry() -> None:
-    state = pipeline_state("microsporidiadb", user_prompt=_POLAR_TUBE_T5)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    question = user_intent(IntentClassification.FOLLOW_UP_QUESTION)
-    await classify_user_intent(ctx, question)
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(ctx, question)
-
-    assert "already classified as follow_up_question" in refused.value.message
 
 
 def test_four_repeated_classifications_leave_the_turn_its_answer() -> None:
@@ -102,7 +87,7 @@ def test_four_repeated_classifications_leave_the_turn_its_answer() -> None:
 
 
 async def test_the_reclassified_arc_on_the_real_lead_ends_on_its_answer() -> None:
-    """Five classifications on the mock model spend no retry, and the turn answers."""
+    """Five classifications on the mock model each stand, and the turn answers."""
     prompt = f"{_POLAR_TUBE_T5} [[arc:reclassified]]"
     bind_scripted_scope("microsporidiadb", prompt)
     state = pipeline_state("microsporidiadb", user_prompt=prompt)
@@ -119,25 +104,7 @@ async def test_the_reclassified_arc_on_the_real_lead_ends_on_its_answer() -> Non
         and part.tool_name == "classify_user_intent"
     ]
     assert isinstance(result.output, LeadResponse)
-    assert answers == ["success", *["failed"] * 4]
-
-
-@pytest.mark.parametrize("wrote", ["built", "edited"])
-async def test_a_reclassification_after_the_turn_wrote_is_refused(wrote: str) -> None:
-    state = pipeline_state("hostdb", user_prompt="Mus musculus genes on chromosome 17")
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    first = user_intent(IntentClassification.NEW_STRATEGY)
-    await classify_user_intent(ctx, first)
-    setattr(state.turn_markers, wrote, True)
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(
-            ctx, user_intent(IntentClassification.EXTEND_STRATEGY)
-        )
-
-    assert "new_strategy" in refused.value.message
-    assert "changed the strategy" in refused.value.message
-    assert ctx.deps.intent is first
+    assert answers == ["success"] * 5
 
 
 def test_a_turn_that_built_keeps_its_check_under_a_question_classification() -> None:

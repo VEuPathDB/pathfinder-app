@@ -79,7 +79,7 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
         StatisticRowFact(
             name="alreadyKnown", value="not searched", form="word", code="not_searched"
         ),
-        StatisticRowFact(name="frameKept", value="no", form="word"),
+        StatisticRowFact(name="frameKept", value="no", form="boolean"),
         StatisticRowFact(name="junctions.0.reads", value="1,226"),
         StatisticRowFact(name="junctions.0.share", value="88.9%"),
         StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
@@ -133,7 +133,7 @@ def test_a_key_the_schema_does_not_hold_still_renders() -> None:
     rows = schema_rows(Answer, {"frameKept": True, "added": "two words", "count": 3})
 
     assert rows == [
-        StatisticRowFact(name="frameKept", value="yes", form="word"),
+        StatisticRowFact(name="frameKept", value="yes", form="boolean"),
         StatisticRowFact(name="added", value="two words", form="word"),
         StatisticRowFact(name="count", value="3"),
     ]

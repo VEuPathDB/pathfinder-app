@@ -111,5 +111,5 @@ def test_the_reply_after_a_cap_stop_is_held_to_state_it() -> None:
 
     found = [(m.kind, m.sentence) for m in reconcile(reply(CLEAN_REPLY), record)]
 
-    assert [kind for kind, _ in found] == ["unfinished_work", "stopped_check"]
+    assert [kind for kind, _ in found] == ["stopped_check"]
     assert all("past its call budget for read_gene_record" in s for _, s in found)

@@ -87,7 +87,10 @@ async def search_for_searches(
     what the search returns. ``relevance`` is relative to the best hit, so the
     top hit reads 1.0 however weak it is. ``semanticSimilarity`` is the
     absolute cosine of the query against the search: read it to tell a match
-    from the best of nothing. When no search states the query closely, when
+    from the best of nothing. ``decisionProbability``, when present, is the
+    probability a Decisions choice over the offered searches gave that search:
+    a high one names the search that states the query. When no search states
+    the query closely, when
     nothing matched, or when the ranking is by keyword only, the first entry
     is a note that says which. An ``otherSites`` entry, when present, is last:
     experiments on other VEuPathDB sites, each labelled with its site. None of

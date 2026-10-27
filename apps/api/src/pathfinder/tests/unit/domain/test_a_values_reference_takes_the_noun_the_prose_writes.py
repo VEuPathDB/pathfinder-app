@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
+from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
 from pathfinder.domain.turn_facts import StepFact, TurnFacts
 
@@ -58,20 +58,6 @@ _EMPTY = TurnFacts(
 )
 
 
-@pytest.mark.parametrize("word", ["empty", "no"])
-def test_a_word_for_none_before_a_reference_that_renders_0_is_refused(
-    word: str,
-) -> None:
-    prose = f"Their intersection and the final result are {word} [root]."
-
-    assert prose_faults(prose, _EMPTY) == [
-        ProseFault(token=f"{word} [root]", kind="zero_word", references=("[root]",))
-    ]
-    assert render_reply("The final result holds [root].", _EMPTY) == (
-        "The final result holds 0 proteins."
-    )
-
-
 @pytest.mark.parametrize(
     "prose",
     [
@@ -87,15 +73,3 @@ def test_a_word_for_none_before_a_count_that_is_not_0_stands() -> None:
     facts = _EMPTY.model_copy(update={"root_count": 2744})
 
     assert prose_faults("The result holds no [root].", facts) == []
-
-
-def test_a_values_reference_with_no_noun_before_the_clause_ends_is_misplaced() -> None:
-    prose = f"The comparison covered [tally:{_ID}:values]."
-
-    assert prose_faults(prose, _FACTS) == [
-        ProseFault(
-            token=f"[tally:{_ID}:values]",
-            kind="values_without_noun",
-            references=(f"[tally:{_ID}:values]",),
-        )
-    ]

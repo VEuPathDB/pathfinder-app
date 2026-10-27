@@ -17,8 +17,8 @@ from veupathdb.domain.parameters import (
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.domain.strategy.value_binding import pick_terms
 from pathfinder.services.strategies.parameter_rules import rules_of
-from pathfinder.services.strategies.value_labels import pick_terms
 
 CountWith = Callable[[Mapping[str, ParamValue]], Awaitable[int | None]]
 # A vocabulary this size is listed whole beside a pick; a larger one is named

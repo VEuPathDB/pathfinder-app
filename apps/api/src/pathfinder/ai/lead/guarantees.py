@@ -2,8 +2,7 @@
 
 The classification is explicit and a unit test holds it complete against the
 registered tool set. The preamble text is generated from that map and from the
-registry's own markers: ``requires_approval``, ``BUILDING_TOOLS``, the
-sequential registration and the phase role a dispatch tool carries.
+registry's own markers: ``requires_approval``, the sequential registration and the phase role a dispatch tool carries.
 """
 
 from __future__ import annotations
@@ -16,7 +15,6 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 
 
@@ -158,11 +156,6 @@ def render_machine_guarantees(tools: Mapping[str, Tool[LeadDeps]]) -> str:
             f"- Run on a worker, so the turn ends and reopens with the result:"
             f" {_named(_in_class(Reversibility.DURABLE, known))}. Nothing before"
             f" the call runs a second time."
-        ),
-        (
-            f"- Withheld until the turn is classified as one that asks for a build:"
-            f" {_named(BUILDING_TOOLS & known)}. One of them missing from your list"
-            f" is a classification to redo, never a refusal to report."
         ),
         f"- Change nothing at all: {_named(_in_class(Reversibility.READ, known))}.",
         (

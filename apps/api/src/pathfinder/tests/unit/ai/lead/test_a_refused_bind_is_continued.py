@@ -40,9 +40,8 @@ _PROMPT = (
     "99 transmembrane domains."
 )
 _REFUSAL = (
-    "c_tm: the reason holds 173 characters. Write one line of at most 160 "
-    "characters; the term Minimum Number of Transmembrane Domains is shown before "
-    "it. Nothing was recorded."
+    "c_tm binds GenesByTransmembraneDomains, which no catalog read of this pass "
+    "answered. Nothing was recorded."
 )
 # The toolset's retries, and the refusals that pass them.
 _RETRIES = 3
@@ -68,7 +67,7 @@ async def bind_signal_peptide(ctx: RunContext[AgentDeps]) -> str:
 
 
 async def bind_transmembrane(ctx: RunContext[AgentDeps]) -> str:
-    """Refuse the first attempts, as the rationale rules refuse a first reason."""
+    """Refuse the first attempts, as a bind no catalog read answered is refused."""
     _Site.attempts += 1
     if _Site.attempts <= _REFUSED_ATTEMPTS:
         raise ModelRetry(_REFUSAL)

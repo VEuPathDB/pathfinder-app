@@ -17,7 +17,7 @@ from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.services.audit.planning import propose_scope
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit import seed_thread
-from pathfinder.tests._support.audit_planning import STRAINS, faked_site
+from pathfinder.tests._support.audit_planning import STRAINS
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -43,7 +43,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
 )
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
+    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "audit_site"
 )
 
 _AUDIT = f"[[arc:audit]] Audit the gene models of {GENOME} against its relatives"
@@ -77,9 +77,7 @@ def corrections(monkeypatch: pytest.MonkeyPatch) -> list[int]:
 async def test_the_lead_asks_before_an_audit_starts(
     in_memory_jobs: InMemoryConnector,
     app: FastAPI,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
     owner = await seed_thread()
     thread = owner.conversation_id
 
@@ -121,9 +119,7 @@ async def test_the_lead_asks_before_an_audit_starts(
 async def test_a_declined_audit_starts_nothing(
     in_memory_jobs: InMemoryConnector,
     app: FastAPI,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
     owner = await seed_thread()
     thread = owner.conversation_id
     asked = await post(
@@ -151,7 +147,6 @@ async def test_a_replan_that_fails_denies_the_start_inside_the_run(
     app: FastAPI,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
 
     async def unreached(request: PlanRequest) -> ScopeProposal:
         del request
@@ -183,9 +178,7 @@ async def test_a_replan_that_fails_denies_the_start_inside_the_run(
 async def test_an_audit_request_is_not_the_threads_strategy_request(
     in_memory_jobs: InMemoryConnector,
     app: FastAPI,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    faked_site(monkeypatch)
     owner = await seed_thread()
 
     await post(
@@ -205,10 +198,8 @@ async def test_an_audit_request_is_not_the_threads_strategy_request(
 async def test_the_lead_answers_with_the_plans_request_count(
     in_memory_jobs: InMemoryConnector,
     app: FastAPI,
-    monkeypatch: pytest.MonkeyPatch,
     corrections: list[int],
 ) -> None:
-    faked_site(monkeypatch)
     owner = await seed_thread()
     proposal = await propose_scope(PlanRequest(site_id="plasmodb", genomes=STRAINS))
     assert proposal.estimate is not None

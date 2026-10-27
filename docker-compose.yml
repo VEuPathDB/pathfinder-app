@@ -16,6 +16,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-}
       PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DECISIONS_ENABLED: ${DECISIONS_ENABLED:-false}
+      DECISIONS_TIMEOUT_SECONDS: ${DECISIONS_TIMEOUT_SECONDS:-15}
+      DECISIONS_VOCAB_MIN_CONFIDENCE: ${DECISIONS_VOCAB_MIN_CONFIDENCE:-0.5}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       PROVIDER_KEY_ENCRYPTION_KEY: ${PROVIDER_KEY_ENCRYPTION_KEY:-}
@@ -102,6 +105,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-}
       PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DECISIONS_ENABLED: ${DECISIONS_ENABLED:-false}
+      DECISIONS_TIMEOUT_SECONDS: ${DECISIONS_TIMEOUT_SECONDS:-15}
+      DECISIONS_VOCAB_MIN_CONFIDENCE: ${DECISIONS_VOCAB_MIN_CONFIDENCE:-0.5}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       PROVIDER_KEY_ENCRYPTION_KEY: ${PROVIDER_KEY_ENCRYPTION_KEY:-}
@@ -167,7 +173,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b52
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b54
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -186,6 +192,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DECISIONS_ENABLED: ${DECISIONS_ENABLED:-false}
+      DECISIONS_TIMEOUT_SECONDS: ${DECISIONS_TIMEOUT_SECONDS:-15}
+      DECISIONS_VOCAB_MIN_CONFIDENCE: ${DECISIONS_VOCAB_MIN_CONFIDENCE:-0.5}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
@@ -243,7 +252,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b52
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b54
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

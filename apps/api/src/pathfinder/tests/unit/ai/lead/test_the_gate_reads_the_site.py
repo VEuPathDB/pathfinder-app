@@ -10,7 +10,7 @@ from veupathdb_mcp.gene_lookup import GeneIdFound, GeneIdReading, GeneResult
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import classification_gate
-from pathfinder.ai.lead.intent import ClassifiedIntent, IntentClassification, UserIntent
+from pathfinder.ai.lead.intent import ClassifiedIntent, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.tests._support.orthomcl_gene_class import (
     ORTHOMCL,
@@ -95,59 +95,6 @@ async def _classify(state: PipelineState, intent: UserIntent) -> ClassifiedInten
     return ClassifiedIntent.model_validate(returned.return_value)
 
 
-@pytest.mark.parametrize(
-    ("site_id", "message", "organism"),
-    [
-        ("microsporidiadb", SPORE_WALL, "Encephalitozoon cuniculi GB-M1"),
-        ("trichdb", BSPA, "Trichomonas vaginalis G3"),
-    ],
-)
-async def test_an_organism_and_a_gene_class_is_no_context_statement(
-    site: SiteReads, site_id: str, message: str, organism: str
-) -> None:
-    """A message naming a site organism and what to find in it asks for a build."""
-    state = pipeline_state(site_id, user_prompt=message)
-
-    with pytest.raises(ModelRetry) as refused:
-        await _classify(state, _intent("context_statement"))
-
-    assert f'"{organism}"' in str(refused.value)
-    assert "new_strategy" in str(refused.value)
-    assert site.organisms == [site_id]
-    built = await _classify(state, _intent("new_strategy"))
-    assert built.intent.classification is IntentClassification.NEW_STRATEGY
-
-
-async def test_a_context_statement_naming_no_site_organism_stands(
-    site: SiteReads,
-) -> None:
-    state = pipeline_state("trichdb", user_prompt="I run a drug resistance lab.")
-
-    classified = await _classify(state, _intent("context_statement"))
-
-    assert classified.intent.classification is IntentClassification.CONTEXT_STATEMENT
-    assert site.organisms == ["trichdb"]
-
-
-async def test_an_organism_alone_is_a_context_statement(site: SiteReads) -> None:
-    state = pipeline_state("trichdb", user_prompt="Trichomonas vaginalis G3.")
-
-    classified = await _classify(state, _intent("context_statement"))
-
-    assert classified.intent.classification is IntentClassification.CONTEXT_STATEMENT
-
-
-async def test_an_image_of_site_genes_is_not_off_topic(site: SiteReads) -> None:
-    """The ids the attached image shows are genes of the site, so it is in scope."""
-    state = _with_a_file(pipeline_state("plasmodb", user_prompt=IMAGE_QUESTION))
-
-    with pytest.raises(ModelRetry) as refused:
-        await _classify(state, _intent("off_topic", namedGeneIds=IMAGE_IDS))
-
-    assert "PF3D7_0709000, PF3D7_1133400, PF3D7_0102600" in str(refused.value)
-    assert site.resolved == [IMAGE_IDS]
-
-
 async def test_the_image_ids_are_held_by_the_attached_file(site: SiteReads) -> None:
     """An id the text does not type is held when a file is attached and the site has it."""
     state = _with_a_file(pipeline_state("plasmodb", user_prompt=IMAGE_QUESTION))
@@ -197,28 +144,6 @@ async def test_an_attached_control_the_site_has_is_held(site: SiteReads) -> None
     assert classified.intent.named_controls.positive_ids == IMAGE_IDS[:2]
 
 
-async def test_a_typed_site_gene_is_not_off_topic(site: SiteReads) -> None:
-    state = pipeline_state(
-        "plasmodb", user_prompt="Write a poem about pf3d7_1133400 please."
-    )
-
-    with pytest.raises(ModelRetry) as refused:
-        await _classify(state, _intent("off_topic"))
-
-    assert "pf3d7_1133400" in str(refused.value)
-    assert site.resolved == [["pf3d7_1133400"]]
-
-
-async def test_a_message_with_no_site_gene_stays_off_topic(site: SiteReads) -> None:
-    state = pipeline_state("plasmodb", user_prompt="Write a haiku about spring.")
-
-    classified = await _classify(state, _intent("off_topic"))
-
-    assert classified.intent.classification is IntentClassification.OFF_TOPIC
-    assert site.resolved == []
-    assert site.organisms == []
-
-
 async def test_an_id_naming_several_genes_leaves_the_others_read(
     site: SiteReads,
 ) -> None:
@@ -241,21 +166,6 @@ async def test_ids_past_one_read_are_held_and_not_refused(site: SiteReads) -> No
     classified = await _classify(state, _intent("follow_up_question", namedGeneIds=ids))
 
     assert (classified.intent.named_gene_ids, site.resolved) == (ids, [ids])
-
-
-async def test_a_site_with_no_gene_records_is_refused_after_one_read(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    held_record_types(monkeypatch)
-    state = pipeline_state(
-        ORTHOMCL, user_prompt="Write a poem about PF3D7_1133400 please."
-    )
-
-    with orthomcl_gene_class() as wire:
-        classified = await _classify(state, _intent("off_topic"))
-
-    assert classified.intent.classification is IntentClassification.OFF_TOPIC
-    assert (wire.gene_reads.call_count, wire.record_type_reads.call_count) == (1, 0)
 
 
 async def test_ids_a_site_with_no_gene_records_cannot_read_are_not_refused(

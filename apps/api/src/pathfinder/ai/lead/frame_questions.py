@@ -1,4 +1,4 @@
-"""Why a FRAME pass that stops on the user asks about nothing it recorded."""
+"""Why a FRAME pass that stops on the user asks about a slot its draft lacks."""
 
 from __future__ import annotations
 
@@ -6,16 +6,11 @@ from collections.abc import Sequence
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.domain.strategy.card_answers import params_held
-from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.questions import SlotQuestion
 
 # How many of the pass's questions the refusal prints back to it.
 _ASKED_WINDOW = 4
-
-
-def _holds_an_open_slot(spec: OperationalSpec) -> bool:
-    return bool(spec.open_slots) or any(c.open_params for c in spec.criteria)
 
 
 def _unheld_slot_questions(
@@ -49,51 +44,7 @@ def _unheld_slot_questions(
     )
 
 
-def asks_about_a_missing_search(
-    question: SlotQuestion, lacking: Sequence[Constraint]
-) -> bool:
-    return any(message_states(question.question, c.requested_value) for c in lacking)
-
-
-def questions_that_bind_to_nothing(
-    result: FrameResult,
-    draft: OperationalSpec,
-    found: OperationalSpec | None,
-    *,
-    lacking: Sequence[Constraint] = (),
-) -> str:
-    """Why a pass that stops on the user asks about nothing it recorded, or "".
-
-    A slot question binds its criterion's parameter, a question on a
-    requirement the site ``lacking`` a search for binds through drop and keep,
-    and any other needs an open slot."""
-    questions = result.open_questions
-    unheld = _unheld_slot_questions(questions, draft)
-    if unheld:
-        return unheld
-    free = [
-        q
-        for q in questions
-        if not q.names_a_slot and not asks_about_a_missing_search(q, lacking)
-    ]
-    if not free:
-        return ""
-    if found is not None and draft == found:
-        reason = "the spec is exactly as this dispatch found it"
-    elif not _holds_an_open_slot(draft):
-        reason = "no criterion of the spec holds an open slot"
-    else:
-        return ""
-    asked = "; ".join(q.question for q in free[:_ASKED_WINDOW])
-    return (
-        f"FRAME ended needs_user with {len(free)} question(s) ({asked}) and "
-        f"{reason}, so an answer has nowhere to land and the next turn reads no "
-        f"criterion to bind it into. Call set_criterion for the criterion each "
-        f"question is about, with its search, the values you already have, and "
-        f"null for every parameter the user must decide, which records that "
-        f"parameter as an open slot. A question about which strategy the user "
-        f"saved is recorded the same way: call set_criterion with "
-        f"saved_strategy set to the name the user gave, which records the "
-        f"saved_strategy slot with the names the listing holds. Then end "
-        f"needs_user with the same questions."
-    )
+def questions_that_bind_to_nothing(result: FrameResult, draft: OperationalSpec) -> str:
+    """Why a pass that stops on the user asks about a slot no criterion of the
+    draft holds, or "". A slot question binds its criterion's parameter."""
+    return _unheld_slot_questions(result.open_questions, draft)

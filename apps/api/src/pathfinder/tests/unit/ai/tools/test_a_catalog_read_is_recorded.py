@@ -10,9 +10,9 @@ from veupathdb_mcp.catalog import SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone.catalog import (
-    record_a_listing,
     search_for_searches,
 )
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_run_context,
     serve_no_other_sites,
@@ -86,24 +86,33 @@ async def test_a_read_keeps_its_hits_with_their_similarity(
     ]
 
 
-@pytest.mark.asyncio
-async def test_a_read_marks_the_turn_as_looked_up(
+async def test_frame_reads_the_probability_the_decisions_choice_gave(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(catalog, "search_for_searches", AsyncMock(return_value=[]))
+    picked = SearchMatch(
+        name="GenesByInterproDomain",
+        display_name="InterPro Domain",
+        description="Find genes by InterPro Domain",
+        record_type="transcript",
+        relevance=1.0,
+        semantic_similarity=0.61,
+        decision_probability=0.874,
+    )
+    monkeypatch.setattr(
+        catalog,
+        "search_for_searches",
+        AsyncMock(return_value=[picked, _match("GenesByText", "Text", 0.4)]),
+    )
     serve_no_other_sites(monkeypatch)
-    ctx = agent_run_context()
 
-    await search_for_searches(
-        ctx, query="genes with an InterPro domain", record_type="transcript"
+    result = await search_for_searches(
+        agent_run_context(),
+        query="protein kinase genes",
+        record_type="transcript",
     )
 
-    assert ctx.deps.turn_markers.catalog_looked_up is True
-
-
-def test_a_listing_marks_the_turn_as_looked_up() -> None:
-    ctx = agent_run_context()
-
-    record_a_listing(ctx, "list_searches", "transcript", [])
-
-    assert ctx.deps.turn_markers.catalog_looked_up is True
+    shown = returned(result, list[dict[str, object]])
+    assert [(r.get("name"), r.get("decisionProbability")) for r in shown] == [
+        ("GenesByInterproDomain", 0.87),
+        ("GenesByText", None),
+    ]

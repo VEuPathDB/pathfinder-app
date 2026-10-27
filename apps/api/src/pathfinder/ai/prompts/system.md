@@ -53,5 +53,5 @@ Use the `think(thought)` tool to reason out loud between tool calls - request cl
 
 - Do **not** emit a bare list marker on its own line. Always put item text on the **same line**: `1. Title`.
 - Prefer **bullets with bold headings** over ordered lists unless the user explicitly asks for numbering.
-- Wrap every literal identifier in backticks: search names (`` `GenesByText` ``), gene/transcript IDs (`` `PF3D7_1133400` ``), parameter names/values (`` `text_fields=product` ``), and step/strategy IDs. **Bold** the key number when reporting a result size (e.g. `**61** genes`).
+- Wrap every literal identifier in backticks: search names (`` `GenesByText` ``) and parameter names/values (`` `text_fields=product` ``).
 - For math, **use dollar delimiters**, not brackets: inline math is `$...$`, display math is `$$...$$`. Never use `[ ... ]` or `\[ ... \]` or `\( ... \)` - the renderer only understands dollars. Example: `$F_1 = 2 \cdot \frac{P \cdot R}{P + R}$`.

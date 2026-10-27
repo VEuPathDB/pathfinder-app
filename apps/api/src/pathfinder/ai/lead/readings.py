@@ -12,6 +12,10 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import option_value
+from pathfinder.domain.strategy.expression_handles import (
+    UnknownExpressionError,
+    held_expressions,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     Measurement,
@@ -101,6 +105,7 @@ async def refused_picks(
     recorded = {q.question: q for q in domain.open_questions}
     criteria = {} if spec is None else {c.id: c for c in spec.criteria}
     refused: dict[str, str] = {}
+    expressions = held_expressions(domain.built_expressions, spec)
     for answer in answers:
         question = recorded.get(answer.prompt)
         for option in [] if question is None else question.options:
@@ -114,8 +119,10 @@ async def refused_picks(
             for param, wire in read.params.items():
                 try:
                     await site_spelling(
-                        state.site_id, record_type, criterion, param, wire
+                        state.site_id, record_type, criterion, param, wire, expressions
                     )
                 except ValidationError as refusal:
                     refused[option.label] = str(refusal)
+                except UnknownExpressionError as unheld:
+                    refused[option.label] = f"{unheld.handle} names no held expression"
     return refused

@@ -8,8 +8,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from assistant_core.graph.turn_state import ConsultOption
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -20,17 +18,14 @@ from veupathdb.domain.strategy import (
 from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
-from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.frame_requirements import requirements_no_search_states
-from pathfinder.ai.lead.lead_consult import refuse_a_card_that_binds_nothing
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
 from pathfinder.domain.reply_references import prose_faults
-from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
@@ -212,22 +207,6 @@ _FIRST_REPLY = (
 )
 
 
-async def test_turn_one_tally_of_the_taxonomy_leaf_is_no_answer() -> None:
-    deps = _deps()
-
-    await count_step_by_column(run_context_for(deps), _TAXA, "abbreviation", 200)
-
-    (fact,) = deps.state.turn_markers.tallies
-    facts = turn_facts(deps)
-    assert (fact.wdk_step_id, facts.result_step_id) == (_TAXA, _ROOT)
-    faults = prose_faults(_FIRST_REPLY, facts)
-    assert [(f.token, f.kind) for f in faults if f.kind == "tally_of_a_step"] == [
-        (f"[tally:{_TALLY_ID}.pyxn]", "tally_of_a_step"),
-        (f"[tally:{_TALLY_ID}:values]", "tally_of_a_step"),
-        (f"[tally:{_TALLY_ID}]", "tally_of_a_step"),
-    ]
-
-
 async def test_turn_one_tally_of_the_root_is_the_answer() -> None:
     deps = _deps()
 
@@ -308,40 +287,3 @@ _PROMPT = (
     "require a true species-level aggregation of singleton-gene counts across all "
     "strains?"
 )
-
-
-def _turn_two_refusal(*labels: str) -> str:
-    deps = _checked()
-    deps.state.domain.name_reading(
-        ChosenReading(chosen=_BUILT, alternatives=[_ALTERNATIVE])
-    )
-    card = CardQuestion(
-        id="q1",
-        prompt=_PROMPT,
-        dimension=ConstraintKind.OTHER,
-        options=[ConsultOption(label=label) for label in labels],
-    )
-    try:
-        refuse_a_card_that_binds_nothing(
-            run_context_for(deps, "call_card"), [card], reply="Choose a reading."
-        )
-    except ModelRetry as refused:
-        return str(refused)
-    return ""
-
-
-def test_turn_two_leads_reading_card_is_asked_with_the_named_readings() -> None:
-    assert _turn_two_refusal(_BUILT, _ALTERNATIVE) == ""
-
-
-def test_turn_two_leads_own_labels_name_the_readings_and_no_recorded_card() -> None:
-    refusal = _turn_two_refusal(
-        "Use the represented-genome species-pattern reading",
-        "Require true species-level aggregation",
-    )
-
-    assert "The card asks these as recorded, whatever the call writes: none." in (
-        refusal
-    )
-    assert f"The readings the framing pass named offer: '{_BUILT}', " in refusal
-    assert "No search on this site states" not in refusal

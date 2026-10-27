@@ -11,7 +11,7 @@ status: proposed
 
 ## What happens
 
-The resent-build bound covers the Lead's toolset only, not the sub-agents'. The count-noun check allows step-name and reason words and a hyphenated compound plus one word between a reference and its noun, which can refuse a correct sentence. The audit dispute rule fires on any reply citing a run that holds disputes, even a single-gene answer. The synthesis number check refuses harmless number words. Enum lowercasing decides acronyms by a member-length rule.
+The resent-build bound covers the Lead's toolset only, not the sub-agents'. The count-noun check allows step-name and reason words and a hyphenated compound plus one word between a reference and its noun, which can refuse a correct sentence. The synthesis number check refuses harmless number words. Enum lowercasing decides acronyms by a member-length rule.
 
 ## Done when
 

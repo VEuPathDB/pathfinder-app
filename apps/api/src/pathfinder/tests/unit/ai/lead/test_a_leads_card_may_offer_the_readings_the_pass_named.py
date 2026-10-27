@@ -12,13 +12,11 @@ from assistant_core.graph.turn_state import (
     PendingApproval,
     UserQuestionAnswer,
 )
-from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
-    refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
@@ -57,46 +55,6 @@ def _card(dimension: ConstraintKind, *labels: str) -> CardQuestion:
         prompt=_PROMPT,
         dimension=dimension,
         options=[ConsultOption(label=label) for label in labels],
-    )
-
-
-def _refusal(deps: LeadDeps, card: CardQuestion) -> str:
-    try:
-        refuse_a_card_that_binds_nothing(
-            run_context_for(deps, "call_card"), [card], reply="Pick one."
-        )
-    except ModelRetry as refused:
-        return str(refused)
-    return ""
-
-
-def test_a_card_offering_the_named_readings_is_asked() -> None:
-    assert _refusal(_deps(), _card(ConstraintKind.OTHER, _BUILT, _OTHER)) == ""
-
-
-def test_a_card_offering_readings_of_its_own_names_the_ones_it_may_offer() -> None:
-    refusal = _refusal(
-        _deps(),
-        _card(
-            ConstraintKind.OTHER,
-            "Use the represented-genome reading",
-            "Require true aggregation",
-        ),
-    )
-
-    assert "which bind nothing" in refusal
-    assert (
-        f"The readings the framing pass named offer: '{_BUILT}', '{_OTHER}'." in refusal
-    )
-
-
-def test_a_reading_card_on_a_scope_dimension_is_refused() -> None:
-    refusal = _refusal(_deps(), _card(ConstraintKind.ORGANISM, _BUILT, _OTHER))
-
-    assert refusal.split(" The card asked ")[0] == (
-        f"The card binds nothing for these questions: {_PROMPT!r} offers a "
-        "reading, which states a requirement of its own, so its dimension is "
-        "other."
     )
 
 

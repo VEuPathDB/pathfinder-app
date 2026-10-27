@@ -35,17 +35,17 @@ from pathfinder.domain.reply_suggestions import (
     token_words,
     value_word_references,
 )
+from pathfinder.domain.source_words import SOURCE_WORDS, parameter_of
 from pathfinder.domain.statistic_facts import (
     statistic_group_references,
     statistic_keyed_references,
+    statistic_named_rows,
     statistic_value,
     statistic_word_references,
 )
-from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
+from pathfinder.domain.tally_facts import tally_count
 from pathfinder.domain.tally_labels import held_label_words
-from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
-from pathfinder.domain.zero_words import words_for_none
+from pathfinder.domain.turn_facts import TurnFacts
 
 _A_LINK = re.compile(
     r"(?:https?:[\\/]*|www\.|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
@@ -63,33 +63,21 @@ _A_CITE = re.compile(r"[ \t]*\[cite:(?P<body>[^\[\]\n]+)\]")
 # The link a record reference renders: the record's id, then its page.
 _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
-_SOURCE_WORDS: dict[ValueSource, str] = {
-    "stated": "you stated",
-    "card": "your answer on a card",
-    "default": "the site's default",
-    "chosen": "chosen",
-    "held": "held by the strategy",
-}
-
 type FaultKind = Literal[
     "number",
     "identifier",
     "link",
     "unheld_reference",
     "keyed_reference",
+    "misnamed_reference",
     "malformed_reference",
-    "number_word",
     "noun_after_count",
     "product_text",
     "standalone_count",
     "sentence_in_place",
+    "boolean_in_place",
     "cited_number",
     "listed_value",
-    "tally_of_a_step",
-    "zero_word",
-    "values_without_noun",
-    "unnamed_dispute",
-    "group_certainty",
 ]
 
 
@@ -104,15 +92,6 @@ class ProseFault(CamelModel):
     references: tuple[str, ...] = ()
     # The record whose product holds the token.
     record_id: str = ""
-    removable: str = ""
-
-
-def _parameter(facts: TurnFacts, body: str) -> ParameterFact | None:
-    step_id, _, name = body.partition(".")
-    step = facts.step(step_id)
-    if step is None:
-        return None
-    return next((p for p in step.parameters if p.name == name), None)
 
 
 def _variant(facts: TurnFacts, label: str) -> ComparedVariant | None:
@@ -222,13 +201,13 @@ def _step_count_before(facts: TurnFacts, body: str) -> str | None:
 
 
 def _value(facts: TurnFacts, body: str) -> str | None:
-    param = _parameter(facts, body)
+    param = parameter_of(facts, body)
     return None if param is None else param.shown()
 
 
 def _source(facts: TurnFacts, body: str) -> str | None:
-    param = _parameter(facts, body)
-    return None if param is None else _SOURCE_WORDS[param.source]
+    param = parameter_of(facts, body)
+    return None if param is None else SOURCE_WORDS[param.source]
 
 
 _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
@@ -406,6 +385,13 @@ def _unheld_fault(match: re.Match[str], facts: TurnFacts) -> ProseFault:
                 token=match.group(), kind="keyed_reference", references=shown
             )
     held = statistic_group_references(statistics, body) if kind == "stat" else ()
+    named = () if held else statistic_named_rows(statistics, body, kind)
+    if named:
+        return ProseFault(
+            token=match.group(),
+            kind="misnamed_reference",
+            references=named[:_GROUP_SHOWN],
+        )
     return ProseFault(
         token=match.group(), kind="unheld_reference", references=held[:_GROUP_SHOWN]
     )
@@ -437,23 +423,10 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    tallied = tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
-    elsewhere = [
-        ProseFault(token=token, kind="tally_of_a_step", removable=above)
-        for token, above in tallied
-    ]
-    zeros = [
-        ProseFault(token=token, kind="zero_word", references=(reference,))
-        for token, reference in words_for_none(
-            prose, lambda match: _rendered(match, facts)
-        )
-    ]
     found = [
         *unheld,
         *alone,
         *misused,
-        *elsewhere,
-        *zeros,
         *shape_faults(prose, facts),
     ]
     return list(dict.fromkeys(found))

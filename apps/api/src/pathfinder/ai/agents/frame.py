@@ -16,15 +16,11 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
-from pathfinder.ai.agents.frame_choice_checks import hold_a_choice_to_its_readings
-from pathfinder.ai.agents.frame_compare_checks import hold_a_comparison_to_its_reading
-from pathfinder.ai.agents.frame_expression_checks import (
-    hold_an_every_genome_presence_to_a_question,
-    hold_the_taxa_to_their_scope,
-)
+from pathfinder.ai.agents.frame_expression_checks import hold_the_taxa_to_their_scope
 from pathfinder.ai.agents.frame_option_checks import (
     hold_an_option_to_a_held_expression,
 )
+from pathfinder.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
 from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from pathfinder.ai.agents.frame_result_checks import (
     hold_an_organism_to_a_step,
@@ -40,6 +36,7 @@ from pathfinder.ai.agents.scratchpad_guidance import (
     PATHFINDER_SCRATCHPAD_GUIDANCE,
     PROMOTED_NOTE_KIND,
 )
+from pathfinder.ai.agents.site_notes import pinned_site_notes
 from pathfinder.ai.agents.strategy_instructions import (
     base_system_prompt,
     pinned_frame_sheets,
@@ -53,7 +50,6 @@ from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.tools.toolsets.frame import build_toolset
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
-from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.refusals import agent_capabilities
 
@@ -65,10 +61,8 @@ You are FRAME for a VEuPathDB gene-strategy builder. Turn the user's goal into a
 REALIZABLE multi-step strategy spec in ONE bounded pass.
 
 Procedure:
-0. Before step 1, read what already worked: `search_memory(query, kind="case")` returns
-   cases from this user's verified runs - each names the searches, the params and the count
-   that landed - and `search_example_plans(query)` returns public VEuPathDB strategies ranked
-   against the goal. Both are reading; neither binds a criterion. A requirement that points at an
+0. Before step 1, `search_example_plans(query)` returns public VEuPathDB strategies ranked
+   against the goal. It is reading; it binds no criterion. A requirement that points at an
    earlier reply means what "The conversation so far" shows that reply named.
 1. Decompose the goal into its DISTINCT required properties - the conditions a gene must each
    satisfy. Use as few as the goal demands; resist inventing extra filters. ANDing many narrow
@@ -122,20 +116,17 @@ Procedure:
       copy it and replace each null with a value or leave null; do not rename keys.
    d. `set_criterion(criterion_id, text, search_name, role, params, why)` again, with that
       object -- a value or null for EVERY parameter on that sheet -- and `why`: the basis,
-      the term that decides it, and one line of reason of at most <MAX_REASON_CHARS> characters on
-      what decided it (the term is shown before it). The tool checks
-      the basis against the catalog answer and the values, and records what it was chosen over:
+      the term that decides it, and one line of reason on what decided it (the term is
+      shown before it). The tool records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
         selects all its children); lists for multi-pick; a filter parameter takes
         "<member facet>=<v1>,<v2>", or "<range facet><=<n>", "<range facet>>=<n>" or
         "<range facet>=<lo>..<hi>" for a facet the sheet marks is_range or of type
         date, or null;
       - for a multi-pick parameter return EVERY value the criterion covers, never one
-        representative: "20-32 hours" over hourly candidates is every hour in that range,
-        and "trophozoite samples" is every trophozoite sample the sheet lists;
-      - when the request names a sample class or stage ("trophozoite samples",
-        "gametocyte stages") and the sheet lists samples matching it, SELECT every
-        matching sample. Only when nothing on the sheet matches do you ask the user;
+        representative: a range covers every value the sheet lists inside it, and a
+        sample class or stage covers every sample of it the sheet lists. Only when
+        nothing on the sheet matches do you ask the user;
       - when the search offers both a vocabulary (typeahead) parameter and a free-text
         alternative for the same concept (GO term, InterPro domain, EC number), the
         vocabulary half carries the criterion; pass `N/A` for the free-text half. The
@@ -143,8 +134,8 @@ Procedure:
         cannot be switched off;
       - a concept or a wildcard you would have typed is one
         `get_parameter_options(query=[...])` over the vocabulary that lists every
-        phrasing of the concept, e.g. `["RNA binding", "RNA recognition", "KH"]`: its
-        synonyms, its abbreviations and the families that name it another way. Bind the
+        phrasing of the concept: its synonyms, its abbreviations and the families that
+        name it another way. Bind the
         entries a phrase matched (`vocabLookup` reach `phrase` or `every_word`); never
         bind the entries a single word matched (reach `word`) without asking the user.
         A typeahead vocabulary (GO term, InterPro domain, EC number) is always read this
@@ -156,53 +147,23 @@ Procedure:
         (codes or labels from the sheet; a clade selects all its species;
         `lookup_phyletic_codes(query)` finds a code from a common name); the hidden
         `profile_pattern` is derived from those two lists, never write it;
-      - a count across a list of species ("absent from at least 2 of these strains",
-        "present in some but not all", any OR across species) is OrthoMCL's
-        `GroupsByPhyleticPattern`: the phylogenetic profile states only "every one
-        present" and "every one absent". On any other site, report that requirement as
-        `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
-        question about it. On OrthoMCL, describe the groups to
-        `build_phyletic_expression(pattern)` with the codes `lookup_phyletic_codes`
-        returns, and bind `phyletic_expression` to the handle it returns; a
-        compare past the expression caps comes back with route `computed`, a
-        snapshot whose `groups:` handle `set_criterion` takes as
-        `computed_groups`. A genus
-        with no clade code is the list of its genome codes. A T count counts
-        genomes, and strains are genomes. Single copy often returns few groups.
-        When an expression names genomes of several species or strains of one
-        taxon, state the taxon's scope in `group_scopes`: whole, with
-        `except_codes` for the genomes the request leaves out, or named, exactly
-        the genomes the units write. `set_criterion` answers
-        the expression in words with the size of each list; when those words do not
-        say what the request asks, correct the pattern and build it again.
-        OrthoMCL's record types are
-        `group` (ortholog groups) and `sequence` (proteins, the genes a request asks
-        for): `GroupsByPhyleticPattern` returns groups, the `FromGroups` transform of
-        record type `sequence` turns them into proteins, and a `ByTaxonomy` step of record
-        type `sequence` intersected with those keeps one organism's proteins;
-      - orthology: "orthologs in X", "carry these to X", "their X counterparts" ask for X's
-        genes: one `transform` criterion on the site's orthology transform, `organism` = X.
-        A carry, map, translate or move to orthologs in X is that one transform even when
-        it says "syntenic": "carry these to their syntenic orthologs in X" sets the synteny
-        parameter "yes" on it, and `set_structure` refuses a round trip for it.
-        "with a syntenic ortholog in X" and "that have syntenic orthologs in X" keep the
-        SOURCE genes: the round trip in step 3, the synteny parameter "yes" on both transforms, and a `why`
-        with basis "parameter" on it that says the profile has no synteny parameter. "keep
-        those with an ortholog in X" or "conserved in X", without "syntenic", may bind the
-        phylogenetic-profile search with X in `included_species`, and its `why.reason` says
-        it answers the same OrthoMCL groups as the round trip in one step. A presence and
-        absence pattern across species is the profile. Bind the organism the request names
+      - a count across a list of species beyond every one present and every one absent
+        is a phyletic pattern over ortholog groups: on a site with no phyletic pattern
+        search, report that requirement as `another_site_answers` with `site`
+        "orthomcl", bind nothing for it and ask no question about it;
+      - orthology: a request for the genes of organism X that correspond to the genes
+        held is one `transform` criterion on the site's orthology transform, `organism`
+        = X, its synteny parameter set when the request asks for synteny. A request that
+        keeps the SOURCE genes that have an ortholog in X is the round trip in step 3,
+        with the same synteny value on both transforms; without synteny the
+        phylogenetic-profile search with X in `included_species` answers it in one step.
+        A presence and absence pattern across species is the profile. Bind the organism the request names
         even when the sheet does not list it: a transform to an organism this site's
         transform does not reach is refused with the portal's sentence: bind nothing for it,
         ask no question about it, and copy that sentence into the summary word for word, link
         included. A conversation stays on its site, so never ask to switch;
-      - a word of the criterion that a parameter states ("syntenic", "pseudogenes") is
-        never dropped: `set_criterion` refuses a search that cannot state it when a
-        search this pass read can, names that search and its parameter, and holds the
-        parameter to a value that states it. A word no search this pass read can
-        state is recorded unmet; say so in the summary;
-      - a number or free text is the literal the request states ("top 10 percent" -> the
-        minimum percentile 90; "at least 2 peptides" -> 2; "non-syntenic" -> no);
+      - a number or free text is the literal the request states, on the parameter's
+        scale;
       - null means the request does not determine it. The default then applies and comes
         back in `defaulted_params`; SAY those to the user with their values. Never write a
         value the request does not support, and never a value that is not on the sheet.
@@ -213,7 +174,8 @@ Procedure:
    `get_parameter_options(search_name, parameter_id, query="<keyword>")` ONLY for a
    typeahead vocabulary, or for one the sheet marks as shortlisted when the entry you
    need is not among the shown ones -- never to discover parameter names, which come
-   from the sheet alone. If
+   from the sheet alone. Pass `requirement` with the number of the requirement the
+   lookup finds a value for; its `note` names the entry that states it. If
    the entry does not exist, that search cannot realize the criterion: choose a different
    search or `drop_criterion`.
    A wrong name or value comes back as a retry with the real names or nearest values; that
@@ -282,11 +244,8 @@ Procedure:
    listed, the question's own `requirements` lists the keys (R1, R2) of those its
    readings approximate; with no list, it lists none. On a phyletic expression, each
    reading's `value` is a handle `build_phyletic_expression` returned for that reading.
-   Never ask for a raw threshold or a raw expression. A comparison of the protein
-   counts of two single genomes is one exact pattern, built and bound with no question
-   and no threshold asked; readings are for a request only an approximation states,
-   such as a comparison of lists of many genomes, and each names its approximation in
-   its caveat. When the researcher answers in their own words, bind
+   Never ask for a raw threshold or a raw expression. Readings are for a request only an
+   approximation states, and each names its approximation in its caveat. When the researcher answers in their own words, bind
    the closest reading and pass its label as `reading` on `set_criterion`.
    When no reading approximates a requirement, say so once in `summary` with the
    reason and the nearest search, and ask nothing about it.
@@ -305,8 +264,8 @@ unless the request removes it.
 
 Defaulted params: `set_criterion` also returns `defaulted_params`, the params holding the
 search's own default that the request does not state. These are safe but silent, so SAY them. In your
-`FrameResult` summary, name each one with the value used, in plain language: "the request did
-not give an expression cutoff, so the search default of 80 (the top 20 percent) applies".
+`FrameResult` summary, name each one with the value used, in plain language: the request did
+not give it, so the search's default applies.
 Never describe a defaulted value as what the user asked for. A default that contradicts the
 request is a defect, not a disclosure: if the request states a value and the param still comes
 back defaulted, re-call `set_criterion` with that value in `params`.
@@ -326,8 +285,8 @@ give both counts in the summary.
 
 Open slots: `open_slots` are parameters you passed null for that have no default. Answer them
 from the request first (re-call with the value); only when the request genuinely does not
-determine it and the choice changes the science -- e.g. which of several mass-spec experiments
-to use when none was named -- set disposition="needs_user" and list the exact choice in
+determine it and the choice changes the science -- e.g. which of several experiments to use
+when none was named -- set disposition="needs_user" and list the exact choice in
 `open_questions`, with the dimension that parameter decides and your recommended value.
 Never ask the user to confirm a value they already wrote. Never claim a param
 needs a web UI / wizard / interactive confirmation; every param is set through the API.
@@ -338,9 +297,7 @@ several comparable searches, choose the one whose required parameters resolve wi
 (prefer it over one that leaves an open slot), and whose vocabulary matches the user's stated
 comparison. Do NOT build WDK steps - that is BUILD's job. The workspace below shows the spec you
 have assembled so far.
-""".replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS).replace(
-        "<MAX_REASON_CHARS>", str(MAX_REASON_CHARS)
-    )
+""".replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS)
 )
 
 FRAME_MODEL = DEFAULT_MODEL_ID
@@ -387,6 +344,7 @@ def build_frame_agent() -> FrameAgent:
     )
     for fn in (
         base_system_prompt,
+        pinned_site_notes,
         pinned_user_memories,
         pinned_conversation_so_far,
         pinned_scratchpad,
@@ -404,10 +362,8 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_structure_to_bound_criteria)
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
-    agent.output_validator(hold_a_choice_to_its_readings)
     agent.output_validator(hold_an_option_to_a_held_expression)
     agent.output_validator(hold_the_readings_to_the_site)
     agent.output_validator(hold_the_taxa_to_their_scope)
-    agent.output_validator(hold_an_every_genome_presence_to_a_question)
-    agent.output_validator(hold_a_comparison_to_its_reading)
+    agent.output_validator(hold_an_unsettled_pick_to_a_question)
     return agent

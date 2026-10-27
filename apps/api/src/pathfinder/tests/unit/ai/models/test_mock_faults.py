@@ -3,25 +3,12 @@ makes the right call once the refusal is back, or keeps a corrected call as its 
 
 from __future__ import annotations
 
-from assistant_core.models.scripted import scripted_call
 from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
     ToolCallPart,
-    UserPromptPart,
 )
-from veupathdb.domain.parameters import MultiPickValue
 
-from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.agents.strategy_instructions import pinned_frame_workspace
-from pathfinder.ai.lead.dispatch_messages import stopped_pass_work_order
-from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.models.mock import fault_calls
 from pathfinder.ai.models.mock.faults import FAULTS, made_by_a_fault
-from pathfinder.ai.models.mock.site_values import SiteValues
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
-from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
-from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
@@ -33,7 +20,6 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
     play,
     verify_order,
 )
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _FRAME_ORDER = "Frame work order: mock frame"
 _REFUSED = "refused by the guard"
@@ -74,8 +60,6 @@ def _prose(call: ToolCallPart) -> str:
 def test_the_registry_names_every_fault_a_spec_injects() -> None:
     assert sorted(FAULTS) == [
         "all-unclear",
-        "display-name-term",
-        "long-reason",
         "off-vocabulary",
         "open-value-in-prose",
         "organism-split",
@@ -85,7 +69,6 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "syntenic-left-off",
         "unlisted-search",
         "unshown-count",
-        "value-as-term",
     ]
 
 
@@ -98,31 +81,6 @@ def test_an_unlisted_search_is_read_once_then_the_listed_one() -> None:
         "GenesWithSignalPeptide",
     ]
     assert len(_faulted(calls)) == 1
-    assert names(calls)[-2:] == ["set_structure", "final_result"]
-
-
-def test_a_value_passed_as_the_term_binds_the_criterion_once() -> None:
-    calls = play(
-        "frame", _SITE, _token("single", "value-as-term"), work_order=_FRAME_ORDER
-    )
-    terms = [a["why"]["term"] for a in args_of(calls, "set_criterion") if "why" in a]
-    seed = SiteValues.for_site("plasmodb").leaf("GenesWithSignalPeptide")
-    assert seed is not None
-
-    assert terms == [seed.values["signalp_version"]]
-    assert _faulted(calls) == []
-    assert names(calls)[-2:] == ["set_structure", "final_result"]
-
-
-def test_a_display_name_in_other_punctuation_binds_the_criterion_once() -> None:
-    calls = play(
-        "frame", _SITE, _token("single", "display-name-term"), work_order=_FRAME_ORDER
-    )
-    terms = [a["why"]["term"] for a in args_of(calls, "set_criterion") if "why" in a]
-
-    assert len(terms) == 1
-    assert terms[0].endswith(":")
-    assert _faulted(calls) == []
     assert names(calls)[-2:] == ["set_structure", "final_result"]
 
 
@@ -148,41 +106,6 @@ def test_a_syntenic_binding_leaves_synteny_off_once_then_sets_it() -> None:
 
     assert synteny == [None, "yes"]
     assert len(_faulted(calls)) == 1
-
-
-def test_a_long_reason_is_refused_until_the_pass_stops() -> None:
-    calls = _frame("intersect", "long-reason")
-    reasons = [
-        a["why"]["reason"]
-        for a in args_of(calls, "set_criterion")
-        if a["criterion_id"] == "tm_domains" and "why" in a
-    ]
-
-    assert len(fault_calls.LONG_REASON) > MAX_REASON_CHARS
-    assert reasons[:5] == [fault_calls.LONG_REASON] * 5
-    assert fault_calls.LONG_REASON not in reasons[5:]
-    assert len(_faulted(calls)) == 5
-
-
-def test_the_pass_that_continues_a_stopped_pass_binds_as_the_arc_does() -> None:
-    spec = OperationalSpec(
-        goal="secreted membrane genes",
-        criteria=[
-            Criterion(
-                id="signal_peptide",
-                text="signal peptide genes",
-                search_name="GenesWithSignalPeptide",
-                role="seed",
-            )
-        ],
-    )
-    stop = PhaseStop(role="frame", reason=PhaseStopReason.TOOL_RETRIES)
-    order = stopped_pass_work_order(spec, "secreted membrane genes", stop, asks=[])
-
-    calls = _frame("intersect", "long-reason", work_order=order)
-
-    assert _faulted(calls) == []
-    assert names(calls)[-1] == "final_result"
 
 
 def test_a_repeated_control_test_sends_the_same_set_once_more() -> None:
@@ -258,35 +181,3 @@ def test_the_arc_does_not_read_the_refusal_of_a_faults_call_as_its_own() -> None
         (True, fault_calls.UNLISTED_SEARCH),
         (False, "GenesByOrthologs"),
     ]
-
-
-def test_a_long_reason_reads_the_bound_criterion_from_the_pinned_workspace() -> None:
-    state = AgentToolState()
-    state.frame_set_criterion(
-        Criterion(
-            id="signal_peptide",
-            text="signal peptide genes",
-            search_name="GenesWithSignalPeptide",
-            resolved_params=bound({"organism": MultiPickValue(values=[_ORGANISM])}),
-        )
-    )
-    workspace = pinned_frame_workspace(agent_run_context(agent_state=state)) or ""
-    compacted: list[ModelMessage] = [
-        ModelRequest(
-            parts=[UserPromptPart(content=_FRAME_ORDER)], instructions=workspace
-        )
-    ]
-    intended = scripted_call(
-        "set_criterion",
-        {
-            "criterion_id": "tm_domains",
-            "search_name": "GenesByTransmembraneDomains",
-            "params": {"organism": [_ORGANISM]},
-            "why": {"basis": "parameter", "term": "organism", "reason": "sets it"},
-        },
-    )
-
-    wrong = fault_calls.long_reason(compacted)(intended)
-
-    assert wrong is not None
-    assert wrong.args_as_dict()["why"]["reason"] == fault_calls.LONG_REASON

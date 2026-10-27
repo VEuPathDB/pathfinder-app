@@ -16,6 +16,7 @@ from pathfinder.ai.audit.reply import AuditReply, hold_the_reply, reply_text
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.reply_references import prose_faults
 from pathfinder.services.gene_records.read import gene_record_url
+from pathfinder.tests._support.audit_planning import faked_site
 from pathfinder.tests._support.run_context import run_context_for
 
 _STRAIN = "EXA_0001"
@@ -113,7 +114,10 @@ def _answering(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
     return ModelResponse(parts=[ToolCallPart(tool_name=tool.name, args=args)])
 
 
-async def test_the_reply_check_is_a_capability() -> None:
+async def test_the_reply_check_is_a_capability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    faked_site(monkeypatch)
     agent = build_auditor_agent()
 
     with agent.override(model=FunctionModel(_answering)):

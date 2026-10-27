@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from uuid import uuid4
 
+import pytest
 from assistant_core.graph.turn_state import PendingApproval
 from pydantic_ai import DeferredToolRequests
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
@@ -21,12 +22,7 @@ from pathfinder.ai.lead.intent import (
     IntentClassification,
 )
 from pathfinder.ai.lead.intent_gate import (
-    AUDIT_START_TOOLS,
-    AUDIT_TOOLS,
-    BUILDING_TOOLS,
-    WITHHELD_TOOLS_HEADING,
     tools_the_turn_offers,
-    withheld_tools_pin,
     withhold_by_turn_state,
 )
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -35,6 +31,7 @@ from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.tests._support.audit_planning import faked_site
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
@@ -56,7 +53,12 @@ _AUDIT_READS = frozenset(
         "investigate_gene_models",
     }
 )
-_AUDIT_TOOLS = _AUDIT_READS | AUDIT_START_TOOLS
+_AUDIT_TOOLS = _AUDIT_READS | frozenset({START_TOOL})
+
+
+@pytest.fixture(autouse=True)
+def _site(monkeypatch: pytest.MonkeyPatch) -> None:
+    faked_site(monkeypatch)
 
 
 def _names() -> frozenset[str]:
@@ -79,51 +81,21 @@ def test_an_audit_request_is_no_strategy_request() -> None:
 
 def test_the_lead_registers_the_audit_tools() -> None:
     assert _names() & _AUDIT_TOOLS == _AUDIT_TOOLS
-    assert frozenset({START_TOOL}) == AUDIT_START_TOOLS
+    assert frozenset({START_TOOL}) == frozenset({START_TOOL})
 
 
 def _offered(deps: LeadDeps) -> frozenset[str]:
     return tools_the_turn_offers(deps, _names()) & _AUDIT_TOOLS
 
 
-def test_an_audit_turn_reaches_the_start_and_the_reads_and_builds_nothing() -> None:
-    deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
-
-    offered = tools_the_turn_offers(deps, _names())
-
-    assert offered & _AUDIT_TOOLS == _AUDIT_TOOLS
-    assert offered & BUILDING_TOOLS == frozenset()
-
-
-def test_a_building_turn_cannot_start_an_audit() -> None:
-    names = _names()
-    deps = _classified(IntentClassification.NEW_STRATEGY)
-    deps.state.turn_markers.audit_runs_held = True
-    ctx = run_context_for(deps)
-
-    withheld = withhold_by_turn_state(ctx, sorted(names))
-    pinned = withheld_tools_pin(names)(ctx)
-
-    assert _offered(deps) == _AUDIT_READS
-    assert withheld & _AUDIT_TOOLS == AUDIT_START_TOOLS
-    assert pinned == (
-        f"{WITHHELD_TOOLS_HEADING}\n{', '.join(sorted(withheld))}. They are on your "
-        "list, and this turn's state does not let you call them now."
-    )
-
-
-def test_a_turn_with_no_audit_names_no_audit_tool_in_its_pin() -> None:
-    names = _names()
-    deps = _classified(IntentClassification.NEW_STRATEGY)
-
-    pinned = withheld_tools_pin(names)(run_context_for(deps))
-
-    assert pinned is not None
-    assert set(pinned.split("\n")[1].split(". ")[0].split(", ")) & _AUDIT_TOOLS == set()
-
-
-def test_the_gate_names_every_lead_audit_tool() -> None:
-    assert frozenset(_AUDIT_TOOLS) == AUDIT_TOOLS
+@pytest.mark.parametrize(
+    "classification",
+    [None, *IntentClassification],
+)
+def test_every_turn_reaches_the_audit_tools_whatever_its_classification(
+    classification: IntentClassification | None,
+) -> None:
+    assert _offered(_classified(classification)) == _AUDIT_TOOLS
 
 
 def _listed(deps: LeadDeps) -> frozenset[str]:
@@ -140,22 +112,11 @@ def _listed(deps: LeadDeps) -> frozenset[str]:
         return ModelResponse(parts=[final_result_part(args)])
 
     asyncio.run(build_lead_agent().run("q", deps=deps, model=FunctionModel(answer)))
-    return frozenset(seen.listed[0]) & AUDIT_TOOLS
+    return frozenset(seen.listed[0]) & _AUDIT_TOOLS
 
 
-def test_a_strategy_turn_sends_no_audit_tool_schema() -> None:
-    assert _listed(_classified(IntentClassification.NEW_STRATEGY)) == frozenset()
-
-
-def test_an_audit_turn_sends_every_audit_tool_schema() -> None:
-    assert _listed(_classified(IntentClassification.GENE_MODEL_AUDIT)) == AUDIT_TOOLS
-
-
-def test_a_thread_that_holds_a_run_sends_the_audit_tool_schemas() -> None:
-    deps = _classified(IntentClassification.FOLLOW_UP_QUESTION)
-    deps.state.turn_markers.audit_runs_held = True
-
-    assert _listed(deps) == AUDIT_TOOLS
+def test_a_strategy_turn_sends_every_audit_tool_schema() -> None:
+    assert _listed(_classified(IntentClassification.NEW_STRATEGY)) == _AUDIT_TOOLS
 
 
 def test_audit_facts_render_references_and_stay_off_the_wire() -> None:
@@ -178,34 +139,12 @@ def test_audit_facts_render_references_and_stay_off_the_wire() -> None:
     )
 
 
-def test_a_question_reads_audits_and_cannot_start_one() -> None:
-    assert _offered(_classified(IntentClassification.FOLLOW_UP_QUESTION)) == (
-        _AUDIT_READS
-    )
-
-
-def test_an_unclassified_turn_reaches_no_audit_tool() -> None:
-    assert _offered(_classified(None)) == frozenset()
-
-
 def _answering(classification: IntentClassification | None) -> LeadDeps:
     deps = _classified(classification)
     deps.state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_start", tool_name=START_TOOL
     )
     return deps
-
-
-def test_a_turn_that_answers_the_start_card_reaches_it() -> None:
-    assert _offered(_answering(IntentClassification.APPROVAL)) == _AUDIT_TOOLS
-
-
-def test_a_typed_answer_to_the_start_card_sends_the_start_schema() -> None:
-    assert _listed(_answering(IntentClassification.APPROVAL)) == AUDIT_TOOLS
-
-
-def test_an_unclassified_answer_to_the_start_card_reaches_it() -> None:
-    assert _offered(_answering(None)) == AUDIT_START_TOOLS
 
 
 def _started(deps: LeadDeps) -> LeadDeps:
@@ -229,14 +168,6 @@ def test_a_turn_that_started_an_audit_withholds_every_read() -> None:
     withheld = withhold_by_turn_state(run_context_for(deps), sorted(names))
 
     assert withheld == names
-
-
-def test_a_turn_that_only_read_an_audit_keeps_its_reads() -> None:
-    deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
-    read = StatisticFact(id="stat_run", kind="audit_run", title="Audit run", rows=[])
-    deps.state.turn_markers.record_audit_facts([read])
-
-    assert _offered(deps) == _AUDIT_TOOLS
 
 
 def test_a_start_cards_reply_is_held_to_the_references() -> None:

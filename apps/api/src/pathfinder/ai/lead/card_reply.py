@@ -12,12 +12,12 @@ PROSE_MAX_CHARS = 4000
 _REPLY_MIN_CHARS = 20
 PLACEMENT_RULES = (
     "A count reference renders with its noun, so no noun follows it. A count "
-    "or value reference stands in place of the number, so its clause writes no "
-    "number word (one to twelve, a dozen, twice, three times, half, two-fold). "
-    "A number a step sets, such as the protein count of a group, is its "
+    "or value reference stands in place of the number. A number a step sets, such as the protein count of a group, is its "
     "[value:<step_id>.<param>]. [stat:<id>.<row>] is the value written in place, "
-    "and [cite:<id>.<row>] follows your own words for it. In a list of placed "
-    'values, separate the values with "; ", since a number may hold a comma.'
+    "and [cite:<id>.<row>] follows your own words for it. A yes or no is never "
+    "placed: say it in your words and write its [cite:<id>.<row>] after them. "
+    'In a list of placed values, separate the values with "; ", since a number '
+    "may hold a comma."
 )
 # The records a record reference cites. The schema and the Lead's instruction
 # both state it.

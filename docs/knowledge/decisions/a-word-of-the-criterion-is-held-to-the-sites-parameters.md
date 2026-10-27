@@ -5,8 +5,10 @@ description: set_criterion reads each word of the criterion text against WDK's o
 tags: [frame, catalog, turn-contract, verification, orthology]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5.5, at: 2026-09-25T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded by [a refusal rests on typed state](a-refusal-rests-on-typed-state.md): the qualifier check was removed.
 
 # What was decided
 

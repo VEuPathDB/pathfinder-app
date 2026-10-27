@@ -276,7 +276,6 @@ __all__ = [
     "HeldComparison",
     "SetFacts",
     "SpeciesFacts",
-    "bound_comparisons",
     "comparison_handle",
     "is_comparison_handle",
     "noted_description",

@@ -1,0 +1,740 @@
+{
+  "provenance": {
+    "site": "fungidb",
+    "recorded_at": "2026-10-27",
+    "source": "the second turn of the sixth ask-once live run G: the answer read_audit_findings returned for finding 1 of the run, and the two reply drafts the reference check refused."
+  },
+  "run_id": "16bffc57-95c8-4ed1-9e61-4813cdcd0e09",
+  "answer": {
+    "site_id": "fungidb",
+    "finding": {
+      "id": 1,
+      "genome": "Aspergillus fumigatus Af293",
+      "screened_genome": "Aspergillus fumigatus Af293",
+      "paired_genome": null,
+      "target": {
+        "check": "intron_support",
+        "genes": [
+          "Afu2g18040"
+        ]
+      },
+      "sampled": true,
+      "status": "confirmed",
+      "error_type": "shifted_splice_site",
+      "certainty": "medium",
+      "judged": true,
+      "impact": 0.3,
+      "weighing": {
+        "certainty": "medium",
+        "importance": {
+          "genes": [
+            "Afu2g18040"
+          ],
+          "source": "cited",
+          "value": 1.0
+        },
+        "use": {
+          "genome": "Aspergillus fumigatus Af293",
+          "source": "unknown",
+          "reference": false,
+          "value": 0.5
+        },
+        "certainty_weight": 0.6,
+        "impact": 0.3
+      },
+      "requests": 37,
+      "attempts": 1,
+      "stopped": 0,
+      "message": null,
+      "reviewed": true,
+      "verdict": "UNSUPPORTED_SHIFTED",
+      "from_target": true,
+      "review_line": {
+        "verdict": "error",
+        "verdict_text": "The review keeps the error",
+        "second_verdict": "error",
+        "impact": 0.3,
+        "impact_reason": "The correction changes the exon boundaries but preserves the coding frame.",
+        "literature": "not_searched",
+        "literature_text": "The literature was not searched"
+      },
+      "genes": [
+        {
+          "gene": "Afu2g18040",
+          "url": "https://qa.fungidb.org/fungidb.qa/app/record/gene/Afu2g18040"
+        }
+      ],
+      "check": "intron_support",
+      "verdict_text": "RNA-seq reads join the exons a few bases away from the annotated splice site",
+      "check_title": "Exon structure against RNA-seq",
+      "error_title": "Splice site shifted"
+    },
+    "evidence": [
+      {
+        "kind": "confirmation",
+        "status": "stored",
+        "payload": {
+          "kind": "confirmation",
+          "confirmation": {
+            "check": "intron_support",
+            "result": {
+              "verdict": "UNSUPPORTED_SHIFTED",
+              "introns": [
+                {
+                  "start": 4793693,
+                  "end": 4793790,
+                  "reads": 0,
+                  "tracks": 0
+                },
+                {
+                  "start": 4793909,
+                  "end": 4793969,
+                  "reads": 1349,
+                  "tracks": 1
+                }
+              ],
+              "unread": [
+                {
+                  "start": 4793693,
+                  "end": 4793790,
+                  "in_cds": true,
+                  "outcome": "SHIFTED",
+                  "replacement": [
+                    {
+                      "start": 4793713,
+                      "end": 4793786,
+                      "reads": 1226,
+                      "tracks": 1
+                    }
+                  ],
+                  "motif": null,
+                  "depth": null,
+                  "spans_assembly_gap": false
+                }
+              ],
+              "best_junction_reads": 1349,
+              "unstranded_ignored": 0,
+              "reason": null,
+              "gene_ids": [
+                {
+                  "given": "Afu2g18040",
+                  "resolved": "Afu2g18040"
+                }
+              ],
+              "gene": "Afu2g18040",
+              "transcript": "Afu2g18040-T",
+              "other_transcripts": 0,
+              "tracks_refused": [],
+              "evidence_unread": [],
+              "corrected_cds": [
+                [
+                  4793606,
+                  4793712
+                ],
+                [
+                  4793787,
+                  4793908
+                ],
+                [
+                  4793970,
+                  4795120
+                ]
+              ],
+              "corrected_protein": "MKAANASSAEAYRVLSRAFRFDNEDQKLWWHSTAPMFAKMLETANYTTPCQYQYLITYKECVIPSLGCYPTNSAPRWLSILTRYGTPFELSLNCSNSIVRYTFEPINQHTGTDKDPFNTHAIWESLQHLLPLEKSIDLEWFRHFKHDLTLNSEESAFLAHNDRLVGGTIRTQNKLALDLKDGRFALKTYIYPALKAVVTGKTIHELVFGSVRRLAVREPRILPPLNMLEEYIRSRGSKSTASPRLVSCDLTSPAKSRIKIYLLEQMVSLEAMEDLWTLGGRRRDASTLEGLSLVRELWDLIQLSPGLKSYPAPYLPLGVIPDERLPLMANFTLHQNDPVPEPQVYFTTFGMNDMAVADALTTFFERRGWSEMARTYETTLKSYYPHADHDKLNYLHAYISFSYRDRTPYLSVYLQSFETGDWAVANLSESKVKCQDAACQPTSLPPDLSKTGVYYSGLH",
+              "frame_kept": true,
+              "code": "standard",
+              "code_inferred": true,
+              "orthologs": {
+                "named": 16,
+                "read": 16,
+                "compared": [
+                  "ASPACDRAFT_1890851",
+                  "BO72DRAFT_379646",
+                  "BDV34DRAFT_204410",
+                  "AN11080",
+                  "P174DRAFT_388948",
+                  "CIMG_11934",
+                  "FOBCDRAFT_230538",
+                  "FPRN_06665"
+                ],
+                "for_corrected": 0,
+                "for_annotated": 0,
+                "reason": null
+              },
+              "correction_reason": null,
+              "corrected_exons": [
+                [
+                  4793606,
+                  4793712
+                ],
+                [
+                  4793787,
+                  4793908
+                ],
+                [
+                  4793970,
+                  4795120
+                ]
+              ],
+              "model": {
+                "gene": "Afu2g18040",
+                "transcript": "Afu2g18040-T",
+                "seqid": "Chr2_A_fumigatus_Af293",
+                "strand": "-",
+                "exons": [
+                  [
+                    4793606,
+                    4793692
+                  ],
+                  [
+                    4793791,
+                    4793908
+                  ],
+                  [
+                    4793970,
+                    4795120
+                  ]
+                ],
+                "cds": [
+                  [
+                    4793606,
+                    4793692
+                  ],
+                  [
+                    4793791,
+                    4793908
+                  ],
+                  [
+                    4793970,
+                    4795120
+                  ]
+                ]
+              },
+              "junction_tracks": {
+                "organism_abbrev": "afumAf293",
+                "listed": 1,
+                "read": 1
+              }
+            }
+          }
+        },
+        "requests": 0,
+        "attempts": 0,
+        "stopped": 0,
+        "message": null
+      },
+      {
+        "kind": "gene_evidence",
+        "status": "stored",
+        "payload": {
+          "kind": "gene_evidence",
+          "genes": [
+            "Afu2g18040"
+          ],
+          "evidence": [
+            {
+              "gene_ids": [
+                {
+                  "given": "Afu2g18040",
+                  "resolved": "Afu2g18040"
+                }
+              ],
+              "gene": "Afu2g18040",
+              "pdb_hits": [
+                {
+                  "transcript": "Afu2g18040-T",
+                  "pdb_id": "4ld7",
+                  "title": "Dimethylallyl tryptophan synthase",
+                  "taxon": "Aspergillus fischeri",
+                  "identity": 31,
+                  "protein_covered_percent": 58,
+                  "evalue": 1.07e-58,
+                  "chains": [
+                    "4ld7_N",
+                    "4ld7_M",
+                    "4ld7_L",
+                    "4ld7_K",
+                    "4ld7_J",
+                    "4ld7_I",
+                    "4ld7_H",
+                    "4ld7_G",
+                    "4ld7_F",
+                    "4ld7_E",
+                    "4ld7_D",
+                    "4ld7_C",
+                    "4ld7_B",
+                    "4ld7_A"
+                  ]
+                },
+                {
+                  "transcript": "Afu2g18040-T",
+                  "pdb_id": "3o2k",
+                  "title": "Brevianamide F prenyltransferase",
+                  "taxon": "Aspergillus fumigatus",
+                  "identity": 36,
+                  "protein_covered_percent": 54,
+                  "evalue": 2.77e-82,
+                  "chains": [
+                    "3o2k_A"
+                  ]
+                },
+                {
+                  "transcript": "Afu2g18040-T",
+                  "pdb_id": "3o24",
+                  "title": "Brevianamide F prenyltransferase",
+                  "taxon": "Aspergillus fumigatus",
+                  "identity": 36,
+                  "protein_covered_percent": 54,
+                  "evalue": 2.77e-82,
+                  "chains": [
+                    "3o24_A"
+                  ]
+                },
+                {
+                  "transcript": "Afu2g18040-T",
+                  "pdb_id": "3i4z",
+                  "title": "Tryptophan dimethylallyltransferase",
+                  "taxon": "Aspergillus fumigatus",
+                  "identity": 98,
+                  "protein_covered_percent": 0,
+                  "evalue": 0.0,
+                  "chains": [
+                    "3i4z_B",
+                    "3i4z_A"
+                  ]
+                },
+                {
+                  "transcript": "Afu2g18040-T",
+                  "pdb_id": "3i4x",
+                  "title": "Tryptophan dimethylallyltransferase",
+                  "taxon": "Aspergillus fumigatus",
+                  "identity": 98,
+                  "protein_covered_percent": 0,
+                  "evalue": 0.0,
+                  "chains": [
+                    "3i4x_B",
+                    "3i4x_A"
+                  ]
+                }
+              ],
+              "peptides": [],
+              "alphafold": [],
+              "linkouts": [
+                {
+                  "database": "EnsemblFungi",
+                  "external_id": "AFUA_2G18040"
+                },
+                {
+                  "database": "MEROPS Family",
+                  "external_id": "M77"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "15870460"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "15933009"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "16902860"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "17432932"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "17577899"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "17906140"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "18481055"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "18677738"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19028996"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19149573"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19277607"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19398116"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19706516"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19727673"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "19812724"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "20526482"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "20554054"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "22453123"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "23031507"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "23435153"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "24657051"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "28080993"
+                },
+                {
+                  "database": "PubMed from Genome Annotations",
+                  "external_id": "29149178"
+                },
+                {
+                  "database": "UniParc",
+                  "external_id": "UPI0000F518D3"
+                }
+              ],
+              "seqedits": [],
+              "transcripts": [
+                {
+                  "transcript_id": "Afu2g18040-T",
+                  "transcript_type": "mRNA",
+                  "protein_length": 451,
+                  "exon_count": 3
+                }
+              ],
+              "comments": 1,
+              "pubmed": 24,
+              "notes": 10,
+              "phenotypes": [],
+              "unprefixed_tables": [
+                {
+                  "table": "EdaPhenotypeGraphsDataTable",
+                  "rows": [
+                    {
+                      "value": "ergot alkaloid biosynthetic process",
+                      "variable": "Affected Process/Structure",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "obsolete cell",
+                      "variable": "Affected Process/Structure",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "ergot alkaloid",
+                      "variable": "AnnotationExtension_name",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "GO_0005623",
+                      "variable": "Entity Term ID",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "GO_0035837",
+                      "variable": "Entity Term ID",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "classical genetics",
+                      "variable": "Experiment Type",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "null mutant",
+                      "variable": "Modification Type",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "dmaW",
+                      "variable": "Name",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "Aspergillus fumigatus Af293",
+                      "variable": "Organism",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "decreased amount",
+                      "variable": "Phenotype Quality",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "viable",
+                      "variable": "Phenotype Quality",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "CHEBI:23943",
+                      "variable": "Phenotype Target",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "15933009",
+                      "variable": "Pubmed ID",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "PATO_0000719",
+                      "variable": "Quality Term ID",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    },
+                    {
+                      "value": "PATO_0001997",
+                      "variable": "Quality Term ID",
+                      "dataset_id": "FungiDB_VEuPathDB_curated_phenotype_Phenotype_RSRC"
+                    }
+                  ]
+                },
+                {
+                  "table": "PHI-base_curated_phenotype_NAFeaturePhenotypeGeneric_RSRC_Phenotype",
+                  "rows": []
+                },
+                {
+                  "table": "CGD_CuratedPhenotypes",
+                  "rows": []
+                },
+                {
+                  "table": "PhenotypeScore",
+                  "rows": []
+                },
+                {
+                  "table": "Phenotype",
+                  "rows": []
+                },
+                {
+                  "table": "PhenotypeMagnaporthe",
+                  "rows": []
+                }
+              ],
+              "unserved": []
+            }
+          ]
+        },
+        "requests": 3,
+        "attempts": 1,
+        "stopped": 0,
+        "message": null
+      }
+    ],
+    "facts": [
+      {
+        "kind": "confirmation",
+        "facts": [
+          {
+            "label": "Transcript judged",
+            "value": "Afu2g18040-T"
+          },
+          {
+            "label": "Annotated introns with reads",
+            "value": "1 of 2"
+          },
+          {
+            "label": "Junction tracks read",
+            "value": "1 of 1 listed for afumAf293"
+          },
+          {
+            "label": "Intron with no read",
+            "value": "bases 4,793,693 to 4,793,790"
+          },
+          {
+            "label": "What the evidence shows there",
+            "value": "an RNA-seq junction a few bases away"
+          },
+          {
+            "label": "RNA-seq junctions that replace it",
+            "value": "4,793,713 to 4,793,786 (1,226 reads; tracks: 1)"
+          },
+          {
+            "label": "Corrected protein",
+            "value": "459 residues, frame kept"
+          },
+          {
+            "label": "Orthologs that match",
+            "value": "0 for the corrected model, 0 for the annotated one, of 16 read"
+          }
+        ]
+      },
+      {
+        "kind": "gene_evidence",
+        "facts": [
+          {
+            "label": "Afu2g18040 citations",
+            "value": "24 PubMed articles, 1 comment, 10 notes"
+          },
+          {
+            "label": "Afu2g18040 structures",
+            "value": "5 PDB similarities; no AlphaFold model"
+          },
+          {
+            "label": "Afu2g18040 peptides",
+            "value": "None found"
+          }
+        ]
+      }
+    ],
+    "review": {
+      "verdict": {
+        "genes": [
+          "Afu2g18040"
+        ],
+        "model_genome": "Aspergillus fumigatus Af293",
+        "verdict": "error",
+        "error_type": "shifted_splice_site",
+        "certainty": "high",
+        "cause": "RNA-seq strongly supports a replacement junction at the annotated intron, while the annotated junction has no supporting reads, showing that the splice site is shifted.",
+        "cites": [
+          "finding:1",
+          "evidence:1:confirmation"
+        ]
+      },
+      "already_known": "not_searched",
+      "known_from": [],
+      "paper_depends": null,
+      "card_text": "Afu2g18040 has a shifted splice site: the annotated junction is unsupported, whereas a nearby replacement junction is strongly supported by RNA-seq.",
+      "impact": 0.3,
+      "impact_reason": "The correction changes the exon boundaries but preserves the coding frame.",
+      "second_verdict": "error",
+      "stopped": false
+    },
+    "review_text": {
+      "verdict_text": "The review keeps the error",
+      "literature_text": "The literature was not searched",
+      "paper_text": "Not checked whether a published study depends on this gene's model",
+      "second_text": "A second, independent review: The review keeps the error"
+    },
+    "genes": [
+      {
+        "gene": "Afu2g18040",
+        "url": "https://qa.fungidb.org/fungidb.qa/app/record/gene/Afu2g18040"
+      }
+    ],
+    "models": {
+      "kind": "intron",
+      "annotated": [
+        {
+          "gene": "Afu2g18040",
+          "transcript": "Afu2g18040-T",
+          "seqid": "Chr2_A_fumigatus_Af293",
+          "strand": "-",
+          "exons": [
+            [
+              4793606,
+              4793692
+            ],
+            [
+              4793791,
+              4793908
+            ],
+            [
+              4793970,
+              4795120
+            ]
+          ],
+          "cds": [
+            [
+              4793606,
+              4793692
+            ],
+            [
+              4793791,
+              4793908
+            ],
+            [
+              4793970,
+              4795120
+            ]
+          ]
+        }
+      ],
+      "proposed": {
+        "kind": "corrected",
+        "gene": "Afu2g18040",
+        "exons": [
+          [
+            4793606,
+            4793712
+          ],
+          [
+            4793787,
+            4793908
+          ],
+          [
+            4793970,
+            4795120
+          ]
+        ],
+        "cds": [
+          [
+            4793606,
+            4793712
+          ],
+          [
+            4793787,
+            4793908
+          ],
+          [
+            4793970,
+            4795120
+          ]
+        ],
+        "removed_introns": [
+          [
+            4793693,
+            4793790
+          ]
+        ],
+        "junctions": [
+          [
+            4793713,
+            4793786
+          ]
+        ],
+        "junction_reads": [
+          1226
+        ],
+        "kept": [],
+        "frame_kept": true
+      },
+      "merged": null,
+      "stop": null
+    }
+  },
+  "drafts": [
+    "For [record:Afu2g18040], the audit found a shifted splice site rather than support for the annotated junction: the annotated junction had no RNA-seq reads, while a nearby replacement junction was strongly supported [cite:stat_6044cd82.verdict.cause]. The proposed correction changes the exon boundaries but preserves the coding frame [cite:stat_6044cd82.models.proposed.frameKept].\n\nThe finding was confirmed and the independent review rated it [stat:stat_6044cd82.verdict.certainty] confidence. This is strong evidence for a splice-site correction, although the audit did not assess whether any published study depends on the original model.",
+    "For [record:Afu2g18040], the audit found a shifted splice site rather than support for the annotated junction: the annotated junction had no RNA-seq reads, while a nearby replacement junction was strongly supported [cite:stat_6044cd82.review.verdict.cause]. The proposed correction changes the exon boundaries but preserves the coding frame [cite:stat_6044cd82.review.verdict.impactReason].\n\nThe independent review rated this finding high confidence [stat:stat_6044cd82.review.verdict.certainty]. This is strong evidence for a splice-site correction, although the audit did not assess whether any published study depends on the original model [cite:stat_6044cd82.reviewText.paperText]."
+  ]
+}

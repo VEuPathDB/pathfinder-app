@@ -1,0 +1,290 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "recorded_at": "2026-10-27",
+    "source": "the FRAME passes of the ninth ask-once live run: A conversations 1 and 2, B and D each built one expression, bound it and returned spec_ready with no card question, no chosen reading and no gap. Each case holds that build, with its pattern, handle and group count, and the criterion it bound."
+  },
+  "passes": {
+    "a_conversation_1": {
+      "criterion_id": "c_phyletic_plasmodium_core_no_toxo",
+      "criterion_text": "ortholog groups present in all Plasmodium species and absent from Toxoplasma gondii",
+      "build": {
+        "handle": "expr:91380a965b00",
+        "pattern": {
+          "kind": "all_of",
+          "terms": [
+            {
+              "kind": "count",
+              "of": {
+                "kind": "each_species_of",
+                "codes": [
+                  "padl",
+                  "pber",
+                  "pbil",
+                  "pblg",
+                  "pbbi",
+                  "pcha",
+                  "pccb",
+                  "pcoa",
+                  "pcyn",
+                  "pcym",
+                  "pfal",
+                  "pfag",
+                  "pfsg",
+                  "pfac",
+                  "pfad",
+                  "pfga",
+                  "pfgb",
+                  "pfgn",
+                  "pfhb",
+                  "pfai",
+                  "pfke",
+                  "pfkh",
+                  "pfkt",
+                  "pfml",
+                  "pfnc",
+                  "pfng",
+                  "pfnf",
+                  "pfsd",
+                  "pfsn",
+                  "pftg",
+                  "pfra",
+                  "pgab",
+                  "pgas",
+                  "pgal",
+                  "pinu",
+                  "pkah",
+                  "pkno",
+                  "pknp",
+                  "pmal",
+                  "pova",
+                  "powp",
+                  "ppra",
+                  "prei",
+                  "preg",
+                  "prel",
+                  "pvbd",
+                  "pvce",
+                  "pvld",
+                  "pvcr",
+                  "pvpc",
+                  "pvvc",
+                  "pvin",
+                  "pvlk",
+                  "pvip",
+                  "pvpv",
+                  "pvpw",
+                  "pviv",
+                  "pyoe",
+                  "pyxn",
+                  "pyyx",
+                  "pyoy"
+                ]
+              },
+              "measure": "genomes",
+              "condition": "at_least",
+              "value": 1
+            },
+            {
+              "kind": "count",
+              "of": {
+                "kind": "codes",
+                "codes": [
+                  "tgar",
+                  "tgca",
+                  "tgco",
+                  "tgfo",
+                  "tggd",
+                  "tggt",
+                  "tgma",
+                  "tgon",
+                  "tgop",
+                  "tgee",
+                  "tgru",
+                  "tgta",
+                  "tgtg",
+                  "tgva",
+                  "tgve"
+                ]
+              },
+              "condition": "absent"
+            }
+          ]
+        },
+        "groups": 797
+      }
+    },
+    "a_conversation_2": {
+      "criterion_id": "c_plasmodium_core_not_toxoplasma",
+      "criterion_text": "ortholog groups present in all Plasmodium species but absent from Toxoplasma gondii",
+      "build": {
+        "handle": "expr:91380a965b00",
+        "pattern": {
+          "kind": "all_of",
+          "terms": [
+            {
+              "kind": "count",
+              "of": {
+                "kind": "each_species_of",
+                "codes": [
+                  "padl",
+                  "pber",
+                  "pbil",
+                  "pblg",
+                  "pbbi",
+                  "pcha",
+                  "pccb",
+                  "pcoa",
+                  "pcyn",
+                  "pcym",
+                  "pfal",
+                  "pfag",
+                  "pfsg",
+                  "pfac",
+                  "pfad",
+                  "pfga",
+                  "pfgb",
+                  "pfgn",
+                  "pfhb",
+                  "pfai",
+                  "pfke",
+                  "pfkh",
+                  "pfkt",
+                  "pfml",
+                  "pfnc",
+                  "pfng",
+                  "pfnf",
+                  "pfsd",
+                  "pfsn",
+                  "pftg",
+                  "pfra",
+                  "pgab",
+                  "pgas",
+                  "pgal",
+                  "pinu",
+                  "pkah",
+                  "pkno",
+                  "pknp",
+                  "pmal",
+                  "pova",
+                  "powp",
+                  "ppra",
+                  "prei",
+                  "preg",
+                  "prel",
+                  "pvbd",
+                  "pvce",
+                  "pvld",
+                  "pvcr",
+                  "pvpc",
+                  "pvvc",
+                  "pvin",
+                  "pvlk",
+                  "pvip",
+                  "pvpv",
+                  "pvpw",
+                  "pviv",
+                  "pyoe",
+                  "pyxn",
+                  "pyyx",
+                  "pyoy"
+                ]
+              },
+              "measure": "genomes",
+              "condition": "at_least",
+              "value": 1
+            },
+            {
+              "kind": "count",
+              "of": {
+                "kind": "codes",
+                "codes": [
+                  "tgar",
+                  "tgca",
+                  "tgco",
+                  "tgfo",
+                  "tggd",
+                  "tggt",
+                  "tgma",
+                  "tgon",
+                  "tgop",
+                  "tgee",
+                  "tgru",
+                  "tgta",
+                  "tgtg",
+                  "tgva",
+                  "tgve"
+                ]
+              },
+              "condition": "absent"
+            }
+          ]
+        },
+        "groups": 797
+      }
+    },
+    "b": {
+      "criterion_id": "c_single_copy_apicomplexa",
+      "criterion_text": "ortholog groups represented by exactly one copy in each selected apicomplexan organism",
+      "build": {
+        "handle": "expr:6d2bb4893278",
+        "pattern": {
+          "kind": "all_of",
+          "terms": [
+            {
+              "kind": "count",
+              "of": {
+                "kind": "codes",
+                "codes": [
+                  "APIC"
+                ]
+              },
+              "measure": "genomes",
+              "condition": "exactly",
+              "value": 139
+            },
+            {
+              "kind": "count",
+              "of": {
+                "kind": "codes",
+                "codes": [
+                  "APIC"
+                ]
+              },
+              "measure": "proteins",
+              "condition": "exactly",
+              "value": 139
+            }
+          ]
+        },
+        "groups": 2
+      }
+    },
+    "d": {
+      "criterion_id": "c_toxo_more_proteins",
+      "criterion_text": "orthogroups with more protein members in Toxoplasma gondii ME49 than in Plasmodium falciparum 3D7",
+      "build": {
+        "handle": "expr:9f5a1b4bb985",
+        "pattern": {
+          "kind": "compare",
+          "left": {
+            "kind": "codes",
+            "codes": [
+              "tgon"
+            ]
+          },
+          "right": {
+            "kind": "codes",
+            "codes": [
+              "pfal"
+            ]
+          },
+          "reading": "totals",
+          "condition": "more_than",
+          "factor": 1
+        },
+        "groups": 3896
+      }
+    }
+  }
+}

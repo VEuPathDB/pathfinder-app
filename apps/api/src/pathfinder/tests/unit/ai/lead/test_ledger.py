@@ -6,7 +6,6 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.ledger import (
     InvestigationLedger,
-    blamed_the_site,
     build_contradiction,
 )
 from pathfinder.ai.lead.ledger_sections import (
@@ -120,49 +119,6 @@ def test_investigation_ledger_carries_no_sub_agent_call_count() -> None:
     assert "sub_agent_calls_this_turn" not in InvestigationLedger.model_fields
     assert "sub_agent_calls_total" not in InvestigationLedger.model_fields
     assert "Sub-agent calls" not in _ledger().render_summary()
-
-
-def _blame(text: str, *, build: BuildSection) -> str:
-    """Why the text may not stand, empty when it may."""
-    return blamed_the_site(text, build=build, verification=VerificationSection()) or ""
-
-
-class TestTheSiteBlameMatcher:
-    def test_a_wait_for_the_site_over_a_clean_build_is_blame(self) -> None:
-        assert (
-            _blame(_BLAMING_REPLY, build=BuildSection())
-            == "it names 'the site' together with 'refresh'"
-        )
-
-    def test_a_reply_that_names_a_real_failure_is_not_refused(self) -> None:
-        build = BuildSection(
-            outcome=BuildOutcome(
-                pushed_step_ids=["s1", "s2"],
-                failed_steps=[
-                    StepPushFailure(
-                        step_id="s3", search_name="GenesByTaxon", error="422"
-                    ),
-                ],
-            ),
-            pushed_count=2,
-            failed_count=1,
-        )
-        assert _blame(_REAL_FAILURE_REPLY, build=build) == ""
-
-    def test_an_empty_step_is_a_real_failure(self) -> None:
-        build = BuildSection(
-            outcome=BuildOutcome(pushed_step_ids=["s1"]),
-            pushed_count=1,
-            zero_result_steps=["s1"],
-        )
-        assert _blame(_BLAMING_REPLY, build=build) == ""
-
-    def test_a_reply_that_blames_nothing_passes(self) -> None:
-        assert _blame(_CLEAN_REPLY, build=BuildSection()) == ""
-
-    def test_naming_the_site_without_blame_passes(self) -> None:
-        text = "The strategy holds 132 genes and is saved on VEuPathDB."
-        assert _blame(text, build=BuildSection()) == ""
 
 
 class TestTheBuildRule:

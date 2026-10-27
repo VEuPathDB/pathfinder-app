@@ -25,6 +25,52 @@
   `StrategyDomainState.site_verdict`, so one an earlier build stored is dropped on load. Evals
   count `passedChecks` and `failedChecks`.
   See [a verification verdict is computed from the site](decisions/a-verification-verdict-is-computed-from-the-site.md).
+* **PathFinder takes veupathdb-py v0.1.0b25 and veupathdb-mcp v0.2.0-b54.** The MCP
+  release reads the radio-pair readings of a search (`read_radio_readings`) and can ask
+  the OpenAI Decisions API during catalog reads: a narrowed vocabulary read carries the
+  entry it picks and how sure it is (`ParameterInfo.vocab_pick`), and a search lookup
+  carries each result's `decision_probability`. `DECISIONS_ENABLED` (default false) turns
+  it on, on the same `OPENAI_API_KEY` the models use; the api, the worker and the
+  wdk-mcp container read it, and `.env.example` documents it with its timeout and its
+  confidence floor.
+* **The ask-once branch is closed; its general fixes are on main.** An audit plan takes
+  only the site's organisms as genomes: the plan tool's schema lists the organism names
+  (`ai/audit/held_genomes.py`), read once per turn (`services/audit/held_organisms.py`)
+  and left open when the read fails. A refusal names whether a new plan can fix it
+  (`PlanRefusal.replannable`), and a Lead turn whose replannable plan was refused and
+  that ends with no card and no question is refused once (`unplanned_audit`). A boolean
+  row has the display form `boolean`, so a yes or no is cited, never placed. A
+  parameter whose vocabulary depends on a bound parameter is never measured at another
+  value (`measure_binding`), so a probe sends no child pick under a parent that does not
+  hold it. A reading's `expr:` handle is resolved to its expression before the site
+  checks it (`reading_check.site_spelling`), and an unheld handle is refused before any
+  call. `count_by_column` on a record type that lists no countable column says to build
+  the step and count it with `count_step_by_column`. A `[stat:]` or `[cite:]` path that
+  names no row of a held fact is told the rows it can mean (`misnamed_reference`).
+  Backlog 59 (the branch's ask-once card) leaves: the branch is not merged.
+* **An unsettled vocabulary pick is asked.** With `DECISIONS_ENABLED`, a FRAME lookup
+  names the requirement it serves (`get_parameter_options(requirement=...)`), the read's
+  Decisions pick is recorded with a note FRAME reads, and a value FRAME chose under a pick
+  that is not settled becomes a slot question with the pick and the kept entries
+  ([decision](decisions/an-unsettled-vocabulary-pick-is-asked.md)). `search_for_searches`
+  shows `decisionProbability`. The import contract names the modules veupathdb-mcp
+  0.2.0b53 and 0.2.0b54 added.
+* **The tools a turn reaches follow its typed state.** The classification withholds no
+  tool: building and audit tools are reached on every turn whose typed preconditions hold,
+  writes that need consent stay behind their cards, an off-topic turn is told to answer in
+  two sentences, and a reclassification replaces the last
+  ([decision](decisions/the-tools-a-turn-reaches-follow-its-typed-state.md)).
+* **The phrasing rules are removed.** The rationale term checks and the reason's character
+  limit, the qualifier check, the fixed menu of the Lead's own card, FRAME's question
+  cascade (the free question with no open slot, the readings demand, the every-genome and
+  comparison-reading checks), the added-criterion check, the number-word, none-word,
+  values-without-noun, tally-of-a-step, dispute and group-certainty faults, the reply rules
+  `claimed_frame`, `blamed_the_site`, `unmade_change`, `unbacked_absence`,
+  `unrecorded_question`, `unfinished_work` and `unstated_reading`, and FRAME's case replay
+  are gone; the OrthoMCL guidance reaches only an OrthoMCL pass, and the base prompts name
+  `get_search_overview`, ask for no bold number and no longer advise a site switch
+  ([decision](decisions/a-refusal-rests-on-typed-state.md)). Backlog 45 (an every-genome
+  question) leaves with the rule it asked for.
 
 ## 2026-10-26
 

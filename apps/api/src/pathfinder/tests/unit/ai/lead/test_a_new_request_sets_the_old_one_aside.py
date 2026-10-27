@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic_ai.exceptions import ToolFailed
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -140,21 +139,6 @@ async def test_a_reclassification_keeps_the_frame_this_turn_already_ran() -> Non
     assert deps.state.domain.original_request == _NEW
     offered = tools_the_turn_offers(deps, ["frame_problem", "build_strategy"])
     assert offered == frozenset({"build_strategy"})
-
-
-async def test_a_reclassification_keeps_the_request_this_turn_already_built() -> None:
-    """A reclassification after this turn wrote the strategy is refused."""
-    deps = draft_deps(_NEW, domain=_old_request())
-    await classify(deps, IntentClassification.EXTEND_STRATEGY)
-    deps.state.turn_markers.built = True
-
-    with pytest.raises(ToolFailed):
-        await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
-
-    domain = deps.state.domain
-    assert domain.original_request == _OLD
-    assert domain.requirements == [_ORGANISM]
-    assert domain.operational_spec == framed(None)
 
 
 async def test_a_reclassification_keeps_the_answers_a_consult_took_this_turn() -> None:

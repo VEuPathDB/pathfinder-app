@@ -29,7 +29,14 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     ),
     "get_parameter_options": (
         frozenset(
-            {"context_values", "parameter_id", "query", "record_type", "search_name"}
+            {
+                "context_values",
+                "parameter_id",
+                "query",
+                "record_type",
+                "requirement",
+                "search_name",
+            }
         ),
         frozenset({"parameter_id", "search_name"}),
     ),

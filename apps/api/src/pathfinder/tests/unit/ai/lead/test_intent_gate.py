@@ -1,8 +1,5 @@
-"""The Lead sees the building tools only when this turn's intent asks to build.
-
-A context statement and a memory request are answered in prose; the tools that
-change a strategy are not on the model's list for those turns.
-"""
+"""The tools the Lead reaches follow the turn's typed state, never its
+classification."""
 
 from __future__ import annotations
 
@@ -21,14 +18,12 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, withheld_tools_pin
+from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -106,13 +101,6 @@ def _run(prompt: str, classification: IntentClassification | None) -> OfferedToo
     return seen
 
 
-def test_an_unclassified_turn_is_offered_no_building_tool() -> None:
-    seen = _run("I'm investigating virulence factors in Leishmania major", None)
-
-    assert seen.steps[0] & BUILDING_TOOLS == frozenset()
-    assert "classify_user_intent" in seen.steps[0]
-
-
 def test_an_unclassified_turn_is_offered_the_gene_set_save_beside_remember() -> None:
     """The first step shows both ways to keep a set, so neither stands in for
     the other."""
@@ -125,75 +113,13 @@ def test_an_unclassified_turn_is_offered_the_gene_set_save_beside_remember() -> 
     } <= seen.steps[0]
 
 
-@pytest.mark.usefixtures("recorded_site_organisms")
-def test_a_context_statement_is_offered_no_building_tool() -> None:
-    seen = _run(
-        "I'm investigating virulence factors in Leishmania major",
-        IntentClassification.CONTEXT_STATEMENT,
-    )
-
-    assert len(seen.steps) == 2
-    assert not (seen.steps[1] & BUILDING_TOOLS)
-    assert {"get_live_strategy_state", "read_ledger_section", "remember"} <= (
-        seen.steps[1]
-    )
-
-
-def test_a_memory_request_keeps_remember_and_hides_the_building_tools() -> None:
-    seen = _run(
-        "Please remember for future sessions that I work on P. falciparum 3D7.",
-        IntentClassification.MEMORY_REQUEST,
-    )
-
-    assert "remember" in seen.steps[1]
-    assert "frame_problem" not in seen.steps[1]
-    assert "build_strategy" not in seen.steps[1]
-    assert "run_eda_compute" not in seen.steps[1]
-
-
-@pytest.mark.parametrize(
-    "classification",
-    [
-        IntentClassification.NEW_STRATEGY,
-        IntentClassification.EXTEND_STRATEGY,
-        IntentClassification.EDIT_STRATEGY,
-        IntentClassification.CLARIFICATION_RESPONSE,
-        IntentClassification.SLOT_ANSWER,
-        IntentClassification.APPROVAL,
-    ],
-)
-def test_an_intent_that_builds_is_offered_every_building_tool(
-    classification: IntentClassification,
+@pytest.mark.parametrize("classification", [None, *IntentClassification])
+def test_every_turn_is_offered_the_building_tools_its_state_meets(
+    classification: IntentClassification | None,
 ) -> None:
     seen = _run("Find A. gambiae midgut proteases", classification)
 
-    assert seen.steps[1] >= UNLOCKED_ON_A_FRESH_THREAD
-
-
-@pytest.mark.parametrize(
-    "classification",
-    [
-        IntentClassification.FOLLOW_UP_QUESTION,
-        IntentClassification.OFF_TOPIC,
-        IntentClassification.DENIAL,
-    ],
-)
-def test_an_intent_that_does_not_build_is_offered_none_of_them(
-    classification: IntentClassification,
-) -> None:
-    seen = _run("What does that step do?", classification)
-
-    assert not (seen.steps[1] & BUILDING_TOOLS)
-
-
-def test_an_off_topic_turn_is_offered_no_tool_at_all() -> None:
-    """The reply is the redirect, so nothing the Lead could call is listed."""
-    seen = _run(
-        "Write me a Python script that reverses a linked list.",
-        IntentClassification.OFF_TOPIC,
-    )
-
-    assert seen.steps[1] == frozenset()
+    assert seen.steps[-1] & BUILDING_TOOLS == UNLOCKED_ON_A_FRESH_THREAD
 
 
 def test_a_question_about_the_data_keeps_the_reads_an_answer_needs() -> None:
@@ -254,28 +180,6 @@ def _reclassifying(
     return _fn
 
 
-def test_a_corrected_classification_unhides_the_building_tools() -> None:
-    """A misclassified build degrades to one wasted step, not to a refusal."""
-    prompt = (
-        "Yes, rerun the differential expression and then create the strategy "
-        "step from the genes that pass."
-    )
-    seen = OfferedTools()
-    result = asyncio.run(
-        build_lead_agent().run(
-            prompt,
-            deps=_deps(prompt),
-            model=_reclassifying_model(prompt, seen),
-        ),
-    )
-
-    assert isinstance(result.output, LeadResponse)
-    assert len(seen.steps) == 3
-    assert not (seen.steps[1] & BUILDING_TOOLS)
-    assert seen.steps[2] >= UNLOCKED_ON_A_FRESH_THREAD
-    assert {"build_strategy", "edit_strategy"} <= seen.steps[2]
-
-
 # The four calls that build an EDA-backed criterion, in the order the route
 # runs them.
 EDA_ROUTE_TOOLS = frozenset(
@@ -316,18 +220,8 @@ def test_every_building_intent_is_offered_the_whole_eda_route(
 
 
 @pytest.mark.usefixtures("recorded_site_organisms")
-@pytest.mark.parametrize(
-    "classification",
-    [
-        IntentClassification.FOLLOW_UP_QUESTION,
-        IntentClassification.NEW_STRATEGY,
-        IntentClassification.EXTEND_STRATEGY,
-        IntentClassification.EDIT_STRATEGY,
-        IntentClassification.CONTEXT_STATEMENT,
-        IntentClassification.MEMORY_REQUEST,
-    ],
-)
-def test_every_intent_but_off_topic_can_read_a_gene_record(
+@pytest.mark.parametrize("classification", list(IntentClassification))
+def test_every_intent_can_read_a_gene_record(
     classification: IntentClassification,
 ) -> None:
     """A fact about a gene is read from its record on any turn that has one."""
@@ -336,32 +230,8 @@ def test_every_intent_but_off_topic_can_read_a_gene_record(
     assert "read_gene_record" in seen.steps[1]
 
 
-def test_an_off_topic_turn_cannot_read_a_gene_record() -> None:
-    seen = _run(
-        "Write me a Python script that reverses a linked list.",
-        IntentClassification.OFF_TOPIC,
-    )
-
-    assert "read_gene_record" not in seen.steps[1]
-
-
 _COUNT_QUESTION = "How many protein-coding genes does 3D7 have?"
 _EXPLAIN_QUESTION = "What does PF3D7_0708400 do?"
-
-
-def test_a_count_question_builds_and_an_explanation_question_reads() -> None:
-    """A question a search answers is a build; a question about a gene is a read.
-
-    Both are questions in grammar, and the classification the turn writes is
-    what decides which tools the turn reaches.
-    """
-    counting = _run(_COUNT_QUESTION, IntentClassification.NEW_STRATEGY)
-    explaining = _run(_EXPLAIN_QUESTION, IntentClassification.FOLLOW_UP_QUESTION)
-
-    assert "frame_problem" in counting.steps[1]
-    assert counting.steps[1] >= UNLOCKED_ON_A_FRESH_THREAD
-    assert not (explaining.steps[1] & BUILDING_TOOLS)
-    assert "read_gene_record" in explaining.steps[1]
 
 
 def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
@@ -380,18 +250,6 @@ def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
 
     assert len(set(seen.listed)) == 1
     assert set(seen.listed[0]) >= BUILDING_TOOLS
-
-
-def test_an_unclassified_turn_is_told_the_tools_it_cannot_call() -> None:
-    prompt = "I'm investigating virulence factors in Leishmania major"
-    pin = withheld_tools_pin(registered_tools(build_lead_agent().toolsets))
-
-    rendered = pin(run_context_for(_deps(prompt)))
-
-    assert rendered is not None
-    assert rendered.startswith("## Tools you cannot call now\n")
-    assert "build_strategy" in rendered
-    assert "classify_user_intent" not in rendered
 
 
 def test_a_classification_rewrites_no_instruction_and_follows_its_result() -> None:

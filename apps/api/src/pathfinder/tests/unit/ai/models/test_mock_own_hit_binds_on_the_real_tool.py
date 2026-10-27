@@ -202,33 +202,6 @@ async def test_the_own_nearest_hit_binds_with_its_rank_as_the_reason(
     assert (criterion.rationale.basis, criterion.rationale.term) == ("nearest", _TERM)
 
 
-async def test_of_two_hits_tied_at_two_decimals_the_one_the_tool_ranks_higher_binds(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The model reads both scores as 0.47; the tool compares the unrounded ones."""
-    lower = match(
-        _SIGNAL.url_segment, _SIGNAL.display_name, _SIGNAL.description, 0.4698
-    )
-    higher = match(
-        _PERCENTILE.url_segment,
-        _PERCENTILE.display_name,
-        _PERCENTILE.description,
-        0.4712,
-    )
-
-    played, state = await _bound_on(
-        monkeypatch, _PERCENTILE, "plasmodb", ranked=[lower, higher]
-    )
-
-    (criterion,) = state.operational_spec_draft.criteria
-    assert criterion.search_name == _PERCENTILE.url_segment
-    assert criterion.rationale is not None
-    assert criterion.rationale.basis == "nearest"
-    assert [r.split(" scored higher than ")[0] for r in played.refusals] == [
-        f"own_experiment: {_PERCENTILE.display_name}"
-    ]
-
-
 async def test_a_percentile_hit_sends_only_the_parameters_its_sheet_lists(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

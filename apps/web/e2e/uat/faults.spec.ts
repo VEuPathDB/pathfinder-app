@@ -26,10 +26,8 @@ type FaultName =
   | "repeat-control-test"
   | "all-unclear"
   | "sweep-without-controls"
-  | "long-reason"
   | "short-card-reply"
   | "unlisted-search"
-  | "value-as-term"
   | "off-vocabulary"
   | "organism-split"
   | "unshown-count"
@@ -175,35 +173,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
 
-  test("A value passed as a parameter term is corrected", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const organism = siteOrganism(siteId);
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted("single", "value-as-term", S1_TEXT(organism)),
-    );
-
-    await openTraces(chatPage);
-    const corrected = page
-      .getByTestId("trace-row")
-      .filter({ hasText: "why.term corrected to Version" });
-    await expect(corrected).toHaveCount(1);
-    await expect(corrected.getByTestId("trace-row-summary")).toHaveText(
-      /, sets Version; why\.term corrected to Version/,
-    );
-    await expect(corrected.getByTestId("trace-row-status")).not.toHaveAttribute(
-      "data-status",
-      "error",
-    );
-    await expect(correctedRows(page, "Choose a search")).toHaveCount(0);
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-  });
-
   test("A value the vocabulary does not list is refused", async ({
     chatPage,
     apiClient,
@@ -223,32 +192,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       /^organism on GenesWithSignalPeptide has no entry matching \['Organismus fictus'\]\./,
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-  });
-
-  test("FND-10 - a reason past its cap stops the pass, and the pass is continued", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted("intersect", "long-reason", S2_TEXT(siteOrganism(siteId))),
-    );
-
-    await openTraces(chatPage);
-    // Refused, failed without running, refused, refused: four error rows open
-    // with the refusal. The fifth identical call exceeds the retries and ends the pass.
-    const refused = correctedRows(page, "Choose a search");
-    await expect(refused).toHaveCount(4);
-    await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      Array.from(
-        { length: 4 },
-        () => /^tm_domains: the reason holds \d+ characters\. /,
-      ),
-    );
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
   });
 
   test("A count the facts do not show is taken out of the reply", async ({

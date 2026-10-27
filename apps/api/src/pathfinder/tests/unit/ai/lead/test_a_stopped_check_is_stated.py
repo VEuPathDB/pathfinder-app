@@ -11,7 +11,6 @@ from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     building_deps,
-    reading_deps,
     reply,
 )
 
@@ -73,12 +72,3 @@ def test_a_reply_that_states_the_stop_in_any_case_or_hyphenation_passes() -> Non
     found = _mismatches(_built_and_stopped(), _with_its_reason(STATES_THE_STOP))
 
     assert found == []
-
-
-def test_a_stopped_frame_pass_is_held_by_the_unfinished_work_rule_alone() -> None:
-    deps = reading_deps()
-    deps.last_phase_stop = A_FRAME_STOP
-
-    found = _mismatches(deps, reply(OMITS_THE_STOP))
-
-    assert [kind for kind, _ in found] == ["unfinished_work"]

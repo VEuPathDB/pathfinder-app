@@ -44,9 +44,7 @@ question and the caveat below.
 ## Change
 
 1. The answer to an `averages` comparison states that it compares clade averages, not
-   each genome. FRAME's guidance already names the reading for each kind of comparison, and
-   a comparison FRAME classes by its reading is refused while its bound compare reads
-   another way (`FrameResult.comparison_reading`, `domain/strategy/compare_readings.py`).
+   each genome.
 2. The clarifying question offers that approximation with its numbers (the genome counts
    of each clade, the bands it would write) instead of asking for raw thresholds, and the
    turn builds it when the user agrees.

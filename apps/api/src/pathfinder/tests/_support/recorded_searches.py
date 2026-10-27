@@ -32,7 +32,6 @@ from veupathdb_mcp.tool_payloads import SearchListing
 from pathfinder.ai.tools.standalone import (
     _catalog_models,
     _frame_count,
-    _frame_qualifiers,
     _frame_sheet,
     frame_spec,
 )
@@ -196,24 +195,6 @@ def _response(definition: WDKSearch) -> WDKSearchResponse:
     )
 
 
-def serve_qualifier_reads(
-    monkeypatch: pytest.MonkeyPatch, read: Callable[[str], WDKSearch]
-) -> None:
-    """Answer the qualifier rule's reads: plasmodb's transcript listing, and
-    each search it compares, by name."""
-
-    async def _catalog(
-        ctx: SearchContext, **_kw: object
-    ) -> tuple[WDKSearchResponse, str]:
-        return _response(read(ctx.search_name)), ctx.record_type
-
-    async def _site_listing(_site: str, _record_type: str) -> list[WDKSearch]:
-        return transcript_listing()
-
-    monkeypatch.setattr(_frame_qualifiers, "fetch_search_details", _catalog)
-    monkeypatch.setattr(_frame_qualifiers, "get_raw_searches", _site_listing)
-
-
 def no_count(monkeypatch: pytest.MonkeyPatch) -> None:
     """A served search publishes no count, so a binding reads none."""
 
@@ -241,7 +222,6 @@ def serve_recorded(
     monkeypatch.setattr(_frame_sheet, "read_search_definition", _definition)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
     monkeypatch.setattr(frame_spec, "fetch_search_details", _catalog)
-    serve_qualifier_reads(monkeypatch, by_name.__getitem__)
 
 
 def serve_recorded_definitions(

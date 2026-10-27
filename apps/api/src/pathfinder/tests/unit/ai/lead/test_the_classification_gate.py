@@ -16,7 +16,6 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
     nothing_to_answer_message,
 )
-from pathfinder.ai.lead.intent_gate import AUDIT_TOOLS, tools_the_turn_offers
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.record_facts import SourceFact
@@ -196,7 +195,6 @@ async def test_ids_the_conversation_showed_last_are_held() -> None:
     )
 
     assert deps.intent == _audit_of("afu2g18040", "NCU00776")
-    assert tools_the_turn_offers(deps, AUDIT_TOOLS) == AUDIT_TOOLS
 
 
 async def test_an_id_neither_typed_nor_shown_is_refused() -> None:

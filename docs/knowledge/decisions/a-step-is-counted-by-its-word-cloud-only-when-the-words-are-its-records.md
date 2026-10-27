@@ -50,7 +50,7 @@ then `count_step_by_column`); when no step holds them the question is a build an
 the count follows it, through a transform when the records are a result's members;
 `count_by_column` counts only one catalog search's whole result, unchanged, by a
 search name the catalog lists (`ai/lead/_lead_count_rules.py`). Both step tools are
-reads the Lead reaches before the turn is classified (`UNCLASSIFIED_TOOLS`).
+reads every turn reaches.
 
 No OrthoMCL attribute offers `byValue`, so on OrthoMCL every count of a record
 type column is a word cloud.
