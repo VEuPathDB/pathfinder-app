@@ -30,13 +30,15 @@ from pathfinder.domain.site_checks import (
     OrganismCount,
     SiteCheck,
     SiteStep,
+    UnreadOrganisms,
     bound_values_check,
     combine_counts_check,
     expression_fit_checks,
     organism_check,
     result_count_check,
     tally_checks,
-    unread_checks,
+    unanswered_checks,
+    unanswered_columns,
     validity_check,
 )
 from pathfinder.domain.strategy.constraints import (
@@ -158,7 +160,7 @@ async def _strategy_checks(judged: _Judged) -> list[SiteCheck]:
 
 async def _counted_organisms(
     judged: _Judged, root: SiteStep
-) -> tuple[CountedOrganisms | None, str]:
+) -> CountedOrganisms | UnreadOrganisms:
     counted = CountedStep(
         site_id=judged.site_id,
         wdk_step_id=root.wdk_step_id,
@@ -175,11 +177,17 @@ async def _counted_organisms(
             deadline=READ_DEADLINE_SECONDS,
         )
     except ColumnTallyRefusedError as refused:
-        return None, f"the site does not count the organisms of {root.named}: {refused}"
+        return UnreadOrganisms(
+            why="no_check",
+            evidence=f"the site does not count the organisms of {root.named}: {refused}",
+        )
     except ToolFailed:
-        return None, f"the site did not answer the organism count of {root.named}"
+        return UnreadOrganisms(
+            why="site_unanswered",
+            evidence=f"the site did not answer the organism count of {root.named}",
+        )
     rows = [OrganismCount(organism=row.value, count=row.count) for row in tally.rows]
-    return CountedOrganisms(step=root.named, total=tally.total, rows=rows), ""
+    return CountedOrganisms(step=root.named, total=tally.total, rows=rows)
 
 
 async def _organism_checks(
@@ -194,9 +202,7 @@ async def _organism_checks(
         ast.root, organism_params_of(spec.criteria), dataset_organisms_of(spec.criteria)
     )
     selected = None if found is None else frozenset(found)
-    counted, unread = (
-        (None, "") if selected is None else await _counted_organisms(judged, root)
-    )
+    counted = None if selected is None else await _counted_organisms(judged, root)
     checks: list[SiteCheck] = []
     carried = False
     for held in asked:
@@ -206,7 +212,7 @@ async def _organism_checks(
         )
         carried = carried or names
         checks.append(
-            organism_check(c.requested_value, c.key, selected, counted, unread)
+            organism_check(c.requested_value, c.key, selected, counted)
             if names
             else SiteCheck(
                 kind=ConstraintKind.ORGANISM,
@@ -214,10 +220,11 @@ async def _organism_checks(
                 status="unchecked",
                 evidence="no organism the strategy selects for its result is named so",
                 requirement=c.key,
+                why_unchecked="no_check",
             )
         )
     if not carried:
-        checks.append(organism_check(_RESULT_ORGANISMS, "", selected, counted, unread))
+        checks.append(organism_check(_RESULT_ORGANISMS, "", selected, counted))
     return checks
 
 
@@ -243,12 +250,18 @@ async def _requirement_checks(
     ]
 
 
-async def read_the_columns(deps: LeadDeps, agent_deps: AgentDeps) -> list[str]:
+@dataclass(frozen=True)
+class ColumnReads:
+    notes: list[str]
+    unanswered: list[SiteCheck]
+
+
+async def read_the_columns(deps: LeadDeps, agent_deps: AgentDeps) -> ColumnReads:
     session = deps.runtime.strategy_session
     graph, sync = session.get_graph(None), session.sync_state
+    reads = ColumnReads(notes=[], unanswered=[])
     if graph is None or sync is None:
-        return []
-    notes: list[str] = []
+        return reads
     for step_id, step in graph.steps.items():
         wdk_step_id = sync.wdk_step_ids.get(step_id)
         if step.kind is StepKind.COMBINE or not step.search_name or wdk_step_id is None:
@@ -256,9 +269,10 @@ async def read_the_columns(deps: LeadDeps, agent_deps: AgentDeps) -> list[str]:
         try:
             read = await read_step_columns(agent_deps, wdk_step_id)
         except ToolFailed:
+            reads.unanswered.append(unanswered_columns(f"step {wdk_step_id}"))
             continue
-        notes.extend([read.note] if read.note else [])
-    return notes
+        reads.notes.extend([read.note] if read.note else [])
+    return reads
 
 
 async def site_checks(deps: LeadDeps) -> list[SiteCheck]:
@@ -275,7 +289,10 @@ async def site_checks(deps: LeadDeps) -> list[SiteCheck]:
     ]
     details = await read_site_strategy(site_id, sync.wdk_strategy_id)
     if details is None:
-        return [*unread_checks("the site did not answer the strategy read"), *computed]
+        return [
+            *unanswered_checks("the site did not answer the strategy read"),
+            *computed,
+        ]
     judged = _judged(site_id, graph, sync, details)
     stated = [
         held
@@ -291,4 +308,4 @@ async def site_checks(deps: LeadDeps) -> list[SiteCheck]:
     ]
 
 
-__all__ = ["read_the_columns", "site_checks"]
+__all__ = ["ColumnReads", "read_the_columns", "site_checks"]

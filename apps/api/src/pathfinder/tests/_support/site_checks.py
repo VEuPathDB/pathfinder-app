@@ -7,6 +7,7 @@ import pytest
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import verify_dispatch
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.verify_checks import ColumnReads
 from pathfinder.domain.site_checks import SiteCheck
 
 PASSED = SiteCheck(
@@ -26,9 +27,9 @@ def checked_site(
         ran.append(deps)
         return list(checks)
 
-    async def no_columns(deps: LeadDeps, agent_deps: AgentDeps) -> list[str]:
+    async def no_columns(deps: LeadDeps, agent_deps: AgentDeps) -> ColumnReads:
         del deps, agent_deps
-        return []
+        return ColumnReads(notes=[], unanswered=[])
 
     monkeypatch.setattr(verify_dispatch, "site_checks", site_checks)
     monkeypatch.setattr(verify_dispatch, "read_the_columns", no_columns)

@@ -17410,6 +17410,10 @@ components:
           default: ''
           title: Requirement
           type: string
+        whyUnchecked:
+          anyOf:
+          - $ref: '#/components/schemas/UncheckedReason'
+          - type: 'null'
       required:
       - kind
       - subject
@@ -17699,6 +17703,7 @@ components:
       - result_count
       - expression_fit
       - tally
+      - step_columns
       type: string
     StepFact:
       description: 'One step of the strategy, or of the draft while nothing is built.
@@ -18471,6 +18476,11 @@ components:
       - errorText
       title: TurnWithdrawnPayload
       type: object
+    UncheckedReason:
+      enum:
+      - no_check
+      - site_unanswered
+      type: string
     UniqueGene:
       description: One gene only this variant returns, with the product its record names.
       properties:

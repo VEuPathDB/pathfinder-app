@@ -235,6 +235,10 @@ class VerificationSection(CamelModel):
         return self.digest is not None and self.digest.passed
 
     @property
+    def not_checked(self) -> bool:
+        return self.digest is not None and self.digest.not_checked
+
+    @property
     def pending_checks(self) -> list[str]:
         """The steps a passing check could not read, empty after an objection."""
         digest = self.digest

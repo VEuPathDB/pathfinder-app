@@ -126,6 +126,14 @@ class VerificationDigest(CamelModel):
         return self.success and not self.pending_checks
 
     @property
+    def not_checked(self) -> bool:
+        return (
+            not self.success
+            and self.disposition is PhaseDisposition.DONE
+            and any(check.site_unanswered for check in self.review.checks)
+        )
+
+    @property
     def blames_the_tree(self) -> bool:
         """True when the check failed on the strategy's own structure, or found a
         requirement no step of the strategy answers."""

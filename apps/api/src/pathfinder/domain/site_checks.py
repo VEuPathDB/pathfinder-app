@@ -4,7 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.validation import StepValidation
 
@@ -15,6 +15,7 @@ from pathfinder.domain.strategy.words import words_of
 from pathfinder.domain.tally_facts import TallyFact
 
 type CheckStatus = Literal["pass", "fail", "unchecked"]
+type UncheckedReason = Literal["no_check", "site_unanswered"]
 type StepCheckKind = Literal[
     "step_valid",
     "bound_values",
@@ -22,6 +23,7 @@ type StepCheckKind = Literal[
     "result_count",
     "expression_fit",
     "tally",
+    "step_columns",
 ]
 
 _STRUCTURE_KINDS: frozenset[str] = frozenset(
@@ -37,6 +39,18 @@ class SiteCheck(CamelModel):
     status: CheckStatus
     evidence: str = Field(min_length=1)
     requirement: str = ""
+    why_unchecked: UncheckedReason | None = None
+
+    @model_validator(mode="after")
+    def _an_unchecked_check_says_why(self) -> SiteCheck:
+        if (self.status == "unchecked") != (self.why_unchecked is not None):
+            msg = "a check is unchecked exactly when it names why"
+            raise ValueError(msg)
+        return self
+
+    @property
+    def site_unanswered(self) -> bool:
+        return self.why_unchecked == "site_unanswered"
 
     @property
     def breaks_the_structure(self) -> bool:
@@ -93,11 +107,27 @@ class SiteStep(CamelModel):
 _STRATEGY = "the strategy on the site"
 
 
-def unread_checks(why: str) -> list[SiteCheck]:
+def unanswered_checks(why: str) -> list[SiteCheck]:
     return [
-        SiteCheck(kind=kind, subject=_STRATEGY, status="unchecked", evidence=why)
+        SiteCheck(
+            kind=kind,
+            subject=_STRATEGY,
+            status="unchecked",
+            evidence=why,
+            why_unchecked="site_unanswered",
+        )
         for kind in ("step_valid", "bound_values", "result_count")
     ]
+
+
+def unanswered_columns(step: str) -> SiteCheck:
+    return SiteCheck(
+        kind="step_columns",
+        subject=step,
+        status="unchecked",
+        evidence=f"the site did not answer the column read of {step}",
+        why_unchecked="site_unanswered",
+    )
 
 
 def validity_check(steps: Sequence[SiteStep]) -> SiteCheck:
@@ -123,6 +153,7 @@ def validity_check(steps: Sequence[SiteStep]) -> SiteCheck:
             subject=_STRATEGY,
             status="unchecked",
             evidence="the site states the validity of no step",
+            why_unchecked="no_check",
         )
     return SiteCheck(
         kind="step_valid",
@@ -161,7 +192,8 @@ def bound_values_check(compared: int, differing: Sequence[HeldValue]) -> SiteChe
             kind="bound_values",
             subject=_STRATEGY,
             status="unchecked",
-            evidence="no search step's values were read on the site",
+            evidence="no step of the strategy binds a value to compare",
+            why_unchecked="no_check",
         )
     return SiteCheck(
         kind="bound_values",
@@ -218,9 +250,15 @@ _AT_MOST_LEFT = frozenset({CombineOp.MINUS, CombineOp.LONLY})
 _AT_MOST_RIGHT = frozenset({CombineOp.RMINUS, CombineOp.RONLY})
 
 
-def _combine_check(status: CheckStatus, evidence: str) -> SiteCheck:
+def _combine_check(
+    status: CheckStatus, evidence: str, why: UncheckedReason | None = None
+) -> SiteCheck:
     return SiteCheck(
-        kind="combine_counts", subject=_STRATEGY, status=status, evidence=evidence
+        kind="combine_counts",
+        subject=_STRATEGY,
+        status=status,
+        evidence=evidence,
+        why_unchecked=why,
     )
 
 
@@ -230,7 +268,9 @@ def combine_counts_check(joins: Sequence[JoinedCounts]) -> SiteCheck | None:
     read = [join for join in joins if join.holds() is not None]
     if not read:
         return _combine_check(
-            "unchecked", "the site counted no combine together with its inputs"
+            "unchecked",
+            "the site counted no combine together with its inputs",
+            "site_unanswered",
         )
     broken = [join for join in read if join.holds() is False]
     if broken:
@@ -249,6 +289,7 @@ def result_count_check(root: SiteStep | None) -> SiteCheck:
             subject=_STRATEGY,
             status="unchecked",
             evidence="the site did not count the result step",
+            why_unchecked="site_unanswered",
         )
     if root.count == 0:
         return SiteCheck(
@@ -300,6 +341,13 @@ class OrganismCount(CamelModel):
     count: int
 
 
+class UnreadOrganisms(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    why: UncheckedReason
+    evidence: str
+
+
 class CountedOrganisms(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -321,24 +369,31 @@ def organism_check(
     subject: str,
     requirement: str,
     selected: frozenset[str] | None,
-    found: CountedOrganisms | None,
-    unread: str,
+    read: CountedOrganisms | UnreadOrganisms | None,
 ) -> SiteCheck:
-    def judged(status: CheckStatus, evidence: str) -> SiteCheck:
+    def judged(
+        status: CheckStatus, evidence: str, why: UncheckedReason | None = None
+    ) -> SiteCheck:
         return SiteCheck(
             kind=ConstraintKind.ORGANISM,
             subject=subject,
             status=status,
             evidence=evidence,
             requirement=requirement,
+            why_unchecked=why,
         )
 
-    if selected is None:
-        return judged(
-            "unchecked", "no step of the strategy selects the organism of its result"
-        )
-    if found is None:
-        return judged("unchecked", unread)
+    match read:
+        case UnreadOrganisms(why=why, evidence=evidence):
+            return judged("unchecked", evidence, why)
+        case CountedOrganisms() as found if selected is not None:
+            pass
+        case _:
+            return judged(
+                "unchecked",
+                "no step of the strategy selects the organism of its result",
+                "no_check",
+            )
     outside = [
         row
         for row in found.rows
@@ -356,6 +411,7 @@ def organism_check(
             "unchecked",
             f"the site named the organisms of only some of the {found.total:,} "
             f"records of {found.step}",
+            "no_check",
         )
     return judged(
         "pass",
@@ -374,6 +430,8 @@ __all__ = [
     "SiteCheckGap",
     "SiteStep",
     "StepCheckKind",
+    "UncheckedReason",
+    "UnreadOrganisms",
     "bound_values_check",
     "combine_counts_check",
     "expression_fit_checks",
@@ -381,6 +439,7 @@ __all__ = [
     "organism_check",
     "result_count_check",
     "tally_checks",
-    "unread_checks",
+    "unanswered_checks",
+    "unanswered_columns",
     "validity_check",
 ]

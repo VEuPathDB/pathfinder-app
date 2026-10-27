@@ -190,6 +190,48 @@ describe("DataEvidenceCard", () => {
     expect(checks.getByText("Failed").className).toBe("text-destructive");
   });
 
+  it("says the site did not answer apart from a requirement no check reads", () => {
+    const review = REVIEWED_CARD.review ?? {};
+    render(
+      <DataEvidenceCard
+        data={{
+          ...REVIEWED_CARD,
+          review: {
+            ...review,
+            checks: [
+              {
+                kind: "result_count",
+                subject: "the strategy on the site",
+                status: "unchecked",
+                evidence: "the site did not answer the strategy read",
+                requirement: "",
+                whyUnchecked: "site_unanswered",
+              },
+              ...(review.checks ?? []).slice(-1),
+            ],
+          },
+        }}
+      />,
+    );
+
+    const checks = within(screen.getByTestId("evidence-checks"));
+    expect([
+      checks.getByTestId("evidence-site-unanswered").textContent,
+      ...checks.getAllByRole("row").map((row) => row.textContent),
+    ]).toEqual([
+      "The site did not answer, so the strategy is not checked.",
+      "CheckResultWhat the site answered",
+      "the strategy on the siteNo answer from the sitethe site did not answer the strategy read",
+      "with a signal peptideNot checkedno check reads this requirement on the site",
+    ]);
+  });
+
+  it("states no unanswered site when every unchecked check has no check", () => {
+    render(<DataEvidenceCard data={REVIEWED_CARD} />);
+
+    expect(screen.queryAllByTestId("evidence-site-unanswered")).toHaveLength(0);
+  });
+
   it("links the site's enrichment and leaves opening the strategy to the facts", () => {
     render(<DataEvidenceCard data={EVIDENCE_CARD} />);
 

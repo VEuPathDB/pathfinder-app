@@ -42,6 +42,12 @@ const STATUS_WORDS: Record<SiteCheck["status"], string> = {
   unchecked: "Not checked",
 };
 
+function statusWords(check: SiteCheck): string {
+  return check.whyUnchecked === "site_unanswered"
+    ? "No answer from the site"
+    : STATUS_WORDS[check.status];
+}
+
 const FIT_WORDS: Record<SampledGene["fits"], string> = {
   yes: "Fits",
   no: "Does not fit",
@@ -77,7 +83,7 @@ function checkRow(check: SiteCheck, index: number): ExhibitRow {
     cells: [
       check.subject,
       <span key="status" className={check.status === "fail" ? "text-destructive" : ""}>
-        {STATUS_WORDS[check.status]}
+        {statusWords(check)}
       </span>,
       check.evidence,
     ],
@@ -193,6 +199,14 @@ export function EvidenceReview({
     <div data-testid="evidence-review" className="space-y-3">
       {checks.length > 0 ? (
         <div data-testid="evidence-checks">
+          {checks.some((check) => check.whyUnchecked === "site_unanswered") ? (
+            <p
+              data-testid="evidence-site-unanswered"
+              className="mb-1.5 text-[11px] text-muted-foreground"
+            >
+              The site did not answer, so the strategy is not checked.
+            </p>
+          ) : null}
           <ExhibitTable columns={CHECK_COLUMNS} rows={checks.map(checkRow)} />
         </div>
       ) : null}

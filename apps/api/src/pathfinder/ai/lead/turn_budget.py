@@ -104,6 +104,8 @@ def _verdict(digest: VerificationDigest) -> str:
         )
     if digest.success:
         return "Verification passed."
+    if digest.not_checked:
+        return "Not verified: the site did not answer the check."
     first = _SENTENCE_END.split(digest.reason.strip(), maxsplit=1)[0]
     if machine_words(first):
         return "Verification objected."

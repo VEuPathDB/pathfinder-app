@@ -37,6 +37,7 @@ _REVIEW = VerificationReview(
             subject="the genes ada@example.org asked for",
             status="unchecked",
             evidence="no check reads this requirement on the site",
+            why_unchecked="no_check",
         )
     ],
     column_fits=[

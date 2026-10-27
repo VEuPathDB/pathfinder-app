@@ -82,11 +82,11 @@ def blamed_the_site(
     """Why this text may not stand over this build, or None.
 
     Text that names VEuPathDB together with a transient state asks the user to
-    wait for the site. It stands only where a WDK call failed. A sentence that
-    names the site and a pending step, or says the site did not describe it,
-    is exempt.
+    wait for the site. It stands only where a WDK call failed or the site did
+    not answer the check. A sentence that names the site and a pending step,
+    or says the site did not describe it, is exempt.
     """
-    if build.failed_count or build.zero_result_steps:
+    if build.failed_count or build.zero_result_steps or verification.not_checked:
         return None
     pending = verification.pending_checks
     lowered = " ".join(

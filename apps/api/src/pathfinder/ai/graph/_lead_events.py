@@ -151,6 +151,8 @@ def _verified(delta: VerificationDelta) -> str:
     digest = delta.digest
     if digest.passed:
         return "Verified successfully"
+    if digest.not_checked:
+        return "Not checked: the site did not answer"
     if not digest.success:
         return "Issues found"
     return f"Passed, {count_noun(len(digest.pending_checks), 'check')} pending"

@@ -25983,6 +25983,16 @@
             "default": "",
             "title": "Requirement",
             "type": "string"
+          },
+          "whyUnchecked": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UncheckedReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -26365,7 +26375,8 @@
           "combine_counts",
           "result_count",
           "expression_fit",
-          "tally"
+          "tally",
+          "step_columns"
         ],
         "type": "string"
       },
@@ -27490,6 +27501,13 @@
         ],
         "title": "TurnWithdrawnPayload",
         "type": "object"
+      },
+      "UncheckedReason": {
+        "enum": [
+          "no_check",
+          "site_unanswered"
+        ],
+        "type": "string"
       },
       "UniqueGene": {
         "description": "One gene only this variant returns, with the product its record names.",

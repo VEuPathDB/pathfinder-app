@@ -244,6 +244,7 @@ async def test_an_unchecked_requirement_never_fails_the_verdict(
         subject="which organisms have the most singletons",
         status="unchecked",
         evidence="no check reads this requirement on the site",
+        why_unchecked="no_check",
         requirement="other:which organisms have the most singletons",
     )
 

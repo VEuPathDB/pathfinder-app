@@ -2,6 +2,13 @@
 
 ## 2026-10-27
 
+* **A verdict the site did not answer is not a pass.** An `unchecked` site check names why:
+  `no_check` for a requirement kind with nothing to compare, `site_unanswered` for a strategy
+  read, a column read, an organism count or a count the site did not answer. One
+  `site_unanswered` check makes the verdict not checked: `success` is false with nothing
+  failed, no memory is written, and the card, the ledger and the turn summary say the site
+  did not answer. A reply that asks the researcher to try again later is not site blame then.
+  See [a verification verdict is computed from the site](decisions/a-verification-verdict-is-computed-from-the-site.md).
 * **A verification verdict is computed from the site.** Every check runs typed checks in
   code before the checker model runs (`ai/lead/verify_checks.py`, `domain/site_checks.py`,
   `domain/requirement_checks.py`): step validity, the bound values against the site's

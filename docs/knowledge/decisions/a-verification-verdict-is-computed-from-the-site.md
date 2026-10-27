@@ -33,8 +33,16 @@ The verdict is `success` exactly when no check fails, no word a criterion states
 is unstated by every search, and the build put every step on the site with
 records. The checker cannot write `success`, `disposition`, `reason`,
 `failure_cause`, `gaps` or the checks: they are omitted from its schema and set
-in code. A check the site does not answer, or a requirement kind with no
-deterministic check, is `unchecked` and never fails the verdict.
+in code.
+
+An `unchecked` check names why in `why_unchecked`. `no_check` is a requirement
+kind or a step property with nothing to compare on the site; it never blocks
+the verdict. `site_unanswered` is a read the site did not answer: the strategy
+read, a column read, the organism count, or a count the strategy read leaves
+out. Any such check makes the verdict not checked: `success` is false, nothing
+fails, the disposition stays `done` with no handoff, the reason says the site
+did not answer, no memory is written, and the card and every summary say the
+site did not answer instead of a pass or an objection.
 
 The checker's remaining part is optional: it samples the root, reads up to
 eight gene records and may cite sources; its prose and its sampled genes are
@@ -62,6 +70,10 @@ check writes it again ([a saved conversation outlives the build that saved it](a
 - **Running the control tests in code.** A control test is a durable job; its
   result stays a caveat, since a missed control measures recall, not whether the
   strategy states the request.
+- **Passing a verdict the site did not answer.** With the strategy read lost,
+  no check can fail, so a verdict computed from failures alone passes a strategy
+  nothing checked. An unanswered read is a typed reason, not a failure, because
+  the strategy is not shown wrong either.
 - **Failing an organism requirement whose words name no organism the strategy
   selects.** An organism a request names can be the target of an ortholog
   pattern and not the organism of the result, so such a requirement is
@@ -71,8 +83,9 @@ check writes it again ([a saved conversation outlives the build that saved it](a
 
 `tests/unit/domain/test_site_checks.py` holds each check kind on recorded WDK
 bodies, `tests/unit/ai/lead/test_a_verdict_is_computed_from_the_site.py` the
-recorded singleton ranking that passes over an objecting checker and a value the
-site holds otherwise, `tests/unit/ai/lead/test_a_second_organism_fails_the_verdict.py`
+recorded singleton ranking that passes over an objecting checker, a value the
+site holds otherwise and a strategy read the site did not answer,
+`tests/unit/ai/lead/test_a_second_organism_fails_the_verdict.py`
 a step whose organism column holds a second organism, and
 `tests/unit/ai/lead/test_verify_dispatch_digest.py` a checker that objects to a
 passing check.

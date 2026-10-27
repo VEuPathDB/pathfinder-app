@@ -13,12 +13,15 @@ from pathfinder.domain.site_checks import (
     SiteCheck,
     SiteCheckGap,
     SiteStep,
+    UnreadOrganisms,
     bound_values_check,
     combine_counts_check,
     failed,
     organism_check,
     result_count_check,
     tally_checks,
+    unanswered_checks,
+    unanswered_columns,
     validity_check,
 )
 from pathfinder.domain.strategy.constraints import (
@@ -100,7 +103,7 @@ def test_a_value_the_site_holds_otherwise_fails_with_both_values() -> None:
             ),
         ),
         ("pass", "the site holds every value the spec binds on 2 search steps"),
-        ("unchecked", "no search step's values were read on the site"),
+        ("unchecked", "no step of the strategy binds a value to compare"),
     ]
 
 
@@ -209,7 +212,7 @@ def test_a_record_of_an_organism_the_strategy_does_not_select_fails() -> None:
     selected = frozenset({_pf("falciparum 3D7")})
     found = _counted((_pf("falciparum 3D7"), 819), (_pf("falciparum IT"), 21))
 
-    check = organism_check("P. falciparum 3D7", "organism:x", selected, found, "")
+    check = organism_check("P. falciparum 3D7", "organism:x", selected, found)
 
     assert (check.status, check.requirement, check.evidence) == (
         "fail",
@@ -229,7 +232,6 @@ def test_a_species_selected_whole_holds_its_strains() -> None:
         "",
         frozenset({"Plasmodium falciparum"}),
         found,
-        "",
     )
 
     assert check.status == "pass"
@@ -238,17 +240,59 @@ def test_a_species_selected_whole_holds_its_strains() -> None:
 def test_an_organism_count_the_site_cut_short_or_did_not_read_is_unchecked() -> None:
     selected = frozenset({_pf("falciparum 3D7")})
 
+    refused = UnreadOrganisms(why="no_check", evidence="the site refused the column")
+    unanswered = UnreadOrganisms(
+        why="site_unanswered", evidence="the site did not answer the organism count"
+    )
+    cut = _counted((_pf("falciparum 3D7"), 800), total=840)
+
     assert [
-        organism_check("x", "", selected, None, "the site refused the column").evidence,
-        organism_check("x", "", None, None, "").evidence,
-        organism_check(
-            "x", "", selected, _counted((_pf("falciparum 3D7"), 800), total=840), ""
-        ).status,
+        (check.status, check.why_unchecked, check.evidence)
+        for check in (
+            organism_check("x", "", selected, refused),
+            organism_check("x", "", selected, unanswered),
+            organism_check("x", "", None, None),
+        )
     ] == [
-        "the site refused the column",
-        "no step of the strategy selects the organism of its result",
-        "unchecked",
+        ("unchecked", "no_check", "the site refused the column"),
+        ("unchecked", "site_unanswered", "the site did not answer the organism count"),
+        (
+            "unchecked",
+            "no_check",
+            "no step of the strategy selects the organism of its result",
+        ),
     ]
+    assert organism_check("x", "", selected, cut).why_unchecked == "no_check"
+
+
+def test_a_check_is_unchecked_exactly_when_it_names_why() -> None:
+    with pytest.raises(ValueError, match="names why"):
+        SiteCheck(kind="tally", subject="x", status="unchecked", evidence="e")
+    with pytest.raises(ValueError, match="names why"):
+        SiteCheck(
+            kind="tally",
+            subject="x",
+            status="pass",
+            evidence="e",
+            why_unchecked="no_check",
+        )
+
+
+def test_a_read_the_site_did_not_answer_is_unchecked_for_that_reason() -> None:
+    checks = [
+        *unanswered_checks("the site did not answer the strategy read"),
+        unanswered_columns("step 11"),
+        result_count_check(None),
+    ]
+
+    assert [(c.kind, c.site_unanswered) for c in checks] == [
+        ("step_valid", True),
+        ("bound_values", True),
+        ("result_count", True),
+        ("step_columns", True),
+        ("result_count", True),
+    ]
+    assert checks[3].evidence == "the site did not answer the column read of step 11"
 
 
 @pytest.mark.parametrize(

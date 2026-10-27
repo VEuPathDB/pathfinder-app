@@ -130,6 +130,7 @@ export const REVIEWED_CARD: EvidenceCard = {
         status: "unchecked",
         evidence: "no check reads this requirement on the site",
         requirement: "other:with a signal peptide",
+        whyUnchecked: "no_check",
       },
     ],
     sampledGenes: [

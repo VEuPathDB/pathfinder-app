@@ -182,6 +182,8 @@ def render_build_full(section: BuildSection) -> str:
 def _verdict_line(digest: VerificationDigest) -> str:
     """Success, or a pass with the checks the site left pending, by step."""
     pending = digest.pending_checks
+    if digest.not_checked:
+        return "- verdict: not checked, the site did not answer"
     if not digest.success or not pending:
         return f"- success: {digest.success}"
     return (

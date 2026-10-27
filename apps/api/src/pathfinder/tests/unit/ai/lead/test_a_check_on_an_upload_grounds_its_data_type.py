@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from veupathdb.domain.strategy import StepKind, StrategyStep
+from veupathdb.wdk import WDKStrategyDetails
 
 from pathfinder.ai.lead import sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
@@ -26,6 +27,7 @@ from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests._support.user_dataset_doubles import UPLOAD_DATASET
 from pathfinder.tests.fixtures.builders import add_step_to_graph
+from pathfinder.tests.unit.ai.lead._site_verdict import VALID, serve_the_site
 from pathfinder.tests.unit.ai.lead.conftest import (
     final_result_part,
     lead_deps,
@@ -99,6 +101,27 @@ def _deseq_state() -> Any:
     return state
 
 
+def _held() -> WDKStrategyDetails:
+    return WDKStrategyDetails.model_validate(
+        {
+            "strategyId": 330857143,
+            "name": "DESeq",
+            "rootStepId": 441127973,
+            "stepTree": {"stepId": 441127973},
+            "steps": {
+                "441127973": {
+                    "id": 441127973,
+                    "searchName": "GenesByDESeqUserDataset",
+                    "searchConfig": {"parameters": {}},
+                    "recordClassName": "TranscriptRecordClasses.TranscriptRecordClass",
+                    "estimatedSize": 39,
+                    "validation": VALID,
+                }
+            },
+        }
+    )
+
+
 async def test_the_check_reads_the_uploads_type_before_it_runs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -113,6 +136,7 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
         ]
 
     monkeypatch.setattr(bound_uploads, "owned_uploads", _uploads)
+    serve_the_site(monkeypatch, _held(), [])
     deps = lead_deps(_deseq_state(), strategy_session=_session())
     seen: list[DataMarks] = []
 

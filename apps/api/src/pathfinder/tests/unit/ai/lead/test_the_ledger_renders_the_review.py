@@ -35,6 +35,7 @@ def test_the_full_section_lists_the_review() -> None:
                 subject="at least 2 transmembrane domains",
                 status="unchecked",
                 evidence="no check reads this requirement on the site",
+                why_unchecked="no_check",
             ),
         ],
         column_fits=[tm_fit(840, 840)],

@@ -7,6 +7,7 @@ import pytest
 from pydantic import TypeAdapter
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StepKind, StrategyAst, StrategyStep, walk
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     StrategyAPI,
     WDKStepTree,
@@ -14,6 +15,7 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import WireStep
 
+from pathfinder.ai.graph.state import PhaseDisposition
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -26,7 +28,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
-from pathfinder.services.strategies import site_changes
+from pathfinder.services.strategies import site_changes, site_counts
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.orthomcl_record_classes import (
@@ -264,3 +266,34 @@ async def test_a_bound_value_the_site_holds_otherwise_fails_the_check(
         False,
         [SiteCheckGap(check=moved)],
     )
+
+
+class _UnansweringSite:
+    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
+        assert strategy_id == _STRATEGY
+        failure = "Request failed after retries: ConnectError"
+        raise WDKError(failure, status=502)
+
+
+async def test_a_site_that_does_not_answer_the_strategy_read_gives_no_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(site_counts, "get_strategy_api", lambda _: _UnansweringSite())
+    deps = _singleton_deps()
+
+    digest = (await verify(monkeypatch, deps, UNANSWERED_DIGEST)).digest
+
+    assert (digest.success, digest.passed, digest.not_checked) == (False, False, True)
+    assert (digest.disposition, digest.handoff_to, digest.gaps) == (
+        PhaseDisposition.DONE,
+        None,
+        [],
+    )
+    assert digest.reason == "The site did not answer, so the strategy is not checked"
+    assert [(c.kind, c.status, c.why_unchecked) for c in digest.review.checks] == [
+        ("step_valid", "unchecked", "site_unanswered"),
+        ("bound_values", "unchecked", "site_unanswered"),
+        ("result_count", "unchecked", "site_unanswered"),
+        ("tally", "pass", None),
+    ]
+    assert deps.state.turn_markers.verified is False

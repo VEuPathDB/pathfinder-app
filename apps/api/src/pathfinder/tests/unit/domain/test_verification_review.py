@@ -56,6 +56,7 @@ def test_the_review_lists_every_text_a_reader_can_see() -> None:
                 subject="with a signal peptide",
                 status="unchecked",
                 evidence="no check reads this requirement on the site",
+                why_unchecked="no_check",
             )
         ],
         sampled_genes=[_gene("PF3D7_0100100", "yes")],

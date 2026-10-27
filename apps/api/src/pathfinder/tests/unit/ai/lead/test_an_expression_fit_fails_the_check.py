@@ -9,7 +9,7 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKStepTree
+from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import evidence_card, verify_checks, verify_dispatch
@@ -131,13 +131,31 @@ async def _run(
         del deps
         return StepColumns(wdk_step_id=wdk_step_id)
 
-    async def unanswered(site_id: str, wdk_strategy_id: int) -> None:
-        del site_id, wdk_strategy_id
+    async def held(site_id: str, wdk_strategy_id: int) -> WDKStrategyDetails:
+        del site_id
+        return WDKStrategyDetails.model_validate(
+            {
+                "strategyId": wdk_strategy_id,
+                "name": "Single copy",
+                "rootStepId": _ROOT,
+                "stepTree": {"stepId": _ROOT},
+                "steps": {
+                    str(_ROOT): {
+                        "id": _ROOT,
+                        "searchName": PHYLETIC_EXPRESSION_SEARCH,
+                        "searchConfig": {"parameters": {}},
+                        "recordClassName": "group",
+                        "estimatedSize": count,
+                        "validation": {"level": "RUNNABLE", "isValid": True},
+                    }
+                },
+            }
+        )
 
     monkeypatch.setattr(verify_dispatch, "stream_sub_agent", streamed)
     monkeypatch.setattr(evidence_card, "read_step_counts", counts)
     monkeypatch.setattr(verify_checks, "read_step_columns", held_columns)
-    monkeypatch.setattr(verify_checks, "read_site_strategy", unanswered)
+    monkeypatch.setattr(verify_checks, "read_site_strategy", held)
     delta = await run_verification(
         deps=deps, parent_tool_call_id="call_verify", reason="check the groups"
     )
@@ -188,11 +206,18 @@ async def test_an_empty_step_the_site_cannot_match_fails_the_check(
 
     delta = await _run(monkeypatch, deps, 0)
 
+    empty = SiteCheck(
+        kind="result_count",
+        subject="the strategy on the site",
+        status="fail",
+        evidence=f"the result step {_ROOT} ('GroupsByPhyleticPattern') holds no "
+        "record on the site",
+    )
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
-        [_gap(unmatched)],
+        [SiteCheckGap(check=empty), _gap(unmatched)],
     )
-    assert delta.digest.gaps[0].sentence == (
+    assert delta.digest.gaps[1].sentence == (
         f"'phyletic expression {_UNMATCHED_EXPRESSION}': "
         f"step {_ROOT} holds no group, and its phyletic expression matches none "
         f"as the site reads it: {_ZERO_BOUND}"
@@ -232,7 +257,7 @@ async def test_a_step_rebound_in_place_drops_the_fit_of_its_old_expression(
     first = await _run(monkeypatch, deps, 0)
     deps.state.domain.operational_spec = _spec("APIC>=1T AND MAMM=0T")
 
-    second = await _run(monkeypatch, deps, 0)
+    second = await _run(monkeypatch, deps, 2)
 
     card = deps.state.domain.last_evidence_card
     assert card is not None

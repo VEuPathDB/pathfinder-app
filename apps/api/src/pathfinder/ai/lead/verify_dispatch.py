@@ -160,12 +160,17 @@ async def run_verification(
     domain.data_marks = await marks_with_uploads(
         site_id, [domain.operational_spec], uploads
     )
-    notes = await read_the_columns(deps, agent_deps)
-    checks = await site_checks(deps)
+    columns = await read_the_columns(deps, agent_deps)
+    checks = [*await site_checks(deps), *columns.unanswered]
     run = PhaseRun(
         "verification",
         work_order(
-            reason, scope.controls, root_sample(deps), checks, _live_fits(deps), notes
+            reason,
+            scope.controls,
+            root_sample(deps),
+            checks,
+            _live_fits(deps),
+            columns.notes,
         ),
     )
     delta = await stream_sub_agent(
@@ -248,12 +253,16 @@ def _build(deps: LeadDeps) -> BuildCaveat | None:
     return build_contradiction(ledger.build, built_step_count=len(live))
 
 
-def _verdict(build: BuildCaveat | None, gaps: list[Gap]) -> str:
+def _verdict(build: BuildCaveat | None, gaps: list[Gap], *, unanswered: bool) -> str:
     found = [
         *([] if build is None else [build.sentence]),
         *(gap.sentence for gap in gaps if gap.fails_the_check),
     ]
-    return "; ".join(found) or "No check of the strategy on the site failed"
+    if found:
+        return "; ".join(found)
+    if unanswered:
+        return "The site did not answer, so the strategy is not checked"
+    return "No check of the strategy on the site failed"
 
 
 def _decided(
@@ -263,21 +272,22 @@ def _decided(
     graph = session.get_graph(None)
     gaps = _gaps(deps, checks)
     build = _build(deps)
-    success = build is None and not any(gap.fails_the_check for gap in gaps)
+    failing = build is not None or any(gap.fails_the_check for gap in gaps)
+    unanswered = any(check.site_unanswered for check in checks)
     fits = _live_fits(deps)
     return checked.model_copy(
         update={
-            "success": success,
-            "disposition": PhaseDisposition.DONE
-            if success
-            else PhaseDisposition.HANDOFF,
-            "handoff_to": None if success else checked.handoff_to,
+            "success": not failing and not unanswered,
+            "disposition": PhaseDisposition.HANDOFF
+            if failing
+            else PhaseDisposition.DONE,
+            "handoff_to": checked.handoff_to if failing else None,
             "failure_cause": (
                 FailureCause.STRUCTURE_VIOLATION
                 if any(check.breaks_the_structure for check in checks)
                 else None
             ),
-            "reason": _verdict(build, gaps),
+            "reason": _verdict(build, gaps, unanswered=unanswered),
             "pending_checks": [] if graph is None else unread_analyses(graph),
             "review": checked.review.model_copy(
                 update={"checks": checks, "column_fits": fits}
