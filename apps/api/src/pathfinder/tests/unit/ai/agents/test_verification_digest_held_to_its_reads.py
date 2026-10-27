@@ -1,5 +1,5 @@
-"""VERIFY's digest names only genes, sources, messages and steps this turn read,
-and is refused once per check with one sentence per departure."""
+"""VERIFY's digest names only genes and sources this turn read, and is refused
+once per check with one sentence per departure."""
 
 from __future__ import annotations
 
@@ -65,15 +65,7 @@ def _delta(
     prose: str = "The strategy answers the request.", **review: Any
 ) -> VerificationDelta:
     return VerificationDelta.model_validate(
-        {
-            "digest": {
-                "disposition": "done",
-                "prose": prose,
-                "reason": "Read the sample.",
-                "success": True,
-                "review": review,
-            }
-        }
+        {"digest": {"prose": prose, "review": review}}
     )
 
 
@@ -133,36 +125,6 @@ def test_a_source_no_read_returned_is_refused() -> None:
 
     assert refusal.startswith(
         "The review cites https://example.org/x, and no read of this turn returned it."
-    )
-
-
-def test_a_requirement_naming_a_message_the_request_lacks_is_refused() -> None:
-    row = {
-        "text": "genes with a signal peptide",
-        "turn": 3,
-        "answeredBy": ["step_sp"],
-        "how": "search",
-        "status": "met",
-    }
-
-    assert _refusal(_delta(requirements=[row])).startswith(
-        "The requirement 'genes with a signal peptide' names message 3, and the "
-        "request has 1 message."
-    )
-
-
-def test_a_requirement_answered_by_an_unknown_step_is_refused() -> None:
-    row = {
-        "text": "genes with a signal peptide",
-        "turn": 1,
-        "answeredBy": ["step_zz"],
-        "how": "search",
-        "status": "met",
-    }
-
-    assert _refusal(_delta(requirements=[row])).startswith(
-        "The requirement 'genes with a signal peptide' is answered by step_zz, which "
-        "names no step of the strategy; it holds step_sp."
     )
 
 
@@ -229,26 +191,6 @@ def test_the_digest_past_the_pass_s_refusals_loses_the_unread_gene() -> None:
 
     assert isinstance(held, VerificationDelta)
     assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
-
-
-def test_a_met_row_with_no_answer_is_refused_then_stands_unmet() -> None:
-    ctx = _context()
-    delta = _delta(
-        requirements=[
-            {"text": "signal peptide", "turn": 1, "how": "search", "status": "met"}
-        ]
-    )
-    with pytest.raises(ModelRetry, match="a met requirement names the criterion"):
-        hold_the_digest_to_the_evidence(ctx, delta)
-
-    held = hold_the_digest_to_the_evidence(ctx, delta)
-
-    assert isinstance(held, VerificationDelta)
-    [row] = held.digest.review.requirements
-    assert (row.status, [w.kind for w in held.digest.review.withheld]) == (
-        "unmet",
-        ["status"],
-    )
 
 
 def test_a_source_that_cannot_be_opened_is_taken_off_the_review() -> None:

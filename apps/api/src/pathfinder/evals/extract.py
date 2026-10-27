@@ -16,7 +16,8 @@ from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Field, model_validator
 
 from pathfinder.domain.caveats import Caveat, Gap
-from pathfinder.domain.evidence import EvidenceCard, RequirementCheck
+from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.step_rationale import StepRationale
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.domain.turn_facts import TurnFacts
@@ -80,8 +81,8 @@ class ExtractedVerification(CamelModel):
     caveats: list[Caveat] = Field(default_factory=list)
     gaps: list[Gap] = Field(default_factory=list)
     pending_checks: list[str] = Field(default_factory=list)
-    # One row per requirement the researcher stated, as the check judged it.
-    requirements: list[RequirementCheck] = Field(default_factory=list)
+    # Each check of the strategy on the site, as the verdict holds it.
+    checks: list[SiteCheck] = Field(default_factory=list)
     evidence: EvidenceCard | None = None
 
     @property
@@ -118,9 +119,9 @@ class EvalExtract(CamelModel):
                 *(text for caveat in verification.caveats for text in caveat.texts()),
             ]:
                 assert_redacted(line)
-            for row in self.verification.requirements:
-                assert_redacted(row.text)
-                assert_redacted(row.note)
+            for check in self.verification.checks:
+                for text in check.texts():
+                    assert_redacted(text)
             evidence = self.verification.evidence
             for text in evidence.texts() if evidence is not None else []:
                 assert_redacted(text)

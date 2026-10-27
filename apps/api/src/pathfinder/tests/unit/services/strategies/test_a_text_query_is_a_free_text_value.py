@@ -20,23 +20,14 @@ from veupathdb.testing.fixture_store import FIXTURE_ROOT
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
-from pathfinder.domain.evidence import (
-    RequirementCheck,
-    SampledGene,
-    VerificationReview,
-)
-from pathfinder.domain.shown_requirements import TextQuery, held_to_the_records
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
 from pathfinder.domain.strategy.value_binding import bind_values
-from pathfinder.services.strategies import text_queries
-from pathfinder.services.strategies.text_queries import (
-    free_text_params,
-    search_definitions,
-    text_query_criteria,
-)
+from pathfinder.services.strategies import search_sheets
+from pathfinder.services.strategies.parameter_rules import text_query
+from pathfinder.services.strategies.search_sheets import search_definitions
 from pathfinder.tests._support.logs import logged_events
 from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.recorded_searches import suite_search
@@ -54,6 +45,17 @@ def _info(name: str, param_type: str = "string", **fields: object) -> ParameterI
             "value_format": "",
             **fields,
         }
+    )
+
+
+def free_text_params(
+    criterion: Criterion, infos: list[ParameterInfo]
+) -> frozenset[str]:
+    by_name = {info.name: info for info in infos}
+    return frozenset(
+        name
+        for name, held in criterion.resolved_params.items()
+        if name in by_name and text_query(by_name[name], held)
     )
 
 
@@ -154,22 +156,7 @@ def _location_sheet() -> list[ParameterInfo]:
     return format_param_info_typed(_location_search().parameters or [])
 
 
-@pytest.fixture
-def location_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _listed(_site: str, names: Any) -> dict[str, str]:
-        return dict.fromkeys(names, "transcript")
-
-    async def _definition(*_args: Any, **_kwargs: Any) -> WDKSearch:
-        return _location_search()
-
-    monkeypatch.setattr(text_queries, "search_record_types", _listed)
-    monkeypatch.setattr(text_queries, "read_search_definition", _definition)
-
-
-@pytest.mark.usefixtures("location_catalog")
-async def test_a_location_step_at_its_placeholder_sequence_binds_no_text_query() -> (
-    None
-):
+def test_a_location_step_at_its_placeholder_sequence_binds_no_text_query() -> None:
     location = _criterion(
         "GenesByLocation",
         {
@@ -181,30 +168,21 @@ async def test_a_location_step_at_its_placeholder_sequence_binds_no_text_query()
         },
         _location_sheet(),
     )
-    spec = OperationalSpec(goal="chromosome 6 genes", criteria=[location])
 
-    assert text_query_criteria(spec, await search_definitions("plasmodb", spec)) == []
+    assert free_text_params(location, _location_sheet()) == frozenset()
 
 
-@pytest.mark.usefixtures("location_catalog")
-async def test_a_sequence_the_researcher_typed_is_a_text_query() -> None:
+def test_a_sequence_the_researcher_typed_is_a_text_query() -> None:
     location = _criterion(
         "GenesByLocation",
         {"sequenceId": StringValue(value="Pf3D7_06_v3")},
         _location_sheet(),
     )
-    spec = OperationalSpec(goal="genes on one contig", criteria=[location])
 
-    assert text_query_criteria(spec, await search_definitions("plasmodb", spec)) == [
-        TextQuery(
-            criterion_id="c_GenesByLocation",
-            param="sequenceId",
-            value="Pf3D7_06_v3",
-        )
-    ]
+    assert free_text_params(location, _location_sheet()) == frozenset({"sequenceId"})
 
 
-async def test_a_search_the_catalog_cannot_read_binds_no_text_query(
+async def test_a_search_the_catalog_cannot_read_has_no_sheet(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     async def _listed(_site: str, names: Any) -> dict[str, str]:
@@ -214,8 +192,8 @@ async def test_a_search_the_catalog_cannot_read_binds_no_text_query(
         detail = "the sheet did not load"
         raise WDKError(detail)
 
-    monkeypatch.setattr(text_queries, "search_record_types", _listed)
-    monkeypatch.setattr(text_queries, "read_search_definition", _unreadable)
+    monkeypatch.setattr(search_sheets, "search_record_types", _listed)
+    monkeypatch.setattr(search_sheets, "read_search_definition", _unreadable)
     typed = _criterion(
         "GenesByText", {"text_expression": StringValue(value="kinase")}, []
     )
@@ -223,98 +201,8 @@ async def test_a_search_the_catalog_cannot_read_binds_no_text_query(
 
     sheets = await search_definitions("plasmodb", spec)
 
-    assert (sheets, text_query_criteria(spec, sheets)) == ({}, [])
+    assert sheets == {}
     assert logged_events(caplog.records) == ["search sheet unreadable"]
-
-
-def _recorded_sheets() -> dict[str, WDKSearch]:
-    return {
-        "GenesByInterproDomain": suite_search("search_genes_by_interpro_domain"),
-        "GenesByOrthologPattern": suite_search("search_genes_by_ortholog_pattern"),
-    }
-
-
-def test_the_knowlesi_organism_and_domain_rows_stand_met_on_unclear_records() -> None:
-    domain = Criterion(
-        id="step_a6bb905a",
-        text="with a Plasmodium-specific domain",
-        search_name="GenesByInterproDomain",
-        resolved_params=bind_values(
-            {
-                "organism": MultiPickValue(values=["Plasmodium knowlesi strain H"]),
-                "domain_database": SinglePickValue(value="Pfam"),
-                "domain_typeahead": MultiPickValue(
-                    values=[
-                        "PF05795",
-                        "PF09687",
-                        "PF09717",
-                        "PF12319",
-                        "PF18680",
-                        "PF11567",
-                    ]
-                ),
-                "domain_accession": StringValue(value="N/A"),
-            },
-            "stated",
-            _recorded("search_genes_by_interpro_domain"),
-        ),
-    )
-    ortholog = Criterion(
-        id="step_bd8bb1e3",
-        text="that have no ortholog in Homo sapiens",
-        search_name="GenesByOrthologPattern",
-        resolved_params=bind_values(
-            {
-                "organism": MultiPickValue(values=["Plasmodium knowlesi strain H"]),
-                "profile_pattern": StringValue(value="%hsap:N%"),
-                "excluded_species": StringValue(value="hsap"),
-                "included_species": StringValue(value="n/a"),
-            },
-            "stated",
-            _recorded("search_genes_by_ortholog_pattern"),
-        ),
-    )
-    spec = OperationalSpec(
-        goal="P. knowlesi strain H genes with a Plasmodium-specific domain",
-        criteria=[domain, ortholog],
-    )
-    rows = [
-        RequirementCheck(
-            text=text,
-            turn=1,
-            answered_by=answered_by,
-            how="parameter",
-            status="met",
-            note="the step binds it",
-        )
-        for text, answered_by in (
-            ("Plasmodium knowlesi strain H genes", ["step_a6bb905a", "step_bd8bb1e3"]),
-            ("with a Plasmodium-specific domain", ["step_a6bb905a"]),
-        )
-    ]
-    review = VerificationReview(
-        requirements=rows,
-        sampled_genes=[
-            SampledGene(
-                gene_id=gene_id,
-                product=product,
-                organism="P. knowlesi strain H",
-                fits="unclear",
-                why="the record does not show the bound Pfam annotation",
-            )
-            for gene_id, product in (
-                ("PKNH_0202800", "PIR protein"),
-                (
-                    "PKNH_0508100",
-                    "Plasmodium exported protein (PHIST), unknown function",
-                ),
-            )
-        ],
-    )
-
-    queries = text_query_criteria(spec, _recorded_sheets())
-
-    assert (queries, held_to_the_records(review, queries)) == ([], review)
 
 
 async def test_a_sheet_is_read_under_the_record_type_that_lists_its_search(
@@ -330,8 +218,8 @@ async def test_a_sheet_is_read_under_the_record_type_that_lists_its_search(
         read_under.append(record_type)
         return WDKSearch(url_segment=name)
 
-    monkeypatch.setattr(text_queries, "search_record_types", _listed)
-    monkeypatch.setattr(text_queries, "read_search_definition", _definition)
+    monkeypatch.setattr(search_sheets, "search_record_types", _listed)
+    monkeypatch.setattr(search_sheets, "read_search_definition", _definition)
     blast = _criterion(
         "ByBlast",
         {"BlastQuerySequence": StringValue(value="MPENNEHLTF")},
@@ -357,8 +245,8 @@ async def test_a_search_the_catalog_does_not_list_reads_no_sheet(
         read.append((record_type, name))
         return WDKSearch(url_segment=name)
 
-    monkeypatch.setattr(text_queries, "search_record_types", _listed)
-    monkeypatch.setattr(text_queries, "read_search_definition", _definition)
+    monkeypatch.setattr(search_sheets, "search_record_types", _listed)
+    monkeypatch.setattr(search_sheets, "read_search_definition", _definition)
     typed = _criterion(
         "GenesByText", {"text_expression": StringValue(value="kinase")}, []
     )

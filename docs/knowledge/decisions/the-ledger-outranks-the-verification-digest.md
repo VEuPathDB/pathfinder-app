@@ -13,12 +13,12 @@ status: stable
 `ai/lead/ledger.py::build_contradiction` states, in one place, why a success
 verdict cannot stand over a build: the build ran and did not come out clean
 (a step failed, was skipped, or returned nothing), or no build ran this turn
-and no step of the strategy is in VEuPathDB. `digest_held_to_the_build`
-rewrites the digest when it does: `success` becomes False, `reason` and
-`prose` name the contradiction, and the original prose is kept below it so
-nothing the checker found is lost.
+and no step of the strategy is in VEuPathDB. The verdict is computed, never
+the checker's ([a verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)):
+a build contradiction fails it, `reason` names the contradiction, and the
+checker's prose stands as its notes.
 
-`ai/lead/verify_dispatch.py::run_verification` applies both before it
+`ai/lead/verify_dispatch.py::run_verification` computes the verdict before it
 records the digest with `StrategyDomainState.record_verdict`. That is the
 single write point, so
 the three readers of the flag - the delta the Lead quotes, the memory
@@ -75,8 +75,8 @@ guarantees that the next reader of the flag forgets it.
 
 **Deriving the whole verdict from the ledger and dropping `success`.** The
 digest carries findings a ledger cannot: sample records, control tests,
-constraint reports. Removing the flag would lose them. The flag is kept and
-bounded instead.
+the checks on the site. Removing the flag would lose them. The flag is kept and
+computed from those checks instead.
 
 # The consequence, stated
 

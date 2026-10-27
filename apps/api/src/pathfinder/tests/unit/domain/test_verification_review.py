@@ -1,5 +1,5 @@
-"""The review VERIFY returns: one row per stated requirement, a capped sample of
-the genes, and the sources it cites."""
+"""The review of one check: the checks on the site, a capped sample of the
+genes, and the sources it cites."""
 
 from __future__ import annotations
 
@@ -8,10 +8,11 @@ from pathfinder.domain.citations import (
 )
 from pathfinder.domain.evidence import (
     SAMPLED_GENE_LIMIT,
-    RequirementCheck,
     SampledGene,
     VerificationReview,
 )
+from pathfinder.domain.site_checks import SiteCheck
+from pathfinder.domain.strategy.constraints import ConstraintKind
 
 
 def _gene(gene_id: str, fits: str, why: str = "product names a kinase") -> SampledGene:
@@ -26,38 +27,6 @@ def _gene(gene_id: str, fits: str, why: str = "product names a kinase") -> Sampl
     )
 
 
-def test_a_met_requirement_names_what_answers_it() -> None:
-    row = RequirementCheck(
-        text="with a signal peptide", turn=1, answered_by=[], how="search", status="met"
-    )
-
-    assert row.status_problem == (
-        "a met requirement names the criterion or the step that answers it"
-    )
-
-
-def test_an_unmet_requirement_may_name_nothing() -> None:
-    row = RequirementCheck(
-        text="expressed in gametocytes",
-        turn=2,
-        how="search",
-        status="unmet",
-        note="no step reads gametocyte expression",
-    )
-
-    assert row.model_dump(by_alias=True) == {
-        "text": "expressed in gametocytes",
-        "turn": 2,
-        "answeredBy": [],
-        "how": "search",
-        "status": "unmet",
-        "note": "no step reads gametocyte expression",
-        "shownBy": [],
-        "noRecordShowsIt": False,
-        "noRecordJudgedIt": False,
-    }
-
-
 def test_the_sample_holds_at_most_the_limit() -> None:
     genes = [_gene(f"PF3D7_{i:07d}", "yes") for i in range(SAMPLED_GENE_LIMIT + 1)]
 
@@ -65,24 +34,6 @@ def test_the_sample_holds_at_most_the_limit() -> None:
         VerificationReview(sampled_genes=genes).sampled_genes
         == genes[:SAMPLED_GENE_LIMIT]
     )
-
-
-def test_the_rows_a_reply_must_name_are_the_unmet_and_the_unexpressed() -> None:
-    met = RequirementCheck(
-        text="P. falciparum 3D7",
-        turn=1,
-        answered_by=["s1"],
-        how="parameter",
-        status="met",
-    )
-    unmet = RequirementCheck(text="A or B", turn=1, how="structure", status="unmet")
-    unexpressed = RequirementCheck(
-        text="orthologs", turn=2, how="search", status="unexpressed"
-    )
-
-    review = VerificationReview(requirements=[met, unmet, unexpressed])
-
-    assert review.to_report() == [unmet, unexpressed]
 
 
 def test_a_citation_is_checked_by_every_identifier_it_carries() -> None:
@@ -99,14 +50,12 @@ def test_a_citation_is_checked_by_every_identifier_it_carries() -> None:
 
 def test_the_review_lists_every_text_a_reader_can_see() -> None:
     review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="with a signal peptide",
-                turn=1,
-                answered_by=["s1"],
-                how="search",
-                status="met",
-                note="GenesWithSignalPeptide",
+        checks=[
+            SiteCheck(
+                kind=ConstraintKind.OTHER,
+                subject="with a signal peptide",
+                status="unchecked",
+                evidence="no check reads this requirement on the site",
             )
         ],
         sampled_genes=[_gene("PF3D7_0100100", "yes")],
@@ -122,7 +71,7 @@ def test_the_review_lists_every_text_a_reader_can_see() -> None:
 
     assert review.texts() == [
         "with a signal peptide",
-        "GenesWithSignalPeptide",
+        "no check reads this requirement on the site",
         "protein kinase",
         "Plasmodium falciparum 3D7",
         "product names a kinase",

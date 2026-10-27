@@ -35,10 +35,6 @@ from pathfinder.tests.unit.domain.strategy._vaccine_request import VACCINE
 pytestmark = pytest.mark.usefixtures("collector")
 
 _HEADING = "## The researcher's request\n"
-_NUMBERED = (
-    "Every message the researcher wrote for this request, numbered as a "
-    "requirement's ``turn``:"
-)
 _PARAPHRASE = "blood-stage vaccine candidates"
 _CLARIFICATION = "Use the merozoite stage only."
 _PUSH_NAME = "push name: "
@@ -128,7 +124,7 @@ async def test_verify_is_shown_the_request_under_its_own_heading(
 ) -> None:
     sent = await _verify_instructions(monkeypatch, await _classified(VACCINE))
 
-    assert sent.split(_HEADING)[1].split("\n\n")[0] == f"{_NUMBERED}\n1. {VACCINE}"
+    assert sent.split(_HEADING)[1].split("\n\n")[0] == f"1. {VACCINE}"
 
 
 async def test_the_paraphrase_is_labelled_as_one(
@@ -152,7 +148,7 @@ async def test_a_clarification_is_judged_with_the_request_it_answers(
     sent = await _verify_instructions(monkeypatch, deps)
 
     assert sent.split(_HEADING)[1].split("\n\n")[0] == (
-        f"{_NUMBERED}\n1. {VACCINE}\n2. {_CLARIFICATION}"
+        f"1. {VACCINE}\n2. {_CLARIFICATION}"
     )
 
 

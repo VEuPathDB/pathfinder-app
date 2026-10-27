@@ -21254,31 +21254,13 @@
         "title": "BuildSection",
         "type": "object"
       },
-      "CheckGap": {
-        "description": "A value a study-step check computed short of the value the request stated.",
-        "properties": {
-          "kind": {
-            "const": "check",
-            "default": "check",
-            "title": "Kind",
-            "type": "string"
-          },
-          "check": {
-            "$ref": "#/components/schemas/ConstraintCheck"
-          },
-          "sentence": {
-            "description": "The check's shortfall, as a finding.",
-            "readOnly": true,
-            "title": "Sentence",
-            "type": "string"
-          }
-        },
-        "required": [
-          "check",
-          "sentence"
+      "CheckStatus": {
+        "enum": [
+          "pass",
+          "fail",
+          "unchecked"
         ],
-        "title": "CheckGap",
-        "type": "object"
+        "type": "string"
       },
       "CheckedStepCount": {
         "description": "One step of the judged strategy: the count the build recorded and the site's.",
@@ -21777,45 +21759,6 @@
           "label"
         ],
         "title": "Constraint",
-        "type": "object"
-      },
-      "ConstraintCheck": {
-        "description": "A value the request stated, compared with the value a step was built with.",
-        "properties": {
-          "stepId": {
-            "default": "",
-            "title": "Stepid",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "requested": {
-            "title": "Requested",
-            "type": "string"
-          },
-          "realized": {
-            "title": "Realized",
-            "type": "string"
-          },
-          "honored": {
-            "title": "Honored",
-            "type": "boolean"
-          },
-          "note": {
-            "default": "",
-            "title": "Note",
-            "type": "string"
-          }
-        },
-        "required": [
-          "label",
-          "requested",
-          "realized",
-          "honored"
-        ],
-        "title": "ConstraintCheck",
         "type": "object"
       },
       "ConstraintKind": {
@@ -23736,30 +23679,6 @@
         "title": "ExpressionFit",
         "type": "object"
       },
-      "ExpressionGap": {
-        "properties": {
-          "kind": {
-            "const": "expression",
-            "default": "expression",
-            "title": "Kind",
-            "type": "string"
-          },
-          "fit": {
-            "$ref": "#/components/schemas/ExpressionFit"
-          },
-          "sentence": {
-            "readOnly": true,
-            "title": "Sentence",
-            "type": "string"
-          }
-        },
-        "required": [
-          "fit",
-          "sentence"
-        ],
-        "title": "ExpressionGap",
-        "type": "object"
-      },
       "FailureCause": {
         "description": "Typed cause of a phase's exit, surfaced to the LLM supervisor.",
         "enum": [
@@ -25391,62 +25310,8 @@
         "title": "ReplacedLifecycle",
         "type": "object"
       },
-      "RequirementCheck": {
-        "description": "One requirement the researcher stated, and what in the strategy answers it.",
-        "properties": {
-          "text": {
-            "description": "The requirement in the researcher's own words.",
-            "minLength": 1,
-            "title": "Text",
-            "type": "string"
-          },
-          "turn": {
-            "description": "The number of the researcher's message that stated it.",
-            "title": "Turn",
-            "type": "integer"
-          },
-          "answeredBy": {
-            "description": "The criterion ids or step ids that answer it.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Answeredby",
-            "type": "array"
-          },
-          "how": {
-            "$ref": "#/components/schemas/RequirementHow",
-            "description": "search: a search states it. parameter: a parameter value states it. structure: a combine states it. transform: a transform step states it. analysis: a study analysis states it."
-          },
-          "status": {
-            "$ref": "#/components/schemas/RequirementStatus",
-            "description": "met: a step states it. unmet: the strategy can state it and no step does; answered_by is then empty. unexpressed: no search the site offers can state it."
-          },
-          "note": {
-            "default": "",
-            "description": "One line: the parameter value or the combine, or why nothing.",
-            "title": "Note",
-            "type": "string"
-          },
-          "shownBy": {
-            "description": "The sampled gene ids or the columns whose fit show it.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Shownby",
-            "type": "array"
-          }
-        },
-        "required": [
-          "text",
-          "turn",
-          "how",
-          "status"
-        ],
-        "title": "RequirementCheck",
-        "type": "object"
-      },
       "RequirementGap": {
-        "description": "A requirement row the check found unmet or that no search can state.",
+        "description": "A requirement the framing pass found no search on the site states.",
         "properties": {
           "kind": {
             "const": "requirement",
@@ -25458,14 +25323,6 @@
             "title": "Text",
             "type": "string"
           },
-          "status": {
-            "$ref": "#/components/schemas/RequirementGapStatus"
-          },
-          "key": {
-            "default": "",
-            "title": "Key",
-            "type": "string"
-          },
           "sentence": {
             "description": "The requirement, in the researcher's words, and what is missing.",
             "readOnly": true,
@@ -25475,38 +25332,10 @@
         },
         "required": [
           "text",
-          "status",
           "sentence"
         ],
         "title": "RequirementGap",
         "type": "object"
-      },
-      "RequirementGapStatus": {
-        "enum": [
-          "unmet",
-          "unexpressed",
-          "unshown",
-          "unjudged"
-        ],
-        "type": "string"
-      },
-      "RequirementHow": {
-        "enum": [
-          "search",
-          "parameter",
-          "structure",
-          "transform",
-          "analysis"
-        ],
-        "type": "string"
-      },
-      "RequirementStatus": {
-        "enum": [
-          "met",
-          "unmet",
-          "unexpressed"
-        ],
-        "type": "string"
       },
       "RetiredFact": {
         "description": "A requirement the researcher withdrew or an answer replaced.",
@@ -26124,6 +25953,71 @@
         "title": "SharedGenes",
         "type": "object"
       },
+      "SiteCheck": {
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstraintKind"
+              },
+              {
+                "$ref": "#/components/schemas/StepCheckKind"
+              }
+            ],
+            "title": "Kind"
+          },
+          "subject": {
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CheckStatus"
+          },
+          "evidence": {
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "requirement": {
+            "default": "",
+            "title": "Requirement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "subject",
+          "status",
+          "evidence"
+        ],
+        "title": "SiteCheck",
+        "type": "object"
+      },
+      "SiteCheckGap": {
+        "properties": {
+          "kind": {
+            "const": "site_check",
+            "default": "site_check",
+            "title": "Kind",
+            "type": "string"
+          },
+          "check": {
+            "$ref": "#/components/schemas/SiteCheck"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check",
+          "sentence"
+        ],
+        "title": "SiteCheckGap",
+        "type": "object"
+      },
       "SiteRead": {
         "enum": [
           "read",
@@ -26464,6 +26358,17 @@
         "title": "StepAbove",
         "type": "object"
       },
+      "StepCheckKind": {
+        "enum": [
+          "step_valid",
+          "bound_values",
+          "combine_counts",
+          "result_count",
+          "expression_fit",
+          "tally"
+        ],
+        "type": "string"
+      },
       "StepFact": {
         "description": "One step of the strategy, or of the draft while nothing is built.\n\n``step_id`` names the step or the criterion; the facts part does not show it.",
         "properties": {
@@ -26691,38 +26596,6 @@
           "revision"
         ],
         "title": "StrategyRevisionPayload",
-        "type": "object"
-      },
-      "StructureGap": {
-        "description": "A combination the researcher stated that the strategy joins another way.",
-        "properties": {
-          "kind": {
-            "const": "structure",
-            "default": "structure",
-            "title": "Kind",
-            "type": "string"
-          },
-          "expression": {
-            "title": "Expression",
-            "type": "string"
-          },
-          "built": {
-            "title": "Built",
-            "type": "string"
-          },
-          "sentence": {
-            "description": "The combination, and the operator the strategy joins it with.",
-            "readOnly": true,
-            "title": "Sentence",
-            "type": "string"
-          }
-        },
-        "required": [
-          "expression",
-          "built",
-          "sentence"
-        ],
-        "title": "StructureGap",
         "type": "object"
       },
       "StructureNode": {
@@ -27388,10 +27261,8 @@
             "items": {
               "discriminator": {
                 "mapping": {
-                  "check": "#/components/schemas/CheckGap",
-                  "expression": "#/components/schemas/ExpressionGap",
                   "requirement": "#/components/schemas/RequirementGap",
-                  "structure": "#/components/schemas/StructureGap",
+                  "site_check": "#/components/schemas/SiteCheckGap",
                   "word": "#/components/schemas/WordGap"
                 },
                 "propertyName": "kind"
@@ -27404,13 +27275,7 @@
                   "$ref": "#/components/schemas/WordGap"
                 },
                 {
-                  "$ref": "#/components/schemas/StructureGap"
-                },
-                {
-                  "$ref": "#/components/schemas/CheckGap"
-                },
-                {
-                  "$ref": "#/components/schemas/ExpressionGap"
+                  "$ref": "#/components/schemas/SiteCheckGap"
                 }
               ]
             },
@@ -27989,17 +27854,16 @@
         "properties": {
           "disposition": {
             "$ref": "#/components/schemas/PhaseDisposition",
-            "description": "Control-flow signal: 'done' = investigation is complete; 'awaiting_user' = the turn ends; 'handoff' = transition to the next sub-agent."
+            "default": "done"
           },
           "prose": {
-            "description": "User-facing assistant message shown in the conversation.",
+            "description": "What the records you read look like, and what the runtime's checks found. Never a verdict of your own.",
             "minLength": 1,
             "title": "Prose",
             "type": "string"
           },
           "reason": {
-            "description": "Short routing explanation shown on the orchestrator card.",
-            "minLength": 1,
+            "default": "",
             "title": "Reason",
             "type": "string"
           },
@@ -28037,7 +27901,7 @@
             "type": "array"
           },
           "success": {
-            "description": "True if the strategy answered the user's question: sample records and result sizes look right, control tests passed.",
+            "default": false,
             "title": "Success",
             "type": "boolean"
           },
@@ -28109,10 +27973,8 @@
             "items": {
               "discriminator": {
                 "mapping": {
-                  "check": "#/components/schemas/CheckGap",
-                  "expression": "#/components/schemas/ExpressionGap",
                   "requirement": "#/components/schemas/RequirementGap",
-                  "structure": "#/components/schemas/StructureGap",
+                  "site_check": "#/components/schemas/SiteCheckGap",
                   "word": "#/components/schemas/WordGap"
                 },
                 "propertyName": "kind"
@@ -28125,13 +27987,7 @@
                   "$ref": "#/components/schemas/WordGap"
                 },
                 {
-                  "$ref": "#/components/schemas/StructureGap"
-                },
-                {
-                  "$ref": "#/components/schemas/CheckGap"
-                },
-                {
-                  "$ref": "#/components/schemas/ExpressionGap"
+                  "$ref": "#/components/schemas/SiteCheckGap"
                 }
               ]
             },
@@ -28139,18 +27995,10 @@
             "type": "array"
           },
           "pendingChecks": {
-            "description": "The study steps whose analysis the site did not describe, so their check could not run. The runtime sets it from the strategy and replaces anything written here.",
             "items": {
               "type": "string"
             },
             "title": "Pendingchecks",
-            "type": "array"
-          },
-          "constraintReport": {
-            "items": {
-              "$ref": "#/components/schemas/ConstraintCheck"
-            },
-            "title": "Constraintreport",
             "type": "array"
           },
           "review": {
@@ -28166,27 +28014,22 @@
           }
         },
         "required": [
-          "disposition",
-          "prose",
-          "reason",
-          "success"
+          "prose"
         ],
         "title": "VerificationDigest",
         "type": "object"
       },
       "VerificationReview": {
-        "description": "What the check read against the researcher's words: each stated\nrequirement, the columns of each step, a sample of the genes where no\ncolumn shows a value, and the sources it retrieved.",
+        "description": "What the check read: each check the site's answers decide, the columns\nof each step, a sample of the genes where no column shows a value, and the\nsources it retrieved.",
         "properties": {
-          "requirements": {
-            "description": "One row per requirement the researcher stated, in any message.",
+          "checks": {
             "items": {
-              "$ref": "#/components/schemas/RequirementCheck"
+              "$ref": "#/components/schemas/SiteCheck"
             },
-            "title": "Requirements",
+            "title": "Checks",
             "type": "array"
           },
           "columnFits": {
-            "description": "Filled by the runtime from this turn's read_step_columns calls; anything written here is replaced.",
             "items": {
               "$ref": "#/components/schemas/ColumnFit"
             },
@@ -28333,9 +28176,6 @@
             "enum": [
               "sampled_gene",
               "source",
-              "requirement_row",
-              "answer",
-              "status",
               "claim"
             ],
             "title": "Kind",

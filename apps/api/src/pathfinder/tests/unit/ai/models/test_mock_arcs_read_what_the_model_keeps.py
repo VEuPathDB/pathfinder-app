@@ -161,7 +161,7 @@ def _orthology_graph(site_id: str, target: str) -> StrategyGraph:
 
 @pytest.mark.parametrize("site_id", SITES)
 @pytest.mark.parametrize("long_name", [False, True])
-def test_the_review_names_the_organism_of_the_pinned_root(
+def test_the_review_judges_the_sample_by_the_organism_of_the_pinned_root(
     site_id: str, long_name: bool
 ) -> None:
     """The strategy read is cut to a stub; the graph pin still names the root."""
@@ -189,5 +189,6 @@ def test_the_review_names_the_organism_of_the_pinned_root(
     )
 
     review = calls[-1].args_as_dict()["digest"]["review"]
-    assert [row["text"] for row in review["requirements"]] == [target]
-    assert [gene["fits"] for gene in review["sampledGenes"]] == ["yes"]
+    assert [(g["organism"], g["fits"]) for g in review["sampledGenes"]] == [
+        (target, "yes")
+    ]

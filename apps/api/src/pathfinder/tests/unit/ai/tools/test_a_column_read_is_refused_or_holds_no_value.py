@@ -12,7 +12,6 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKColumnDistribution
 
 from pathfinder.ai.tools.standalone import results
-from pathfinder.ai.tools.standalone._result_models import StepColumns
 from pathfinder.tests._support.column_reads import (
     TM_PARAMS,
     TM_TEXT,
@@ -23,7 +22,6 @@ from pathfinder.tests._support.column_reads import (
     serve_columns,
 )
 from pathfinder.tests._support.recorded_columns import PERCENTILE_STEP, TM_STEP
-from pathfinder.tests._support.tool_returns import returned
 
 
 def _tm_report(
@@ -62,7 +60,7 @@ async def test_a_column_no_record_holds_a_value_of_names_the_step_to_sample(
     serve_columns(monkeypatch, _tm_report(840, 0, []))
     ctx = column_context("GenesByTransmembraneDomains", TM_STEP, TM_PARAMS)
 
-    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, TM_STEP)
 
     assert [(f.fits, f.total, f.no_value, f.sentence) for f in answer.fits] == [
         (
@@ -81,7 +79,7 @@ async def test_records_with_no_value_are_counted_in_the_step_and_stated(
     serve_columns(monkeypatch, _tm_report(840, 740, [(740, "2.0", "3.0")]))
     ctx = column_context("GenesByTransmembraneDomains", TM_STEP, TM_PARAMS)
 
-    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, TM_STEP)
 
     assert [(f.fits, f.total, f.fitting, f.sentence) for f in answer.fits] == [
         (
@@ -132,7 +130,7 @@ async def test_a_column_the_site_refuses_is_an_unread_fit(
     serve_columns(monkeypatch, site)
     ctx = column_context("GenesByTransmembraneDomains", TM_STEP, TM_PARAMS)
 
-    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, TM_STEP)
 
     refused = (
         "not_shown",
@@ -159,7 +157,7 @@ async def test_a_column_read_the_site_breaks_off_fails_the_call(
     ctx = column_context("GenesByTransmembraneDomains", TM_STEP, TM_PARAMS)
 
     with pytest.raises(ToolFailed) as failed:
-        await results.read_step_columns(ctx, TM_STEP)
+        await results.read_step_columns(ctx.deps, TM_STEP)
 
     assert failed.value.message.startswith(
         "read_step_columns got no answer from the site (HTTP 504: VEuPathDB service "
@@ -177,9 +175,8 @@ async def test_a_refused_rival_column_leaves_the_others_read(
     )
     serve_columns(monkeypatch, site)
 
-    answer = returned(
-        await results.read_step_columns(percentile_context("80"), PERCENTILE_STEP),
-        StepColumns,
+    answer = await results.read_step_columns(
+        percentile_context("80").deps, PERCENTILE_STEP
     )
 
     assert [(f.column, f.fits, f.sentence) for f in answer.fits] == [

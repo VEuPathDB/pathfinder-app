@@ -35,13 +35,6 @@ from pathfinder.ai.models.mock.unset_value_arcs import (
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.catalog_discovery import get_parameter_options
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.domain.evidence import (
-    RequirementCheck,
-    SampledGene,
-    VerificationReview,
-)
-from pathfinder.domain.shown_requirements import TextQuery, held_to_the_records
-from pathfinder.services.strategies.text_queries import text_query_criteria
 from pathfinder.tests._support.options_reads import serve_options_reads
 from pathfinder.tests._support.recorded_searches import (
     no_count,
@@ -187,43 +180,17 @@ async def test_the_radio_off_domain_arc_binds_what_the_site_and_the_message_set(
         ("no_human_ortholog", "excluded_species"): "stated",
         ("no_human_ortholog", "included_species"): "default",
     }
-    assert text_query_criteria(state.operational_spec_draft, _SHEETS) == []
 
 
-async def test_the_text_beside_organism_arc_holds_no_organism_row_to_the_records(
+async def test_the_text_beside_organism_arc_binds_the_document_type_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state, calls = await _framed(monkeypatch, _GPI_MESSAGE)
-    queries = text_query_criteria(state.operational_spec_draft, _SHEETS)
-    organism_row = RequirementCheck(
-        text=_ORGANISM,
-        turn=1,
-        answered_by=["gpi_text", "signal_peptide"],
-        how="parameter",
-        status="met",
-        note="both steps bind the organism",
-    )
-    review = VerificationReview(
-        requirements=[organism_row],
-        sampled_genes=[
-            SampledGene(
-                gene_id="PF3D7_0100100",
-                product="erythrocyte membrane protein 1",
-                organism=_ORGANISM,
-                fits="no",
-                why="the record names no GPI anchor",
-            )
-        ],
-    )
 
     assert calls[-1].tool_name == "set_structure"
     assert _sources(state, {"document_type"}) == {
         ("gpi_text", "document_type"): "default"
     }
-    assert queries == [
-        TextQuery(criterion_id="gpi_text", param="text_expression", value="GPI anchor")
-    ]
-    assert held_to_the_records(review, queries) == review
 
 
 def test_the_arc_frames_the_two_criteria_it_names() -> None:

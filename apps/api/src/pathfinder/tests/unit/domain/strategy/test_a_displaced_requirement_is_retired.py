@@ -8,7 +8,6 @@ from uuid import uuid4
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.domain.caveats import check_gaps
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -112,30 +111,15 @@ def test_the_thread_keeps_the_displaced_combination_retired() -> None:
 def test_the_fragments_of_a_displaced_combination_are_no_gaps() -> None:
     domain = StrategyDomainState(requirements=[_ORGANISM, _OR])
     domain.record_requirements([_AND])
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text=(
-                    "Use a text search for GPI anchor in the gene product "
-                    "descriptions as the stand-in"
-                ),
-                turn=2,
-                how="search",
-                status="unmet",
-            ),
-            RequirementCheck(
-                text="keep it OR with the signal peptide",
-                turn=2,
-                how="structure",
-                status="unmet",
-            ),
-        ]
-    )
-
     gaps = check_gaps(
-        structure=None,
         words=[],
-        review=review,
+        unstated=[
+            (
+                "Use a text search for GPI anchor in the gene product "
+                "descriptions as the stand-in"
+            ),
+            "keep it OR with the signal peptide",
+        ],
         requirements=[
             *(r.grounded() for r in domain.retired_requirements),
         ],

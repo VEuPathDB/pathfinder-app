@@ -8,7 +8,6 @@ from pathfinder.ai.lead.ledger import (
     InvestigationLedger,
     blamed_the_site,
     build_contradiction,
-    structure_contradiction,
 )
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
@@ -16,9 +15,11 @@ from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
-from pathfinder.domain.caveats import BuildCaveat, StructureGap
+from pathfinder.domain.caveats import BuildCaveat
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.requirement_checks import grounded_check
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.constraint_grounding import ground_against_spec
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -234,28 +235,22 @@ def _combined_spec(operator: CombineOp) -> OperationalSpec:
     )
 
 
-class TestTheStructureRule:
-    def test_an_intersected_or_contradicts_success(self) -> None:
-        contradiction = structure_contradiction(
-            [_combination_requirement()], _combined_spec(CombineOp.INTERSECT)
+class TestTheCombinationCheck:
+    def _checked(self, operator: CombineOp) -> tuple[str, str]:
+        [grounded] = ground_against_spec(
+            [_combination_requirement()], _combined_spec(operator)
+        )
+        check = grounded_check(grounded)
+        return check.status, check.requirement
+
+    def test_an_intersected_or_fails(self) -> None:
+        assert self._checked(CombineOp.INTERSECT) == (
+            "fail",
+            f"combination:{_COMBINATION}",
         )
 
-        assert contradiction == StructureGap(expression=_COMBINATION, built="INTERSECT")
-
-    def test_a_unioned_or_does_not_contradict(self) -> None:
-        assert [
-            structure_contradiction(
-                [_combination_requirement()], _combined_spec(CombineOp.UNION)
-            )
-        ] == [None]
-
-    def test_a_thread_with_no_spec_does_not_contradict(self) -> None:
-        assert [structure_contradiction([_combination_requirement()], None)] == [None]
-
-    def test_a_thread_that_stated_no_combination_does_not_contradict(self) -> None:
-        assert [structure_contradiction([], _combined_spec(CombineOp.INTERSECT))] == [
-            None
-        ]
+    def test_a_unioned_or_passes(self) -> None:
+        assert self._checked(CombineOp.UNION) == ("pass", f"combination:{_COMBINATION}")
 
 
 class TestTheSummaryCarriesEveryDropReason:

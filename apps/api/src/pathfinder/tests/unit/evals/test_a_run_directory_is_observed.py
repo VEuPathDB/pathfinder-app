@@ -229,7 +229,7 @@ def test_a_case_stating_what_no_run_directory_holds_is_refused() -> None:
     stated = case.model_copy(
         update={
             "expected": case.expected.model_copy(
-                update={"reply_gives_its_reasons": True, "met_requirements": 1}
+                update={"reply_gives_its_reasons": True, "passed_checks": 1}
             )
         }
     )

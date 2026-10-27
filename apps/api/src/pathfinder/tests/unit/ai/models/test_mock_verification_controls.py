@@ -23,7 +23,7 @@ from pathfinder.ai.lead.verify_dispatch import work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
-    LEAF_WDK_ID,
+    STRATEGY_ROOT_WDK_ID,
     verify_order,
 )
 
@@ -99,7 +99,7 @@ def test_a_root_the_order_does_not_name_is_tested_as_the_strategy_read_names_it(
     assert args == {"wdk_step_id": 555, "control_set_id": CONTROL_SET_ID}
 
 
-def test_an_arc_without_controls_reads_the_search_steps_columns_first() -> None:
+def test_an_arc_without_controls_samples_the_root_after_the_strategy() -> None:
     args = _next("Find genes [[arc:single]]", _read_strategy(verify_order(12)))
 
-    assert args == {"wdk_step_id": LEAF_WDK_ID}
+    assert args == {"wdk_step_id": STRATEGY_ROOT_WDK_ID, "limit": 2}

@@ -178,7 +178,7 @@ def _checked_turn(conversation_id: UUID, user_id: UUID) -> PipelineState:
         turn_total_tokens=_TURN_TOKENS,
         turn_total_cost_usd=Decimal("0.01"),
         domain=StrategyDomainState(
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="ok",
                 reason="verified",

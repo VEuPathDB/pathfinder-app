@@ -32,7 +32,6 @@ from pathfinder.ai.tools.standalone._result_models import (
     _validate_sample_inputs,
     no_column,
     unread_note,
-    with_countable,
 )
 from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
 from pathfinder.ai.tools.standalone._sample_page import (
@@ -56,12 +55,10 @@ from pathfinder.ai.tools.standalone._step_read import (
     read_as,
 )
 from pathfinder.domain.column_fit import ColumnFit
-from pathfinder.domain.column_reach import ReachedColumn
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.services.experiment.step_tally import countable_columns
 
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
@@ -155,7 +152,7 @@ async def get_sample_records(
     columns the step's own search shows, such as a BLAST hit's ``evalue`` and
     ``score``, as the site states them. An attribute the site refuses is left
     out of every row and of ``attributes`` and named in ``droppedAttributes``.
-    Read a step's columns with ``read_step_columns`` first; sample only for a
+    The check has read each search step's columns already; sample only for a
     criterion no column shows.
 
     Args:
@@ -190,17 +187,15 @@ class _SearchStep:
     record_type: str | None
 
 
-async def _search_step(
-    ctx: RunContext[AgentDeps], wdk_step_id: int
-) -> _SearchStep | None:
+async def _search_step(deps: AgentDeps, wdk_step_id: int) -> _SearchStep | None:
     """The criterion whose search the step runs, or None for any other step."""
-    session = ctx.deps.strategy_session
+    session = deps.strategy_session
     sync, graph = session.sync_state, session.get_graph(None)
     if sync is None or graph is None:
         return None
     step_id = next((s for s, w in sync.wdk_step_ids.items() if w == wdk_step_id), None)
     step = None if step_id is None else graph.steps.get(step_id)
-    criteria = ctx.deps.agent_state.operational_spec_draft.criteria
+    criteria = deps.agent_state.operational_spec_draft.criteria
     criterion = next((c for c in criteria if c.id == step_id), None)
     if step is None or not step.search_name or criterion is None:
         return None
@@ -289,9 +284,9 @@ async def read_column_fit(
 
 
 async def _read_columns(
-    ctx: RunContext[AgentDeps], wdk_step_id: int, target: _SearchStep | None
-) -> tuple[StepColumns, str]:
-    site_id = ctx.deps.strategy_session.site_id
+    deps: AgentDeps, wdk_step_id: int, target: _SearchStep | None
+) -> StepColumns:
+    site_id = deps.strategy_session.site_id
     if target is None or target.record_type != "transcript":
         return no_column(
             wdk_step_id,
@@ -325,40 +320,17 @@ async def _read_columns(
             f"{len(bounds)} columns of {target.search_name} may show the bound "
             "values and they do not all hold every gene inside them.",
         )
-    ctx.deps.turn_markers.record_column_fits(fits)
+    deps.turn_markers.record_column_fits(fits)
     unread = [fit for fit in read if not fit.shown or fit.holds_no_value]
-    columns = StepColumns(
+    return StepColumns(
         wdk_step_id=wdk_step_id,
         fits=fits,
         note=unread_note(wdk_step_id, unread) if unread else "",
     )
-    return columns, "; ".join(fit.sentence for fit in fits)
 
 
-async def read_step_columns(
-    ctx: RunContext[AgentDeps],
-    wdk_step_id: int,
-) -> ToolReturn[StepColumns]:
-    """Read the columns a search step shows for the numeric values its criterion binds.
-
-    Each column is one report over the whole step: how many of its genes hold
-    a value inside the bounds, such as ``tm_count`` 2 to 99, and for a threshold
-    whose direction the site does not state, how many lie on each side. A step
-    whose search shows no such column, or several that do not all hold every
-    gene, says so, and only then is the root sampled. A column whose report
-    the site refuses is stated as refused, and the other columns are still read.
-    An answer with no fit names the columns the step's records count by.
-
-    On an OrthoMCL group step whose criterion binds ``phyletic_expression``,
-    the answer is ``expression_fit`` alone: the step's first groups, with their
-    proteins per genome, judged against the expression as the site reads it,
-    or, on a step that holds no group, each unit the site matches no group
-    with. That fit judges the criterion, so the step needs no sample.
-
-    Args:
-        wdk_step_id: The WDK step id of a search step, not a combine.
-    """
-    target = await _search_step(ctx, wdk_step_id)
+async def read_step_columns(deps: AgentDeps, wdk_step_id: int) -> StepColumns:
+    target = await _search_step(deps, wdk_step_id)
     fit = (
         None
         if target is None
@@ -366,34 +338,12 @@ async def read_step_columns(
             "read_step_columns",
             f"step {wdk_step_id}",
             read_expression_fit(
-                ctx.deps.strategy_session.site_id, wdk_step_id, target.criterion
+                deps.strategy_session.site_id, wdk_step_id, target.criterion
             ),
             deadline=READ_DEADLINE_SECONDS,
         )
     )
     if fit is not None:
-        ctx.deps.turn_markers.record_expression_fit(fit)
-        judged = StepColumns(wdk_step_id=wdk_step_id, expression_fit=fit)
-        return with_summary(judged, fit.sentence, ctx=ctx)
-    columns, summary = await _read_columns(ctx, wdk_step_id, target)
-    if not columns.fits:
-        columns, summary = with_countable(
-            columns, summary, await _countable(ctx, wdk_step_id)
-        )
-    return with_summary(columns, summary, ctx=ctx)
-
-
-async def _countable(
-    ctx: RunContext[AgentDeps], wdk_step_id: int
-) -> list[ReachedColumn]:
-    listed = await read_in_time(
-        "read_step_columns",
-        f"step {wdk_step_id}",
-        countable_columns(ctx.deps.strategy_session.site_id, wdk_step_id),
-        deadline=READ_DEADLINE_SECONDS,
-    )
-    return [
-        ReachedColumn(name=c.name, display_name=c.display_name)
-        for c in listed.columns
-        if c.countable
-    ]
+        deps.turn_markers.record_expression_fit(fit)
+        return StepColumns(wdk_step_id=wdk_step_id, expression_fit=fit)
+    return await _read_columns(deps, wdk_step_id, target)

@@ -58,16 +58,15 @@ the thread stored is lost and each kind is read again. A step with no kind (a
 tree stored before kinds existed, a step the canvas added) is stamped once at
 the turn entry in `pre_turn`, and the next write stores it. Every catalog
 stamp on a graph goes through `services/eda/analysis_kinds.py::read_the_unread_kinds`:
-the turn entry, a build, the site read, and VERIFY's `check_study_step` and
+the turn entry, a build, the site read, every check before it reads the site, and
 `get_strategy`, so a step whose search changed within the turn is read before
 it is judged. Three stamps read no graph: an import reads the kinds of the
 tree it converts through `analysis_kinds_of`, the export states its own kind,
 and a duplicate copies its source's. A search whose catalog read fails is not
 asked again for the rest of the turn (`StrategyGraph.unreadable_searches`,
 never stored; it belongs to the graph each turn builds). A step the catalog still cannot
-read is reported as unread, never as no study step: `check_study_step` says
-so, and `get_strategy` lists it under `unread_analyses`. VERIFY sets its
-verdict from the other checks, and the
+read is reported as unread, never as no study step: `get_strategy` lists it
+under `unread_analyses`. The verdict is computed from the other checks, and the
 runtime writes the same steps, read from the strategy and never from the
 checker, into `VerificationDigest.pending_checks`. A pending check is neither
 a pass nor an objection: `VerificationDigest.passed` is `success` with no

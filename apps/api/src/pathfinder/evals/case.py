@@ -151,8 +151,9 @@ class ExpectedOutcome(CamelModel):
     says why it runs its search, in the same paragraph as the step's title.
     ``root_operator`` is the root combine's operator, matched exactly, and
     ``final_count_below_every_input`` holds the root's count strictly below
-    every search step's count. ``met_requirements`` and ``unmet_requirements``
-    are the rows the check on the strategy reported with that status.
+    every search step's count. ``passed_checks`` and ``failed_checks`` count
+    the checks on the site with that status, and ``unexpressed_requirements``
+    the requirements no search on the site states.
     ``counts_in_genes`` holds the reply to stating every count of the
     strategy's steps in genes, the unit the site counts it in, never as
     ``N transcripts``. ``root_count`` is judged for drift against the site's
@@ -176,8 +177,8 @@ class ExpectedOutcome(CamelModel):
     step_titles_omit: list[str] = Field(default_factory=list)
     root_operator: str | None = None
     final_count_below_every_input: bool | None = None
-    met_requirements: int | None = None
-    unmet_requirements: int | None = None
+    passed_checks: int | None = None
+    failed_checks: int | None = None
     unexpressed_requirements: int | None = None
     turn_reply_mentions: dict[int, list[str]] = Field(default_factory=dict)
     turn_reply_omits: dict[int, list[str]] = Field(default_factory=dict)

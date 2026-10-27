@@ -150,89 +150,135 @@ describe("DataEvidenceCard", () => {
     );
   });
 
-  it("lists each requirement with what answers it and how", () => {
+  it("lists each check with its result and what the site answered", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 
-    const rows = within(screen.getByTestId("evidence-requirements")).getAllByRole(
-      "row",
-    );
+    const rows = within(screen.getByTestId("evidence-checks")).getAllByRole("row");
     expect(rows.map((row) => row.textContent)).toEqual([
-      "RequirementAnswered byHow",
-      'P. falciparum 3D7 genesBoth component searches use `organism=["Plasmodium falciparum 3D7"]`.Predicted Signal Peptide, Transmembrane Domain Countby a parameter',
-      "with a signal peptide`GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.Predicted Signal Peptideby a search",
-      "at least 2 transmembrane domains`GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.Transmembrane Domain Countby a parameter",
-      "signal peptide and at least 2 transmembrane domainsThe root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.Intersectby the structure",
+      "CheckResultWhat the site answered",
+      "the strategy on the sitePassedthe site marks 3 of 3 steps valid",
+      "the strategy on the sitePassedeach combine holds a count its operator allows: INTERSECT 'Intersect' holds 116 from inputs of 479 and 840",
+      "P. falciparum 3D7Passedall 116 records of step 440597243 ('Intersect') hold an organism the strategy selects: Plasmodium falciparum 3D7 (116)",
+      "with a signal peptideNot checkedno check reads this requirement on the site",
     ]);
   });
 
-  it("says how a transform or a study analysis answers a requirement", () => {
+  it("marks a failed check", () => {
     const review = REVIEWED_CARD.review ?? {};
-    const answered = (how: "transform" | "analysis", text: string) => ({
-      text,
-      turn: 2,
-      answeredBy: ["step_80bbac4f"],
-      how,
-      status: "met" as const,
-      note: "",
-    });
     render(
       <DataEvidenceCard
         data={{
           ...REVIEWED_CARD,
           review: {
             ...review,
-            requirements: [
-              answered("transform", "orthologs in P. vivax"),
-              answered("analysis", "up in gametocytes"),
+            checks: [
+              {
+                kind: "result_count",
+                subject: "the strategy on the site",
+                status: "fail",
+                evidence:
+                  "the result step 440597243 ('Intersect') holds no record on the site",
+                requirement: "",
+              },
             ],
           },
         }}
       />,
     );
 
-    const rows = within(screen.getByTestId("evidence-requirements")).getAllByRole(
-      "row",
-    );
-    expect(rows.map((row) => row.textContent)).toEqual([
-      "RequirementAnswered byHow",
-      "orthologs in P. vivaxPredicted Signal Peptideby a transform",
-      "up in gametocytesPredicted Signal Peptideby an analysis",
+    const checks = within(screen.getByTestId("evidence-checks"));
+    expect(checks.getByText("Failed").className).toBe("text-destructive");
+  });
+
+  it("links the site's enrichment and leaves opening the strategy to the facts", () => {
+    render(<DataEvidenceCard data={EVIDENCE_CARD} />);
+
+    expect(screen.queryAllByRole("link", { name: "Open in PlasmoDB" })).toHaveLength(0);
+    const enrichment = screen.getByTestId("evidence-enrichment-link");
+    expect([enrichment.textContent, enrichment.getAttribute("href")]).toEqual([
+      "Run GO, pathway or word enrichment in PlasmoDB",
+      EVIDENCE_CARD.strategyUrl,
     ]);
   });
 
-  it("says in Answered by what nothing answers and what no search states", () => {
-    const review = REVIEWED_CARD.review ?? {};
-    const unanswered = (text: string, status: "unmet" | "unexpressed") => ({
-      text,
-      turn: 1,
-      answeredBy: [],
-      how: "search" as const,
-      status,
-      note: "",
-    });
+  it("draws the facts of the check and no verdict", () => {
+    render(<DataEvidenceCard data={REVIEWED_CARD} />);
+
+    const body = screen.getByTestId("evidence-card-body").textContent;
+    expect([
+      /Supported/.test(body),
+      /Not supported/.test(body),
+      /requirements met/.test(body),
+    ]).toEqual([false, false, false]);
+    expect(screen.getByTestId("evidence-sample-count").textContent).toBe(
+      "8 of 8 sampled genes unclear",
+    );
+    expect(
+      within(screen.getByTestId("evidence-steps")).getAllByText("116"),
+    ).toHaveLength(2);
+  });
+
+  it("lists the study steps the site did not describe as pending", () => {
+    render(
+      <DataEvidenceCard
+        data={{ ...EVIDENCE_CARD, pendingChecks: ["Febrile vs normal"] }}
+      />,
+    );
+
+    expect(screen.getByTestId("evidence-pending").textContent).toBe(
+      "1 check pending: Febrile vs normal",
+    );
+  });
+
+  it("names a strategy the site does not hold instead of a failed read", () => {
     render(
       <DataEvidenceCard
         data={{
-          ...REVIEWED_CARD,
-          review: {
-            ...review,
-            requirements: [
-              unanswered("at least 2 transmembrane domains", "unmet"),
-              unanswered("exported to the host cell", "unexpressed"),
-            ],
-          },
+          ...EVIDENCE_CARD,
+          wdkStrategyId: null,
+          strategyUrl: null,
+          siteRead: "not_read",
+          steps: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 of 3 positive controls returned, 0 of 2 negative controls returned, the strategy is not on the site yet.",
+    );
+  });
+
+  it("names a site that did not answer instead of showing a zero", () => {
+    render(
+      <DataEvidenceCard
+        data={{
+          ...EVIDENCE_CARD,
+          siteRead: "not_answered",
+          steps: EVIDENCE_CARD.steps.map((step) => ({
+            ...step,
+            siteCount: null,
+            drifted: false,
+          })),
         }}
       />,
     );
 
     expect(
-      screen
-        .getAllByTestId("evidence-requirement-answer")
-        .map((cell) => cell.textContent),
-    ).toEqual([
-      "Nothing in the strategy answers it",
-      "No search on this site states it",
-    ]);
+      within(screen.getByTestId("evidence-steps")).getByText("-"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The site did not answer at the check, so no count is shown for it.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("captions each fit word of the sampled genes", () => {
+    render(<DataEvidenceCard data={REVIEWED_CARD} />);
+
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "8 of 8 sampled genes unclear.",
+    );
   });
 
   it("lists every sampled gene with its product, its fit and why", () => {
@@ -313,7 +359,7 @@ describe("DataEvidenceCard", () => {
       node.getAttribute("data-testid"),
     );
     expect(sections.slice(0, 3)).toEqual([
-      "evidence-requirements",
+      "evidence-checks",
       "evidence-column-fits",
       "evidence-sampled-genes",
     ]);

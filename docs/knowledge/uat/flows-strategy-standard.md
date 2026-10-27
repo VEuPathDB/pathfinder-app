@@ -54,7 +54,7 @@ Measured runs of these prompts: S1 plasmodb 479 (101 s, $0.074). S2 plasmodb 116
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | New conversation, composer | Send `Find <X> genes with a predicted signal peptide and 2 to 99 transmembrane domains.` | Layout `INTERSECT(GenesWithSignalPeptide, GenesByTransmembraneDomains)`; `Strategy updated` `3 steps, <S2> genes`; the two inputs as in the table |
-| 2 | Evidence card | Read | 4 requirement rows `Met` (organism, signal peptide, 2 to 99 domains, both must hold), `How` column `parameter`, `search`, `parameter`, `structure` |
+| 2 | Evidence card | Read | Checks on the site `Passed` for step validity, the bound values, the INTERSECT counts, the result count and the organism; a requirement no check reads is `Not checked` |
 | 3 | If the reply says a search was not added and asks to continue | Send `Yes, please finish the transmembrane-domain filter.` | The same layout and count (measured: 116, 130 s, $0.090). The first turn stopping is FND-10 (major) |
 
 Keep this conversation for S5, S6, S9, S10, S11 (branch it with F8 before each, or rebuild).

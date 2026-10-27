@@ -25,17 +25,15 @@ from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import (
     EditDirectionCaveat,
     Gap,
-    StructureGap,
     WordGap,
     caveats_for,
     check_gaps,
     edit_direction_caveats,
 )
-from pathfinder.domain.constraint_check import shortfalls
 from pathfinder.domain.control_result_facts import control_result_fact
-from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.last_change import LastChange, change_since
+from pathfinder.domain.site_checks import SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.expression_handles import held_readings
 from pathfinder.domain.strategy.operational_spec import (
@@ -209,7 +207,7 @@ def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:
     markers = deps.state.turn_markers
     verdict = deps.state.turn_verdict
     held = [] if verdict is None else verdict.gaps
-    structure = next((gap for gap in held if isinstance(gap, StructureGap)), None)
+    retired = {r.constraint.key for r in deps.state.domain.retired_requirements}
     words = [
         *(gap.word for gap in held if isinstance(gap, WordGap)),
         *(
@@ -220,17 +218,18 @@ def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:
     ]
     return [
         *check_gaps(
-            structure=structure,
             words=words,
-            review=VerificationReview() if verdict is None else verdict.review,
             unstated=markers.unstated_requirements,
-            asked=[q.question for q in deps.state.domain.answered_questions],
             requirements=[
                 *ledger.constraints.grounded,
                 *(r.grounded() for r in deps.state.domain.retired_requirements),
             ],
         ),
-        *shortfalls([] if verdict is None else verdict.constraint_report),
+        *(
+            gap
+            for gap in held
+            if isinstance(gap, SiteCheckGap) and gap.check.requirement not in retired
+        ),
     ]
 
 

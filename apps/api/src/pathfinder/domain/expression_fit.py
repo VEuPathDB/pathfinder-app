@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from typing import Literal, Self
+from collections.abc import Mapping, Sequence
+from typing import Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, TypeAdapter, model_validator
@@ -63,27 +63,6 @@ class ExpressionFit(CamelModel):
             f"{self.held} of {self.sampled} sampled groups of {step} meet its "
             f"phyletic expression {counts}"
         )
-
-
-class ExpressionGap(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["expression"] = "expression"
-    fit: ExpressionFit
-
-    @computed
-    def sentence(self) -> str:
-        return self.fit.sentence
-
-    def texts(self) -> list[str]:
-        return []
-
-    def redacted(self, redact: Callable[[str], str]) -> ExpressionGap:
-        return self
-
-    @property
-    def fails_the_check(self) -> bool:
-        return True
 
 
 def _matches_no_group(unit: TaxaCount, tree: PhyleticTree) -> bool:
@@ -160,17 +139,11 @@ def live_fits(
     return [fit for fit in fits if bound.get(fit.wdk_step_id) == fit.expression]
 
 
-def expression_gaps(fits: Sequence[ExpressionFit]) -> list[ExpressionGap]:
-    return [ExpressionGap(fit=fit) for fit in fits if fit.failing or fit.unmatched]
-
-
 __all__ = [
     "SAMPLED_GROUP_LIMIT",
     "ExpressionFit",
-    "ExpressionGap",
     "bound_expressions",
     "expression_fit",
-    "expression_gaps",
     "live_fits",
     "unmatched_units",
 ]

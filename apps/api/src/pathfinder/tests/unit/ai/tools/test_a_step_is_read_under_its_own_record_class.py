@@ -42,7 +42,6 @@ from pathfinder.tests._support.orthomcl_record_classes import (
 )
 from pathfinder.tests._support.orthomcl_step_columns import serve_step_columns
 from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import ctx, install_stub_api, leaf, seed, session_with
 from .conftest import agent_run_context
@@ -154,16 +153,15 @@ async def test_the_columns_of_a_group_step_are_not_read_as_genes() -> None:
     result = await read_step_columns(
         agent_run_context(
             site_id="orthomcl", strategy_session=session, agent_state=state
-        ),
+        ).deps,
         _PATTERN_STEP,
     )
 
-    assert returned(result, StepColumns) == StepColumns(
+    assert result == StepColumns(
         wdk_step_id=_PATTERN_STEP,
         note=(
             f"Step {_PATTERN_STEP} is not a gene search step a criterion binds. "
-            "Sample the root with get_sample_records for this criterion. "
-            "None of its columns counts its records."
+            "Sample the root with get_sample_records for this criterion."
         ),
     )
 

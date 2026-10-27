@@ -13,8 +13,8 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadTurnState, hold_the_turn_contract
 from pathfinder.ai.lead.withheld_reply import WITHHELD_ALONE, WITHHELD_REPLY
-from pathfinder.domain.caveats import RequirementGap
 from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -73,8 +73,14 @@ def _unmet_and_unfollowed() -> LeadDeps:
             reason="No step restricts the groups to Plasmodium.",
             success=False,
             gaps=[
-                RequirementGap(
-                    text="Plasmodium species", status="unmet", key=ORGANISM.key
+                SiteCheckGap(
+                    check=SiteCheck(
+                        kind=ConstraintKind.ORGANISM,
+                        subject="Plasmodium species",
+                        status="fail",
+                        evidence="no step restricts the groups to Plasmodium",
+                        requirement=ORGANISM.key,
+                    )
                 )
             ],
         ),

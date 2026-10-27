@@ -20,7 +20,6 @@ from pathfinder.ai.lead.intent import REQUEST_INTENTS, UNRECORDED_INTENTS, UserI
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
-from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, OpenEdaAnalysis
 from pathfinder.domain.evidence import (
@@ -31,7 +30,6 @@ from pathfinder.domain.evidence import (
 from pathfinder.domain.exchanges import Exchange, kept_exchanges
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.omitted_from_input import OmittedFromInput
-from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
@@ -90,30 +88,19 @@ type ClippedDraft = Annotated[MemoryEntryDraft, BeforeValidator(clipped_draft)]
 
 
 class VerificationDigest(CamelModel):
-    disposition: PhaseDisposition = Field(
-        description=(
-            "Control-flow signal: 'done' = investigation is complete; "
-            "'awaiting_user' = the turn ends; 'handoff' = transition to "
-            "the next sub-agent."
-        ),
-    )
+    disposition: Annotated[PhaseDisposition, OmittedFromInput] = PhaseDisposition.DONE
     prose: Annotated[str, text_clipped_to(4000)] = Field(
         min_length=1,
-        description="User-facing assistant message shown in the conversation.",
-    )
-    reason: Annotated[str, text_clipped_to(280)] = Field(
-        min_length=1,
-        description="Short routing explanation shown on the orchestrator card.",
-    )
-    handoff_to: PhaseName | None = None
-    failure_cause: FailureCause | None = Field(default=None)
-    note_refs: Annotated[list[str], list_clipped_to(10)] = Field(default_factory=list)
-    success: bool = Field(
         description=(
-            "True if the strategy answered the user's question: sample "
-            "records and result sizes look right, control tests passed."
+            "What the records you read look like, and what the runtime's checks "
+            "found. Never a verdict of your own."
         ),
     )
+    reason: Annotated[str, text_clipped_to(280), OmittedFromInput] = ""
+    handoff_to: PhaseName | None = None
+    failure_cause: Annotated[FailureCause | None, OmittedFromInput] = None
+    note_refs: Annotated[list[str], list_clipped_to(10)] = Field(default_factory=list)
+    success: Annotated[bool, OmittedFromInput] = False
     key_findings: Annotated[list[str], list_clipped_to(10)] = Field(
         default_factory=list
     )
@@ -121,18 +108,7 @@ class VerificationDigest(CamelModel):
     # not answer. The runtime sets both, so the checker's schema omits them.
     caveats: Annotated[list[Caveat], OmittedFromInput] = Field(default_factory=list)
     gaps: Annotated[list[Gap], OmittedFromInput] = Field(default_factory=list)
-    pending_checks: list[str] = Field(
-        default_factory=list,
-        description=(
-            "The study steps whose analysis the site did not describe, so their "
-            "check could not run. The runtime sets it from the strategy and "
-            "replaces anything written here."
-        ),
-    )
-    # The study-step checks this turn computed; the runtime sets it.
-    constraint_report: Annotated[list[ConstraintCheck], OmittedFromInput] = Field(
-        default_factory=list
-    )
+    pending_checks: Annotated[list[str], OmittedFromInput] = Field(default_factory=list)
     review: VerificationReview = Field(default_factory=VerificationReview)
     remember: Annotated[list[ClippedDraft], list_clipped_to(5)] = Field(
         default_factory=list,
@@ -148,12 +124,6 @@ class VerificationDigest(CamelModel):
     def passed(self) -> bool:
         """True when the check succeeded and no step's check is pending."""
         return self.success and not self.pending_checks
-
-    @property
-    def rows_all_met(self) -> bool:
-        """True when the review holds a row and every row is shown met."""
-        rows = self.review.requirements
-        return bool(rows) and all(row.shown_status == "met" for row in rows)
 
     @property
     def blames_the_tree(self) -> bool:
@@ -195,7 +165,7 @@ class StrategyDomainState(ThreadRequirements):
     # dispositions against it, and a refusal puts it back.
     spec_before_dispatch: OperationalSpec | None = None
     discovered_searches: dict[str, SearchOverview] = Field(default_factory=dict)
-    verification_digest: Stored[VerificationDigest] = None
+    site_verdict: Stored[VerificationDigest] = None
     # The revision of the strategy the digest judged. The digest is the verdict
     # only while the strategy holds that revision.
     verified_revision: str = ""
@@ -228,8 +198,6 @@ class StrategyDomainState(ThreadRequirements):
     original_request: str = ""
     # Every message the researcher wrote for that request, oldest first.
     request_messages: list[str] = Field(default_factory=list)
-    # The parts of those messages the intent gate read as asking for an answer.
-    researcher_asks: list[ResearcherAsk] = Field(default_factory=list)
     # The last exchanges of the conversation as the researcher read them.
     exchanges: list[Exchange] = Field(default_factory=list)
     # How many memories of each kind the Lead can recall, read when a turn opens.
@@ -276,7 +244,6 @@ class StrategyDomainState(ThreadRequirements):
         self.named_readings = []
         self.original_request = ""
         self.request_messages = []
-        self.researcher_asks = []
         self.last_build_outcome = None
         self.stale_build = None
         self.separation_offers = {}
@@ -307,10 +274,6 @@ class StrategyDomainState(ThreadRequirements):
             intent, [request_text, self.original_request, *self.request_messages]
         )
         self.record_request_text(request_text)
-        self.researcher_asks = [
-            *(ask for ask in self.researcher_asks if ask.message != request_text),
-            *intent.researcher_asks(request_text),
-        ]
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
 
@@ -355,7 +318,7 @@ class StrategyDomainState(ThreadRequirements):
 
     def record_verdict(self, digest: VerificationDigest, *, revision: str) -> None:
         """Keep a check's digest with the revision of the strategy it judged."""
-        self.verification_digest = digest
+        self.site_verdict = digest
         self.verified_revision = revision
 
     def verdict_of_the_strategy(self) -> VerificationDigest | None:
@@ -366,7 +329,7 @@ class StrategyDomainState(ThreadRequirements):
         """
         if self.verified_revision != strategy_revision(self.answered_graph):
             return None
-        return self.verification_digest
+        return self.site_verdict
 
     def card_of_the_strategy(self) -> EvidenceCard | None:
         """The card of the last check, while the strategy is the one it checked."""

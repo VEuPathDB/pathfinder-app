@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from veupathdb.domain.parameters import to_wire
 
+from pathfinder.domain.constraint_check import agrees
 from pathfinder.domain.log2_scale import scale_of
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.combination_check import (
@@ -38,6 +39,9 @@ _SIGNIFICANCE_RE = re.compile(
 _MICROARRAY_RE = re.compile(r"microarray", re.IGNORECASE)
 _RNASEQ_REQUEST_RE = re.compile(r"rna[\s_-]?seq", re.IGNORECASE)
 _EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
+_NUMBER_RE = re.compile(r"(?:\d+(?:\.\d+)?|\.\d+)(?:e-?\d+)?", re.IGNORECASE)
+_PERCENT_RE = re.compile(r"\d\s*%")
+_PERCENT = 100.0
 
 
 def _data_run_on(realized: RealizedSpec) -> list[str]:
@@ -76,12 +80,50 @@ def _significance(analysis: AnalysisBinding) -> float | None:
     return analysis.significance_threshold
 
 
+def _requested_significance(c: Constraint) -> float | None:
+    numbers = _NUMBER_RE.findall(c.requested_value)
+    if len(numbers) != 1:
+        return None
+    value = float(numbers[0])
+    return value / _PERCENT if _PERCENT_RE.search(c.requested_value) else value
+
+
+def _bound_significances(realized: RealizedSpec) -> list[tuple[str, float]]:
+    analyses = [
+        ("significance_threshold", k.analysis.significance_threshold)
+        for k in realized.criteria
+        if k.analysis is not None and k.analysis.significance_threshold is not None
+    ]
+    params = [
+        (name, float(raw))
+        for name, raw in realized.param_values.items()
+        if _SIGNIFICANCE_RE.search(name) and _NUMBER_RE.fullmatch(raw)
+    ]
+    return [*analyses, *params]
+
+
+def _compared_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    requested = _requested_significance(c)
+    bound = _bound_significances(realized)
+    if requested is None or not bound:
+        return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
+    met = next(((n, v) for n, v in bound if agrees(requested, v)), None)
+    name, value = bound[0] if met is None else met
+    return GroundedConstraint(
+        constraint=c,
+        status=ConstraintStatus.GROUNDED if met else ConstraintStatus.SUBSTITUTED,
+        realized_value=f"{value:g}",
+        realized_param=name,
+        note="" if met else f"asked {requested:g}, built {value:g}",
+    )
+
+
 def _ground_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     if any(_SIGNIFICANCE_RE.search(name) for name in realized.param_names) or any(
         k.analysis is not None and k.analysis.significance_threshold is not None
         for k in realized.criteria
     ):
-        return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
+        return _compared_threshold(c, realized)
     if realized.awaits_analysis(_significance):
         return awaiting_analysis(c)
     return GroundedConstraint(

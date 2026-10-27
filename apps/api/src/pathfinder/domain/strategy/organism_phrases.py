@@ -77,6 +77,13 @@ def completed_organism(value: str, stated: StatedOrganism) -> str | None:
     return None
 
 
+def names_the_organism(words: str, organism: str) -> bool:
+    named = tuple(words_of(words))
+    return bool(named) and any(
+        reading[: len(named)] == named for reading in _readings(organism)
+    )
+
+
 def complete_organisms(
     constraints: Sequence[Constraint], message: str, vocabulary: Sequence[str]
 ) -> tuple[list[Constraint], list[str]]:

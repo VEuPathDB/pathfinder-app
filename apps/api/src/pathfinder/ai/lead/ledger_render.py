@@ -222,15 +222,14 @@ def _caveat_line(caveat: Caveat) -> str:
 
 
 def _review_lines(review: VerificationReview) -> list[str]:
-    """Each requirement row, each column, each sampled gene and each source of
+    """Each check on the site, each column, each sampled gene and each source of
     the check."""
     lines: list[str] = []
-    if review.requirements:
-        lines.append("\n### Requirements")
+    if review.checks:
+        lines.append("\n### Checks on the site")
         lines.extend(
-            f"- [{row.shown_status}] {row.text} (message {row.turn}, {row.how}; answered "
-            f"by {', '.join(row.answered_by) or 'nothing'}): {row.note}"
-            for row in review.requirements
+            f"- [{check.status}] {check.subject}: {check.evidence}"
+            for check in review.checks
         )
     if review.column_fits:
         lines.append("\n### Columns")

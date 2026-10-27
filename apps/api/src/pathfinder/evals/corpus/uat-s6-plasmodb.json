@@ -27,8 +27,8 @@
     "stepTitlesOmit": [],
     "rootOperator": "INTERSECT",
     "finalCountBelowEveryInput": null,
-    "metRequirements": null,
-    "unmetRequirements": null,
+    "passedChecks": null,
+    "failedChecks": null,
     "rootCount": {
       "count": 67,
       "build": "71",

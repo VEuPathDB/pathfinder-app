@@ -95,7 +95,7 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
 
 
 def _verdict(digest: VerificationDigest) -> str:
-    """The check's verdict, with the first sentence of an objection when it is plain."""
+    """The check's verdict, with the first sentence of what failed when it is plain."""
     if digest.success and digest.pending_checks:
         pending = digest.pending_checks
         return (
@@ -104,7 +104,7 @@ def _verdict(digest: VerificationDigest) -> str:
         )
     if digest.success:
         return "Verification passed."
-    first = _SENTENCE_END.split(digest.prose.strip(), maxsplit=1)[0]
+    first = _SENTENCE_END.split(digest.reason.strip(), maxsplit=1)[0]
     if machine_words(first):
         return "Verification objected."
     return f"Verification objected: {first}"

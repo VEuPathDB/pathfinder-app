@@ -11,11 +11,14 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree
 
-from pathfinder.ai.lead import evidence_card, verify_dispatch
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead import evidence_card, verify_checks, verify_dispatch
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
-from pathfinder.domain.expression_fit import ExpressionFit, ExpressionGap
+from pathfinder.ai.tools.standalone._result_models import StepColumns
+from pathfinder.domain.expression_fit import ExpressionFit
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -45,6 +48,17 @@ _ZERO_BOUND = (
 )
 
 pytestmark = pytest.mark.usefixtures("collector")
+
+
+def _gap(fit: ExpressionFit) -> SiteCheckGap:
+    return SiteCheckGap(
+        check=SiteCheck(
+            kind="expression_fit",
+            subject=f"phyletic expression {fit.expression}",
+            status="fail",
+            evidence=fit.sentence,
+        )
+    )
 
 
 def _spec(expression: str) -> OperationalSpec:
@@ -102,15 +116,7 @@ async def _run(
     monkeypatch: pytest.MonkeyPatch, deps: LeadDeps, count: int
 ) -> VerificationDelta:
     outcome = VerificationDelta.model_validate(
-        {
-            "digest": {
-                "disposition": "done",
-                "prose": "The strategy answers the request.",
-                "reason": "Counts read.",
-                "success": True,
-                "review": {},
-            }
-        }
+        {"digest": {"prose": "The strategy answers the request.", "review": {}}}
     )
 
     async def streamed(**kwargs: Any) -> VerificationDelta:
@@ -121,8 +127,17 @@ async def _run(
         del site_id, wdk_strategy_id
         return SiteCounts(root_step_id=_ROOT, counts={_ROOT: count})
 
+    async def held_columns(deps: AgentDeps, wdk_step_id: int) -> StepColumns:
+        del deps
+        return StepColumns(wdk_step_id=wdk_step_id)
+
+    async def unanswered(site_id: str, wdk_strategy_id: int) -> None:
+        del site_id, wdk_strategy_id
+
     monkeypatch.setattr(verify_dispatch, "stream_sub_agent", streamed)
     monkeypatch.setattr(evidence_card, "read_step_counts", counts)
+    monkeypatch.setattr(verify_checks, "read_step_columns", held_columns)
+    monkeypatch.setattr(verify_checks, "read_site_strategy", unanswered)
     delta = await run_verification(
         deps=deps, parent_tool_call_id="call_verify", reason="check the groups"
     )
@@ -143,10 +158,11 @@ async def test_a_failing_sampled_group_fails_the_check_and_is_on_the_card(
 
     assert (delta.digest.success, delta.digest.gaps, delta.digest.caveats) == (
         False,
-        [ExpressionGap(fit=_FAILING)],
+        [_gap(_FAILING)],
         [],
     )
     assert delta.digest.gaps[0].sentence == (
+        f"'phyletic expression {_FAILING.expression}': "
         f"1 of 2 sampled groups of step {_ROOT} does not meet its phyletic "
         "expression on the site's per-genome counts: OG8_0031041"
     )
@@ -174,9 +190,10 @@ async def test_an_empty_step_the_site_cannot_match_fails_the_check(
 
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
-        [ExpressionGap(fit=unmatched)],
+        [_gap(unmatched)],
     )
     assert delta.digest.gaps[0].sentence == (
+        f"'phyletic expression {_UNMATCHED_EXPRESSION}': "
         f"step {_ROOT} holds no group, and its phyletic expression matches none "
         f"as the site reads it: {_ZERO_BOUND}"
     )

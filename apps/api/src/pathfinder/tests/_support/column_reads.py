@@ -16,7 +16,6 @@ from veupathdb.wdk import (
     WDKSearch,
     WDKSearchResponse,
 )
-from veupathdb_mcp.wdk import StepColumn, StepColumns
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -95,31 +94,9 @@ class _Definitions:
         )
 
 
-def _step_columns(step_id: int) -> StepColumns:
-    return StepColumns(
-        step_id=step_id,
-        record_type="transcript",
-        search_name="",
-        columns=tuple(
-            StepColumn(
-                name=a.name,
-                display_name=a.display_name or a.name,
-                data_type=a.column_data_type,
-                countable=a.column_data_type in ("STRING", "NUMBER")
-                and "byValue" in a.tools.reports,
-            )
-            for a in column_catalog().attributes or []
-        ),
-    )
-
-
 def serve_columns(monkeypatch: pytest.MonkeyPatch, site: ColumnSite) -> None:
     catalog = column_catalog()
     definitions = _Definitions()
-
-    async def countable_columns(site_id: str, wdk_step_id: int) -> StepColumns:
-        del site_id
-        return _step_columns(wdk_step_id)
 
     async def searches(site_id: str, record_type: str) -> list[WDKSearch]:
         del site_id, record_type
@@ -133,7 +110,6 @@ def serve_columns(monkeypatch: pytest.MonkeyPatch, site: ColumnSite) -> None:
     monkeypatch.setattr(results, "get_raw_record_types", record_types)
     monkeypatch.setattr(results, "get_strategy_api", lambda site_id: site)
     monkeypatch.setattr(results, "get_discovery_service", lambda: definitions)
-    monkeypatch.setattr(results, "countable_columns", countable_columns)
 
 
 def column_context(

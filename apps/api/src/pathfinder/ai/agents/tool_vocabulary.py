@@ -42,7 +42,6 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         # Strategy inspection
         "get_strategy",
         "get_estimated_size",
-        "read_step_columns",
         "get_sample_records",
         "get_download_url",
         "read_step_ids",
@@ -95,7 +94,6 @@ CHECK_READS: frozenset[str] = RECORD_READS | {
     "get_sample_records",
     "get_strategy",
     "read_step_ids",
-    "read_step_columns",
     "get_estimated_size",
 }
 

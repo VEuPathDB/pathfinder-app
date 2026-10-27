@@ -28,7 +28,7 @@ from pathfinder.tests._support.column_fits import tm_fit
 def _checked(fit: ColumnFit) -> StrategyDomainState:
     review = VerificationReview(column_fits=[fit])
     state = StrategyDomainState(
-        verification_digest=VerificationDigest(
+        site_verdict=VerificationDigest(
             disposition=PhaseDisposition.DONE,
             prose="p",
             reason="r",
@@ -59,7 +59,7 @@ def _saved_before_the_status(fit: dict[str, JsonValue]) -> None:
 
 def _old_fits(dumped: dict[str, Any]) -> list[dict[str, JsonValue]]:
     return [
-        dumped["verification_digest"]["review"]["column_fits"][0],
+        dumped["site_verdict"]["review"]["column_fits"][0],
         dumped["last_evidence_card"]["review"]["column_fits"][0],
         dumped["turn_markers"]["column_fits"][0],
     ]
@@ -111,7 +111,7 @@ def test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs() -> N
     markers.record_column_fits([tm_fit(40, 40)])
 
     assert (
-        loaded.verification_digest,
+        loaded.site_verdict,
         loaded.last_evidence_card,
         loaded.turn_markers.column_fits,
     ) == (None, None, [])
@@ -123,27 +123,25 @@ def test_a_checkpoint_with_a_refused_fit_reloads_whole() -> None:
 
     loaded = _reloaded(state.model_dump())
 
-    assert loaded.verification_digest == state.verification_digest
+    assert loaded.site_verdict == state.site_verdict
     assert loaded.last_evidence_card == state.last_evidence_card
     assert loaded.turn_markers.column_fits == state.turn_markers.column_fits
 
 
 def test_a_stored_verdict_invalid_for_another_reason_still_fails() -> None:
     dumped = _checked(tm_fit(0, 0)).model_dump()
-    dumped["verification_digest"]["success"] = "not a verdict"
+    dumped["site_verdict"]["success"] = "not a verdict"
 
     with pytest.raises(ValidationError) as refused:
         StrategyDomainState.model_validate(dumped)
 
-    assert [e["loc"] for e in refused.value.errors()] == [
-        ("verification_digest", "success")
-    ]
+    assert [e["loc"] for e in refused.value.errors()] == [("site_verdict", "success")]
 
 
 def test_an_unreadable_fit_beside_another_error_still_fails() -> None:
     dumped = _checked(tm_fit(0, 0)).model_dump()
     _saved_before_the_status(_old_fits(dumped)[0])
-    dumped["verification_digest"]["success"] = "not a verdict"
+    dumped["site_verdict"]["success"] = "not a verdict"
 
     with pytest.raises(ValidationError) as refused:
         StrategyDomainState.model_validate(dumped)

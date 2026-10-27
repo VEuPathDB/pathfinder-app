@@ -152,6 +152,4 @@ def test_the_digest_reviews_the_genes_it_read() -> None:
         ("PF3D7_0100100", "yes"),
         ("PF3D7_0100200", "yes"),
     ]
-    assert [(r.text, r.answered_by, r.status) for r in review.requirements] == [
-        ("Plasmodium falciparum 3D7", ["step_a1b2c3d4"], "met")
-    ]
+    assert review.checks == []

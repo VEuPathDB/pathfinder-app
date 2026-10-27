@@ -14,7 +14,7 @@ from pathfinder.services.strategies import (
     data_marks,
     organism_params,
     organism_universe,
-    text_queries,
+    search_sheets,
 )
 
 # The transcript record type as every genomic site publishes it.
@@ -116,8 +116,8 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
         msg = f"the unit tier serves no sheet for {search_name}"
         raise WDKError(msg)
 
-    monkeypatch.setattr(text_queries, "search_record_types", _listed)
-    monkeypatch.setattr(text_queries, "read_search_definition", _no_sheet)
+    monkeypatch.setattr(search_sheets, "search_record_types", _listed)
+    monkeypatch.setattr(search_sheets, "read_search_definition", _no_sheet)
 
 
 def serve_organism_reads(

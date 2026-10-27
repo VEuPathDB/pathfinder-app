@@ -1,16 +1,10 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
-from pathfinder.ai.graph.state import (
-    FailureCause,
-    PhaseDisposition,
-    VerificationDigest,
-)
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.ledger_render import (
     render_build_full,
@@ -27,13 +21,10 @@ from pathfinder.ai.lead.ledger_sections import (
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.ai.lead.turn_briefing import ANALYSIS_CHANGED_AFTER_THE_CARD
-from pathfinder.domain.caveats import BuildCaveat, StructureGap
+from pathfinder.domain.caveats import BuildCaveat
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
-from pathfinder.domain.strategy.combination_check import first_combination_violation
-from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
     DroppedCriterion,
-    OperationalSpec,
 )
 
 
@@ -57,22 +48,6 @@ def build_contradiction(
         skipped=build.skipped_count,
         empty=len(build.zero_result_steps),
     )
-
-
-def structure_contradiction(
-    requirements: Sequence[Constraint], spec: OperationalSpec | None
-) -> StructureGap | None:
-    """The stated combination this spec's structure breaks, or None.
-
-    A build check reads what was pushed. A tree that joins the criteria the
-    user asked to union is wrong before anything is pushed.
-    """
-    if spec is None or spec.structure is None:
-        return None
-    breach = first_combination_violation(requirements, spec.criteria, spec.structure)
-    if breach is None:
-        return None
-    return StructureGap(expression=breach.expression, built=breach.built)
 
 
 _SITE_TERMS = ("the site", "veupathdb")
@@ -130,55 +105,6 @@ def blamed_the_site(
     if blame is None:
         return None
     return f"it names {site!r} together with {blame!r}"
-
-
-def digest_held_to_the_build(
-    digest: VerificationDigest,
-    contradiction: str,
-    *,
-    failure_cause: FailureCause | None = None,
-) -> VerificationDigest:
-    """The digest with its verdict corrected to what the run supports."""
-    return digest.model_copy(
-        update={
-            "success": False,
-            "failure_cause": failure_cause or digest.failure_cause,
-            "reason": (
-                "Verification reported success, and the ledger records what the "
-                "strategy does not answer."
-            ),
-            "prose": (
-                f"Verification cannot be reported: {contradiction}. "
-                f"The checker's own account of the run follows.\n\n{digest.prose}"
-            ),
-        },
-    )
-
-
-_ROWS_MET = "every stated requirement is met by a step and the records show it"
-
-
-def digest_held_to_the_rows(digest: VerificationDigest) -> VerificationDigest:
-    """The digest with its verdict derived from the held review rows.
-
-    A failure that no finding supports, over rows that are each shown met,
-    passes; the checker's own account follows the code's sentence.
-    """
-    if digest.success or not digest.rows_all_met:
-        return digest
-    return digest.model_copy(
-        update={
-            "success": True,
-            "failure_cause": None,
-            "disposition": PhaseDisposition.DONE,
-            "handoff_to": None,
-            "reason": f"Verification passed: {_ROWS_MET}.",
-            "prose": (
-                f"Verification passed: {_ROWS_MET}. The checker's own account of "
-                f"the run follows.\n\n{digest.prose}"
-            ),
-        },
-    )
 
 
 def _drop_line(entry: DroppedCriterion) -> str:

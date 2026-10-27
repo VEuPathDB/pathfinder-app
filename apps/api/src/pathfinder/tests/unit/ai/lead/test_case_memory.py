@@ -98,7 +98,7 @@ def _state(
             original_request="find every kinase in P. falciparum",
             last_build_outcome=outcome,
             zero_result_history=list(history or []),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="done",
                 reason="ok",
@@ -387,7 +387,7 @@ def _eda_state(export: EdaExport | None) -> PipelineState:
             original_request="which genes go up under heat shock in P. berghei",
             eda_analysis=_eda_facts(),
             last_build_outcome=_eda_outcome(1543),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="1543 genes",
                 reason="verified",

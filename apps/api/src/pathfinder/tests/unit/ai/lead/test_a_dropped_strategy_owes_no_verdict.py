@@ -92,7 +92,7 @@ async def test_a_verdict_goes_only_when_the_listing_proves_the_strategy_gone(
 
     await forget_the_verdict_of_a_dropped_strategy(domain, _synced())
 
-    assert (domain.verification_digest is not None, domain.verified_revision) == (
+    assert (domain.site_verdict is not None, domain.verified_revision) == (
         (kept, "r1") if kept else (False, "")
     )
     assert site.asked == asked

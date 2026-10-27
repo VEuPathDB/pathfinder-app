@@ -1,4 +1,4 @@
-"""The Lead's VERIFY dispatch tool, and the digest the ledger holds it to."""
+"""The Lead's VERIFY dispatch tool, and the verdict the site's answers decide."""
 
 from __future__ import annotations
 
@@ -6,12 +6,11 @@ from dataclasses import dataclass
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
-from veupathdb.domain.strategy import StepKind
 
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.state import (
     FailureCause,
+    PhaseDisposition,
     VerificationDigest,
 )
 from pathfinder.ai.lead.answered_strategy import live_tree
@@ -25,15 +24,9 @@ from pathfinder.ai.lead.dispatch_context import (
 from pathfinder.ai.lead.dispatch_messages import stop_phrase
 from pathfinder.ai.lead.evidence_card import (
     judged_control_tests,
-    judged_expression_fits,
     publish_evidence_card,
 )
-from pathfinder.ai.lead.ledger import (
-    build_contradiction,
-    digest_held_to_the_build,
-    digest_held_to_the_rows,
-    structure_contradiction,
-)
+from pathfinder.ai.lead.ledger import build_contradiction
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
@@ -43,101 +36,41 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
-from pathfinder.ai.lead.verification_scope import review_record, verification_scope
-from pathfinder.ai.lead.verify_review import (
-    review_held_to_the_turn,
-)
-from pathfinder.domain.caveats import (
-    BuildCaveat,
-    Caveat,
-    Gap,
-    check_gaps,
-    measured_caveats,
-)
-from pathfinder.domain.constraint_check import ConstraintCheck, shortfalls
-from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT, VerificationReview
-from pathfinder.domain.expression_fit import expression_gaps
-from pathfinder.domain.question_rows import without_questions
+from pathfinder.ai.lead.verification_scope import verification_scope
+from pathfinder.ai.lead.verify_checks import read_the_columns, site_checks
+from pathfinder.domain.caveats import BuildCaveat, Gap, check_gaps, measured_caveats
+from pathfinder.domain.column_fit import ColumnFit
+from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
 from pathfinder.domain.separation import AttachedControls
-from pathfinder.domain.shown_requirements import (
-    answered_by_uploads,
-    held_to_the_records,
-)
+from pathfinder.domain.site_checks import SiteCheck, failed
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
 from pathfinder.services.strategies.bound_uploads import uploads_the_specs_run_on
 from pathfinder.services.strategies.data_marks import marks_with_uploads
-from pathfinder.services.strategies.record_classes import names_of_every_record_type
-from pathfinder.services.strategies.text_queries import (
-    search_definitions,
-    text_query_criteria,
-)
-
-
-@dataclass(frozen=True)
-class SearchStep:
-    """A step that runs a search, whose columns a check reads."""
-
-    step_id: str
-    wdk_step_id: int
-    phyletic: bool = False
+from pathfinder.services.strategies.search_sheets import search_definitions
 
 
 @dataclass(frozen=True)
 class RootSample:
-    """The steps a check reads: each search step's columns, and the root it
-    samples for a criterion no column shows."""
+    """The root a check samples to say what the result's records look like."""
 
     step_id: str
     wdk_step_id: int
     count: int | None
-    search_steps: tuple[SearchStep, ...] = ()
 
 
 def root_sample(deps: LeadDeps) -> RootSample | None:
     """The strategy's root on the site, or None before a push."""
-    session = deps.runtime.strategy_session
-    sync, graph = session.sync_state, session.get_graph(None)
+    sync = deps.runtime.strategy_session.sync_state
     root = None if sync is None else sync.wdk_root_step_id
     if sync is None or root is None:
         return None
     step_id = next((s for s, w in sync.wdk_step_ids.items() if w == root), None)
     if step_id is None:
         return None
-    searched = (
-        []
-        if graph is None
-        else [
-            SearchStep(
-                step_id=sid,
-                wdk_step_id=sync.wdk_step_ids[sid],
-                phyletic=step.search_name == PHYLETIC_EXPRESSION_SEARCH,
-            )
-            for sid, step in graph.steps.items()
-            if step.kind is not StepKind.COMBINE
-            and step.search_name
-            and sid in sync.wdk_step_ids
-        ]
-    )
     return RootSample(
-        step_id=step_id,
-        wdk_step_id=root,
-        count=sync.step_counts.get(step_id),
-        search_steps=tuple(searched),
+        step_id=step_id, wdk_step_id=root, count=sync.step_counts.get(step_id)
     )
-
-
-def _columns_line(root: RootSample) -> str | None:
-    """The search steps whose columns the check reads first, or None when
-    there is none. A root that holds no record reads only the steps that bind
-    a phyletic expression."""
-    read = [s for s in root.search_steps if root.count != 0 or s.phyletic]
-    if not read:
-        return None
-    calls = "; ".join(
-        f"read_step_columns(wdk_step_id={s.wdk_step_id}) for {s.step_id}" for s in read
-    )
-    return f"Read the columns of each search step first: {calls}."
 
 
 def _sample_line(root: RootSample) -> str:
@@ -152,23 +85,41 @@ def _sample_line(root: RootSample) -> str:
         else min(SAMPLED_GENE_LIMIT, root.count)
     )
     return (
-        f"{named}. For a criterion whose step shows no column, sample it with "
+        f"{named}. To say what its records look like, sample it with "
         f"get_sample_records(wdk_step_id={root.wdk_step_id}, limit={limit})."
     )
 
 
+def _check_lines(
+    checks: list[SiteCheck], fits: list[ColumnFit], notes: list[str]
+) -> list[str]:
+    if not checks and not fits and not notes:
+        return []
+    return [
+        "The runtime read the strategy on the site. These checks decide the verdict:",
+        *(f"- [{c.status}] {c.subject}: {c.evidence}" for c in checks),
+        *(f"- [column] {fit.sentence}" for fit in fits),
+        *(f"- [no column] {note}" for note in notes),
+    ]
+
+
 def work_order(
-    reason: str, controls: AttachedControls | None, root: RootSample | None
+    reason: str,
+    controls: AttachedControls | None,
+    root: RootSample | None,
+    checks: list[SiteCheck] | None = None,
+    fits: list[ColumnFit] | None = None,
+    notes: list[str] | None = None,
 ) -> str:
-    """VERIFY's work order: the root it samples, and the saved control set an
-    adopted strategy was measured on."""
+    """VERIFY's work order: the checks the runtime ran, the root it may sample,
+    and the saved control set an adopted strategy was measured on."""
     lines = [
         f"Verification work order: {reason}",
         "Inspect the built strategy. Return a VerificationDelta.",
+        *_check_lines(checks or [], fits or [], notes or []),
     ]
     if root is not None:
-        columns = _columns_line(root)
-        lines.extend([*([] if columns is None else [columns]), _sample_line(root)])
+        lines.append(_sample_line(root))
     if controls is not None:
         lines.append(
             "The strategy was adopted from a separation run. Run "
@@ -180,6 +131,11 @@ def work_order(
     return "\n".join(lines)
 
 
+def _live_fits(deps: LeadDeps) -> list[ColumnFit]:
+    live = frozenset(deps.runtime.strategy_session.wdk_step_ids())
+    return [f for f in deps.state.turn_markers.column_fits if f.wdk_step_id in live]
+
+
 async def run_verification(
     *,
     deps: LeadDeps,
@@ -187,7 +143,8 @@ async def run_verification(
     reason: str,
     resume: SubAgentResume | None = None,
 ) -> VerificationDelta | VerificationStopped | SubAgentApprovalWait:
-    """Run verification and record its digest, on a fresh or a resumed dispatch."""
+    """Run the checks on the site, then the checker, and record the verdict the
+    checks decide, on a fresh or a resumed dispatch."""
     markers = deps.state.turn_markers
     markers.verification_dispatched = True
     # A check counts as stopped until its digest is recorded.
@@ -199,13 +156,17 @@ async def run_verification(
     domain = deps.state.domain
     site_id = deps.runtime.site_id
     sheets = await search_definitions(site_id, domain.operational_spec)
-    names = await names_of_every_record_type(site_id)
     uploads = await uploads_the_specs_run_on(site_id, [domain.operational_spec], sheets)
     domain.data_marks = await marks_with_uploads(
         site_id, [domain.operational_spec], uploads
     )
+    notes = await read_the_columns(deps, agent_deps)
+    checks = await site_checks(deps)
     run = PhaseRun(
-        "verification", work_order(reason, scope.controls, root_sample(deps))
+        "verification",
+        work_order(
+            reason, scope.controls, root_sample(deps), checks, _live_fits(deps), notes
+        ),
     )
     delta = await stream_sub_agent(
         run=run,
@@ -231,34 +192,7 @@ async def run_verification(
     if delta is None:
         return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)
-    # The pending checks are the strategy's to state, never the checker's.
-    pending = [] if graph is None else unread_analyses(graph)
-    review = held_to_the_records(
-        answered_by_uploads(
-            review_held_to_the_turn(
-                without_questions(
-                    delta.digest.review, scope.messages, domain.researcher_asks
-                ),
-                review_record(deps, scope.messages, names),
-            ),
-            {c: u.name for c, u in uploads.items()},
-        ),
-        text_query_criteria(domain.operational_spec, sheets),
-    )
-    computed = _study_checks(deps)
-    findings = _findings(deps, review, computed)
-    digest = _held(
-        delta.digest.model_copy(
-            update={
-                "pending_checks": pending,
-                "constraint_report": computed,
-                "review": review,
-                "gaps": findings.gaps,
-                "caveats": _caveats(deps, review, findings.build),
-            }
-        ),
-        findings,
-    )
+    digest = _decided(deps, delta.digest, checks)
     revision = strategy_revision(live_tree(graph))
     deps.state.domain.record_verdict(digest, revision=revision)
     markers.verification_stopped = False
@@ -296,90 +230,69 @@ def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
     )
 
 
-@dataclass(frozen=True)
-class _Findings:
-    """What the build, the spec and the review give against a success."""
-
-    gaps: list[Gap]
-    build: BuildCaveat | None
-
-    def sentence(self) -> str | None:
-        """Every finding in one clause, or None when there is none."""
-        found = [
-            *([] if self.build is None else [self.build.sentence]),
-            *(gap.sentence for gap in self.gaps if gap.fails_the_check),
-        ]
-        return "; ".join(found) if found else None
-
-    def cause(self) -> FailureCause | None:
-        breaks_structure = any(gap.kind == "structure" for gap in self.gaps)
-        return FailureCause.STRUCTURE_VIOLATION if breaks_structure else None
-
-
-def _study_checks(deps: LeadDeps) -> list[ConstraintCheck]:
-    """The study-step checks this turn computed, for the steps the strategy holds."""
-    graph = deps.runtime.strategy_session.get_graph(None)
-    held = {} if graph is None else graph.steps
+def _gaps(deps: LeadDeps, checks: list[SiteCheck]) -> list[Gap]:
+    ledger = derive_ledger(deps.state, deps.intent)
+    retired = [r.grounded() for r in deps.state.domain.retired_requirements]
     return [
-        check
-        for step_id, checks in deps.state.turn_markers.study_checks.items()
-        if step_id in held
-        for check in checks
+        *check_gaps(
+            words=unexpressed_words(deps.state.domain.operational_spec),
+            requirements=[*ledger.constraints.grounded, *retired],
+        ),
+        *failed(checks),
     ]
 
 
-def _findings(
-    deps: LeadDeps, review: VerificationReview, computed: list[ConstraintCheck]
-) -> _Findings:
-    """The build's counts when it does not support a success, and every gap."""
+def _build(deps: LeadDeps) -> BuildCaveat | None:
     ledger = derive_ledger(deps.state, deps.intent)
-    spec = deps.state.domain.operational_spec
-    retired = [r.grounded() for r in deps.state.domain.retired_requirements]
     live = frozenset(deps.runtime.strategy_session.wdk_step_ids())
-    return _Findings(
-        gaps=[
-            *check_gaps(
-                structure=structure_contradiction(deps.state.domain.requirements, spec),
-                words=unexpressed_words(spec),
-                review=review,
-                requirements=[*ledger.constraints.grounded, *retired],
-                asked=[q.question for q in deps.state.domain.answered_questions],
-            ),
-            *shortfalls(computed),
-            *expression_gaps(judged_expression_fits(deps)),
-        ],
-        build=build_contradiction(ledger.build, built_step_count=len(live)),
-    )
+    return build_contradiction(ledger.build, built_step_count=len(live))
 
 
-def _caveats(
-    deps: LeadDeps, review: VerificationReview, build: BuildCaveat | None
-) -> list[Caveat]:
-    """What the check measured short of the request, read from the records."""
+def _verdict(build: BuildCaveat | None, gaps: list[Gap]) -> str:
+    found = [
+        *([] if build is None else [build.sentence]),
+        *(gap.sentence for gap in gaps if gap.fails_the_check),
+    ]
+    return "; ".join(found) or "No check of the strategy on the site failed"
+
+
+def _decided(
+    deps: LeadDeps, checked: VerificationDigest, checks: list[SiteCheck]
+) -> VerificationDigest:
     session = deps.runtime.strategy_session
-    return measured_caveats(
-        build=build,
-        controls=judged_control_tests(
-            deps.state.turn_markers.control_tests,
-            frozenset(session.wdk_step_ids()),
-        ),
-        column_fits=review.column_fits,
+    graph = session.get_graph(None)
+    gaps = _gaps(deps, checks)
+    build = _build(deps)
+    success = build is None and not any(gap.fails_the_check for gap in gaps)
+    fits = _live_fits(deps)
+    return checked.model_copy(
+        update={
+            "success": success,
+            "disposition": PhaseDisposition.DONE
+            if success
+            else PhaseDisposition.HANDOFF,
+            "handoff_to": None if success else checked.handoff_to,
+            "failure_cause": (
+                FailureCause.STRUCTURE_VIOLATION
+                if any(check.breaks_the_structure for check in checks)
+                else None
+            ),
+            "reason": _verdict(build, gaps),
+            "pending_checks": [] if graph is None else unread_analyses(graph),
+            "review": checked.review.model_copy(
+                update={"checks": checks, "column_fits": fits}
+            ),
+            "gaps": gaps,
+            "caveats": measured_caveats(
+                build=build,
+                controls=judged_control_tests(
+                    deps.state.turn_markers.control_tests,
+                    frozenset(session.wdk_step_ids()),
+                ),
+                column_fits=fits,
+            ),
+        }
     )
-
-
-def _held(digest: VerificationDigest, findings: _Findings) -> VerificationDigest:
-    """Hold the verdict to what the ledger recorded, both ways.
-
-    The digest decides the memory auto-write and the eval verdict, so a success
-    the findings do not support fails, and a failure with no finding passes
-    when the held rows are each shown met.
-    """
-    sentence = findings.sentence()
-    if sentence is None:
-        return digest_held_to_the_rows(digest)
-    if not digest.success:
-        return digest
-    return digest_held_to_the_build(digest, sentence, failure_cause=findings.cause())
 
 
 async def verify_strategy(

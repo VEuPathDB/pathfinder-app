@@ -204,7 +204,7 @@ def test_verification_section_present() -> None:
         reason="ok",
         success=True,
     )
-    ledger = derive_ledger(_state(verification_digest=digest), None)
+    ledger = derive_ledger(_state(site_verdict=digest), None)
     assert ledger.verification.complete is True
     assert ledger.verification.successful is True
 

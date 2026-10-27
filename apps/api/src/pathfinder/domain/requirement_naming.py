@@ -19,18 +19,14 @@ def _names(text: str, words: str) -> bool:
 
 
 def requirement_naming(
-    text: str,
-    requirements: Sequence[GroundedConstraint],
-    *,
-    met: Sequence[str] = (),
+    text: str, requirements: Sequence[GroundedConstraint]
 ) -> GroundedConstraint | None:
     """The one requirement of the researcher the text names, by its key.
 
-    A requirement a ``met`` row names, or a parameter of a step answers, is
-    not the one the text misses, so a
-    text that names only those names none. A text that names several of the
-    rest, or none, names no one requirement, so the order the requirements
-    come in decides nothing.
+    A requirement a parameter of a step answers is not the one the text
+    misses, so a text that names only those names none. A text that names
+    several of the rest, or none, names no one requirement, so the order the
+    requirements come in decides nothing.
     """
     named = {
         held.constraint.key: held
@@ -38,18 +34,8 @@ def requirement_naming(
         if held.constraint.source is ConstraintSource.USER_EXPLICIT
         and _names(text, held.constraint.requested_value)
     }
-    missing = [
-        held
-        for held in named.values()
-        if not held.answered_by_a_parameter
-        and not any(_names(row, held.constraint.requested_value) for row in met)
-    ]
+    missing = [held for held in named.values() if not held.answered_by_a_parameter]
     return missing[0] if len(missing) == 1 else None
-
-
-def names_a_requirement(text: str, requirements: Sequence[GroundedConstraint]) -> bool:
-    """Whether the text and the value of some requirement carry each other."""
-    return any(_names(text, held.constraint.requested_value) for held in requirements)
 
 
 def names_a_retired_requirement(
@@ -81,7 +67,6 @@ def named_in_prose(prose: str, text: str) -> bool:
 
 __all__ = [
     "named_in_prose",
-    "names_a_requirement",
     "names_a_retired_requirement",
     "requirement_naming",
 ]

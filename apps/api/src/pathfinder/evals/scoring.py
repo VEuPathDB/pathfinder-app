@@ -16,6 +16,7 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 from pathfinder.domain.strategy.step_rationale import said_beside
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.case import EvalCase, GateEnd
+from pathfinder.evals.check_counts import CheckCounts, check_differences
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import (
     ComparisonNode,
@@ -25,7 +26,6 @@ from pathfinder.evals.distance import (
 )
 from pathfinder.evals.expressions import expression_differences
 from pathfinder.evals.phrases import PhraseTexts, phrase_differences, shown
-from pathfinder.evals.requirements import RequirementCounts, requirement_differences
 
 NO_STRATEGY = "(none)"
 
@@ -145,9 +145,8 @@ class ObservedOutcome(CamelModel):
     counts_in_genes: bool | None = None
     root_operator: str | None = None
     final_count_below_every_input: bool | None = None
-    # The requirement rows of the check on the strategy, or None when no check
-    # judged it.
-    requirements: RequirementCounts | None = None
+    # The checks on the site of the strategy, or None when no check judged it.
+    checks: CheckCounts | None = None
     root_count: int | None = None
     # None when the last turn stopped on a gate no card shows, such as a task.
     ends_on: GateEnd | None = None
@@ -406,7 +405,7 @@ def score_case(
         + expression_differences(case.expected.expressions, observed.tree, taxonomy)
         + _phrase_differences(case, observed)
         + _title_differences(case, observed)
-        + requirement_differences(case.expected, observed.requirements)
+        + check_differences(case.expected, observed.checks)
         + _record_differences(case, observed)
     )
     return CaseScore(

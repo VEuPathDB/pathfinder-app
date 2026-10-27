@@ -239,7 +239,7 @@ async def test_a_written_note_leaves_the_created_list(
         user_prompt=SET_NAME,
         domain=_domain_after_the_turn(deps).model_copy(
             update={
-                "verification_digest": VerificationDigest(
+                "site_verdict": VerificationDigest(
                     disposition=PhaseDisposition.DONE,
                     prose="ok",
                     reason="verified",

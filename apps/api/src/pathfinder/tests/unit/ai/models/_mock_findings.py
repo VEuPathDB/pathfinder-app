@@ -16,7 +16,7 @@ from pathfinder.tests._support.column_fits import tm_fit
 
 CONTROLS = ControlsCaveat(positives_returned=7, positives_total=10)
 SAMPLE = SampleCaveat(fit=tm_fit(12, 40))
-UNMET = RequirementGap(text="annotated as essential", status="unmet")
+UNMET = RequirementGap(text="annotated as essential")
 CAVEATS: tuple[Caveat, ...] = (CONTROLS, SAMPLE)
 GAPS: tuple[Gap, ...] = (UNMET,)
 

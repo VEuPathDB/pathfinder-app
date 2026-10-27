@@ -18,10 +18,11 @@ from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.devtools import eval_runner
 from pathfinder.devtools.eval_runner import (
     CaseVerdict,
-    checkpointed_requirements,
+    checkpointed_checks,
     checkpointed_verdict,
 )
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
+from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.evals.case import (
     CaseProvenance,
@@ -30,8 +31,8 @@ from pathfinder.evals.case import (
     GatePlan,
     RecordedCount,
 )
+from pathfinder.evals.check_counts import CheckCounts
 from pathfinder.evals.distance import ComparisonNode
-from pathfinder.evals.requirements import RequirementCounts
 from pathfinder.evals.scoring import ObservedOutcome
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import objection
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
@@ -80,40 +81,29 @@ def test_a_pass_with_a_pending_check_is_not_verified() -> None:
     assert checkpointed_verdict(_checked(then_edited=False, digest=pending)) is False
 
 
-def test_the_rows_an_eval_counts_are_the_verdicts_on_the_strategy() -> None:
+def test_the_checks_an_eval_counts_are_the_verdicts_on_the_strategy() -> None:
+    passed = SiteCheck(
+        kind="result_count",
+        subject="the strategy on the site",
+        status="pass",
+        evidence="the result step 11 ('Signal') holds 840 records",
+    )
+    failed = passed.model_copy(update={"kind": "step_valid", "status": "fail"})
     reviewed = objection().model_copy(
-        update={
-            "review": VerificationReview(
-                requirements=[
-                    RequirementCheck(
-                        text="with a signal peptide",
-                        turn=1,
-                        answered_by=["s1"],
-                        how="search",
-                        status="met",
-                    ),
-                    RequirementCheck(
-                        text="at least 2 transmembrane domains",
-                        turn=1,
-                        how="search",
-                        status="unmet",
-                    ),
-                ]
-            )
-        }
+        update={"review": VerificationReview(checks=[passed, failed])}
     )
 
     counted = {
-        "a later message": checkpointed_requirements(
+        "a later message": checkpointed_checks(
             _checked(then_edited=False, digest=reviewed)
         ),
-        "a later edit": checkpointed_requirements(
+        "a later edit": checkpointed_checks(
             _checked(then_edited=True, digest=reviewed)
         ),
     }
 
     assert counted == {
-        "a later message": RequirementCounts(met=1, unmet=1, unexpressed=0),
+        "a later message": CheckCounts(passed=1, failed=1),
         "a later edit": None,
     }
 

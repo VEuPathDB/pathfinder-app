@@ -20,7 +20,6 @@ from pathfinder.domain.citations import (
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.evidence import (
     EvidenceCard,
-    RequirementCheck,
     SampledGene,
     VerificationReview,
 )
@@ -140,12 +139,6 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
     ]
 
 
-def _redacted_row(row: RequirementCheck) -> RequirementCheck:
-    return row.model_copy(
-        update={"text": redact_text(row.text), "note": redact_text(row.note)}
-    )
-
-
 def _redacted_fit(fit: ColumnFit) -> ColumnFit:
     return fit.model_copy(
         update={
@@ -182,7 +175,7 @@ def _redacted_review(review: VerificationReview) -> VerificationReview:
     """The review with every text on it redacted; gene ids are not identity."""
     return review.model_copy(
         update={
-            "requirements": [_redacted_row(row) for row in review.requirements],
+            "checks": [check.redacted(redact_text) for check in review.checks],
             "column_fits": [_redacted_fit(fit) for fit in review.column_fits],
             "sampled_genes": [_redacted_gene(g) for g in review.sampled_genes],
             "sources": [_redacted_source(cited) for cited in review.sources],
@@ -258,7 +251,7 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         caveats=[caveat.redacted(redact_text) for caveat in latest.caveats],
         gaps=[gap.redacted(redact_text) for gap in latest.gaps],
         pending_checks=[redact_text(step) for step in latest.pending_checks],
-        requirements=[_redacted_row(row) for row in latest.review.requirements],
+        checks=[check.redacted(redact_text) for check in latest.review.checks],
         evidence=read_evidence(rows),
     )
 

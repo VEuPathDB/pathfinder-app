@@ -98,7 +98,6 @@ EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
 }
 
 VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
-    "check_study_step",
     "export_gene_set",
     "get_ai_expression_summary",
     "get_download_url",
@@ -109,7 +108,6 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "list_gene_sets",
     "lookup_gene_records",
     "read_gene_record",
-    "read_step_columns",
     "read_step_ids",
     "request_search_inspection",
     "resolve_gene_ids_to_records",

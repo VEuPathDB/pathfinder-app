@@ -6,14 +6,15 @@ import pytest
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.wdk import WDKRecordType
 
-from pathfinder.ai.lead.verify_review import ReviewRecord, review_held_to_the_turn
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
+from pathfinder.domain.requirement_checks import classes_named, record_type_check
+from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
+    structure_criteria,
 )
 from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.services.strategies import record_classes
@@ -24,16 +25,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     requirement,
 )
 
-_MOST_PLASMODIUM = (
-    "Which ortholog groups are found in at least 90% of the Plasmodium genomes "
-    "and in no Toxoplasma gondii genome?"
-)
-_SINGLE_COPY = "List single-copy ortholog groups across the apicomplexans."
-_KINASE_GROUPS = (
-    "Take the ortholog groups that contain a protein with the protein kinase "
-    "domain PF00069, keep only their Plasmodium falciparum 3D7 proteins, then give "
-    "me the ortholog groups those proteins belong to."
-)
 _PATTERN = "GroupsByPhyleticPattern"
 
 
@@ -100,118 +91,24 @@ def _kinase_spec() -> OperationalSpec:
 
 
 def _held(
-    text: str,
     stated: Constraint,
     spec: OperationalSpec,
-    asked: str,
     class_names: Mapping[str, Collection[str]],
-    role: RecordRole | None = None,
-) -> RequirementCheck:
-    record = ReviewRecord(
-        messages=(asked,),
-        requirements=(stated,),
-        spec=spec,
-        read_as=lambda reference: None,
-        record_url=lambda gene_id: gene_id,
-        class_names=class_names,
-        record_roles={} if role is None else {stated.key: role},
+    role: RecordRole = "answer",
+) -> SiteCheck:
+    tree = structure_criteria(spec.structure)
+    classes = {c.record_class for c in spec.criteria if c.id in tree and c.record_class}
+    return record_type_check(
+        stated,
+        role,
+        classes_named(stated.requested_value, class_names),
+        spec.record_type,
+        classes,
     )
-    row = RequirementCheck(
-        text=text,
-        turn=1,
-        answered_by=[spec.criteria[0].id],
-        how="search",
-        status="met",
-    )
-    return review_held_to_the_turn(
-        VerificationReview(requirements=[row]), record
-    ).requirements[0]
 
 
 def _record_type_requirement(value: str, label: str) -> Constraint:
     return requirement(ConstraintKind.RECORD_TYPE, label, value)
-
-
-def test_the_recorded_ortholog_groups_row_is_met_on_the_group_class(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "ortholog groups",
-        _record_type_requirement("ortholog groups", "ortholog groups"),
-        _pattern_spec(),
-        _MOST_PLASMODIUM,
-        class_names,
-    )
-
-    assert (row.status, row.answered_by, row.note) == (
-        "met",
-        ["step_b08116fe"],
-        "the strategy returns groups",
-    )
-
-
-def test_the_recorded_single_copy_row_is_met_on_the_group_class(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "Single-copy ortholog groups",
-        _record_type_requirement(
-            "single-copy ortholog groups", "Single-copy ortholog groups"
-        ),
-        _pattern_spec(),
-        _SINGLE_COPY,
-        class_names,
-    )
-
-    assert (row.status, row.note) == ("met", "the strategy returns groups")
-
-
-def test_the_recorded_proteins_passed_through_are_met_on_the_group_class(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "protein records",
-        _record_type_requirement("protein", "protein records"),
-        _kinase_spec(),
-        _KINASE_GROUPS,
-        class_names,
-        "through",
-    )
-
-    assert (row.status, row.answered_by, row.note) == (
-        "met",
-        ["step_54ce1477", "step_f319e55c"],
-        "a step of the strategy returns proteins",
-    )
-
-
-def test_a_plural_row_keeps_the_role_of_the_singular_requirement(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "proteins",
-        _record_type_requirement("protein", "record type"),
-        _kinase_spec(),
-        _KINASE_GROUPS,
-        class_names,
-        "through",
-    )
-
-    assert (row.status, row.note) == ("met", "a step of the strategy returns proteins")
-
-
-def test_a_record_type_with_no_role_is_compared_with_the_root(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "protein records",
-        _record_type_requirement("protein", "protein records"),
-        _kinase_spec(),
-        _KINASE_GROUPS,
-        class_names,
-    )
-
-    assert (row.status, row.note) == ("unmet", "the strategy returns groups")
 
 
 def _groups_without_mammals() -> OperationalSpec:
@@ -238,87 +135,117 @@ def _groups_without_mammals() -> OperationalSpec:
     )
 
 
-def test_proteins_asked_as_the_answer_are_unmet_on_a_root_one_transform_short(
+def test_the_recorded_ortholog_groups_are_met_on_the_group_class(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
-    row = _held(
-        "protein",
+    check = _held(
+        _record_type_requirement("ortholog groups", "ortholog groups"),
+        _pattern_spec(),
+        class_names,
+    )
+
+    assert (check.status, check.evidence) == (
+        "pass",
+        "the result step returns group records",
+    )
+
+
+def test_the_recorded_single_copy_groups_are_met_on_the_group_class(
+    class_names: Mapping[str, Collection[str]],
+) -> None:
+    check = _held(
+        _record_type_requirement(
+            "single-copy ortholog groups", "Single-copy ortholog groups"
+        ),
+        _pattern_spec(),
+        class_names,
+    )
+
+    assert check.status == "pass"
+
+
+def test_the_recorded_proteins_passed_through_are_met_on_the_group_class(
+    class_names: Mapping[str, Collection[str]],
+) -> None:
+    check = _held(
+        _record_type_requirement("protein", "protein records"),
+        _kinase_spec(),
+        class_names,
+        "through",
+    )
+
+    assert (check.status, check.evidence) == (
+        "pass",
+        "a step of the strategy returns sequence",
+    )
+
+
+def test_a_record_type_with_no_role_is_compared_with_the_root(
+    class_names: Mapping[str, Collection[str]],
+) -> None:
+    check = _held(
+        _record_type_requirement("protein", "protein records"),
+        _kinase_spec(),
+        class_names,
+    )
+
+    assert (check.status, check.evidence) == (
+        "fail",
+        "the result step returns group records",
+    )
+
+
+def test_proteins_asked_as_the_answer_fail_on_a_root_one_transform_short(
+    class_names: Mapping[str, Collection[str]],
+) -> None:
+    check = _held(
         _record_type_requirement("protein", "record type"),
         _groups_without_mammals(),
-        "List the Toxoplasma gondii ME49 proteins whose ortholog groups have no "
-        "protein from any mammal.",
         class_names,
         "answer",
     )
 
-    assert (row.status, row.answered_by, row.note) == (
-        "unmet",
-        [],
-        "the strategy returns groups",
-    )
+    assert (check.status, check.requirement) == ("fail", "record_type:protein")
 
 
-def test_a_class_passed_through_only_outside_the_tree_is_unmet(
+def test_a_class_passed_through_only_outside_the_tree_fails(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
     spec = _pattern_spec()
     spec.criteria.append(_criterion("step_dropped", "ByTaxonomy", "sequence"))
 
-    row = _held(
-        "protein records",
+    check = _held(
         _record_type_requirement("protein", "protein records"),
         spec,
-        _KINASE_GROUPS,
         class_names,
         "through",
     )
 
-    assert (row.status, row.answered_by, row.note) == (
-        "unmet",
-        [],
-        "no step of the strategy returns protein records",
+    assert (check.status, check.evidence) == (
+        "fail",
+        "no step of the strategy returns these records",
     )
 
 
-def test_the_sites_names_decide_which_class_a_row_names(
+def test_the_sites_names_decide_which_class_a_requirement_names(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
     segments_only = {record_class: [record_class] for record_class in class_names}
 
     named = [
         _held(
-            "protein records",
             _record_type_requirement("protein", "protein records"),
             _kinase_spec(),
-            _KINASE_GROUPS,
             names,
             "through",
         ).status
         for names in (class_names, segments_only)
     ]
 
-    assert named == ["met", "unmet"]
+    assert named == ["pass", "unchecked"]
 
 
-def test_proteins_asked_as_the_answer_of_a_group_strategy_are_unmet(
-    class_names: Mapping[str, Collection[str]],
-) -> None:
-    row = _held(
-        "proteins",
-        _record_type_requirement("proteins", "proteins"),
-        _kinase_spec(),
-        "Which Plasmodium falciparum 3D7 proteins carry the kinase domain PF00069?",
-        class_names,
-    )
-
-    assert (row.status, row.answered_by, row.note) == (
-        "unmet",
-        [],
-        "the strategy returns groups",
-    )
-
-
-def test_ortholog_groups_on_the_protein_class_are_unmet(
+def test_ortholog_groups_on_the_protein_class_fail(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
     spec = OperationalSpec(
@@ -326,26 +253,26 @@ def test_ortholog_groups_on_the_protein_class_are_unmet(
         structure=SpecStructure(root=_leaf("step_ids")),
     )
 
-    row = _held(
-        "ortholog groups",
+    check = _held(
         _record_type_requirement("ortholog groups", "ortholog groups"),
         spec,
-        _MOST_PLASMODIUM,
         class_names,
     )
 
-    assert (row.status, row.note) == ("unmet", "the strategy returns proteins")
+    assert (check.status, check.evidence) == (
+        "fail",
+        "the result step returns sequence records",
+    )
 
 
-def test_genes_on_a_group_strategy_with_no_gene_step_are_unmet(
+def test_genes_on_a_group_strategy_with_no_gene_step_fail(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
-    row = _held(
-        "genes",
-        _record_type_requirement("genes", "genes"),
-        _pattern_spec(),
-        _MOST_PLASMODIUM,
-        class_names,
+    check = _held(
+        _record_type_requirement("genes", "genes"), _pattern_spec(), class_names
     )
 
-    assert (row.status, row.note) == ("unmet", "the strategy returns groups")
+    assert (check.status, check.evidence) == (
+        "fail",
+        "the result step returns group records",
+    )

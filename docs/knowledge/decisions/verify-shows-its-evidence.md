@@ -27,7 +27,7 @@ durable call emits nothing; the resumed check emits the card once. The payload i
 | `strategyUrl` | `SiteInfo.strategy_url(strategy, root step)`, the step page whose Analyze results tab runs GO, pathway and word enrichment |
 | `citations` | `Criterion.rationale.sources`, the references FRAME cited when it bound the criterion; a DOI links to doi.org, a PMID to PubMed, anything else that is no web address is text |
 | `pendingChecks` | the study steps the site did not describe, read from the strategy (`unread_analyses`); the card carries no verdict, and the Lead states each gap and caveat in the reply |
-| `review` | the checker's requirement rows, sampled genes and sources, held to the turn's reads and to the structure ([VERIFY reviews the intent, the genes and the sources](verify-reviews-the-intent-the-genes-and-the-sources.md)) |
+| `review` | the checks the site's answers decide ([a verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)), the columns of each step, and the checker's sampled genes and sources, held to the turn's reads |
 
 The card of the last check is kept on `StrategyDomainState.last_evidence_card`, so a later
 message can restate its results while the strategy holds the revision the check judged

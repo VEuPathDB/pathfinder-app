@@ -59,8 +59,8 @@ export const EVIDENCE_CARD: EvidenceCard = {
 };
 
 /** A card a real plasmodb check left, as `data-evidence-card` carried it: the
- * signal peptide and transmembrane request, its four requirement rows, the eight
- * genes the check read, and the records it cites. */
+ * signal peptide and transmembrane request, the checks the site answered, the
+ * eight genes the check read, and the records it cites. */
 export const REVIEWED_CARD: EvidenceCard = {
   checkId: "call_wnmmg7nv2VKh18Y33RheQEZJ",
   revision: "a1f7573c4ce2d1f3",
@@ -100,38 +100,36 @@ export const REVIEWED_CARD: EvidenceCard = {
   citations: [],
   pendingChecks: [],
   review: {
-    requirements: [
+    checks: [
       {
-        text: "P. falciparum 3D7 genes",
-        turn: 1,
-        answeredBy: ["step_80bbac4f", "step_e7a86f13"],
-        how: "parameter",
-        status: "met",
-        note: 'Both component searches use `organism=["Plasmodium falciparum 3D7"]`.',
+        kind: "step_valid",
+        subject: "the strategy on the site",
+        status: "pass",
+        evidence: "the site marks 3 of 3 steps valid",
+        requirement: "",
       },
       {
-        text: "with a signal peptide",
-        turn: 1,
-        answeredBy: ["step_80bbac4f"],
-        how: "search",
-        status: "met",
-        note: "`GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.",
+        kind: "combine_counts",
+        subject: "the strategy on the site",
+        status: "pass",
+        evidence:
+          "each combine holds a count its operator allows: INTERSECT 'Intersect' holds 116 from inputs of 479 and 840",
+        requirement: "",
       },
       {
-        text: "at least 2 transmembrane domains",
-        turn: 1,
-        answeredBy: ["step_e7a86f13"],
-        how: "parameter",
-        status: "met",
-        note: "`GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.",
+        kind: "organism",
+        subject: "P. falciparum 3D7",
+        status: "pass",
+        evidence:
+          "all 116 records of step 440597243 ('Intersect') hold an organism the strategy selects: Plasmodium falciparum 3D7 (116)",
+        requirement: "organism:P. falciparum 3D7",
       },
       {
-        text: "signal peptide and at least 2 transmembrane domains",
-        turn: 1,
-        answeredBy: ["step_901d23cc"],
-        how: "structure",
-        status: "met",
-        note: "The root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.",
+        kind: "other",
+        subject: "with a signal peptide",
+        status: "unchecked",
+        evidence: "no check reads this requirement on the site",
+        requirement: "other:with a signal peptide",
       },
     ],
     sampledGenes: [

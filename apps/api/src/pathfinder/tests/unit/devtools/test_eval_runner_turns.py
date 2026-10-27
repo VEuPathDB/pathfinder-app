@@ -35,7 +35,7 @@ from pathfinder.evals.case import (
     GatePlan,
     RecordedCount,
 )
-from pathfinder.evals.requirements import RequirementCounts
+from pathfinder.evals.check_counts import CheckCounts
 from pathfinder.evals.scoring import ObservedOutcome, score_case
 from pathfinder.evals.store import ATTACHMENTS_DIR
 from pathfinder.platform.stage_sites import qa_sites_file
@@ -97,7 +97,7 @@ def _install(
     monkeypatch: pytest.MonkeyPatch,
     step_ids: list[set[int]],
     gate: Gate | None = None,
-    reviews: list[RequirementCounts | None] | None = None,
+    reviews: list[CheckCounts | None] | None = None,
 ) -> _Installed:
     driven: list[RunArgs] = []
     read: list[UUID] = []
@@ -113,7 +113,7 @@ def _install(
         read.append(conversation_id)
         return remaining.pop(0)
 
-    async def _reviewed(conversation_id: UUID) -> RequirementCounts | None:
+    async def _reviewed(conversation_id: UUID) -> CheckCounts | None:
         del conversation_id
         return reviewed.pop(0) if reviewed else None
 
@@ -130,7 +130,7 @@ def _install(
             built_strategy=True,
             reply_text=turns.replies[-1],
             turn_replies=turns.replies,
-            requirements=turns.requirements,
+            checks=turns.checks,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
             refused_tools=refused_tools,
@@ -143,7 +143,7 @@ def _install(
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
     monkeypatch.setattr(eval_runner, "observe", _observe)
-    monkeypatch.setattr(eval_runner, "reviewed_requirements", _reviewed)
+    monkeypatch.setattr(eval_runner, "reviewed_checks", _reviewed)
     monkeypatch.setattr(eval_runner, "forget_user", _forget)
     return _Installed(driven=driven, read=read, drive=_drive, step_ids=_step_ids)
 
@@ -1101,7 +1101,7 @@ def test_the_facts_text_shows_who_set_each_value() -> None:
 async def test_the_latest_review_stands_through_a_turn_that_ran_no_check(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    reviewed = RequirementCounts(met=2, unmet=0, unexpressed=0)
+    reviewed = CheckCounts(passed=2, failed=0, unexpressed=0)
     _install(monkeypatch, [{100}, {100}], reviews=[reviewed, None])
     case = _case(
         "build it",
@@ -1111,7 +1111,7 @@ async def test_the_latest_review_stands_through_a_turn_that_ran_no_check(
 
     observed = await eval_runner.run_one_case(case, run_root=tmp_path)
 
-    assert observed.requirements == reviewed
+    assert observed.checks == reviewed
     assert score_case(case, observed).differences == []
 
 
@@ -1121,13 +1121,13 @@ async def test_a_new_conversation_drops_the_review_of_the_last_one(
     _install(
         monkeypatch,
         [{100}, {100}],
-        reviews=[RequirementCounts(met=1), None],
+        reviews=[CheckCounts(passed=1), None],
     )
     case = _case("build it", "build again", new_conversation_before=[1])
 
     observed = await eval_runner.run_one_case(case, run_root=tmp_path)
 
-    assert [observed.requirements] == [None]
+    assert [observed.checks] == [None]
 
 
 async def test_a_case_runs_where_no_earlier_run_left_its_events(

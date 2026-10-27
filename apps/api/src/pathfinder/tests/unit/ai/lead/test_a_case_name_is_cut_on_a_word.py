@@ -40,7 +40,7 @@ def _name_of(goal: str) -> str:
             last_build_outcome=BuildOutcome(
                 pushed_step_ids=["s1"],
             ),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="done",
                 reason="ok",

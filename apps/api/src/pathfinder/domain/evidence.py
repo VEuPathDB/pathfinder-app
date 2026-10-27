@@ -1,5 +1,5 @@
 """The evidence behind one verification: the control results, the step counts,
-the references of each criterion, and the review VERIFY wrote."""
+the references of each criterion, and the checks the site's answers decide."""
 
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ from typing import Annotated, Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
-from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.citations import Citation
-from pathfinder.domain.clipped import list_clipped_to, number_at_least, text_clipped_to
+from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.omitted_from_input import OmittedFromInput
+from pathfinder.domain.site_checks import SiteCheck
 
 # Whether the site's counts were read: read, asked and not answered, or not
 # asked because the strategy is not on the site.
@@ -26,13 +26,6 @@ type SiteRead = Literal["read", "not_answered", "not_read"]
 # The most genes one check samples and reads the record of.
 SAMPLED_GENE_LIMIT = 8
 
-type RequirementHow = Literal[
-    "search", "parameter", "structure", "transform", "analysis"
-]
-type RequirementStatus = Literal["met", "unmet", "unexpressed"]
-# unshown: a record the check read shows a met row missing.
-# unjudged: no record the check read judged a met row either way.
-type ShownStatus = RequirementStatus | Literal["unshown", "unjudged"]
 type GeneFit = Literal["yes", "no", "unclear"]
 
 
@@ -161,75 +154,6 @@ class CriterionCitations(CamelModel):
     references: list[str] = Field(min_length=1)
 
 
-class RequirementCheck(CamelModel):
-    """One requirement the researcher stated, and what in the strategy answers it."""
-
-    model_config = ConfigDict(frozen=True)
-
-    text: Annotated[str, text_clipped_to(300)] = Field(
-        min_length=1,
-        description="The requirement in the researcher's own words.",
-    )
-    turn: Annotated[int, number_at_least(1)] = Field(
-        description="The number of the researcher's message that stated it.",
-    )
-    answered_by: Annotated[list[str], list_clipped_to(8)] = Field(
-        default_factory=list,
-        description="The criterion ids or step ids that answer it.",
-    )
-    how: RequirementHow = Field(
-        description=(
-            "search: a search states it. parameter: a parameter value states it. "
-            "structure: a combine states it. transform: a transform step states "
-            "it. analysis: a study analysis states it."
-        )
-    )
-    status: RequirementStatus = Field(
-        description=(
-            "met: a step states it. unmet: the strategy can state it and no "
-            "step does; answered_by is then empty. unexpressed: no search the "
-            "site offers can state it."
-        )
-    )
-    note: Annotated[str, text_clipped_to(300)] = Field(
-        default="",
-        description="One line: the parameter value or the combine, or why nothing.",
-    )
-    shown_by: Annotated[list[str], list_clipped_to(SAMPLED_GENE_LIMIT)] = Field(
-        default_factory=list,
-        description="The sampled gene ids or the columns whose fit show it.",
-    )
-    # The runtime's marks, hidden from the check: a text query alone answers
-    # the met row, and a record the check read shows it missing, or no record
-    # judged it either way.
-    no_record_shows_it: SkipJsonSchema[bool] = False
-    no_record_judged_it: SkipJsonSchema[bool] = False
-
-    @property
-    def status_problem(self) -> str:
-        if self.status == "met" and not self.answered_by:
-            return "a met requirement names the criterion or the step that answers it"
-        if self.status == "unmet" and self.answered_by:
-            return (
-                "an unmet requirement names no step that answers it: a step "
-                "that states it makes the row met, and a step that states "
-                "another value or joins the steps another way is named in the note"
-            )
-        if (self.no_record_shows_it or self.no_record_judged_it) and (
-            self.status != "met" or self.no_record_shows_it == self.no_record_judged_it
-        ):
-            return "a met row the records leave short is either unshown or unjudged"
-        return ""
-
-    @property
-    def shown_status(self) -> ShownStatus:
-        """The status a reader is shown: a met row the records show missing is
-        unshown, and one no record judged is unjudged."""
-        if self.no_record_shows_it:
-            return "unshown"
-        return "unjudged" if self.no_record_judged_it else self.status
-
-
 class SampledGene(CamelModel):
     """One gene of the result, read from its record and judged against the request."""
 
@@ -245,9 +169,7 @@ class SampledGene(CamelModel):
     )
 
 
-WithheldKind = Literal[
-    "sampled_gene", "source", "requirement_row", "answer", "status", "claim"
-]
+WithheldKind = Literal["sampled_gene", "source", "claim"]
 
 
 class WithheldEvidence(CamelModel):
@@ -258,22 +180,15 @@ class WithheldEvidence(CamelModel):
 
 
 class VerificationReview(CamelModel):
-    """What the check read against the researcher's words: each stated
-    requirement, the columns of each step, a sample of the genes where no
-    column shows a value, and the sources it retrieved."""
+    """What the check read: each check the site's answers decide, the columns
+    of each step, a sample of the genes where no column shows a value, and the
+    sources it retrieved."""
 
     model_config = ConfigDict(frozen=True)
 
-    requirements: Annotated[list[RequirementCheck], list_clipped_to(20)] = Field(
-        default_factory=list,
-        description="One row per requirement the researcher stated, in any message.",
-    )
+    checks: Annotated[list[SiteCheck], OmittedFromInput] = Field(default_factory=list)
     column_fits: Annotated[list[ColumnFit], OmittedFromInput] = Field(
-        default_factory=list,
-        description=(
-            "Filled by the runtime from this turn's read_step_columns calls; "
-            "anything written here is replaced."
-        ),
+        default_factory=list
     )
     sampled_genes: Annotated[list[SampledGene], list_clipped_to(SAMPLED_GENE_LIMIT)] = (
         Field(
@@ -292,15 +207,10 @@ class VerificationReview(CamelModel):
         default_factory=list
     )
 
-    def to_report(self) -> list[RequirementCheck]:
-        """The requirements a reader is shown short of met: the unmet, the
-        unexpressed and the unjudged."""
-        return [row for row in self.requirements if row.shown_status != "met"]
-
     def texts(self) -> list[str]:
         """Every text of the review that is not a gene id or a step id."""
         return [
-            *(t for row in self.requirements for t in (row.text, row.note) if t),
+            *(t for check in self.checks for t in check.texts()),
             *(t for fit in self.column_fits for t in fit.texts()),
             *(
                 t
@@ -362,11 +272,7 @@ __all__ = [
     "EvidenceCard",
     "GeneFit",
     "NamedControlSet",
-    "RequirementCheck",
-    "RequirementHow",
-    "RequirementStatus",
     "SampledGene",
-    "ShownStatus",
     "SiteRead",
     "VerificationReview",
 ]

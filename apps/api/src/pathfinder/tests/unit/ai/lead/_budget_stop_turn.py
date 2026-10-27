@@ -86,8 +86,8 @@ def built() -> BuildSection:
 def objection() -> VerificationDigest:
     return VerificationDigest(
         disposition=PhaseDisposition.DONE,
-        prose=f"{OBJECTION} The export read the wrong reference group.",
-        reason="reference group differs from the request",
+        prose="The export read the wrong reference group.",
+        reason=OBJECTION,
         success=False,
     )
 

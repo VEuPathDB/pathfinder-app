@@ -21,8 +21,8 @@
     "stepTitlesOmit": [],
     "rootOperator": null,
     "finalCountBelowEveryInput": null,
-    "metRequirements": null,
-    "unmetRequirements": null,
+    "passedChecks": null,
+    "failedChecks": null,
     "rootCount": {
       "count": 201,
       "build": "71",

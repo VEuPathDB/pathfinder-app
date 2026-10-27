@@ -93,7 +93,7 @@ async def test_a_stopped_check_reports_the_stop_and_records_no_verdict(
     assert isinstance(result, VerificationStopped)
     assert result.stop == _STOP
     assert "past its call budget for read_gene_record" in result.summary
-    assert state.domain.verification_digest == _EARLIER
+    assert state.domain.site_verdict == _EARLIER
     assert collector.data_of("data-evidence-card") == []
     assert state.domain.last_evidence_card is None
     assert state.turn_markers.verified is False
@@ -155,7 +155,7 @@ async def test_a_check_whose_answer_is_out_of_shape_every_time_is_a_typed_stop(
     del collector
     state, session = _checked_earlier()
     deps = lead_deps(state, strategy_session=session)
-    misshapen = final_result_model({"digest": {"prose": "Checked."}})
+    misshapen = final_result_model({"digest": {"keyFindings": "Checked."}})
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", lambda: misshapen)
 
     with pinned_sub_agent(

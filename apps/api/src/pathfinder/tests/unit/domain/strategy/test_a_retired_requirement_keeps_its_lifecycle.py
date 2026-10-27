@@ -7,7 +7,6 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.domain.caveats import RequirementGap, check_gaps
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -96,32 +95,13 @@ def test_a_statement_names_nothing_the_thread_does_not_hold() -> None:
 def test_a_withdrawn_cutoff_is_no_gap_while_a_live_requirement_still_is() -> None:
     """The toxodb shape: a cutoff stated on one turn, removed on a later one."""
     live, retired = retire([_CUTOFF, _SIGNAL], [], [_CUTOFF], turn_id="t4")
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="top 50th percentile expression",
-                turn=2,
-                how="parameter",
-                status="unmet",
-            ),
-            RequirementCheck(
-                text="signal peptide", turn=1, how="search", status="unmet"
-            ),
-        ]
-    )
-
     gaps = check_gaps(
-        structure=None,
         words=[],
-        review=review,
+        unstated=["top 50th percentile expression", "signal peptide"],
         requirements=[*(r.grounded() for r in retired), *provisional_constraints(live)],
     )
 
-    assert gaps == [
-        RequirementGap(
-            text="signal peptide", status="unmet", key="other:signal peptide"
-        )
-    ]
+    assert gaps == [RequirementGap(text="signal peptide")]
 
 
 def test_a_declined_message_takes_back_what_it_retired() -> None:

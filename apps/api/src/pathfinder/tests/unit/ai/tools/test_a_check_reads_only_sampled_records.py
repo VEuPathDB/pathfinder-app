@@ -184,8 +184,7 @@ async def test_a_read_past_the_checks_budget_is_refused_naming_the_alternative(
         8,
         (
             "This check read 8 records, the most one check reads: "
-            f"{', '.join(_EIGHT)}. Judge the sampled genes from those records, "
-            "and read a criterion over the whole step with read_step_columns."
+            f"{', '.join(_EIGHT)}. Judge the sampled genes from those records."
         ),
     )
 

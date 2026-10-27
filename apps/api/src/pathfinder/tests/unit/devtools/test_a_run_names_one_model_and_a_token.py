@@ -488,7 +488,7 @@ async def test_the_eval_driver_attaches_the_named_token_on_every_turn_and_answer
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "drive_respond", _respond)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _no_steps)
-    monkeypatch.setattr(eval_runner, "reviewed_requirements", _nothing)
+    monkeypatch.setattr(eval_runner, "reviewed_checks", _nothing)
     monkeypatch.setattr(eval_runner, "observe", _observe)
     monkeypatch.setattr(eval_runner, "forget_user", _nothing)
 

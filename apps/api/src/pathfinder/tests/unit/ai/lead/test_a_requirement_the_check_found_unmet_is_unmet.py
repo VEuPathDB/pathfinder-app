@@ -1,5 +1,5 @@
-"""A requirement the check found nothing in the strategy answers is unmet in the
-ledger, leaves the tree to the build, and never ends the turn complete."""
+"""A requirement a check on the site failed is unmet in the ledger, leaves the
+tree to the build, and never ends the turn complete."""
 
 from __future__ import annotations
 
@@ -18,7 +18,8 @@ from pathfinder.ai.lead.limit_messages import unmet_requirement_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.caveats import Gap, RequirementGap
+from pathfinder.domain.caveats import Gap
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -37,10 +38,23 @@ ORGANISM = Constraint(
     label="organism scope",
     source=ConstraintSource.USER_EXPLICIT,
 )
-UNMET = RequirementGap(text="Plasmodium species", status="unmet", key=ORGANISM.key)
-UNSHOWN = RequirementGap(text="Plasmodium species", status="unshown", key=ORGANISM.key)
-UNNAMED = RequirementGap(text="Plasmodium species", status="unmet")
-RENAMED = RequirementGap(text="species of Plasmodium", status="unmet", key=ORGANISM.key)
+
+
+def _failed(subject: str, requirement: str) -> SiteCheckGap:
+    return SiteCheckGap(
+        check=SiteCheck(
+            kind=ConstraintKind.ORGANISM,
+            subject=subject,
+            status="fail",
+            evidence="no organism the strategy selects for its result is named so",
+            requirement=requirement,
+        )
+    )
+
+
+UNMET = _failed("Plasmodium species", ORGANISM.key)
+UNNAMED = _failed("the organisms of the result", "")
+RENAMED = _failed("species of Plasmodium", ORGANISM.key)
 SPEC = OperationalSpec(
     goal="Which Plasmodium species has the most singleton genes?",
     constraints=[ORGANISM],
@@ -90,7 +104,7 @@ def test_a_requirement_the_check_found_unmet_blocks_in_the_ledger() -> None:
     assert [(g.status, g.note) for g in after.grounded] == [
         (
             ConstraintStatus.UNGROUNDABLE,
-            "the check found nothing in the strategy answers it",
+            "a check of the strategy on the site failed it",
         )
     ]
     assert (after.blocking, after.unmet_count) == (True, 1)
@@ -104,14 +118,14 @@ def test_the_ledger_and_the_tree_read_the_same_gaps() -> None:
     assert (unnamed.blocking, _digest([UNNAMED]).blames_the_tree) == (False, False)
 
 
-def test_a_requirement_no_record_shows_stays_grounded() -> None:
-    held = derive_ledger(_checked(_groups_state(), [UNSHOWN]), None).constraints
+def test_a_failed_check_of_the_result_alone_leaves_the_requirement_grounded() -> None:
+    held = derive_ledger(_checked(_groups_state(), [UNNAMED]), None).constraints
 
     assert (held.blocking, held.unmet_count) == (False, 0)
 
 
-def test_an_unmet_requirement_blames_the_tree_and_an_unshown_one_does_not() -> None:
-    assert (_digest([UNMET]).blames_the_tree, _digest([UNSHOWN]).blames_the_tree) == (
+def test_an_unmet_requirement_blames_the_tree_and_a_result_check_does_not() -> None:
+    assert (_digest([UNMET]).blames_the_tree, _digest([UNNAMED]).blames_the_tree) == (
         True,
         False,
     )

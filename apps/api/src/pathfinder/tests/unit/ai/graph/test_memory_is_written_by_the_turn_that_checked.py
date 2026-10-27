@@ -54,7 +54,7 @@ def _verified_state(
         mode="strategy",
         user_prompt="what does PF3D7_1133400 do",
         domain=StrategyDomainState(
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="ok",
                 reason="verified",

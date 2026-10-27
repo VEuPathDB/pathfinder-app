@@ -6,18 +6,13 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from pathfinder.ai.graph.state import (
-    PhaseDisposition,
-    StrategyDomainState,
-    VerificationDigest,
-)
+from pathfinder.ai.graph.state import StrategyDomainState, VerificationDigest
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.ledger_render import render_constraints_full
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.ai.lead.verify_dispatch import _findings, _held
+from pathfinder.ai.lead.verify_dispatch import _decided
 from pathfinder.domain.caveats import WordGap
-from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import ConstraintStatus
 from pathfinder.domain.strategy.operational_spec import (
@@ -76,25 +71,16 @@ def test_the_ledger_blocks_on_the_word_no_search_states() -> None:
 
 
 def test_verification_cannot_pass_over_it() -> None:
-    deps = _deps(["pseudogenes"])
-    findings = _findings(deps, VerificationReview(), [])
-    held = _held(
-        VerificationDigest(
-            disposition=PhaseDisposition.DONE,
-            prose="5720 genes of Plasmodium falciparum 3D7.",
-            reason="The count is plausible.",
-            success=True,
-        ),
-        findings,
+    held = _decided(
+        _deps(["pseudogenes"]),
+        VerificationDigest(prose="5720 genes of Plasmodium falciparum 3D7."),
+        [],
     )
 
-    assert findings.gaps == [WordGap(word="pseudogenes")]
-    assert (held.success, held.prose.splitlines()[0]) == (
+    assert (held.success, held.gaps, held.reason) == (
         False,
-        (
-            "Verification cannot be reported: 'pseudogenes': no search the "
-            "strategy runs states it. The checker's own account of the run follows."
-        ),
+        [WordGap(word="pseudogenes")],
+        "'pseudogenes': no search the strategy runs states it",
     )
 
 

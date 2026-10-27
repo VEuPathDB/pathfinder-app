@@ -217,10 +217,10 @@ async def forget_the_verdict_of_a_dropped_strategy(
     domain: StrategyDomainState, session: StrategySession
 ) -> None:
     sync_state = session.sync_state
-    if domain.verification_digest is None or sync_state is None:
+    if domain.site_verdict is None or sync_state is None:
         return
     if await the_site_dropped_the_strategy(sync_state, session.site_id):
-        domain.verification_digest = None
+        domain.site_verdict = None
         domain.verified_revision = ""
 
 

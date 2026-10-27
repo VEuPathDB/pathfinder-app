@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
+from pathfinder.ai.models.mock.lead_flow import FEEDBACK_PROSE, SUCCESS_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
-    LEAF_WDK_ID,
     STRATEGY_ROOT_WDK_ID,
     Scene,
     args_of,
@@ -20,7 +20,6 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
 SITES = ("plasmodb", "vectorbase")
 _REVIEW = [
     "get_strategy",
-    "read_step_columns",
     "get_sample_records",
     "read_gene_record",
     "read_gene_record",
@@ -36,7 +35,7 @@ def test_the_check_reads_the_strategy_then_reviews_two_records(
     calls = play("verification", site_id, f"[[arc:{arc}]]", work_order=verify_order(12))
 
     assert names(calls) == _REVIEW
-    assert calls[-1].args_as_dict()["digest"]["success"] is True
+    assert calls[-1].args_as_dict()["digest"]["prose"] == SUCCESS_PROSE
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -80,33 +79,13 @@ def test_an_adopted_strategy_is_tested_with_the_set_it_was_measured_on() -> None
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_a_step_whose_columns_show_its_values_is_not_sampled(site_id: str) -> None:
-    fitted = {
-        "wdkStepId": LEAF_WDK_ID,
-        "fits": [{"column": "tm_count", "total": 12, "fitting": 12}],
-        "note": "",
-    }
-
-    calls = play(
-        "verification",
-        site_id,
-        "[[arc:single]]",
-        work_order=verify_order(12),
-        scene=Scene(answers={"read_step_columns": fitted}),
-    )
-
-    assert names(calls) == ["get_strategy", "read_step_columns", "final_result"]
-    assert args_of(calls, "read_step_columns") == [{"wdk_step_id": LEAF_WDK_ID}]
-
-
-@pytest.mark.parametrize("site_id", SITES)
-def test_an_empty_root_fails_the_check(site_id: str) -> None:
+def test_an_empty_root_is_not_sampled(site_id: str) -> None:
     calls = play(
         "verification", site_id, "[[arc:zero-then-relax]]", work_order=verify_order(0)
     )
 
     assert names(calls) == ["get_strategy", "final_result"]
-    assert calls[-1].args_as_dict()["digest"]["success"] is False
+    assert calls[-1].args_as_dict()["digest"]["prose"] == FEEDBACK_PROSE
 
 
 def test_the_review_names_the_organism_the_root_returns() -> None:
@@ -117,8 +96,10 @@ def test_the_review_names_the_organism_the_root_returns() -> None:
     )
 
     review = calls[-1].args_as_dict()["digest"]["review"]
-    assert review["requirements"][0]["text"] == organism
-    assert [g["fits"] for g in review["sampledGenes"]] == ["yes", "yes"]
+    assert [(g["organism"], g["fits"]) for g in review["sampledGenes"]] == [
+        (organism, "yes"),
+        (organism, "yes"),
+    ]
 
 
 def test_a_check_with_no_saved_set_runs_no_control_test() -> None:

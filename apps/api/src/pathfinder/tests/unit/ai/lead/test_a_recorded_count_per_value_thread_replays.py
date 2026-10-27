@@ -29,8 +29,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
-from pathfinder.domain.caveats import RequirementGap, check_gaps
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import (
@@ -258,41 +256,15 @@ async def test_turn_one_hint_names_no_reference_of_the_whole_taxon_list() -> Non
     assert "cite it through a fact that holds it alone, or take it out." in message
 
 
-_QUESTION = "Which Plasmodium species has the most singleton genes?"
-_REVIEW = VerificationReview(
-    requirements=[
-        RequirementCheck(
-            text="Plasmodium species",
-            turn=1,
-            how="search",
-            status="met",
-            answered_by=["step_5ebea5e6"],
-        ),
-        RequirementCheck(
-            text="singleton genes, meaning genes in a group of their own",
-            turn=1,
-            how="search",
-            status="met",
-            answered_by=["step_c3186ea7"],
-        ),
-        RequirementCheck(text=_QUESTION, turn=1, how="analysis", status="unmet"),
-    ]
-)
-
-
 def _checked() -> LeadDeps:
     deps = _deps()
-    grounded = derive_ledger(deps.state, None).constraints.grounded
-    gaps = check_gaps(structure=None, words=[], review=_REVIEW, requirements=grounded)
     domain = deps.state.domain
     domain.record_verdict(
         VerificationDigest(
-            disposition=PhaseDisposition.HANDOFF,
+            disposition=PhaseDisposition.DONE,
             prose="The final INTERSECT contains 2,744 records.",
-            reason="A species-level count-and-ranking analysis is missing.",
-            success=False,
-            gaps=gaps,
-            review=_REVIEW,
+            reason="No check of the strategy on the site failed",
+            success=True,
         ),
         revision=strategy_revision(domain.answered_graph),
     )
@@ -302,10 +274,8 @@ def _checked() -> LeadDeps:
 def test_turn_one_check_keeps_the_taxonomy_step_answering_the_organism() -> None:
     deps = _checked()
 
-    assert deps.state.domain.verification_digest is not None
-    assert deps.state.domain.verification_digest.gaps == [
-        RequirementGap(text=_QUESTION, status="unmet")
-    ]
+    assert deps.state.domain.site_verdict is not None
+    assert deps.state.domain.site_verdict.gaps == []
     constraints = derive_ledger(deps.state, None).constraints
     assert [
         (g.constraint.requested_value, g.status)

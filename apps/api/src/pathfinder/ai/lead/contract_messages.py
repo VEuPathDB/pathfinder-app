@@ -14,7 +14,6 @@ from pathfinder.ai.lead.edit_messages import recut_call
 from pathfinder.ai.lead.list_fault_messages import list_sentence
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.reference_fault_messages import reference_sentence
-from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
@@ -212,24 +211,6 @@ def unretrieved_review_source_sentence(reference: str) -> str:
     return f"The review cites {reference}, and no read of this turn returned it."
 
 
-def misnumbered_requirement_sentence(row: RequirementCheck, messages: int) -> str:
-    """Why a requirement row that names a message the request lacks is refused."""
-    return (
-        f"The requirement '{row.text}' names message {row.turn}, and the request "
-        f"has {count_noun(messages, 'message')}."
-    )
-
-
-def misnamed_answer_sentence(
-    row: RequirementCheck, answer: str, held: Sequence[str]
-) -> str:
-    """Why a requirement row answered by an id the strategy lacks is refused."""
-    return (
-        f"The requirement '{row.text}' is answered by {answer}, which names no "
-        f"step of the strategy; it holds {', '.join(held) or 'no step'}."
-    )
-
-
 def unbacked_digest_message(found: Sequence[str]) -> str:
     """Why a digest that states what no read of this turn holds is refused."""
     return " ".join(
@@ -239,9 +220,8 @@ def unbacked_digest_message(found: Sequence[str]) -> str:
             (
                 "A sampled gene is one whose record read_gene_record returned this "
                 "turn, and a source is one research_literature_search, "
-                "research_web_search or read_gene_record returned this turn. A "
-                "requirement names its message by the number the request block "
-                "gives it. Return the same digest with every control count, "
+                "research_web_search or read_gene_record returned this turn. "
+                "Return the same digest with every control count, "
                 "control gene id, sampled gene and source taken from what this "
                 "turn read, or leave out what it did not."
             ),

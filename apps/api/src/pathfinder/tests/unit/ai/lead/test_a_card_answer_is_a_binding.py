@@ -31,9 +31,7 @@ from pathfinder.ai.lead.lead_consult import (
 from pathfinder.ai.lead.recorded_cards import card_questions, the_card_asked
 from pathfinder.ai.lead.sub_agent_dispatch import minted_spec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.verify_dispatch import _findings
 from pathfinder.ai.tools.standalone._frame_sources import bound_values
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     WithdrawnLifecycle,
@@ -390,32 +388,6 @@ class TestAnAnswerAppliesItsBinding:
             for r in domain.retired_requirements
             if r.constraint.key == "other:trophozoites"
         ] == [WithdrawnLifecycle(turn_id=str(deps.state.user_message_id))]
-
-    async def test_a_settled_question_is_no_gap_on_the_next_check(self) -> None:
-        """The vectorbase shape: an answered question is never re-asked."""
-        asked = SlotQuestion(
-            question="Is there a better one on VectorBase for this question?",
-            options=["Keep the current search", "Search VectorBase again"],
-        ).typed()
-        deps = _deps(asked)
-        _answer(deps, asked.question, "Keep the current search")
-        await consult_user(
-            run_context_for(deps, "call_card"),
-            questions=card_questions([asked]),
-            reply=_REPLY,
-        )
-        review = VerificationReview(
-            requirements=[
-                RequirementCheck(
-                    text="Is there a better one on VectorBase for this question?",
-                    turn=3,
-                    how="search",
-                    status="unexpressed",
-                )
-            ]
-        )
-
-        assert _findings(deps, review, []).gaps == []
 
 
 def test_a_question_asked_again_holds_the_options_of_the_newest_pass() -> None:

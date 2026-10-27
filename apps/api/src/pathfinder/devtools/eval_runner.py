@@ -53,12 +53,12 @@ from pathfinder.devtools.transcript import facts_lines
 from pathfinder.domain.reply_references import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
+from pathfinder.evals.check_counts import CheckCounts, check_counts
 from pathfinder.evals.count_unit import counts_in_genes
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.drift import DriftVerdict, classify, count_difference
 from pathfinder.evals.phrases import shown
-from pathfinder.evals.requirements import RequirementCounts, requirement_counts
 from pathfinder.evals.scoring import (
     ObservedOutcome,
     final_count_below_every_input,
@@ -91,17 +91,17 @@ def checkpointed_verdict(values: Mapping[str, object]) -> bool | None:
     return None if verdict is None else verdict.passed
 
 
-def checkpointed_requirements(
-    values: Mapping[str, object],
-) -> RequirementCounts | None:
-    """The requirement rows of the verdict on the checkpointed strategy, counted."""
+def checkpointed_checks(values: Mapping[str, object]) -> CheckCounts | None:
+    """The checks of the verdict on the checkpointed strategy, counted."""
     verdict = PipelineState.model_validate(values).turn_verdict
-    return None if verdict is None else requirement_counts(verdict.review.requirements)
+    if verdict is None:
+        return None
+    return check_counts(verdict.review.checks, verdict.gaps)
 
 
-async def reviewed_requirements(conversation_id: UUID) -> RequirementCounts | None:
-    """The requirement rows of the review the thread's checkpoint holds, counted."""
-    return checkpointed_requirements(await checkpoint_values(conversation_id))
+async def reviewed_checks(conversation_id: UUID) -> CheckCounts | None:
+    """The checks of the verdict the thread's checkpoint holds, counted."""
+    return checkpointed_checks(await checkpoint_values(conversation_id))
 
 
 def facts_text(facts: TurnFacts | None) -> str:
@@ -139,7 +139,7 @@ class TurnsShown:
     replies: list[str]
     facts: list[str]
     last_facts: TurnFacts | None = None
-    requirements: RequirementCounts | None = None
+    checks: CheckCounts | None = None
     record_ids: list[list[str]] = field(default_factory=list)
     consult_options: list[str] = field(default_factory=list)
 
@@ -169,7 +169,7 @@ async def observe(
         record_type=strategy.record_type or None,
         step_count=strategy.step_count if built else None,
         verified=checkpointed_verdict(checkpointed),
-        requirements=turns.requirements,
+        checks=turns.checks,
         step_ids_unchanged=step_ids_unchanged,
         tree=tree_from_ast(ast) if ast is not None else None,
         step_titles=step_titles(ast) if ast is not None else [],
@@ -344,7 +344,7 @@ async def _run_turns(
     shown_facts: list[str] = []
     record_ids: list[list[str]] = []
     last_facts: TurnFacts | None = None
-    reviewed: RequirementCounts | None = None
+    reviewed: CheckCounts | None = None
     ended = Gate(kind="none")
     refused: list[str] = []
     cards = _CardAnswers(case.gates)
@@ -389,7 +389,7 @@ async def _run_turns(
         replies.append(capture.assistant_text())
         shown_facts.append(facts_text(facts))
         record_ids.append(records_shown(facts, replies[-1]))
-        counted = await reviewed_requirements(conversation_id)
+        counted = await reviewed_checks(conversation_id)
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)
     return await observe(
@@ -398,7 +398,7 @@ async def _run_turns(
             replies=replies,
             facts=shown_facts,
             last_facts=last_facts,
-            requirements=reviewed,
+            checks=reviewed,
             record_ids=record_ids,
             consult_options=consult_labels(ended),
         ),

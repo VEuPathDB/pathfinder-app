@@ -13,29 +13,21 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKAnswer, WDKRecordInstance, WDKStepTree
+from veupathdb.wdk import WDKAnswer, WDKRecordInstance
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
-from pathfinder.ai.lead.verify_dispatch import (
-    RootSample,
-    SearchStep,
-    root_sample,
-    work_order,
-)
 from pathfinder.ai.tools.standalone import _expression_check, results
-from pathfinder.ai.tools.standalone._result_models import StepColumns
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.expression_fit import (
     SAMPLED_GROUP_LIMIT,
     ExpressionFit,
-    ExpressionGap,
     bound_expressions,
-    expression_gaps,
     live_fits,
 )
+from pathfinder.domain.site_checks import SiteCheck, expression_fit_checks
 from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -44,12 +36,16 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.ortho_taxonomy import recorded_ortho_taxonomy
 from pathfinder.tests._support.orthomcl_step_columns import serve_step_columns
 from pathfinder.tests._support.qa_recording import client_recording
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 from .conftest import agent_run_context
 
 _STEP = 227284080
+
+
+def failed_fits(fits: list[ExpressionFit]) -> list[SiteCheck]:
+    return [c for c in expression_fit_checks(fits) if c.status == "fail"]
+
+
 _SINGLE_COPY = "APIC=139T AND APIC=139"
 _RECORDED_GROUPS = ["OG8_0003303", "OG8_0031041"]
 
@@ -166,7 +162,7 @@ async def test_every_sampled_group_meets_the_single_copy_expression(
     _serve(monkeypatch, site)
     ctx = _bound(_SINGLE_COPY)
 
-    answer = returned(await results.read_step_columns(ctx, _STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, _STEP)
 
     expected = ExpressionFit(
         wdk_step_id=_STEP, expression=_SINGLE_COPY, sampled=2, held=2
@@ -201,12 +197,12 @@ async def test_a_group_with_two_proteins_in_one_genome_fails_single_copy(
     )
     ctx = _bound(_SINGLE_COPY)
 
-    answer = returned(await results.read_step_columns(ctx, _STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, _STEP)
 
     fit = answer.expression_fit
     assert fit is not None
     assert (fit.sampled, fit.held, fit.failing) == (2, 1, ["OG8_0031041"])
-    assert [c.sentence for c in expression_gaps([fit])] == [
+    assert [c.evidence for c in failed_fits([fit])] == [
         (
             f"1 of 2 sampled groups of step {_STEP} does not meet its phyletic "
             "expression on the site's per-genome counts: OG8_0031041"
@@ -244,10 +240,8 @@ def test_the_evidence_card_holds_the_failing_fit_and_its_gap() -> None:
     )
 
     assert card.expression_fits == [failing]
-    assert expression_gaps(card.expression_fits) == [ExpressionGap(fit=failing)]
-    assert (
-        expression_gaps([failing.model_copy(update={"held": 2, "failing": []})]) == []
-    )
+    assert [c.status for c in expression_fit_checks(card.expression_fits)] == ["fail"]
+    assert failed_fits([failing.model_copy(update={"held": 2, "failing": []})]) == []
 
 
 @pytest.mark.parametrize(
@@ -274,14 +268,12 @@ async def test_an_empty_step_names_the_units_the_site_matches_no_group_with(
 ) -> None:
     _serve(monkeypatch, _Site(_empty_answer()))
 
-    answer = returned(
-        await results.read_step_columns(_bound(expression), _STEP), StepColumns
-    )
+    answer = await results.read_step_columns(_bound(expression).deps, _STEP)
 
     fit = answer.expression_fit
     assert fit is not None
     assert (fit.sampled, fit.held, fit.failing, fit.unmatched) == (0, 0, [], unmatched)
-    assert (len(expression_gaps([fit])), answer.note) == (len(unmatched), "")
+    assert (len(failed_fits([fit])), answer.note) == (len(unmatched), "")
 
 
 async def test_an_empty_step_the_site_cannot_match_is_a_gap(
@@ -289,9 +281,7 @@ async def test_an_empty_step_the_site_cannot_match_is_a_gap(
 ) -> None:
     _serve(monkeypatch, _Site(_empty_answer()))
 
-    answer = returned(
-        await results.read_step_columns(_bound("APIC>140T"), _STEP), StepColumns
-    )
+    answer = await results.read_step_columns(_bound("APIC>140T").deps, _STEP)
 
     assert answer.expression_fit is not None
     assert answer.expression_fit.sentence == (
@@ -308,7 +298,7 @@ async def test_a_group_step_with_no_expression_reads_no_group(
     taxonomy = _serve(monkeypatch, site)
     ctx = _context("GroupsBySingleCopy", {"all_taxon": StringValue(value="50")})
 
-    answer = returned(await results.read_step_columns(ctx, _STEP), StepColumns)
+    answer = await results.read_step_columns(ctx.deps, _STEP)
 
     assert (answer.expression_fit, site.asked, taxonomy.asked) == (None, [], [])
 
@@ -323,9 +313,7 @@ async def test_an_expression_the_site_count_is_unknown_for_reads_no_group(
     site = _Site(_recorded_answer())
     taxonomy = _serve(monkeypatch, site)
 
-    answer = returned(
-        await results.read_step_columns(_bound(expression), _STEP), StepColumns
-    )
+    answer = await results.read_step_columns(_bound(expression).deps, _STEP)
 
     assert (answer.expression_fit, site.asked, taxonomy.asked) == (
         None,
@@ -385,58 +373,6 @@ def test_a_fit_counts_each_sampled_group_once() -> None:
             held=2,
             failing=["OG8_0031041"],
         )
-
-
-def test_an_empty_root_still_reads_its_phyletic_step() -> None:
-    phyletic = SearchStep(step_id="c_one", wdk_step_id=_STEP, phyletic=True)
-    other = SearchStep(step_id="c_two", wdk_step_id=_STEP + 1)
-
-    order = work_order(
-        "check",
-        None,
-        RootSample(
-            step_id="c_one", wdk_step_id=_STEP, count=0, search_steps=(phyletic, other)
-        ),
-    )
-    plain = work_order(
-        "check",
-        None,
-        RootSample(
-            step_id="c_two", wdk_step_id=_STEP + 1, count=0, search_steps=(other,)
-        ),
-    )
-
-    assert (
-        f"Read the columns of each search step first: read_step_columns("
-        f"wdk_step_id={_STEP}) for c_one." in order
-    )
-    assert f"wdk_step_id={_STEP + 1}" not in order.split("\n")[2]
-    assert "read_step_columns" not in plain
-
-
-def test_the_dispatch_marks_the_step_that_binds_an_expression() -> None:
-    session = StrategySession(site_id="orthomcl")
-    graph = StrategyGraph(graph_id="g1", name="Groups", site_id="orthomcl")
-    graph.record_type = "group"
-    graph.steps = flatten_tree(
-        StrategyStepNode(id="c_one", search_name=PHYLETIC_EXPRESSION_SEARCH)
-    )
-    graph.recompute_roots()
-    session.graph = graph
-    session.sync_state = WDKSyncState(
-        wdk_step_ids={"c_one": _STEP},
-        step_counts={"c_one": 0},
-        wdk_step_tree=WDKStepTree(step_id=_STEP),
-    )
-    deps = lead_deps(pipeline_state("orthomcl"), strategy_session=session)
-
-    root = root_sample(deps)
-
-    assert root is not None
-    assert (root.count, root.search_steps) == (
-        0,
-        (SearchStep(step_id="c_one", wdk_step_id=_STEP, phyletic=True),),
-    )
 
 
 def test_the_recorded_groups_are_the_two_single_copy_groups() -> None:

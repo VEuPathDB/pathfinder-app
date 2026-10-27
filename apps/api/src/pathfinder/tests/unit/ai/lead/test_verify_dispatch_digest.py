@@ -1,15 +1,13 @@
-"""A verification verdict never says more than the build or the structure holds.
-
-A success over a build that pushed nothing, or over a tree that answers another
-question, is rewritten to the failure the ledger holds.
-"""
+"""A verification verdict is computed from the build and the checks on the
+site. The checker's digest carries its notes and never moves the verdict."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 import pytest
-from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
+from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.ai.graph.state import FailureCause, PhaseDisposition
 from pathfinder.ai.lead import sub_agent_tools
@@ -18,51 +16,46 @@ from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.domain.caveats import BuildCaveat, StructureGap
+from pathfinder.domain.caveats import BuildCaveat
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.site_checks import PASSED, checked_site
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 from pathfinder.tests.unit.ai.lead.conftest import (
     final_result_model,
     lead_deps,
     pipeline_state,
-    requirement,
 )
 
 _COMBINATION = "mass spectrometry evidence OR DeRisi expression"
 
 _BUILD_DIGEST: dict[str, Any] = {
     "digest": {
-        "disposition": "done",
         "prose": (
-            "**Verified end-to-end.** The strategy framed, built, and verified "
-            "cleanly - root size looks right and the leaves are non-empty."
+            "The sampled records are protein kinases of Cryptosporidium parvum Iowa II."
         ),
-        "reason": "Verified successfully",
-        "success": True,
     },
 }
-_STRUCTURE_DIGEST: dict[str, Any] = {
+_OBJECTING_DIGEST: dict[str, Any] = {
     "digest": {
-        "disposition": "done",
-        "prose": (
-            "**Verified end-to-end.** The empty result is explained by the "
-            "downstream combination; relaxing the peptide threshold would fill it."
-        ),
-        "reason": "Verified successfully",
-        "success": True,
+        "handoffTo": "frame",
+        "prose": "No step computes or ranks the counts by organism.",
     },
 }
+_COMBINE = SiteCheck(
+    kind="combine_counts",
+    subject="the strategy on the site",
+    status="fail",
+    evidence=(
+        "a count its operator cannot hold: INTERSECT 'Both' holds 90 from "
+        "inputs of 61 and 400"
+    ),
+)
 
 pytestmark = pytest.mark.usefixtures("collector")
 
@@ -95,7 +88,9 @@ async def _verify(
     monkeypatch: pytest.MonkeyPatch,
     deps: LeadDeps,
     digest: dict[str, Any],
+    checks: Sequence[SiteCheck] = (PASSED,),
 ) -> VerificationDelta:
+    checked_site(monkeypatch, checks)
     monkeypatch.setattr(
         sub_agent_tools,
         "get_mock_model",
@@ -124,7 +119,7 @@ def _kinase_deps(session: StrategySession) -> LeadDeps:
     return lead_deps(state, strategy_session=session)
 
 
-async def test_success_over_a_zero_push_build_is_refused(
+async def test_a_zero_push_build_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     deps = _kinase_deps(StrategySession(site_id="cryptodb"))
@@ -133,20 +128,15 @@ async def test_success_over_a_zero_push_build_is_refused(
 
     assert delta.digest.success is False
     assert delta.digest.reason == (
-        "Verification reported success, and the ledger records what the strategy "
-        "does not answer."
-    )
-    assert delta.digest.prose.startswith(
-        "Verification cannot be reported: The build pushed 0 steps, failed 0, "
-        "skipped 0 and left 0 empty."
+        "The build pushed 0 steps, failed 0, skipped 0 and left 0 empty"
     )
     assert delta.digest.caveats == [BuildCaveat(pushed=0, failed=0, skipped=0, empty=0)]
-    recorded = deps.state.domain.verification_digest
+    recorded = deps.state.domain.site_verdict
     assert recorded is not None
     assert recorded.success is False
 
 
-async def test_success_over_a_real_build_stands(
+async def test_a_real_build_whose_checks_pass_passes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     deps = _kinase_deps(
@@ -167,7 +157,8 @@ async def test_success_over_a_real_build_stands(
 
     assert delta.digest.success is True
     assert delta.digest.disposition is PhaseDisposition.DONE
-    assert delta.digest.reason == "Verified successfully"
+    assert delta.digest.reason == "No check of the strategy on the site failed"
+    assert delta.digest.review.checks == [PASSED]
     assert delta.digest.caveats == []
 
 
@@ -195,197 +186,70 @@ async def test_the_verdict_stands_for_the_revision_it_judged(
     assert deps.state.turn_verdict == delta.digest
 
 
-def _combination_requirement() -> Constraint:
-    return requirement(
-        ConstraintKind.COMBINATION, "how the evidence combines", _COMBINATION
-    )
-
-
-def _combined_spec(operator: CombineOp) -> OperationalSpec:
-    return OperationalSpec(
-        goal="kinase drug targets",
-        criteria=[
-            Criterion(
-                id="c_ms",
-                text="trophozoite mass spectrometry evidence",
-                search_name="GenesByMassSpec",
-                record_class="transcript",
-            ),
-            Criterion(
-                id="c_derisi",
-                text="DeRisi timecourse expression",
-                search_name="GenesByRNASeqEvidence",
-                record_class="transcript",
-            ),
-        ],
-        structure=SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                operator=operator,
-                inputs=[
-                    StructureNode(kind="leaf", criterion_id="c_ms"),
-                    StructureNode(kind="leaf", criterion_id="c_derisi"),
-                ],
-            )
+def _built_kinases() -> LeadDeps:
+    deps = _kinase_deps(
+        _session_with_step(
+            "cryptodb",
+            name="Kinases",
+            search_name="GenesByText",
+            count=61,
+            wdk_strategy_id=330558093,
         ),
     )
-
-
-def _combination_deps(operator: CombineOp) -> LeadDeps:
-    state = pipeline_state(
-        user_prompt="Kinases with mass spec evidence or DeRisi expression.",
+    deps.state.domain.last_build_outcome = BuildOutcome(
+        pushed_step_ids=["s1"], wdk_strategy_id=330558093
     )
-    state.domain.operational_spec = _combined_spec(operator)
-    state.domain.requirements = [_combination_requirement()]
-    state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1"],
-        wdk_strategy_id=330423363,
-    )
-    return lead_deps(
-        state,
-        strategy_session=_session_with_step(
-            "plasmodb",
-            name="Kinase drug targets",
-            search_name="GenesByMassSpec",
-            count=12,
-            wdk_strategy_id=330423363,
-        ),
-    )
+    return deps
 
 
-async def test_success_over_a_violated_combination_is_refused(
+async def test_an_objecting_checker_never_fails_a_passing_check(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _combination_deps(CombineOp.INTERSECT)
+    deps = _built_kinases()
 
-    delta = await _verify(monkeypatch, deps, _STRUCTURE_DIGEST)
-
-    assert delta.digest.success is False
-    assert delta.digest.failure_cause is FailureCause.STRUCTURE_VIOLATION
-    assert delta.digest.gaps == [
-        StructureGap(expression=_COMBINATION, built="INTERSECT")
-    ]
-    assert deps.state.turn_markers.verified is False
-
-
-async def test_success_over_the_stated_combination_stands(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    deps = _combination_deps(CombineOp.UNION)
-
-    delta = await _verify(monkeypatch, deps, _STRUCTURE_DIGEST)
-
-    assert delta.digest.success is True
-    assert delta.digest.failure_cause is None
-
-
-_PASSED = "every stated requirement is met by a step and the records show it"
-
-
-def _genes_row(**marks: bool) -> dict[str, Any]:
-    return {
-        "text": "genes",
-        "turn": 1,
-        "answeredBy": [],
-        "how": "parameter",
-        "status": "unmet",
-        "note": "The strategy record type is `transcript`, not `gene`.",
-        **marks,
-    }
-
-
-def _transcript_digest(*rows: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "digest": {
-            "disposition": "handoff",
-            "handoffTo": "frame",
-            "success": False,
-            "prose": (
-                "The predicted signal-peptide search returned **720** records. The "
-                "strategy is configured as `transcript` record type rather than "
-                "`gene`, so the requested data type is not verified as honored."
-            ),
-            "reason": (
-                "The search returns a plausible 720-record result, but its "
-                "configured record type is `transcript`, not the requested genes."
-            ),
-            "review": {"requirements": list(rows)},
-        }
-    }
-
-
-def _signal_peptide_deps() -> LeadDeps:
-    state = pipeline_state(
-        "toxodb",
-        user_prompt=(
-            "Find Toxoplasma gondii ME49 genes whose proteins have a predicted "
-            "signal peptide."
-        ),
-    )
-    state.domain.operational_spec = OperationalSpec(
-        goal="signal peptide genes",
-        criteria=[
-            Criterion(
-                id="s1",
-                text="proteins have a predicted signal peptide",
-                search_name="GenesWithSignalPeptide",
-                record_class="transcript",
-            )
-        ],
-    )
-    state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1"], wdk_strategy_id=330885923
-    )
-    return lead_deps(
-        state,
-        strategy_session=_session_with_step(
-            "toxodb",
-            name="Signal peptide",
-            search_name="GenesWithSignalPeptide",
-            count=720,
-            wdk_strategy_id=330885923,
-        ),
-    )
-
-
-async def test_a_failure_the_rows_do_not_support_passes(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    deps = _signal_peptide_deps()
-
-    delta = await _verify(monkeypatch, deps, _transcript_digest(_genes_row()))
+    delta = await _verify(monkeypatch, deps, _OBJECTING_DIGEST)
 
     digest = delta.digest
-    assert [(r.text, r.shown_status) for r in digest.review.requirements] == [
-        ("genes", "met")
-    ]
-    assert (digest.success, digest.failure_cause, digest.gaps) == (True, None, [])
-    assert digest.reason == f"Verification passed: {_PASSED}."
-    assert (digest.disposition, digest.handoff_to) == (PhaseDisposition.DONE, None)
+    assert (digest.success, digest.gaps, digest.handoff_to) == (True, [], None)
+    assert digest.prose == "No step computes or ranks the counts by organism."
     assert deps.state.turn_markers.verified is True
 
 
-async def test_a_failure_with_a_row_no_record_shows_stays_failed(
+async def test_a_failed_check_fails_the_verdict_with_the_sites_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    unshown = {
-        "text": "proteins have a predicted signal peptide",
-        "turn": 1,
-        "answeredBy": ["s1"],
-        "how": "search",
-        "status": "met",
-        "noRecordShowsIt": True,
-    }
+    deps = _built_kinases()
 
-    delta = await _verify(
-        monkeypatch,
-        _signal_peptide_deps(),
-        _transcript_digest(_genes_row(), unshown),
+    delta = await _verify(monkeypatch, deps, _BUILD_DIGEST, [PASSED, _COMBINE])
+
+    digest = delta.digest
+    assert (digest.success, digest.failure_cause) == (
+        False,
+        FailureCause.STRUCTURE_VIOLATION,
+    )
+    assert digest.gaps == [SiteCheckGap(check=_COMBINE)]
+    assert digest.reason == (
+        "'the strategy on the site': a count its operator cannot hold: INTERSECT "
+        "'Both' holds 90 from inputs of 61 and 400"
+    )
+    assert digest.disposition is PhaseDisposition.HANDOFF
+    assert deps.state.turn_markers.verified is False
+
+
+async def test_an_unchecked_requirement_never_fails_the_verdict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    unchecked = SiteCheck(
+        kind=ConstraintKind.OTHER,
+        subject="which organisms have the most singletons",
+        status="unchecked",
+        evidence="no check reads this requirement on the site",
+        requirement="other:which organisms have the most singletons",
     )
 
-    assert [r.shown_status for r in delta.digest.review.requirements] == [
-        "met",
-        "unshown",
-    ]
-    assert delta.digest.success is False
-    assert delta.digest.reason.startswith("The search returns a plausible 720-record")
+    delta = await _verify(
+        monkeypatch, _built_kinases(), _OBJECTING_DIGEST, [PASSED, unchecked]
+    )
+
+    assert (delta.digest.success, delta.digest.gaps) == (True, [])
+    assert delta.digest.review.checks == [PASSED, unchecked]

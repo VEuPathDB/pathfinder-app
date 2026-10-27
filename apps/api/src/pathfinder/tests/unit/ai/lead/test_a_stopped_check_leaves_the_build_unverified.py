@@ -68,7 +68,7 @@ async def _over_budget_streamed(
 
 
 def _misshapen() -> Any:
-    return final_result_model({"digest": {"prose": "Checked."}})
+    return final_result_model({"digest": {"keyFindings": "Checked."}})
 
 
 def _over_budget_model() -> Any:

@@ -8,7 +8,7 @@ from pydantic import Field, model_validator
 
 from pathfinder.domain.audit.words import CHECK_TITLES
 from pathfinder.domain.caveats import EditDirection
-from pathfinder.domain.question_rows import ResearcherAsk
+from pathfinder.domain.researcher_asks import ResearcherAsk
 from pathfinder.domain.strategy.constraints import (
     CONSTRAINT_KINDS,
     CombinationRequest,

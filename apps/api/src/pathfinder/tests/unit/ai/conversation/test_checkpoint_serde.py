@@ -44,8 +44,9 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
-from pathfinder.domain.constraint_check import ConstraintCheck
+from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
+from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
@@ -106,14 +107,18 @@ def _digest() -> VerificationDigest:
         reason="verification successful",
         success=True,
         key_findings=["1234 hits"],
-        constraint_report=[
-            ConstraintCheck(
-                label="organism",
-                requested="P. falciparum 3D7",
-                realized="P. falciparum 3D7",
-                honored=True,
-            ),
-        ],
+        review=VerificationReview(
+            checks=[
+                SiteCheck(
+                    kind=ConstraintKind.ORGANISM,
+                    subject="P. falciparum 3D7",
+                    status="pass",
+                    evidence="all 1,234 records of step 7 ('Kinases') hold an "
+                    "organism the strategy selects: Plasmodium falciparum 3D7 (1,234)",
+                    requirement="organism:P. falciparum 3D7",
+                )
+            ]
+        ),
         remember=[
             MemoryEntryDraft(
                 name="P. falciparum kinome size",
@@ -192,7 +197,7 @@ def _domain() -> StrategyDomainState:
         lead_next_state="complete",
         operational_spec=_spec(),
         discovered_searches={"GenesByTaxon": _overview("transcript")},
-        verification_digest=_digest(),
+        site_verdict=_digest(),
         last_build_outcome=_outcome(),
         stale_build=StaleBuild(added_nodes=["s3"], removed_nodes=["s0"]),
         created_gene_sets=[CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)],

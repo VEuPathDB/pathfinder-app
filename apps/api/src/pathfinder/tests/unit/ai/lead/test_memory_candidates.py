@@ -92,7 +92,7 @@ def _digest_state(*, digest: VerificationDigest | None) -> PipelineState:
         site_id="plasmodb",
         mode="strategy",
         user_prompt="find Plasmodium kinases",
-        domain=StrategyDomainState(verification_digest=digest),
+        domain=StrategyDomainState(site_verdict=digest),
     )
     state.turn_markers.verification_dispatched = True
     return state

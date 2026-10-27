@@ -134,8 +134,7 @@ async def read_sampled_gene_record(
     if len(held) >= SAMPLED_GENE_LIMIT:
         msg = (
             f"This check read {len(held)} records, the most one check reads: "
-            f"{', '.join(held)}. Judge the sampled genes from those records, and "
-            "read a criterion over the whole step with read_step_columns."
+            f"{', '.join(held)}. Judge the sampled genes from those records."
         )
         raise CallRefused(msg)
     # The read is held before it runs so a parallel batch keeps the budget.

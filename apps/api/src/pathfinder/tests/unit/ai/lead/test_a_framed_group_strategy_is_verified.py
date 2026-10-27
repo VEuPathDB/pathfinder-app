@@ -4,15 +4,15 @@ from typing import Any
 
 import pytest
 from veupathdb.domain.strategy import StepKind, StrategyStep
-from veupathdb.wdk import WDKRecordType
+from veupathdb.wdk import WDKRecordType, WDKStrategyDetails
 
-from pathfinder.ai.lead import sub_agent_tools
+from pathfinder.ai.lead import evidence_card, sub_agent_tools, verify_checks
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.domain.caveats import RequirementGap
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import record_classes
+from pathfinder.services.strategies.site_counts import SiteCounts
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.orthomcl_record_classes import (
     recorded_orthomcl_record_types,
@@ -89,41 +90,49 @@ def _framed_deps(stated: Constraint) -> LeadDeps:
     return deps
 
 
-def _checked(text: str) -> dict[str, Any]:
-    return {
-        "digest": {
-            "disposition": "done",
-            "success": True,
-            "prose": "The strategy returns **1,088** ortholog groups.",
-            "reason": "The built step binds the requested phyletic expression.",
-            "review": {
-                "requirements": [
-                    {
-                        "text": text,
-                        "turn": 1,
-                        "answeredBy": ["step_b08116fe"],
-                        "how": "search",
-                        "status": "met",
-                        "note": (
-                            "The built search uses record type `group` for "
-                            "ortholog groups."
-                        ),
-                    }
-                ]
+_CHECKED: dict[str, Any] = {
+    "digest": {"prose": "The strategy returns **1,088** ortholog groups."}
+}
+_STEP = 227284530
+_STRATEGY = 214645250
+
+
+def _details() -> WDKStrategyDetails:
+    return WDKStrategyDetails.model_validate(
+        {
+            "strategyId": _STRATEGY,
+            "name": "Plasmodium groups",
+            "rootStepId": _STEP,
+            "stepTree": {"stepId": _STEP},
+            "steps": {
+                str(_STEP): {
+                    "id": _STEP,
+                    "searchName": _PATTERN,
+                    "searchConfig": {"parameters": {}},
+                    "recordClassName": "group",
+                    "estimatedSize": 1088,
+                    "validation": {"level": "RUNNABLE", "isValid": True},
+                }
             },
         }
-    }
+    )
 
 
-async def _verify(
-    monkeypatch: pytest.MonkeyPatch, deps: LeadDeps, text: str
-) -> VerificationDelta:
+async def _verify(monkeypatch: pytest.MonkeyPatch, deps: LeadDeps) -> VerificationDelta:
     async def _record_types(_site_id: str) -> list[WDKRecordType]:
         return recorded_orthomcl_record_types()
 
+    async def _strategy(_site_id: str, _id: int) -> WDKStrategyDetails:
+        return _details()
+
+    async def _counts(_site_id: str, _id: int) -> SiteCounts:
+        return SiteCounts(root_step_id=_STEP, counts={_STEP: 1088})
+
     monkeypatch.setattr(record_classes, "get_raw_record_types", _record_types)
+    monkeypatch.setattr(verify_checks, "read_site_strategy", _strategy)
+    monkeypatch.setattr(evidence_card, "read_step_counts", _counts)
     monkeypatch.setattr(
-        sub_agent_tools, "get_mock_model", lambda: final_result_model(_checked(text))
+        sub_agent_tools, "get_mock_model", lambda: final_result_model(_CHECKED)
     )
     with pinned_sub_agent(
         monkeypatch,
@@ -143,16 +152,17 @@ async def test_a_framed_group_strategy_verifies_with_no_record_type_gap(
 ) -> None:
     deps = _framed_deps(_record_type_requirement("ortholog groups", "ortholog groups"))
 
-    delta = await _verify(monkeypatch, deps, "ortholog groups")
+    delta = await _verify(monkeypatch, deps)
 
     spec = deps.state.domain.operational_spec
     assert spec is not None
     assert spec.record_type == "group"
-    row = delta.digest.review.requirements[0]
-    assert (row.text, row.status, row.note) == (
-        "ortholog groups",
-        "met",
-        "the strategy returns groups",
+    [record_type] = [
+        c for c in delta.digest.review.checks if c.kind is ConstraintKind.RECORD_TYPE
+    ]
+    assert (record_type.status, record_type.evidence) == (
+        "pass",
+        "the result step returns group records",
     )
     assert (delta.digest.success, delta.digest.gaps) == (True, [])
 
@@ -163,15 +173,16 @@ async def test_a_request_for_proteins_on_a_group_strategy_keeps_its_gap(
     deps = _framed_deps(_record_type_requirement("proteins", "proteins"))
     deps.state.domain.request_messages = ["Which proteins are in these groups?"]
 
-    delta = await _verify(monkeypatch, deps, "proteins")
+    delta = await _verify(monkeypatch, deps)
 
-    row = delta.digest.review.requirements[0]
-    assert (row.text, row.status, row.note) == (
-        "proteins",
-        "unmet",
-        "the strategy returns groups",
+    failed = SiteCheck(
+        kind=ConstraintKind.RECORD_TYPE,
+        subject="proteins",
+        status="fail",
+        evidence="the result step returns group records",
+        requirement="record_type:proteins",
     )
-    assert delta.digest.success is False
-    assert delta.digest.gaps == [
-        RequirementGap(text="proteins", status="unmet", key="record_type:proteins")
-    ]
+    assert (delta.digest.success, delta.digest.gaps) == (
+        False,
+        [SiteCheckGap(check=failed)],
+    )

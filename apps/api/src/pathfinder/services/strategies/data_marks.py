@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import dataset_assay, study_assay
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.services.strategies.bound_uploads import uploads_the_specs_run_on
-from pathfinder.services.strategies.text_queries import search_definitions
+from pathfinder.services.strategies.search_sheets import search_definitions
 from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
 
 logger = get_logger(__name__)

@@ -35,15 +35,7 @@ def _gene(gene_id: str, fits: str) -> dict[str, str]:
 
 
 def _digest(prose: str, review: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "digest": {
-            "disposition": "done",
-            "prose": prose,
-            "reason": "Sample read.",
-            "success": True,
-            "review": review,
-        }
-    }
+    return {"digest": {"prose": prose, "review": review}}
 
 
 def _session(steps: tuple[str, ...]) -> StrategySession:
@@ -130,38 +122,8 @@ async def test_a_source_no_read_retrieved_is_refused() -> None:
     ) in retries[0]
 
 
-async def test_a_row_that_names_a_message_the_request_lacks_is_refused() -> None:
-    review = {
-        "requirements": [
-            {
-                "text": "exported",
-                "turn": 3,
-                "answeredBy": ["s1"],
-                "how": "search",
-                "status": "met",
-            }
-        ]
-    }
-
-    _digest_out, retries = await _verified("Exported genes.", review)
-
-    assert len(retries) == 1
-    assert (
-        "The requirement 'exported' names message 3, and the request has 1 message."
-    ) in retries[0]
-
-
 async def test_a_review_the_turn_backs_passes() -> None:
     review = {
-        "requirements": [
-            {
-                "text": "Exported",
-                "turn": 1,
-                "answeredBy": ["s1"],
-                "how": "search",
-                "status": "met",
-            }
-        ],
         "sampledGenes": [_gene(_READ[0], "yes"), _gene(_READ[1], "yes")],
         "sources": [
             {
@@ -179,31 +141,6 @@ async def test_a_review_the_turn_backs_passes() -> None:
 
     assert retries == []
     assert [g.gene_id for g in digest.digest.review.sampled_genes] == list(_READ)
-
-
-async def test_a_row_answered_by_a_step_the_strategy_lacks_is_refused() -> None:
-    review = {
-        "requirements": [
-            {
-                "text": "signal peptide and at least 2 transmembrane domains",
-                "turn": 1,
-                "answeredBy": ["step_a4a0f54"],
-                "how": "structure",
-                "status": "met",
-            }
-        ]
-    }
-
-    _digest_out, retries = await _verified(
-        "The root intersects both.", review, steps=("step_a4a0f54a",)
-    )
-
-    assert len(retries) == 1
-    assert (
-        "The requirement 'signal peptide and at least 2 transmembrane domains' "
-        "is answered by step_a4a0f54, which names no step of the strategy; it "
-        "holds step_a4a0f54a."
-    ) in retries[0]
 
 
 def test_membership_in_the_strategy_is_not_a_genes_fit() -> None:

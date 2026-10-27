@@ -1,4 +1,4 @@
-"""The verdict an extract reads carries the check's requirement rows, its typed
+"""The verdict an extract reads carries the checks on the site, its typed
 caveats and gaps, and the card's review, redacted."""
 
 from __future__ import annotations
@@ -22,22 +22,21 @@ from pathfinder.domain.evidence import (
     ControlTestEvidence,
     EvidenceCard,
     NamedControlSet,
-    RequirementCheck,
     SampledGene,
     VerificationReview,
 )
+from pathfinder.domain.site_checks import SiteCheck
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.services.eval_data.chunk_reader import LoggedChunk, read_verification
 from pathfinder.tests._support.ledger import ledger_with
 
 _REVIEW = VerificationReview(
-    requirements=[
-        RequirementCheck(
-            text="the genes ada@example.org asked for",
-            turn=1,
-            answered_by=["s1"],
-            how="search",
-            status="met",
-            note="GenesWithSignalPeptide",
+    checks=[
+        SiteCheck(
+            kind=ConstraintKind.OTHER,
+            subject="the genes ada@example.org asked for",
+            status="unchecked",
+            evidence="no check reads this requirement on the site",
         )
     ],
     column_fits=[
@@ -121,11 +120,11 @@ def _chunks() -> list[LoggedChunk]:
     return [LoggedChunk.model_validate({"chunk": c}) for c in (ledger, card)]
 
 
-def test_the_verdict_carries_its_requirement_rows_redacted() -> None:
+def test_the_verdict_carries_its_checks_redacted() -> None:
     verdict = read_verification(_chunks())
 
     assert verdict is not None
-    assert [row.text for row in verdict.requirements] == [
+    assert [check.subject for check in verdict.checks] == [
         "the genes [redacted-email] asked for"
     ]
 
@@ -137,7 +136,7 @@ def test_the_cards_review_is_redacted() -> None:
     assert verdict.evidence is not None
     review = verdict.evidence.review
     assert (
-        review.requirements[0].text,
+        review.checks[0].subject,
         review.column_fits[0].criterion_text,
         review.sampled_genes[0].why,
         review.sources[0].url,

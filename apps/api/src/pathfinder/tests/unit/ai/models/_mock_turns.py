@@ -30,7 +30,7 @@ from pathfinder.ai.agents.strategy_instructions import (
 )
 from pathfinder.ai.lead.lead_pins import pinned_eda_sheet
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
-from pathfinder.ai.lead.verify_dispatch import RootSample, SearchStep, work_order
+from pathfinder.ai.lead.verify_dispatch import RootSample, work_order
 from pathfinder.ai.models.mock import role_script
 from pathfinder.ai.models.mock.arc import Role
 from pathfinder.ai.models.mock.faults import made_by_a_fault
@@ -251,7 +251,6 @@ class _Tools:
                     }
                 ]
             },
-            "read_step_columns": {"fits": [], "note": "No column shows a bound value."},
             "get_sample_records": {
                 "records": [{"id": f"{g}.1"} for g in positives[:2]]
             },
@@ -440,6 +439,5 @@ def built_thread() -> Scene:
 
 def verify_order(count: int, controls: AttachedControls | None = None) -> str:
     """VERIFY's work order over a root of ``count`` records."""
-    leaf = SearchStep(step_id="step_leaf", wdk_step_id=LEAF_WDK_ID)
-    root = RootSample("step_root", STRATEGY_ROOT_WDK_ID, count, (leaf,))
+    root = RootSample("step_root", STRATEGY_ROOT_WDK_ID, count)
     return work_order("mock verification", controls, root)

@@ -83,7 +83,7 @@ A refusal is one of three things, in this order:
   order.
 - **A budget is a refusal like any other.** A check's record read past its
   budget, or of a record it already read, is a `ModelRetry` naming the records
-  already read and `read_step_columns`
+  already read
   (`ai/tools/standalone/gene_record.py::read_sampled_gene_record`), so the
   refusal memory holds it and the trace draws it failed.
 

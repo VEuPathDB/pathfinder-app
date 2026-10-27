@@ -94,7 +94,7 @@ def _state(thread: _Thread, message_id: UUID, *, verified: bool) -> PipelineStat
                     ),
                 ],
             ),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="142 kinases",
                 reason="verified",

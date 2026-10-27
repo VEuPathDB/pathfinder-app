@@ -36,7 +36,7 @@ def _over_a_failed_check(deps: LeadDeps) -> LeadDeps:
             prose="Checked.",
             reason="The site serves no search for split genes.",
             success=False,
-            gaps=[RequirementGap(text="split genes", status="unmet")],
+            gaps=[RequirementGap(text="split genes")],
         ),
         revision=strategy_revision(domain.answered_graph),
     )

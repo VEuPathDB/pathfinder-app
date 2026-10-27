@@ -26,13 +26,8 @@ from pathfinder.domain.caveats import (
     RequirementGap,
     WordGap,
 )
-from pathfinder.domain.constraint_check import ConstraintCheck
-from pathfinder.domain.evidence import (
-    ControlSetEvidence,
-    ControlTestEvidence,
-    RequirementCheck,
-    VerificationReview,
-)
+from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -71,18 +66,14 @@ _V2_TEST = ControlTestEvidence(
 _V2_CAVEAT = ControlsCaveat(
     positives_returned=52, positives_total=80, negatives_returned=2, negatives_total=40
 )
-_UNMET = RequirementGap(
-    text="at least 2 transmembrane domains",
-    status="unmet",
-    key="other:at least 2 transmembrane domains",
-)
-# The review row the check wrote, which the gap above is read from.
-_UNMET_ROW = RequirementCheck(
-    text="at least 2 transmembrane domains",
-    turn=1,
-    how="search",
-    status="unmet",
-    note="No step of the strategy reads it.",
+_UNMET = SiteCheckGap(
+    check=SiteCheck(
+        kind=ConstraintKind.OTHER,
+        subject="at least 2 transmembrane domains",
+        status="fail",
+        evidence="the strategy states tm_count = 1",
+        requirement="other:at least 2 transmembrane domains",
+    )
 )
 
 
@@ -101,7 +92,6 @@ def _checked(
             success=True,
             gaps=gaps or [],
             caveats=caveats or [],
-            review=VerificationReview(requirements=[_UNMET_ROW] if gaps else []),
         ),
         revision=strategy_revision(None),
     )
@@ -246,7 +236,7 @@ async def test_a_requirement_the_site_lacks_is_a_gap_in_the_held_words(
 
     assert (facts.steps, facts.gaps) == (
         [],
-        [RequirementGap(text="predicted GPI anchor", status="unexpressed")],
+        [RequirementGap(text="predicted GPI anchor")],
     )
     assert [gap.sentence for gap in facts.gaps] == [
         "'predicted GPI anchor': no search on this site states it"
@@ -291,6 +281,16 @@ async def test_a_number_the_list_lacks_is_no_gap_and_ends_no_pass(
     assert facts.gaps == []
 
 
+_FOLD = SiteCheck(
+    kind=ConstraintKind.FOLD_CHANGE,
+    subject="1.5-fold",
+    status="fail",
+    evidence="1.5-fold, built 2.82843-fold (log2 1.5)",
+    requirement="fold_change:1.5-fold",
+)
+_FOLD_SENTENCE = "'1.5-fold': 1.5-fold, built 2.82843-fold (log2 1.5)"
+
+
 def test_a_study_step_check_short_of_the_request_is_a_facts_row() -> None:
     state = pipeline_state(
         user_prompt="loosen the fold change to 1.5-fold", user_message_id=uuid4()
@@ -301,29 +301,12 @@ def test_a_study_step_check_short_of_the_request_is_a_facts_row() -> None:
             prose="Checked.",
             reason="the study step was read",
             success=False,
-            constraint_report=[
-                ConstraintCheck(
-                    step_id="step_a036deb7",
-                    label="fold change",
-                    requested="1.5",
-                    realized="2.82843",
-                    honored=False,
-                ),
-                ConstraintCheck(
-                    step_id="step_a036deb7",
-                    label="significance",
-                    requested="0.05",
-                    realized="0.05",
-                    honored=True,
-                ),
-            ],
+            gaps=[SiteCheckGap(check=_FOLD)],
         ),
         revision=strategy_revision(None),
     )
 
     facts = turn_facts(lead_deps(state))
 
-    assert [gap.sentence for gap in facts.gaps] == [
-        "Not met: fold change asked 1.5, built 2.82843"
-    ]
-    assert "Not met: fold change asked 1.5, built 2.82843" in facts.lines()
+    assert [gap.sentence for gap in facts.gaps] == [_FOLD_SENTENCE]
+    assert _FOLD_SENTENCE in facts.lines()

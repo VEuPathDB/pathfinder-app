@@ -337,7 +337,7 @@ def test_a_failed_gap_named_only_by_a_value_reference_is_named() -> None:
             prose="Checked.",
             reason="The ortholog exclusion is not answered.",
             success=False,
-            gaps=[RequirementGap(text="Neospora caninum Liverpool", status="unmet")],
+            gaps=[RequirementGap(text="Neospora caninum Liverpool")],
         ),
         revision=strategy_revision(domain.answered_graph),
     )

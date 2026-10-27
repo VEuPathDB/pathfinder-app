@@ -1,4 +1,4 @@
-"""A requirement row the check found unmet is a gap the facts part shows, and
+"""A requirement a check on the site failed is a gap the facts part shows, and
 the reply names it in words and restates no sampled-gene count."""
 
 from __future__ import annotations
@@ -9,17 +9,9 @@ from uuid import uuid4
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.caveats import check_gaps
-from pathfinder.domain.evidence import (
-    EvidenceCard,
-    RequirementCheck,
-    SampledGene,
-    VerificationReview,
-)
-from pathfinder.domain.strategy.constraints import (
-    ConstraintKind,
-    provisional_constraints,
-)
+from pathfinder.domain.evidence import EvidenceCard, SampledGene, VerificationReview
+from pathfinder.domain.site_checks import SiteCheck, failed
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -28,20 +20,12 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     requirement,
 )
 
-_UNMET = RequirementCheck(
-    text="at least 2 transmembrane domains",
-    turn=1,
-    how="search",
-    status="unmet",
-    note="no step reads transmembrane domains",
-)
-_MET = RequirementCheck(
-    text="with a signal peptide",
-    turn=1,
-    answered_by=["s1"],
-    how="search",
-    status="met",
-    note="GenesWithSignalPeptide",
+_UNMET = SiteCheck(
+    kind=ConstraintKind.OTHER,
+    subject="at least 2 transmembrane domains",
+    status="fail",
+    evidence="the strategy states tm_count = 1",
+    requirement="other:at least 2 transmembrane domains",
 )
 
 
@@ -66,7 +50,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
         "transmembrane domains",
         user_message_id=uuid4(),
     )
-    review = VerificationReview(requirements=[_MET, _UNMET], sampled_genes=_SAMPLE)
+    review = VerificationReview(checks=[_UNMET], sampled_genes=_SAMPLE)
     state.domain.requirements = [
         requirement(
             ConstraintKind.OTHER,
@@ -74,7 +58,6 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
             "at least 2 transmembrane domains",
         )
     ]
-    held = provisional_constraints(state.domain.requirements)
     revision = strategy_revision(None)
     state.domain.record_verdict(
         VerificationDigest(
@@ -83,7 +66,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
             reason="one requirement unmet",
             success=False,
             review=review,
-            gaps=check_gaps(structure=None, words=[], review=review, requirements=held),
+            gaps=[*failed(review.checks)],
         ),
         revision=revision,
     )
@@ -104,7 +87,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
 
 def test_the_unmet_requirement_is_a_gap_the_facts_part_shows() -> None:
     assert [gap.sentence for gap in turn_facts(_checked()).gaps] == [
-        "'at least 2 transmembrane domains': nothing in the strategy answers it"
+        "'at least 2 transmembrane domains': the strategy states tm_count = 1"
     ]
 
 

@@ -23,8 +23,8 @@
     ],
     "rootOperator": null,
     "finalCountBelowEveryInput": null,
-    "metRequirements": null,
-    "unmetRequirements": null,
+    "passedChecks": null,
+    "failedChecks": null,
     "rootCount": null,
     "endsOn": null
   },

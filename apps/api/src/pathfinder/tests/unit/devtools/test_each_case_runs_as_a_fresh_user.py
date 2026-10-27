@@ -105,7 +105,7 @@ def _install(
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "drive_respond", _respond)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
-    monkeypatch.setattr(eval_runner, "reviewed_requirements", _reviewed)
+    monkeypatch.setattr(eval_runner, "reviewed_checks", _reviewed)
     monkeypatch.setattr(eval_runner, "observe", _observe)
     monkeypatch.setattr(eval_runner, "forget_user", _forget)
     return recorded

@@ -170,8 +170,8 @@ def observed_from_run_directory(case_dir: Path) -> ObservedOutcome:
 def _unobserved(expected: ExpectedOutcome) -> list[str]:
     stated = {
         "replyGivesItsReasons": expected.reply_gives_its_reasons,
-        "metRequirements": expected.met_requirements is not None,
-        "unmetRequirements": expected.unmet_requirements is not None,
+        "passedChecks": expected.passed_checks is not None,
+        "failedChecks": expected.failed_checks is not None,
         "unexpressedRequirements": expected.unexpressed_requirements is not None,
         "sameRecordsAs": bool(expected.same_records_as),
         "stepIdsUnchanged": expected.step_ids_unchanged is not None,

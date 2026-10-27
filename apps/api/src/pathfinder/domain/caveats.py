@@ -10,21 +10,12 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Discriminator
 
 from pathfinder.domain.column_fit import ColumnFit
-from pathfinder.domain.constraint_check import CheckGap
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.evidence import (
-    ControlTestEvidence,
-    NamedControlSet,
-    VerificationReview,
-)
-from pathfinder.domain.expression_fit import ExpressionGap
+from pathfinder.domain.evidence import ControlTestEvidence, NamedControlSet
 from pathfinder.domain.reading_caveats import ReadingCaveat, reading_caveats
-from pathfinder.domain.requirement_naming import (
-    names_a_requirement,
-    names_a_retired_requirement,
-    requirement_naming,
-)
-from pathfinder.domain.strategy.constraints import GroundedConstraint, message_states
+from pathfinder.domain.requirement_naming import names_a_retired_requirement
+from pathfinder.domain.site_checks import SiteCheckGap
+from pathfinder.domain.strategy.constraints import GroundedConstraint
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.value_caveats import (
@@ -319,35 +310,22 @@ def measured_caveats(
     ]
 
 
-type RequirementGapStatus = Literal["unmet", "unexpressed", "unshown", "unjudged"]
-
-
 class RequirementGap(CamelModel):
-    """A requirement row the check found unmet or that no search can state."""
+    """A requirement the framing pass found no search on the site states."""
 
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["requirement"] = "requirement"
     text: str
-    status: RequirementGapStatus
-    key: str = ""
 
     @computed
     def sentence(self) -> str:
         """The requirement, in the researcher's words, and what is missing."""
-        if self.status == "unexpressed":
-            return f"'{self.text}': no search on this site states it"
-        if self.status == "unshown":
-            return f"'{self.text}': no sampled record shows it"
-        if self.status == "unjudged":
-            return f"'{self.text}': no sampled record judged it"
-        return f"'{self.text}': nothing in the strategy answers it"
+        return f"'{self.text}': no search on this site states it"
 
     @property
     def fails_the_check(self) -> bool:
-        """Whether the gap holds the check short of success: a step answers
-        an unjudged row, so only the records are silent on it."""
-        return self.status != "unjudged"
+        return True
 
     def texts(self) -> list[str]:
         return [self.text]
@@ -380,96 +358,32 @@ class WordGap(CamelModel):
         return True
 
 
-class StructureGap(CamelModel):
-    """A combination the researcher stated that the strategy joins another way."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["structure"] = "structure"
-    expression: str
-    built: str
-
-    @computed
-    def sentence(self) -> str:
-        """The combination, and the operator the strategy joins it with."""
-        return f"'{self.expression}': the strategy joins it with {self.built}"
-
-    def texts(self) -> list[str]:
-        return [self.expression]
-
-    def redacted(self, redact: Callable[[str], str]) -> StructureGap:
-        return self.model_copy(update={"expression": redact(self.expression)})
-
-    @property
-    def fails_the_check(self) -> bool:
-        return True
-
-
 Gap = Annotated[
-    RequirementGap | WordGap | StructureGap | CheckGap | ExpressionGap,
+    RequirementGap | WordGap | SiteCheckGap,
     Discriminator("kind"),
 ]
 
 
 def check_gaps(
     *,
-    structure: StructureGap | None,
     words: Sequence[str],
-    review: VerificationReview,
     requirements: Sequence[GroundedConstraint] = (),
     unstated: Sequence[str] = (),
-    asked: Sequence[str] = (),
 ) -> list[Gap]:
-    """Every gap of one check, once each: the structure, the words no search
-    states, the requirements no search on the site states, then each
-    requirement row none of those already names.
-
-    A gap a withdrawn or replaced requirement names is no gap. A row that
-    names no requirement the thread holds, or that carries every word of a
-    question the thread ``asked``, is no requirement. A row that names one
-    requirement carries the requirement's own words.
-    """
-    live_structure = structure
-    if structure is not None and names_a_retired_requirement(
-        structure.expression, requirements
-    ):
-        live_structure = None
-    live_words = [
-        w
+    """The words no search states, then the requirements no search on the site
+    states, once each. A gap a withdrawn or replaced requirement names is no gap."""
+    named = {word.casefold() for word in words}
+    rows: list[Gap] = [
+        WordGap(word=w)
         for w in dict.fromkeys(words)
         if not names_a_retired_requirement(w, requirements)
     ]
-    named = {word.casefold() for word in words}
-    if structure is not None:
-        named.add(structure.expression.casefold())
-    rows: list[Gap] = []
     for text in dict.fromkeys(unstated):
         if text.casefold() in named or names_a_retired_requirement(text, requirements):
             continue
         named.add(text.casefold())
-        rows.append(RequirementGap(text=text, status="unexpressed"))
-    met = [row.text for row in review.requirements if row.shown_status == "met"]
-    for row in review.to_report():
-        status = row.shown_status
-        if (
-            status == "met"
-            or not names_a_requirement(row.text, requirements)
-            or any(message_states(row.text, question) for question in asked)
-        ):
-            continue
-        held = requirement_naming(row.text, requirements, met=met)
-        text = row.text if held is None else held.constraint.requested_value
-        spelled = {row.text.casefold(), text.casefold()}
-        if spelled & named or (held is not None and held.retired):
-            continue
-        named.add(text.casefold())
-        key = "" if held is None else held.constraint.key
-        rows.append(RequirementGap(text=text, status=status, key=key))
-    return [
-        *([] if live_structure is None else [live_structure]),
-        *(WordGap(word=word) for word in live_words),
-        *rows,
-    ]
+        rows.append(RequirementGap(text=text))
+    return rows
 
 
 __all__ = [
@@ -482,7 +396,6 @@ __all__ = [
     "PhraseCaveat",
     "RequirementGap",
     "SampleCaveat",
-    "StructureGap",
     "WordGap",
     "caveats_for",
     "check_gaps",

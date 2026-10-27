@@ -315,7 +315,7 @@ def test_the_knowlesi_case_holds_no_records_gap_and_the_stated_exclusion() -> No
         expected.ends_on,
         expected.structure,
         expected.parameters,
-        expected.unmet_requirements,
+        expected.failed_checks,
         expected.reply_mentions,
         expected.root_count,
     ) == (False, "consult", None, {}, None, [], None)
@@ -337,7 +337,7 @@ def test_the_winnie_case_holds_no_organism_gap_on_unclear_records() -> None:
     )
     assert (
         expected.structure,
-        expected.unmet_requirements,
+        expected.failed_checks,
         expected.reply_mentions,
         expected.root_count,
     ) == (None, 0, [], None)

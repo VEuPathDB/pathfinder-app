@@ -76,7 +76,7 @@ def _state(*, verified: bool = False) -> PipelineState:
     domain = StrategyDomainState()
     if verified:
         domain = StrategyDomainState(
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="ok",
                 reason="verified",

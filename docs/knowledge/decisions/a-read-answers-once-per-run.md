@@ -37,7 +37,7 @@ rule an audit run judges a failed unit by:
 - a `ToolError` with no cause is the library's refusal of the arguments.
 A read with a
 deadline raises the same failure itself through `read_in_time`: `get_sample_records` and
-`read_step_columns` at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a
+the check's column read at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a
 whole listing. Because the failure is raised, `ReadOnceToolset` holds nothing for it and the
 same read may run again. An identity refusal (401, 403) is no outage: it propagates to the
 turn's error path, which asks the researcher to sign in. A write the site broke off

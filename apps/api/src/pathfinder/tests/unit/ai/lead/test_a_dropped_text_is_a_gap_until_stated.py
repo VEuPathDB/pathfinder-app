@@ -13,9 +13,7 @@ from pathfinder.ai.lead.ledger_sections import (
     unexpressed_constraints,
     unexpressed_words,
 )
-from pathfinder.ai.lead.verify_review import ReviewRecord, review_held_to_the_turn
 from pathfinder.domain.caveats import WordGap, check_gaps
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -23,10 +21,8 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     OpenLifecycle,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
-from pathfinder.services.strategies.record_classes import record_names_of
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.organism_reads import TRANSCRIPT
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 PF = "Plasmodium falciparum 3D7"
@@ -85,56 +81,21 @@ def _after_the_drop(requirement: Constraint | None = _REQUIREMENT) -> AgentToolS
     return state
 
 
-def _record(spec: OperationalSpec) -> ReviewRecord:
-    return ReviewRecord(
-        messages=(_ASKED,),
-        requirements=(),
-        spec=spec,
-        read_as=lambda _reference: None,
-        record_url=lambda gene_id: gene_id,
-        class_names=record_names_of([TRANSCRIPT]),
-        record_roles={},
-    )
-
-
 def test_rebinding_the_criterion_it_ran_beside_keeps_the_gap() -> None:
     state = _after_the_drop()
     state.frame_set_criterion(_signal("SignalP-4.1"))
+    spec = state.operational_spec_draft
 
-    held = review_held_to_the_turn(
-        VerificationReview(), _record(state.operational_spec_draft)
-    )
-
-    assert held.requirements == [
-        RequirementCheck(
-            text=_ISOLATES,
-            turn=1,
-            how="search",
-            status="unexpressed",
-            note=f"no search the framing pass read can state '{_ISOLATES}'",
-        )
-    ]
+    assert check_gaps(
+        words=unexpressed_words(spec), requirements=unexpressed_constraints(spec)
+    ) == [WordGap(word=_ISOLATES)]
 
 
 def test_a_criterion_that_states_the_text_meets_it() -> None:
     state = _after_the_drop()
     state.frame_set_criterion(_snps("c_diversity", f"genes that {_ISOLATES}", "pi"))
-    met = RequirementCheck(
-        text=_ISOLATES,
-        turn=1,
-        answered_by=["c_diversity"],
-        how="parameter",
-        status="met",
-        note="the diversity statistic states it",
-    )
 
-    spec = state.operational_spec_draft
-    held = review_held_to_the_turn(
-        VerificationReview(requirements=[met]), _record(spec)
-    )
-
-    assert held.requirements == [met]
-    assert unexpressed_words(spec) == []
+    assert unexpressed_words(state.operational_spec_draft) == []
 
 
 def test_the_ledger_blocks_on_the_requirement_and_lists_the_drop() -> None:
@@ -156,10 +117,7 @@ def test_the_gap_is_the_requirement_never_the_criterion_text() -> None:
     spec = _after_the_drop().operational_spec_draft
 
     gaps = check_gaps(
-        structure=None,
-        words=unexpressed_words(spec),
-        review=VerificationReview(),
-        requirements=unexpressed_constraints(spec),
+        words=unexpressed_words(spec), requirements=unexpressed_constraints(spec)
     )
 
     assert gaps == [WordGap(word=_ISOLATES)]

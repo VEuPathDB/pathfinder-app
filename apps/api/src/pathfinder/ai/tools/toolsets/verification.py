@@ -26,15 +26,11 @@ from pathfinder.ai.tools.standalone.gene_record import (
 )
 from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
 from pathfinder.ai.tools.standalone.memory_tools import search_memory
-from pathfinder.ai.tools.standalone.results import (
-    get_sample_records,
-    read_step_columns,
-)
+from pathfinder.ai.tools.standalone.results import get_sample_records
 from pathfinder.ai.tools.standalone.saved_control_sets import list_control_sets
 from pathfinder.ai.tools.standalone.step_download import get_download_url
 from pathfinder.ai.tools.standalone.step_ids import read_step_ids
 from pathfinder.ai.tools.standalone.strategy_graph import get_strategy
-from pathfinder.ai.tools.standalone.study_step import check_study_step
 from pathfinder.ai.tools.standalone.think import think
 from pathfinder.ai.tools.toolsets._dynamic import (
     DynamicEnumToolset,
@@ -58,7 +54,6 @@ def _verification_enum_overrides(
     if wdk_ids:
         for tool in (
             "get_estimated_size",
-            "read_step_columns",
             "get_sample_records",
             "get_download_url",
             "run_control_tests_on_step",
@@ -83,7 +78,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
         max_retries=3,
         tools=[
             get_estimated_size,
-            read_step_columns,
             get_sample_records,
             read_step_ids,
             get_download_url,
@@ -102,7 +96,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             list_gene_sets,
             export_gene_set,
             get_strategy,
-            check_study_step,
             request_search_inspection,
             think,
             search_memory,

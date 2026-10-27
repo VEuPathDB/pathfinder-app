@@ -37,7 +37,6 @@ SINGLETON = Constraint(
     label="singleton ortholog groups",
     source=ConstraintSource.USER_EXPLICIT,
 )
-UNMET_ROW = "Identify the Plasmodium species with the largest singleton-gene count."
 PLASMODIUM = NamedTaxon(name="Plasmodium", organisms=61)
 GENOMES = (
     ("pfac", "Plasmodium falciparum CD01"),

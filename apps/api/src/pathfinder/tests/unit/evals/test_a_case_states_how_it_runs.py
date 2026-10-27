@@ -322,14 +322,14 @@ def test_a_uat_case_asserts_no_prose_the_model_words_its_own_way() -> None:
     }
 
 
-def test_a_uat_case_holds_the_check_to_zero_unmet_rows_not_a_met_count() -> None:
+def test_a_uat_case_holds_the_check_to_zero_failed_checks_not_a_pass_count() -> None:
     counted = {
-        case.name: (case.expected.met_requirements, case.expected.unmet_requirements)
+        case.name: (case.expected.passed_checks, case.expected.failed_checks)
         for case in load_corpus()
         if case.name.startswith("uat-")
         and (
-            case.expected.met_requirements is not None
-            or case.expected.unmet_requirements is not None
+            case.expected.passed_checks is not None
+            or case.expected.failed_checks is not None
         )
     }
 

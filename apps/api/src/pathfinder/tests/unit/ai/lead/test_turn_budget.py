@@ -292,7 +292,7 @@ def test_a_step_with_a_reason_is_named_with_it() -> None:
 
 def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
     naming = objection().model_copy(
-        update={"prose": f"{STEP} keeps the wrong reference group."}
+        update={"reason": f"{STEP} keeps the wrong reference group."}
     )
 
     report = _report(built(), naming, built_session())

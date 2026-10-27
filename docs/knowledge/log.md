@@ -1,5 +1,24 @@
 # Log
 
+## 2026-10-27
+
+* **A verification verdict is computed from the site.** Every check runs typed checks in
+  code before the checker model runs (`ai/lead/verify_checks.py`, `domain/site_checks.py`,
+  `domain/requirement_checks.py`): step validity, the bound values against the site's
+  `searchConfig`, the counts of each combine, the result count, the root's organisms
+  against its organism parameter, the record class against a stated record type, the
+  grounding of each other stated requirement, each phyletic step's expression fit and each
+  recorded tally. The verdict is success exactly when none fails; a requirement kind with
+  no deterministic check is `unchecked`. The checker writes no requirement rows and no
+  verdict, only notes and the sampled genes, and loses `read_step_columns` and
+  `check_study_step`. The review rows and the rules that held them to the turn
+  (`verify_review.py`, `shown_requirements.py`, `question_rows.py`, `text_query_criteria`,
+  `StructureGap`, `CheckGap`, `ExpressionGap`, `constraint_report`) are gone; a stated
+  significance is compared with the bound cut in the grounding. The stored verdict is
+  `StrategyDomainState.site_verdict`, so one an earlier build stored is dropped on load. Evals
+  count `passedChecks` and `failedChecks`.
+  See [a verification verdict is computed from the site](decisions/a-verification-verdict-is-computed-from-the-site.md).
+
 ## 2026-10-26
 
 * **Open work is filed as backlog 59 to 68.** The ask-once change waits on its branch for a live run; the rest (a live check of the last pushed round, an unfounded approval claim, a phyletic set described twice in veupathdb-py, guards that refuse too much, a direct link to the result list, the edited browser tests, thread surgery as a runtime primitive, the remaining audit phases and catalog prices for every model) is described in each card.

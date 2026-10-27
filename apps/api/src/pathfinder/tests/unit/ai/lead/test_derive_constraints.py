@@ -5,15 +5,12 @@ from __future__ import annotations
 from veupathdb.domain.parameters import NumberValue, SinglePickValue
 
 from pathfinder.ai.graph.state import (
-    PhaseDisposition,
     PipelineState,
     StrategyDomainState,
-    VerificationDigest,
 )
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger_render import render_constraints_full
-from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -158,25 +155,6 @@ def test_constraints_surface_as_provisional_when_no_spec_yet() -> None:
     assert len(ledger.constraints.grounded) == 1
     assert ledger.constraints.grounded[0].status is ConstraintStatus.PROVISIONAL
     assert ledger.constraints.blocking is False
-
-
-def test_verification_digest_carries_constraint_report() -> None:
-    digest = VerificationDigest(
-        disposition=PhaseDisposition.DONE,
-        prose="p",
-        reason="r",
-        success=False,
-        constraint_report=[
-            ConstraintCheck(
-                label="data type",
-                requested="RNA-Seq",
-                realized="microarray",
-                honored=False,
-                note="RNA-Seq unavailable (WDK 500); used microarray GSE22339",
-            )
-        ],
-    )
-    assert digest.constraint_report[0].honored is False
 
 
 def test_operational_spec_carries_typed_constraints() -> None:

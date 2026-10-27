@@ -41,7 +41,9 @@ from pathfinder.ai.lead import (
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -50,6 +52,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.tests._support.site_checks import checked_site
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_model
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
@@ -275,6 +278,15 @@ def _build_then_verify(messages: list[ModelMessage]) -> ToolCallPart:
     )
 
 
+_OBJECTED = SiteCheck(
+    kind=ConstraintKind.OTHER,
+    subject="the reference group",
+    status="fail",
+    evidence=OBJECTION,
+    requirement="other:the reference group",
+)
+
+
 def _objecting_verifier() -> FunctionModel:
     return scripted_model(
         lambda _messages: final_result_part(
@@ -307,6 +319,7 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
     lead_model = scripted_model(_build_then_verify)
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", _objecting_verifier)
+    checked_site(monkeypatch, [_OBJECTED])
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
     monkeypatch.setattr(
         sub_agent_dispatch, "import_gene_set_for_conversation", _no_gene_set
@@ -340,7 +353,7 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
         [
             STRATEGY_LINE,
             ADDED_LINE,
-            f"Verification objected: {OBJECTION}",
+            f"Verification objected: 'the reference group': {OBJECTION}",
             BUDGET.replace("80 model calls", "3 model calls"),
         ]
     )

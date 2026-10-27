@@ -131,14 +131,14 @@ def _as_checked(grounded: GroundedConstraint, unmet: set[str]) -> GroundedConstr
     return grounded.model_copy(
         update={
             "status": ConstraintStatus.UNGROUNDABLE,
-            "note": "the check found nothing in the strategy answers it",
+            "note": "a check of the strategy on the site failed it",
         }
     )
 
 
-def _derive_constraint_section(
+def _merged_requirements(
     state: PipelineState, intent: UserIntent | None
-) -> ConstraintSection:
+) -> list[Constraint]:
     spec = state.domain.operational_spec
     # A retired requirement stays retired whatever the spec still says of it.
     retired = {r.constraint.key for r in state.domain.retired_requirements}
@@ -147,16 +147,45 @@ def _derive_constraint_section(
     merged = merge_constraints(provisional, requirements)
     kept = {(c.kind, c.requested_value) for c in merged}
     merged.extend(c for c in requirements if (c.kind, c.requested_value) not in kept)
+    return merged
+
+
+def _unexpressed(state: PipelineState) -> list[GroundedConstraint]:
+    retired = {r.constraint.key for r in state.domain.retired_requirements}
+    return [
+        g
+        for g in unexpressed_constraints(state.domain.operational_spec)
+        if g.constraint.key not in retired
+    ]
+
+
+def grounded_requirements(
+    state: PipelineState, intent: UserIntent | None
+) -> list[GroundedConstraint]:
+    spec = state.domain.operational_spec
+    merged = _merged_requirements(state, intent)
+    if spec is None:
+        return provisional_constraints(merged)
+    held_open = {g.constraint.key for g in _unexpressed(state)}
+    return [
+        g
+        for g in ground_against_spec(merged, spec, marks=state.domain.data_marks)
+        if g.constraint.key not in held_open
+    ]
+
+
+def _derive_constraint_section(
+    state: PipelineState, intent: UserIntent | None
+) -> ConstraintSection:
+    spec = state.domain.operational_spec
+    requirements = _thread_requirements(state, intent)
     recommended = list(state.domain.recommendations)
     composed = [
         c for c in requirements if c.source is not ConstraintSource.USER_EXPLICIT
     ]
     carried = _carried_requirements(state, intent)
-    unexpressed = [
-        g for g in unexpressed_constraints(spec) if g.constraint.key not in retired
-    ]
-    assumed = [*assumption_constraints(spec), *unexpressed]
-    if not merged:
+    assumed = [*assumption_constraints(spec), *_unexpressed(state)]
+    if not _merged_requirements(state, intent):
         return ConstraintSection(
             grounded=assumed,
             recommended=recommended,
@@ -165,23 +194,16 @@ def _derive_constraint_section(
         )
     if spec is None:
         return ConstraintSection(
-            grounded=provisional_constraints(merged),
+            grounded=grounded_requirements(state, intent),
             recommended=recommended,
             carried=carried,
             composed=composed,
         )
-    held_open = {g.constraint.key for g in unexpressed}
     verdict = state.turn_verdict
     unmet = set() if verdict is None else set(unmet_requirement_keys(verdict.gaps))
     return ConstraintSection(
         grounded=[
-            *(
-                _as_checked(g, unmet)
-                for g in ground_against_spec(
-                    merged, spec, marks=state.domain.data_marks
-                )
-                if g.constraint.key not in held_open
-            ),
+            *(_as_checked(g, unmet) for g in grounded_requirements(state, intent)),
             *assumed,
         ],
         recommended=recommended,

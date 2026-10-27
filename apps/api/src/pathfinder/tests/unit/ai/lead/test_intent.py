@@ -10,7 +10,7 @@ from pathfinder.ai.lead.intent import (
     IntentClassification,
     UserIntent,
 )
-from pathfinder.domain.question_rows import ResearcherAsk
+from pathfinder.domain.researcher_asks import ResearcherAsk
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 
 

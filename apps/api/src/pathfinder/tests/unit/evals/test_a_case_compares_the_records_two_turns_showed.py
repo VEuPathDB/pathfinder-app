@@ -209,7 +209,7 @@ async def test_the_runner_keeps_the_records_each_turn_showed(
 
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
-    monkeypatch.setattr(eval_runner, "reviewed_requirements", _nothing)
+    monkeypatch.setattr(eval_runner, "reviewed_checks", _nothing)
     monkeypatch.setattr(eval_runner, "observe", _observe)
     monkeypatch.setattr(eval_runner, "forget_user", _forget)
 

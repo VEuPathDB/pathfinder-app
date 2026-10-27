@@ -9,12 +9,10 @@ import pytest
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead.derive import grounded_requirements
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.verify_dispatch import _findings
-from pathfinder.domain.caveats import RequirementGap
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -64,22 +62,6 @@ def _intent(**fields: object) -> UserIntent:
     )
 
 
-def _review() -> VerificationReview:
-    return VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="top 50th percentile expression",
-                turn=2,
-                how="parameter",
-                status="unmet",
-            ),
-            RequirementCheck(
-                text="signal peptide", turn=1, how="search", status="unmet"
-            ),
-        ]
-    )
-
-
 async def _cutoff_stated_then_removed() -> LeadDeps:
     """Turn 2 states a cutoff; turn 4 removes it."""
     domain = StrategyDomainState(requirements=[_SIGNAL])
@@ -108,16 +90,12 @@ async def test_a_removed_cutoff_leaves_the_live_requirements() -> None:
     ]
 
 
-async def test_a_removed_cutoff_is_no_gap_after_the_check() -> None:
+async def test_a_removed_cutoff_is_no_requirement_the_check_reads() -> None:
     deps = await _cutoff_stated_then_removed()
 
-    gaps = _findings(deps, _review(), []).gaps
+    checked = grounded_requirements(deps.state, None)
 
-    assert gaps == [
-        RequirementGap(
-            text="signal peptide", status="unmet", key="other:signal peptide"
-        )
-    ]
+    assert [g.constraint for g in checked] == [_SIGNAL]
 
 
 async def test_a_new_value_of_the_kind_replaces_the_held_one() -> None:

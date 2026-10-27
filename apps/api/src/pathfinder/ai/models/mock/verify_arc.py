@@ -1,14 +1,13 @@
-"""The deterministic VERIFY: read the strategy, read each search step's columns,
-sample the root and read each sampled gene's record only when a step shows no
-column, test the root against a saved control set when the work order names
-one or the arc tests the listed sets, and review what the reads returned."""
+"""The deterministic VERIFY: read the strategy, sample the root the work order
+names and read each sampled gene's record, test the root against a saved
+control set when the work order names one or the arc tests the listed sets, and
+review what the reads returned."""
 
 from __future__ import annotations
 
 import re
 
 from assistant_core.models.scripted import (
-    called_tool_parts,
     current_scope_id,
     scripted_call,
     terminal_call,
@@ -30,7 +29,7 @@ from pathfinder.ai.models.mock.reads import (
     root_wdk_step_id,
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
-from pathfinder.domain.evidence import RequirementCheck, SampledGene, VerificationReview
+from pathfinder.domain.evidence import SampledGene, VerificationReview
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -42,7 +41,6 @@ from pathfinder.domain.strategy.message_reading import (
 READ = "get_strategy"
 TEST = "run_control_tests_on_step"
 LIST = "list_control_sets"
-_COLUMNS = "read_step_columns"
 _SAMPLE = "get_sample_records"
 _RECORD = "read_gene_record"
 # The mock reads two records, enough to fill both columns of the card.
@@ -51,7 +49,6 @@ _ROOT = re.compile(
     r"The root is (?P<step>\S+), step (?P<wdk>\d+) on the site.*?"
     r"get_sample_records\(wdk_step_id=\d+, limit=(?P<limit>\d+)\)"
 )
-_COLUMN_STEP = re.compile(r"read_step_columns\(wdk_step_id=(?P<wdk>\d+)\)")
 _EMPTY_ROOT = "It holds no gene to sample."
 _ORDERED_SET = re.compile(r"\bcontrol_set_id (?P<id>[^\s,]+)")
 _TRANSCRIPT_SUFFIX = re.compile(r"\.\d+$")
@@ -59,11 +56,6 @@ _TRANSCRIPT_SUFFIX = re.compile(r"\.\d+$")
 
 class _Record(ToolAnswer):
     id: str
-
-
-class _Columns(ToolAnswer):
-    # Set when the step's search shows no column for its bound values.
-    note: str = ""
 
 
 class _Listed(ToolAnswer):
@@ -80,32 +72,10 @@ class _Sample(ToolAnswer):
         return [_TRANSCRIPT_SUFFIX.sub("", record.id) for record in self.records]
 
 
-def _column_call(messages: list[ModelMessage]) -> ToolCallPart | None:
-    """The next search step whose columns the work order names and no call read."""
-    listed = [int(m["wdk"]) for m in _COLUMN_STEP.finditer(head_work_order(messages))]
-    read = {
-        part.args_as_dict()["wdk_step_id"]
-        for part in called_tool_parts(messages)
-        if part.tool_name == _COLUMNS
-    }
-    unread = [wdk for wdk in listed if wdk not in read]
-    return scripted_call(_COLUMNS, {"wdk_step_id": unread[0]}) if unread else None
-
-
-def _no_column(messages: list[ModelMessage]) -> bool:
-    """Whether a step shows no column, or the work order names no search step."""
-    listed = _COLUMN_STEP.search(head_work_order(messages)) is not None
-    answers = returns_of(messages, _COLUMNS, _Columns)
-    return not listed or any(answer.note for answer in answers)
-
-
 def review_call(messages: list[ModelMessage]) -> ToolCallPart | None:
-    """The next column, sampling or reading call, or None once every read is in."""
-    columns = _column_call(messages)
-    if columns is not None:
-        return columns
+    """The next sampling or reading call, or None once every read is in."""
     root = _ROOT.search(head_work_order(messages))
-    if root is None or not _no_column(messages):
+    if root is None:
         return None
     if _SAMPLE not in acted_tool_names(messages):
         limit = min(int(root["limit"]), _READS)
@@ -127,16 +97,6 @@ def review(messages: list[ModelMessage], organism: str) -> dict[str, JsonValue]:
     records = gene_records(messages)
     fits = [message_states_constraint(r.organism, searched) for r in records]
     return VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text=organism,
-                turn=1,
-                answered_by=[root["step"]],
-                how="parameter",
-                status="met",
-                note=f"organism = {organism}",
-            )
-        ],
         sampled_genes=[
             SampledGene(
                 gene_id=record.gene_id,
@@ -170,17 +130,9 @@ def _listed_set(messages: list[ModelMessage]) -> str | None:
 
 
 def verification_delta(
-    *, success: bool, prose: str, review: dict[str, JsonValue]
+    prose: str, review: dict[str, JsonValue]
 ) -> dict[str, JsonValue]:
-    return {
-        "digest": {
-            "disposition": "done" if success else "awaiting_user",
-            "prose": prose,
-            "reason": "mock verification",
-            "success": success,
-            "review": review,
-        },
-    }
+    return {"digest": {"prose": prose, "review": review}}
 
 
 def _root_organism(messages: list[ModelMessage]) -> str:
@@ -224,14 +176,12 @@ def verification(*, site_controls: bool) -> Script:
                 TEST,
                 {"wdk_step_id": _tested_root(messages), "control_set_id": control_set},
             )
-        success = _EMPTY_ROOT not in head_work_order(messages)
+        held = _EMPTY_ROOT not in head_work_order(messages)
         organism = _root_organism(messages)
-        found = SUCCESS_PROSE if success else FEEDBACK_PROSE
+        found = SUCCESS_PROSE if held else FEEDBACK_PROSE
         return terminal_call(
             verification_delta(
-                success=success,
-                prose=controls_sentence(messages) or found,
-                review=review(messages, organism),
+                controls_sentence(messages) or found, review(messages, organism)
             )
         )
 

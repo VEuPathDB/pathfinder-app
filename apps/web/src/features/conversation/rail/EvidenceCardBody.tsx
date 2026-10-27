@@ -274,10 +274,7 @@ export function EvidenceCardBody({
         </div>
       ) : null}
       <ExpressionFits card={card} />
-      <EvidenceReview
-        review={card.review}
-        stepTitles={new Map(card.steps.map((step) => [step.stepId, step.title]))}
-      />
+      <EvidenceReview review={card.review} />
       <Citations cited={card.citations} />
       {card.strategyUrl == null ? null : (
         <SiteLinks

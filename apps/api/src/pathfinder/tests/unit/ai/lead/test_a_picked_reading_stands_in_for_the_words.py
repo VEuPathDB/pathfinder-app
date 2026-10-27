@@ -12,7 +12,6 @@ from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb_mcp.catalog import ParameterInfo, ValidatedParams
 
 from pathfinder.ai.agents.verification import (
-    _VERIFICATION_INSTRUCTIONS,
     pinned_researcher_request,
 )
 from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
@@ -27,7 +26,6 @@ from pathfinder.ai.lead.ledger_render import render_frame_full
 from pathfinder.ai.lead.ledger_sections import FrameSection
 from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.domain.caveats import caveats_for
 from pathfinder.domain.reading_caveats import ReadingCaveat
 from pathfinder.domain.strategy.constraints import (
@@ -227,14 +225,11 @@ async def test_a_picked_reading_stands_in_for_the_requirement_its_question_names
     ]
 
 
-async def test_the_caveat_of_a_picked_reading_reaches_the_facts_and_the_check() -> None:
+async def test_the_caveat_of_a_picked_reading_reaches_the_facts() -> None:
     deps = await _picked(f"{_SHARE_LABEL}: 1088 groups")
 
     assert caveats_for(deps.state.domain.operational_spec, []) == [
         ReadingCaveat(criterion_id="c_plas", reading=_SHARE_LABEL, caveat=_SHARE_CAVEAT)
-    ]
-    assert verification_scope(deps, check_id="call_verify").readings == [
-        f"[c_plas] {_LINE}"
     ]
 
 
@@ -360,48 +355,14 @@ async def test_each_offered_reading_is_counted_into_its_label_when_it_arrives(
 
 
 _ASKED = "Which groups are present in all Plasmodium species?"
-_REQUEST = [
-    "## The researcher's request",
-    (
-        "Every message the researcher wrote for this request, numbered as a "
-        "requirement's ``turn``:"
-    ),
-    f"1. {_ASKED}",
-]
+_REQUEST = ["## The researcher's request", f"1. {_ASKED}"]
 
 
-def test_verify_reads_each_held_reading_under_its_heading() -> None:
-    ctx = agent_run_context()
-    ctx.deps.verification_scope = VerificationScope(
-        messages=[_ASKED], readings=[f"[c_plas] {_LINE}"]
-    )
-
-    assert pinned_researcher_request(ctx) == "\n".join(
-        [
-            *_REQUEST,
-            "",
-            (
-                "### Readings the researcher accepted: each is met by the step "
-                "whose values state it, ``how`` ``parameter``"
-            ),
-            f"- [c_plas] {_LINE}",
-        ]
-    )
-
-
-def test_verify_reads_no_readings_heading_without_a_reading() -> None:
+def test_verify_reads_the_request_numbered() -> None:
     ctx = agent_run_context()
     ctx.deps.verification_scope = VerificationScope(messages=[_ASKED])
 
     assert pinned_researcher_request(ctx) == "\n".join(_REQUEST)
-
-
-def test_verify_is_told_to_judge_a_criterion_by_its_accepted_reading() -> None:
-    assert (
-        "A criterion with an accepted reading is judged against that reading: the "
-        "row the reading states is met by the step whose values state it, ``how`` "
-        "``parameter``. Its caveat is a caveat, never an unmet row."
-    ) in " ".join(_VERIFICATION_INSTRUCTIONS.split())
 
 
 def test_the_ledger_shows_a_held_reading_under_its_criterion() -> None:

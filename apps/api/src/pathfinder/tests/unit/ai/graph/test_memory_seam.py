@@ -117,7 +117,7 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
             created_gene_sets=[
                 CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)
             ],
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="done",
                 reason="ok",

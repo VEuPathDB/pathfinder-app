@@ -7,8 +7,8 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
+from pathfinder.evals.check_counts import CheckCounts
 from pathfinder.evals.difference import CaseDifference
-from pathfinder.evals.requirements import RequirementCounts
 from pathfinder.evals.scoring import ObservedOutcome, score_case
 from pathfinder.evals.summary import CaseResult, EvalRunSummary
 
@@ -57,8 +57,8 @@ def test_the_gap_rows_no_search_states_are_compared_like_the_unmet_rows() -> Non
     case = _case(ExpectedOutcome(builds_strategy=True, unexpressed_requirements=0))
 
     scores = [
-        score_case(case, ObservedOutcome(built_strategy=True, requirements=counted))
-        for counted in (RequirementCounts(met=4, unexpressed=1), None)
+        score_case(case, ObservedOutcome(built_strategy=True, checks=counted))
+        for counted in (CheckCounts(passed=4, unexpressed=1), None)
     ]
 
     assert [score.differences for score in scores] == [

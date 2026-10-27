@@ -5,7 +5,8 @@ description: A check writes one typed row per requirement the researcher stated 
 tags: [verification, evidence, turn-contract, requirements, genes, literature]
 generated: { by: claude-code/opus-5.5, at: 2026-10-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
-status: stable
+status: superseded
+superseded_by: a-verification-verdict-is-computed-from-the-site.md
 ---
 
 # What was decided

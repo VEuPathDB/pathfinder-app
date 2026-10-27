@@ -82,7 +82,7 @@ def _state(
             original_request="find every kinase in P. falciparum",
             last_build_outcome=outcome,
             zero_result_history=list(history or []),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="142 kinases",
                 reason="verified",
@@ -127,7 +127,7 @@ def _eda_state(*, user_id: Any) -> PipelineState:
                     ),
                 ],
             ),
-            verification_digest=VerificationDigest(
+            site_verdict=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="1543 genes",
                 reason="verified",

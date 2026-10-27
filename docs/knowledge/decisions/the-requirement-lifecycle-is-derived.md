@@ -56,21 +56,15 @@ successor. `ThreadRequirements.record(intent, messages)`
   Its retired row names the sides alone; a withdrawn combination no delete
   named a side of shows no row, because a step can still answer each side
   (`RetiredRequirement.shown_requirements`).
-- A review row is dropped as a question only when its words are, in order, the
-  words of an ask, of one sentence of an ask, or of a sentence a message ends with
-  a question mark (`question_rows.without_questions`). An ask erases no row that
-  only shares its words.
 
 FRAME's disposition of each criterion the dispatch found is the computed diff of
 the two specs (`frame_dispatch.derived_changes`): `kept` only when no wire value
 moved. `FrameResult.changes` is omitted from FRAME's schema, so the pass writes no
 account.
 
-`RequirementCheck` refuses `unmet` with a non-empty `answered_by`. A `met` row a
-text query alone answers is shown `unshown` when a sampled record shows it
-missing and `unjudged` when no record judged it (`shown_status`); the gap of an
-unjudged row reads "no sampled record judged it" and holds no check short of
-success.
+A check writes no requirement row: each requirement is a check on the site
+([a verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)),
+and a retired requirement is no check.
 
 # What was rejected
 

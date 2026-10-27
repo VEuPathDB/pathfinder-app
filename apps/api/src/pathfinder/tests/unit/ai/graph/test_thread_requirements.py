@@ -11,8 +11,6 @@ import pytest
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
-from pathfinder.domain.question_rows import ResearcherAsk, without_questions
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -207,20 +205,6 @@ def test_an_ask_states_no_requirement() -> None:
     )
 
     assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM, _TM], [])
-
-
-def test_an_ask_erases_no_row_it_only_shares_words_with() -> None:
-    message = f"Also require a signal peptide and {_ASK}."
-    row = RequirementCheck(
-        text="a signal peptide", turn=1, how="search", status="unmet"
-    )
-    review = VerificationReview(requirements=[row])
-
-    kept = without_questions(
-        review, [message], [ResearcherAsk(message=message, text=_ASK)]
-    )
-
-    assert kept == review
 
 
 _KINASES = _stated(ConstraintKind.OTHER, "kinases")

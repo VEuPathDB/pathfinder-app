@@ -4,8 +4,8 @@ import type { ReactElement } from "react";
 import type {
   Citation,
   ColumnFit,
-  RequirementCheck,
   SampledGene,
+  SiteCheck,
   VerificationReview,
 } from "@pathfinder/shared";
 
@@ -16,10 +16,10 @@ import {
 
 import { referenceHref } from "./evidenceCards";
 
-const REQUIREMENT_COLUMNS = [
-  { head: "Requirement" },
-  { head: "Answered by" },
-  { head: "How" },
+const CHECK_COLUMNS = [
+  { head: "Check" },
+  { head: "Result" },
+  { head: "What the site answered" },
 ] as const;
 
 const FIT_COLUMNS = [
@@ -36,12 +36,10 @@ const GENE_COLUMNS = [
   { head: "Why" },
 ] as const;
 
-const HOW_WORDS: Record<RequirementCheck["how"], string> = {
-  search: "by a search",
-  parameter: "by a parameter",
-  structure: "by the structure",
-  transform: "by a transform",
-  analysis: "by an analysis",
+const STATUS_WORDS: Record<SiteCheck["status"], string> = {
+  pass: "Passed",
+  fail: "Failed",
+  unchecked: "Not checked",
 };
 
 const FIT_WORDS: Record<SampledGene["fits"], string> = {
@@ -72,45 +70,16 @@ export function sampleCountLine(genes: readonly SampledGene[]): string {
   return clauses.join(", ");
 }
 
-/** The steps that answer a row by name, or what the site or the strategy lacks for it. */
-function answeredBy(
-  row: RequirementCheck,
-  stepTitles: ReadonlyMap<string, string>,
-): ReactElement {
-  const ids = row.answeredBy ?? [];
-  if (row.status === "unexpressed" || ids.length === 0) {
-    return (
-      <span key="by" data-testid="evidence-requirement-answer">
-        {row.status === "unexpressed"
-          ? "No search on this site states it"
-          : "Nothing in the strategy answers it"}
-      </span>
-    );
-  }
-  return (
-    <span key="by" data-testid="evidence-requirement-answer">
-      {ids.map((id) => stepTitles.get(id) ?? id).join(", ")}
-    </span>
-  );
-}
-
-function requirementRow(
-  row: RequirementCheck,
-  index: number,
-  stepTitles: ReadonlyMap<string, string>,
-): ExhibitRow {
-  const note = row.note ?? "";
+function checkRow(check: SiteCheck, index: number): ExhibitRow {
   return {
-    key: `${index}-${row.text}`,
+    key: `${index}-${check.kind}-${check.subject}`,
+    testId: "evidence-check",
     cells: [
-      <div key="text">
-        <p>{row.text}</p>
-        {note === "" ? null : (
-          <p className="text-[11px] text-muted-foreground">{note}</p>
-        )}
-      </div>,
-      answeredBy(row, stepTitles),
-      HOW_WORDS[row.how],
+      check.subject,
+      <span key="status" className={check.status === "fail" ? "text-destructive" : ""}>
+        {STATUS_WORDS[check.status]}
+      </span>,
+      check.evidence,
     ],
   };
 }
@@ -204,32 +173,27 @@ function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null
   );
 }
 
-/** What the check read against the researcher's words: each requirement, the
- * columns of each step, a sample of the genes where no column shows, and the
- * sources it chose to read. */
+/** What the check read: each check the site's answers decide, the columns of
+ * each step, a sample of the genes where no column shows, and the sources it
+ * chose to read. */
 export function EvidenceReview({
   review,
-  stepTitles,
 }: {
   review: VerificationReview | undefined;
-  stepTitles: ReadonlyMap<string, string>;
 }): ReactElement | null {
-  const rows = review?.requirements ?? [];
+  const checks = review?.checks ?? [];
   const fits = review?.columnFits ?? [];
   const genes = review?.sampledGenes ?? [];
   const sources = review?.sources ?? [];
   const withheld = review?.withheld ?? [];
-  if ([rows, fits, genes, sources, withheld].every((part) => part.length === 0)) {
+  if ([checks, fits, genes, sources, withheld].every((part) => part.length === 0)) {
     return null;
   }
   return (
     <div data-testid="evidence-review" className="space-y-3">
-      {rows.length > 0 ? (
-        <div data-testid="evidence-requirements">
-          <ExhibitTable
-            columns={REQUIREMENT_COLUMNS}
-            rows={rows.map((row, index) => requirementRow(row, index, stepTitles))}
-          />
+      {checks.length > 0 ? (
+        <div data-testid="evidence-checks">
+          <ExhibitTable columns={CHECK_COLUMNS} rows={checks.map(checkRow)} />
         </div>
       ) : null}
       {fits.length > 0 ? (

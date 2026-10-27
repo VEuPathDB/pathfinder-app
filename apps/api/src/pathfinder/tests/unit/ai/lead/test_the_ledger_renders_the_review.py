@@ -1,5 +1,5 @@
 """The verification section the Lead reads in full carries the check's review:
-each requirement row, each column, each sampled gene and each source."""
+each check on the site, each column, each sampled gene and each source."""
 
 from __future__ import annotations
 
@@ -12,31 +12,29 @@ from pathfinder.domain.citations import (
 )
 from pathfinder.domain.evidence import (
     NamedControlSet,
-    RequirementCheck,
     SampledGene,
     VerificationReview,
     WithheldEvidence,
 )
+from pathfinder.domain.site_checks import SiteCheck
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.tests._support.column_fits import tm_fit
 
 
 def test_the_full_section_lists_the_review() -> None:
     review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="with a signal peptide",
-                turn=1,
-                answered_by=["s1"],
-                how="search",
-                status="met",
-                note="GenesWithSignalPeptide",
+        checks=[
+            SiteCheck(
+                kind="result_count",
+                subject="the strategy on the site",
+                status="pass",
+                evidence="the result step 11 ('Signal') holds 840 records",
             ),
-            RequirementCheck(
-                text="at least 2 transmembrane domains",
-                turn=2,
-                how="search",
-                status="unmet",
-                note="no step reads transmembrane domains",
+            SiteCheck(
+                kind=ConstraintKind.OTHER,
+                subject="at least 2 transmembrane domains",
+                status="unchecked",
+                evidence="no check reads this requirement on the site",
             ),
         ],
         column_fits=[tm_fit(840, 840)],
@@ -68,11 +66,11 @@ def test_the_full_section_lists_the_review() -> None:
 
     rendered = render_verification_full(VerificationSection(digest=digest))
 
-    assert rendered.split("\n### Requirements\n")[1].split("\n\n")[0] == (
-        "- [met] with a signal peptide (message 1, search; answered by s1): "
-        "GenesWithSignalPeptide\n"
-        "- [unmet] at least 2 transmembrane domains (message 2, search; answered "
-        "by nothing): no step reads transmembrane domains"
+    assert rendered.split("\n### Checks on the site\n")[1].split("\n\n")[0] == (
+        "- [pass] the strategy on the site: the result step 11 ('Signal') holds "
+        "840 records\n"
+        "- [unchecked] at least 2 transmembrane domains: no check reads this "
+        "requirement on the site"
     )
     assert rendered.split("\n### Columns\n")[1].split("\n\n")[0] == (
         "- [all] c_tm: 840 of 840 transcripts fit # TM Domains (2 to 99)"
@@ -117,33 +115,6 @@ def test_two_sets_on_one_step_are_two_caveat_lines_that_name_their_set() -> None
         "- 3 of 5 positive controls returned (control set Exported, id set-b)\n"
         "- 1 of 2 positive controls returned\n"
         "- 12 of 40 transcripts fit # TM Domains (2 to 99)"
-    )
-
-
-def test_a_row_no_record_judged_is_rendered_unjudged() -> None:
-    row = RequirementCheck(
-        text="a predicted GPI anchor",
-        turn=1,
-        answered_by=["step_0c6996fa"],
-        how="parameter",
-        status="met",
-        note="no sampled record judged it; the query text alone does not show it",
-        no_record_judged_it=True,
-    )
-    digest = VerificationDigest(
-        disposition=PhaseDisposition.DONE,
-        prose="Checked.",
-        reason="the text row is unjudged",
-        success=True,
-        review=VerificationReview(requirements=[row]),
-    )
-
-    rendered = render_verification_full(VerificationSection(digest=digest))
-
-    assert rendered.split("\n### Requirements\n")[1].split("\n\n")[0] == (
-        "- [unjudged] a predicted GPI anchor (message 1, parameter; answered by "
-        "step_0c6996fa): no sampled record judged it; the query text alone does "
-        "not show it"
     )
 
 

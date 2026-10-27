@@ -28,8 +28,8 @@
     "stepTitlesOmit": [],
     "rootOperator": null,
     "finalCountBelowEveryInput": null,
-    "metRequirements": null,
-    "unmetRequirements": null,
+    "passedChecks": null,
+    "failedChecks": null,
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "1": [

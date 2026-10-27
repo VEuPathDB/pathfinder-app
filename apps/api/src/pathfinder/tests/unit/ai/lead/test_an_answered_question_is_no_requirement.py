@@ -1,5 +1,5 @@
 """A question the researcher answered is a question, never a requirement: it
-yields no retired row and no gap. A card answer on a dimension replaces the
+yields no retired row. A card answer on a dimension replaces the
 requirement an earlier answer stated there, and the retired row names both in
 the researcher's words."""
 
@@ -23,13 +23,12 @@ from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.caveats import RequirementGap, check_gaps
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
+from pathfinder.domain.caveats import check_gaps
+from pathfinder.domain.requirement_checks import grounded_check
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintStatus,
     GroundedConstraint,
-    provisional_constraints,
 )
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
@@ -148,39 +147,6 @@ async def test_a_typed_card_answer_leaves_no_retired_row(
     )
 
 
-def test_a_row_that_restates_an_answered_question_is_no_gap() -> None:
-    """The vectorbase shape: a question the thread asked is never unanswered."""
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="Is there a better one on VectorBase for this question?",
-                turn=3,
-                how="search",
-                status="unexpressed",
-            ),
-            RequirementCheck(
-                text="signal peptide", turn=1, how="search", status="unmet"
-            ),
-        ]
-    )
-
-    gaps = check_gaps(
-        structure=None,
-        words=[],
-        review=review,
-        requirements=provisional_constraints(
-            [requirement(ConstraintKind.OTHER, "localisation", "signal peptide")]
-        ),
-        asked=["Is there a better one on VectorBase for this question?"],
-    )
-
-    assert gaps == [
-        RequirementGap(
-            text="signal peptide", status="unmet", key="other:signal peptide"
-        )
-    ]
-
-
 def _leads_card(prompt: str, *labels: str) -> CardQuestion:
     return CardQuestion(
         id="expression_study",
@@ -216,16 +182,10 @@ async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> No
     assert turn_facts(deps).retired == [
         RetiredFact(requirement=_LOOK, state="replaced", replaced_by=_USE)
     ]
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(text=_LOOK, turn=2, how="search", status="unmet")
-        ]
-    )
     assert (
         check_gaps(
-            structure=None,
             words=[],
-            review=review,
+            unstated=[_LOOK],
             requirements=[r.grounded() for r in domain.retired_requirements],
         )
         == []
@@ -247,50 +207,6 @@ def test_answering_questions_retires_no_requirement() -> None:
     ]
 
 
-_SIGNALP_QUESTION = (
-    "The BspA-like search is nonempty, but the SignalP-6.0 filter returns no "
-    "proteins. Which available prediction version should I use for the "
-    "signal-peptide filter?"
-)
-
-
-def test_an_answered_question_hides_no_requirement_its_words_carry() -> None:
-    """A question carries the words of the requirements it is about, and each
-    of those requirements stays a gap while nothing answers it."""
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(
-                text="BspA-like proteins", turn=1, how="search", status="unmet"
-            ),
-            RequirementCheck(
-                text="signal peptide", turn=1, how="search", status="unmet"
-            ),
-        ]
-    )
-
-    gaps = check_gaps(
-        structure=None,
-        words=[],
-        review=review,
-        requirements=provisional_constraints(
-            [
-                requirement(ConstraintKind.OTHER, "gene class", "BspA-like proteins"),
-                requirement(ConstraintKind.OTHER, "localisation", "signal peptide"),
-            ]
-        ),
-        asked=[_SIGNALP_QUESTION],
-    )
-
-    assert gaps == [
-        RequirementGap(
-            text="BspA-like proteins", status="unmet", key="other:BspA-like proteins"
-        ),
-        RequirementGap(
-            text="signal peptide", status="unmet", key="other:signal peptide"
-        ),
-    ]
-
-
 async def test_a_kept_requirement_stays_open_and_stays_a_gap() -> None:
     """Keep on the drop-or-keep card retires nothing, states nothing new, and
     the requirement no search states is still a gap."""
@@ -306,17 +222,7 @@ async def test_a_kept_requirement_stays_open_and_stays_a_gap() -> None:
     assert domain.requirements == [fold]
     assert domain.retired_requirements == []
     assert turn_facts(deps).retired == []
-    review = VerificationReview(
-        requirements=[
-            RequirementCheck(text="1.5-fold", turn=1, how="search", status="unmet")
-        ]
+    check = grounded_check(
+        GroundedConstraint(constraint=fold, status=ConstraintStatus.UNGROUNDABLE)
     )
-    assert check_gaps(
-        structure=None,
-        words=[],
-        review=review,
-        requirements=[
-            GroundedConstraint(constraint=fold, status=ConstraintStatus.UNGROUNDABLE)
-        ],
-        asked=[q.question for q in domain.answered_questions],
-    ) == [RequirementGap(text="1.5-fold", status="unmet", key="fold_change:1.5-fold")]
+    assert (check.status, check.requirement) == ("fail", "fold_change:1.5-fold")

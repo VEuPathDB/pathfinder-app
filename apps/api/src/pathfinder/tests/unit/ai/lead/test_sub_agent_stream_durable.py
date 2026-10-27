@@ -344,7 +344,7 @@ async def test_the_last_result_resumes_the_run_with_every_answer(
         second = await _drive(state=resumed, deps=_deps(resumed), writer=writer)
 
     assert second.pending_durable_call is None
-    digest = resumed.domain.verification_digest
+    digest = resumed.domain.site_verdict
     assert digest is not None
     assert digest.prose == "both steps recovered their positive controls"
     # A durable tool's summary rides its result's metadata, which the dispatch

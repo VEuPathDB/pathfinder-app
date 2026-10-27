@@ -15,7 +15,6 @@ from pathfinder.ai.graph.stored_verdicts import StoredList
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.comparison_facts import ComparisonFact
-from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.expression_fit import ExpressionFit
@@ -221,8 +220,6 @@ class TurnMarkers(CamelModel):
     # Every column a check of this turn read, the latest read of each.
     column_fits: StoredList[ColumnFit] = Field(default_factory=list)
     expression_fits: list[ExpressionFit] = Field(default_factory=list)
-    # The study-step checks this turn computed, the latest read of each step.
-    study_checks: dict[str, list[ConstraintCheck]] = Field(default_factory=dict)
     # The strategy as the message found it. Every count before an edit of
     # this turn is read from it.
     at_arrival: CountsAtArrival | None = None

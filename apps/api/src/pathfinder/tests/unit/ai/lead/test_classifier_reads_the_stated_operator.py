@@ -6,7 +6,6 @@ import pytest
 from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
 from pathfinder.ai.lead import classification_gate
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
@@ -159,26 +158,6 @@ def test_the_classifier_is_told_never_to_hoist_an_inner_or() -> None:
     assert 'An "or" inside one requirement stays inside it' in guidance
     assert 'joined by commas and "and" is AND' in guidance
     assert "Never hoist" in guidance
-
-
-def test_verify_reads_a_combination_by_its_operator_and_its_arithmetic() -> None:
-    guidance = " ".join(_VERIFICATION_INSTRUCTIONS.split())
-
-    assert "matches the researcher's connective" in guidance
-    assert "never an intersection of requirements" in guidance
-
-
-def test_verify_reads_the_intent_as_the_request_and_the_users_constraints() -> None:
-    guidance = " ".join(_VERIFICATION_INSTRUCTIONS.split())
-
-    assert (
-        "The intent you verify is every message the researcher wrote for this "
-        "request, pinned under its own heading, plus the user-explicit constraints "
-        "in the ledger."
-    ) in guidance
-    assert "where it and the request differ, the request decides" in guidance
-    assert "A criterion the spec dropped is not part of the intent" in guidance
-    assert "A request that names no organism cannot fail on species" in guidance
 
 
 async def test_a_second_classification_that_changes_nothing_is_refused() -> None:

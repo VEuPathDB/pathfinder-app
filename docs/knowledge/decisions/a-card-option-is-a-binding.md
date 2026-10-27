@@ -83,17 +83,12 @@ criterion of its draft holds, open or bound.
 A requirement the researcher takes back leaves `requirements` for
 `retiredRequirements` with a `withdrawn(turn)` or a `replaced(by)` lifecycle, and the
 thread derives which from the message: see
-[the requirement lifecycle is derived](the-requirement-lifecycle-is-derived.md). A
-review row that names no held requirement, such as an edit instruction the turn
-carried out, is no gap. An answer in the researcher's words states a requirement on
+[the requirement lifecycle is derived](the-requirement-lifecycle-is-derived.md). An answer in the researcher's words states a requirement on
 its question's dimension, which replaces the requirement the thread held on that
 dimension when the dimension holds one value. A question an answer settled, on a card or typed, is a question and never a
-requirement: the thread keeps it in `answeredQuestions`, no retired row names it, and
-`check_gaps` reports no gap for a row that carries every word of it. A question
-carries the words of the requirements it asks about, so a row a question's words
-carry is still a gap while nothing answers it; a `Keep` answer binds nothing and
-leaves its requirement open. VERIFY passes the retired
-requirements to `check_gaps`, which reports no gap a retired one names, and the ledger derivation drops every row whose key a retired requirement
+requirement: the thread keeps it in `answeredQuestions`, and no retired row names it.
+A `Keep` answer binds nothing and leaves its requirement open. VERIFY passes the
+retired requirements to `check_gaps`, which reports no gap a retired one names, and the ledger derivation drops every row whose key a retired requirement
 holds, so a drop that still names it is no ungroundable row. A no on the removal
 card that followed takes the message's withdrawals back.
 
@@ -106,7 +101,7 @@ sentences are the Lead's words and are never recorded as the researcher's; the n
 the researcher sends with the yes is. A requirement only a card sentence states is
 therefore assumed, not stated. Rejected: recording the accepted sentences as the
 researcher's message, which put a card sentence into VERIFY's request as a message the
-researcher never wrote and filed it as a requirement row.
+researcher never wrote and filed it as a requirement.
 
 A removal card lists what the removal takes. The delete card's question names
 the step; every other step the delete removes rides its own `data-delete-cascade`

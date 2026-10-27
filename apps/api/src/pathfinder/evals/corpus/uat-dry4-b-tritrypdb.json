@@ -23,8 +23,8 @@
     "stepTitlesOmit": [],
     "rootOperator": "INTERSECT",
     "finalCountBelowEveryInput": null,
-    "metRequirements": null,
-    "unmetRequirements": null,
+    "passedChecks": null,
+    "failedChecks": null,
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "0": [

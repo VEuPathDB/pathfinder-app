@@ -39,7 +39,7 @@ def test_state_minimum_construction(base_state: PipelineState) -> None:
     assert base_state.user_parts == []
     assert base_state.domain.discovered_searches == {}
     assert base_state.domain.operational_spec is None
-    assert base_state.domain.verification_digest is None
+    assert base_state.domain.site_verdict is None
     assert base_state.domain.last_build_outcome is None
     assert base_state.domain.user_intent is None
     # Cross-phase / cross-turn context now flows through typed fields, not
@@ -64,14 +64,28 @@ def test_state_carries_verification_digest(
         key_findings=["1234 hits"],
     )
     state = base_state.model_copy(
-        update={"domain": StrategyDomainState(verification_digest=digest)},
+        update={"domain": StrategyDomainState(site_verdict=digest)},
     )
     rehydrated = PipelineState.model_validate(state.model_dump(mode="json"))
-    digest_back = rehydrated.domain.verification_digest
+    digest_back = rehydrated.domain.site_verdict
     assert digest_back is not None
     assert digest_back.disposition == PhaseDisposition.DONE
     assert digest_back.success is True
     assert digest_back.key_findings == ["1234 hits"]
+
+
+def test_a_verdict_an_earlier_build_stored_is_dropped() -> None:
+    stored = {
+        "verification_digest": {
+            "prose": "Checked.",
+            "success": False,
+            "gaps": [{"kind": "structure", "expression": "A OR B", "built": "AND"}],
+        }
+    }
+
+    loaded = StrategyDomainState.model_validate(stored)
+
+    assert (loaded.site_verdict, loaded.verified_revision) == (None, "")
 
 
 def test_state_carries_operational_spec(base_state: PipelineState) -> None:

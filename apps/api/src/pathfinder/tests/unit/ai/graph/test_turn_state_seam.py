@@ -55,7 +55,7 @@ DOMAIN_FIELDS = {
     "spec_before_turn",
     "spec_before_dispatch",
     "discovered_searches",
-    "verification_digest",
+    "site_verdict",
     "verified_revision",
     "last_evidence_card",
     "last_build_outcome",
@@ -78,7 +78,6 @@ DOMAIN_FIELDS = {
     "named_readings",
     "original_request",
     "request_messages",
-    "researcher_asks",
     "exchanges",
     "memory_index",
     "shown_memories",
@@ -150,11 +149,11 @@ def test_pipeline_state_drops_a_strategy_field_at_the_top_level() -> None:
             "user_id": str(uuid4()),
             "site_id": "plasmodb",
             "mode": "strategy",
-            "verification_digest": None,
+            "site_verdict": None,
         },
     )
-    assert state.domain.verification_digest is None
-    assert "verification_digest" not in state.model_dump()
+    assert state.domain.site_verdict is None
+    assert "site_verdict" not in state.model_dump()
 
 
 def test_turn_context_carries_no_strategy_resource() -> None:

@@ -61,6 +61,7 @@ __all__ = [
     "read_the_site_into_the_thread",
     "take_the_sites_edits",
     "take_what_the_site_holds",
+    "values_the_site_holds_otherwise",
 ]
 
 
@@ -262,6 +263,16 @@ async def _take_the_parameters(
 
     Only names the step holds are read: a name it lacks is one of WDK's own.
     """
+    taken = await _differing(step, search_name, wire, site_id)
+    if not taken:
+        return False
+    step.parameters = {**step.parameters, **taken}
+    return True
+
+
+async def _differing(
+    step: StrategyStep, search_name: str, wire: WireStep, site_id: str
+) -> dict[str, ParamValue]:
     held = encode_params(step.parameters)
     names = [
         name
@@ -269,17 +280,21 @@ async def _take_the_parameters(
         if name in wire.parameters and wire.parameters[name] != value
     ]
     if not names:
-        return False
+        return {}
     decoded = await _decoded(step.id, search_name, wire, site_id)
-    taken = {
+    return {
         name: decoded[name]
         for name in names
         if name in decoded and decoded[name] != step.parameters[name]
     }
-    if not taken:
-        return False
-    step.parameters = {**step.parameters, **taken}
-    return True
+
+
+async def values_the_site_holds_otherwise(
+    step: StrategyStep, site_step: WDKStep, site_id: str
+) -> dict[str, str]:
+    wire = _wire_of(site_step)
+    differing = await _differing(step, site_step.search_name, wire, site_id)
+    return {name: wire.parameters[name] for name in differing}
 
 
 async def _decoded(
