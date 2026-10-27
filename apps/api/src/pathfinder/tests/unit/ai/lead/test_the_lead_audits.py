@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from uuid import uuid4
 
+import pytest
 from assistant_core.graph.turn_state import PendingApproval
 from pydantic_ai import DeferredToolRequests
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
@@ -35,6 +36,7 @@ from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.tests._support.audit_planning import faked_site
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
@@ -57,6 +59,11 @@ _AUDIT_READS = frozenset(
     }
 )
 _AUDIT_TOOLS = _AUDIT_READS | AUDIT_START_TOOLS
+
+
+@pytest.fixture(autouse=True)
+def _site(monkeypatch: pytest.MonkeyPatch) -> None:
+    faked_site(monkeypatch)
 
 
 def _names() -> frozenset[str]:

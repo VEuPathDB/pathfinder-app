@@ -148,6 +148,13 @@ def resolved_params(
     return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
 
 
+def site_values(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
+    held = values.get(PHYLETIC_EXPRESSION_PARAM)
+    if held is not None and is_handle(to_wire(held)):
+        raise UnknownExpressionError(to_wire(held).strip())
+    return dict(values)
+
+
 __all__ = [
     "READING_LIMIT",
     "BuiltPattern",
@@ -164,5 +171,6 @@ __all__ = [
     "shown_params",
     "shown_value",
     "shown_wire",
+    "site_values",
     "spec_handles",
 ]

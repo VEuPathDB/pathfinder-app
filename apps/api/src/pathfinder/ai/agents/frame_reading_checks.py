@@ -12,6 +12,10 @@ from veupathdb.errors import ValidationError
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import FrameResult, PassGap
+from pathfinder.domain.strategy.expression_handles import (
+    UnknownExpressionError,
+    held_expressions,
+)
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.readings import Reading, reading_problems
@@ -104,6 +108,10 @@ async def _spelled(
     named = _named(question)
     readings: list[Reading] = []
     refusals: list[str] = []
+    state = ctx.deps.agent_state
+    expressions = held_expressions(
+        state.built_expressions, state.operational_spec_draft
+    )
     for reading in question.readings:
         try:
             spelled = await site_spelling(
@@ -112,11 +120,18 @@ async def _spelled(
                 criterion,
                 question.param_name,
                 reading.value,
+                expressions,
             )
         except ValidationError as refused:
             refusals.append(
                 f"the site refuses {reading.label!r} on {named}: "
                 f"{_first_sentence(str(refused))}"
+            )
+            continue
+        except UnknownExpressionError as unheld:
+            refusals.append(
+                f"{reading.label!r} on {named} names {unheld.handle}, which no "
+                "build_phyletic_expression call of this conversation holds"
             )
             continue
         readings.append(

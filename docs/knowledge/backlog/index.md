@@ -7,7 +7,6 @@ what left.
 
 ## Ranked
 
-59. [An ambiguous request asks once with counts before it builds](an-ambiguous-request-asks-once-before-it-builds.md) - Branch worktree-agent-a293400e9888ebfc7 holds the reviewed change that asks one question, with each reading's count, before BUILD when a request's readings give different results; it ships after a live run confirms it asks for ambiguous requests and stays quiet for clear ones.
 60. [The last pushed round is checked live](a-pushed-round-is-checked-live.md) - The gene-certainty attribution, the resent-build bound and the per-organism singleton count across all of OrthoMCL were tested only against recorded turns; run them once live.
 61. [A reply never claims an approval it did not get](a-reply-never-claims-an-approval-it-did-not-get.md) - A reply said 'the reading you approved' when the researcher approved nothing and FRAME chose the reading; a typed check must tie such a claim to a recorded card answer.
 62. [A phyletic set is described once](a-phyletic-set-is-described-once.md) - veupathdb-py's phyletic expression description repeats a set's genome and species breakdown for every clause over the same set ('at least 139 genomes of Apicomplexa (...) and exactly 139 proteins of Apicomplexa (...)'); describe a set once, release veupathdb-py and veupathdb-mcp, and take both pins.

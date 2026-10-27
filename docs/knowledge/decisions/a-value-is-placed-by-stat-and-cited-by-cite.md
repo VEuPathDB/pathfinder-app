@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A value is placed by stat and cited by cite
-description: Every value a statistic fact holds has a display form read from its type; `[stat:]` always renders the value in place and `[cite:]` always renders a numbered note after words that already state it, a field typed `Sentence` is refused under `stat` and a number under `cite`. Inferring the kind from where a reference stands, rendering every reference in place, and comparing the reply's words with the value were rejected.
+description: Every value a statistic fact holds has a display form read from its type; `[stat:]` always renders the value in place and `[cite:]` always renders a numbered note after words that already state it, a field typed `Sentence` or a boolean is refused under `stat` and a number under `cite`. Inferring the kind from where a reference stands, rendering every reference in place, and comparing the reply's words with the value were rejected.
 tags: [agents, lead, reply, facts, references, audit]
 generated: { by: claude-code/opus-5.5, at: 2026-10-24T00:00:00Z }
 status: stable
@@ -22,7 +22,7 @@ hold still renders, by its JSON type.
 |---|---|---|
 | a number | the number as the answer writes it, a number of 1,000 or more with thousands separators (`7,364`, `1,234.5`), so a reply that lists placed values separates them with `; `; a `Share` as a percentage (`88.9%`); an `Identifier` (a finding id) as written, with no separator | `number` |
 | an enum or a constant | its words: a code table where `domain/audit/facts.py::CODE_WORDS` holds one, else underscores as spaces and, for an enum whose members are underscored capitals, lower case; `code` keeps the wire value | `word` |
-| a boolean | `yes` or `no`, lower case since a row stands inside a sentence | `word` |
+| a boolean | `yes` or `no`, lower case since a row stands inside a sentence | `boolean` |
 | a field typed `Sentence` (free text: a cause, a description, a card or review text, a message) | the string | `sentence` |
 | any other string (a name, a genome, a product, an id) | the string | `word` |
 
@@ -35,8 +35,10 @@ Two reference kinds name a row (`domain/reference_grammar.py`):
   twice shares one note. Each emitted reply takes labels of its own (`note_label`), so
   two replies of a thread or of an export never share a footnote id.
 
-`prose_faults` refuses a `stat` on a `sentence` row with the `cite` that names it, and
-a `cite` on a `number` row with its `stat`; neither reads a word of the reply. The
+`prose_faults` refuses a `stat` on a `sentence` or a `boolean` row with the `cite` that
+names it, and a `cite` on a `number` row with its `stat`; neither reads a word of the
+reply. A reference to a group of rows names the `stat` of each row except a `sentence`
+or a `boolean` one. The
 contract's rules read `render_reply`, the reply with its markers and no notes; the
 notes are joined only where the reply is emitted (`shown_reply`, in `_lead_capture`,
 `_lead_card_hold`, `_lead_exchange` and the audit assistant's `reply_text`). A
@@ -63,8 +65,9 @@ free text and take `format: "sentence"` in the tool server's own schema, which
 organisms, products, titles, tracks, versions, ids, sequences) is a word.
 
 The placement rule (`card_reply.PLACEMENT_RULES`, in the Lead's instructions and every
-schema that lists the references) is one sentence: `[stat:]` is the value written in
-place, and `[cite:]` follows your own words for it.
+schema that lists the references) is two sentences: `[stat:]` is the value written in
+place, and `[cite:]` follows your own words for it; a yes or no is never placed, it is
+said in words and cited.
 
 # Why
 
@@ -92,19 +95,26 @@ it means, and the type of the row decides which kind may name it.
   retired.
 - **A sentence decided by its word count.** It made every name of two words (a genome, a
   product) impossible to place, the most common placement.
+- **A yes or no placed after a clause whose last word its row's label shares.** A
+  placed `yes` after "preserves the reading frame" repeats the clause, and a placed `0`
+  after "no junction support" does the same, but either is found only by matching the
+  clause's words to the row's name. A boolean is always the clause's own word, so its
+  type refuses the `stat`. A number has no such type: a placed `0` is the right form in
+  "[stat:...] junction reads", so a number row keeps its `stat`.
 - **A display form declared for each field.** The 16 registered answers hold 186 string
   fields, 88 of them in the tool server's distribution; the schema type decides the form,
   one marker names the free text, and the startup check refuses a leaf no type decides.
 
 # What would prove this wrong
 
-`tests/unit/ai/audit/test_the_audit_replies_read_as_prose.py` renders the six recorded
-replies. `tests/unit/ai/audit/test_every_fact_field_has_a_display_form.py` holds the
+`tests/unit/ai/audit/test_the_audit_replies_read_as_prose.py` renders five of the six recorded
+replies and refuses the sixth, which places a yes. `tests/unit/ai/audit/test_every_fact_field_has_a_display_form.py` holds the
 registry against every answer an audit tool returns.
 `tests/unit/domain/test_a_stored_value_has_a_display_form.py` holds each form, the
 `Sentence` marker, an unknown key and the startup refusal;
 `tests/unit/domain/test_a_cite_reference_is_a_note.py` the two kinds, their refusals and
-the labels; `tests/unit/ai/lead/test_a_cited_question_still_ends_the_reply.py` the
+the labels; `tests/unit/domain/test_a_yes_or_no_is_said_in_words.py` the recorded reply
+that placed a yes; `tests/unit/ai/lead/test_a_cited_question_still_ends_the_reply.py` the
 contract over a cited question; and `apps/web/src/features/conversation/content/replyNotes.test.tsx`
 the notes of two replies in the thread and in the export;
 `tests/integration/jobs/test_audit_synthesis_job.py` the stored summary and its two

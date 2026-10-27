@@ -20,6 +20,12 @@ def list_sentence(fault: ProseFault) -> str | None:
             f"reply gives it to one gene: write ``{fault.references[0]}``, the "
             "certainty of that gene's own finding."
         )
+    if fault.kind == "misnamed_reference":
+        written = " or ".join(f"``{r}``" for r in fault.references)
+        return (
+            f"``{fault.token}`` names no row of its fact: write {written}, the "
+            "row of that name it holds."
+        )
     if fault.kind == "keyed_reference":
         written = " or ".join(f"``{r}``" for r in fault.references)
         return (

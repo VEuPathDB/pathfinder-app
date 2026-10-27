@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 
 import pytest
 
@@ -50,7 +50,12 @@ async def _held(
         return {name: listed[name] for name in names if name in listed}
 
     async def _spelling(
-        _site: str, record_type: str, _criterion: Criterion, _param: str, wire: str
+        _site: str,
+        record_type: str,
+        _criterion: Criterion,
+        _param: str,
+        wire: str,
+        _expressions: Mapping[str, str],
     ) -> str:
         spelled.append(record_type)
         return wire

@@ -49,8 +49,8 @@ from pathfinder.tests._support.run_context import run_context_for
 
 _CALL = "start-1"
 GENOME_RULE = (
-    "A genome is one of the site's organism names, written in full, and a "
-    "request that checks only gene targets names no genome."
+    "A genome is one of the site's organism names, written in full. For gene "
+    "targets alone, send genomes: [] with the same targets."
 )
 _REQUEST = plan_request(STRAINS[0], STRAINS[1])
 

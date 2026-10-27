@@ -16,7 +16,11 @@ from pathfinder.domain.statistic_facts import (
 )
 
 type KindMismatch = Literal[
-    "sentence_in_place", "cited_number", "unnamed_dispute", "group_certainty"
+    "sentence_in_place",
+    "boolean_in_place",
+    "cited_number",
+    "unnamed_dispute",
+    "group_certainty",
 ]
 
 
@@ -39,6 +43,10 @@ def misused_references(
             case "stat", "sentence":
                 yield MisusedReference(
                     "sentence_in_place", match.group(), f"[cite:{body}]"
+                )
+            case "stat", "boolean":
+                yield MisusedReference(
+                    "boolean_in_place", match.group(), f"[cite:{body}]"
                 )
             case "cite", "number":
                 yield MisusedReference("cited_number", match.group(), f"[stat:{body}]")

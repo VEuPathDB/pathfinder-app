@@ -307,11 +307,18 @@ _WRITE_REFERENCES = (
 )
 
 
+_SAID_IN_WORDS = {
+    "sentence_in_place": "a stored sentence",
+    "boolean_in_place": "a yes or no",
+}
+
+
 def _kind_sentence(fault: ProseFault) -> str | None:
-    if fault.kind == "sentence_in_place":
+    if fault.kind in _SAID_IN_WORDS:
         return (
-            f"``{fault.token}`` names a stored sentence, which never stands in the "
-            f"reply: say it in your words and write ``{fault.references[0]}`` after them."
+            f"``{fault.token}`` names {_SAID_IN_WORDS[fault.kind]}, which never "
+            "stands in the reply: say it in your words and write "
+            f"``{fault.references[0]}`` after them."
         )
     if fault.kind == "cited_number":
         return (

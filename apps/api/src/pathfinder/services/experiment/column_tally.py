@@ -93,6 +93,10 @@ def _offered(
     msg = (
         f"{noun} records cannot be {kind} by {name}. The columns they can be "
         f"{kind} by: {offered}."
+        if offered
+        else f"{noun} records cannot be {kind} by {name} here: the site lists no "
+        f"column they can be {kind} by outside a step. Build the step and count it "
+        "with count_step_by_column."
     )
     raise ColumnTallyRefusedError(msg)
 

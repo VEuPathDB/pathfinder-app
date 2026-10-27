@@ -49,7 +49,8 @@ class PlanAsk(CamelModel):
         default=(),
         description=(
             "The genomes to screen, each by the site's full organism name. A name "
-            "the site does not hold comes back unresolved, with suggestions."
+            "the site does not hold comes back unresolved, with suggestions. A "
+            "request that checks only gene targets sends []."
         ),
     )
     checks: tuple[ScreenedCheck, ...] = Field(
@@ -176,6 +177,10 @@ class ScopeProposal(CamelModel):
             raise ValueError(msg)
         return self
 
+    @property
+    def replannable(self) -> bool:
+        return bool(self.unresolved)
+
     @model_validator(mode="after")
     def _suggestions_for_the_unresolved(self) -> Self:
         unsuggested = [n for n in self.unresolved if n not in self.suggestions]
@@ -186,6 +191,13 @@ class ScopeProposal(CamelModel):
             )
             raise ValueError(msg)
         return self
+
+
+class PlanRefusal(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    sentence: str
+    replannable: bool
 
 
 class AuditStartCard(CamelModel):

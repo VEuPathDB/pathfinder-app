@@ -25548,6 +25548,7 @@
         "enum": [
           "number",
           "word",
+          "boolean",
           "sentence"
         ],
         "type": "string"

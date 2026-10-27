@@ -10,6 +10,21 @@
   it on, on the same `OPENAI_API_KEY` the models use; the api, the worker and the
   wdk-mcp container read it, and `.env.example` documents it with its timeout and its
   confidence floor.
+* **The ask-once branch is closed; its general fixes are on main.** An audit plan takes
+  only the site's organisms as genomes: the plan tool's schema lists the organism names
+  (`ai/audit/held_genomes.py`), read once per turn (`services/audit/held_organisms.py`)
+  and left open when the read fails. A refusal names whether a new plan can fix it
+  (`PlanRefusal.replannable`), and a Lead turn whose replannable plan was refused and
+  that ends with no card and no question is refused once (`unplanned_audit`). A boolean
+  row has the display form `boolean`, so a yes or no is cited, never placed. A
+  parameter whose vocabulary depends on a bound parameter is never measured at another
+  value (`measure_binding`), so a probe sends no child pick under a parent that does not
+  hold it. A reading's `expr:` handle is resolved to its expression before the site
+  checks it (`reading_check.site_spelling`), and an unheld handle is refused before any
+  call. `count_by_column` on a record type that lists no countable column says to build
+  the step and count it with `count_step_by_column`. A `[stat:]` or `[cite:]` path that
+  names no row of a held fact is told the rows it can mean (`misnamed_reference`).
+  Backlog 59 (the branch's ask-once card) leaves: the branch is not merged.
 
 ## 2026-10-26
 

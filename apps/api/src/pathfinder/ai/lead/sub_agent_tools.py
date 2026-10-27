@@ -46,6 +46,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
+from pathfinder.services.audit.held_organisms import HeldOrganisms
 from pathfinder.services.strategies.measurements import TurnCounts
 
 # Binding one criterion costs up to ten calls: find a search, read it, read its
@@ -312,6 +313,7 @@ class LeadDeps:
     # Why the last dispatch ended without a delta, cleared when the next one
     # starts. The Lead reads it through the ledger.
     last_phase_stop: PhaseStop | None = None
+    organisms: HeldOrganisms = field(default_factory=HeldOrganisms)
     # The stage whose model answered nothing before a dispatch raised. The
     # turn's reply names it when the run ends without one.
     unanswered_stage: UnansweredStage | None = None

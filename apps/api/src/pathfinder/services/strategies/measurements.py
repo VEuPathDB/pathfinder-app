@@ -412,6 +412,7 @@ async def measure_binding(
         and bound.source in _MEASURED_SOURCES
         and rules_of(by_name[name]).measurement != "expression_reading"
         and _has_readings(by_name[name], bound)
+        and not set(by_name[name].controls_vocab_of or ()) & values.keys()
     }
     if binding.count is None:
         return [

@@ -11,9 +11,11 @@ from pydantic_ai.tools import DeferredToolResults, Tool, ToolDefinition
 
 from pathfinder.ai.audit.deps import FINDINGS_PER_CALL, AuditDeps
 from pathfinder.ai.audit.facts import AuditRead
+from pathfinder.ai.audit.held_genomes import held_genomes
 from pathfinder.ai.audit.investigator import GeneModelInvestigation
 from pathfinder.ai.audit.run_tools import (
     START_TOOL,
+    PlanRefused,
     audit_can_start,
     build_run_toolset,
     list_audit_findings_tool,
@@ -69,7 +71,13 @@ async def plan_gene_model_audit(
     ctx: RunContext[LeadDeps], request: PlanAsk
 ) -> ToolReturn[AuditRead[ScopeProposal]]:
     audit = _audit_context(ctx)
-    read = await plan_gene_model_audit_tool(audit, request)
+    markers = ctx.deps.state.turn_markers
+    try:
+        read = await plan_gene_model_audit_tool(audit, request)
+    except PlanRefused as refused:
+        markers.refused_plan = refused.refusal
+        raise
+    markers.refused_plan = None
     _keep(ctx, audit)
     return read
 
@@ -172,6 +180,15 @@ async def offered_on_audit_turns(
     return tool_def if turn_reads_audits(ctx.deps) else None
 
 
+async def planned_on_audit_turns(
+    ctx: RunContext[LeadDeps], tool_def: ToolDefinition
+) -> ToolDefinition | None:
+    offered = await offered_on_audit_turns(ctx, tool_def)
+    if offered is None:
+        return None
+    return await held_genomes(ctx.deps.organisms, ctx.deps.site_id, offered)
+
+
 def lead_audit_tools() -> list[Tool[LeadDeps]]:
     described = build_run_toolset().tools
 
@@ -181,7 +198,7 @@ def lead_audit_tools() -> list[Tool[LeadDeps]]:
     return [
         Tool(
             plan_gene_model_audit,
-            prepare=offered_on_audit_turns,
+            prepare=planned_on_audit_turns,
             description=about("plan_gene_model_audit"),
         ),
         Tool(

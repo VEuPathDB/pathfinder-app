@@ -15,6 +15,7 @@ from pathfinder.ai.graph.turn_records import ReadRecord
 from pathfinder.domain.audit.verdicts import GeneModelVerdict, VerdictOrigin
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.services.audit.held_organisms import HeldOrganisms
 from pathfinder.services.audit.verdicts import AuditCaller
 
 FINDINGS_PER_CALL = 25
@@ -32,6 +33,7 @@ class AuditDeps(AssistantDeps):
     runs: list[UUID] = Field(default_factory=list)
     gene_genomes: dict[str, frozenset[str]] = Field(default_factory=dict)
     record_genomes: dict[str, str] = Field(default_factory=dict)
+    organisms: SkipValidation[HeldOrganisms] = Field(default_factory=HeldOrganisms)
 
     def hold_genomes(self, genomes: Mapping[str, Iterable[str]]) -> None:
         for gene, named in genomes.items():

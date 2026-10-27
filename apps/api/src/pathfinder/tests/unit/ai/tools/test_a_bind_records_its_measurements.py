@@ -122,12 +122,6 @@ async def test_the_caveat_names_the_parameter_by_its_display_name(
         )
     ]
     assert [c.sentence for c in caveats if c.kind == "chosen_among"] == [
-        (
-            "Experiment is Asexual blood stages and salivary gland sporozoite and "
-            "midgut oocyst transcriptomes - Sense, the site's default; the options "
-            "not taken: Asexual blood stages, salivary gland sporozoite and midgut "
-            "oocyst transcriptomes - Antisense"
-        ),
         "Protein Coding Only: is yes, the site's default; the options not taken: all",
     ]
     assert [c.sentence for c in caveats if c.kind == "unmeasured_value"] == []
@@ -184,7 +178,6 @@ async def test_a_binding_that_counted_nothing_reads_no_other_count(
 
     assert asked == []
     assert [m.param for m in criterion.measurements if m.kind == "bound_count"] == [
-        "profileset_generic",
         "min_expression_percentile",
         "max_expression_percentile",
         "any_or_all",
@@ -202,7 +195,7 @@ async def test_a_default_on_a_binding_that_counted_nothing_was_not_measured(
     await _bound(state)
 
     caveats = assumed_value_caveats(state.operational_spec_draft)
-    assert [c.sentence for c in caveats if c.kind == "unmeasured_value"][1:3] == [
+    assert [c.sentence for c in caveats if c.kind == "unmeasured_value"][:2] == [
         (
             "Minimum expression percentile is 80, the site's default: its effect "
             "was not measured, since the count of the search at 80 did not arrive"
@@ -226,7 +219,7 @@ async def test_a_second_bind_of_the_same_values_reads_the_turns_counts(
     first = len(asked)
     await _bound(state)
 
-    assert (first, len(asked)) == (5, 5)
+    assert (first, len(asked)) == (4, 4)
 
 
 def _maybe() -> dict[str, BoundValue]:

@@ -35,7 +35,7 @@ from pathfinder.tests.integration.http._lead_audit_turns import (
 )
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
+    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "audit_site"
 )
 
 

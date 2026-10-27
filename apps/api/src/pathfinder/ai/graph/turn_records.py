@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.stored_verdicts import StoredList
+from pathfinder.domain.audit.planning import PlanRefusal
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.comparison_facts import ComparisonFact
@@ -249,6 +250,7 @@ class TurnMarkers(CamelModel):
     audit_facts: list[StatisticFact] = Field(default_factory=list)
     audit_runs_held: bool = False
     audit_runs: list[UUID] = Field(default_factory=list)
+    refused_plan: PlanRefusal | None = None
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the

@@ -28,9 +28,11 @@ from pathfinder.ai.audit.facts import (
     plan_fact,
     start_fact,
 )
+from pathfinder.ai.audit.held_genomes import genomes_of_the_site
 from pathfinder.ai.fact_sources import warm_fact_schemas
 from pathfinder.domain.audit.planning import (
     PlanAsk,
+    PlanRefusal,
     PlanRequest,
     RunEstimate,
     ScopeProposal,
@@ -131,8 +133,8 @@ async def review_audit_run(caller: AuditCaller, run_id: UUID) -> AuditRunView:
 
 
 GENOME_RULE = (
-    "A genome is one of the site's organism names, written in full, and a "
-    "request that checks only gene targets names no genome."
+    "A genome is one of the site's organism names, written in full. For gene "
+    "targets alone, send genomes: [] with the same targets."
 )
 
 
@@ -150,6 +152,12 @@ def planner_refusal(proposal: ScopeProposal) -> str:
         _unheld_genome(name, proposal.suggestions[name]) for name in proposal.unresolved
     )
     return f"The planner starts no audit: {unheld}. {GENOME_RULE} {NOTHING_STARTED}"
+
+
+class PlanRefused(CallRefused):
+    def __init__(self, refusal: PlanRefusal) -> None:
+        super().__init__(refusal.sentence)
+        self.refusal = refusal
 
 
 def _planned(scope: AuditScope, cost: RunEstimate) -> str:
@@ -175,7 +183,10 @@ async def plan_gene_model_audit_tool(
     proposal = await plan_gene_model_audit(ctx.deps.caller, request)
     scope, cost = proposal.scope, proposal.estimate
     if scope is None or cost is None:
-        raise CallRefused(planner_refusal(proposal))
+        sentence = planner_refusal(proposal)
+        raise PlanRefused(
+            PlanRefusal(sentence=sentence, replannable=proposal.replannable)
+        )
     fact = plan_fact(proposal)
     ctx.deps.facts.append(fact)
     genes = (gene for target in scope.targets for gene in target.genes)
@@ -343,7 +354,11 @@ def build_run_toolset() -> FunctionToolset[AuditDeps]:
     warm_fact_schemas()
     return FunctionToolset(
         [
-            Tool(plan_gene_model_audit_tool, name="plan_gene_model_audit"),
+            Tool(
+                plan_gene_model_audit_tool,
+                name="plan_gene_model_audit",
+                prepare=genomes_of_the_site,
+            ),
             Tool(
                 start_gene_model_audit_tool,
                 name=START_TOOL,
