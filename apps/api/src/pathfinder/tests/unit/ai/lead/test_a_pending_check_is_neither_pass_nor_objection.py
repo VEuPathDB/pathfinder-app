@@ -14,8 +14,7 @@ from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead import turn_budget
 from pathfinder.ai.lead.answered_strategy import live_tree
-from pathfinder.ai.lead.contract_messages import blamed_the_site_message
-from pathfinder.ai.lead.ledger import InvestigationLedger, blamed_the_site
+from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_render import render_verification_full
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
@@ -223,69 +222,8 @@ _PENDING_REPLIES = {
 }
 
 
-def test_a_reply_about_a_pending_check_is_not_site_blame() -> None:
-    """The site did not describe the step, so naming the site is the truth."""
-    clean = BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
-    pending = VerificationSection(digest=_digest("step_de"))
-
-    got = {
-        name: blamed_the_site(text, build=clean, verification=pending)
-        for name, text in _PENDING_REPLIES.items()
-    }
-
-    assert got == {"temporarily": None, "again later": None}
-
-
-def test_the_same_reply_without_a_pending_check_is_site_blame() -> None:
-    clean = BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
-    passed = VerificationSection(digest=_digest())
-
-    got = {
-        name: blamed_the_site(text, build=clean, verification=passed)
-        for name, text in _PENDING_REPLIES.items()
-    }
-
-    assert got == {
-        "temporarily": "it names 'veupathdb' together with 'temporarily'",
-        "again later": "it names 'the site' together with 'again later'",
-    }
-
-
 _BUSY = "VEuPathDB is temporarily busy, so try the build again later."
 
 
 def _clean_build() -> BuildSection:
     return BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
-
-
-def test_a_busy_site_is_blame_even_with_a_pending_check() -> None:
-    """Only the sentence about the pending step is exempt, not the reply."""
-    pending = VerificationSection(digest=_digest("step_de"))
-
-    assert blamed_the_site(_BUSY, build=_clean_build(), verification=pending) == (
-        "it names 'veupathdb' together with 'busy'"
-    )
-
-
-def test_a_reply_with_both_sentences_is_refused_for_the_busy_one() -> None:
-    pending = VerificationSection(digest=_digest("step_de"))
-    reply = (
-        f"{_PENDING_REPLIES['temporarily']} {_PENDING_REPLIES['again later']} {_BUSY}"
-    )
-
-    blame = blamed_the_site(reply, build=_clean_build(), verification=pending)
-
-    assert blame == "it names 'veupathdb' together with 'busy'"
-    correction = blamed_the_site_message(blame, None)
-    assert "(it names 'veupathdb' together with 'busy')" in correction
-
-
-def test_a_site_sentence_naming_the_pending_step_is_exempt() -> None:
-    pending = VerificationSection(digest=_digest("step_de"))
-    reply = "The site will refresh step_de's analysis later; its check is pending."
-
-    got = {
-        "step_de": blamed_the_site(reply, build=_clean_build(), verification=pending)
-    }
-
-    assert got == {"step_de": None}

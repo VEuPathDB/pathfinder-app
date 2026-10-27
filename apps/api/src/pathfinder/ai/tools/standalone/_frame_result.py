@@ -10,7 +10,6 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import WDKSearch
 
-from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import (
     search_display_name,
@@ -89,11 +88,6 @@ class SetCriterionResult(CamelModel):
     measurements: list[str] = Field(
         default_factory=list, exclude_if=lambda clauses: not clauses
     )
-    # Searches of this pass the site could not answer, so no word of the
-    # criterion was compared against them. Absent when every one was read.
-    unread_searches: list[str] = Field(
-        default_factory=list, exclude_if=lambda names: not names
-    )
 
 
 def criterion_return(
@@ -111,18 +105,7 @@ def criterion_return(
     runs = name if result.sheet_pinned else f"{name}: {what_it_finds(definition)}"
     result = result.model_copy(update={"what_runs": runs})
     line, status = _summary_line(result, record_type)
-    if result.unread_searches:
-        state = ctx.deps.agent_state
-        shown = ", ".join(_shown(state, name) for name in result.unread_searches)
-        line = f"{line}; not compared: {shown}"
     return with_summary(result, line, ctx=ctx, status=status)
-
-
-def _shown(state: AgentToolState, search_name: str) -> str:
-    """The name a catalog read of this pass showed the search by."""
-    read = state.last_read_answering(search_name)
-    hit = None if read is None else read.hit(search_name)
-    return hit.display_name if hit is not None and hit.display_name else search_name
 
 
 def _summary_line(

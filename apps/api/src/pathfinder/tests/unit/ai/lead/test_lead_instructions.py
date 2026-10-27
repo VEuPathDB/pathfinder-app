@@ -128,20 +128,6 @@ def test_frame_is_told_not_to_re_bind_an_untouched_criterion() -> None:
     assert "must not be re-bound" in normalized
 
 
-def test_the_instructions_answer_a_missing_building_tool_with_a_reclassify() -> None:
-    instructions = _flat(LEAD_INSTRUCTIONS)
-
-    assert "A missing building tool is a misclassification" in instructions
-    assert "your FIRST action is ``classify_user_intent`` again" in instructions
-
-
-def test_the_instructions_forbid_telling_the_user_a_tool_is_unavailable() -> None:
-    instructions = _flat(LEAD_INSTRUCTIONS)
-
-    assert "NEVER tell the user that a tool is unavailable this turn" in instructions
-    assert "never ask them to retry the request" in instructions
-
-
 def test_the_lead_instructions_name_the_tool_that_starts_over() -> None:
     assert "``clear_strategy``" in _flat(LEAD_INSTRUCTIONS)
 
@@ -210,11 +196,7 @@ def test_the_reply_names_each_fact_by_a_reference_the_product_renders() -> None:
         in instructions
     )
     assert "The reply explains, recommends and asks" in instructions
-    assert "its clause writes no number word (one to twelve, a dozen" in instructions
-    assert (
-        'A name that mixes letters and digits ("PfEMP1", "3D7", "SignalP-6.0") is prose.'
-        in instructions
-    )
+    assert "A name that mixes letters and digits is prose." in instructions
 
 
 def test_the_instructions_name_exactly_the_references_the_renderer_reads() -> None:

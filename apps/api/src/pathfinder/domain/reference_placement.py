@@ -1,5 +1,5 @@
-"""Where a reference stands in its clause: in place of the number it renders,
-and with no noun after a count it renders with its noun."""
+"""Where a reference stands in its clause: with no noun after a count it
+renders with its noun."""
 
 from __future__ import annotations
 
@@ -10,9 +10,7 @@ from typing import Literal
 
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
-    TALLY_VALUES,
     carries_its_noun,
-    reference_kind,
 )
 from pathfinder.domain.turn_facts import StepFact
 
@@ -47,10 +45,6 @@ _A_WRITTEN_NUMBER = re.compile(
     rf"{_A_NUMBER_WORD.pattern}|(?<![\w:.,-])\d[\d,]*(?:\.\d+)?(?![\w:-]|[.,]\d)",
     re.IGNORECASE,
 )
-# The references whose clause writes no number word.
-_IN_PLACE_OF_A_NUMBER = frozenset(
-    {"value", "count", "before", "diff", "root", "root_before", "last_change"}
-)
 _CLAUSE_END = re.compile(r"[.;:,!?\n]")
 _A_WORD = re.compile(r"[A-Za-z][\w'-]*")
 _A_COMPOUND = re.compile(r"[a-z]+(?:-[a-z]+)+")
@@ -70,15 +64,12 @@ _CONTINUATIONS = frozenset(
 )
 _MASK = "\0"
 
-type MisplacementKind = Literal[
-    "number_word", "noun_after_count", "values_without_noun"
-]
+type MisplacementKind = Literal["noun_after_count"]
 
 
 @dataclass(frozen=True)
 class Misplacement:
-    """A clause that spells the number a reference renders, or a count
-    reference and the noun written after it."""
+    """A count reference and the noun written after it."""
 
     kind: MisplacementKind
     token: str
@@ -128,16 +119,7 @@ def _in_clause(
 ) -> Iterator[Misplacement]:
     start, stop = span
     references = [m for m in A_REFERENCE.finditer(prose) if start <= m.start() < stop]
-    numbered = [m for m in references if reference_kind(m) in _IN_PLACE_OF_A_NUMBER]
-    if numbered and _A_NUMBER_WORD.search(masked, start, stop):
-        clause = prose[start:stop].strip()
-        yield Misplacement("number_word", clause, numbered[0].group())
     for match in references:
-        body = match.group("body") or ""
-        if reference_kind(match) == "tally" and body.endswith(TALLY_VALUES):
-            tail = masked[match.end() : stop].split(_MASK, 1)[0]
-            if _A_WORD.search(tail) is None:
-                yield Misplacement("values_without_noun", match.group(), match.group())
         if not carries_its_noun(match):
             continue
         noun_end = _noun_after(masked, match.end(), stop, nouns, between)
@@ -154,8 +136,7 @@ def clause_texts(prose: str) -> list[str]:
 def misplacements(
     prose: str, record_nouns: Sequence[str], steps: Sequence[StepFact] = ()
 ) -> list[Misplacement]:
-    """Each clause that writes a number word beside a count or value reference,
-    and each count reference with a count noun after it, next or after only
+    """Each count reference with a count noun after it, next or after only
     continuation words and the words that name the steps."""
     masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
     nouns = _count_nouns(record_nouns)

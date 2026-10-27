@@ -47,7 +47,7 @@ from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests._support.recorded_counts import no_measurements
-from pathfinder.tests._support.recorded_searches import no_count, serve_qualifier_reads
+from pathfinder.tests._support.recorded_searches import no_count
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -119,12 +119,6 @@ def serve_definition(
     client.get_search_details_with_params = _details
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
-    serve_qualifier_reads(
-        monkeypatch,
-        lambda name: WDKSearch.model_validate(
-            {"url_segment": name, "parameters": parameters or [], **fields}
-        ),
-    )
     return reads
 
 
@@ -157,17 +151,6 @@ def serve_catalog(
         )
 
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
-    serve_qualifier_reads(
-        monkeypatch,
-        lambda name: WDKSearch.model_validate(
-            {
-                "url_segment": name,
-                "parameters": parameters,
-                "properties": properties or {},
-                **fields,
-            }
-        ),
-    )
     return seen
 
 

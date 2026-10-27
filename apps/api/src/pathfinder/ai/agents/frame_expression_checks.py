@@ -12,14 +12,6 @@ from veupathdb_mcp.catalog import ortho_taxonomy
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import FrameResult, PassGap
-from pathfinder.domain.strategy.every_genome import (
-    SHARE_PERCENT,
-    PresenceReadings,
-    UnitReadings,
-    asked_units,
-    names_genomes,
-    presence_readings,
-)
 from pathfinder.domain.strategy.named_groups import (
     NamedGroup,
     ScopedTaxon,
@@ -28,7 +20,6 @@ from pathfinder.domain.strategy.named_groups import (
     whole_taxa,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
-from pathfinder.domain.strategy.requirement_reports import stated_numbers
 
 
 def _expressions(criteria: list[Criterion]) -> list[tuple[str, PhyleticExpression]]:
@@ -52,103 +43,6 @@ async def _read_draft(
         return None
     tree = await ortho_taxonomy(ctx.deps.site_id)
     return None if tree is None else (read, tree)
-
-
-_READING_COUNTS = {2: "two", 3: "three"}
-
-
-def _span(unit: UnitReadings) -> str:
-    shared = sorted(
-        (g for g in unit.species if len(g.genomes) > 1),
-        key=lambda g: (-len(g.genomes), g.species),
-    )
-    named = "".join(f"; {g.species} {len(g.genomes)}" for g in shared)
-    return f"{unit.genomes} genomes of {len(unit.species)} species{named}"
-
-
-def _offered(readings: PresenceReadings) -> list[str]:
-    units = readings.units
-    offered = [
-        " and ".join(f"every one of the {u.genomes} genomes" for u in units)
-        + " (recommended)"
-    ]
-    if readings.share_differs:
-        offered.append(
-            " and ".join(
-                f"at least {u.share} of the {u.genomes} genomes" for u in units
-            )
-            + f" ({SHARE_PERCENT} percent)"
-        )
-    if readings.species_differ:
-        offered.append(
-            " and ".join(f"every one of the {len(u.species)} species" for u in units)
-            + ", a species present when at least half its genomes are"
-        )
-    return offered
-
-
-def _every_genome_question(criterion_id: str, readings: PresenceReadings) -> str:
-    offered = _offered(readings)
-    count = _READING_COUNTS[len(offered)]
-    return (
-        f"{criterion_id} binds {PHYLETIC_EXPRESSION_PARAM} to a presence across "
-        f"{' and across '.join(_span(u) for u in readings.units)}, and the "
-        f"request names no genome, strain, isolate or proteome. Ask one question on "
-        f"{criterion_id}.{PHYLETIC_EXPRESSION_PARAM} with {count} readings from the "
-        f"parameter's help, each applied to every list and each label with its "
-        f"numbers: {'; '.join(offered)}."
-    )
-
-
-async def hold_an_every_genome_presence_to_a_question(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
-        return output
-    state = ctx.deps.agent_state
-    unasked = [
-        criterion
-        for criterion in state.operational_spec_draft.criteria
-        if criterion.held_reading is None
-    ]
-    drafted = await _read_draft(ctx, unasked)
-    if drafted is None or names_genomes(state.request_messages):
-        return output
-    read, tree = drafted
-    scoped = scoped_taxa(
-        state.held_group_scopes,
-        output.group_scopes,
-        [expression for _, expression in read],
-        tree,
-    )
-    groups = [taxon.required for taxon in whole_taxa(scoped)]
-    asked = [
-        _every_genome_question(criterion_id, presence_readings(units, tree))
-        for criterion_id, expression in read
-        if (units := asked_units(expression, tree, groups))
-    ]
-    if not asked:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        named = [criterion_id for criterion_id, _ in read]
-        return output.with_gap(
-            "every_genome_unasked",
-            f"{', '.join(named)} binds presence across a list of many genomes, and "
-            f"the researcher was not asked which presence the request means.",
-        )
-    state.refusals += 1
-    held = ", ".join(stated_numbers(state.stated_requirements))
-    keyed = (
-        [
-            (
-                f"Name in the question's `requirements` the keys of the "
-                f"requirements its readings approximate, from {held}."
-            )
-        ]
-        if held
-        else []
-    )
-    raise ModelRetry(" ".join([*asked, *keyed, "Absence binds without a question."]))
 
 
 _LISTED_CODES = 12
@@ -292,7 +186,4 @@ async def hold_the_taxa_to_their_scope(
     )
 
 
-__all__ = [
-    "hold_an_every_genome_presence_to_a_question",
-    "hold_the_taxa_to_their_scope",
-]
+__all__ = ["hold_the_taxa_to_their_scope"]

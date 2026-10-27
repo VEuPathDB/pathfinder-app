@@ -40,16 +40,6 @@ def _offer(**kwargs: bool) -> list[str]:
 
 
 class TestAReplyThatEndsOnAQuestion:
-    def test_a_built_turn_that_ends_on_an_offer_is_refused(self) -> None:
-        mismatches = reconcile(
-            reply(THE_OFFER, changed=True, next_state="complete"),
-            turn_record(run_context_for(building_deps())),
-        )
-
-        assert [m.kind for m in mismatches] == ["unrecorded_question"]
-        assert "``propose_changes``" in mismatches[0].sentence
-        assert "without a question" in mismatches[0].sentence
-
     def test_an_accepted_proposal_stands(self) -> None:
         assert _offer(accepted_proposal=True) == []
 

@@ -24,7 +24,6 @@ from pathfinder.domain.caveats import (
     ControlsCaveat,
     Gap,
     RequirementGap,
-    WordGap,
 )
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.evidence import (
@@ -38,12 +37,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     WithdrawnLifecycle,
-)
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.requirement_reports import (
@@ -138,37 +131,6 @@ def test_a_reply_that_names_the_gap_in_words_stands() -> None:
     )
 
     assert kinds(_checked(gaps=[_UNMET], caveats=[_V2_CAVEAT]), report) == []
-
-
-def _framed(word: str) -> LeadDeps:
-    text = "all Plasmodium falciparum 3D7 genes, pseudogenes included"
-    spec = OperationalSpec(
-        goal=text,
-        criteria=[
-            Criterion(
-                id="step_all",
-                text=text,
-                search_name="GenesByTaxon",
-                search_display_name="Organism",
-                role="seed",
-                unexpressed_qualifiers=[word],
-            )
-        ],
-        structure=SpecStructure(
-            root=StructureNode(kind="leaf", criterion_id="step_all")
-        ),
-    )
-    state = pipeline_state(
-        user_prompt=text,
-        user_message_id=uuid4(),
-        domain=StrategyDomainState(operational_spec=spec),
-    )
-    state.turn_markers.framed = True
-    return lead_deps(state)
-
-
-def test_a_framed_word_no_search_states_is_a_gap_without_a_check() -> None:
-    assert turn_facts(_framed("pseudogenes")).gaps == [WordGap(word="pseudogenes")]
 
 
 def test_a_gap_a_requirement_the_researcher_withdrew_names_is_no_gap() -> None:

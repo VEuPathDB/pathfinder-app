@@ -146,38 +146,6 @@ async def test_a_rebinding_replaces_the_rationale(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "named",
-    ["Phenotype Text", "GenesByPhenotypeText"],
-)
-async def test_a_reason_naming_a_search_the_catalog_did_not_answer_is_refused(
-    monkeypatch: pytest.MonkeyPatch, named: str
-) -> None:
-    state = AgentToolState()
-    await read(monkeypatch, state, EXPORTED, SIGNAL)
-    why = choice("nearest", "GPI anchor", f"nearer to a GPI anchor than {named}")
-
-    refusal = await refused(state, why)
-
-    assert (named in refusal, "Predicted Signal Peptide" in refusal) == (True, True)
-
-
-@pytest.mark.asyncio
-async def test_a_reason_naming_a_one_word_display_name_is_not_a_mention(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    state = AgentToolState()
-    await read(monkeypatch, state, EXPORTED)
-
-    result = await choose(
-        state, choice("parameter", "organism", "its Organism parameter holds 3D7")
-    )
-
-    assert result.rationale is not None
-    assert result.rationale.reason == "its Organism parameter holds 3D7"
-
-
-@pytest.mark.asyncio
 async def test_a_new_binding_no_read_answered_is_refused() -> None:
     refusal = await refused(AgentToolState(), NEAREST)
 

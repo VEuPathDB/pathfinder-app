@@ -1,10 +1,6 @@
-"""Which of the Lead's tools this turn's state allows it to reach.
-
-Building is a response to a request, so a turn sees the tools that change a
-strategy only after a classification of its own message that asks for one.
-Each phase tool then carries a precondition the ledger, the live graph and
-this turn's own record either meet or do not.
-"""
+"""Which of the Lead's tools this turn's state allows it to reach: each phase
+tool carries a precondition the ledger, the live graph and this turn's own
+record either meet or do not."""
 
 from __future__ import annotations
 
@@ -12,11 +8,9 @@ from collections.abc import Callable, Collection, Sequence
 
 from pydantic_ai import RunContext
 
-from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, START_TOOL
 from pathfinder.ai.graph._lead_answers import is_pure_approval
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
-from pathfinder.ai.lead.proposal import ADOPT_TOOL, PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
 # The tools that write: they frame, materialize, patch or check a strategy, or
@@ -33,43 +27,6 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
         "run_eda_compute",
         "run_eda_dimensionality_reduction",
         "create_eda_step",
-    }
-)
-
-# The reads, the saves and the two offer cards a turn reaches before it is
-# classified; a typed yes accepts an offer card first. Every other tool waits.
-UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
-    {
-        "classify_user_intent",
-        PROPOSAL_TOOL,
-        ADOPT_TOOL,
-        "read_ledger_section",
-        "get_live_strategy_state",
-        "read_gene_record",
-        "research_web_search",
-        "research_literature_search",
-        "remember",
-        "search_memory",
-        "save_gene_set",
-        "list_gene_sets",
-        "read_step_ids",
-        "count_search",
-        "count_by_column",
-        "step_columns",
-        "count_step_by_column",
-        "genes_in_search",
-        "export_gene_set",
-    }
-)
-
-AUDIT_START_TOOLS: frozenset[str] = frozenset({START_TOOL})
-AUDIT_TOOLS: frozenset[str] = frozenset(
-    {
-        *AUDIT_START_TOOLS,
-        *READ_TOOL_NAMES,
-        "plan_gene_model_audit",
-        "review_audit_run",
-        "investigate_gene_models",
     }
 )
 
@@ -183,18 +140,6 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     return frozenset(unmet)
 
 
-def _answered_card(deps: LeadDeps) -> frozenset[str]:
-    """The tool of the Lead's own card this turn answers, or nothing.
-
-    A typed answer arrives as a new message, so its turn is not classified
-    yet; the answer still reaches the card's call.
-    """
-    parked = deps.state.pending_approval
-    if parked is None or parked.sub_agent is not None:
-        return frozenset()
-    return frozenset({parked.tool_name})
-
-
 def turn_is_an_audit(deps: LeadDeps) -> bool:
     intent = deps.intent
     return (
@@ -204,33 +149,11 @@ def turn_is_an_audit(deps: LeadDeps) -> bool:
     )
 
 
-def turn_reads_audits(deps: LeadDeps) -> bool:
-    answers_a_start = bool(_answered_card(deps) & AUDIT_START_TOOLS)
-    held = deps.state.turn_markers.audit_runs_held
-    return turn_is_an_audit(deps) or held or answers_a_start
-
-
-def _unstarted_audits(deps: LeadDeps) -> frozenset[str]:
-    if turn_is_an_audit(deps):
-        return frozenset()
-    return AUDIT_START_TOOLS - _answered_card(deps)
-
-
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
     if deps.state.turn_markers.started_an_audit:
         return frozenset()
-    if not turn_is_classified(deps):
-        reachable = UNCLASSIFIED_TOOLS | _answered_card(deps)
-        return frozenset(name for name in names if name in reachable)
-    if turn_is_off_topic(deps):
-        # The answer is the redirect the instructions state, so it calls nothing.
-        return frozenset()
-    unstarted = _unstarted_audits(deps)
-    if not turn_builds(deps):
-        withheld = BUILDING_TOOLS | unstarted
-        return frozenset(name for name in names if name not in withheld)
-    unmet = unmet_preconditions(deps) | unstarted
+    unmet = unmet_preconditions(deps)
     return frozenset(name for name in names if name not in unmet)
 
 
@@ -251,12 +174,7 @@ def withheld_tools_pin(
     known = sorted(names)
 
     def pinned_withheld_tools(ctx: RunContext[LeadDeps]) -> str | None:
-        listed = (
-            known
-            if turn_reads_audits(ctx.deps)
-            else [name for name in known if name not in AUDIT_TOOLS]
-        )
-        withheld = sorted(withhold_by_turn_state(ctx, listed))
+        withheld = sorted(withhold_by_turn_state(ctx, known))
         if not withheld:
             return None
         return (
@@ -268,18 +186,14 @@ def withheld_tools_pin(
 
 
 __all__ = [
-    "AUDIT_START_TOOLS",
-    "AUDIT_TOOLS",
     "BUILDING_TOOLS",
     "DECLINED_OFFER_REFUSAL",
-    "UNCLASSIFIED_TOOLS",
     "WITHHELD_TOOLS_HEADING",
     "bare_assent_refusal",
     "tools_the_turn_offers",
     "turn_builds",
     "turn_is_an_audit",
     "turn_is_off_topic",
-    "turn_reads_audits",
     "unmet_preconditions",
     "withheld_tools_pin",
     "withhold_by_turn_state",

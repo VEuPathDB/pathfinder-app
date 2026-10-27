@@ -41,7 +41,7 @@ def _combination() -> Constraint:
 
 
 def _spec(
-    operator: CombineOp, *, unexpressed: list[str] | None = None
+    operator: CombineOp,
 ) -> OperationalSpec:
     return OperationalSpec(
         goal="kinase drug targets",
@@ -55,7 +55,6 @@ def _spec(
                 id="c_derisi",
                 text="DeRisi timecourse expression",
                 search_name="GenesByRNASeqEvidence",
-                unexpressed_qualifiers=list(unexpressed or []),
             ),
         ],
         structure=SpecStructure(
@@ -124,48 +123,6 @@ def test_a_combination_the_tree_honours_keeps_the_checkers_row() -> None:
     )
 
     assert held.requirements == [_MET_STRUCTURE]
-
-
-def test_a_word_no_search_states_is_an_unexpressed_row() -> None:
-    held = review_held_to_the_turn(
-        VerificationReview(), _record(_spec(CombineOp.UNION, unexpressed=["orthologs"]))
-    )
-
-    assert held.requirements == [
-        RequirementCheck(
-            text="orthologs",
-            turn=2,
-            answered_by=["c_derisi"],
-            how="search",
-            status="unexpressed",
-            note="no search the framing pass read can state 'orthologs'",
-        )
-    ]
-
-
-def test_a_row_that_calls_an_unexpressed_word_met_is_corrected() -> None:
-    claimed = RequirementCheck(
-        text="the orthologs of P. berghei genes",
-        turn=2,
-        answered_by=["c_derisi"],
-        how="transform",
-        status="met",
-        note="an ortholog transform",
-    )
-
-    held = review_held_to_the_turn(
-        VerificationReview(requirements=[claimed]),
-        _record(_spec(CombineOp.UNION, unexpressed=["orthologs"])),
-    )
-
-    assert held.requirements == [
-        claimed.model_copy(
-            update={
-                "status": "unexpressed",
-                "note": "no search the framing pass read can state 'orthologs'",
-            }
-        )
-    ]
 
 
 def _gene(gene_id: str) -> SampledGene:

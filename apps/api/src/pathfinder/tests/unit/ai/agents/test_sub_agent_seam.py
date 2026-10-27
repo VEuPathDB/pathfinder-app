@@ -244,6 +244,7 @@ GENERIC_RENDERERS = {
 INSTRUCTION_ORDER = {
     "frame": [
         "base_system_prompt",
+        "pinned_site_notes",
         "pinned_user_memories",
         "pinned_conversation_so_far",
         "pinned_scratchpad",

@@ -8,7 +8,6 @@ from uuid import uuid4
 from pathfinder.ai.lead.classification_gate import (
     SiteReading,
     classification_refusal,
-    held_as_question,
 )
 from pathfinder.ai.lead.intent import (
     ClassifiedIntent,
@@ -59,14 +58,3 @@ async def test_a_question_that_asks_no_change_stands() -> None:
 
     held = ClassifiedIntent.model_validate(returned.return_value)
     assert held.intent.classification is IntentClassification.FOLLOW_UP_QUESTION
-
-
-def test_a_change_worded_as_a_question_is_not_held_as_one() -> None:
-    state = pipeline_state("giardiadb", user_prompt=_MESSAGE, user_message_id=uuid4())
-    marked = _intent(IntentClassification.EXTEND_STRATEGY, change=True)
-    unmarked = _intent(IntentClassification.EXTEND_STRATEGY, change=False)
-
-    assert (held_as_question(state, marked), held_as_question(state, unmarked)) == (
-        None,
-        unmarked.as_question(),
-    )

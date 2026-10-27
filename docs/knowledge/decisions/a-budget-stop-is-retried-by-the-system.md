@@ -75,11 +75,8 @@ steps describe (`pre_turn.py::hydrate_spec_from_the_strategy`), and the
 refusal of an edit on a thread with no step names only the tools the turn
 offers.
 
-**A reply may not attribute a stop to VEuPathDB.** `blamed_the_site` is a pure
-check over the reply text and the ledger's build section: text naming the site
-together with a transient state, while no step failed and no step came back
-empty, is refused by an output validator on the Lead and the refusal hands it
-the real stop to write. It fires once per turn.
+The reply rule that refused a reply naming the site with a transient state was
+removed with the other phrasing rules ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)).
 
 # What was rejected
 

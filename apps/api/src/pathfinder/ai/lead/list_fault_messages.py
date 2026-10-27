@@ -1,5 +1,5 @@
 """The rewrite a refused reply is told for a list item named by a value, or a
-disputed finding of a run it reads and leaves unnamed."""
+row its fact does not hold."""
 
 from __future__ import annotations
 
@@ -7,19 +7,6 @@ from pathfinder.domain.reply_references import ProseFault
 
 
 def list_sentence(fault: ProseFault) -> str | None:
-    if fault.kind == "unnamed_dispute":
-        return (
-            f"``{fault.token}``: the two reviews of this finding disagree, and a "
-            "reply that reads this run names each disputed finding: name its genes "
-            f"by their record references and write ``{fault.references[0]}`` after "
-            "your words for the disagreement."
-        )
-    if fault.kind == "group_certainty":
-        return (
-            f"``{fault.token}`` is the certainty of a group of findings, and the "
-            f"reply gives it to one gene: write ``{fault.references[0]}``, the "
-            "certainty of that gene's own finding."
-        )
     if fault.kind == "misnamed_reference":
         written = " or ".join(f"``{r}``" for r in fault.references)
         return (

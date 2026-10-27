@@ -43,10 +43,9 @@ from pathfinder.domain.statistic_facts import (
     statistic_value,
     statistic_word_references,
 )
-from pathfinder.domain.tally_facts import tallies_of_another_step, tally_count
+from pathfinder.domain.tally_facts import tally_count
 from pathfinder.domain.tally_labels import held_label_words
 from pathfinder.domain.turn_facts import TurnFacts
-from pathfinder.domain.zero_words import words_for_none
 
 _A_LINK = re.compile(
     r"(?:https?:[\\/]*|www\.|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
@@ -72,7 +71,6 @@ type FaultKind = Literal[
     "keyed_reference",
     "misnamed_reference",
     "malformed_reference",
-    "number_word",
     "noun_after_count",
     "product_text",
     "standalone_count",
@@ -80,11 +78,6 @@ type FaultKind = Literal[
     "boolean_in_place",
     "cited_number",
     "listed_value",
-    "tally_of_a_step",
-    "zero_word",
-    "values_without_noun",
-    "unnamed_dispute",
-    "group_certainty",
 ]
 
 
@@ -99,7 +92,6 @@ class ProseFault(CamelModel):
     references: tuple[str, ...] = ()
     # The record whose product holds the token.
     record_id: str = ""
-    removable: str = ""
 
 
 def _variant(facts: TurnFacts, label: str) -> ComparedVariant | None:
@@ -431,23 +423,10 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misused_references(prose, facts.cited_statistics())
     ]
-    tallied = tallies_of_another_step(prose, facts.tallies, facts.result_step_id)
-    elsewhere = [
-        ProseFault(token=token, kind="tally_of_a_step", removable=above)
-        for token, above in tallied
-    ]
-    zeros = [
-        ProseFault(token=token, kind="zero_word", references=(reference,))
-        for token, reference in words_for_none(
-            prose, lambda match: _rendered(match, facts)
-        )
-    ]
     found = [
         *unheld,
         *alone,
         *misused,
-        *elsewhere,
-        *zeros,
         *shape_faults(prose, facts),
     ]
     return list(dict.fromkeys(found))

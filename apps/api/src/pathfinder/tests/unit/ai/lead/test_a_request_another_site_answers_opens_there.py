@@ -146,11 +146,7 @@ def test_the_lead_gives_any_sites_sentence_and_offers_no_switch() -> None:
 def test_frame_sends_a_count_across_species_to_orthomcl() -> None:
     frame = _flat(_FRAME_INSTRUCTIONS)
 
-    assert "another_site_answers" in frame
-    assert "GroupsByPhyleticPattern" in frame
-    assert "FromGroups" in frame
-    assert "`sequence` (proteins, the genes a request asks for)" in frame
-    assert "answers the expression in words with the size of each list" in frame
+    assert '`another_site_answers` with `site` "orthomcl"' in frame
 
 
 def _pass_with_a_route_to(site: str) -> FrameResult:

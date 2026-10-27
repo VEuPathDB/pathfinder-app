@@ -13,7 +13,6 @@ from assistant_core.graph.turn_state import (
     PendingApproval,
     UserQuestionAnswer,
 )
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import NumberValue, StringValue
 from veupathdb.domain.strategy import CombineOp, flatten_tree
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
@@ -21,12 +20,8 @@ from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_consult
 from pathfinder.ai.lead.card_question import CardQuestion
-from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
-from pathfinder.ai.lead.guarantees import registered_tools
-from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
-    refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.recorded_cards import card_questions, the_card_asked
 from pathfinder.ai.lead.sub_agent_dispatch import minted_spec
@@ -190,17 +185,6 @@ async def _answered_floor(label: str) -> LeadDeps:
     return deps
 
 
-def _refusal(recorded: OpenQuestion, card: list[CardQuestion]) -> str:
-    """Why the card is refused over a thread holding the recorded question, or empty."""
-    try:
-        refuse_a_card_that_binds_nothing(
-            run_context_for(_deps(recorded), "call_card"), card, reply=_REPLY
-        )
-    except ModelRetry as refused:
-        return str(refused)
-    return ""
-
-
 class TestTheCardOffersWhatFrameRecorded:
     def test_the_card_asks_each_recorded_question_with_its_labels(self) -> None:
         assert card_questions([_floor_question()]) == [
@@ -215,23 +199,10 @@ class TestTheCardOffersWhatFrameRecorded:
             )
         ]
 
-    def test_the_recorded_card_is_accepted_with_a_question_of_the_leads(
-        self,
-    ) -> None:
-        question = _floor_question()
-        own = CardQuestion(
-            id="q2",
-            prompt="Should the result keep only protein-coding genes?",
-            dimension=ConstraintKind.DATA_TYPE,
-        )
-
-        assert _refusal(question, [*card_questions([question]), own]) == ""
-
     def test_a_card_that_leaves_a_recorded_question_out_still_asks_it(self) -> None:
         question = _floor_question()
         written = [CardQuestion(id="q1", prompt="Anything else?")]
 
-        assert _refusal(question, written) == ""
         assert the_card_asked(written, [question]) == [
             *card_questions([question]),
             CardQuestion(id="own-1", prompt="Anything else?"),
@@ -251,35 +222,6 @@ class TestTheCardOffersWhatFrameRecorded:
         ]
 
         assert the_card_asked(written, [question]) == card_questions([question])
-
-    def test_a_free_text_question_offering_a_recorded_value_is_refused(
-        self,
-    ) -> None:
-        question = _floor_question()
-
-        refusal = _refusal(
-            question,
-            [
-                *card_questions([question]),
-                CardQuestion(
-                    id="q2",
-                    prompt="Which floor, again?",
-                    options=[
-                        ConsultOption(label=_DEFAULT),
-                        ConsultOption(label="A lower floor"),
-                    ],
-                ),
-            ],
-        )
-
-        assert "Which floor, again?" in refusal
-        assert refusal.endswith(CARD_NOT_SHOWN)
-
-
-def test_the_leads_card_is_checked_before_it_reaches_the_researcher() -> None:
-    tool = registered_tools(build_lead_agent().toolsets)["consult_user"]
-
-    assert tool.args_validator is refuse_a_card_that_binds_nothing
 
 
 class TestAnAnswerAppliesItsBinding:

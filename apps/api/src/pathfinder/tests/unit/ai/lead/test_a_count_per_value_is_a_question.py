@@ -7,19 +7,17 @@ from __future__ import annotations
 from uuid import uuid4
 
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
-from pathfinder.ai.lead.classification_gate import held_as_question
 from pathfinder.ai.lead.intent import (
     ClassifiedIntent,
     IntentClassification,
     UserIntent,
 )
-from pathfinder.ai.lead.intent_gate import UNCLASSIFIED_TOOLS, tools_the_turn_offers
+from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
-    user_intent,
 )
 
 _RULE_HEAD = (
@@ -35,24 +33,6 @@ def _count_rule() -> str:
     rules = _flat(LEAD_INSTRUCTIONS)
     start = rules.index(_RULE_HEAD)
     return rules[start : rules.index("- **", start)]
-
-
-def test_the_lead_counts_per_value_on_the_step_that_holds_the_records() -> None:
-    assert _count_rule() == (
-        f"{_RULE_HEAD}** ``step_columns`` names the step's columns, then "
-        "``count_step_by_column`` counts one marked countable. The records are the "
-        "strategy's result, so the step is its result step, the root, or a "
-        "transform's step over it; a tally of another step states nothing about "
-        "the result. When no step holds "
-        "those records, the question is a build (``new_strategy`` with no strategy, "
-        "``extend_strategy`` on one), and the count follows the build, through a "
-        "transform when the records are a result's members. ``count_by_column`` "
-        "counts only one catalog search's whole result, unchanged, with no step, and "
-        "only by a search name the catalog lists. Name the value with the most and "
-        "its count with ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and "
-        "the number of values with ``[tally:<id>:values]`` with the noun of its "
-        "values after it; never a value's count for another number. "
-    )
 
 
 def test_the_count_rule_names_no_question() -> None:
@@ -110,44 +90,3 @@ async def test_a_count_that_needs_a_build_is_a_build_with_no_strategy() -> None:
         "frame_problem",
         "build_strategy",
     }
-
-
-def test_a_count_that_asks_a_change_on_a_strategy_is_not_held_as_a_question() -> None:
-    state = pipeline_state("plasmodb", user_prompt=_COUNT, user_message_id=uuid4())
-    marked = _count_intent(IntentClassification.EXTEND_STRATEGY, change=True)
-    unmarked = _count_intent(IntentClassification.EXTEND_STRATEGY, change=False)
-
-    assert (held_as_question(state, marked), held_as_question(state, unmarked)) == (
-        None,
-        unmarked.as_question(),
-    )
-
-
-def test_an_unclassified_turn_reaches_the_step_tally() -> None:
-    assert {"step_columns", "count_step_by_column", "count_by_column"} <= (
-        UNCLASSIFIED_TOOLS
-    )
-    state = pipeline_state("orthomcl", user_prompt="Count these proteins by genome.")
-    deps = lead_deps(state)
-
-    offered = tools_the_turn_offers(
-        deps, ["step_columns", "count_step_by_column", "frame_problem"]
-    )
-
-    assert offered == frozenset({"step_columns", "count_step_by_column"})
-
-
-def test_a_question_turn_with_no_strategy_reaches_the_tally_and_no_build() -> None:
-    state = pipeline_state(
-        "vectorbase",
-        user_prompt=(
-            "Which genome assembly for the Anopheles gambiae species complex has "
-            "the most RNA-Seq data?"
-        ),
-    )
-    state.turn_markers.intent_classified = True
-    deps = lead_deps(state, intent=user_intent(IntentClassification.FOLLOW_UP_QUESTION))
-
-    offered = tools_the_turn_offers(deps, ["count_by_column", "frame_problem"])
-
-    assert offered == frozenset({"count_by_column"})

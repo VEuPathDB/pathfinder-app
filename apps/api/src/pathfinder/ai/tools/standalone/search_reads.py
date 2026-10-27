@@ -61,7 +61,6 @@ async def _refuse_an_unlisted_search(
         )
     except VagueSearchQueryError:
         found = []
-    ctx.deps.state.turn_markers.catalog_looked_up = True
     unlisted = f"{site_id} lists no search {name} ({search.label})."
     if not found:
         msg = (

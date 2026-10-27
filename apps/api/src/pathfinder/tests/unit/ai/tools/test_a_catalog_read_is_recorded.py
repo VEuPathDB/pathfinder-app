@@ -10,7 +10,6 @@ from veupathdb_mcp.catalog import SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone.catalog import (
-    record_a_listing,
     search_for_searches,
 )
 from pathfinder.tests._support.tool_returns import returned
@@ -85,29 +84,6 @@ async def test_a_read_keeps_its_hits_with_their_similarity(
             ],
         )
     ]
-
-
-@pytest.mark.asyncio
-async def test_a_read_marks_the_turn_as_looked_up(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(catalog, "search_for_searches", AsyncMock(return_value=[]))
-    serve_no_other_sites(monkeypatch)
-    ctx = agent_run_context()
-
-    await search_for_searches(
-        ctx, query="genes with an InterPro domain", record_type="transcript"
-    )
-
-    assert ctx.deps.turn_markers.catalog_looked_up is True
-
-
-def test_a_listing_marks_the_turn_as_looked_up() -> None:
-    ctx = agent_run_context()
-
-    record_a_listing(ctx, "list_searches", "transcript", [])
-
-    assert ctx.deps.turn_markers.catalog_looked_up is True
 
 
 async def test_frame_reads_the_probability_the_decisions_choice_gave(

@@ -17,7 +17,6 @@ from pathfinder.domain.strategy.requirement_reports import (
     RequirementReport,
     numbered_requirements,
     record_types_without_a_role,
-    reported_requirements,
     unknown_requirement_ids,
 )
 from pathfinder.domain.strategy.structure_bindings import unbound_in_structure
@@ -167,20 +166,11 @@ def hold_the_structure_to_bound_criteria(
 def hold_the_questions_to_the_draft(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
-    """Send back a pass that asks about nothing its draft holds."""
+    """Send back a pass that asks about a slot its draft lacks."""
     if not isinstance(output, FrameResult) or output.disposition != "needs_user":
         return output
     state = ctx.deps.agent_state
-    unbound = questions_that_bind_to_nothing(
-        output,
-        state.operational_spec_draft,
-        state.spec_the_dispatch_found,
-        lacking=reported_requirements(
-            output.requirement_problems,
-            state.stated_requirements,
-            RequirementProblem.SITE_HAS_NO_SEARCH,
-        ),
-    )
+    unbound = questions_that_bind_to_nothing(output, state.operational_spec_draft)
     if not unbound:
         return output
     if not may_refuse(ctx, state.refusals):

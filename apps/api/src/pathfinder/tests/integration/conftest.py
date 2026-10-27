@@ -32,6 +32,7 @@ from pathfinder.tests._support.network_guard import refuse_veupathdb
 from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
 from pathfinder.tests._support.second_assistant import second_assistant
+from pathfinder.tests._support.site_organisms import serve_planned_organisms
 
 
 @pytest.fixture(autouse=True)
@@ -56,8 +57,8 @@ def no_veupathdb(
 
     CI runs this tier with no VEuPathDB credential, so a live read here passes
     only on a machine that holds one. Such a test holds no site login, and it
-    reads each search's organism parameter and record classes from the
-    recorded catalog answers.
+    reads each search's organism parameter, record classes and site organisms
+    from the recorded catalog answers.
     """
     if request.node.get_closest_marker("live_wdk") is None:
         refuse_veupathdb(monkeypatch, request.node.nodeid)
@@ -65,6 +66,7 @@ def no_veupathdb(
             monkeypatch.delenv(login, raising=False)
         serve_catalog_marks(monkeypatch)
         serve_record_classes(monkeypatch)
+        serve_planned_organisms(monkeypatch)
 
 
 @pytest.fixture(scope="session", autouse=True)

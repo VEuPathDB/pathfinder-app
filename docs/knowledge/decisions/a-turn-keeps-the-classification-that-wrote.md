@@ -3,8 +3,10 @@ type: Decision
 title: A turn keeps the classification that wrote
 description: A repeated classification fails as ToolFailed and spends no retry, a new classification after the turn changed the strategy is refused, a card answer under the same message is classified once more, and a turn that built stays a building turn, so its check stays reachable.
 tags: [lead, intent, control-flow]
-status: stable
+status: superseded
 ---
+
+> Superseded by [the tools a turn reaches follow its typed state](the-tools-a-turn-reaches-follow-its-typed-state.md): a second classification replaces the first.
 
 # The choice
 

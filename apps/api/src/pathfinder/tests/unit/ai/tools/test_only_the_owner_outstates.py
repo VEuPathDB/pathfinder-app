@@ -89,4 +89,3 @@ async def test_a_label_of_another_search_does_not_outstate_the_bound_one(
         c for c in state.operational_spec_draft.criteria if c.id == "c_signal"
     ]
     assert criterion.search_name == "GenesWithSignalPeptide"
-    assert criterion.unexpressed_qualifiers == ["stage"]

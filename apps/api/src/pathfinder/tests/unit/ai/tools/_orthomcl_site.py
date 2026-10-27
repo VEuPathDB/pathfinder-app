@@ -15,7 +15,6 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import (
     _catalog_models,
     _frame_count,
-    _frame_qualifiers,
     _frame_sheet,
     frame_spec,
 )
@@ -58,9 +57,6 @@ def serve_orthomcl(monkeypatch: pytest.MonkeyPatch) -> OrthoSite:
     ) -> tuple[WDKSearchResponse, str]:
         return _response(site.read(ctx.record_type, ctx.search_name)), ctx.record_type
 
-    async def _listing(_site: str, record_type: str) -> list[WDKSearch]:
-        return list(site.held[record_type].values())
-
     async def _listings(_site: str, record_type: str) -> list[SearchListing]:
         return [
             SearchListing(name=s.url_segment, display_name=s.display_name)
@@ -85,8 +81,6 @@ def serve_orthomcl(monkeypatch: pytest.MonkeyPatch) -> OrthoSite:
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
-    monkeypatch.setattr(_frame_qualifiers, "fetch_search_details", _details)
-    monkeypatch.setattr(_frame_qualifiers, "get_raw_searches", _listing)
     monkeypatch.setattr(tool_payloads, "list_search_listings", _listings)
     monkeypatch.setattr(_frame_count, "count_bound_criterion", _count)
     monkeypatch.setattr(dataset_sources, "get_strategy_api", lambda _site_id: site)

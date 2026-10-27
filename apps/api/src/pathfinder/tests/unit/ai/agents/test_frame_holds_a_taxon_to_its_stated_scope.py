@@ -11,7 +11,6 @@ from veupathdb.domain.parameters import PhyleticTree, StringValue
 
 from pathfinder.ai.agents import frame_expression_checks
 from pathfinder.ai.agents.frame_expression_checks import (
-    hold_an_every_genome_presence_to_a_question,
     hold_the_taxa_to_their_scope,
 )
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -223,28 +222,6 @@ async def test_a_pass_that_asks_is_not_held_to_a_scope() -> None:
     assert await hold_the_taxa_to_their_scope(
         _context(_per_species(SHORT)), result
     ) is (result)
-
-
-async def test_every_species_of_a_whole_group_is_asked_which_presence() -> None:
-    ctx = _context(_per_species(PLAS))
-
-    with pytest.raises(ModelRetry) as sent_back:
-        await hold_an_every_genome_presence_to_a_question(ctx, _bound(WHOLE))
-
-    told = str(sent_back.value)
-    assert f"{len(PLAS)} genomes of {len(TREE.species_groups(PLAS))} species" in told
-    assert "Ask one question" in told
-
-
-async def test_every_species_of_a_named_scope_is_not_asked() -> None:
-    result = _bound(NAMED)
-
-    assert (
-        await hold_an_every_genome_presence_to_a_question(
-            _context(_per_species(PLAS)), result
-        )
-        is result
-    )
 
 
 async def test_a_clade_code_stated_whole_holds_the_clade() -> None:

@@ -22,11 +22,7 @@ def test_the_classification_names_every_audit_check_as_an_audit() -> None:
         "one model; strain model against its reference; genes missing from the "
         "annotation; organelle genes at the circular join; exon structure against "
         "RNA-seq. A question whether a model is right is an audit, and a request "
-        "for the genes that hold a property of their models is a build: "
-        '"Which NF54 pseudogenes are intact?" asks whether the pseudogene calls '
-        'are right and is gene_model_audit, while "Find pseudogenes in P. '
-        'falciparum NF54" finds genes by their gene type and is new_strategy, as '
-        'is "List genes longer than 10 kb in 3D7".'
+        "for the genes that hold a property of their models is a build."
     )
 
 

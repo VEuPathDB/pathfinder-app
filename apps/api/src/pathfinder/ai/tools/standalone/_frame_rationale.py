@@ -1,20 +1,15 @@
 """Why a criterion runs its search: the argument FRAME passes, and the record
-the tool writes from the catalog read this pass holds.
-
-Every claim in the argument is checked against data the call holds. No check
-reads a similarity threshold; ``nearest`` compares hits of one read.
-"""
+the tool writes from the catalog read this pass holds."""
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import ParamValue
-from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
@@ -22,21 +17,14 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
 )
-from pathfinder.ai.tools.standalone._frame_rationale_terms import (
-    Binding,
-    checked_term,
-)
 from pathfinder.domain.strategy.expression_handles import shown_params
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.step_rationale import (
-    MAX_REASON_CHARS,
     ComparedSearch,
     RationaleBasis,
     SearchRationale,
-    names_the_phrase,
 )
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
-from pathfinder.services.strategies.record_classes import record_type_names
 
 _COMPARED = 3
 
@@ -65,9 +53,8 @@ class SearchChoice(CamelModel):
     )
     reason: str = Field(
         description=(
-            f"One line of at most {MAX_REASON_CHARS} characters on what decided it; "
-            "the term is shown before it. Name another search only if the catalog "
-            "answered it."
+            "One line on what decided it; the term is shown before it. Name "
+            "another search only if the catalog answered it."
         ),
     )
     sources: list[str] = Field(
@@ -82,24 +69,18 @@ class SearchChoice(CamelModel):
 
 @dataclass(frozen=True)
 class ChosenWhy:
-    """The recorded reason, and the rewrites the tool applied to reach it."""
+    """The recorded reason."""
 
     rationale: SearchRationale | None
-    corrections: tuple[str, ...] = ()
 
 
-async def rationale_for(
+def rationale_for(
     ctx: RunContext[AgentDeps],
     call: CriterionCall,
     record_type: str,
     infos: Sequence[ParameterInfo],
     values: Mapping[str, ParamValue],
     why: SearchChoice | None,
-    *,
-    defaulted: Collection[str],
-    transform: bool,
-    pasted: Collection[str],
-    left_open: Collection[str],
 ) -> ChosenWhy:
     """The recorded reason for this binding, or a retry naming what is wrong.
 
@@ -138,37 +119,11 @@ async def rationale_for(
         raise ModelRetry(_unread(criterion_id, search_name))
     if why is None:
         raise ModelRetry(_no_why(criterion_id, search_name, read))
-    listing = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
-    listed = [(search.name, search.display_name) for search in listing]
-    unseen = _unseen_mentions(why.reason, read, listed)
-    if unseen:
-        raise ModelRetry(_unseen(criterion_id, unseen, read))
-    binding = Binding(
-        criterion_id=criterion_id,
-        search_name=search_name,
-        record_type=record_type,
-        read=read,
-        bound=bound,
-        infos=infos,
-        params=call.params,
-        values=values,
-        defaulted=defaulted,
-        transform=transform,
-        pasted=pasted,
-        left_open=left_open,
-        record_names=(
-            await record_type_names(ctx.deps.site_id, record_type)
-            if why.basis == "record_type"
-            else [record_type]
-        ),
-    )
-    chosen = checked_term(why.basis, why.term, binding)
-    _refuse_a_long_reason(criterion_id, why, chosen.term)
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
     rationale = SearchRationale(
         search_name=search_name,
-        basis=chosen.basis,
-        term=chosen.term,
+        basis=why.basis,
+        term=_shown_term(why, infos),
         reason=why.reason,
         similarity=bound.similarity,
         compared=[
@@ -183,8 +138,13 @@ async def rationale_for(
         sources=sources_retrieved(ctx, criterion_id, why.sources),
         derived_from=shown_params(values),
     )
-    corrections = () if chosen.correction is None else (chosen.correction,)
-    return ChosenWhy(rationale, corrections)
+    return ChosenWhy(rationale)
+
+
+def _shown_term(why: SearchChoice, infos: Sequence[ParameterInfo]) -> str:
+    if why.basis != "parameter":
+        return why.term
+    return next((i.display_name for i in infos if i.name == why.term), why.term)
 
 
 def _names_the_old_value(kept: SearchRationale, changed: Sequence[str]) -> bool:
@@ -233,25 +193,6 @@ def _derived_from_changed(
     )
 
 
-def _unseen_mentions(
-    reason: str, read: CatalogRead, listing: Sequence[tuple[str, str]]
-) -> list[str]:
-    """The site's searches the reason names that the read did not answer.
-
-    A one-word display name is an ordinary word in a sentence, so it is not
-    read as a mention.
-    """
-    answered = {h.name for h in read.hits}
-    return [
-        mention
-        for name, display_name in listing
-        if name not in answered
-        for mention in (name, display_name)
-        if (mention == name or len(mention.split()) > 1)
-        and names_the_phrase(reason, mention)
-    ]
-
-
 def sources_retrieved(
     ctx: RunContext[AgentDeps], criterion_id: str, cited: Sequence[str]
 ) -> list[str]:
@@ -292,29 +233,7 @@ def _no_why(criterion_id: str, search_name: str, read: CatalogRead) -> str:
     return (
         f"{criterion_id} binds {search_name} with no why. Pass why with a basis "
         f"(parameter, organism, record_type, only_match or nearest), the term "
-        f"that decides it, and one line of reason of at most {MAX_REASON_CHARS} "
-        f"characters. The catalog "
-        f"answered {len(read.hits)} searches for it, first {_top(read)}. "
-        f"Nothing was recorded."
+        f"that decides it, and one line of reason. The catalog answered "
+        f"{len(read.hits)} searches for it, first {_top(read)}. Nothing was "
+        f"recorded."
     )
-
-
-def _unseen(criterion_id: str, unseen: Sequence[str], read: CatalogRead) -> str:
-    answered = ", ".join(h.display_name for h in read.hits)
-    return (
-        f"Your reason for {criterion_id} names {', '.join(unseen)}, which the "
-        f"catalog did not answer for it. It answered: {answered}. Give the reason "
-        f"in terms of those, or search again. Nothing was recorded."
-    )
-
-
-def _refuse_a_long_reason(criterion_id: str, why: SearchChoice, term: str) -> None:
-    """A reason fits one line; the term is shown before it, so it need not repeat it."""
-    if len(why.reason) <= MAX_REASON_CHARS:
-        return
-    msg = (
-        f"{criterion_id}: the reason holds {len(why.reason)} characters. Write one "
-        f"line of at most {MAX_REASON_CHARS} characters; the term {term} is shown "
-        f"before it. Nothing was recorded."
-    )
-    raise ModelRetry(msg)

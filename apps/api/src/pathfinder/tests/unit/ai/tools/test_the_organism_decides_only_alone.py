@@ -16,7 +16,6 @@ from pathfinder.tests.unit.ai.tools._rationale_catalog import (
     choice,
     choose,
     read,
-    refused,
 )
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     param_info,
@@ -58,25 +57,6 @@ def _organism_parameter() -> SearchChoice:
 
 def _organism_basis() -> SearchChoice:
     return choice("organism", PF, f"covers {PF}")
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("why", [_organism_parameter(), _organism_basis()])
-async def test_the_organism_is_refused_when_another_value_is_set(
-    monkeypatch: pytest.MonkeyPatch, why: SearchChoice
-) -> None:
-    state = AgentToolState()
-    await read(monkeypatch, state, EXPORTED, SIGNAL)
-
-    refusal = await refused(
-        state, why, params={"organism": [PF], "min_exportpred_score": "15"}
-    )
-
-    assert refusal == (
-        f"c_gpi: {why.term} is the organism the search runs on, and this call "
-        f"also sets {SCORE}, which is what decides the choice. Pass the term "
-        f"'{SCORE}' with basis parameter, and keep the organism in the reason."
-    )
 
 
 @pytest.mark.asyncio

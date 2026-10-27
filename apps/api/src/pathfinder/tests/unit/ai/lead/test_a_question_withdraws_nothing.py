@@ -1,8 +1,9 @@
 """A question changes no requirement, so a question classification that
-withdraws one is refused: the message asks for the change, or it only asks
-what the change would do and withdraws nothing."""
+withdraws one is refused."""
 
 from __future__ import annotations
+
+import pytest
 
 from pathfinder.ai.lead.classification_gate import (
     SiteReading,
@@ -30,8 +31,11 @@ def _intent(
     )
 
 
-def test_a_question_that_withdraws_what_its_message_changes_is_an_edit() -> None:
-    state = pipeline_state("hostdb", user_prompt=_CHANGE)
+@pytest.mark.parametrize(
+    "message", [_CHANGE, "What would the count be on chromosome 19?"]
+)
+def test_a_question_that_withdraws_a_requirement_is_refused(message: str) -> None:
+    state = pipeline_state("hostdb", user_prompt=message)
 
     refusal = classification_refusal(
         state,
@@ -39,27 +43,10 @@ def test_a_question_that_withdraws_what_its_message_changes_is_an_edit() -> None
         SiteReading(),
     )
 
-    assert refusal == (
+    assert refusal is not None
+    assert refusal.startswith(
         "The classification withdraws 'chromosome 17', and a question withdraws "
-        "nothing. The message states the change outside its questions, so it asks "
-        "for it: classify it as the request it is (edit_strategy for a change to "
-        "the strategy), state each value it asks for in explicit_constraints and "
-        "keep its question in asks."
-    )
-
-
-def test_a_question_that_only_asks_what_a_change_would_do_withdraws_nothing() -> None:
-    what_if = "What would the count be on chromosome 19?"
-    state = pipeline_state("hostdb", user_prompt=what_if)
-    intent = _intent(IntentClassification.FOLLOW_UP_QUESTION, [_CHROMOSOME_17])
-
-    refusal = classification_refusal(
-        state, intent.model_copy(update={"asks": [what_if]}), SiteReading()
-    )
-
-    assert refusal == (
-        "The classification withdraws 'chromosome 17', and a question withdraws "
-        "nothing. The message only asks what a change would do, so withdraw nothing."
+        "nothing."
     )
 
 

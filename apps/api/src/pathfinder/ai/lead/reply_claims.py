@@ -14,43 +14,9 @@ from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.column_fit import COLUMN_FIT_COUNTS
-from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 _CLAUSE_END = re.compile(r"[.!?;\n]")
-
-# A clause that takes its own claim back. The second form is the report of a
-# failure: the act was attempted and something turned it down.
-_DENIAL_WORD = r"\b(?:not|never|no|none|nothing|cannot)\b|n't"
-_DENIED_BY_A_FAILURE = (
-    r"\bbut\b.{0,80}?"
-    r"\b(?:refused|rejected|declined|failed|stopped|would not|could not)\b"
-)
-_DENIED = re.compile(f"{_DENIAL_WORD}|{_DENIED_BY_A_FAILURE}")
-
-# A criterion the reply reports as framed. The claim is the act; naming what
-# the plan holds is a description, and "the added filter" qualifies a noun.
-_FRAMED = r"(?<!the )\b(?:framed|planned|added)\s+"
-_A_CRITERION = r".{0,40}?\b(?:criterion|criteria|filter)\b"
-_TO_THE_PLAN = r".{0,60}?\bto the (?:plan|spec)\b"
-CLAIMED_A_FRAME = re.compile(_FRAMED + f"(?:{_A_CRITERION}|{_TO_THE_PLAN})")
-
-# A clause that says a search is not on the site. Each form names a search, so
-# a count or a step the reply calls unavailable is not read as one.
-_SEARCH = r"\bsearch(?:es)?\b"
-_NOT = r"(?: not|n't)"
-_NOT_SERVED = (
-    rf"(?:is|are|was|were){_NOT}\s+(?:available|offered|listed|served"
-    r"|in the (?:current )?catalog|on (?:this|the) site)\b"
-    r"|(?:is|are)\s+unavailable\b"
-    rf"|(?:does|do){_NOT}\s+exist\b"
-)
-_A_SEARCH_IS_ABSENT = re.compile(
-    rf"{_SEARCH}[^.!?;\n]{{0,80}}?\b(?:{_NOT_SERVED})"
-    r"|\bno (?:such )?search(?:es)? (?:for|of|named|called|that|on)\b"
-    rf"|\b(?:does|do){_NOT} (?:offer|have|list|serve) (?:a|an|any)\b"
-    rf"[^.!?;\n]{{0,60}}?{_SEARCH}"
-)
 
 # The tools a reply can name by their identifier. Every one carries an
 # underscore, so the plain words for the same act read as ordinary prose.
@@ -74,28 +40,6 @@ _AN_ERROR_STRING = re.compile(
     rf"|\b(?:http|status|code|error)\s+{_STATUS}\b"
     rf"|\b{_STATUS}\s+(?:error|response|status)\b"
 )
-
-
-def claims(prose: str, made: re.Pattern[str]) -> bool:
-    """Whether an undenied clause of this reply makes that claim."""
-    return any(
-        made.search(clause)
-        for clause in _CLAUSE_END.split(prose.casefold())
-        if not _DENIED.search(clause)
-    )
-
-
-def says_a_search_is_absent(prose: str) -> bool:
-    """Whether a clause of this reply says a search is not on the site."""
-    return _A_SEARCH_IS_ABSENT.search(prose.casefold()) is not None
-
-
-def denies(prose: str, text: str) -> bool:
-    """Whether a clause of this reply names the text and takes the act back."""
-    return any(
-        _DENIED.search(clause) and named_in_prose(clause, text)
-        for clause in _CLAUSE_END.split(prose.casefold())
-    )
 
 
 def names_an_organism(prose: str, organism: str) -> bool:

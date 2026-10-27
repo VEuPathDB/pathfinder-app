@@ -7,6 +7,8 @@ generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
 ---
 
+> Since 2026-10-27 `unrecorded_question` and `unfinished_work` are removed ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)); an offer is still a card by the Lead's instructions, and `open_value_in_prose` still holds a value a frame pass left open.
+
 # What was decided
 
 An offer of further work on the strategy is a card the researcher answers, never a question the

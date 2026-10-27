@@ -38,7 +38,6 @@ from pathfinder.services.strategies import (
 from pathfinder.tests._support import wdk_write_stubs
 from pathfinder.tests._support.recorded_searches import (
     no_count,
-    serve_qualifier_reads,
 )
 
 PF = "Plasmodium falciparum 3D7"
@@ -215,7 +214,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)
-    serve_qualifier_reads(monkeypatch, lambda name: _search_response(name).search_data)
     no_count(monkeypatch)
 
     async def _transcript(_search_name: str) -> str:

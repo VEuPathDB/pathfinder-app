@@ -6,7 +6,6 @@ definitions are the ones plasmodb published."""
 from __future__ import annotations
 
 import pytest
-from pydantic_ai import ModelRetry
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -90,24 +89,3 @@ async def test_the_n1_criterion_opens_the_variant_search(
     await _open(state, _N1)
 
     assert list(state.open_sheets) == ["c_conserved"]
-
-
-@pytest.mark.asyncio
-async def test_3d7_isolates_are_refused_in_favour_of_the_owner(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _serve(monkeypatch)
-    state = _ranked(_PVIV, _SNVS)
-
-    with pytest.raises(ModelRetry) as exc:
-        await _open(
-            state, "genes that do not vary much between Plasmodium 3D7 isolates"
-        )
-
-    assert str(exc.value) == (
-        "c_conserved: Short Variant Characteristics has no parameter that states "
-        "'isolates'. On plasmodb, SNV Characteristics Within a Group of Samples "
-        "carries 'isolates' (Percent samples with a base call >= ). Bind that "
-        "search. Nothing was recorded."
-    )
-    assert state.open_sheets == {}

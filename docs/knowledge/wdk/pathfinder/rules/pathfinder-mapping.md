@@ -371,10 +371,9 @@ the transform can state it, because the profile has no synteny parameter. The
 live check is
 `apps/api/src/pathfinder/tests/live/test_orthology_round_trip_counts.py`.
 
-The word itself is held by a general rule, not by this one: a word of the
-criterion that a parameter of another search this pass read can state refuses a
-search that cannot, and a word no search it read can state stands as an unmet
-requirement (`ai/tools/standalone/_frame_qualifiers.py`).
+The word itself is held by no rule: the qualifier check that matched a word of
+the criterion to the parameters of the searches a pass read was removed
+([a refusal rests on typed state](../../../decisions/a-refusal-rests-on-typed-state.md)).
 
 ### WDK-MAP-010 - A separation offers only transcript leaves that bind without a person, and every count on the offer was read from a step inside a strategy
 

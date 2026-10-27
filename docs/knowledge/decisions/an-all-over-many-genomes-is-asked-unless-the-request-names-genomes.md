@@ -4,8 +4,10 @@ title: An all over many genomes is asked unless the request names genomes
 description: A FRAME pass that binds a phyletic expression with presence in every one of three or more genomes is sent back, at most twice, to ask which presence the researcher means, offering only the readings that differ from every genome, unless the researcher's messages name genomes, strains, isolates or proteomes or the criterion holds an accepted reading; when no other reading differs, nothing is asked, and absence and single copy bind as written. A taxon the expression spans needs a scope FRAME states, whole or named; a whole taxon is held to every genome and its per-species or per-genome writing reaches the same question. Always asking, a prompt rule alone, asking about absence, reading the scope from the request's words and approximate single copy were rejected.
 tags: [agents, frame, orthomcl, parameters]
 generated: { by: claude-code/opus-5.5, at: 2026-10-22T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded by [a refusal rests on typed state](a-refusal-rests-on-typed-state.md): the every-genome question was removed.
 
 # What was decided
 

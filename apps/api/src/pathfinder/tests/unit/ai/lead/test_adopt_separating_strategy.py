@@ -15,7 +15,6 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_adoption, sub_agent_dispatch
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.ai.lead.guarantees import TOOL_REVERSIBILITY, Reversibility
-from pathfinder.ai.lead.intent_gate import UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_adoption import (
     adopt_separating_strategy,
     unknown_offer_message,
@@ -246,7 +245,6 @@ async def test_a_replaced_strategy_keeps_the_sets_the_thread_attached(
 
 def test_the_adoption_is_a_card_a_typed_yes_reaches() -> None:
     assert ADOPT_TOOL in CARD_TOOLS
-    assert ADOPT_TOOL in UNCLASSIFIED_TOOLS
     assert (
         TOOL_REVERSIBILITY[ADOPT_TOOL],
         TOOL_REVERSIBILITY["separate_controls"],

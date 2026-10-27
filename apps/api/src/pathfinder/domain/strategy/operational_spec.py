@@ -314,7 +314,6 @@ class Criterion(CamelModel):
     rationale: ChosenRationale | None = None
     # Words of the text that narrow it and that no search the binding pass read
     # can state. Each is reported unmet until a search states it.
-    unexpressed_qualifiers: list[str] = Field(default_factory=list)
     accepted_reading: AcceptedReading | None = None
 
     @property
@@ -441,22 +440,8 @@ class OperationalSpec(CamelModel):
         return self
 
     def unexpressed(self) -> list[UnexpressedText]:
-        """Every text no search states: each criterion's own words, then each
-        requirement a drop holds open that no criterion of the spec states."""
-        held = [
-            UnexpressedText(
-                word=word,
-                criterion_id=c.id,
-                stated_in=c.text,
-                why=(
-                    f"{c.title} cannot state '{word}', and no search the "
-                    f"framing pass read has a parameter that does"
-                ),
-            )
-            for c in self.criteria
-            for word in c.unexpressed_qualifiers
-        ]
-        dropped = [
+        """Every requirement a drop holds open that no criterion of the spec states."""
+        return [
             UnexpressedText(
                 word=kept.requested_value,
                 criterion_id=None,
@@ -470,7 +455,6 @@ class OperationalSpec(CamelModel):
                 names_a_run_of(c.text, kept.requested_value) for c in self.criteria
             )
         ]
-        return [*held, *dropped]
 
     def counted_at(self, step_counts: Mapping[str, int | None]) -> OperationalSpec:
         """The spec with each criterion whose bind count did not arrive counted

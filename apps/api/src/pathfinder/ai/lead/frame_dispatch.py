@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from pydantic_ai import RunContext
 
-from pathfinder.ai.lead.added_criteria import (
-    refuse_an_added_criterion_the_message_does_not_state,
-)
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -213,7 +210,6 @@ async def run_frame(
         deps.state.turn_markers.unstated_requirements = [
             c.requested_value for c in lacking
         ]
-        deps.state.turn_markers.record_reading(result.chosen_reading)
         domain.name_reading(result.chosen_reading)
         reported = resolved_reports(result.requirement_problems, domain.requirements)
         domain.record_roles |= record_roles(result.record_types, domain.requirements)
@@ -320,9 +316,7 @@ async def _accepted(
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
     draft = _without_what_an_unbound_question_moved(deps, delta, draft)
-    delta = delta.model_copy(update={"changes": derived_changes(found, draft)})
-    await refuse_an_added_criterion_the_message_does_not_state(deps, found, draft)
-    return delta
+    return delta.model_copy(update={"changes": derived_changes(found, draft)})
 
 
 def _without_what_an_unbound_question_moved(
@@ -338,9 +332,7 @@ def _without_what_an_unbound_question_moved(
     if (
         found is None
         or delta.disposition != "needs_user"
-        or not questions_that_bind_to_nothing(
-            delta, draft, found, lacking=requirements_the_site_lacks(deps, delta)
-        )
+        or not questions_that_bind_to_nothing(delta, draft)
     ):
         return draft
     as_found = {c.id: c for c in found.criteria}

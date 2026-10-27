@@ -50,9 +50,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     resolve_proposals,
     species_lists,
 )
-from pathfinder.ai.tools.standalone._frame_qualifiers import (
-    qualifiers_no_search_states,
-)
 from pathfinder.ai.tools.standalone._frame_rationale import (
     SearchChoice,
     rationale_for,
@@ -217,7 +214,7 @@ async def set_criterion(
     vocabulary gives no label comes back as a retry naming the labels it holds.
 
     ``why`` goes on the call with ``params``: why this search and not the others
-    the catalog answered. Its basis is checked against the read and the values.
+    the catalog answered.
 
     ``reading`` goes on the call with ``params`` when the researcher answered,
     in their own words, a question that offered readings on this criterion: the
@@ -298,9 +295,6 @@ async def _bind_the_search(
         infos,
         state.request_messages,
     )
-    qualifiers = await qualifiers_no_search_states(
-        ctx, record_type, definition, stated, call.params
-    )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     refuse_unknown_names(call, infos)
     refuse_undecided(call, infos)
@@ -340,7 +334,6 @@ async def _bind_the_search(
                 criterion_id=criterion_id,
                 search_name=search_name,
                 redecide=redecide,
-                unread_searches=qualifiers.unread,
             ),
             record_type,
             definition,
@@ -348,18 +341,7 @@ async def _bind_the_search(
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
     site_supplied = set(resolved.defaulted()) | radio.keys()
-    chosen = await rationale_for(
-        ctx,
-        call,
-        record_type,
-        infos,
-        resolved.params,
-        why,
-        defaulted=sorted(site_supplied),
-        transform=bool(definition.allowed_primary_input_record_class_names),
-        pasted=pasted_params(definition),
-        left_open=[slot.param_name for slot in resolved.open_slots],
-    )
+    chosen = rationale_for(ctx, call, record_type, infos, resolved.params, why)
     canonical = resolved
     # Only a binding with no open slot is validated: an unresolved required
     # param reads as missing, while a bad value returns a did-you-mean retry.
@@ -400,7 +382,6 @@ async def _bind_the_search(
             measurements=labels,
             open_params=open_params,
             rationale=chosen.rationale,
-            unexpressed_qualifiers=qualifiers.unexpressed,
             accepted_reading=accepted,
         ),
         record_type=record_type,
@@ -426,8 +407,7 @@ async def _bind_the_search(
             result_count=count,
             alternatives=alternatives,
             rationale=chosen.rationale,
-            corrections=[*fixed, *chosen.corrections],
-            unread_searches=qualifiers.unread,
+            corrections=fixed,
             measurements=measured,
         ),
         record_type,

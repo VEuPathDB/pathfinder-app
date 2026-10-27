@@ -7,6 +7,8 @@ generated: { by: claude-code/opus-5, at: 2026-09-15T00:00:00Z }
 status: stable
 ---
 
+> Since 2026-10-27 the rules `blamed_the_site`, `claimed_frame`, `unrecorded_question`, `unfinished_work`, `unmade_change`, `unbacked_absence` and `unstated_reading` are removed ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)); what follows describes the table as it was built.
+
 # What was decided
 
 `ai/lead/turn_contract.py` owns the Lead's reply and the check on it, and

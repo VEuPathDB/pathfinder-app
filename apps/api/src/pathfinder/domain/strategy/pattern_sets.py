@@ -114,15 +114,6 @@ def count_terms(pattern: PhyleticPattern) -> Iterator[CountTerm]:
                 continue
 
 
-def compare_terms(pattern: PhyleticPattern) -> Iterator[CompareTerm]:
-    for term in terms_of(pattern):
-        match term:
-            case CompareTerm():
-                yield term
-            case CountTerm():
-                continue
-
-
 def _beyond(term: CountTerm, tree: PhyleticTree) -> CountBeyondSet | None:
     if term.measure != "genomes" or term.value is None:
         return None
@@ -155,7 +146,6 @@ def counts_beyond_their_sets(
 __all__ = [
     "CountBeyondSet",
     "SetSize",
-    "compare_terms",
     "count_terms",
     "counts_beyond_their_sets",
     "genomes_of",

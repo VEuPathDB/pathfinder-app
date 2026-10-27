@@ -132,9 +132,8 @@ class AgentDeps(AssistantDeps):
     meter: SkipValidation[Callable[[RunUsage, Model], None]] | None = None
 
     def record_catalog_read(self, read: CatalogRead) -> None:
-        """Keep a catalog read for this agent and mark the turn as looked up."""
+        """Keep a catalog read for this agent."""
         self.agent_state.record_catalog_read(read)
-        self.turn_markers.catalog_looked_up = True
 
     def to_strategy_context(self) -> StrategyMutationContext:
         """Narrow this container down to what strategy-mutation services need."""

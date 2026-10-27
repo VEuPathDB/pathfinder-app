@@ -29,7 +29,6 @@ from pathfinder.ai.audit.run_tools import (
 from pathfinder.ai.audit.start_card import ask_about_the_audits
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.dispatch_context import inner_context
-from pathfinder.ai.lead.intent_gate import turn_reads_audits
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import gene_model_investigation
 from pathfinder.domain.audit.planning import PlanAsk, ScopeProposal
@@ -174,19 +173,10 @@ async def ask_about_the_audits_on_the_lead(
     )
 
 
-async def offered_on_audit_turns(
+async def genomes_of_the_site(
     ctx: RunContext[LeadDeps], tool_def: ToolDefinition
-) -> ToolDefinition | None:
-    return tool_def if turn_reads_audits(ctx.deps) else None
-
-
-async def planned_on_audit_turns(
-    ctx: RunContext[LeadDeps], tool_def: ToolDefinition
-) -> ToolDefinition | None:
-    offered = await offered_on_audit_turns(ctx, tool_def)
-    if offered is None:
-        return None
-    return await held_genomes(ctx.deps.organisms, ctx.deps.site_id, offered)
+) -> ToolDefinition:
+    return await held_genomes(ctx.deps.organisms, ctx.deps.site_id, tool_def)
 
 
 def lead_audit_tools() -> list[Tool[LeadDeps]]:
@@ -198,44 +188,37 @@ def lead_audit_tools() -> list[Tool[LeadDeps]]:
     return [
         Tool(
             plan_gene_model_audit,
-            prepare=planned_on_audit_turns,
+            prepare=genomes_of_the_site,
             description=about("plan_gene_model_audit"),
         ),
         Tool(
             list_audit_runs,
-            prepare=offered_on_audit_turns,
             description=about("list_audit_runs"),
         ),
         Tool(
             read_audit_run,
-            prepare=offered_on_audit_turns,
             description=about("read_audit_run"),
         ),
         Tool(
             review_audit_run,
-            prepare=offered_on_audit_turns,
             description=about("review_audit_run"),
         ),
         Tool(
             list_audit_findings,
-            prepare=offered_on_audit_turns,
             description=about("list_audit_findings"),
         ),
         Tool(
             read_audit_findings,
-            prepare=offered_on_audit_turns,
             description=about("read_audit_findings"),
         ),
         Tool(
             start_gene_model_audit,
             requires_approval=True,
             args_validator=lead_audit_can_start,
-            prepare=offered_on_audit_turns,
             description=about(START_TOOL),
         ),
         Tool(
             investigate_gene_models,
-            prepare=offered_on_audit_turns,
             description=gene_model_investigation.INVESTIGATION_DESCRIPTION,
         ),
     ]

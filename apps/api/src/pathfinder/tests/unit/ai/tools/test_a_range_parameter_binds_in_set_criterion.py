@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone import _frame_qualifiers
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     bind,
     param_info,
@@ -20,11 +18,6 @@ _TEXT = "genes with a daily rhythm"
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_search(monkeypatch, _period)
-
-    async def _no_listing(_site: str, _record_type: str) -> list[WDKSearch]:
-        return []
-
-    monkeypatch.setattr(_frame_qualifiers, "get_raw_searches", _no_listing)
 
 
 def _period(_context: dict[str, str]) -> list[ParameterInfo]:

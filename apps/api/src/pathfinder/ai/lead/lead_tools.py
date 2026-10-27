@@ -14,7 +14,6 @@ from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.classification_gate import (
     classification_refusal,
-    held_as_question,
     read_the_site,
 )
 from pathfinder.ai.lead.deleted_steps import named_step
@@ -25,8 +24,6 @@ from pathfinder.ai.lead.intent import (
     IntentClassification,
     RefusedClassification,
     UserIntent,
-    already_classified_message,
-    recorded_as_question_message,
     repeated_refusal_message,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -50,10 +47,8 @@ async def classify_user_intent(
     ctx: RunContext[LeadDeps],
     intent: UserIntent,
 ) -> ToolReturn[ClassifiedIntent]:
-    """Classify the user's intent for this turn. Call this exactly once,
-    before any other sub-agent call. A second call on the same turn is
-    only to change the classification, and only before the turn changed the
-    strategy; one that repeats it, or comes after a write, is refused. An
+    """Classify the user's intent for this turn. Call this once, before any
+    other sub-agent call; a second call replaces the classification. An
     answer the researcher gives on a card of yours under this message is
     classified once more, with the requirements that answer states.
 
@@ -136,9 +131,7 @@ async def classify_user_intent(
     to EXPLAIN something the conversation already holds. A question whose answer is
     a count, a list or a membership is a build however it is phrased, unless it
     compares counts or asks about the strategy the conversation holds: "did my
-    change go through?", "what is the count now?" is a ``follow_up_question``,
-    and a request classification of a message that states nothing outside its
-    asks is refused.
+    change go through?", "what is the count now?" is a ``follow_up_question``.
 
     A question whose answer is the size or the members of a gene search on
     the site - "how many protein-coding genes does 3D7 have", "which genes
@@ -192,22 +185,12 @@ async def classify_user_intent(
     rest: code in any language, prose or email drafting, translation, general
     knowledge, and any message that names no VEuPathDB object, gene, organism,
     dataset or analysis. A borderline message that carries a real biological
-    question is in scope. An ``off_topic`` turn reaches no tool after this one
+    question is in scope. An ``off_topic`` turn calls no tool after this one
     and answers in two sentences, so a message the tools can answer, or one
     naming genes of this site, typed or attached, is never one.
     """
-    held = ctx.deps.intent
     state = ctx.deps.state
-    question = held_as_question(state, intent)
-    notes = [] if question is None else [recorded_as_question_message()]
-    intent = question or intent
     markers = state.turn_markers
-    if markers.intent_classified and held is not None:
-        same = held.classification is intent.classification
-        if same and markers.classified_card == markers.answered_card:
-            raise CallRefused(already_classified_message(held.classification))
-        if not same and markers.changed_strategy:
-            raise CallRefused(_written_turn_message(held.classification))
     refused = ctx.deps.refused_classification
     if refused is not None and refused.intent == intent:
         raise CallRefused(repeated_refusal_message(refused.sentence))
@@ -217,7 +200,7 @@ async def classify_user_intent(
             intent=intent, sentence=refusal
         )
         raise ModelRetry(refusal)
-    corrections = list(notes)
+    corrections: list[str] = []
     if intent.explicit_constraints:
         constraints, completed = complete_organisms(
             intent.explicit_constraints, state.user_prompt, site.organisms
@@ -244,15 +227,6 @@ async def classify_user_intent(
         ClassifiedIntent(intent=intent, corrections=corrections),
         "; ".join([f"Intent: {intent.classification.value}", *corrections]),
         ctx=ctx,
-    )
-
-
-def _written_turn_message(classification: IntentClassification) -> str:
-    """The refusal of a new classification on a turn that already wrote."""
-    return (
-        f"This turn is classified as {classification.value}, and it already "
-        "changed the strategy under that classification. The classification "
-        "that did the work governs the turn: keep it and go on with the turn."
     )
 
 

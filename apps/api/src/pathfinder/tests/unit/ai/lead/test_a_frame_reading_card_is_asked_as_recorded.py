@@ -21,7 +21,6 @@ from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
-    refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.recorded_cards import completed_hint, the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -145,9 +144,6 @@ def test_the_card_shows_the_frame_readings_beside_a_free_text_question() -> None
 
     assert [o.label for o in readings.options] == _READINGS
     assert (own.prompt, own.options) == (written[0].prompt, [])
-    refuse_a_card_that_binds_nothing(
-        run_context_for(deps, "call_card"), written, reply="Which basis?"
-    )
 
 
 def test_the_held_card_reaches_the_wire_with_the_frame_readings() -> None:

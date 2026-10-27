@@ -7,15 +7,12 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.intent import UserIntent
-from pathfinder.ai.lead.lead_consult import refuse_a_card_that_binds_nothing
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.models.mock.requirement_arcs import COMPARED_SIDES, WIDEN_LABELS
+from pathfinder.ai.models.mock.requirement_arcs import COMPARED_SIDES
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
@@ -23,7 +20,6 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.models._mock_turns import args_of, names, play
 
@@ -68,18 +64,3 @@ def _empty_combine(site_id: str) -> LeadDeps:
             ),
         )
     )
-
-
-@pytest.mark.parametrize("site_id", SITES)
-def test_the_widen_card_of_labels_is_refused(site_id: str) -> None:
-    calls = play("lead", site_id, "Widen it [[arc:widen-card]]")
-
-    [card] = args_of(calls, "consult_user")
-    questions = [CardQuestion.model_validate(q) for q in card["questions"]]
-    assert [o.label for q in questions for o in q.options] == WIDEN_LABELS
-    with pytest.raises(ModelRetry, match="which bind nothing"):
-        refuse_a_card_that_binds_nothing(
-            run_context_for(_empty_combine(site_id), "call_card"),
-            questions,
-            reply=card["reply"],
-        )

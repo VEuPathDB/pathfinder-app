@@ -16173,7 +16173,6 @@
           },
           "reason": {
             "type": "string",
-            "maxLength": 160,
             "title": "Reason"
           },
           "similarity": {
@@ -22587,13 +22586,6 @@
             ],
             "title": "Rationale"
           },
-          "unexpressedQualifiers": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Unexpressedqualifiers",
-            "type": "array"
-          },
           "acceptedReading": {
             "anyOf": [
               {
@@ -27754,7 +27746,7 @@
         "properties": {
           "classification": {
             "$ref": "#/components/schemas/IntentClassification",
-            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog. gene_model_audit is a request to check the gene models of a genome or of named genes for errors, whatever its verb: pseudogene calls on intact genes; selenoproteins cut at their selenocysteine; gene length against orthologs; one gene split into two models; neighbouring genes fused into one model; strain model against its reference; genes missing from the annotation; organelle genes at the circular join; exon structure against RNA-seq. A question whether a model is right is an audit, and a request for the genes that hold a property of their models is a build: \"Which NF54 pseudogenes are intact?\" asks whether the pseudogene calls are right and is gene_model_audit, while \"Find pseudogenes in P. falciparum NF54\" finds genes by their gene type and is new_strategy, as is \"List genes longer than 10 kb in 3D7\"."
+            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog. gene_model_audit is a request to check the gene models of a genome or of named genes for errors, whatever its verb: pseudogene calls on intact genes; selenoproteins cut at their selenocysteine; gene length against orthologs; one gene split into two models; neighbouring genes fused into one model; strain model against its reference; genes missing from the annotation; organelle genes at the circular join; exon structure against RNA-seq. A question whether a model is right is an audit, and a request for the genes that hold a property of their models is a build."
           },
           "inferredGoal": {
             "maxLength": 500,

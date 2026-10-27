@@ -5,8 +5,10 @@ description: The classification the Lead makes first is what puts a request outs
 tags: [agents, intent, scope, budget]
 generated: { by: claude-code/opus-5, at: 2026-09-13T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-10-05T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded by [the tools a turn reaches follow its typed state](the-tools-a-turn-reaches-follow-its-typed-state.md): an off-topic turn keeps its tools and is told to answer in two sentences.
 
 # What was decided
 

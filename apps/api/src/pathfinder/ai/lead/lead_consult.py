@@ -7,22 +7,19 @@ from collections.abc import Mapping, Sequence
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
-from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardReply
+from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.readings import refused_picks
-from pathfinder.ai.lead.recorded_cards import card_questions, the_card_asked
+from pathfinder.ai.lead.recorded_cards import the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import (
-    params_held,
     spec_bound_by_card,
     spec_with_reading,
 )
-from pathfinder.domain.strategy.constraint_grounding import dimension_of_parameter
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
@@ -30,7 +27,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.expression_handles import shown_wire
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.question_options import (
     Keep,
     SaveComputedGroups,
@@ -45,126 +41,12 @@ from pathfinder.domain.strategy.questions import (
 )
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.requirement_lifecycle import (
-    MANY_VALUED_KINDS,
     stood_in_for,
 )
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 _LABEL_LIMIT = 120
 _QUESTION_LIMIT = 300
-
-
-def _held_dimensions(
-    recorded: Sequence[OpenQuestion], spec: OperationalSpec | None
-) -> set[ConstraintKind]:
-    """The single-valued dimensions a recorded question states or a parameter
-    of the spec sets, the organism included while a criterion names it."""
-    held = {q.dimension for q in recorded}
-    if spec is None:
-        return held - MANY_VALUED_KINDS
-    if any(c.organism_param for c in spec.criteria):
-        held.add(ConstraintKind.ORGANISM)
-    names = {c.id: c for c in spec.criteria}
-    held |= {
-        dimension_of_parameter(
-            param, names[cid].display_name_of(param) if cid in names else param
-        )
-        for cid, params in params_held(spec).items()
-        for param in params
-    }
-    return held - MANY_VALUED_KINDS
-
-
-def _unbound_labels(question: CardQuestion, choices: Sequence[str]) -> list[str]:
-    """The labels of a question of the Lead's own that bind nothing."""
-    return [o.label for o in question.options if o.label not in choices]
-
-
-def refuse_a_card_that_binds_nothing(
-    ctx: RunContext[LeadDeps],
-    questions: list[CardQuestion],
-    *,
-    reply: CardReply,
-) -> None:
-    """Refuse a card whose own questions bind nothing.
-
-    The card carries every recorded question that offers options as recorded,
-    whatever the call writes. A question of the Lead's own offers no option,
-    the drop and keep options of a requirement the thread holds, or on the
-    dimension other the readings a framing pass of the thread named; one with
-    no option asks no dimension a parameter of the spec holds. A question the
-    researcher answered is never asked again.
-    """
-    del reply
-    domain = ctx.deps.state.domain
-    readings = domain.reading_labels()
-    recorded = [q for q in domain.open_questions if q.options]
-    offered = {o.label for q in recorded for o in q.options}
-    prompts = {q.question for q in recorded}
-    own = [q for q in questions if q.prompt not in prompts]
-    reused = [q.prompt for q in own if offered & {o.label for o in q.options}]
-    choices = list(requirement_choices(domain.requirements))
-    unbound = [
-        (q.prompt, labels)
-        for q in own
-        if q.prompt not in reused
-        and (labels := _unbound_labels(q, [*choices, *readings]))
-    ]
-    scoped = [
-        q.prompt
-        for q in own
-        if q.dimension is not ConstraintKind.OTHER
-        and set(readings) & {o.label for o in q.options}
-    ]
-    held = _held_dimensions(recorded, domain.operational_spec)
-    claimed = [q for q in own if not q.options and q.dimension in held]
-    decided = {q.question for q in domain.answered_questions}
-    again = [q.prompt for q in questions if q.prompt[:_QUESTION_LIMIT] in decided]
-    if not reused and not unbound and not scoped and not claimed and not again:
-        return
-    expected = [
-        f"{q.prompt!r} with the options {[o.label for o in q.options]}"
-        for q in card_questions(recorded)
-    ]
-    problems = [
-        *(f"{prompt!r} offers a value a recorded question binds" for prompt in reused),
-        *(
-            f"{prompt!r} offers {labels}, which bind nothing, so an answer to "
-            f"them states nothing"
-            for prompt, labels in unbound
-        ),
-        *(
-            f"{prompt!r} offers a reading, which states a requirement of its own, "
-            "so its dimension is other"
-            for prompt in scoped
-        ),
-        *(
-            f"{q.prompt!r} asks the {q.dimension.value}, which a parameter of the "
-            f"spec sets, so an answer in words binds nothing"
-            for q in claimed
-        ),
-        *(f"{prompt!r} was answered already; its answer stands" for prompt in again),
-    ]
-    got = "; ".join(
-        f"{q.prompt!r}: {sorted(o.label for o in q.options)}" for q in questions
-    )
-    held_choices = ", ".join(repr(label) for label in choices)
-    named = ", ".join(repr(label) for label in readings)
-    msg = (
-        f"The card binds nothing for these questions: {'; '.join(problems)}. The "
-        f"card asked {got}. The card asks these as recorded, whatever the call "
-        f"writes: {'; '.join(expected) or 'none'}. A question of your own offers no "
-        f"options, for an answer in the researcher's words about something no "
-        f"parameter of the spec sets, or offers 'Drop <requirement>' and 'Keep "
-        f"<requirement>' for a requirement the conversation holds, or offers on "
-        f"the dimension other the readings a framing pass named. The "
-        f"requirements the conversation holds offer: {held_choices or 'none'}. "
-        f"The readings the framing pass named offer: {named or 'none'}. A value a "
-        f"parameter sets is asked by the pass that binds it: dispatch "
-        f"edit_strategy, or frame_problem over a spec with no built step, with "
-        f"the question, and ask the card its result carries. {CARD_NOT_SHOWN}"
-    )
-    raise ModelRetry(msg)
 
 
 def _answer_requirement(
@@ -375,12 +257,11 @@ async def consult_user(
 
     A question FRAME or an edit recorded is asked exactly as the result's
     ``cardQuestions`` state it: its prompt and its option labels, each of
-    which binds a value. A question of your own offers no options and is
-    answered in the researcher's words, about something no parameter of the
-    spec sets; or it offers 'Drop <requirement>' and 'Keep <requirement>' for
-    a requirement the conversation holds; or, on the dimension ``other``, it
-    offers as written the readings a framing pass named, the one it built and
-    each other, and the pick states that reading.
+    which binds a value. A question of your own may offer options; a picked
+    one that binds no recorded value comes back as the researcher's words,
+    as an answer in the free-text note does. 'Drop <requirement>' and 'Keep
+    <requirement>' bind a requirement the conversation holds, and a reading a
+    framing pass named, offered as written, states that reading.
 
     This pauses the turn: the user answers each question in a carousel
     (options + optional free-text note). A picked value is bound into the

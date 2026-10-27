@@ -216,8 +216,6 @@ class AgentToolState:
     stated_requirements: list[Constraint] = field(default_factory=list)
     held_record_roles: dict[str, RecordRole] = field(default_factory=dict)
     held_group_scopes: dict[str, GroupScope] = field(default_factory=dict)
-    # The spec the dispatch found, which a pass that changes nothing still holds.
-    spec_the_dispatch_found: OperationalSpec | None = None
     # The searches the site refused to run this pass, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)
     builder_refusals: dict[str, str] = field(default_factory=dict)

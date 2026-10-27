@@ -13,10 +13,6 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import history_free
-from pathfinder.ai.models.mock.history import head_work_order
-from pathfinder.ai.models.mock.reads import instructions_of
-from pathfinder.ai.models.mock.sheets import sheet_entries, workspace_criteria
-from pathfinder.ai.models.mock.specs import criterion_replies
 from pathfinder.domain.evidence import VerificationReview
 
 CRITERION = "set_criterion"
@@ -29,14 +25,6 @@ DELETE = "delete_step"
 UNLISTED_SEARCH = "GenesByNoSuchSearch"
 UNLISTED_ORGANISM = "Organismus fictus"
 SHORT_REPLY = "[mock] Two"
-# A reason over the 160-character cap that names no parameter.
-LONG_REASON = (
-    "Chosen because the catalog ranked it first for this part of the request, "
-    "and because its settings cover what the researcher described in the message "
-    "about these genes and their predicted features."
-)
-# The line the order of a pass that continues a stopped pass carries.
-_CONTINUATION = "are bound already and stay exactly as they are"
 
 # The wrong call made in place of the call the arc was about to make, or None.
 CallFault = Callable[[ToolCallPart], ToolCallPart | None]
@@ -85,52 +73,6 @@ def _unlisted_search(intended: ToolCallPart) -> ToolCallPart | None:
     )
 
 
-def _value_as_term(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's binding with the value it sets passed as the parameter term,
-    which ``set_criterion`` corrects to the parameter and accepts."""
-    binding = _binding(intended)
-    if binding is None or binding.why is None or binding.params is None:
-        return None
-    match binding.params.get(binding.why.term):
-        case [str() as value, *_] | (str() as value):
-            why = binding.why.model_copy(update={"term": value})
-            return _criterion(binding.model_copy(update={"why": why}))
-        case _:
-            return None
-
-
-class _Criterion(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    criterion_id: str = ""
-
-
-def display_name_term(messages: list[ModelMessage]) -> CallFault:
-    """The arc's binding with its parameter term written as the parameter's
-    display name in another punctuation, which ``set_criterion`` corrects."""
-    instructions = instructions_of(messages)
-
-    def fault(intended: ToolCallPart) -> ToolCallPart | None:
-        binding = _binding(intended)
-        if binding is None or binding.why is None:
-            return None
-        criterion_id = _Criterion.model_validate(intended.args_as_dict()).criterion_id
-        shown = next(
-            (
-                e.display_name
-                for e in sheet_entries(instructions, criterion_id)
-                if binding.why.term in (e.name, e.display_name)
-            ),
-            None,
-        )
-        if shown is None:
-            return None
-        why = binding.why.model_copy(update={"term": f"{shown.rstrip(':')}:"})
-        return _criterion(binding.model_copy(update={"why": why}))
-
-    return fault
-
-
 def _off_vocabulary(intended: ToolCallPart) -> ToolCallPart | None:
     """The arc's binding with its organism replaced by one no vocabulary lists."""
     binding = _binding(intended)
@@ -150,27 +92,6 @@ def _syntenic_left_off(intended: ToolCallPart) -> ToolCallPart | None:
         return None
     params = {**binding.params, **dict.fromkeys(synteny)}
     return _criterion(binding.model_copy(update={"params": params}))
-
-
-def long_reason(messages: list[ModelMessage]) -> CallFault:
-    """A binding after the first bound criterion, with a reason past the cap.
-
-    The pass that continues a stopped pass binds as the arc does.
-    """
-    continued = _CONTINUATION in head_work_order(messages)
-    # A compacted run drops the reply, and the pinned workspace keeps the bind.
-    bound = bool(workspace_criteria(instructions_of(messages))) or any(
-        reply.resolved_params for reply in criterion_replies(messages)
-    )
-
-    def fault(intended: ToolCallPart) -> ToolCallPart | None:
-        binding = _binding(intended)
-        if continued or not bound or binding is None or binding.why is None:
-            return None
-        why = binding.why.model_copy(update={"reason": LONG_REASON})
-        return _criterion(binding.model_copy(update={"why": why}))
-
-    return fault
 
 
 class _Tested(BaseModel):
@@ -252,7 +173,6 @@ def _short_card_reply(intended: ToolCallPart) -> ToolCallPart | None:
 
 
 unlisted_search: WrongCall = history_free(lambda: _unlisted_search)
-value_as_term: WrongCall = history_free(lambda: _value_as_term)
 off_vocabulary: WrongCall = history_free(lambda: _off_vocabulary)
 syntenic_left_off: WrongCall = history_free(lambda: _syntenic_left_off)
 all_unclear: WrongCall = history_free(lambda: _all_unclear)

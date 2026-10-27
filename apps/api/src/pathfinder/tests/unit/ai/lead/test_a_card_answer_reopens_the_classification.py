@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import pytest
 from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
-from pydantic_ai.exceptions import ToolFailed
 
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.intent import IntentClassification
@@ -83,30 +82,3 @@ async def test_a_second_card_answer_is_classified_with_its_stated_parts() -> Non
         ("other:GPI anchored", "user_explicit"),
         ("other:variant surface glycoprotein", "user_explicit"),
     ]
-
-
-async def test_a_repeated_classification_of_the_same_answer_is_refused() -> None:
-    deps = await _deps_after_the_first_answer()
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(
-            run_context_for(deps, "call_classify_2"),
-            user_intent(IntentClassification.CLARIFICATION_RESPONSE),
-        )
-
-    assert "already classified as clarification_response" in refused.value.message
-
-
-async def test_a_second_answer_classified_twice_is_refused_the_second_time() -> None:
-    deps = await _deps_after_the_first_answer()
-    await _answer_card(deps, "call_consult_2", _SECOND_ANSWER)
-    answer = user_intent(
-        IntentClassification.CLARIFICATION_RESPONSE, explicit_constraints=[_PHRASE]
-    )
-    ctx = run_context_for(deps, "call_classify_2")
-    await classify_user_intent(ctx, answer)
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(ctx, answer)
-
-    assert "already classified as clarification_response" in refused.value.message

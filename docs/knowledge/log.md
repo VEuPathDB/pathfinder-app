@@ -32,6 +32,22 @@
   ([decision](decisions/an-unsettled-vocabulary-pick-is-asked.md)). `search_for_searches`
   shows `decisionProbability`. The import contract names the modules veupathdb-mcp
   0.2.0b53 and 0.2.0b54 added.
+* **The tools a turn reaches follow its typed state.** The classification withholds no
+  tool: building and audit tools are reached on every turn whose typed preconditions hold,
+  writes that need consent stay behind their cards, an off-topic turn is told to answer in
+  two sentences, and a reclassification replaces the last
+  ([decision](decisions/the-tools-a-turn-reaches-follow-its-typed-state.md)).
+* **The phrasing rules are removed.** The rationale term checks and the reason's character
+  limit, the qualifier check, the fixed menu of the Lead's own card, FRAME's question
+  cascade (the free question with no open slot, the readings demand, the every-genome and
+  comparison-reading checks), the added-criterion check, the number-word, none-word,
+  values-without-noun, tally-of-a-step, dispute and group-certainty faults, the reply rules
+  `claimed_frame`, `blamed_the_site`, `unmade_change`, `unbacked_absence`,
+  `unrecorded_question`, `unfinished_work` and `unstated_reading`, and FRAME's case replay
+  are gone; the OrthoMCL guidance reaches only an OrthoMCL pass, and the base prompts name
+  `get_search_overview`, ask for no bold number and no longer advise a site switch
+  ([decision](decisions/a-refusal-rests-on-typed-state.md)). Backlog 45 (an every-genome
+  question) leaves with the rule it asked for.
 
 ## 2026-10-26
 

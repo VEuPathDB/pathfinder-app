@@ -90,7 +90,6 @@ async def test_a_count_of_a_search_the_catalog_lacks_is_not_sent_to_framing() ->
 async def test_the_first_message_reclassified_reaches_frame() -> None:
     deps = _question_turn()
     await _tally_refusal(deps)
-    assert "frame_problem" not in tools_the_turn_offers(deps, ["frame_problem"])
 
     await classify_user_intent(
         run_context_for(deps, tool_call_id="call_reclassify"),

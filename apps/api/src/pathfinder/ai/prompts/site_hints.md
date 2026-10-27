@@ -1,20 +1,6 @@
-# Site Selection Hints
+# Site Hints
 
-## When to Use Component Sites
-
-Use **component sites** (PlasmoDB, ToxoDB, etc.) when:
-- User is working with a specific organism
-- Faster query performance is needed
-- Full organism-specific searches are required
-- Working with specialized data tables
-
-## When to Use the Portal
-
-Use **VEuPathDB Portal** when:
-- Comparing across multiple organisms
-- User hasn't specified an organism
-- Looking for orthologs across species
-- Initial exploration before focusing
+A conversation stays on the site it opened on; these name what each site holds.
 
 ## Organism to Site Mapping
 

@@ -75,27 +75,20 @@ _GPI = Constraint(
 def test_a_question_on_an_open_slot_binds() -> None:
     draft = _draft(open_floor=True)
 
-    assert (
-        questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft, None)
-        == ""
-    )
+    assert questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft) == ""
 
 
 def test_a_question_on_a_value_the_site_defaulted_binds() -> None:
     """Asking a bound value again changes it, even over an untouched draft."""
     draft = _draft(open_floor=False)
 
-    assert (
-        questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft, draft)
-        == ""
-    )
+    assert questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft) == ""
 
 
 def test_a_question_on_a_parameter_the_criterion_lacks_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
         _asked(_asks("c_troph", "max_expression_percentile")),
         _draft(open_floor=True),
-        None,
     )
 
     assert "max_expression_percentile" in refusal
@@ -104,7 +97,7 @@ def test_a_question_on_a_parameter_the_criterion_lacks_is_refused() -> None:
 
 def test_a_question_on_a_criterion_the_draft_lacks_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
-        _asked(_asks("c_gone", _FLOOR)), _draft(open_floor=True), None
+        _asked(_asks("c_gone", _FLOOR)), _draft(open_floor=True)
     )
 
     assert "c_gone" in refusal
@@ -112,37 +105,7 @@ def test_a_question_on_a_criterion_the_draft_lacks_is_refused() -> None:
 
 def test_a_question_that_names_half_a_slot_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
-        _asked(_asks("c_troph", "")), _draft(open_floor=True), None
+        _asked(_asks("c_troph", "")), _draft(open_floor=True)
     )
 
     assert "criterion_id and param_name" in refusal
-
-
-def test_a_question_about_a_requirement_the_site_lacks_binds() -> None:
-    """Its answer lands on the requirement, through the drop and keep options."""
-    free = SlotQuestion(
-        question="No search on this site states a predicted GPI anchor. Drop it?",
-        dimension=ConstraintKind.DATA_TYPE,
-        recommended_value="GenesWithSignalPeptide",
-    )
-
-    assert (
-        questions_that_bind_to_nothing(
-            _asked(free), _draft(open_floor=False), None, lacking=[_GPI]
-        )
-        == ""
-    )
-
-
-def test_a_free_question_on_a_draft_with_no_open_slot_is_refused() -> None:
-    free = SlotQuestion(
-        question="Which evidence should stand in?",
-        dimension=ConstraintKind.DATA_TYPE,
-        recommended_value="GenesWithSignalPeptide",
-    )
-
-    refusal = questions_that_bind_to_nothing(
-        _asked(free), _draft(open_floor=False), None, lacking=[_GPI]
-    )
-
-    assert "no criterion of the spec holds an open slot" in refusal

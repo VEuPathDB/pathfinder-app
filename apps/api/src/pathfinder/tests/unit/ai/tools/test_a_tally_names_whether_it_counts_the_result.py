@@ -8,12 +8,10 @@ import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree
 
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
-from pathfinder.domain.reply_references import ProseFault, prose_faults
+from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment.column_tally import ColumnTally
 from pathfinder.services.experiment.step_tally import CountedStep
@@ -121,24 +119,6 @@ async def test_a_tally_of_the_root_counts_the_result() -> None:
 _REPLY = "The leading taxon holds [tally:tally_{step}.pyxn]."
 
 
-async def test_a_reply_citing_only_a_leaf_tally_is_refused() -> None:
-    ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
-    await count_step_by_column(ctx, _TAXA, "abbreviation")
-    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies, result_step_id=_ROOT)
-
-    faults = prose_faults(_REPLY.format(step=_TAXA), facts)
-
-    assert faults == [
-        ProseFault(token=f"[tally:tally_{_TAXA}.pyxn]", kind="tally_of_a_step")
-    ]
-    assert (
-        f"- ``[tally:tally_{_TAXA}.pyxn]`` counts a step that is not the "
-        "strategy's result, as its tally's title says, so it states nothing "
-        "about the result: count the result step with count_step_by_column and "
-        "cite that tally, or take it out."
-    ) in unrendered_prose_message(faults)
-
-
 async def test_a_leaf_tally_beside_a_tally_of_the_result_is_no_fault() -> None:
     ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
     await count_step_by_column(ctx, _TAXA, "abbreviation")
@@ -147,20 +127,3 @@ async def test_a_leaf_tally_beside_a_tally_of_the_result_is_no_fault() -> None:
 
     assert prose_faults(_REPLY.format(step=_ROOT), facts) == []
     assert prose_faults(_REPLY.format(step=_TAXA), facts) == []
-
-
-def test_a_tally_of_the_root_counts_another_step_once_the_root_moves() -> None:
-    tally = TallyFact(
-        id="tally_old_root",
-        title="Proteins by Taxon Code",
-        record_noun="protein",
-        total=333932,
-        distinct=61,
-        wdk_step_id=_TAXA,
-    )
-    prose = "The result holds [tally:tally_old_root]."
-
-    assert prose_faults(prose, TurnFacts(tallies=[tally], result_step_id=_TAXA)) == []
-    assert prose_faults(prose, TurnFacts(tallies=[tally], result_step_id=_ROOT)) == [
-        ProseFault(token="[tally:tally_old_root]", kind="tally_of_a_step")
-    ]

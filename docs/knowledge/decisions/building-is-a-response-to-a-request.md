@@ -5,8 +5,10 @@ description: A pydantic-ai `PrepareTools` capability drops every tool but the al
 tags: [agents, lead, intent, cost]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded by [the tools a turn reaches follow its typed state](the-tools-a-turn-reaches-follow-its-typed-state.md): the classification no longer withholds a tool.
 
 # The decision
 

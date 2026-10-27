@@ -15,7 +15,6 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent, build_lead_toolset
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
@@ -78,18 +77,6 @@ def _no_persist(monkeypatch: pytest.MonkeyPatch) -> None:
         "persist_strategy_ast_to_conversation",
         _noop,
     )
-
-
-def test_research_is_reachable_before_the_turn_is_classified() -> None:
-    """The two served reads answer a question that has not been classified."""
-    assert "research_web_search" in UNCLASSIFIED_TOOLS
-    assert "research_literature_search" in UNCLASSIFIED_TOOLS
-    assert not UNCLASSIFIED_TOOLS & BUILDING_TOOLS
-
-
-def test_a_memory_is_recalled_before_the_turn_is_classified() -> None:
-    """A request that points at earlier work is read before it is classified."""
-    assert "search_memory" in UNCLASSIFIED_TOOLS
 
 
 def test_the_classifier_takes_no_message_text_from_the_model() -> None:
@@ -361,15 +348,8 @@ async def test_an_export_request_reaches_the_export_tool_and_points_at_the_file(
     assert _EXPORT_URL not in result.output.prose
 
 
-def test_the_export_tool_is_offered_before_the_turn_is_classified() -> None:
-    """Exporting a saved set asks for no strategy, so it waits for no build."""
-    assert "export_gene_set" in UNCLASSIFIED_TOOLS
-    assert "export_gene_set" not in BUILDING_TOOLS
-
-
 def test_the_lead_offers_no_download_it_has_no_id_for() -> None:
     """A WDK step id is not a name the Lead can read, so it takes none."""
-    assert "get_download_url" not in UNCLASSIFIED_TOOLS
     assert "get_download_url" not in unwrap_function_toolset(build_lead_toolset()).tools
 
 
@@ -449,18 +429,6 @@ async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
     assert ctx.deps.state.turn_markers.retrieved_sources == [
         "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
     ]
-
-
-def test_the_record_read_is_offered_before_the_turn_is_classified() -> None:
-    """A question about a gene needs no classification to be answered."""
-    assert "read_gene_record" in UNCLASSIFIED_TOOLS
-    assert "read_gene_record" not in BUILDING_TOOLS
-
-
-def test_the_catalog_search_reads_are_offered_before_the_turn_is_classified() -> None:
-    """A count or a membership check changes nothing, so it needs no classification."""
-    assert {"count_search", "genes_in_search"} <= UNCLASSIFIED_TOOLS
-    assert {"count_search", "genes_in_search"}.isdisjoint(BUILDING_TOOLS)
 
 
 def test_the_classifier_is_told_a_question_a_search_answers_is_a_build() -> None:

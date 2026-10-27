@@ -14,24 +14,6 @@ def _sentence(fault: ProseFault) -> str:
     return unrendered_prose_message([fault]).splitlines()[-1]
 
 
-def test_a_number_word_fault_shows_the_clause_and_the_rewrite() -> None:
-    fault = ProseFault(
-        token="at least one predicted transmembrane domain [value:step_5c.min_tm]",
-        kind="number_word",
-        references=("[value:step_5c.min_tm]",),
-    )
-
-    assert _sentence(fault) == (
-        "- ``at least one predicted transmembrane domain [value:step_5c.min_tm]``: "
-        "``[value:step_5c.min_tm]`` stands in place of the number, so the clause "
-        "writes no number word, and a number a step sets is its "
-        "[value:<step_id>.<param>]: write 'at least "
-        "[value:step_x.min_tm] "
-        "transmembrane domains', not 'at least one transmembrane domain "
-        "[value:step_x.min_tm]'."
-    )
-
-
 def test_a_noun_after_a_count_reference_fault_says_the_reference_carries_it() -> None:
     fault = ProseFault(
         token="[count:step_a] genes",

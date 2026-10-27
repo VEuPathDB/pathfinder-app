@@ -30,9 +30,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     ParamProposals,
     refuse_unmatched_value,
 )
-from pathfinder.ai.tools.standalone._frame_qualifiers import (
-    refuse_a_qualifier_the_search_drops,
-)
 from pathfinder.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
@@ -125,9 +122,6 @@ async def open_the_sheet(
     await refuse_a_search_the_criterion_cannot_use(
         ctx, record_type, definition, stated, None
     )
-    unread = await refuse_a_qualifier_the_search_drops(
-        ctx, record_type, definition, stated
-    )
     register_search(ctx.deps.agent_state, definition, record_type)
     return criterion_return(
         ctx,
@@ -138,7 +132,6 @@ async def open_the_sheet(
                 ctx.deps.agent_state, stated.id, search_name, definition
             ),
             sheet_pinned=True,
-            unread_searches=unread,
         ),
         record_type,
         definition,

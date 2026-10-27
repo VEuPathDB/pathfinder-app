@@ -105,11 +105,7 @@ AUDIT_CLASSIFICATION = (
     "named genes for errors, whatever its verb: "
     f"{'; '.join(_in_a_sentence(title) for title in CHECK_TITLES.values())}. "
     "A question whether a model is right is an audit, and a request for the "
-    "genes that hold a property of their models is a build: "
-    '"Which NF54 pseudogenes are intact?" asks whether the pseudogene calls are '
-    'right and is gene_model_audit, while "Find pseudogenes in P. falciparum '
-    'NF54" finds genes by their gene type and is new_strategy, as is "List '
-    'genes longer than 10 kb in 3D7".'
+    "genes that hold a property of their models is a build."
 )
 
 
@@ -243,16 +239,6 @@ class UserIntent(CamelModel):
             if not _is_a_side(set(_content_words(c.requested_value)), sides)
         ]
         return self
-
-    def as_question(self) -> UserIntent:
-        """This intent as a follow-up question that keeps its asks and requests no change."""
-        return UserIntent.model_validate(
-            {
-                **self.model_dump(),
-                "classification": IntentClassification.FOLLOW_UP_QUESTION,
-                "edit_direction": "other",
-            }
-        )
 
     def with_undo_read_from(self, message: str) -> UserIntent:
         """This intent, recording an undo when the message asks for one too.
@@ -395,20 +381,14 @@ def question_asks_a_change_message() -> str:
     )
 
 
-def question_withdraws_message(
-    withdrawn: Sequence[str], *, states_a_change: bool
-) -> str:
-    """The refusal of a question classification that withdraws a requirement:
-    a message that states the change outside its questions asks for it."""
+def question_withdraws_message(withdrawn: Sequence[str]) -> str:
+    """The refusal of a question classification that withdraws a requirement."""
     named = ", ".join(f"'{value}'" for value in withdrawn)
-    refused = f"The classification withdraws {named}, and a question withdraws nothing."
-    if not states_a_change:
-        return f"{refused} The message only asks what a change would do, so withdraw nothing."
     return (
-        f"{refused} The message states the change outside its questions, so it asks "
-        "for it: classify it as the request it is (edit_strategy for a change to the "
-        "strategy), state each value it asks for in explicit_constraints and keep its "
-        "question in asks."
+        f"The classification withdraws {named}, and a question withdraws nothing. "
+        "A message that asks for the change is the request it is (edit_strategy "
+        "for a change to the strategy, its question kept in asks); one that only "
+        "asks what a change would do withdraws nothing."
     )
 
 
@@ -418,21 +398,4 @@ def repeated_refusal_message(refusal: str) -> str:
         f"{refusal}\n\nThis call repeats the one just refused, so it fails "
         "without a retry. Ask the researcher the question this refusal states, "
         "through consult_user."
-    )
-
-
-def recorded_as_question_message() -> str:
-    """The note on a request classification the gate records as a question."""
-    return (
-        "Recorded as a follow_up_question: the message states no change outside "
-        "its questions; the facts answer it and nothing is framed."
-    )
-
-
-def already_classified_message(classification: IntentClassification) -> str:
-    """The refusal of a classification that repeats the one this turn holds."""
-    return (
-        f"This turn is already classified as {classification.value}. Call "
-        "classify_user_intent once per turn, and again only to change the "
-        "classification or to classify a new card answer; go on with the turn."
     )

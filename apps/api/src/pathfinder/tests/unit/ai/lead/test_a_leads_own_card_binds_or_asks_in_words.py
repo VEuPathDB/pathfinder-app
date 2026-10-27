@@ -11,14 +11,12 @@ from assistant_core.graph.turn_state import (
     PendingApproval,
     UserQuestionAnswer,
 )
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
-    refuse_a_card_that_binds_nothing,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
@@ -95,16 +93,6 @@ def _deps(
     )
 
 
-def _refusal(deps: LeadDeps, card: CardQuestion) -> str:
-    try:
-        refuse_a_card_that_binds_nothing(
-            run_context_for(deps, "call_card"), [card], reply=_REPLY
-        )
-    except ModelRetry as refused:
-        return str(refused)
-    return ""
-
-
 def _card(prompt: str, dimension: ConstraintKind, *labels: str) -> CardQuestion:
     return CardQuestion(
         id="q1",
@@ -115,68 +103,6 @@ def _card(prompt: str, dimension: ConstraintKind, *labels: str) -> CardQuestion:
 
 
 _SPEC = OperationalSpec(criteria=[_signal_peptide(), _oocyst_proxy()])
-
-
-def test_the_cryptodb_widen_card_is_refused() -> None:
-    """Both options leave the cross-organism INTERSECT at 0 genes."""
-    card = _card(
-        "The intersection of UKMEL1 signal-peptide genes with the C. hominis TU502 "
-        "oocyst-expression proxy returned no genes. Which available expression "
-        "setting should I relax for a broader result?",
-        ConstraintKind.PERCENTILE,
-        "Minimum expression percentile: 0",
-        "Protein Coding Only: all",
-    )
-
-    refusal = _refusal(_deps(_SPEC), card)
-
-    assert (
-        "offers ['Minimum expression percentile: 0', 'Protein Coding Only: all'], "
-        "which bind nothing"
-    ) in refusal
-    assert "dispatch edit_strategy, or frame_problem" in refusal
-
-
-def test_the_piroplasmadb_card_over_no_spec_is_refused() -> None:
-    card = _card(
-        "No catalog search on this site states predicted GPI-anchor genes for "
-        "Cytauxzoon felis Winnie. Should I proceed with the available "
-        "signal-peptide search alone, or should you specify an alternative "
-        "evidence type?",
-        ConstraintKind.OTHER,
-        "Proceed with signal peptide alone",
-        "Specify an alternative evidence type",
-    )
-
-    assert "which bind nothing" in _refusal(_deps(None), card)
-
-
-def test_a_question_in_words_on_a_parameter_the_spec_binds_is_refused() -> None:
-    """No requirement states a percentile; the spec binds one."""
-    card = _card("Which expression floor should I use?", ConstraintKind.PERCENTILE)
-
-    refusal = _refusal(_deps(_SPEC), card)
-
-    assert "asks the percentile, which a parameter of the spec sets" in refusal
-
-
-def test_a_question_in_words_on_a_dimension_the_spec_leaves_open_is_asked() -> None:
-    card = _card("Which expression floor should I use?", ConstraintKind.PERCENTILE)
-    spec = OperationalSpec(criteria=[_signal_peptide()])
-
-    assert _refusal(_deps(spec), card) == ""
-
-
-def test_a_drop_or_keep_card_of_a_held_requirement_is_asked_and_binds() -> None:
-    card = _card(
-        "No search states oocyst expression in UKMEL1. Drop it?",
-        ConstraintKind.OTHER,
-        "Drop expressed in oocysts",
-        "Keep expressed in oocysts",
-    )
-    deps = _deps(_SPEC)
-
-    assert _refusal(deps, card) == ""
 
 
 async def test_the_drop_option_of_the_leads_card_retires_the_requirement() -> None:
@@ -230,29 +156,3 @@ def _obp_domain() -> Criterion:
 
 
 _OBP = requirement(ConstraintKind.OTHER, "annotation", "odorant-binding protein")
-
-
-def test_a_free_text_question_on_other_passes_over_a_bound_domain() -> None:
-    card = _card(
-        "Which annotation should define an odorant-binding protein: the Pfam "
-        "domain or the product text?",
-        ConstraintKind.OTHER,
-    )
-    deps = _deps(OperationalSpec(criteria=[_obp_domain()]), [_OBP])
-
-    assert _refusal(deps, card) == ""
-
-
-def test_a_refused_card_names_the_keep_and_drop_labels_it_may_offer() -> None:
-    card = _card(
-        "Which annotation should define an odorant-binding protein?",
-        ConstraintKind.OTHER,
-        "Use explicit product/name annotation",
-        "Keep the current protein-domain definition",
-    )
-    deps = _deps(OperationalSpec(criteria=[_obp_domain()]), [_OBP])
-
-    assert (
-        "The requirements the conversation holds offer: 'Drop odorant-binding "
-        "protein', 'Keep odorant-binding protein'."
-    ) in _refusal(deps, card)

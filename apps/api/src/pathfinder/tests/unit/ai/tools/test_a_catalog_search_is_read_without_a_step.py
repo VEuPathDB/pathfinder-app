@@ -299,7 +299,6 @@ async def test_an_unlisted_name_marks_the_turn_as_looked_up(
     with pytest.raises(ModelRetry):
         await count_search(ctx, domain)
 
-    assert ctx.deps.state.turn_markers.catalog_looked_up is True
     assert reports.ran == []
 
 

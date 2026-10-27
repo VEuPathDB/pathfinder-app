@@ -26,12 +26,7 @@ from pathfinder.tests._support.recorded_searches import (
 )
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._rationale_catalog import (
-    EXPORTED,
-    SIGNAL,
     choice,
-    read,
-    refused,
-    serve_site,
 )
 from pathfinder.tests.unit.ai.tools.conftest import serve_no_other_sites
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -208,39 +203,6 @@ async def test_a_value_only_the_site_sets_is_refused_at_another_value(
     assert state.operational_spec_draft.criteria == []
 
 
-@pytest.mark.asyncio
-async def test_a_display_name_without_its_parenthetical_names_the_parameter(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _serve(monkeypatch)
-    state = AgentToolState()
-
-    result = await _bind(
-        state,
-        _TEXT,
-        {
-            "text_fields": ["product"],
-            "text_expression": "ves",
-            "text_search_organism": [_ORGANISM],
-        },
-        {
-            "term": "Text term",
-            "basis": "parameter",
-            "reason": "The text search matches the ves annotation in product text.",
-        },
-        text="genes annotated in the ves multigene family",
-    )
-
-    assert result.rationale is not None
-    assert result.rationale.term == "Text term (use * as wildcard)"
-    assert result.corrections == [
-        (
-            "why.term corrected to Text term (use * as wildcard): Text term names "
-            "the parameter text_expression"
-        )
-    ]
-
-
 def _fold_change_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
     return [
         param_info("fold_change", display_name="Fold change", default_value="2"),
@@ -285,27 +247,6 @@ async def test_the_dataset_url_a_step_carries_is_left_to_the_site(
         )
     ]
     assert result.resolved_params["fold_change"] == "4"
-
-
-@pytest.mark.asyncio
-async def test_a_phrase_the_search_does_not_hold_is_refused_with_its_words(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    serve_site(monkeypatch)
-    state = AgentToolState()
-    await read(monkeypatch, state, EXPORTED, SIGNAL)
-
-    message = await refused(
-        state,
-        choice("only_match", "predicted to be secreted", "the direct search"),
-    )
-
-    assert message == (
-        "c_gpi: the name and the description of GenesByExportPrediction do not "
-        "hold predicted to be secreted. They read: Exported Protein; Find genes "
-        "that are predicted by ExportPred to produce an exported protein. Pass as "
-        "the term a phrase of the request these words hold, or give another basis."
-    )
 
 
 _HELD_WHY = SearchRationale(

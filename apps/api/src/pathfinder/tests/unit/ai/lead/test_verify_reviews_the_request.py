@@ -51,7 +51,7 @@ _RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/{}"
 pytestmark = pytest.mark.usefixtures("collector")
 
 
-def _deps(*, unexpressed: list[str] | None = None) -> LeadDeps:
+def _deps() -> LeadDeps:
     state = pipeline_state("plasmodb", user_prompt=_ADDED)
     state.domain.original_request = _ASKED
     state.domain.request_messages = [_ASKED]
@@ -65,7 +65,6 @@ def _deps(*, unexpressed: list[str] | None = None) -> LeadDeps:
                 id="s1",
                 text="genes with a signal peptide",
                 search_name="GenesWithSignalPeptide",
-                unexpressed_qualifiers=list(unexpressed or []),
             )
         ],
     )
@@ -108,12 +107,6 @@ def test_the_scope_numbers_every_message_of_the_request() -> None:
             "(from an earlier message); key organism:Plasmodium falciparum 3D7"
         )
     ]
-
-
-def test_the_scope_lists_each_word_no_search_states() -> None:
-    scope = verification_scope(_deps(unexpressed=["exported"]), check_id="call_v")
-
-    assert scope.unexpressed == ["'exported' in [s1] genes with a signal peptide"]
 
 
 def test_the_work_order_names_each_search_step_then_the_root_to_sample() -> None:

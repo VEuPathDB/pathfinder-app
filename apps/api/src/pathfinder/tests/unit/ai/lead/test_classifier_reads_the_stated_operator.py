@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
@@ -179,18 +179,6 @@ def test_verify_reads_the_intent_as_the_request_and_the_users_constraints() -> N
     assert "where it and the request differ, the request decides" in guidance
     assert "A criterion the spec dropped is not part of the intent" in guidance
     assert "A request that names no organism cannot fail on species" in guidance
-
-
-async def test_a_second_classification_that_changes_nothing_is_refused() -> None:
-    state = pipeline_state(user_prompt=VACCINE)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    await classify_user_intent(ctx, _intent("AND"))
-
-    with pytest.raises(ToolFailed) as refused:
-        await classify_user_intent(ctx, _intent("AND"))
-
-    assert "already classified as new_strategy" in refused.value.message
-    assert len(state.domain.requirements) == 1
 
 
 async def test_a_second_classification_may_change_the_classification() -> None:
