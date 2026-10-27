@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-27
+
+* **PathFinder takes veupathdb-py v0.1.0b25 and veupathdb-mcp v0.2.0-b54.** The MCP
+  release reads the radio-pair readings of a search (`read_radio_readings`) and can ask
+  the OpenAI Decisions API during catalog reads: a narrowed vocabulary read carries the
+  entry it picks and how sure it is (`ParameterInfo.vocab_pick`), and a search lookup
+  carries each result's `decision_probability`. `DECISIONS_ENABLED` (default false) turns
+  it on, on the same `OPENAI_API_KEY` the models use; the api, the worker and the
+  wdk-mcp container read it, and `.env.example` documents it with its timeout and its
+  confidence floor.
+
 ## 2026-10-26
 
 * **Open work is filed as backlog 59 to 68.** The ask-once change waits on its branch for a live run; the rest (a live check of the last pushed round, an unfounded approval claim, a phyletic set described twice in veupathdb-py, guards that refuse too much, a direct link to the result list, the edited browser tests, thread surgery as a runtime primitive, the remaining audit phases and catalog prices for every model) is described in each card.
