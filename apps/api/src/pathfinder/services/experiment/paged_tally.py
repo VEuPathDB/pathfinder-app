@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from veupathdb import strip_html_tags
 from veupathdb.wdk import get_strategy_api
+from veupathdb_mcp.wdk import view_filters_for
 
 PAGED_RECORDS = 2_000
 GENOME_COLUMN = "organism_full"
@@ -17,12 +18,13 @@ class PagedCounts:
 
 
 async def count_paged_values(
-    site_id: str, wdk_step_id: int, column: str
+    site_id: str, wdk_step_id: int, record_type: str | None, column: str
 ) -> PagedCounts:
     answer = await get_strategy_api(site_id).get_step_answer(
         wdk_step_id,
         attributes=[column],
         pagination={"offset": 0, "numRecords": PAGED_RECORDS},
+        view_filters=view_filters_for(record_type),
     )
     held = (strip_html_tags(record.attribute_text(column)) for record in answer.records)
     return PagedCounts(

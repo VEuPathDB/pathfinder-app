@@ -62,7 +62,7 @@ def _exported_deps() -> LeadDeps:
     session.add_graph(graph)
     session.sync_state = WDKSyncState(
         wdk_step_ids={"c_text": _EXPORTED},
-        step_counts={"c_text": 840},
+        step_counts={"c_text": 4200},
         wdk_strategy_id=_EXPORTED_STRATEGY,
         wdk_step_tree=WDKStepTree(step_id=_EXPORTED),
     )
@@ -108,7 +108,7 @@ def _exported_details() -> WDKStrategyDetails:
                         }
                     },
                     "recordClassName": "transcript",
-                    "estimatedSize": 840,
+                    "estimatedSize": 4200,
                     "validation": VALID,
                 }
             },
@@ -135,11 +135,11 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
     serve_columns(monkeypatch, ColumnSite({}, {}))
     server = ToolServer(
         counts=_organisms(
-            ("<i>Plasmodium falciparum</i> 3D7", 819),
+            ("<i>Plasmodium falciparum</i> 3D7", 4179),
             ("<i>Plasmodium falciparum</i> IT", 21),
         )
     )
-    serve(monkeypatch, TallySite(column_catalog(), step_count=840), server)
+    serve(monkeypatch, TallySite(column_catalog(), step_count=4200), server)
 
     delta = await verify(monkeypatch, _exported_deps(), UNANSWERED_DIGEST)
 
@@ -148,7 +148,7 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
         subject=_PF,
         status="fail",
         evidence=(
-            f"21 of the 840 records of step {_EXPORTED} ('Text') hold organisms the "
+            f"21 of the 4,200 records of step {_EXPORTED} ('Text') hold organisms the "
             f"strategy does not select: {_PF_IT} (21)"
         ),
         requirement=f"organism:{_PF}",
@@ -168,7 +168,7 @@ async def test_an_organism_column_the_site_does_not_count_leaves_it_unchecked(
     refused = ColumnNotCountedError(_EXPORTED, "organism", None, ("gene_type",))
     serve(
         monkeypatch,
-        TallySite(column_catalog(), step_count=840),
+        TallySite(column_catalog(), step_count=4200),
         ToolServer(refusal=refused),
     )
 
@@ -188,8 +188,8 @@ async def test_a_step_that_holds_only_the_selected_organism_passes(
     serve_columns(monkeypatch, ColumnSite({}, {}))
     serve(
         monkeypatch,
-        TallySite(column_catalog(), step_count=840),
-        ToolServer(counts=_organisms(("<i>Plasmodium falciparum</i> 3D7", 840))),
+        TallySite(column_catalog(), step_count=4200),
+        ToolServer(counts=_organisms(("<i>Plasmodium falciparum</i> 3D7", 4200))),
     )
 
     delta = await verify(monkeypatch, _exported_deps(), UNANSWERED_DIGEST)
@@ -199,7 +199,7 @@ async def test_a_step_that_holds_only_the_selected_organism_passes(
         True,
         "pass",
         (
-            f"all 840 records of step {_EXPORTED} ('Text') hold an organism the "
-            f"strategy selects: {_PF} (840)"
+            f"all 4,200 records of step {_EXPORTED} ('Text') hold an organism the "
+            f"strategy selects: {_PF} (4,200)"
         ),
     )

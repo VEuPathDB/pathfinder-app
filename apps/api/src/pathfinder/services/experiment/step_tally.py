@@ -34,6 +34,10 @@ from pathfinder.services.experiment.column_tally import (
     field_label,
     tally_title,
 )
+from pathfinder.services.experiment.reporter_refusals import (
+    REPORTER_REFUSALS,
+    ReporterRefusedError,
+)
 from pathfinder.services.experiment.tally_rows import (
     TallyRow,
     counted_rows,
@@ -114,6 +118,9 @@ def _counted_rows(counted: ColumnCounts) -> list[TallyRow]:
 async def _counted(
     step: CountedStep, column: str, top: int, by_codes: frozenset[str]
 ) -> ColumnCounts:
+    held = REPORTER_REFUSALS.held(step.site_id, BY_VALUE)
+    if held is not None:
+        raise ReporterRefusedError(held)
     try:
         return await count_by_column(step.site_id, step.wdk_step_id, column, top)
     except ColumnNotCountedError as refused:
@@ -130,7 +137,10 @@ async def _counted(
         raise ColumnTallyRefusedError(msg) from refused
     except WDKError as refused:
         if refused.status >= _SERVER_ERROR:
-            raise
+            remembered = REPORTER_REFUSALS.refused(step.site_id, BY_VALUE, refused)
+            if remembered is None:
+                raise
+            raise ReporterRefusedError(remembered) from refused
         msg = (
             f"The site refused to count {column} on {step.name} "
             f"(HTTP {refused.status}). {_LISTED}"

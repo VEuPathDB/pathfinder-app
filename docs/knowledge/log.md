@@ -8,8 +8,11 @@
   `{"reportConfig": {}}` answered HTTP 500 "Internal Error", and the same request on
   `primary_key` answered 500, while `GET /record-types/transcript?format=expanded` lists
   `byValue` under `tools.reports` for both columns. The organism check now names such a
-  refusal `site_refused`, which never blocks the verdict, and counts the organisms from
-  the standard report when the root holds at most 2,000 records.
+  refusal `site_refused`, which never blocks the verdict. A root of at most 2,000 records
+  is counted from its standard report first, under the step's view filters, so a
+  479-gene transcript step counts 479 genes and not its 483 transcripts. A server error
+  from a reporter is held per site for an hour, and no turn sends that reporter to that
+  site while it is held.
   See [a verification verdict is computed from the site](decisions/a-verification-verdict-is-computed-from-the-site.md).
 
 ## 2026-10-27

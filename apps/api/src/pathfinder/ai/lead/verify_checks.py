@@ -61,6 +61,7 @@ from pathfinder.services.experiment.paged_tally import (
     PAGED_RECORDS,
     count_paged_values,
 )
+from pathfinder.services.experiment.reporter_refusals import ReporterRefusedError
 from pathfinder.services.experiment.step_tally import CountedStep, run_step_tally
 from pathfinder.services.site_errors import answered_with_a_status
 from pathfinder.services.strategies.record_classes import names_of_every_record_type
@@ -167,6 +168,8 @@ async def _strategy_checks(judged: _Judged) -> list[SiteCheck]:
 async def _counted_organisms(
     judged: _Judged, root: SiteStep
 ) -> CountedOrganisms | UnreadOrganisms:
+    if root.count is not None and root.count <= PAGED_RECORDS:
+        return await _paged_organisms(judged, root)
     counted = CountedStep(
         site_id=judged.site_id,
         wdk_step_id=root.wdk_step_id,
@@ -182,17 +185,24 @@ async def _counted_organisms(
             run_step_tally(counted, _ORGANISM_COLUMN, MAX_COLUMN_COUNT_TOP),
             deadline=READ_DEADLINE_SECONDS,
         )
+    except ReporterRefusedError:
+        return _refused_organisms(root)
     except ColumnTallyRefusedError as refused:
         return UnreadOrganisms(
             why="no_check",
             evidence=f"the site does not count the organisms of {root.named}: {refused}",
         )
-    except ToolFailed as failed:
-        if answered_with_a_status(failed.__cause__):
-            return await _paged_organisms(judged, root)
+    except ToolFailed:
         return _unanswered_organisms(root)
     rows = [OrganismCount(organism=row.value, count=row.count) for row in tally.rows]
     return CountedOrganisms(step=root.named, total=tally.total, rows=rows)
+
+
+def _refused_organisms(root: SiteStep) -> UnreadOrganisms:
+    return UnreadOrganisms(
+        why="site_refused",
+        evidence=f"the site refused the organism count of {root.named}",
+    )
 
 
 def _unanswered_organisms(root: SiteStep) -> UnreadOrganisms:
@@ -205,22 +215,18 @@ def _unanswered_organisms(root: SiteStep) -> UnreadOrganisms:
 async def _paged_organisms(
     judged: _Judged, root: SiteStep
 ) -> CountedOrganisms | UnreadOrganisms:
-    refused = UnreadOrganisms(
-        why="site_refused",
-        evidence=f"the site refused the organism count of {root.named}",
-    )
-    if root.count is None or root.count > PAGED_RECORDS:
-        return refused
     try:
         paged = await read_in_time(
             "the organism count",
             root.named,
-            count_paged_values(judged.site_id, root.wdk_step_id, GENOME_COLUMN),
+            count_paged_values(
+                judged.site_id, root.wdk_step_id, root.record_class, GENOME_COLUMN
+            ),
             deadline=READ_DEADLINE_SECONDS,
         )
     except ToolFailed as failed:
         if answered_with_a_status(failed.__cause__):
-            return refused
+            return _refused_organisms(root)
         return _unanswered_organisms(root)
     rows = [
         OrganismCount(organism=organism, count=count)
