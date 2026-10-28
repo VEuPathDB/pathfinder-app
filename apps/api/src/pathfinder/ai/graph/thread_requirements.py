@@ -150,6 +150,10 @@ class ThreadRequirements(BaseModel):
             c
             for c in attributed(intent.explicit_constraints, messages, held)
             if not _only_asked(c, newest, asks)
+            and not any(
+                message_states_constraint(pick, c)
+                for pick in self.turn_markers.bound_picks
+            )
         ]
         self._record(
             with_requirements(

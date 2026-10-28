@@ -2,6 +2,16 @@
 
 ## 2026-10-28
 
+* **A value the site expands is the value pushed, and a card pick is a binding.** On QA
+  VEuPathDB a `GenesByGoTerm` step pushed with organism `["Plasmodium"]` is stored as its
+  61 strains, because the client sends a `countOnlyLeaves` tree value as its leaves. The
+  site-value comparison now expands the step's own values the same way and compares term
+  sets, so the `bound_values` check and the outside-edit read take no change. A card
+  answer is paired with the question the card showed by its id, not by its prompt, and a
+  picked option that binds a value is recorded on the turn; a constraint the classifier
+  reads from such a pick is not a requirement, so the verdict checks the binding, not a
+  `data_type` row.
+
 * **A reporter the site refuses is not a site that did not answer.** Measured on QA
   PlasmoDB on 2026-10-28: on a fresh 479-gene `GenesWithSignalPeptide` transcript step,
   `POST /users/{uid}/steps/{id}/columns/organism/reports/byValue` with

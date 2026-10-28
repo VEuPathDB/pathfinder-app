@@ -121,7 +121,11 @@ class TestAnswersBecomeRequirements:
 
         await consult_user(
             _ctx(state),
-            questions=_QUESTIONS,
+            questions=[
+                CardQuestion(
+                    id="q1", prompt="How should the two evidence lines combine?"
+                )
+            ],
             reply="I will make this change and report what it takes with it.",
         )
 
@@ -207,7 +211,7 @@ class TestAnswersBecomeRequirements:
 
         await consult_user(
             _ctx(state),
-            questions=_QUESTIONS,
+            questions=[CardQuestion(id="q1", prompt="")],
             reply="I will make this change and report what it takes with it.",
         )
 

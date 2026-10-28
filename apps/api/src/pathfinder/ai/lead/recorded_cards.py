@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 
 from assistant_core.conversation.vercel_adapter import DeferredToolHint
-from assistant_core.graph.turn_state import ConsultOption
+from assistant_core.graph.turn_state import ConsultOption, UserQuestionAnswer
 from pydantic import ConfigDict, Field
 from veupathdb.model import CamelModel
 
@@ -79,6 +79,18 @@ def the_card_asked(
             q if q.id not in ids else q.model_copy(update={"id": f"own-{n}"})
             for n, q in enumerate(own, 1)
         ),
+    ]
+
+
+def answered_on_the_card(
+    answers: Sequence[UserQuestionAnswer], shown: Sequence[CardQuestion]
+) -> list[UserQuestionAnswer]:
+    prompts = {q.id: q.prompt for q in shown}
+    return [
+        a.model_copy(update={"prompt": prompts[a.question_id]})
+        if a.question_id in prompts
+        else a
+        for a in answers
     ]
 
 

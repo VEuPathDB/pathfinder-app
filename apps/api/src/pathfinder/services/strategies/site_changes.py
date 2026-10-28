@@ -3,8 +3,8 @@
 The researcher edits the strategy on VEuPathDB as well as here. The graph owns
 what the strategy is, so it takes what the site moved before anything is
 planned against it or counted on it. Both sides are trees: a stored value is
-compared with the site's wire value and with its decoded form, never with a
-spec value.
+compared with the site's wire value, with the leaves a push sends for it, and
+with its decoded form, never with a spec value.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from uuid import UUID
 
 from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -35,6 +35,7 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
     encode_params,
     get_strategy_api,
+    get_wdk_client,
 )
 from veupathdb_mcp.wdk import (
     WireStep,
@@ -55,6 +56,8 @@ from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_
 from pathfinder.services.strategies.write_lock import strategy_write_lock
 
 logger = get_logger(__name__)
+
+_TERMS = TypeAdapter(frozenset[str])
 
 __all__ = [
     "SiteEdits",
@@ -279,6 +282,15 @@ async def _differing(
         for name, value in held.items()
         if name in wire.parameters and wire.parameters[name] != value
     ]
+    if names and wire.record_class is not None:
+        pushed = await get_wdk_client(site_id).expand_tree_params_to_leaves(
+            wire.record_class, search_name, held
+        )
+        names = [
+            name
+            for name in names
+            if not _same_terms(pushed[name], wire.parameters[name])
+        ]
     if not names:
         return {}
     decoded = await _decoded(step.id, search_name, wire, site_id)
@@ -287,6 +299,13 @@ async def _differing(
         for name in names
         if name in decoded and decoded[name] != step.parameters[name]
     }
+
+
+def _same_terms(pushed: str, stored: str) -> bool:
+    try:
+        return _TERMS.validate_json(pushed) == _TERMS.validate_json(stored)
+    except ValidationError:
+        return False
 
 
 async def values_the_site_holds_otherwise(

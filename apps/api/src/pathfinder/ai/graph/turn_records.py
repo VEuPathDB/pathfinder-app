@@ -192,6 +192,7 @@ class TurnMarkers(CamelModel):
     # The questions open when the message arrived. A classification answers
     # these and never a question asked later under the same message.
     questions_at_arrival: list[str] = Field(default_factory=list)
+    bound_picks: list[str] = Field(default_factory=list)
     intent_classified: bool = False
     framed: bool = False
     built: bool = False

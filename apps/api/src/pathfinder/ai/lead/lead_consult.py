@@ -14,7 +14,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.readings import refused_picks
-from pathfinder.ai.lead.recorded_cards import the_card_asked
+from pathfinder.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import (
     spec_bound_by_card,
@@ -85,6 +85,7 @@ def _apply(
     spec = domain.operational_spec
     match option.binding:
         case SetValues() as values if spec is not None:
+            state.turn_markers.bound_picks.append(option.label)
             domain.operational_spec = spec_bound_by_card(
                 spec,
                 values,
@@ -93,6 +94,7 @@ def _apply(
                 expressions=domain.built_expressions,
             )
         case ReadValues() as read if spec is not None:
+            state.turn_markers.bound_picks.append(option.label)
             values = SetValues(criterion_id=read.criterion_id, params=read.params)
             bound = spec_bound_by_card(
                 spec,
@@ -279,7 +281,7 @@ async def consult_user(
     shown = the_card_asked(questions, state.domain.open_questions)
     pending = state.pending_approval
     card = "" if pending is None else pending.tool_call_id
-    answers = list(state.user_question_answers.get(card, []))
+    answers = answered_on_the_card(state.user_question_answers.get(card, []), shown)
     asked = with_summary(
         answers,
         f"{len(questions)} questions asked",
