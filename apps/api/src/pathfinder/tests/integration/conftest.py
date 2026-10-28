@@ -33,6 +33,9 @@ from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
 from pathfinder.tests._support.second_assistant import second_assistant
 from pathfinder.tests._support.site_organisms import serve_planned_organisms
+from pathfinder.tests._support.universal_searches import (
+    serve_the_text_search_as_universal,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -130,3 +133,6 @@ async def open_job_queue(patch_app_db_engine: None) -> AsyncGenerator[None]:
     del patch_app_db_engine
     async with procrastinate_app.open_async():
         yield
+
+
+__all__ = ["serve_the_text_search_as_universal"]
