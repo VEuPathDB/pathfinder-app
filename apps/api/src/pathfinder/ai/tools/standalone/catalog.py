@@ -14,9 +14,9 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import (
-    UNIVERSAL_SEARCHES,
     SearchMatch,
     VagueSearchQueryError,
+    universal_searches,
 )
 from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
 
@@ -131,7 +131,8 @@ async def search_for_searches(
     # every result list carries.
     found = len(matches)
     seen = {m.name for m in matches}
-    answered = [*matches, *(u for u in UNIVERSAL_SEARCHES if u.name not in seen)]
+    universal = await universal_searches(ctx.deps.site_id, record_type)
+    answered = [*matches, *(u for u in universal if u.name not in seen)]
     results: list[JSONObject] = cast(
         "list[JSONObject]", [m.to_dict() for m in answered]
     )
