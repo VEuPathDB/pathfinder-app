@@ -44,6 +44,8 @@ what left.
 
 54. [Three site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
 
+70. [An unsettled pick is asked once, and always](an-unsettled-pick-is-asked-once.md) - a card asked one pick twice, and an unsettled pick over several Pfam entries bound with no question.
+
 ## Known and accepted
 
 Not backlog. Recorded as decisions because they were chosen, not deferred:
