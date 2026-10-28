@@ -42,10 +42,15 @@ const STATUS_WORDS: Record<SiteCheck["status"], string> = {
   unchecked: "Not checked",
 };
 
+const UNCHECKED_WORDS: Record<NonNullable<SiteCheck["whyUnchecked"]>, string | null> = {
+  no_check: null,
+  site_unanswered: "No answer from the site",
+  site_refused: "The site refused this count",
+};
+
 function statusWords(check: SiteCheck): string {
-  return check.whyUnchecked === "site_unanswered"
-    ? "No answer from the site"
-    : STATUS_WORDS[check.status];
+  const why = check.whyUnchecked;
+  return (why == null ? null : UNCHECKED_WORDS[why]) ?? STATUS_WORDS[check.status];
 }
 
 const FIT_WORDS: Record<SampledGene["fits"], string> = {

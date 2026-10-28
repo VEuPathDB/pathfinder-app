@@ -226,6 +226,37 @@ describe("DataEvidenceCard", () => {
     ]);
   });
 
+  it("says the site refused a count on its row and keeps the strategy checked", () => {
+    const review = REVIEWED_CARD.review ?? {};
+    render(
+      <DataEvidenceCard
+        data={{
+          ...REVIEWED_CARD,
+          review: {
+            ...review,
+            checks: [
+              {
+                kind: "organism",
+                subject: "Plasmodium falciparum 3D7",
+                status: "unchecked",
+                evidence: "the site refused the organism count of step 7 ('Signal')",
+                requirement: "organism:Plasmodium falciparum 3D7",
+                whyUnchecked: "site_refused",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const checks = within(screen.getByTestId("evidence-checks"));
+    expect(checks.queryAllByTestId("evidence-site-unanswered")).toHaveLength(0);
+    expect(checks.getAllByRole("row").map((row) => row.textContent)).toEqual([
+      "CheckResultWhat the site answered",
+      "Plasmodium falciparum 3D7The site refused this countthe site refused the organism count of step 7 ('Signal')",
+    ]);
+  });
+
   it("states no unanswered site when every unchecked check has no check", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 

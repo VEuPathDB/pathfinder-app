@@ -27498,7 +27498,8 @@
       "UncheckedReason": {
         "enum": [
           "no_check",
-          "site_unanswered"
+          "site_unanswered",
+          "site_refused"
         ],
         "type": "string"
       },

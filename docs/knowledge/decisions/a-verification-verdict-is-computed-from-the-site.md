@@ -44,6 +44,18 @@ fails, the disposition stays `done` with no handoff, the reason says the site
 did not answer, no memory is written, and the card and every summary say the
 site did not answer instead of a pass or an objection.
 
+`site_refused` is a site that answered the turn's other reads and refused one
+reporter it advertises with an HTTP status. On QA PlasmoDB the step column
+reporter `byValue` answers 500 on `organism` and on `primary_key` although the
+record type lists it for both, so the organism count is refused while the
+strategy read answers. A refused check never blocks the verdict, and its card
+row says the site refused the count. Only a transport failure, a timeout or a
+lost strategy read is `site_unanswered`. When the column reporter refuses and
+the root holds at most `PAGED_RECORDS` (2,000) records, the organisms are
+counted from one page of the root's standard report by `organism_full`, the
+genome name in full (`services/experiment/paged_tally.py`); above that bound
+the check stays `site_refused`.
+
 The checker's remaining part is optional: it samples the root, reads up to
 eight gene records and may cite sources; its prose and its sampled genes are
 notes. The output validator still refuses a sampled gene, a source or a count
@@ -86,6 +98,8 @@ bodies, `tests/unit/ai/lead/test_a_verdict_is_computed_from_the_site.py` the
 recorded singleton ranking that passes over an objecting checker, a value the
 site holds otherwise and a strategy read the site did not answer,
 `tests/unit/ai/lead/test_a_second_organism_fails_the_verdict.py`
-a step whose organism column holds a second organism, and
+a step whose organism column holds a second organism,
+`tests/unit/ai/lead/test_a_refused_organism_count.py` a refused organism count
+counted from the records of a small result and left refused on a large one, and
 `tests/unit/ai/lead/test_verify_dispatch_digest.py` a checker that objects to a
 passing check.

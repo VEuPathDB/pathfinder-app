@@ -21,6 +21,16 @@ def site_status(exc: BaseException | None) -> int | None:
             return None
 
 
+def answered_with_a_status(exc: BaseException | None) -> bool:
+    match exc:
+        case httpx.HTTPStatusError():
+            return True
+        case VEuPathDBError():
+            return answered_with_a_status(exc.__cause__)
+        case _:
+            return False
+
+
 def unreached(exc: BaseException | None) -> bool:
     match exc:
         case httpx.TransportError() | TimeoutError() | ConnectionError():

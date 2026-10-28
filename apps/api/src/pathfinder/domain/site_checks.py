@@ -15,7 +15,7 @@ from pathfinder.domain.strategy.words import words_of
 from pathfinder.domain.tally_facts import TallyFact
 
 type CheckStatus = Literal["pass", "fail", "unchecked"]
-type UncheckedReason = Literal["no_check", "site_unanswered"]
+type UncheckedReason = Literal["no_check", "site_unanswered", "site_refused"]
 type StepCheckKind = Literal[
     "step_valid",
     "bound_values",

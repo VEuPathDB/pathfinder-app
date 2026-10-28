@@ -18475,6 +18475,7 @@ components:
       enum:
       - no_check
       - site_unanswered
+      - site_refused
       type: string
     UniqueGene:
       description: One gene only this variant returns, with the product its record names.

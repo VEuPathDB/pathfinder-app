@@ -1,5 +1,17 @@
 # Log
 
+## 2026-10-28
+
+* **A reporter the site refuses is not a site that did not answer.** Measured on QA
+  PlasmoDB on 2026-10-28: on a fresh 479-gene `GenesWithSignalPeptide` transcript step,
+  `POST /users/{uid}/steps/{id}/columns/organism/reports/byValue` with
+  `{"reportConfig": {}}` answered HTTP 500 "Internal Error", and the same request on
+  `primary_key` answered 500, while `GET /record-types/transcript?format=expanded` lists
+  `byValue` under `tools.reports` for both columns. The organism check now names such a
+  refusal `site_refused`, which never blocks the verdict, and counts the organisms from
+  the standard report when the root holds at most 2,000 records.
+  See [a verification verdict is computed from the site](decisions/a-verification-verdict-is-computed-from-the-site.md).
+
 ## 2026-10-27
 
 * **A verdict the site did not answer is not a pass.** An `unchecked` site check names why:
