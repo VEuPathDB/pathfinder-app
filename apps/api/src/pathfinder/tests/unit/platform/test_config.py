@@ -23,7 +23,7 @@ def make_settings(**overrides: object) -> Settings:
         "api_secret_key": "pathfinder-test-secret-key-1234567890",
         "database_url": "postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
         "pathfinder_chat_provider": "mock",
-        "openai_api_key": "",
+        "openai_api_key": "sk-test",
         "anthropic_api_key": "",
         "gemini_api_key": "",
         "ollama_base_url": "",
@@ -75,17 +75,9 @@ def test_the_mock_provider_is_read_without_case_or_spaces() -> None:
     assert make_settings(pathfinder_chat_provider=" Mock ").mock_provider is True
 
 
-def test_non_mock_mode_requires_real_model_backend() -> None:
-    with pytest.raises(ValueError, match="configured model backend"):
-        make_settings(pathfinder_chat_provider="default")
-
-
-def test_ollama_configuration_counts_as_model_backend() -> None:
-    settings = make_settings(
-        pathfinder_chat_provider="default",
-        ollama_base_url="http://ollama:11434/v1",
-    )
-    assert settings.has_llm_configuration is True
+def test_every_mode_requires_the_openai_key() -> None:
+    with pytest.raises(ValueError, match="OPENAI_API_KEY is not set"):
+        make_settings(pathfinder_chat_provider="default", openai_api_key="")
 
 
 def test_partial_langfuse_configuration_is_rejected() -> None:
@@ -135,7 +127,7 @@ def test_empty_env_value_is_ignored_for_complex_settings(
         api_secret_key="pathfinder-test-secret-key-1234567890",
         database_url="postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
         pathfinder_chat_provider="mock",
-        openai_api_key="",
+        openai_api_key="sk-test",
         anthropic_api_key="",
         gemini_api_key="",
         ollama_base_url="",
@@ -341,8 +333,7 @@ def test_the_deployment_pays_for_each_provider_it_holds_a_key_for() -> None:
         ollama_base_url="http://ollama:11434/v1",
     )
 
-    assert settings.deployment_providers == frozenset({"anthropic", "ollama"})
-    assert settings.has_llm_configuration is True
+    assert settings.deployment_providers == frozenset({"openai", "anthropic", "ollama"})
 
 
 def test_the_mock_deployment_answers_for_every_provider() -> None:

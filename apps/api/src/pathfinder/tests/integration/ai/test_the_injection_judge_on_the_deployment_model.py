@@ -11,6 +11,7 @@ import pytest
 from pathfinder.ai.capabilities import security
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError
+from pathfinder.tests._support.decisions import OFFLINE_OPENAI_KEY
 
 pytestmark = pytest.mark.live_model
 
@@ -54,7 +55,7 @@ def _forget_the_judge() -> None:
 @pytest.fixture
 def deployment_judge(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """The judge on the deployment's key, or a skip naming the key to set."""
-    if not get_settings().openai_api_key.strip():
+    if get_settings().openai_api_key in {"", OFFLINE_OPENAI_KEY}:
         pytest.skip(NO_MODEL_KEY_REASON)
     monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
     monkeypatch.setenv("INPUT_SCREENING_ENABLED", "true")

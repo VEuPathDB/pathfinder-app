@@ -44,19 +44,12 @@ def test_the_stream_part_key_is_the_vocabulary_the_runtime_reads() -> None:
     assert stream_part_meta_key() == tool_meta.STREAM_PART_META_KEY
 
 
-def test_the_decisions_service_is_off_by_default() -> None:
-    assert Settings.model_fields["decisions_enabled"].default is False
-
-
 def test_one_openai_key_serves_the_models_and_the_decisions() -> None:
-    settings = Settings(decisions_enabled=True, openai_api_key="sk-test")
+    settings = Settings(openai_api_key="sk-test")
 
-    assert (settings.decisions_enabled, settings.deployment_credential("openai")) == (
-        True,
-        "sk-test",
-    )
+    assert settings.deployment_credential("openai") == "sk-test"
 
 
-def test_the_decisions_service_needs_the_openai_key() -> None:
+def test_the_application_needs_the_openai_key() -> None:
     with pytest.raises(ValidationError, match="OPENAI_API_KEY is not set"):
-        Settings(decisions_enabled=True, openai_api_key="")
+        Settings(openai_api_key="")

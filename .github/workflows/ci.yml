@@ -444,6 +444,7 @@ jobs:
           DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
           DEFAULT_PROVIDER=anthropic
           DEFAULT_TIER=balanced
+          OPENAI_API_KEY=sk-e2e-not-a-key
           EOF
           printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
           printf 'SEARXNG_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env.test

@@ -28,6 +28,7 @@ from pathfinder.jobs.completion import open_completion_turn
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
+from pathfinder.tests._support.decisions import answer_no_decisions
 from pathfinder.tests._support.network_guard import refuse_veupathdb
 from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
@@ -135,4 +136,4 @@ async def open_job_queue(patch_app_db_engine: None) -> AsyncGenerator[None]:
         yield
 
 
-__all__ = ["serve_the_text_search_as_universal"]
+__all__ = ["answer_no_decisions", "serve_the_text_search_as_universal"]

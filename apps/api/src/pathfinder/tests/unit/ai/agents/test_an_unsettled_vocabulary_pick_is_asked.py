@@ -11,7 +11,12 @@ import respx
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import MultiPickValue, VocabOption
 from veupathdb.wdk import WDKSearchResponse
-from veupathdb_mcp.catalog import ParameterInfo, VocabPick
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    VocabPick,
+    post_decision,
+    use_decisions_transport,
+)
 
 from pathfinder.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -67,12 +72,10 @@ def site(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def decisions(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("DECISIONS_ENABLED", "true")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-key")
+    use_decisions_transport(post_decision)
     get_settings.cache_clear()
     yield
-    monkeypatch.delenv("DECISIONS_ENABLED")
-    monkeypatch.delenv("OPENAI_API_KEY")
     get_settings.cache_clear()
 
 
@@ -200,20 +203,14 @@ async def test_a_value_the_researcher_stated_is_not_asked() -> None:
 
 
 @pytest.mark.usefixtures("site")
-async def test_off_the_read_sends_nothing_and_the_pass_is_unchanged() -> None:
+async def test_when_the_service_does_not_answer_the_pass_is_unchanged() -> None:
     ctx = _context()
-    with respx.mock(assert_all_called=False) as router:
-        route = router.post(_DECISIONS)
-        read = await _read(ctx)
+    read = await _read(ctx)
     _bound(ctx, "IPR011009", "chosen")
 
     held = hold_an_unsettled_pick_to_a_question(ctx, FrameResult(summary="ready"))
 
-    assert (route.called, read.vocab_pick, ctx.deps.agent_state.vocab_picks) == (
-        False,
-        None,
-        {},
-    )
+    assert (read.vocab_pick, ctx.deps.agent_state.vocab_picks) == (None, {})
     assert held == FrameResult(summary="ready")
 
 

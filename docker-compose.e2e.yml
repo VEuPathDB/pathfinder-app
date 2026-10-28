@@ -13,6 +13,10 @@
 # WDK_TEST_PASSWORD for global setup to sign in with. Playwright sends the token
 # as the browser's Authorization cookie; no container reads it.
 #
+# `.env.test` sets OPENAI_API_KEY, which the stack does not start without. A
+# key that is not a real one makes every Decisions call fail, and a read the
+# service does not answer is the read it was.
+#
 # Usage:
 #   docker compose --env-file .env.test \
 #     -f docker-compose.yml \

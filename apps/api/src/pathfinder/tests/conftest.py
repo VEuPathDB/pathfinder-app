@@ -27,11 +27,14 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test",
 )
-os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
 
 from pathfinder.platform.stage_sites import SITES_CONFIG_VARIABLE, live_sites_file
+from pathfinder.tests._support.decisions import OFFLINE_OPENAI_KEY
+
+# The tool server does not start without an OpenAI key; a host key wins.
+os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY") or OFFLINE_OPENAI_KEY
 
 os.environ[SITES_CONFIG_VARIABLE] = str(live_sites_file())
 

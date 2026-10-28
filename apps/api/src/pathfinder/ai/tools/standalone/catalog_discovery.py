@@ -34,7 +34,6 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import joined
 from pathfinder.ai.tools.standalone._catalog_models import register_search
 from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.domain.strategy.vocab_picks import PickRead
-from pathfinder.platform.config import get_settings
 
 
 class AlreadyReadNotice(CamelModel):
@@ -252,7 +251,7 @@ def _requirement_words(state: AgentToolState, number: str | None) -> list[str]:
             "no requirement."
         )
         raise ModelRetry(msg)
-    return [held[number].requested_value] if get_settings().decisions_enabled else []
+    return [held[number].requested_value]
 
 
 def _with_note(note: str | None, read: PickRead) -> str:

@@ -296,11 +296,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         return frozenset(p for p in every if self.deployment_credential(p).strip())
 
     @property
-    def has_llm_configuration(self) -> bool:
-        """Check whether at least one model backend is configured."""
-        return bool(self.deployment_providers)
-
-    @property
     def provider_key_cipher(self) -> ProviderKeyCipher | None:
         """The seal for researchers' keys, or None when the deployment takes none."""
         encoded = self.provider_key_encryption_key.strip()
@@ -361,13 +356,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
         if provider == "mock" and self.api_env != "test":
             msg = "PATHFINDER_CHAT_PROVIDER=mock is only allowed when API_ENV=test."
-            raise ValueError(msg)
-        if provider != "mock" and not self.has_llm_configuration:
-            msg = (
-                "PathFinder requires a configured model backend. Set at least one of "
-                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OLLAMA_BASE_URL, "
-                "or use the dedicated test profile with PATHFINDER_CHAT_PROVIDER=mock."
-            )
             raise ValueError(msg)
 
     @cached_property

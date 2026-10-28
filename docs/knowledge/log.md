@@ -2,6 +2,14 @@
 
 ## 2026-10-28
 
+* **The Decisions API is always asked.** PathFinder takes veupathdb-mcp v0.2.0-b56:
+  `DECISIONS_ENABLED` is gone, every catalog read asks the Decisions API, and
+  `OPENAI_API_KEY` is required by the api, the worker and the wdk-mcp container
+  (`docker-compose.yml` refuses to start without it). A failure or timeout leaves the read
+  as it was. The unit and integration tiers install `offline_decisions`
+  (`tests/_support/decisions.py`), so no test reaches the service. The check that some
+  model backend is configured is gone with it: the OpenAI key always is.
+  See [the decision](decisions/an-unsettled-vocabulary-pick-is-asked.md).
 * **A value the site expands is the value pushed, and a card pick is a binding.** On QA
   VEuPathDB a `GenesByGoTerm` step pushed with organism `["Plasmodium"]` is stored as its
   61 strains, because the client sends a `countOnlyLeaves` tree value as its leaves. The
