@@ -153,11 +153,6 @@ async def _answered() -> LeadDeps:
             UserQuestionAnswer(
                 question_id="q1", prompt=_LEADS_PROMPT, chosen_labels=[_PICKED]
             ),
-            UserQuestionAnswer(
-                question_id="own-1",
-                prompt="",
-                chosen_labels=["Narrow protein kinase entry A"],
-            ),
         ]
     }
     await consult_user(

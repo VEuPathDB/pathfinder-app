@@ -26,10 +26,17 @@ true when the lower of the two reaches `DECISIONS_VOCAB_MIN_CONFIDENCE`.
   binding is asked.
 - `hold_an_unsettled_pick_to_a_question`, FRAME's last output validator, turns every
   criterion whose value of that parameter FRAME chose (`source == "chosen"`) under an
-  unsettled pick into a `SlotQuestion` on that slot and ends the pass `needs_user`. The
-  question names the pick and its confidence, offers the pick, the bound value and the
-  kept entries by their site labels, recommends the pick, and the card's note is the
-  free-text route. A value the researcher stated or answered on a card is never asked.
+  unsettled pick into a `SlotQuestion` on that slot and ends the pass `needs_user`, one
+  entry or several. The question names the pick and its confidence, offers the pick, the
+  bound entries and the kept entries by their site labels, recommends the pick, and the
+  card's note is the free-text route. The chosen entries leave the binding and the slot
+  opens with the offered entries, so the spec is not ready to build until the card
+  answers it. A slot FRAME already asks about gets no second question. A value the
+  researcher stated or answered on a card is never asked.
+- The card holds one question per slot. A question of the Lead's own whose
+  `requirement` names the criterion, the parameter or `criterion.parameter` that a
+  recorded question's options bind is not shown (`recorded_cards.the_card_asked`); the
+  recorded question is asked in its place.
 - `search_for_searches` shows each result's `decisionProbability` when the choice gave
   one.
 
@@ -52,6 +59,11 @@ cannot bind a wrong entry silently.
   so PathFinder writes it.
 - **Binding the pick silently.** An unsettled pick is a recorded doubt, and a strategy
   built on it reports a count for a requirement the researcher may not mean.
+- **Keeping the chosen entries bound beside the question.** The spec then reads ready to
+  build, and the Lead builds it before the researcher answers.
+- **Telling a Lead question from a recorded one by its wording.** Two prompts that ask
+  one choice share no words a rule can trust; the criterion and parameter the recorded
+  options bind are typed.
 - **A word rule over the labels to decide which entry the request means.** It is the
   kind of special case the rule audit found refusing correct work.
 
@@ -62,3 +74,8 @@ recorded PlasmoDB InterPro read and the two recorded Decisions exchanges ("prote
 kinase": IPR011009 at choice 0.89, fit 0.31, not settled) and holds the question, the
 note, a stated value left alone, a settled pick never asked, and a pass left unchanged
 when the service does not answer.
+`tests/unit/ai/agents/test_an_unsettled_pick_is_asked_once.py` replays two recorded QA
+passes: PlasmoDB InterPro "protein kinase" (FRAME's slot question and a Lead question
+naming the same criterion make one card question) and TriTrypDB DAL972 "RNA-binding
+domain" (PF00575 at confidence 0.26 over eleven chosen Pfam entries is asked, and the spec
+is not ready to build until it is answered).

@@ -1,0 +1,677 @@
+{
+ "readArgs": {
+  "search_name": "GenesByInterproDomain",
+  "parameter_id": "domain_typeahead",
+  "record_type": "transcript",
+  "context_values": {
+   "organism": [
+    "Trypanosoma brucei gambiense DAL972"
+   ],
+   "domain_database": "Pfam"
+  },
+  "query": [
+   "RNA-binding domain",
+   "RNA recognition motif",
+   "RRM",
+   "RBD",
+   "RNA binding"
+  ]
+ },
+ "read": {
+  "kind": "parameter_info",
+  "name": "domain_typeahead",
+  "displayName": "Specific Domain(s)",
+  "type": "multi-pick-vocabulary",
+  "required": true,
+  "isVisible": true,
+  "isReadOnly": false,
+  "isNumber": false,
+  "organismParam": false,
+  "help": "Use this parameter to indicate the domain you wish to query for. Genes returned by this\n            search have protein products that are predicted to contain the domain(s) you indicate here.<br><br>\n\n            Begin typing a domain name, accession or description, to\n            see a list of all possible domains that match what you have typed. Then choose a domain name from\n            the list. You can choose multiple domains using CTRL- or CMD-click when choosing the domains. <br><br>\n\n            Or paste\n            a list of domain IDs separated by a comma, new line, white space or semicolon.",
+  "valueFormat": "{\"type\": \"multi-pick-vocabulary\", \"values\": [\"<from allowed_values>\", \"...\"]}",
+  "defaultValue": "[]",
+  "min": null,
+  "max": null,
+  "allowedValues": [
+   {
+    "value": "PF00298",
+    "display": "PF00298 : Ribosomal protein L11, RNA binding domain"
+   },
+   {
+    "value": "PF01798",
+    "display": "PF01798 : snoRNA binding domain, fibrillarin"
+   },
+   {
+    "value": "PF05670",
+    "display": "PF05670 : NFACT protein RNA binding domain"
+   },
+   {
+    "value": "PF01588",
+    "display": "PF01588 : Putative tRNA binding domain"
+   },
+   {
+    "value": "PF00181",
+    "display": "PF00181 : Ribosomal Proteins L2, RNA binding domain"
+   },
+   {
+    "value": "PF15247",
+    "display": "PF15247 : Histone RNA hairpin-binding protein RNA-binding domain"
+   },
+   {
+    "value": "PF08492",
+    "display": "PF08492 : SRP72 RNA-binding domain"
+   },
+   {
+    "value": "PF12009",
+    "display": "PF12009 : Telomerase ribonucleoprotein complex - RNA binding domain"
+   },
+   {
+    "value": "PF04926",
+    "display": "PF04926 : Poly(A) polymerase predicted RNA binding domain"
+   },
+   {
+    "value": "PF00575",
+    "display": "PF00575 : S1 RNA binding domain"
+   },
+   {
+    "value": "PF13725",
+    "display": "PF13725 : Possible tRNA binding domain"
+   },
+   {
+    "value": "PF00806",
+    "display": "PF00806 : Pumilio-family RNA binding repeat"
+   },
+   {
+    "value": "PF14608",
+    "display": "PF14608 : RNA-binding, Nab2-type zinc finger"
+   },
+   {
+    "value": "PF12171",
+    "display": "PF12171 : Zinc-finger double-stranded RNA-binding"
+   },
+   {
+    "value": "PF04410",
+    "display": "PF04410 : Gar1/Naf1 RNA binding region"
+   },
+   {
+    "value": "PF15801",
+    "display": "PF15801 : zf-MYND-like zinc finger, mRNA-binding"
+   },
+   {
+    "value": "PF09387",
+    "display": "PF09387 : Mitochondrial RNA binding protein MRP"
+   },
+   {
+    "value": "PF16969",
+    "display": "PF16969 : RNA-binding signal recognition particle 68"
+   },
+   {
+    "value": "PF00035",
+    "display": "PF00035 : Double-stranded RNA binding motif"
+   },
+   {
+    "value": "PF04135",
+    "display": "PF04135 : Nucleolar RNA-binding protein, Nop10p family"
+   },
+   {
+    "value": "PF10597",
+    "display": "PF10597 : U5-snRNA binding site 2 of PrP8"
+   },
+   {
+    "value": "PF10458",
+    "display": "PF10458 : Valyl tRNA synthetase tRNA binding arm"
+   },
+   {
+    "value": "PF04558",
+    "display": "PF04558 : Glutaminyl-tRNA synthetase, non-specific RNA binding region part 1"
+   },
+   {
+    "value": "PF11717",
+    "display": "PF11717 : RNA binding activity-knot of a chromodomain"
+   },
+   {
+    "value": "PF03950",
+    "display": "PF03950 : tRNA synthetases class I (E and Q), anti-codon binding domain"
+   },
+   {
+    "value": "PF08264",
+    "display": "PF08264 : Anticodon-binding domain of tRNA ligase"
+   },
+   {
+    "value": "PF20974",
+    "display": "PF20974 : tRNA synthetases class I (E and Q), anti-codon binding domain"
+   },
+   {
+    "value": "PF19303",
+    "display": "PF19303 : Anticodon binding domain of methionyl tRNA ligase"
+   },
+   {
+    "value": "PF12627",
+    "display": "PF12627 : Probable RNA and SrmB- binding site of polymerase A"
+   },
+   {
+    "value": "PF11969",
+    "display": "PF11969 : Scavenger mRNA decapping enzyme C-term binding"
+   },
+   {
+    "value": "PF00076",
+    "display": "PF00076 : RNA recognition motif"
+   },
+   {
+    "value": "PF13893",
+    "display": "PF13893 : RNA recognition motif. (a.k.a. RRM, RBD, or RNP domain)"
+   },
+   {
+    "value": "PF14605",
+    "display": "PF14605 : Nup53/35/40-type RNA recognition motif"
+   },
+   {
+    "value": "PF10598",
+    "display": "PF10598 : RNA recognition motif of the spliceosomal PrP8"
+   },
+   {
+    "value": "PF25121",
+    "display": "PF25121 : ESF1 RRM domain"
+   },
+   {
+    "value": "PF07766",
+    "display": "PF07766 : LETM1-like, RBD"
+   }
+  ],
+  "allowedValuesTotal": null,
+  "allowedValuesTree": null,
+  "allowedValuesNote": "93 of 2440 entries carry a name of one token past their accession, and 0 of them carry no name, so a lookup by name does not reach them. An entry no label names can still be on the site.",
+  "allowedValuesFromRequest": 30,
+  "promptValues": [],
+  "vocabLookup": {
+   "terms": [
+    "RNA-binding domain",
+    "RNA recognition motif",
+    "RRM",
+    "RBD",
+    "RNA binding"
+   ],
+   "matches": [
+    {
+     "term": "RNA-binding domain",
+     "phrasing": "rna binding domain",
+     "reach": "phrase",
+     "values": [
+      "PF00298",
+      "PF01798",
+      "PF05670",
+      "PF01588",
+      "PF00181",
+      "PF15247",
+      "PF08492",
+      "PF12009",
+      "PF04926",
+      "PF00575",
+      "PF13725"
+     ]
+    },
+    {
+     "term": "RNA recognition motif",
+     "phrasing": "rna recognition motif",
+     "reach": "phrase",
+     "values": [
+      "PF00076",
+      "PF13893",
+      "PF14605",
+      "PF10598"
+     ]
+    },
+    {
+     "term": "RRM",
+     "phrasing": "rrm",
+     "reach": "phrase",
+     "values": [
+      "PF25121"
+     ]
+    },
+    {
+     "term": "RBD",
+     "phrasing": "rbd",
+     "reach": "phrase",
+     "values": [
+      "PF07766"
+     ]
+    },
+    {
+     "term": "RNA binding",
+     "phrasing": "rna binding",
+     "reach": "phrase",
+     "values": [
+      "PF00806",
+      "PF14608",
+      "PF12171",
+      "PF04410",
+      "PF15801",
+      "PF09387",
+      "PF16969",
+      "PF00035",
+      "PF04135",
+      "PF10597",
+      "PF10458",
+      "PF04558",
+      "PF11717"
+     ]
+    },
+    {
+     "term": "RNA-binding domain",
+     "phrasing": "rna binding domain",
+     "reach": "every_word",
+     "values": [
+      "PF03950",
+      "PF08264",
+      "PF20974",
+      "PF19303"
+     ]
+    },
+    {
+     "term": "RNA binding",
+     "phrasing": "rna binding",
+     "reach": "every_word",
+     "values": [
+      "PF12627",
+      "PF11969"
+     ]
+    }
+   ],
+   "requestTerms": [
+    "RNA-binding domain",
+    "RNA binding"
+   ],
+   "requestMatches": [
+    {
+     "term": "RNA-binding domain",
+     "phrasing": "rna binding domain",
+     "reach": "phrase",
+     "values": [
+      "PF00298",
+      "PF01798",
+      "PF05670",
+      "PF01588",
+      "PF00181",
+      "PF15247",
+      "PF08492",
+      "PF12009",
+      "PF04926",
+      "PF00575",
+      "PF13725"
+     ]
+    },
+    {
+     "term": "RNA binding",
+     "phrasing": "rna binding",
+     "reach": "phrase",
+     "values": [
+      "PF00806",
+      "PF14608",
+      "PF12171",
+      "PF04410",
+      "PF15801",
+      "PF09387",
+      "PF16969",
+      "PF00035",
+      "PF04135",
+      "PF10597",
+      "PF10458",
+      "PF04558",
+      "PF11717"
+     ]
+    },
+    {
+     "term": "RNA-binding domain",
+     "phrasing": "rna binding domain",
+     "reach": "every_word",
+     "values": [
+      "PF03950",
+      "PF08264",
+      "PF20974",
+      "PF19303"
+     ]
+    },
+    {
+     "term": "RNA binding",
+     "phrasing": "rna binding",
+     "reach": "every_word",
+     "values": [
+      "PF12627",
+      "PF11969"
+     ]
+    }
+   ],
+   "accession": {
+    "entries": 2440,
+    "oneToken": 93,
+    "nameless": 0
+   }
+  },
+  "vocabPick": {
+   "value": "PF00575",
+   "display": "PF00575 : S1 RNA binding domain",
+   "choiceConfidence": 0.26,
+   "fitProbability": 0.78,
+   "minConfidence": 0.5,
+   "offered": 36,
+   "confidence": 0.26,
+   "settled": false
+  },
+  "controlsVocabOf": null,
+  "vocabDependsOn": [
+   "organism",
+   "domain_database"
+  ],
+  "note": "The allowed values for this param change based on the value of organism, domain_database. The values below are the vocabulary under domain_database=Pfam, organism=[\"Trypanosoma brucei gambiense DAL972\"] -- the values already bound for this search. A different parent value yields a DIFFERENT list, so do not conclude a value does not exist without re-reading under the parent you mean.",
+  "filterFields": [],
+  "paramKind": "multi-pick-vocabulary"
+ },
+ "criterion": {
+  "id": "c_rna_binding_domain",
+  "text": "Trypanosoma brucei gambiense DAL972 genes with an RNA-binding domain",
+  "searchName": "GenesByInterproDomain",
+  "searchDisplayName": "InterPro Domain",
+  "savedStrategyRef": null,
+  "recordClass": "transcript",
+  "role": "filter",
+  "organismParam": "organism",
+  "datasetOrganisms": [],
+  "resolvedParams": {
+   "organism": {
+    "value": {
+     "type": "multi-pick-vocabulary",
+     "values": [
+      "Trypanosoma brucei gambiense DAL972"
+     ]
+    },
+    "source": "stated",
+    "basis": "Trypanosoma brucei gambiense DAL972",
+    "carriedFrom": "",
+    "displayName": "Organism",
+    "label": "Trypanosoma brucei gambiense DAL972",
+    "placeholder": false,
+    "atDefault": false,
+    "visible": true,
+    "number": false,
+    "decimals": null,
+    "taxon": null,
+    "words": ""
+   },
+   "domain_accession": {
+    "value": {
+     "type": "string",
+     "value": "N/A"
+    },
+    "source": "default",
+    "basis": "",
+    "carriedFrom": "",
+    "displayName": "Free Text (use '*' for wildcard)",
+    "label": "",
+    "placeholder": true,
+    "atDefault": false,
+    "visible": true,
+    "number": false,
+    "decimals": null,
+    "taxon": null,
+    "words": ""
+   },
+   "domain_database": {
+    "value": {
+     "type": "single-pick-vocabulary",
+     "value": "Pfam"
+    },
+    "source": "default",
+    "basis": "",
+    "carriedFrom": "",
+    "displayName": "Domain Database",
+    "label": "Pfam",
+    "placeholder": false,
+    "atDefault": true,
+    "visible": true,
+    "number": true,
+    "decimals": null,
+    "taxon": null,
+    "words": ""
+   },
+   "domain_typeahead": {
+    "value": {
+     "type": "multi-pick-vocabulary",
+     "values": [
+      "PF00298",
+      "PF01798",
+      "PF05670",
+      "PF01588",
+      "PF00181",
+      "PF15247",
+      "PF08492",
+      "PF12009",
+      "PF04926",
+      "PF00575",
+      "PF13725"
+     ]
+    },
+    "source": "chosen",
+    "basis": "The requested phrase 'RNA-binding domain' matched these eleven Pfam domain entries by phrase; the vocabulary half is used and the free-text alternative is disabled with N/A.",
+    "carriedFrom": "",
+    "displayName": "Specific Domain(s)",
+    "label": "Ribosomal protein L11, RNA binding domain, snoRNA binding domain, fibrillarin, NFACT protein RNA binding domain, Putative tRNA binding domain, Ribosomal Proteins L2, RNA binding domain, Histone RNA hairpin-binding protein RNA-binding domain, SRP72 RNA-binding domain, Telomerase ribonucleoprotein complex - RNA binding domain, Poly(A) polymerase predicted RNA binding domain, S1 RNA binding domain, Possible tRNA binding domain",
+    "placeholder": false,
+    "atDefault": false,
+    "visible": true,
+    "number": false,
+    "decimals": null,
+    "taxon": null,
+    "words": ""
+   }
+  },
+  "paramDisplayNames": {
+   "organism": "Organism",
+   "domain_database": "Domain Database",
+   "domain_typeahead": "Specific Domain(s)",
+   "domain_accession": "Free Text (use '*' for wildcard)"
+  },
+  "measurements": [
+   {
+    "kind": "vocabulary_label",
+    "param": "organism",
+    "count": null,
+    "label": "Trypanosoma brucei gambiense DAL972",
+    "reading": "Trypanosoma brucei gambiense DAL972",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_database",
+    "count": null,
+    "label": "Pfam",
+    "reading": "Pfam",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Ribosomal protein L11, RNA binding domain",
+    "reading": "PF00298",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "snoRNA binding domain, fibrillarin",
+    "reading": "PF01798",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "NFACT protein RNA binding domain",
+    "reading": "PF05670",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Putative tRNA binding domain",
+    "reading": "PF01588",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Ribosomal Proteins L2, RNA binding domain",
+    "reading": "PF00181",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Histone RNA hairpin-binding protein RNA-binding domain",
+    "reading": "PF15247",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "SRP72 RNA-binding domain",
+    "reading": "PF08492",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Telomerase ribonucleoprotein complex - RNA binding domain",
+    "reading": "PF12009",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Poly(A) polymerase predicted RNA binding domain",
+    "reading": "PF04926",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "S1 RNA binding domain",
+    "reading": "PF00575",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "vocabulary_label",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "Possible tRNA binding domain",
+    "reading": "PF13725",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "loosest_bound",
+    "param": "domain_typeahead",
+    "count": 4444,
+    "label": "",
+    "reading": "all 2,441 options",
+    "unchosen": [],
+    "unchosenCount": 0
+   },
+   {
+    "kind": "options_not_taken",
+    "param": "domain_typeahead",
+    "count": null,
+    "label": "",
+    "reading": "",
+    "unchosen": [],
+    "unchosenCount": 2430
+   },
+   {
+    "kind": "picked_from_a_lookup",
+    "param": "domain_typeahead",
+    "count": 11,
+    "label": "",
+    "reading": "'RNA-binding domain', 'RNA recognition motif', 'RRM', 'RBD', 'RNA binding'",
+    "unchosen": [],
+    "unchosenCount": 25
+   }
+  ],
+  "openParams": [],
+  "confidence": 0.0,
+  "alternatives": [],
+  "resultCount": 21,
+  "analysis": null,
+  "needsAnalysisOn": null,
+  "rationale": {
+   "kind": "search",
+   "searchName": "GenesByInterproDomain",
+   "basis": "parameter",
+   "term": "Specific Domain(s)",
+   "reason": "The requested phrase 'RNA-binding domain' matched these eleven Pfam domain entries by phrase; the vocabulary half is used and the free-text alternative is disabled with N/A.",
+   "similarity": null,
+   "compared": [
+    {
+     "name": "GenesByTransmembraneDomains",
+     "displayName": "Transmembrane Domain Count",
+     "similarity": null
+    },
+    {
+     "name": "GenesByRNASeqtbruTREU927_Dolezelova_Tb927_differentiation_RNASeq_ebi_rnaSeq_RSRCPercentile",
+     "displayName": "T. brucei brucei TREU927 T brucei in vitro-induced differentiation (2020) RNA-Seq (percentile)",
+     "similarity": 0.5914537607780146
+    },
+    {
+     "name": "GenesByRNASeqtbruTREU927_PF_BF_Ribosome_Profiling_ebi_rnaSeq_RSRCPercentile",
+     "displayName": "T. brucei brucei TREU927 Procyclic and bloodstream form mRNA transcriptome and ribosome profiling RNA-Seq (percentile)",
+     "similarity": 0.5793542320921988
+    }
+   ],
+   "answered": 16,
+   "query": "genes with an RNA-binding protein domain or RNA-binding domain annotation in Trypanosoma brucei gambiense DAL972",
+   "toolCallId": "call_v35C1FSDkZqNELiotBzkyTkj",
+   "sources": [],
+   "derivedFrom": {
+    "organism": "[\"Trypanosoma brucei gambiense DAL972\"]",
+    "domain_accession": "N/A",
+    "domain_database": "Pfam",
+    "domain_typeahead": "[\"PF00298\", \"PF01798\", \"PF05670\", \"PF01588\", \"PF00181\", \"PF15247\", \"PF08492\", \"PF12009\", \"PF04926\", \"PF00575\", \"PF13725\"]"
+   },
+   "short": "sets Specific Domain(s)",
+   "sentence": "Specific Domain(s): The requested phrase 'RNA-binding domain' matched these eleven Pfam domain entries by phrase; the vocabulary half is used and the free-text alternative is disabled with N/A."
+  },
+  "acceptedReading": null
+ },
+ "frameOutput": {
+  "disposition": "spec_ready",
+  "summary": "Strategy ready: one gene search using `GenesByInterproDomain` for 21 Trypanosoma brucei gambiense DAL972 genes whose predicted proteins contain at least one of 11 Pfam entries matched by the requested phrase \u201cRNA-binding domain.\u201d The organism was set to `Trypanosoma brucei gambiense DAL972`; `domain_database=Pfam` uses the search default, and `domain_accession=N/A` disables the free-text alternative. The selected domain labels are Ribosomal protein L11, RNA binding domain; snoRNA binding domain, fibrillarin; NFACT protein RNA binding domain; Putative tRNA binding domain; Ribosomal Proteins L2, RNA binding domain; Histone RNA hairpin-binding protein RNA-binding domain; SRP72 RNA-binding domain; Telomerase ribonucleoprotein complex - RNA binding domain; Poly(A) polymerase predicted RNA binding domain; S1 RNA binding domain; and Possible tRNA binding domain.",
+  "openQuestions": [],
+  "requirementProblems": [],
+  "recordTypes": [
+   {
+    "requirement": "R1",
+    "role": "answer"
+   }
+  ]
+ }
+}
