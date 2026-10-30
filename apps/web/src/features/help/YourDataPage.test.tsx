@@ -124,7 +124,7 @@ describe("YourDataPage", () => {
   it("stays short enough to read in a few minutes", () => {
     const { container } = render(<YourDataPage />);
 
-    expect(container.textContent.split(/\s+/).length).toBeLessThan(1150);
+    expect(container.textContent.split(/\s+/).length).toBeLessThan(1350);
   });
 
   it("names audits among what PathFinder keeps", () => {
@@ -135,14 +135,45 @@ describe("YourDataPage", () => {
     );
   });
 
-  it("says deleting a conversation keeps its audits and where they are deleted", () => {
+  it("says what deleting a conversation removes and what it keeps", () => {
+    const { container } = render(<YourDataPage />);
+
+    const deleting = container.querySelector("section#deleting");
+    expect(deleting).toHaveTextContent(
+      "It moves to Recently deleted, where you can restore it. Delete permanently, in Recently deleted, removes its messages, files, notes, strategy history, ratings and any copy waiting for review.",
+    );
+    expect(deleting).toHaveTextContent(
+      "It keeps the gene sets, control sets and audits made in the conversation, your memories, and the strategy in your VEuPathDB account.",
+    );
+  });
+
+  it("says a deleted memory is not saved again on its own", () => {
     const { container } = render(<YourDataPage />);
 
     expect(container.querySelector("section#deleting")).toHaveTextContent(
-      "Delete permanently removes it with any copy waiting for review, but not its audits.",
+      "A deleted memory leaves a fingerprint of its content, so that PathFinder does not save it again on its own.",
     );
-    expect(container.querySelector("section#deleting")).toHaveTextContent(
-      "Settings deletes memories, provider keys and everything at once, audits included, on its Memory, Provider keys and Data tabs.",
+  });
+
+  it("names every request that goes to OpenAI whichever model is picked", () => {
+    const { container } = render(<YourDataPage />);
+
+    const sent = container.querySelector("section#sent");
+    expect(
+      [...(sent?.querySelectorAll("li") ?? [])].map((li) => li.textContent),
+    ).toEqual([
+      "a check of your message, and of what the assistant's tools read, for hidden instructions, unless the deployment turns it off;",
+      "conversation titles and summaries of long notes;",
+      "matching what the assistant looks for to the site's searches and parameter values;",
+      "turning memories and search words into numbers for search, with the text-embedding-3-large model.",
+    ]);
+  });
+
+  it("says a key is opened only for the reply it pays for", () => {
+    const { container } = render(<YourDataPage />);
+
+    expect(container.querySelector("section#your-key")).toHaveTextContent(
+      "It opens the key only when a reply starts, in the part of PathFinder that runs the assistant, and only for that reply.",
     );
   });
 

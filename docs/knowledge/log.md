@@ -8,6 +8,13 @@
   that search. One builder writes the link (`services/strategies/result_list.py`). The two
   backlog items on the result list left. See
   [the decision](decisions/a-site-link-opens-the-result-list-of-the-root-step.md).
+* **The Help page names Switch site only where the rail shows it.** The Help page told every
+  researcher to use Switch site, which a component site's website does not show. It now reads
+  the site the same way the app shell does and names the site it is locked to, or Switch site
+  on the portal. The Help page, the data statement and the notice also name every request
+  that goes to OpenAI whichever model is picked, and what deleting a conversation removes and
+  keeps. See
+  [the decision](decisions/the-site-comes-from-the-website-that-frames-pathfinder.md).
 * **An unsettled pick is asked once, and nothing builds before it is answered.** On QA a
   TriTrypDB pass bound eleven Pfam entries under a pick at confidence 0.26: the hold added
   its question, but the slot stayed bound, the spec read ready to build and the Lead built

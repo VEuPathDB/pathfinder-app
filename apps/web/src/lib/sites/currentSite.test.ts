@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteResponse } from "@pathfinder/shared";
 
-import { currentSiteId, lockedSite } from "./currentSite";
+import { currentSiteId, lockedSite, siteFrame } from "./currentSite";
 
 function site(id: string, origin: string, isPortal = false): SiteResponse {
   return {
@@ -85,5 +85,34 @@ describe("currentSiteId", () => {
         conversationSite: null,
       }),
     ).toBe("plasmodb");
+  });
+});
+
+describe("siteFrame", () => {
+  it("locks to the component site whose website is at the page's origin", () => {
+    expect(siteFrame(SITES, "https://muharram.plasmodb.org")).toEqual({
+      kind: "locked",
+      siteId: "plasmodb",
+    });
+  });
+
+  it("offers the switch on the portal's website", () => {
+    expect(siteFrame(SITES, "https://muharram.veupathdb.org")).toEqual({
+      kind: "switchable",
+    });
+  });
+
+  it("offers the switch on a host no site names", () => {
+    expect(siteFrame(SITES, "http://localhost:3000")).toEqual({ kind: "switchable" });
+  });
+
+  it("is unknown before the sites are read", () => {
+    expect(siteFrame(undefined, "https://muharram.plasmodb.org")).toEqual({
+      kind: "unknown",
+    });
+  });
+
+  it("is unknown before the page's origin is known", () => {
+    expect(siteFrame(SITES, null)).toEqual({ kind: "unknown" });
   });
 });
