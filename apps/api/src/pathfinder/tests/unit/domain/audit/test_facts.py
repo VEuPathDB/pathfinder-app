@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from veupathdb_mcp.audit import PseudogeneCallAudit
 
-from pathfinder.domain.audit.check_facts import confirmation_facts, evidence_facts
+from pathfinder.domain.audit.check_facts import confirmation_facts
 from pathfinder.domain.audit.confirmations import (
     MissingGeneConfirmation,
     OrganelleConfirmation,
@@ -11,7 +11,6 @@ from pathfinder.domain.audit.confirmations import (
 )
 from pathfinder.domain.audit.facts import (
     Fact,
-    evidence_summary,
     gene_evidence_facts,
     relatives_facts,
     runs_text,
@@ -266,25 +265,3 @@ def test_gene_records_state_their_citations_structures_and_peptides() -> None:
         ("Afu2g18040 structures", "5 PDB similarities; no AlphaFold model"),
         ("Afu2g18040 peptides", "None found"),
     ]
-
-
-def test_the_summary_joins_every_fact_of_every_group() -> None:
-    relatives = RelativesEvidence(
-        reference_gene="REF",
-        reference_length=319,
-        model_length=110,
-        relatives_median=None,
-        relative_lengths={},
-        relatives_tier=None,
-        side=None,
-        reference_organism=None,
-    )
-    records = GeneEvidencePayload(genes=(PIGA,), evidence=(PIGA_EVIDENCE,))
-    assert evidence_summary([evidence_facts(relatives), evidence_facts(records)]) == (
-        "Reference model: REF, 319 residues; This model: 110 residues; "
-        "Median of independent related genomes: Not read; "
-        "Which model the related genomes support: Not read; "
-        "PF3D7_1032400 citations: 2 PubMed articles, 0 comments, 0 notes; "
-        "PF3D7_1032400 structures: 4 PDB similarities; AlphaFold Q8IJ83 covers "
-        "residues 1 to 461 of 461; PF3D7_1032400 peptides: None found"
-    )

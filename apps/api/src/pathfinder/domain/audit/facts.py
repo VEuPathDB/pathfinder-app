@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
@@ -163,10 +163,4 @@ def gene_evidence_facts(payload: GeneEvidencePayload) -> tuple[Fact, ...]:
             Fact(label=f"{gene} structures", value=_structures(record)),
             Fact(label=f"{gene} peptides", value=_peptides(record)),
         )
-    )
-
-
-def evidence_summary(groups: Iterable[EvidenceFacts]) -> str:
-    return "; ".join(
-        f"{fact.label}: {fact.value}" for group in groups for fact in group.facts
     )
