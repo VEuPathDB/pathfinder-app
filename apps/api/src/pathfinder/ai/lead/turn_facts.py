@@ -48,6 +48,7 @@ from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.domain.too_few_controls import too_few_controls_fact
 from pathfinder.domain.turn_facts import (
     UNCHECKED_PROSE,
     UNVERIFIED_BUILD,
@@ -372,7 +373,12 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
                 *markers.audit_facts,
                 *(held.fact() for held in domain.computed_comparisons.values()),
             )
-        ],
+        ]
+        + (
+            []
+            if markers.too_few_controls is None
+            else [too_few_controls_fact(markers.too_few_controls)]
+        ),
         tallies=tallies_with_paths(session, markers.tallies),
         result_step_id=None
         if not built or session.sync_state is None

@@ -7,13 +7,17 @@ from veupathdb_mcp.separation import (
     SeparationProgress,
     SeparationRequest,
     ThreadSearch,
+    TooFewControls,
     separate,
 )
 
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.identity import SEPARATION_STRATEGY_NAME
-from pathfinder.services.separation.offer import separation_report
+from pathfinder.services.separation.offer import (
+    separation_report,
+    too_few_controls_report,
+)
 from pathfinder.services.separation.thread_searches import thread_searches
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
@@ -41,6 +45,10 @@ async def separate_controls(
         strategy_name=SEPARATION_STRATEGY_NAME,
         progress=progress,
     )
+    if isinstance(result, TooFewControls):
+        return too_few_controls_report(
+            result, task_id=task_id, site_id=site_id, request=request
+        )
     sheets = await sheet_params_for_searches(
         site_id=site_id,
         search_names={m.candidate.search_name for m in result.measured},

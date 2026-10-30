@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A strategy from controls is measured, and every number on its card is a WDK count
-description: The separate_controls durable tool takes a positive and a negative gene list, a mode and a request budget; the tool server measures candidate searches from five sources with one real intersection each, keeps the ones whose returned controls beat chance, assembles a greedy AND/OR/MINUS and reads the tree back from the site. PathFinder offers the result on its own card, builds the measured spec on a yes with no model in between, attaches the controls to VERIFY, and shows each criterion's contribution by set algebra. Model-estimated scores, candidates built outside WDK, a fixed candidate list, propose_changes as the adoption, two intersections per candidate, the unpersisted report, one scalar score, an exhaustive search, a genome population read and literature search in the worker were rejected.
+description: The separate_controls durable tool takes a positive and a negative gene list, a mode and a request budget, and refuses before its card control counts no search can tell apart; the tool server measures candidate searches from five sources with one real intersection each, keeps the ones whose returned controls beat chance, assembles a greedy AND/OR/MINUS and reads the tree back from the site. PathFinder offers the result on its own card, builds the measured spec on a yes with no model in between, attaches the controls to VERIFY, and shows each criterion's contribution by set algebra. Model-estimated scores, candidates built outside WDK, a fixed candidate list, propose_changes as the adoption, two intersections per candidate, the unpersisted report, one scalar score, an exhaustive search, a genome population read and literature search in the worker were rejected.
 tags: [separation, controls, durable, evidence, strategy, wdk]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -18,6 +18,19 @@ with the reference it was read from, and a budget. The budget is an estimate of
 WDK requests: one measurement is about ten, the GO and pathway enrichment about
 34, the confirm read `4n+6` for `n` leaves, and the run holds the read of the
 largest tree back first. The default is 600, between 200 and 2000.
+
+**Too few controls are asked for, not run.** With P positives and N negatives the
+best read any search can return is every positive and no negative, a tail of
+1 / C(P + N, P). When that is not under `INFORMATIVE_P_VALUE`, no candidate can
+inform, so a run cannot offer anything. The tool's argument check
+(`separation_can_run`) calls `veupathdb_mcp.separation.too_few_controls` before the
+card is drawn and refuses the call: no card, no task and no site request. The
+refusal and the facts part beside the reply state the counts, the best p-value and
+how many more negatives, or positives, would make a result possible; 4 positives
+and 2 negatives reach 1/15, about 0.067, and one more of either kind is enough. A
+run whose ids the site does not all hold can fall under the same bound after its
+resolution. The library then returns `TooFewControls` before its upload, and the
+report carries its sentence as the shortfall, with no offer.
 
 **The measurement** belongs to the tool server (`veupathdb_mcp.separation`),
 because it reads WDK searches, parameters and the semantic index. It resolves
