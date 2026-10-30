@@ -265,6 +265,15 @@ def run_stop_reply(
             raise exc
 
 
+def _unanswered_site_prose(site_name: str, *, change: StrategyChange) -> str:
+    if change == "unchanged":
+        return (
+            f"{site_name} did not answer, so I stopped this turn and nothing was "
+            f"changed. {_NEXT[change]}"
+        )
+    return f"{site_name} did not answer, so I stopped this turn. {_NEXT[change]}"
+
+
 def fallback_prose(
     capture: _LeadRunCapture,
     unanswered: UnansweredStage | None,
@@ -275,6 +284,8 @@ def fallback_prose(
 
     A refusal of the researcher's key is named before one of the deployment's.
     """
+    if capture.unanswered_site is not None:
+        return _unanswered_site_prose(capture.unanswered_site.name, change=change)
     refused = _refused_key_prose(change=change) or _refused_deployment_prose(
         change=change
     )

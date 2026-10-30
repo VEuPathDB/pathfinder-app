@@ -68,6 +68,10 @@ from pathfinder.ai.graph._lead_events import (
 from pathfinder.ai.graph._lead_exchange import turn_exchange
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
+from pathfinder.ai.graph._lead_site import (
+    a_dead_site_changes_nothing,
+    naming_a_dead_site,
+)
 from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
     final_reply,
@@ -318,7 +322,11 @@ async def _drive_lead_stream(
         with lead_model.override:
             async for v6_chunk in without_calls_of(
                 _calls_of_an_earlier_message(state, parked, hints),
-                emitter.chunks(_noting_a_decline(_agent_events(), capture)),
+                emitter.chunks(
+                    _noting_a_decline(
+                        naming_a_dead_site(_agent_events(), capture), capture
+                    )
+                ),
             ):
                 emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
             release_the_cards(writer, hold, deps, capture, sub_agent_tool_calls)
@@ -345,14 +353,16 @@ async def _run_lead_turn(
     if state.resumes_parked_call:
         emit_chunk(writer, turn_step_status(READING_THE_THREAD))
         memories = list(state.retrieved_memories)
-        working_state = await pre_turn(state, runtime.context)
+        with a_dead_site_changes_nothing():
+            working_state = await pre_turn(state, runtime.context)
     else:
         emit_chunk(writer, turn_step_status(RECALLING_AND_READING))
-        stored, index, working_state = await asyncio.gather(
-            retrieve_memories(state, runtime),
-            memory_index(state, runtime),
-            pre_turn(state, runtime.context),
-        )
+        with a_dead_site_changes_nothing():
+            stored, index, working_state = await asyncio.gather(
+                retrieve_memories(state, runtime),
+                memory_index(state, runtime),
+                pre_turn(state, runtime.context),
+            )
         memories = [s.value for s in stored]
         working_state.domain.memory_index = index
         fresh = working_state.domain.memories_to_show(stored)
