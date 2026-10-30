@@ -1,5 +1,5 @@
-"""Lead arcs on what a turn shows: a listing whose ids the reply names by
-reference, which the facts part shows under the step it listed."""
+"""Lead arcs on what a turn shows: a listing whose ids the note names as record
+references, which the facts part shows under the step it listed."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class _Listing(ToolAnswer):
 
 
 def list_ids(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    """Read the result's first ids and name each by a reference to its record."""
+    """Read the result's first ids and name each as a record reference."""
     listing = last_return(messages, "read_step_ids", _Listing)
     ids = [] if listing is None else listing.gene_ids[:LISTED]
     prose = (

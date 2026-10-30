@@ -27,7 +27,7 @@ from pathfinder.ai.lead.intent_gate import (
 )
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.turn_facts import TurnFacts
@@ -119,7 +119,7 @@ def test_a_strategy_turn_sends_every_audit_tool_schema() -> None:
     assert _listed(_classified(IntentClassification.NEW_STRATEGY)) == _AUDIT_TOOLS
 
 
-def test_audit_facts_render_references_and_stay_off_the_wire() -> None:
+def test_audit_facts_reach_the_wire_capped() -> None:
     fact = StatisticFact(
         id="stat_audit",
         kind="audit_plan",
@@ -129,13 +129,12 @@ def test_audit_facts_render_references_and_stay_off_the_wire() -> None:
             for k in range(600)
         ],
     )
-    facts = TurnFacts(audit_statistics=[fact])
+    facts = TurnFacts(reads=[read_fact(fact)])
 
-    assert facts.model_dump(by_alias=True, mode="json") == TurnFacts().model_dump(
-        by_alias=True, mode="json"
-    )
-    assert render_reply("It holds [stat:stat_audit.scope.targets.599].", facts) == (
-        "It holds EXA_0599."
+    (shown,) = facts.model_dump(by_alias=True, mode="json")["reads"]
+    assert (len(shown["rows"]), shown["rows"][0]) == (
+        40,
+        {"label": "scope targets", "value": "EXA_0000"},
     )
 
 
@@ -170,8 +169,15 @@ def test_a_turn_that_started_an_audit_withholds_every_read() -> None:
     assert withheld == names
 
 
-def test_a_start_cards_reply_is_held_to_the_references() -> None:
+def test_a_start_cards_note_writes_no_number_of_the_turn() -> None:
     deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
+    planned = StatisticFact(
+        id="stat_plan",
+        kind="audit_plan",
+        title="Audit plan on plasmodb",
+        rows=[StatisticRowFact(name="estimate.wdkRequests", value="900")],
+    )
+    deps.state.turn_markers.record_audit_facts([planned])
     call = ToolCallPart(
         tool_name=START_TOOL,
         args={"reply": "The run reads the site 900 times.", "request": {}},

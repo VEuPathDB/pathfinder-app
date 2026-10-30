@@ -17,7 +17,6 @@ from pathfinder.ai.tools.standalone.variant_comparison import compare_search_var
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
-    SharedGenes,
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment import variant_comparison
@@ -170,19 +169,16 @@ async def test_the_counts_a_comparison_returned_are_the_turns() -> None:
                 ComparedVariant(
                     label="Minimum 2",
                     gene_count=1490,
-                    unique_count=0,
                     result_count=227,
                     differs_by={"min_tm": "2"},
                 ),
                 ComparedVariant(
                     label="Minimum 3",
                     gene_count=1029,
-                    unique_count=0,
                     result_count=82,
                     differs_by={"min_tm": "3"},
                 ),
             ],
-            overlaps=[SharedGenes(a="Minimum 2", b="Minimum 3", shared=0)],
         )
     ]
 
@@ -210,7 +206,7 @@ async def test_a_variant_that_failed_leaves_no_count() -> None:
     )
 
     assert comparison.fact() == ComparisonFact(
-        variants=[ComparedVariant(label="Product field", gene_count=2, unique_count=0)]
+        variants=[ComparedVariant(label="Product field", gene_count=2)]
     )
 
 

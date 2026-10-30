@@ -61,7 +61,7 @@ def _classify_args(classification: IntentClassification) -> dict[str, Any]:
 def _final_part(call_id: str = "call_final") -> ToolCallPart:
     return ToolCallPart(
         tool_name="final_result",
-        args={"prose": _PROSE, "nextState": "await_user", "strategyChanged": False},
+        args={"prose": _PROSE, "nextState": "await_user"},
         tool_call_id=call_id,
     )
 

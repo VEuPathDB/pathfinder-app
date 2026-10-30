@@ -213,9 +213,7 @@ def _exported(messages: list[ModelMessage]) -> ToolCallPart:
         )
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
-    return lead_final(
-        f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete", strategy_changed=True
-    )
+    return lead_final(f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete")
 
 
 @dataclass(frozen=True)

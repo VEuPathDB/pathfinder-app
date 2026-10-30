@@ -1,5 +1,4 @@
-"""The facts row and a value reference show a number at the precision the
-parameter's sheet gives it, so the reply and the facts agree."""
+"""The facts row shows a number at the precision the parameter's sheet gives it."""
 
 from __future__ import annotations
 
@@ -7,7 +6,6 @@ from veupathdb.domain.parameters import SinglePickValue
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -16,7 +14,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 
-def test_the_row_and_the_reference_show_the_floor_at_four_digits() -> None:
+def test_the_row_shows_the_floor_at_four_digits() -> None:
     """tritrypdb RNA-Seq fold change: the floor term is a long decimal."""
     criterion = Criterion(
         id="c_fc",
@@ -41,4 +39,3 @@ def test_the_row_and_the_reference_show_the_floor_at_four_digits() -> None:
     facts = turn_facts(lead_deps(state))
 
     assert facts.steps[0].parameters[0].lines() == ["Floor =: 734 (10 reads)"]
-    assert render_reply("At [value:c_fc.hard_floor].", facts) == "At 734 (10 reads)."

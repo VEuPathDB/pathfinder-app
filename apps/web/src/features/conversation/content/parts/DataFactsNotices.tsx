@@ -7,6 +7,7 @@ import type { TurnFacts } from "@pathfinder/shared";
 export function DataFactsNotices({ data }: { data: TurnFacts }): ReactElement | null {
   const lines = [
     { testId: "facts-stopped-check", text: data.stoppedCheck ?? "" },
+    { testId: "facts-failed-check", text: data.failedCheck ?? "" },
     { testId: "facts-refusal", text: data.refusal ?? "" },
     { testId: "facts-unchecked", text: data.unchecked ?? "" },
     { testId: "facts-unverified", text: data.unverified ?? "" },

@@ -15,7 +15,6 @@ from veupathdb_mcp.audit import (
     StrainModelAudit,
 )
 
-from pathfinder.ai.audit.synthesis import SynthesisCounts
 from pathfinder.domain.audit.planning import ScopeProposal
 from pathfinder.domain.audit.run_state import AuditOutcome
 from pathfinder.domain.statistic_rows import fact_schema
@@ -39,7 +38,6 @@ FACT_SOURCES: tuple[type[BaseModel], ...] = (
     FindingDetail,
     FindingPage,
     ScopeProposal,
-    SynthesisCounts,
     ComparisonFacts,
 )
 

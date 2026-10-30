@@ -22,8 +22,10 @@ from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.tests._support.held_counts import session_holding
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     LEAD_FINAL,
     Collector,
@@ -119,6 +121,11 @@ def _built_state() -> PipelineState:
     return state
 
 
+def _built_deps(state: PipelineState) -> LeadDeps:
+    session = session_holding("plasmodb", "s2", "GenesOrthologousToAGivenGene", 4)
+    return lead_deps(state, strategy_session=session)
+
+
 async def _built_turn_ending_on_a_card(
     monkeypatch: pytest.MonkeyPatch,
     writer: Collector,
@@ -129,7 +136,7 @@ async def _built_turn_ending_on_a_card(
         _lead_model, "get_mock_model", lambda: _card_turn(replies, seen)
     )
     state = _built_state()
-    capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
+    capture = await drive_lead(state=state, deps=_built_deps(state), writer=writer)
     return seen, capture
 
 
@@ -300,11 +307,9 @@ async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
     )
     state = _built_state()
 
-    capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
+    capture = await drive_lead(state=state, deps=_built_deps(state), writer=writer)
 
-    # The third response answers the misreported change the card's denial
-    # did not name.
-    assert len(seen) == 3
+    assert len(seen) == 2
     for call_id in (CARD, DELETE):
         correction = _returns_to(seen[1], call_id)
         assert len(correction) == 1

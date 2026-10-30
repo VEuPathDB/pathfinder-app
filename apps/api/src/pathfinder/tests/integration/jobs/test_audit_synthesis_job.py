@@ -27,9 +27,6 @@ from pathfinder.domain.audit.verdicts import (
     VerdictKind,
     finding_cite,
 )
-from pathfinder.domain.statistic_facts import (
-    statistic_id,
-)
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit.reviews import (
@@ -111,10 +108,6 @@ async def _stored(
         )
 
 
-def _counts(run_id: UUID) -> str:
-    return statistic_id("audit_synthesis", [str(run_id)])
-
-
 async def _paid(owner: RunOwner) -> int:
     async with async_session_factory() as session:
         totals = await quota.get_period_totals(
@@ -182,7 +175,10 @@ async def test_the_job_ends_with_the_runs_synthesis_stored(
             }
         ],
         "headline": ids,
-        "summary": "The review kept 3 findings as errors and rejected 0.",
+        "summary": (
+            "The review kept the findings below as errors; read the headline "
+            "findings first."
+        ),
         "agreement": {"sampled": 3, "agreed": 3, "share": 1.0},
     }
 
@@ -198,11 +194,7 @@ async def test_the_synthesis_carries_the_review_agreement(
     )
     retries: list[RetryPromptPart] = []
     ids = list(stored.values())
-    counts = _counts(run_id)
-    written = (
-        f"The review kept [stat:{counts}.kept] findings as errors and rejected "
-        f"[stat:{counts}.rejected]."
-    )
+    written = "The review keeps every truncated model as an error."
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
@@ -228,10 +220,7 @@ async def test_the_synthesis_carries_the_review_agreement(
     assert "80" in str(retry.content)
     run = await _read_run(app, owner, run_id)
     assert run["synthesis"]["agreement"] == {"sampled": 3, "agreed": 2, "share": 0.667}
-    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (
-        "The review kept 3 findings as errors and rejected 0.",
-        ids,
-    )
+    assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (written, ids)
     assert run["review"]["status"] == "synthesized"
 
 

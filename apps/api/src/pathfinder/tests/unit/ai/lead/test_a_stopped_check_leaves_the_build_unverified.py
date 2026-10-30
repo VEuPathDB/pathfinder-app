@@ -113,7 +113,7 @@ async def test_a_stopped_check_leaves_the_status_and_takes_a_reason(
     deps = _built_this_turn()
 
     result = await _verify_on(monkeypatch, deps, model())
-    answer = LeadResponse(prose=_REPLY, strategy_changed=True, unverified_reason=_WHY)
+    answer = LeadResponse(prose=_REPLY, unverified_reason=_WHY)
 
     assert isinstance(result, VerificationStopped)
     assert result.stop == PhaseStop(role="verification", reason=reason)

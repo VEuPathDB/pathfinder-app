@@ -8,7 +8,6 @@ from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.lead_proposal import propose_changes
-from pathfinder.domain.reference_grammar import BARE_REFERENCES, REFERENCE_KINDS
 
 
 def _flat(text: str) -> str:
@@ -179,30 +178,32 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
     assert "Never dispatch a framing or building pass to remove a step" in instructions
 
 
-def test_the_instructions_name_the_two_fields_the_contract_reads() -> None:
+def test_the_instructions_name_the_field_the_contract_reads() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
-    assert "``strategy_changed`` against every write the turn made" in instructions
+    assert "``strategy_changed``" not in instructions
     assert "``asked_questions``" in instructions
     assert "``sources``" not in instructions
     assert "a single correction listing every mismatch" in instructions
 
 
-def test_the_reply_names_each_fact_by_a_reference_the_product_renders() -> None:
+def test_the_reply_is_the_note_beside_the_facts_the_product_writes() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert (
-        "**The reply names each fact by a reference; the product renders it.**"
+        "**The product writes the facts; your reply is the note beside them.**"
         in instructions
     )
-    assert "The reply explains, recommends and asks" in instructions
-    assert "A name that mixes letters and digits is prose." in instructions
+    assert "The note explains, recommends and asks" in instructions
+    assert "A name is written as it stands, letters and digits together" in (
+        instructions
+    )
 
 
-def test_the_instructions_name_exactly_the_references_the_renderer_reads() -> None:
+def test_the_only_reference_the_instructions_teach_is_a_record() -> None:
     named = set(re.findall(r"``\[(\w+)(?::[^`]*)?\]``", LEAD_INSTRUCTIONS))
 
-    assert named == {*REFERENCE_KINDS, *BARE_REFERENCES}
+    assert named == {"record"}
 
 
 def test_a_fact_about_a_gene_is_read_from_its_record() -> None:
@@ -375,11 +376,4 @@ def test_a_saved_set_the_researcher_names_is_attached() -> None:
     assert (
         "A saved set the researcher names is attached with ``use_control_set``: a "
         "test runs only on a set attached to this conversation."
-    ) in _flat(LEAD_INSTRUCTIONS)
-
-
-def test_a_stat_is_written_in_place_and_a_cite_follows_the_words() -> None:
-    assert (
-        "[stat:<id>.<row>] is the value written in place, and [cite:<id>.<row>] "
-        "follows your own words for it."
     ) in _flat(LEAD_INSTRUCTIONS)

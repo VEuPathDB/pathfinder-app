@@ -1,14 +1,13 @@
 """The ids a listing of the turn returned are rows of its facts part, and a
-reply names each listed id by a reference to its record."""
+note names each listed id by a reference that links its record."""
 
 from __future__ import annotations
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.reply_references import ProseFault
+from pathfinder.domain.reply_note import linked_records
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests.unit.ai.lead.test_the_facts_hold_the_thread import (
-    _faults,
     _joined_by_orthology,
     _rendered,
 )
@@ -57,16 +56,13 @@ def test_an_id_a_listing_returned_renders_linked_to_its_record() -> None:
     )
 
 
-def test_an_id_listed_from_a_step_the_strategy_no_longer_holds_is_unheld() -> None:
+def test_an_id_listed_from_a_step_the_strategy_no_longer_holds_is_dropped() -> None:
     deps = _listed_after_the_join()
     ensure_sync_state(deps.runtime.strategy_session).wdk_step_ids = {
         "step_join": 227295700
     }
 
-    assert _faults(deps, _DROPPED_REPLY) == [
-        ProseFault(token=f"[record:{gene}]", kind="unheld_reference")
-        for gene in _DROPPED
-    ]
+    assert _rendered(deps, _DROPPED_REPLY) == ("The four that dropped out are,, and.")
 
 
 # The 19 Hammondia genes the check listed from the join, and the five of them
@@ -95,9 +91,7 @@ _JOINED = [
 _UNSAMPLED = ["HHA_204530", "HHA_245485", "HHA_245490", "HHA_260190", "HHA_319560"]
 
 
-def test_the_ids_the_join_listed_are_shown_and_the_reply_that_names_them_stands() -> (
-    None
-):
+def test_the_ids_the_join_listed_are_shown_and_the_note_links_them() -> None:
     deps = _joined_by_orthology()
     ensure_sync_state(deps.runtime.strategy_session).wdk_step_ids = {
         "step_join": 227295700
@@ -114,7 +108,7 @@ def test_the_ids_the_join_listed_are_shown_and_the_reply_that_names_them_stands(
         facts.root_count_before,
     ) == ([None], 23)
     listing = ", ".join(f"[record:{gene}]" for gene in _JOINED)
-    assert _faults(deps, f"It returns [root]: {listing}.") == []
+    assert linked_records(_rendered(deps, f"They are {listing}.")) == _JOINED
 
 
 def test_each_listed_id_links_to_its_record_page() -> None:

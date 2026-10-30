@@ -16,7 +16,6 @@ from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.tally_facts import tally_count
 from pathfinder.services.experiment.column_tally import (
     ColumnTally,
     ColumnTallyRefusedError,
@@ -257,19 +256,19 @@ async def test_a_transcript_step_is_counted_in_transcripts(ran: _Ran) -> None:
     assert step.step_url is None
 
 
-async def test_the_counts_are_facts_a_reply_quotes(ran: _Ran) -> None:
+async def test_the_counts_are_lines_of_the_turns_facts(ran: _Ran) -> None:
     ctx = lead_run_context(
         site_id="orthomcl", strategy_session=_singletons_then_proteins()
     )
 
     await count_step_by_column(ctx, _PROTEINS_STEP, "abbreviation")
 
-    tallies = ctx.deps.state.turn_markers.tallies
-    assert [
-        tally_count(tallies, body)
-        for body in ("tally_5e6f7a8b", "tally_5e6f7a8b.bpli", "tally_5e6f7a8b:values")
-    ] == ["523,795 proteins", "18,260 proteins", "840"]
-    assert tally_count(tallies, "tally_5e6f7a8b.pfal") is None
+    [tally] = ctx.deps.state.turn_markers.tallies
+    lines = tally.lines()
+    assert (lines[1:3], "bpli: 18,260" in lines) == (
+        ["In all: 523,795 proteins", "Values: 840"],
+        True,
+    )
 
 
 def test_each_way_the_step_count_is_refused_keeps_a_retry() -> None:

@@ -1,4 +1,4 @@
-"""The tools that plan, start and read gene-model audits, each read recorded as a fact a reply references."""
+"""The tools that plan, start and read gene-model audits, each read recorded as a fact the reply shows."""
 
 from __future__ import annotations
 
@@ -191,7 +191,7 @@ async def plan_gene_model_audit_tool(
     ctx.deps.facts.append(fact)
     genes = (gene for target in scope.targets for gene in target.genes)
     ctx.deps.records.extend(gene_records(ctx.deps.site_id, genes))
-    read = AuditRead[ScopeProposal](answer=proposal, fact_id=fact.id)
+    read = AuditRead[ScopeProposal](answer=proposal)
     return with_summary(read, _planned(scope, cost), ctx=ctx)
 
 
@@ -211,7 +211,7 @@ async def start_gene_model_audit_tool(
     fact = start_fact(outcome)
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(outcome.run_id)
-    read = AuditRead[AuditOutcome](answer=outcome, fact_id=fact.id)
+    read = AuditRead[AuditOutcome](answer=outcome)
     return with_summary(read, f"Audit run {outcome.phase}", ctx=ctx)
 
 
@@ -235,7 +235,7 @@ async def list_audit_runs_tool(
     runs = await list_audit_runs(ctx.deps.caller)
     fact = audit_runs_fact(runs)
     ctx.deps.facts.append(fact)
-    read = AuditRead[list[AuditRunSummary]](answer=runs, fact_id=fact.id)
+    read = AuditRead[list[AuditRunSummary]](answer=runs)
     return with_summary(read, count_noun(len(runs), "audit run"), ctx=ctx)
 
 
@@ -248,7 +248,7 @@ async def read_audit_run_tool(
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(run_id)
     ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
-    read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
+    read = AuditRead[AuditRunView](answer=view)
     return with_summary(read, f"Audit run {view.run.status}", ctx=ctx)
 
 
@@ -268,7 +268,7 @@ async def review_audit_run_tool(
     ctx.deps.facts.append(fact)
     ctx.deps.runs.append(run_id)
     ctx.deps.records.extend(gene_records(view.run.site_id, view.named_genes()))
-    read = AuditRead[AuditRunView](answer=view, fact_id=fact.id)
+    read = AuditRead[AuditRunView](answer=view)
     state = "not started" if view.review is None else view.review.status
     return with_summary(read, f"Review {state}", ctx=ctx)
 
@@ -289,7 +289,7 @@ async def list_audit_findings_tool(
     ctx.deps.records.extend(gene_records(page.site_id, genes))
     for finding in page.findings:
         ctx.deps.hold_genomes(finding_genomes(finding))
-    read = AuditRead[FindingPage](answer=page, fact_id=fact.id)
+    read = AuditRead[FindingPage](answer=page)
     summary = f"{len(page.findings)} of {count_noun(page.total, 'finding')}"
     return with_summary(read, summary, ctx=ctx)
 
@@ -314,7 +314,7 @@ def _held(
     }
     deps.records.extend(gene_records(detail.site_id, detail.finding.target.genes))
     deps.hold_genomes(finding_genomes(detail.finding))
-    return AuditRead[FindingDetail](answer=detail, fact_id=fact.id)
+    return AuditRead[FindingDetail](answer=detail)
 
 
 async def read_audit_findings_tool(

@@ -250,7 +250,6 @@ def test_the_sweep_on_a_built_thread_tunes_the_root_the_live_read_names() -> Non
         LIVE_ROOT_WDK_ID,
         CONTROL_SET_ID,
     )
-    assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
 @pytest.mark.parametrize("arc", ["orthologs", "syntenic-orthologs", "round-trip"])
@@ -271,7 +270,6 @@ def test_the_portal_route_on_a_framed_thread_is_an_edit_that_builds_nothing() ->
     )
 
     assert names(calls) == ["classify_user_intent", "edit_strategy", "final_result"]
-    assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
 def test_a_build_reply_points_at_the_facts_beside_it() -> None:
@@ -316,7 +314,6 @@ def test_the_rename_calls_the_tool_with_the_name_after_to() -> None:
     assert calls[-1].args_as_dict()["prose"] == (
         "Renamed the strategy to UAT signal peptide screen."
     )
-    assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
 def test_a_refused_rename_says_nothing_was_renamed() -> None:
@@ -464,7 +461,6 @@ def test_a_separation_that_did_not_run_offers_nothing() -> None:
         "separate_controls",
         "final_result",
     ]
-    assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
 def _intersect_thread() -> Scene:
@@ -498,4 +494,3 @@ def test_the_delete_card_removes_the_transmembrane_step_the_live_read_names() ->
     assert deleted["step_id"] == "step_tm"
     assert len(str(deleted["reply"])) >= 20
     assert calls[-1].args_as_dict()["prose"] == DELETED_PROSE
-    assert calls[-1].args_as_dict()["strategyChanged"] is True

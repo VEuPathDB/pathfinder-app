@@ -34,12 +34,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from veupathdb.wdk import SiteInfo
 
 from pathfinder.ai.capabilities.metering import RunPricing, SpendMeter
-from pathfinder.ai.graph.note_labels import note_label
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.reply_references import shown_reply
+from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
@@ -273,7 +272,7 @@ def _emit_residual_prose(
         writer,
         TextDeltaChunk(
             id=chunk_id,
-            delta=shown_reply(response.prose, capture.facts, note_label()),
+            delta=render_note(response.prose, capture.facts),
         ),
     )
     emit_chunk(writer, TextEndChunk(id=chunk_id))

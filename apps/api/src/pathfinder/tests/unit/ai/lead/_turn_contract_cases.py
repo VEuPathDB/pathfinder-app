@@ -36,7 +36,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     user_intent,
 )
 
-CLAIMS_A_CHANGE = "I removed that unfiltered essentiality criterion."
 REPORTS_THE_STRATEGY = "The essentiality step filters nothing, so I left it."
 BLAMING_REPLY = (
     "I kept every requirement you stated. Please try the build again once the "
@@ -71,14 +70,12 @@ CRITERION = "essential in blood stages"
 def reply(
     prose: str,
     *,
-    changed: bool = False,
     next_state: LeadTurnState = "await_user",
     questions: list[AskedQuestion] | None = None,
 ) -> LeadResponse:
     return LeadResponse(
         prose=prose,
         next_state=next_state,
-        strategy_changed=changed,
         asked_questions=list(questions or []),
     )
 

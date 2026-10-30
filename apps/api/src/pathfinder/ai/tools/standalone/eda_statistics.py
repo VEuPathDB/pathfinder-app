@@ -34,15 +34,13 @@ from pathfinder.services.eda.statistics import (
 _ESTIMATED_SECONDS = 120
 
 STATISTIC_GUIDANCE = (
-    "State each number with [stat:<id>.<row name>], using the id and the row "
-    "names of the statistic above. Say a row that holds no number in your own "
-    "words. Name the test the service ran; the card shows the table and every "
-    "value."
+    "The card shows the table and every value. Name the test the service ran "
+    "and say what the values mean, with no number of your own."
 )
 
 
 class EdaStatisticResult(CamelModel):
-    """A statistic the service computed, as the reply references it."""
+    """A statistic the service computed."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -108,13 +106,10 @@ async def run_eda_dimensionality_reduction(
       expression data. Each of its values is one colored group.
 
     The result names the two components with the variance each explains, the
-    samples and the groups, under a statistic id. State each with
-    ``[stat:<id>.PC1]``, ``[stat:<id>.PC2]``, ``[stat:<id>.samples]`` and
-    ``[stat:<id>.groups]``. It also places each group on each component:
-    ``[stat:<id>.<group> PC1 range]`` and ``[stat:<id>.<group> PC1 mean]``,
-    and the same for PC2. Its statements say which pairs of groups each
-    component separates, as their ranges on it do not overlap. Say them in
-    your own words. Always write ``caption``: one sentence, in the
+    samples and the groups, and places each group on each component; the
+    card shows them. Its statements say which pairs of groups each component
+    separates, as their ranges on it do not overlap. Say them in your own
+    words, with no number. Always write ``caption``: one sentence, in the
     researcher's words, saying what the plot shows.
 
     Args:
@@ -165,9 +160,8 @@ async def read_eda_statistics(
       returns its r-squared.
 
     ``output_entity_id`` is the entity whose records are counted; both
-    variables are on it or on an ancestor of it. The result carries a
-    statistic id and the name of each row. State every value with
-    ``[stat:<id>.<row name>]`` and never compute a number yourself. Always
+    variables are on it or on an ancestor of it. The card shows every value;
+    never compute a number yourself. Always
     write ``caption``: one sentence saying what the statistic shows.
 
     Args:

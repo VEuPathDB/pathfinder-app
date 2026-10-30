@@ -190,4 +190,3 @@ async def test_a_bare_yes_after_a_declined_offer_ends_on_the_refusal(
     assert calls == []
     assert capture.response is not None
     assert capture.response.prose == DECLINED_OFFER_REFUSAL
-    assert capture.response.strategy_changed is False

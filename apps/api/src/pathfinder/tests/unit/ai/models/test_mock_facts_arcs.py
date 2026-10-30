@@ -1,16 +1,12 @@
-"""The listing arc names each id its listing read by a reference to its
-record, which renders from the listing the facts part shows under its step."""
+"""The listing arc names each id its listing read as a record reference, which
+links the listing the facts part shows under its step."""
 
 from __future__ import annotations
 
 from pathfinder.ai.models.mock.facts_arcs import LISTED
 from pathfinder.domain.record_facts import ListedFact
 from pathfinder.domain.record_page import ListedRecord
-from pathfinder.domain.reply_references import (
-    ProseFault,
-    prose_faults,
-    render_reply,
-)
+from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.turn_facts import StepFact, TurnFacts
 from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, names, play
 
@@ -50,9 +46,7 @@ def test_the_listing_arc_names_the_ids_the_facts_list() -> None:
 
     assert names(calls) == ["classify_user_intent", "read_step_ids", "final_result"]
     assert args_of(calls, "read_step_ids") == [{"limit": LISTED}]
-    assert render_reply(prose, facts) == (
+    assert render_note(prose, facts) == (
         f"The result starts with {', '.join(f'[{g}]({_PAGE}{g})' for g in _IDS)}."
     )
-    assert prose_faults(prose, TurnFacts(steps=[step])) == [
-        ProseFault(token=f"[record:{g}]", kind="unheld_reference") for g in _IDS
-    ]
+    assert render_note(prose, TurnFacts(steps=[step])) == "The result starts with,,,,."

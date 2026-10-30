@@ -53,7 +53,6 @@ RECOVERY_FINAL: dict[str, Any] = {
 LEAD_FINAL: dict[str, Any] = {
     "prose": "scripted",
     "nextState": "await_user",
-    "strategyChanged": False,
 }
 
 # The reply a scripted card call carries, as every card call must.
@@ -215,11 +214,13 @@ def lead_state() -> PipelineState:
     return state
 
 
-def lead_deps(state: PipelineState) -> LeadDeps:
+def lead_deps(
+    state: PipelineState, strategy_session: StrategySession | None = None
+) -> LeadDeps:
     context = Context(
         site_id="plasmodb",
         user_id=uuid4(),
-        strategy_session=StrategySession(site_id="plasmodb"),
+        strategy_session=strategy_session or StrategySession(site_id="plasmodb"),
         db_session_factory=_quota_offline,
         cancel_event=asyncio.Event(),
     )

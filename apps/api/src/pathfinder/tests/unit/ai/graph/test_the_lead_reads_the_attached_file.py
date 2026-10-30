@@ -54,7 +54,7 @@ def _first_request_content(monkeypatch: pytest.MonkeyPatch) -> Any:
         seen.append(list(messages))
         return ToolCallPart(
             tool_name="final_result",
-            args={"prose": "read", "nextState": "await_user", "strategyChanged": False},
+            args={"prose": "read", "nextState": "await_user"},
             tool_call_id="call_final",
         )
 

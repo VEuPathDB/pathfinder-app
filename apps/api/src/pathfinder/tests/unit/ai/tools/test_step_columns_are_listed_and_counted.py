@@ -23,7 +23,6 @@ from pathfinder.ai.tools.standalone.step_tally import (
     step_columns,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.tally_facts import tally_count, tally_id
 from pathfinder.services.experiment.column_tally import ColumnTally
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.recorded_columns import TM_STEP, column_catalog
@@ -113,7 +112,7 @@ async def test_a_step_is_counted_through_the_tool_server(
     assert [c.data for c in chunks] == [tally.model_dump(by_alias=True, mode="json")]
 
 
-async def test_the_counts_of_a_step_are_facts_a_reply_quotes(
+async def test_the_counts_of_a_step_are_lines_of_the_turns_facts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch, ToolServer(counts=_ORGANISMS))
@@ -121,16 +120,12 @@ async def test_the_counts_of_a_step_are_facts_a_reply_quotes(
 
     await count_step_by_column(ctx, TM_STEP, "organism")
 
-    tallies = ctx.deps.state.turn_markers.tallies
-    held = tally_id("plasmodb", f"step {TM_STEP}", "organism", None)
-    assert [
-        tally_count(tallies, body)
-        for body in (
-            held,
-            f"{held}.Plasmodium falciparum IT",
-            f"{held}:values",
-        )
-    ] == ["840 transcripts", "21 transcripts", "3"]
+    [tally] = ctx.deps.state.turn_markers.tallies
+    lines = tally.lines()
+    assert (lines[1:3], "Plasmodium falciparum IT: 21" in lines) == (
+        ["In all: 840 transcripts", "Values: 3"],
+        True,
+    )
 
 
 async def test_an_unknown_column_goes_back_naming_the_countable_columns(

@@ -81,7 +81,7 @@ async def test_the_proteins_of_a_step_are_counted_per_genome_by_their_word_cloud
         "Taxon Code",
     )
     assert tally.id == tally_id("orthomcl", f"step {STEP}", "abbreviation", None)
-    assert tally.fact().count("bpli") == 18260
+    assert {row.value: row.count for row in tally.fact().rows}["bpli"] == 18260
 
 
 async def test_a_word_cloud_count_keeps_the_top_values_asked_for(

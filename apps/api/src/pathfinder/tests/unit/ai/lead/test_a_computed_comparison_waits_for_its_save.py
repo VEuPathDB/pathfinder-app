@@ -27,6 +27,7 @@ from pathfinder.ai.tools.standalone.orthomcl_expressions import (
     ComputedComparison,
     build_phyletic_expression,
 )
+from pathfinder.domain.statistic_facts import statistic_id
 from pathfinder.domain.strategy.save_offers import with_save_offers
 from pathfinder.tests._support.group_list_site import served_group_list
 from pathfinder.tests._support.orthomcl_clouds import genus_mean, served_genus_clouds
@@ -181,5 +182,5 @@ async def test_a_comparison_no_card_names_is_dropped_at_the_turn_end() -> None:
 
     assert (kept.computed_comparisons, [s.id for s in kept.statistics]) == (
         {},
-        [computed.fact_id],
+        [statistic_id("group_comparison", [computed.handle])],
     )

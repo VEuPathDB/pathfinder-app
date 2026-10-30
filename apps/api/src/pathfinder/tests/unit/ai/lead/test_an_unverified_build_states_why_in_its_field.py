@@ -59,7 +59,7 @@ def _unverified_status(deps: LeadDeps) -> str:
 
 
 def _answer(prose: str, *, why: str = "") -> LeadResponse:
-    return LeadResponse(prose=prose, strategy_changed=True, unverified_reason=why)
+    return LeadResponse(prose=prose, unverified_reason=why)
 
 
 def _card(reply: str) -> DeferredToolRequests:
@@ -147,7 +147,7 @@ def test_the_lead_sets_the_field_the_refusal_names() -> None:
                 for p in request.parts
                 if isinstance(p, RetryPromptPart)
             )
-        args = {"prose": _STATES_WHY, "strategyChanged": True}
+        args = {"prose": _STATES_WHY}
         why = {"unverifiedReason": _WHY} if told else {}
         return ModelResponse(
             parts=[

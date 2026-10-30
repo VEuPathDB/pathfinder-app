@@ -245,12 +245,11 @@ _JUDGEMENTS: list[tuple[type[BaseModel], dict[str, object]]] = [
             }
         ),
     ),
-    (LeadResponse, {"prose": "p" * 5000, "strategyChanged": False}),
+    (LeadResponse, {"prose": "p" * 5000}),
     (
         LeadResponse,
         {
             "prose": "p",
-            "strategyChanged": False,
             "askedQuestions": [{"question": "q", "options": ["only"]}] * 9,
         },
     ),

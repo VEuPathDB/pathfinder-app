@@ -17,17 +17,13 @@ from veupathdb.domain.strategy import (
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.last_change import LastChange
-from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _SIGNAL_PEPTIDE = "Predicted Signal Peptide"
 _DELETED = LastChange(before=17, after=68, what=f"deleted {_SIGNAL_PEPTIDE}")
-_ASKED = "[last_change:before] before the delete and [last_change:after] after."
 _TEXT = StrategyStepNode(id="step_text", search_name="GenesByText")
 _JOINED = StrategyStepNode(
     id="step_join",
@@ -87,15 +83,6 @@ def test_a_turn_after_the_change_holds_its_counts() -> None:
     assert (
         "Last change: deleted Predicted Signal Peptide; 17 genes before, 68 genes after"
         in facts.lines()
-    )
-
-
-def test_a_reply_names_the_count_before_an_earlier_turn_s_change() -> None:
-    facts = turn_record(run_context_for(_after_the_delete())).facts
-
-    assert prose_faults(_ASKED, facts) == []
-    assert (
-        render_reply(_ASKED, facts) == "17 genes before the delete and 68 genes after."
     )
 
 

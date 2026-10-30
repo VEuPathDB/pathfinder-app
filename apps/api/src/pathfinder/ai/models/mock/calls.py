@@ -10,7 +10,7 @@ from typing import Any, Literal
 from assistant_core.models.scripted import scripted_call, terminal_call
 from pydantic_ai.messages import ToolCallPart
 
-from pathfinder.domain.reply_references import shape_faults
+from pathfinder.domain.reply_note import written_numbers
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -22,7 +22,6 @@ def lead_final(
     prose: str,
     next_state: LeadTurnState,
     *,
-    strategy_changed: bool = False,
     questions: Sequence[str] = (),
 ) -> ToolCallPart:
     """The Lead's final answer, as the turn contract reads it: what the arc
@@ -32,7 +31,6 @@ def lead_final(
         {
             "prose": prose,
             "nextState": next_state,
-            "strategyChanged": strategy_changed,
             **({"askedQuestions": asked} if asked else {}),
         },
     )
@@ -63,14 +61,14 @@ def classify(classification: str, *requirements: dict[str, Any]) -> ToolCallPart
 
 
 def narrated(text: str) -> str:
-    """The sentences of ``text`` that write no number, identifier or link, which
-    a reply writes only as a reference."""
+    """The sentences of ``text`` that write no number, which only the facts
+    beside a note state."""
     sentences = _SENTENCE_END.split(text.strip())
-    return " ".join(s for s in sentences if s and not shape_faults(s))
+    return " ".join(s for s in sentences if s and not written_numbers(s))
 
 
 def spoken(text: str) -> str:
-    """``text`` with each number, identifier and link taken out."""
-    for fault in shape_faults(text):
-        text = re.sub(rf"(?<!\w){re.escape(fault.token)}(?!\w)", "", text)
+    """``text`` with each number taken out."""
+    for number in written_numbers(text):
+        text = re.sub(rf"(?<![\w.,]){re.escape(number)}(?![\w%]|[.,]\d)", "", text)
     return " ".join(text.split())

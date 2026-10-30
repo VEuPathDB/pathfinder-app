@@ -97,7 +97,7 @@ def clear(messages: list[ModelMessage]) -> list[ToolCallPart]:
                 "confirm": True,
             },
         ),
-        lead_final(_CLEARED_PROSE, "await_user", strategy_changed=True)
+        lead_final(_CLEARED_PROSE, "await_user")
         if cleared
         else lead_final(_UNCHANGED_PROSE, "await_user"),
     ]
@@ -109,7 +109,7 @@ def proposal(messages: list[ModelMessage]) -> list[ToolCallPart]:
     return [
         classify("follow_up_question"),
         scripted_call("propose_changes", _proposal(messages)),
-        lead_final(_PROPOSED_PROSE, "await_user", strategy_changed=True)
+        lead_final(_PROPOSED_PROSE, "await_user")
         if applied
         else lead_final(_UNCHANGED_PROSE, "await_user"),
     ]
@@ -169,9 +169,7 @@ def sweep(messages: list[ModelMessage]) -> list[ToolCallPart]:
         _saved_controls(),
         *journey[1:-2],
         _swept(built, messages),
-        lead_final(
-            f"{_SWEEP_PROSE}{FACTS_BESIDE}", "await_user", strategy_changed=True
-        ),
+        lead_final(f"{_SWEEP_PROSE}{FACTS_BESIDE}", "await_user"),
     ]
 
 
@@ -185,5 +183,5 @@ def delete_card(messages: list[ModelMessage]) -> list[ToolCallPart]:
     return [
         *head,
         scripted_call("delete_step", {"step_id": step_id, "reply": _DELETE_REPLY}),
-        lead_final(DELETED_PROSE, "await_user", strategy_changed=True),
+        lead_final(DELETED_PROSE, "await_user"),
     ]

@@ -225,13 +225,11 @@ def test_a_compared_variant_row_shows_the_values_it_differs_by() -> None:
         ComparedVariant(
             label="Product field",
             gene_count=2,
-            unique_count=0,
             differs_by={"text_fields": '["product"]'},
         ),
         ComparedVariant(
             label="Every text field",
             gene_count=2,
-            unique_count=0,
             differs_by={"text_fields": _SIX_FIELDS, "text_expression": "tube*"},
         ),
     )
@@ -248,8 +246,8 @@ def test_a_compared_variant_row_shows_the_values_it_differs_by() -> None:
 
 def test_a_compared_variant_that_differs_by_nothing_shows_its_count() -> None:
     facts = _compared(
-        ComparedVariant(label="As built", gene_count=1, unique_count=0),
-        ComparedVariant(label="Again", gene_count=1665, unique_count=0),
+        ComparedVariant(label="As built", gene_count=1),
+        ComparedVariant(label="Again", gene_count=1665),
     )
 
     assert facts.lines() == ["As built: 1 gene", "Again: 1,665 genes"]
@@ -270,4 +268,14 @@ def test_a_membership_check_shows_the_genes_held_and_not_held() -> None:
         "Not held by Signal peptide: TcIL3000_0_26385",
     ]
     assert facts.record_ids() == asked
-    assert "memberships" not in facts.model_dump(by_alias=True)
+    assert [
+        (m["searchLabel"], m["held"])
+        for m in facts.model_dump(by_alias=True)["memberships"]
+    ] == [("Signal peptide", asked[1:])]
+    assert facts.empty() is False
+
+
+def test_the_request_messages_stay_off_the_wire() -> None:
+    facts = TurnFacts(request_messages=["What fraction are on chromosome 1?"])
+
+    assert "requestMessages" not in facts.model_dump(by_alias=True)

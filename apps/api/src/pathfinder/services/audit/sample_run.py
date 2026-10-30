@@ -26,7 +26,7 @@ from pathfinder.domain.audit.stages import StageName
 from pathfinder.domain.audit.verdicts import (
     FindingReview,
     ReviewProgress,
-    StoredSynthesis,
+    Synthesis,
     finding_cite,
 )
 from pathfinder.persistence.repositories.audit import AuditRepository, CollectedGenome
@@ -136,7 +136,7 @@ class SampleRun(CamelModel):
     findings: tuple[SampleFinding, ...]
     stages: tuple[SampleStage, ...]
     reviews: tuple[SampleReview, ...]
-    synthesis: StoredSynthesis
+    synthesis: Synthesis
     review_progress: ReviewProgress
 
 
@@ -223,9 +223,7 @@ def _placed_review(review: FindingReview, ids: Sequence[int]) -> FindingReview:
     return review.model_copy(update={"verdict": verdict})
 
 
-def _placed_synthesis(
-    synthesis: StoredSynthesis, ids: Sequence[int]
-) -> StoredSynthesis:
+def _placed_synthesis(synthesis: Synthesis, ids: Sequence[int]) -> Synthesis:
     sections = tuple(
         section.model_copy(
             update={"finding_ids": tuple(ids[p - 1] for p in section.finding_ids)}

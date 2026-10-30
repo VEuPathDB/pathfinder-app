@@ -49,7 +49,7 @@ _RESULT = {
             {"name": "groups", "value": "3 groups"},
         ],
     },
-    "guidance": "State each value with [stat:<id>.<row name>].",
+    "guidance": eda_statistics.STATISTIC_GUIDANCE,
 }
 
 

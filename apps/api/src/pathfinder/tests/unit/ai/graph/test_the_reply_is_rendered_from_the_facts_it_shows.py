@@ -1,5 +1,5 @@
-"""The reply's text part is its prose with each reference rendered from the
-same facts the facts part beside it shows, and a card's reply the same way."""
+"""The reply's text part is its note with each record reference linked from
+the same facts the facts part beside it shows, and a card's reply the same way."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.record_facts import SourceFact
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import UNCHECKED_PROSE, StepFact, TurnFacts
 from pathfinder.services.gene_records.read import gene_record_url
@@ -47,9 +47,11 @@ from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 # microsporidiadb, build 71: E. intestinalis signal peptide 66, the E. cuniculi
 # ortholog exclusion 129, 9 in both.
 _PROSE = (
-    "The signal peptide step returns [count:step_sp] and the result [root], so "
-    "the ortholog filter removes [diff:step_sp,root]."
+    "The ortholog filter keeps the secreted genes E. cuniculi lacks, so the "
+    "result is far smaller than the signal peptide step."
 )
+_EINT = "Eint_010010"
+_EINT_URL = gene_record_url("microsporidiadb", _EINT)
 
 
 def _session() -> StrategySession:
@@ -83,7 +85,7 @@ async def _turn(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
         *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
-        capture.response = LeadResponse(prose=_PROSE, strategy_changed=False)
+        capture.response = LeadResponse(prose=_PROSE)
 
     async def _pre_turn(state: PipelineState, _context: Context) -> PipelineState:
         return state
@@ -123,18 +125,13 @@ async def test_the_text_part_is_the_prose_rendered_from_the_facts_part(
     (shown,) = [chunk["data"] for chunk in written if chunk["type"] == "data-facts"]
     text = [chunk["delta"] for chunk in written if chunk["type"] == "text-delta"]
 
-    assert text == [
-        (
-            "The signal peptide step returns 66 genes and the result 9 genes, so "
-            "the ortholog filter removes 57 genes."
-        )
-    ]
-    assert text == [render_reply(_PROSE, TurnFacts.model_validate(shown))]
+    assert text == [_PROSE]
+    assert TurnFacts.model_validate(shown).root_count == 9
 
 
 def test_a_cards_reply_is_rendered_from_the_facts_it_is_released_with() -> None:
     hold = CardHold()
-    reply = "The step returns [count:c_text]. Which field should it search?"
+    reply = f"Start with [record:{_EINT}]. Which field should it search?"
     hold.admit(ToolInputStartChunk(tool_call_id="call_card", tool_name="consult_user"))
     hold.admit(
         ToolInputAvailableChunk(
@@ -143,12 +140,15 @@ def test_a_cards_reply_is_rendered_from_the_facts_it_is_released_with() -> None:
             input={"questions": [], "reply": reply},
         )
     )
-    facts = TurnFacts(steps=[StepFact(step_id="c_text", display_name="Text", count=2)])
+    facts = TurnFacts(
+        steps=[StepFact(step_id="c_text", display_name="Text", count=2)],
+        sources=[SourceFact(url=_EINT_URL, record_id=_EINT)],
+    )
 
     released = hold.release(facts, [])
 
     assert [c.delta for c in released if isinstance(c, TextDeltaChunk)] == [
-        "The step returns 2 genes. Which field should it search?"
+        f"Start with [{_EINT}]({_EINT_URL}). Which field should it search?"
     ]
 
 
@@ -171,7 +171,7 @@ def test_a_card_turn_shows_the_facts_once_and_renders_only_the_shown_card() -> N
     for chunk in (
         *_card("call_refused", "It returns 66 genes. Which field?"),
         ToolOutputDeniedChunk(tool_call_id="call_refused"),
-        *_card("call_shown", "It returns [count:step_sp]. Which field?"),
+        *_card("call_shown", f"Start with [record:{_EINT}]. Which field?"),
     ):
         hold.admit(chunk)
 
@@ -189,7 +189,7 @@ def test_a_card_turn_shows_the_facts_once_and_renders_only_the_shown_card() -> N
         "tool-input-available",
     ]
     assert [c["delta"] for c in written if c["type"] == "text-delta"] == [
-        render_reply("It returns [count:step_sp]. Which field?", facts)
+        render_note(f"Start with [record:{_EINT}]. Which field?", facts)
     ]
     assert facts is capture.facts
 
@@ -216,7 +216,7 @@ def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged()
 ):
     payloads: list[object] = []
     capture = _LeadRunCapture()
-    capture.response = stop_response(loop_stop_prose(None), changed=False)
+    capture.response = stop_response(loop_stop_prose(None))
 
     _emit_residual_prose(payloads.append, capture, message_id=uuid4())
 
@@ -227,13 +227,13 @@ def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged()
     ] == [loop_stop_prose(None)]
 
 
-def test_a_reply_let_through_past_the_bound_shows_plain_words_and_a_note() -> None:
+def test_a_note_let_through_past_the_bound_is_shown_with_its_notice() -> None:
     payloads: list[object] = []
     deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=_session())
     deps.state.turn_markers.unchecked_reply = True
     capture = _LeadRunCapture()
     capture.response = LeadResponse(
-        prose="It returns [count:step_zz] and 1,234 genes.", strategy_changed=False
+        prose=f"It keeps 1,234 genes, [record:{_EINT}] among them."
     )
 
     facts = show_the_facts(payloads.append, deps, capture)
@@ -244,4 +244,4 @@ def test_a_reply_let_through_past_the_bound_shows_plain_words_and_a_note() -> No
         c["delta"]
         for p in payloads
         if (c := _extract_chunk(p)) is not None and c["type"] == "text-delta"
-    ] == ["It returns a count not shown and 1,234 genes."]
+    ] == ["It keeps 1,234 genes, among them."]

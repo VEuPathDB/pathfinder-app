@@ -1,4 +1,4 @@
-"""Every audit read as a statistic fact, one row per number or name it holds, under a dotted path a reply's reference names."""
+"""Every audit read as a statistic fact, one row per number or name it holds, under the dotted path of its value."""
 
 from __future__ import annotations
 
@@ -34,7 +34,6 @@ class AuditRead[T](CamelModel):
     model_config = ConfigDict(frozen=True)
 
     answer: T
-    fact_id: str
 
 
 def gene_records(site_id: str, genes: Iterable[str]) -> list[ReadRecord]:

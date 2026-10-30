@@ -10,7 +10,6 @@ from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import RunUsage
 
-from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.mock import build_synthesis_mock
 from pathfinder.ai.audit.synthesis import (
     NO_FINDING_KEPT,
@@ -30,14 +29,9 @@ from pathfinder.domain.audit.verdicts import (
     FindingReview,
     GeneModelVerdict,
     ReviewAgreement,
-    StoredSynthesis,
+    Synthesis,
     VerdictKind,
     finding_cite,
-)
-from pathfinder.domain.statistic_facts import (
-    StatisticFact,
-    StatisticRowFact,
-    statistic_id,
 )
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
@@ -48,7 +42,6 @@ _NOW = datetime(2026, 10, 24, tzinfo=UTC)
 _RUN = UUID("00000000-0000-4000-8000-000000000001")
 _TRUNCATED: ErrorType = "truncated_model"
 _SPLIT: ErrorType = "split_model"
-_COUNTS = statistic_id("audit_synthesis", [str(_RUN)])
 
 
 def _view(genomes: tuple[str, ...] = ()) -> AuditRunView:
@@ -93,9 +86,6 @@ def _view(genomes: tuple[str, ...] = ()) -> AuditRunView:
         agreement=None,
         disputed=[],
     )
-
-
-_RUN_FACT = audit_run_fact(_view()).id
 
 
 def _stored(
@@ -173,7 +163,7 @@ async def _synthesized(
     reviews: list[VerdictView],
     model: FunctionModel,
     view: AuditRunView | None = None,
-) -> StoredSynthesis:
+) -> Synthesis:
     return await synthesize(
         view or _view(), reviews, impacts=_IMPACTS, model=model, usage=RunUsage()
     )
@@ -279,11 +269,9 @@ async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
     [
         ("80% of the findings were kept.", "80"),
         ("The review kept 2 findings.", "2"),
-        (f"The review kept [stat:{_COUNTS}.keptShare] of the findings.", "keptShare"),
-        ("The review kept [stat:stat_00000000.kept] findings.", "stat_00000000"),
     ],
 )
-async def test_a_summary_that_states_a_fact_no_fact_holds_is_retried(
+async def test_a_summary_that_writes_a_number_is_retried(
     summary: str, token: str
 ) -> None:
     retries: list[RetryPromptPart] = []
@@ -296,35 +284,15 @@ async def test_a_summary_that_states_a_fact_no_fact_holds_is_retried(
     assert found.summary == "Two kept."
 
 
-@pytest.mark.parametrize(
-    "summary",
-    [
-        (
-            f"The kept errors lie in [stat:{_COUNTS}.keptGenomes] of "
-            f"[stat:{_COUNTS}.genomes] genomes."
-        ),
-        (
-            "Two independent reviews agreed on "
-            f"[stat:{_COUNTS}.agreement.agreed] of "
-            f"[stat:{_COUNTS}.agreement.sampled] sampled findings."
-        ),
-        (
-            f"The review kept [stat:{_COUNTS}.kept] findings and rejected "
-            f"[stat:{_COUNTS}.rejected], over [stat:{_RUN_FACT}.run.targets] target."
-        ),
-    ],
-)
-async def test_a_summary_of_held_facts_is_stored_as_written(summary: str) -> None:
+async def test_a_summary_in_words_is_stored_as_written() -> None:
     retries: list[RetryPromptPart] = []
-    reviews = [
-        _stored(1, second="error"),
-        _stored(2, second="no_error", genome=_OTHER),
-        _stored(3, "no_error"),
-    ]
+    summary = (
+        "The kept errors lie in one genome, and the independent reviews agreed "
+        "on most of the sampled findings."
+    )
     right = _draft([_section(_TRUNCATED, 1, 2)], [1, 2], summary)
-    view = _view(("Examplea alpha A", "Examplea beta B", "Examplea gamma C"))
 
-    found = await _synthesized(reviews, _first_then(right, retries), view)
+    found = await _synthesized([_stored(1), _stored(2)], _first_then(right, retries))
 
     assert (retries, found.summary) == ([], summary)
 
@@ -348,7 +316,7 @@ async def test_the_agreement_is_computed_from_the_reviews() -> None:
     }
 
 
-async def test_the_model_reads_the_kept_findings_the_counts_and_the_fact_ids() -> None:
+async def test_the_model_reads_the_kept_findings_and_the_counts() -> None:
     seen: list[str] = []
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
@@ -366,7 +334,6 @@ async def test_the_model_reads_the_kept_findings_the_counts_and_the_fact_ids() -
         '"counts":{"kept":2,"rejected":1,"undecided":1,"keptGenomes":1,"genomes":0,'
         '"agreement":{"sampled":0,"agreed":0,"share":null}}'
     ) in prompt
-    assert f'"runFact":"{_RUN_FACT}","countsFact":"{_COUNTS}"' in prompt
     assert '"run":{"run":{"id":' in prompt
 
 
@@ -381,7 +348,7 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
         _view(), reviews, impacts=_IMPACTS, model=FunctionModel(refuse), usage=usage
     )
 
-    assert found == StoredSynthesis(
+    assert found == Synthesis(
         sections=(),
         headline=(),
         summary=NO_FINDING_KEPT,
@@ -420,7 +387,7 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
 
     found = await _synthesized(reviews, build_synthesis_mock())
 
-    assert found == StoredSynthesis(
+    assert found == Synthesis(
         sections=(
             ErrorTypeSection(
                 error_type=_TRUNCATED,
@@ -437,19 +404,8 @@ async def test_the_mock_synthesis_groups_the_kept_findings_by_impact() -> None:
         ),
         headline=(3, 2, 4, 1),
         summary=(
-            f"The review kept [stat:{_COUNTS}.kept] findings as errors and "
-            f"rejected [stat:{_COUNTS}.rejected]."
+            "The review kept the findings below as errors; read the headline "
+            "findings first."
         ),
         agreement=ReviewAgreement(sampled=0, agreed=0),
-        facts=(
-            StatisticFact(
-                id=_COUNTS,
-                kind="audit_synthesis",
-                title=f"The reviews of audit run {_RUN}",
-                rows=[
-                    StatisticRowFact(name="kept", value="4"),
-                    StatisticRowFact(name="rejected", value="1"),
-                ],
-            ),
-        ),
     )

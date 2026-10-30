@@ -5,17 +5,11 @@ from uuid import UUID
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from pathfinder.ai.audit.facts import audit_finding_fact
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import GenePairTarget
-from pathfinder.domain.reply_references import (
-    ProseFault,
-    prose_faults,
-    render_reply,
-)
+from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.statistic_facts import StatisticFact
-from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.audit.finding_views import (
     EvidenceView,
     FindingDetail,
@@ -108,35 +102,8 @@ def test_a_finding_fact_names_each_value_by_its_path_in_the_answer() -> None:
     assert fact.value("confirmation.confirmation.result.strainCdsLength") is None
 
 
-def test_a_reply_quoting_a_findings_id_count_and_certainty_keeps_them() -> None:
-    fact = _fact()
-    facts = TurnFacts(statistics=[fact])
-    prose = (
-        f"Finding [stat:{fact.id}.finding.id] is a [stat:{fact.id}.finding.certainty] "
-        f"certainty error: the strain CDS holds [stat:{fact.id}.{_LENGTH}] bases."
-    )
+def test_the_facts_show_the_findings_id_and_certainty_and_not_its_payload() -> None:
+    shown = {row.label: row.value for row in read_fact(_fact()).rows}
 
-    assert prose_faults(prose, facts) == []
-    assert render_reply(prose, facts) == (
-        "Finding 29 is a high certainty error: the strain CDS holds 897 bases."
-    )
-
-
-def test_a_reference_to_a_group_of_values_names_the_values_it_holds() -> None:
-    fact = _fact()
-    facts = TurnFacts(statistics=[fact])
-    group = f"[stat:{fact.id}.finding.target]"
-
-    faults = prose_faults(f"The run checked {group}.", facts)
-
-    held = (
-        f"[stat:{fact.id}.finding.target.check]",
-        f"[stat:{fact.id}.finding.target.genes.0]",
-        f"[stat:{fact.id}.finding.target.genes.1]",
-    )
-    assert faults == [ProseFault(token=group, kind="unheld_reference", references=held)]
-    assert unrendered_prose_message(faults).splitlines()[-1] == (
-        f"- ``{group}`` names a group of values, not one value: write "
-        f"``{held[0]}`` or ``{held[1]}`` or ``{held[2]}`` in place of the value it "
-        "states, or take it out."
-    )
+    assert (shown["finding id"], shown["finding certainty"]) == ("29", "high")
+    assert [label for label in shown if "cds length" in label] == []

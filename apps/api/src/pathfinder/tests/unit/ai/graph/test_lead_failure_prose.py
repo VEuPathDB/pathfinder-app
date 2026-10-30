@@ -301,7 +301,7 @@ def test_a_turn_that_answered_keeps_its_answer_although_a_chunk_carried_an_error
 ):
     """An error chunk the run recovered from must not replace the reply."""
     capture = _failed(str(_RATE_LIMIT))
-    answered = LeadResponse(prose="Here are the 132 genes.", strategy_changed=True)
+    answered = LeadResponse(prose="Here are the 132 genes.")
     capture.response = answered
 
     assert final_reply(capture, None, change="unchecked") is answered
@@ -312,7 +312,6 @@ def test_a_turn_with_no_reply_at_all_gets_the_failure_reply() -> None:
 
     assert reply is not None
     assert reply.prose.startswith("I stopped this turn on an error")
-    assert reply.strategy_changed is False
 
 
 class TestATurnWhoseChangeLanded:
@@ -374,5 +373,4 @@ class TestATurnWhoseChangeLanded:
         reply = final_reply(_failed("peer closed connection"), None, change="unchecked")
 
         assert reply is not None
-        assert reply.strategy_changed
         assert "Send the message again" not in reply.prose

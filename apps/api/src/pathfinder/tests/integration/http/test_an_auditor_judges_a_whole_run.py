@@ -128,7 +128,14 @@ async def test_the_auditor_judges_every_finding_of_a_large_run(
     assert len(stored) == _FINDINGS
     assert sorted(v.verdict.verdict for v in stored).count("error") == 10
     assert _of_type(chunks, "error") == []
-    assert _text(chunks) == mock_run.JUDGED_EVERY_FINDING
+    shown = _text(chunks)
+    assert (
+        shown.startswith("**Findings of audit run"),
+        shown.endswith(mock_run.JUDGED_EVERY_FINDING),
+    ) == (
+        True,
+        True,
+    )
 
 
 async def test_an_auditor_turn_at_its_limit_keeps_its_verdicts(
@@ -146,8 +153,15 @@ async def test_an_auditor_turn_at_its_limit_keeps_its_verdicts(
     assert len(_called(chunks)) == 40
     assert len(stored) == 19
     assert _of_type(chunks, "error") == []
-    assert _text(chunks) == budget_stop_prose(19)
-    assert _text(chunks) == (
+    shown = _text(chunks)
+    assert (
+        shown.startswith("**Findings of audit run"),
+        shown.endswith(budget_stop_prose(19)),
+    ) == (
+        True,
+        True,
+    )
+    assert budget_stop_prose(19) == (
         "I stopped this turn at its limit of model requests and tool calls, before "
         "I finished. I stored 19 verdicts in this turn, and each one is kept. Ask "
         "me to go on and I judge the findings that have no verdict yet."

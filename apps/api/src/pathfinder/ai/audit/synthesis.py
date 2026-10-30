@@ -11,23 +11,16 @@ from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage, UsageLimits
 
-from pathfinder.ai.audit.facts import audit_run_fact
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
+from pathfinder.ai.lead.contract_messages import note_facts_message
 from pathfinder.domain.audit.verdicts import (
-    MAX_CARD,
     GeneModelVerdict,
     ReviewAgreement,
-    StoredSynthesis,
+    Synthesis,
     SynthesisDraft,
     review_agreement,
 )
-from pathfinder.domain.reference_placement import written_numbers
-from pathfinder.domain.reply_notes import referenced_facts
-from pathfinder.domain.reply_references import nested_text, prose_faults
-from pathfinder.domain.statistic_facts import StatisticFact, statistic_id
-from pathfinder.domain.statistic_rows import model_rows
-from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.reply_note import written_numbers
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
 from pathfinder.services.audit.verdicts import VerdictView
@@ -62,14 +55,11 @@ class SynthesisPrompt(CamelModel):
     run: AuditRunView
     kept_findings: tuple[KeptFinding, ...]
     counts: SynthesisCounts
-    run_fact: str
-    counts_fact: str
 
 
 @dataclass(frozen=True)
 class SynthesisDeps:
     kept: Mapping[int, KeptFinding]
-    facts: TurnFacts
 
 
 class SynthesisStoppedError(Exception):
@@ -90,15 +80,6 @@ def kept_findings(
         for view in reviews
         if view.finding_id is not None and view.verdict.verdict == "error"
     ]
-
-
-def synthesis_counts_fact(view: AuditRunView, counts: SynthesisCounts) -> StatisticFact:
-    return StatisticFact(
-        id=statistic_id("audit_synthesis", [str(view.run.id)]),
-        kind="audit_synthesis",
-        title=f"The reviews of audit run {view.run.id}",
-        rows=model_rows(counts),
-    )
 
 
 def _ids(ids: Sequence[int]) -> str:
@@ -170,16 +151,9 @@ def _synthesizable(
     )
     if problem is not None:
         raise ModelRetry(problem)
-    faults = prose_faults(output.summary, ctx.deps.facts)
-    if faults:
-        raise ModelRetry(unrendered_prose_message(faults))
-    shown = len(nested_text(output.summary, ctx.deps.facts))
-    if shown > MAX_CARD:
-        msg = (
-            f"The summary reads {shown} characters once its references render, "
-            f"more than {MAX_CARD}: shorten it, or cite fewer stored sentences."
-        )
-        raise ModelRetry(msg)
+    numbers = written_numbers(output.summary)
+    if numbers:
+        raise ModelRetry(note_facts_message(numbers))
     return output
 
 
@@ -199,7 +173,7 @@ def build_synthesis_agent() -> Agent[SynthesisDeps, SynthesisDraft]:
 
 def _prompt(
     view: AuditRunView, reviews: Sequence[VerdictView], kept: Sequence[KeptFinding]
-) -> tuple[SynthesisPrompt, TurnFacts]:
+) -> SynthesisPrompt:
     verdicts = [v.verdict.verdict for v in reviews]
     counts = SynthesisCounts(
         kept=len(kept),
@@ -209,16 +183,7 @@ def _prompt(
         genomes=len(view.run.genomes),
         agreement=review_agreement([v.review for v in reviews if v.review is not None]),
     )
-    run_fact = audit_run_fact(view)
-    counts_fact = synthesis_counts_fact(view, counts)
-    prompt = SynthesisPrompt(
-        run=view,
-        kept_findings=tuple(kept),
-        counts=counts,
-        run_fact=run_fact.id,
-        counts_fact=counts_fact.id,
-    )
-    return prompt, TurnFacts(statistics=[run_fact, counts_fact])
+    return SynthesisPrompt(run=view, kept_findings=tuple(kept), counts=counts)
 
 
 async def synthesize(
@@ -229,18 +194,18 @@ async def synthesize(
     model: Model,
     usage: RunUsage,
     settings: ModelSettings | None = None,
-) -> StoredSynthesis:
+) -> Synthesis:
     agreement = review_agreement([v.review for v in reviews if v.review is not None])
     kept = kept_findings(reviews, impacts)
     if not kept:
-        return StoredSynthesis(
+        return Synthesis(
             sections=(), headline=(), summary=NO_FINDING_KEPT, agreement=agreement
         )
-    prompt, facts = _prompt(view, reviews, kept)
+    prompt = _prompt(view, reviews, kept)
     try:
         result = await build_synthesis_agent().run(
             prompt.model_dump_json(by_alias=True),
-            deps=SynthesisDeps(kept={k.finding_id: k for k in kept}, facts=facts),
+            deps=SynthesisDeps(kept={k.finding_id: k for k in kept}),
             model=model,
             model_settings=settings,
             usage=usage,
@@ -249,10 +214,9 @@ async def synthesize(
     except (UsageLimitExceeded, UnexpectedModelBehavior) as stopped:
         raise SynthesisStoppedError from stopped
     draft = result.output
-    return StoredSynthesis(
+    return Synthesis(
         sections=draft.sections,
         headline=draft.headline,
         summary=draft.summary,
         agreement=agreement,
-        facts=referenced_facts(draft.summary, facts.cited_statistics()),
     )

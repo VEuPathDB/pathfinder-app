@@ -12,10 +12,12 @@ from veupathdb_mcp.audit import GeneLengthAudit, GeneticCode
 
 from pathfinder.ai import fact_sources
 from pathfinder.ai.audit.check_tools import build_check_toolset
+from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.statistic_facts import (
     Identifier,
     Sentence,
     Share,
+    StatisticFact,
     StatisticRowFact,
 )
 from pathfinder.domain.statistic_rows import (
@@ -72,45 +74,35 @@ def test_each_value_renders_in_the_form_its_type_gives_it() -> None:
         StatisticRowFact(
             name="verdict",
             value="unsupported shifted",
-            form="word",
-            code="UNSUPPORTED_SHIFTED",
         ),
-        StatisticRowFact(name="region", value="CDS", form="word", code="CDS"),
-        StatisticRowFact(
-            name="alreadyKnown", value="not searched", form="word", code="not_searched"
-        ),
-        StatisticRowFact(name="frameKept", value="no", form="boolean"),
+        StatisticRowFact(name="region", value="CDS"),
+        StatisticRowFact(name="alreadyKnown", value="not searched"),
+        StatisticRowFact(name="frameKept", value="no"),
         StatisticRowFact(name="junctions.0.reads", value="1,226"),
         StatisticRowFact(name="junctions.0.share", value="88.9%"),
-        StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1", form="word"),
-        StatisticRowFact(name="genome", value="Examplea alpha", form="word"),
+        StatisticRowFact(name="transcript", value="PcyM_0736700-t36_1"),
+        StatisticRowFact(name="genome", value="Examplea alpha"),
         StatisticRowFact(name="span.0", value="4,793,693"),
         StatisticRowFact(name="span.1", value="4,793,790"),
-        StatisticRowFact(
-            name="code", value="CTG read as serine", form="word", code="ctg_serine"
-        ),
+        StatisticRowFact(name="code", value="CTG read as serine"),
     ]
 
 
 def test_a_code_of_an_enum_of_whole_words_renders_in_plain_words() -> None:
     rows = schema_rows(GeneLengthAudit, {"lengthClass": "TYPICAL"})
 
-    assert rows == [
-        StatisticRowFact(
-            name="lengthClass", value="typical", form="word", code="TYPICAL"
-        )
-    ]
+    assert rows == [StatisticRowFact(name="lengthClass", value="typical")]
 
 
-def test_a_sentence_is_a_marked_field_and_any_other_string_a_word() -> None:
+def test_a_sentence_is_a_marked_field_and_kept_as_written() -> None:
     rows = schema_rows(
         Answer,
         {"genome": "Plasmodium yoelii yoelii 17X", "cause": "The intron is unread."},
     )
 
-    assert [(row.name, row.form) for row in rows] == [
-        ("genome", "word"),
-        ("cause", "sentence"),
+    assert rows == [
+        StatisticRowFact(name="genome", value="Plasmodium yoelii yoelii 17X"),
+        StatisticRowFact(name="cause", value="The intron is unread."),
     ]
 
 
@@ -120,21 +112,21 @@ def test_a_prefix_names_the_rows_under_it() -> None:
     assert names == ["runs.2.reads", "runs.2.share"]
 
 
-def test_a_note_names_the_field_and_the_field_that_holds_it() -> None:
-    rows = {row.name: row for row in model_rows(_ANSWER)}
+def test_a_read_labels_the_field_and_the_field_that_holds_it() -> None:
+    fact = StatisticFact(
+        id="stat_1", kind="gene_check", title="A check", rows=model_rows(_ANSWER)
+    )
+    rows = {row.label: row.value for row in read_fact(fact).rows}
 
-    assert (
-        rows["frameKept"].note(),
-        rows["junctions.0.reads"].note(),
-    ) == ("frame kept: no", "junctions reads: 1,226")
+    assert (rows["frame kept"], rows["junctions reads"]) == ("no", "1,226")
 
 
 def test_a_key_the_schema_does_not_hold_still_renders() -> None:
     rows = schema_rows(Answer, {"frameKept": True, "added": "two words", "count": 3})
 
     assert rows == [
-        StatisticRowFact(name="frameKept", value="yes", form="boolean"),
-        StatisticRowFact(name="added", value="two words", form="word"),
+        StatisticRowFact(name="frameKept", value="yes"),
+        StatisticRowFact(name="added", value="two words"),
         StatisticRowFact(name="count", value="3"),
     ]
 
@@ -163,9 +155,7 @@ class Marked(CamelModel):
 
 def test_a_field_the_library_marks_through_its_schema_is_a_sentence() -> None:
     assert model_rows(Marked(reason="No junction track was read.")) == [
-        StatisticRowFact(
-            name="reason", value="No junction track was read.", form="sentence"
-        )
+        StatisticRowFact(name="reason", value="No junction track was read.")
     ]
 
 

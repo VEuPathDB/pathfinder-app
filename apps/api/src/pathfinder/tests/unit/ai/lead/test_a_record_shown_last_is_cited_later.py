@@ -1,6 +1,6 @@
-"""A reply on a turn that reads nothing cites the records the conversation showed
-last and the contract holds it; a record never shown is refused, and the grammar
-says which records a reference cites."""
+"""A note on a turn that reads nothing links the records the conversation showed
+last; a record never shown is dropped, and the schema says which records a
+reference links."""
 
 from __future__ import annotations
 
@@ -8,13 +8,12 @@ from uuid import uuid4
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
-from pathfinder.ai.lead.card_reply import CITABLE_RECORDS, REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import CITABLE_RECORDS, REPLY_NOTE
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import hold_the_turn_contract, to_correct
+from pathfinder.ai.lead.turn_contract import hold_the_turn_contract
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.record_facts import SourceFact
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.reply_note import render_note
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import reply
@@ -56,12 +55,12 @@ def test_the_facts_of_a_later_turn_carry_the_records_shown_last() -> None:
     )
 
 
-def test_a_reply_citing_the_sample_shown_last_stands_and_renders_each_link() -> None:
+def test_a_note_citing_the_sample_shown_last_stands_and_links_each_record() -> None:
     deps = _deps()
     answer = reply(_SAME_SAMPLE)
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
-    assert render_reply(answer.prose, turn_facts(deps)) == (
+    assert render_note(answer.prose, turn_facts(deps)) == (
         "Here is the same sample again: "
         + ", ".join(
             f"[{g}](https://qa.hostdb.org/hostdb.qa/app/record/gene/{g})"
@@ -71,24 +70,21 @@ def test_a_reply_citing_the_sample_shown_last_stands_and_renders_each_link() -> 
     )
 
 
-def test_a_record_the_conversation_never_showed_is_refused() -> None:
+def test_a_record_the_conversation_never_showed_is_dropped() -> None:
     deps = _deps()
-    record = turn_record(run_context_for(deps))
-    answer = reply("The sample now holds [record:ENSMUSG00000073409].")
+    answer = reply("The sample now holds [record:ENSMUSG00000073409] as well.")
 
-    [mismatch] = to_correct(run_context_for(deps), answer, record, [answer.prose])
-
-    assert (mismatch.kind, mismatch.sentence.splitlines()[1]) == (
-        "unrendered_prose",
-        "- ``[record:ENSMUSG00000073409]`` names nothing the facts hold.",
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert render_note(answer.prose, turn_facts(deps)) == (
+        "The sample now holds as well."
     )
 
 
-def test_the_schema_and_the_instruction_say_which_records_a_reference_cites() -> None:
+def test_the_schema_and_the_instruction_say_which_records_a_reference_links() -> None:
     assert (
-        REPLY_REFERENCES.count(f"[record:<record_id>] {CITABLE_RECORDS}"),
+        REPLY_NOTE.count(f"[record:<record_id>], which links {CITABLE_RECORDS}"),
         " ".join(LEAD_INSTRUCTIONS.split()).count(
-            f"``[record:<record_id>]`` {CITABLE_RECORDS}"
+            f"``[record:<record_id>]``, which links {CITABLE_RECORDS}"
         ),
         CITABLE_RECORDS.endswith("or one of the records the conversation showed last"),
     ) == (1, 1, True)

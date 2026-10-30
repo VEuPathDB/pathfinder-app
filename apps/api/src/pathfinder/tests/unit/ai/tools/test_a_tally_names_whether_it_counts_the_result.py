@@ -10,9 +10,7 @@ from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
-from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment.column_tally import ColumnTally
 from pathfinder.services.experiment.step_tally import CountedStep
 from pathfinder.services.experiment.tally_rows import TallyRow
@@ -114,16 +112,3 @@ async def test_a_tally_of_the_root_counts_the_result() -> None:
     )
     assert not fact.counts_another_step(_ROOT)
     assert fact.lines(_ROOT)[0] == "Proteins by Taxon Code"
-
-
-_REPLY = "The leading taxon holds [tally:tally_{step}.pyxn]."
-
-
-async def test_a_leaf_tally_beside_a_tally_of_the_result_is_no_fault() -> None:
-    ctx = lead_run_context(site_id="orthomcl", strategy_session=_session())
-    await count_step_by_column(ctx, _TAXA, "abbreviation")
-    await count_step_by_column(ctx, _ROOT, "abbreviation")
-    facts = TurnFacts(tallies=ctx.deps.state.turn_markers.tallies, result_step_id=_ROOT)
-
-    assert prose_faults(_REPLY.format(step=_ROOT), facts) == []
-    assert prose_faults(_REPLY.format(step=_TAXA), facts) == []

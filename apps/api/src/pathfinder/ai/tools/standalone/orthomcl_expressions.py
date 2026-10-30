@@ -64,7 +64,6 @@ class ComputedComparison(CamelModel):
     sets: tuple[ComputedSet, ComputedSet]
     probe_requests: int
     compute_requests: int
-    fact_id: str
     computed_on: str
 
     @classmethod
@@ -82,7 +81,6 @@ class ComputedComparison(CamelModel):
             sets=answer.sets,
             probe_requests=answer.probe_requests,
             compute_requests=answer.compute_requests,
-            fact_id=held.fact().id,
             computed_on=held.computed_on.isoformat(),
         )
 

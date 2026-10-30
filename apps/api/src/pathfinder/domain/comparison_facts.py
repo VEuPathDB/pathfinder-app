@@ -1,5 +1,4 @@
-"""The counts one completed comparison of search variants returned, which a
-reply's comparison references render."""
+"""The counts one completed comparison of search variants returned."""
 
 from __future__ import annotations
 
@@ -23,7 +22,6 @@ class ComparedVariant(CamelModel):
 
     label: str
     gene_count: int
-    unique_count: int
     result_count: int | None = None
     differs_by: dict[str, str] = Field(default_factory=dict)
 
@@ -40,10 +38,6 @@ class ComparedVariant(CamelModel):
         placed = counted(self.result_count, noun)
         return f"{searched}: {alone} alone; {placed} in the strategy's result"
 
-    @property
-    def larger_alone(self) -> bool:
-        return self.result_count is not None and self.gene_count > self.result_count
-
 
 def _shown_value(wire: str) -> str:
     """A multi-pick wire value as its entries, any other wire value as it is."""
@@ -53,16 +47,6 @@ def _shown_value(wire: str) -> str:
         return wire
 
 
-class SharedGenes(CamelModel):
-    """The genes two variants of one comparison both returned."""
-
-    model_config = ConfigDict(frozen=True)
-
-    a: str
-    b: str
-    shared: int
-
-
 class ComparisonFact(CamelModel):
     """The counts one completed comparison of this turn returned, for the
     variants that ran."""
@@ -70,7 +54,7 @@ class ComparisonFact(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     variants: list[ComparedVariant] = Field(default_factory=list)
-    overlaps: list[SharedGenes] = Field(default_factory=list)
+    on_its_card: bool = True
 
     def redacted(self, redact: Callable[[str], str]) -> ComparisonFact:
         return self.model_copy(
@@ -79,12 +63,8 @@ class ComparisonFact(CamelModel):
                     v.model_copy(update={"label": redact(v.label)})
                     for v in self.variants
                 ],
-                "overlaps": [
-                    o.model_copy(update={"a": redact(o.a), "b": redact(o.b)})
-                    for o in self.overlaps
-                ],
             }
         )
 
 
-__all__ = ["ComparedVariant", "ComparisonFact", "SharedGenes"]
+__all__ = ["ComparedVariant", "ComparisonFact"]

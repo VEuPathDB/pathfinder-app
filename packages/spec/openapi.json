@@ -6413,7 +6413,7 @@
           "synthesis": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SynthesisView"
+                "$ref": "#/components/schemas/Synthesis"
               },
               {
                 "type": "null"
@@ -18067,7 +18067,7 @@
         "title": "SubsystemStatus",
         "description": "Per-subsystem readiness record."
       },
-      "SynthesisView": {
+      "Synthesis": {
         "properties": {
           "sections": {
             "items": {
@@ -18082,10 +18082,13 @@
               "format": "identifier"
             },
             "type": "array",
+            "maxItems": 10,
             "title": "Headline"
           },
           "summary": {
             "type": "string",
+            "maxLength": 1200,
+            "minLength": 1,
             "format": "sentence",
             "title": "Summary"
           },
@@ -18100,7 +18103,7 @@
           "summary",
           "agreement"
         ],
-        "title": "SynthesisView"
+        "title": "Synthesis"
       },
       "SystemConfigResponse": {
         "properties": {
@@ -21675,10 +21678,6 @@
             "title": "Genecount",
             "type": "integer"
           },
-          "uniqueCount": {
-            "title": "Uniquecount",
-            "type": "integer"
-          },
           "resultCount": {
             "anyOf": [
               {
@@ -21700,8 +21699,7 @@
         },
         "required": [
           "label",
-          "geneCount",
-          "uniqueCount"
+          "geneCount"
         ],
         "title": "ComparedVariant",
         "type": "object"
@@ -21716,12 +21714,10 @@
             "title": "Variants",
             "type": "array"
           },
-          "overlaps": {
-            "items": {
-              "$ref": "#/components/schemas/SharedGenes"
-            },
-            "title": "Overlaps",
-            "type": "array"
+          "onItsCard": {
+            "default": true,
+            "title": "Onitscard",
+            "type": "boolean"
           }
         },
         "title": "ComparisonFact",
@@ -24574,6 +24570,41 @@
         "title": "Measurement",
         "type": "object"
       },
+      "MembershipFact": {
+        "description": "The asked genes in the order they were asked, each with its page, and\nwhich of them the search holds. An unread id lies past the capped read of\nthe search, so the search may hold it.",
+        "properties": {
+          "searchLabel": {
+            "title": "Searchlabel",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ListedRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Held",
+            "type": "array"
+          },
+          "unread": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unread",
+            "type": "array"
+          }
+        },
+        "required": [
+          "searchLabel"
+        ],
+        "title": "MembershipFact",
+        "type": "object"
+      },
       "MemoryEntryDraft": {
         "properties": {
           "name": {
@@ -25153,6 +25184,44 @@
         "title": "Proposal",
         "type": "object"
       },
+      "ReadFact": {
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ReadRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ReadFact",
+        "type": "object"
+      },
+      "ReadRow": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "ReadRow",
+        "type": "object"
+      },
       "ReadingCaveat": {
         "properties": {
           "kind": {
@@ -25263,6 +25332,42 @@
         "title": "RecalledMemory",
         "type": "object"
       },
+      "RecordsOrganismCaveat": {
+        "properties": {
+          "kind": {
+            "const": "records_organism",
+            "default": "records_organism",
+            "title": "Kind",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "seed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seed",
+            "type": "array"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "records",
+          "seed",
+          "sentence"
+        ],
+        "title": "RecordsOrganismCaveat",
+        "type": "object"
+      },
       "RefusedTarget": {
         "properties": {
           "key": {
@@ -25362,15 +25467,6 @@
         "enum": [
           "withdrawn",
           "replaced"
-        ],
-        "type": "string"
-      },
-      "RowForm": {
-        "enum": [
-          "number",
-          "word",
-          "boolean",
-          "sentence"
         ],
         "type": "string"
       },
@@ -25922,30 +26018,6 @@
         "title": "SetValuesChange",
         "type": "object"
       },
-      "SharedGenes": {
-        "description": "The genes two variants of one comparison both returned.",
-        "properties": {
-          "a": {
-            "title": "A",
-            "type": "string"
-          },
-          "b": {
-            "title": "B",
-            "type": "string"
-          },
-          "shared": {
-            "title": "Shared",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "a",
-          "b",
-          "shared"
-        ],
-        "title": "SharedGenes",
-        "type": "object"
-      },
       "SiteCheck": {
         "properties": {
           "kind": {
@@ -26299,13 +26371,12 @@
           "audit_findings",
           "audit_plan",
           "audit_rate",
-          "audit_start",
-          "audit_synthesis"
+          "audit_start"
         ],
         "type": "string"
       },
       "StatisticRowFact": {
-        "description": "One value of a statistic, under the name a reference gives it.",
+        "description": "One value of a statistic, under its row name.",
         "properties": {
           "name": {
             "title": "Name",
@@ -26314,21 +26385,6 @@
           "value": {
             "title": "Value",
             "type": "string"
-          },
-          "form": {
-            "$ref": "#/components/schemas/RowForm",
-            "default": "number"
-          },
-          "code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Code"
           }
         },
         "required": [
@@ -27136,7 +27192,7 @@
         "type": "object"
       },
       "TurnFacts": {
-        "description": "Everything a turn shows beside its reply, and every fact a reference of\nthe reply renders. ``comparisons``, ``statistics`` and ``tallies`` alone make\nno facts part: their cards show them.",
+        "description": "Everything a turn shows beside its reply. A comparison on its card,\n``statistics`` and ``tallies`` alone make no facts part: their cards show\nthem.",
         "properties": {
           "recordNoun": {
             "default": "gene",
@@ -27216,6 +27272,7 @@
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
                   "reading": "#/components/schemas/ReadingCaveat",
+                  "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -27255,6 +27312,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/RecordsOrganismCaveat"
                 }
               ]
             },
@@ -27352,11 +27412,25 @@
             "title": "Comparisons",
             "type": "array"
           },
+          "memberships": {
+            "items": {
+              "$ref": "#/components/schemas/MembershipFact"
+            },
+            "title": "Memberships",
+            "type": "array"
+          },
           "statistics": {
             "items": {
               "$ref": "#/components/schemas/StatisticFact"
             },
             "title": "Statistics",
+            "type": "array"
+          },
+          "reads": {
+            "items": {
+              "$ref": "#/components/schemas/ReadFact"
+            },
+            "title": "Reads",
             "type": "array"
           },
           "tallies": {
@@ -27380,6 +27454,11 @@
           "stoppedCheck": {
             "default": "",
             "title": "Stoppedcheck",
+            "type": "string"
+          },
+          "failedCheck": {
+            "default": "",
+            "title": "Failedcheck",
             "type": "string"
           },
           "refusal": {
@@ -27936,6 +28015,7 @@
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
                   "reading": "#/components/schemas/ReadingCaveat",
+                  "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -27975,6 +28055,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/RecordsOrganismCaveat"
                 }
               ]
             },
@@ -28099,6 +28182,7 @@
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
                   "reading": "#/components/schemas/ReadingCaveat",
+                  "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -28138,6 +28222,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/RecordsOrganismCaveat"
                 }
               ]
             },

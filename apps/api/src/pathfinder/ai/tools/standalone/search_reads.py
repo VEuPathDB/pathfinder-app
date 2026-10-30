@@ -119,7 +119,7 @@ async def count_search(
     strategy runs or not. The search runs as an anonymous WDK report, so no
     step is added and the strategy keeps its root and its count. The answer
     names the wire value of each parameter it ran; a pick left out runs at
-    the site's default. The count renders as ``[compare:<label>]``.
+    the site's default. The facts beside the reply show the count.
 
     A search name the catalog does not list is refused with the searches the
     catalog lookup finds for it. A search is absent only when that lookup
@@ -154,9 +154,8 @@ async def genes_in_search(
     A gene record does not show every search's attribute, so a record read
     does not answer it. ``held`` and ``notHeld`` keep the asked order;
     ``unread`` holds ids past the capped read, which the search may hold.
-    Each gene renders as ``[record:<id>]``, the asked genes as
-    ``[compare:asked genes]`` and the genes held as
-    ``[compare:asked genes,<label>:shared]``.
+    The facts beside the reply show which genes the search holds; a gene is
+    named as ``[record:<id>]``.
 
     Args:
         search: The search, its parameter values and a short ``label``.
@@ -187,7 +186,6 @@ async def genes_in_search(
             unread=membership.unread,
         )
     )
-    markers.record_comparison(membership.fact())
     return with_summary(
         membership,
         f"{spec.label}: {len(membership.held)} of {len(asked)} genes held",

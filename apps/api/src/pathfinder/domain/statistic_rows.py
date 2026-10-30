@@ -142,18 +142,14 @@ def _scalar(
     named = next((b for b in branches if b.names(value)), None)
     match value:
         case bool():
-            return StatisticRowFact(
-                name=path, value=YES_NO[value].lower(), form="boolean"
-            )
+            return StatisticRowFact(name=path, value=YES_NO[value].lower())
         case int() | float():
             return StatisticRowFact(name=path, value=_number(value, branches))
         case str() if named is not None:
             words = named.words(value)
-            return StatisticRowFact(name=path, value=words, form="word", code=value)
-        case str() if any(branch.format == "sentence" for branch in branches):
-            return StatisticRowFact(name=path, value=value, form="sentence")
+            return StatisticRowFact(name=path, value=words)
         case _:
-            return StatisticRowFact(name=path, value=str(value), form="word")
+            return StatisticRowFact(name=path, value=str(value))
 
 
 @dataclass(frozen=True)

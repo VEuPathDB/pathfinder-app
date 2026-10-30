@@ -39,7 +39,6 @@ from veupathdb_mcp.wdk import (
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
-    SharedGenes,
 )
 from pathfinder.services.gene_records.attributes import product_attribute
 
@@ -98,21 +97,17 @@ class VariantComparison(CamelModel):
     result_step_id: str | None = None
 
     def fact(self) -> ComparisonFact:
-        """The counts of the variants that ran, as a reply's references name them."""
+        """The counts of the variants that ran."""
         return ComparisonFact(
             variants=[
                 ComparedVariant(
                     label=v.label,
                     gene_count=v.gene_count,
-                    unique_count=v.unique_count,
                     result_count=v.result_count,
                     differs_by=v.differs_by,
                 )
                 for v in self.variants
                 if v.error is None
-            ],
-            overlaps=[
-                SharedGenes(a=o.a, b=o.b, shared=o.shared) for o in self.overlaps
             ],
         )
 

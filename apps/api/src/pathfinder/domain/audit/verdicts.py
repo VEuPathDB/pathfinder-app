@@ -11,7 +11,7 @@ from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
 from pathfinder.domain.audit.scope import GeneName, OrganismName
-from pathfinder.domain.statistic_facts import Identifier, Sentence, Share, StatisticFact
+from pathfinder.domain.statistic_facts import Identifier, Sentence, Share
 
 VerdictKind = Literal["error", "no_error", "undecided"]
 VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
@@ -165,7 +165,7 @@ class SynthesisDraft(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     sections: tuple[ErrorTypeSection, ...]
-    headline: tuple[int, ...] = Field(max_length=MAX_HEADLINES)
+    headline: tuple[Identifier, ...] = Field(max_length=MAX_HEADLINES)
     summary: Sentence = Field(min_length=1, max_length=MAX_CARD)
 
     @model_validator(mode="after")
@@ -184,10 +184,6 @@ class SynthesisDraft(CamelModel):
 
 class Synthesis(SynthesisDraft):
     agreement: ReviewAgreement
-
-
-class StoredSynthesis(Synthesis):
-    facts: tuple[StatisticFact, ...] = ()
 
 
 class ReviewProgress(CamelModel):

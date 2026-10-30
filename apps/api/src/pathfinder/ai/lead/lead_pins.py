@@ -285,7 +285,7 @@ def pinned_turn_briefing(ctx: RunContext[LeadDeps]) -> str | None:
 
 
 def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
-    """Every statistic the thread computed, each value under its reference."""
+    """Every statistic the thread computed, each value under its row name."""
     statistics = [
         statistic
         for statistic in ctx.deps.state.domain.statistics
@@ -295,14 +295,11 @@ def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
         return None
     lines = [
         "## Statistics this conversation computed",
-        "Write each number below as its reference, never as the bare number.",
+        "Their cards show every value; say what they mean, with no number.",
     ]
     for statistic in statistics:
         lines.append(f"- {statistic.title}")
-        lines.extend(
-            f"  - [stat:{statistic.id}.{row.name}] = {row.value}"
-            for row in statistic.rows
-        )
+        lines.extend(f"  - {row.name} = {row.value}" for row in statistic.rows)
         lines.extend(f"  - {statement}" for statement in statistic.statements)
     return "\n".join(lines)
 

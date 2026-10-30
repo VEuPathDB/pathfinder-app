@@ -14,15 +14,11 @@ from veupathdb_mcp.wdk import extract_pk
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
-    SharedGenes,
 )
 from pathfinder.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
 )
-
-# The label the asked genes carry in a membership check's comparison.
-ASKED_GENES = "asked genes"
 
 
 class SearchCount(CamelModel):
@@ -35,10 +31,8 @@ class SearchCount(CamelModel):
 
     def fact(self) -> ComparisonFact:
         """The count as a comparison of one variant, which every gene is unique to."""
-        counted = ComparedVariant(
-            label=self.label, gene_count=self.gene_count, unique_count=self.gene_count
-        )
-        return ComparisonFact(variants=[counted])
+        counted = ComparedVariant(label=self.label, gene_count=self.gene_count)
+        return ComparisonFact(variants=[counted], on_its_card=False)
 
 
 class SearchMembership(CamelModel):
@@ -55,24 +49,6 @@ class SearchMembership(CamelModel):
     held: list[str] = Field(default_factory=list)
     not_held: list[str] = Field(default_factory=list)
     unread: list[str] = Field(default_factory=list)
-
-    def fact(self) -> ComparisonFact:
-        """The asked genes and the search as two gene sets, and the genes both hold."""
-        asked = len(self.held) + len(self.not_held) + len(self.unread)
-        shared = len(self.held)
-        return ComparisonFact(
-            variants=[
-                ComparedVariant(
-                    label=ASKED_GENES, gene_count=asked, unique_count=len(self.not_held)
-                ),
-                ComparedVariant(
-                    label=self.label,
-                    gene_count=self.gene_count,
-                    unique_count=self.gene_count - shared,
-                ),
-            ],
-            overlaps=[SharedGenes(a=ASKED_GENES, b=self.label, shared=shared)],
-        )
 
 
 def _membership_of(
@@ -115,7 +91,6 @@ async def search_membership(
 
 
 __all__ = [
-    "ASKED_GENES",
     "SearchCount",
     "SearchMembership",
     "search_count",

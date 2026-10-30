@@ -8,8 +8,8 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
     LeadResponse,
+    facts_in_the_note,
     reconcile,
-    unrendered_prose,
 )
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
@@ -19,7 +19,6 @@ from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     ASKING_REPLY,
-    CLAIMS_A_CHANGE,
     CLEAN_REPLY,
     CRITERION,
     DATASET,
@@ -74,7 +73,7 @@ class TestTheUnverifiedBuildRule:
         deps = building_deps(verified=False)
 
         mismatches = reconcile(
-            reply("I added the step.", changed=True),
+            reply("I added the step."),
             turn_record(run_context_for(deps)),
         )
 
@@ -86,43 +85,15 @@ class TestTheUnverifiedBuildRule:
     def test_a_verified_build_is_no_mismatch(self) -> None:
         deps = building_deps(verified=True)
 
-        assert kinds(deps, reply("I added the step.", changed=True)) == []
+        assert kinds(deps, reply("I added the step.")) == []
 
     def test_a_dispatched_verification_that_failed_is_no_mismatch(self) -> None:
         deps = building_deps(verified=False)
         deps.state.turn_markers.verification_dispatched = True
 
-        assert kinds(deps, reply("I added the step.", changed=True)) == []
+        assert kinds(deps, reply("I added the step.")) == []
 
     def test_a_turn_that_built_nothing_is_no_mismatch(self) -> None:
-        assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
-
-
-class TestTheMisreportedChangeRule:
-    def test_a_claimed_change_the_turn_never_made_is_a_mismatch(self) -> None:
-        mismatches = reconcile(
-            reply(CLAIMS_A_CHANGE, changed=True),
-            turn_record(run_context_for(reading_deps())),
-        )
-
-        assert [m.kind for m in mismatches] == ["misreported_change"]
-        assert "no build, edit, delete, clear or export" in mismatches[0].sentence
-        assert "3 step(s)" in mismatches[0].sentence
-        assert "root count 1" in mismatches[0].sentence
-
-    def test_a_change_the_reply_leaves_out_is_a_mismatch(self) -> None:
-        mismatches = reconcile(
-            reply(REPORTS_THE_STRATEGY, changed=False),
-            turn_record(run_context_for(building_deps())),
-        )
-
-        assert [m.kind for m in mismatches] == ["misreported_change"]
-        assert "strategy_changed to true" in mismatches[0].sentence
-
-    def test_a_reported_change_that_matches_the_build_stands(self) -> None:
-        assert kinds(building_deps(), reply("I added the step.", changed=True)) == []
-
-    def test_a_reply_that_reports_no_change_on_a_read_turn_stands(self) -> None:
         assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
 
 
@@ -247,7 +218,7 @@ _RECORD_URL = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460"
 
 
 def _unrendered(deps: LeadDeps, report: LeadResponse) -> list[str]:
-    found = unrendered_prose([report.prose], turn_record(run_context_for(deps)))
+    found = facts_in_the_note([report.prose], turn_record(run_context_for(deps)))
     return [] if found is None else [found.kind]
 
 
@@ -257,9 +228,9 @@ class TestTheLinksTheReplyGives:
         deps.state.turn_markers.record_retrieved_source(_RECORD_URL)
         report = reply(f"The [gene record]({_RECORD_URL}) states its exons.")
 
-        assert _unrendered(deps, report) == ["unrendered_prose"]
+        assert _unrendered(deps, report) == ["note_facts"]
 
     def test_a_doi_in_the_prose_is_refused(self) -> None:
         report = reply("See doi:10.1000/invented.2026.99 for the review.")
 
-        assert _unrendered(reading_deps(), report) == ["unrendered_prose"]
+        assert _unrendered(reading_deps(), report) == ["note_facts"]

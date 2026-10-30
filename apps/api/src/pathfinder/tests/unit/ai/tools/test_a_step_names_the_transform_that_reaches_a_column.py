@@ -36,7 +36,7 @@ TURN_ONE_CALL = RecordedCall(name="organism", countable_only=True, offset=0)
 TURN_TWO_CALL = RecordedCall(name="", countable_only=True, offset=0)
 TURN_ONE_REPLY = (
     "The strategy correctly defines singleton groups as groups containing exactly "
-    "one protein and returns [count:step_88b8197d]. However, it does not restrict "
+    "one protein and returns the singleton groups. However, it does not restrict "
     "the records to Plasmodium or provide species-level counts, so it cannot "
     "determine which Plasmodium species has the most singleton genes. The site's "
     "available result fields did not expose the ranking needed for that "
@@ -133,7 +133,7 @@ async def test_the_recorded_reply_over_the_read_is_refused_naming_the_transform(
     found = {
         m.kind: m.sentence
         for m in reconcile(
-            LeadResponse(prose=TURN_ONE_REPLY, strategy_changed=False),
+            LeadResponse(prose=TURN_ONE_REPLY),
             turn_record(ctx),
         )
     }

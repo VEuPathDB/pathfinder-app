@@ -171,7 +171,9 @@ async def test_the_column_is_counted_after_the_rows_are_kept(
     assert tally.id == tally_id(
         "vectorbase", "AllDatasets", "organism_prefix", ("newcategory", ("RNASeq",))
     )
-    assert tally.fact().count("Anopheles gambiae PEST") == 40
+    assert {row.value: row.count for row in tally.fact().rows}[
+        "Anopheles gambiae PEST"
+    ] == 40
 
 
 async def test_a_value_named_as_shown_is_sent_as_the_site_stores_it(

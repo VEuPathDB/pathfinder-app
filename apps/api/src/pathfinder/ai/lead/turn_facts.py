@@ -15,6 +15,7 @@ from pathfinder.ai.lead.facts_reads import (
     saved_sets,
     with_counts_before,
 )
+from pathfinder.ai.lead.intent_gate import turn_is_an_audit
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
 from pathfinder.ai.lead.parameter_facts import step_parameters
@@ -33,6 +34,8 @@ from pathfinder.domain.caveats import (
 from pathfinder.domain.control_result_facts import control_result_fact
 from pathfinder.domain.gene_homes import gene_record_class
 from pathfinder.domain.last_change import LastChange, change_since
+from pathfinder.domain.organism_caveat import RecordsOrganismCaveat
+from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.site_checks import SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.expression_handles import held_readings
@@ -259,6 +262,29 @@ def _last_change(deps: LeadDeps, graph: StrategyGraph | None) -> LastChange | No
     )
 
 
+def _records_organism(deps: LeadDeps) -> list[RecordsOrganismCaveat]:
+    outcome = deps.state.domain.last_build_outcome
+    change = None if outcome is None else outcome.organism_change
+    if change is None or not deps.state.turn_markers.changed_strategy:
+        return []
+    return [RecordsOrganismCaveat(records=change.records, seed=change.seed)]
+
+
+_STATED_HEAD = 80
+
+
+def _failed_check(
+    deps: LeadDeps, ledger: InvestigationLedger, gaps: Sequence[Gap]
+) -> str:
+    digest = ledger.verification.digest
+    if digest is None or digest.success or turn_is_an_audit(deps):
+        return ""
+    head = digest.reason[:_STATED_HEAD]
+    if not head or any(head in gap.sentence for gap in gaps):
+        return "The last check of this strategy failed."
+    return f"The last check of this strategy failed: {digest.reason}"
+
+
 def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     """Everything this turn shows beside its reply.
 
@@ -291,6 +317,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         session.sync_state,
         None if verdict is None else verdict.review,
     )
+    gaps = _gaps(deps, ledger)
     return TurnFacts(
         request_messages=said,
         record_noun=noun,
@@ -306,6 +333,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         caveats=[
             *caveats_for(spec, [] if verdict is None else verdict.caveats),
             *_moved_against_the_edit(deps, built, noun),
+            *_records_organism(deps),
             *(
                 []
                 if graph is None or session.sync_state is None
@@ -314,7 +342,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
                 )
             ),
         ],
-        gaps=_gaps(deps, ledger),
+        gaps=gaps,
         column_fits=[] if verdict is None else list(verdict.review.column_fits),
         retired=_retired_rows(domain),
         saved=saved_sets(markers, genes),
@@ -338,7 +366,13 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         comparisons=list(markers.comparisons),
         memberships=list(markers.memberships),
         statistics=list(domain.statistics),
-        audit_statistics=list(markers.audit_facts),
+        reads=[
+            read_fact(fact)
+            for fact in (
+                *markers.audit_facts,
+                *(held.fact() for held in domain.computed_comparisons.values()),
+            )
+        ],
         tallies=tallies_with_paths(session, markers.tallies),
         result_step_id=None
         if not built or session.sync_state is None
@@ -346,6 +380,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         stopped_check=""
         if stop is None or stop.role != "verification"
         else stop.render(),
+        failed_check=_failed_check(deps, ledger, gaps),
         refusal=refusal,
         unchecked=UNCHECKED_PROSE if markers.unchecked_reply else "",
         unverified=UNVERIFIED_BUILD if deps.build_unverified else "",

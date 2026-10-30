@@ -60,7 +60,7 @@ async def _turn(
             deps.state.turn_markers.record_gene_set(
                 CreatedGeneSet(id="gs-1", name="kinases draft", gene_count=61)
             )
-        capture.response = stop_response(_REPLY, changed=False)
+        capture.response = stop_response(_REPLY)
 
     async def _pre_turn(state: PipelineState, _context: Context) -> PipelineState:
         return state

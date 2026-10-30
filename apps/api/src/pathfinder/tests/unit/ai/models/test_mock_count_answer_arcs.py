@@ -1,5 +1,5 @@
-"""The count arc answers with references to a step's count, the result's and
-their difference, and the turn's facts render all three."""
+"""The count arc answers with a note that writes none of the counts its turn's
+facts show."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from veupathdb.domain.strategy import (
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.reply_references import prose_faults, render_reply
+from pathfinder.domain.reply_note import note_facts
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.classed_strategy import classed_steps
@@ -74,7 +74,7 @@ def _toxo_turn() -> LeadDeps:
     return lead_deps(state, strategy_session=session)
 
 
-def test_the_count_arc_answers_with_a_difference_the_facts_render() -> None:
+def test_the_count_arc_answers_with_a_note_beside_the_counts() -> None:
     calls = play(
         "lead",
         "toxodb",
@@ -89,10 +89,12 @@ def test_the_count_arc_answers_with_a_difference_the_facts_render() -> None:
         "get_live_strategy_state",
         "final_result",
     ]
-    assert (prose_faults(prose, facts), render_reply(prose, facts)) == (
+    assert (facts.root_count, note_facts(prose, facts), prose) == (
+        53,
         [],
         (
-            "The first search step returns 680 genes and the result 53 genes, so "
-            "the other filters remove 627 genes."
+            "The facts show the count of the first search step, Predicted Signal "
+            "Peptide, beside the result's; the other filters remove the genes "
+            "between the two."
         ),
     )

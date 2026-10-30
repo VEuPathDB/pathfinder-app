@@ -47,7 +47,7 @@ async def _turn(
         *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
-        capture.response = LeadResponse(prose="Done.", strategy_changed=False)
+        capture.response = LeadResponse(prose="Done.")
 
     async def _pre_turn(state: PipelineState, _context: Context) -> PipelineState:
         return state

@@ -7,7 +7,7 @@ from pathfinder.ai.audit.instructions import (
     REVIEWER_INSTRUCTIONS,
     SYNTHESIS_INSTRUCTIONS,
 )
-from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import REPLY_NOTE
 
 _TRAPS = (
     "a correct reference with a signal peptide",
@@ -38,10 +38,12 @@ def test_the_judging_rules_name_every_trap_of_the_design() -> None:
     assert [name for name in _SERVED_EVIDENCE if name not in JUDGING_RULES] == []
 
 
-def test_the_judging_rules_hold_the_reply_references() -> None:
-    assert REPLY_REFERENCES in JUDGING_RULES
-    assert "undecided" in JUDGING_RULES
-    assert "curators" in JUDGING_RULES
+def test_the_judging_rules_hold_the_verdicts_and_the_auditor_its_note() -> None:
+    assert ("undecided" in JUDGING_RULES, "curators" in JUDGING_RULES) == (True, True)
+    assert (REPLY_NOTE in AUDITOR_INSTRUCTIONS, "[stat:" in JUDGING_RULES) == (
+        True,
+        False,
+    )
 
 
 def test_every_role_reads_the_judging_rules_first() -> None:

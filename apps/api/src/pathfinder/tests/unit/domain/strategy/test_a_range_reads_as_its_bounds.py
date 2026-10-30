@@ -7,7 +7,6 @@ from typing import Literal, get_args
 import pytest
 from veupathdb.domain.parameters import ParamKind, from_wire
 
-from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
@@ -76,19 +75,7 @@ def test_a_range_and_a_filter_read_as_their_bounds(
     assert plain_value(from_wire(kind, wire)) == shown
 
 
-_RSQUO = chr(0x2019)
-_SINGLETONS = (
-    "The strategy correctly defines singleton groups as groups containing exactly "
-    "[value:step_88b8197d.all_count] protein and returns [count:step_88b8197d]. "
-    "However, it does not restrict the records to Plasmodium or provide "
-    "species-level counts, so it cannot determine which Plasmodium species has "
-    f"the most singleton genes. The site{_RSQUO}s available result fields did not "
-    "expose the ranking needed for that comparison. The strategy link is "
-    "available beside this reply if you want to inspect the singleton-group result."
-)
-
-
-def test_the_recorded_singleton_clause_renders_one_number() -> None:
+def test_the_recorded_singleton_row_shows_one_number() -> None:
     facts = TurnFacts(
         record_noun="group",
         steps=[
@@ -111,13 +98,6 @@ def test_the_recorded_singleton_clause_renders_one_number() -> None:
         ],
     )
 
-    assert prose_faults(_SINGLETONS, facts) == []
-    assert render_reply(_SINGLETONS, facts) == (
-        "The strategy correctly defines singleton groups as groups containing exactly "
-        "1 protein and returns 523,795 groups. However, it does not restrict the "
-        "records to Plasmodium or provide species-level counts, so it cannot "
-        "determine which Plasmodium species has the most singleton genes. The "
-        f"site{_RSQUO}s available result fields did not expose the ranking needed "
-        "for that comparison. The strategy link is available beside this reply if "
-        "you want to inspect the singleton-group result."
-    )
+    assert [line for line in facts.lines() if "Proteins" in line] == [
+        "Number of All Proteins: 1"
+    ]

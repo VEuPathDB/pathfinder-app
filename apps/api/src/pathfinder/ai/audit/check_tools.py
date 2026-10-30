@@ -76,7 +76,7 @@ async def _recorded[T: BaseModel](
     fact = check_fact(name, subjects, answer)
     ctx.deps.facts.append(fact)
     ctx.deps.records.extend(genome_records(ctx.deps.site_id, genomes))
-    read = GeneRead[T](answer=answer, fact_id=fact.id, genomes=genomes)
+    read = GeneRead[T](answer=answer, genomes=genomes)
     return with_summary(read, summary, ctx=ctx)
 
 
@@ -237,7 +237,7 @@ async def rate_with_interval(
     fact = rate_fact(bounds)
     ctx.deps.facts.append(fact)
     return with_summary(
-        AuditRead(answer=bounds, fact_id=fact.id),
+        AuditRead(answer=bounds),
         f"{confirmed} of {checked} confirmed, {unresolved} unresolved",
         ctx=ctx,
     )

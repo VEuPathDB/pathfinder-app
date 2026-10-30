@@ -22,6 +22,7 @@ from pathfinder.ai.lead.turn_contract import (
     LeadResponse,
     hold_the_turn_contract,
 )
+from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     ASKING_REPLY,
@@ -45,7 +46,6 @@ def _scripted_answer(prose: str) -> RetryRecordingScript:
             args={
                 "prose": prose,
                 "nextState": "await_user",
-                "strategyChanged": False,
             },
             tool_call_id="call_final",
         ),
@@ -56,31 +56,38 @@ class TestTheOneCorrection:
     def test_two_mismatches_are_listed_in_rule_order_under_one_heading(self) -> None:
         deps = open_frame_deps()
         deps.state.turn_markers.intent_classified = True
-        report = reply(ASKING_REPLY, changed=True)
+        deps.state.turn_markers.record_comparison(
+            ComparisonFact(
+                variants=[ComparedVariant(label="Gametocyte study", gene_count=12)],
+                on_its_card=False,
+            )
+        )
+        report = reply(f"It keeps 12 genes. {ASKING_REPLY}")
 
         with pytest.raises(ModelRetry) as raised:
             hold_the_turn_contract(run_context_for(deps), report)
 
         text = str(raised.value)
         assert text.startswith(CONTRACT_HEADING)
-        assert "no build, edit, delete, clear or export" in text
+        assert "The note writes ``12``" in text
         assert "question card (consult_user)" in text
-        assert text.index("no build, edit, delete, clear or export") < text.index(
+        assert text.index("The note writes ``12``") < text.index(
             "question card (consult_user)"
         )
 
     def test_the_second_answer_goes_through(self) -> None:
-        deps = framing_deps()
-        report = reply(ASKING_REPLY, changed=True)
+        deps = open_frame_deps()
+        deps.state.turn_markers.intent_classified = True
+        report = reply(ASKING_REPLY)
 
         with pytest.raises(ModelRetry):
             hold_the_turn_contract(run_context_for(deps), report)
 
         assert deps.state.turn_markers.contract_refused is True
         assert hold_the_turn_contract(run_context_for(deps), report) == reply(
-            ASKING_REPLY, changed=False
+            ASKING_REPLY
         )
-        assert deps.state.turn_markers.unchecked_reply is False
+        assert deps.state.turn_markers.unchecked_reply is True
 
     def test_a_matching_reply_is_never_refused(self) -> None:
         deps = framing_deps()
@@ -127,7 +134,6 @@ class TestTheOneCorrection:
                         args={
                             "prose": answers[len(retries)],
                             "nextState": "await_user",
-                            "strategyChanged": False,
                         },
                         tool_call_id=f"call_final_{len(retries)}",
                     )
@@ -144,9 +150,7 @@ class TestTheOneCorrection:
 
         assert isinstance(result.output, LeadResponse)
         assert result.output.prose == answers[-1]
-        assert [
-            "- ``8``: no fact holds it, so take it out." in retry for retry in retries
-        ] == [True, True]
+        assert ["The note writes ``8``" in retry for retry in retries] == [True, True]
 
     def test_an_out_of_scope_essay_is_re_asked_once_and_the_turn_answers(self) -> None:
         """The latch is the contract's, so every rule reaches the model once."""

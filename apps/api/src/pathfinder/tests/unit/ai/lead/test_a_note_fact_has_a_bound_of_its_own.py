@@ -1,7 +1,3 @@
-"""Prose faults are refused on a bound of their own, so a turn whose other rules
-were refused still corrects its prose; past the bound only a written number or
-a fact the facts lack withholds the reply, which keeps its other fields."""
-
 from __future__ import annotations
 
 from dataclasses import replace
@@ -12,7 +8,6 @@ from pydantic_ai.exceptions import ModelRetry
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadTurnState, hold_the_turn_contract
-from pathfinder.ai.lead.withheld_reply import WITHHELD_ALONE, WITHHELD_REPLY
 from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.constraints import (
@@ -127,30 +122,24 @@ def test_two_rule_refusals_leave_the_prose_its_correction() -> None:
     ) == (2, 1)
 
 
-def test_a_withheld_reply_keeps_its_question_state_and_reason() -> None:
-    deps = blame_deps()
+def test_a_note_number_past_the_bound_is_shown_marked_unchecked() -> None:
+    deps = reading_deps()
     ctx = replace(run_context_for(deps), retry=3)
     answer = reply("It returns 66 genes.", next_state="complete", questions=[QUESTION])
-    answer = answer.model_copy(update={"unverified_reason": "The check stopped."})
-
-    withheld = hold_the_turn_contract(ctx, answer)
-
-    assert withheld == answer.model_copy(update={"prose": WITHHELD_ALONE})
-
-
-def test_a_withheld_reply_beside_facts_points_at_them() -> None:
-    deps = reading_deps()
-    ctx = replace(run_context_for(deps), retry=3)
-
-    withheld = hold_the_turn_contract(ctx, reply("It returns 66 genes."))
-
-    assert withheld == reply(WITHHELD_REPLY)
-
-
-def test_a_shape_fault_past_the_bound_goes_through_unchecked() -> None:
-    deps = reading_deps()
-    ctx = replace(run_context_for(deps), retry=3)
-    answer = reply("The text step returns [count:s3] genes.")
 
     assert hold_the_turn_contract(ctx, answer) == answer
     assert deps.state.turn_markers.unchecked_reply is True
+
+
+def test_a_note_number_within_the_bound_is_refused_with_the_number() -> None:
+    message = _correction(reading_deps(), 0, "It returns 66 genes.", "await_user")
+
+    assert "``66``" in message
+
+
+def test_a_turn_that_read_nothing_from_a_site_writes_its_note_freely() -> None:
+    deps = blame_deps()
+    answer = reply("A genome of 23 Mb holds 14 chromosomes.")
+
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert deps.state.turn_markers.unchecked_reply is False

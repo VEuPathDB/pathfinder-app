@@ -21,12 +21,10 @@ from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_s
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
-    SharedGenes,
 )
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.record_page import ListedRecord
-from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment import variant_comparison
@@ -223,7 +221,7 @@ async def test_a_search_the_strategy_does_not_run_is_counted_with_its_values(
     ]
 
 
-async def test_the_count_renders_from_the_compare_reference(reports: _Reports) -> None:
+async def test_the_count_is_a_fact_with_no_card(reports: _Reports) -> None:
     ctx = lead_run_context()
 
     await count_search(ctx, _vsp_search())
@@ -231,17 +229,12 @@ async def test_the_count_renders_from_the_compare_reference(reports: _Reports) -
     comparisons = ctx.deps.state.turn_markers.comparisons
     assert comparisons == [
         ComparisonFact(
-            variants=[
-                ComparedVariant(
-                    label="VSP in product", gene_count=196, unique_count=196
-                )
-            ]
+            variants=[ComparedVariant(label="VSP in product", gene_count=196)],
+            on_its_card=False,
         )
     ]
     facts = TurnFacts(comparisons=comparisons)
-    assert render_reply("It finds [compare:VSP in product].", facts) == (
-        "It finds 196 genes."
-    )
+    assert (facts.empty(), facts.lines()) == (False, ["VSP in product: 196 genes"])
 
 
 async def test_a_search_the_catalog_does_not_list_names_what_the_lookup_finds(
@@ -345,7 +338,7 @@ async def test_no_gene_ids_and_no_shown_record_is_refused(reports: _Reports) -> 
     assert reports.ran == []
 
 
-async def test_a_membership_renders_by_record_and_by_shared_count(
+async def test_a_membership_is_a_fact_of_its_held_records(
     reports: _Reports,
 ) -> None:
     ctx = lead_run_context(site_id="tritrypdb", strategy_session=_tritrypdb())
@@ -363,27 +356,8 @@ async def test_a_membership_renders_by_record_and_by_shared_count(
             held=_HELD,
         )
     ]
-    assert markers.comparisons == [
-        ComparisonFact(
-            variants=[
-                ComparedVariant(label="asked genes", gene_count=8, unique_count=2),
-                ComparedVariant(
-                    label="Signal peptide", gene_count=1094, unique_count=1088
-                ),
-            ],
-            overlaps=[SharedGenes(a="asked genes", b="Signal peptide", shared=6)],
-        )
-    ]
-    facts = TurnFacts(memberships=markers.memberships, comparisons=markers.comparisons)
-    reply = (
-        "Of [compare:asked genes], [compare:asked genes,Signal peptide:shared] "
-        "hold a signal peptide; [record:TcIL3000_0_26385] does not."
-    )
-    url = gene_record_url("tritrypdb", "TcIL3000_0_26385")
-    assert render_reply(reply, facts) == (
-        "Of 8 genes, 6 genes hold a signal peptide; "
-        f"[TcIL3000_0_26385]({url}) does not."
-    )
+    facts = TurnFacts(memberships=markers.memberships)
+    assert (markers.comparisons, facts.empty()) == ([], False)
     assert facts.record_ids() == _SAMPLED
 
 

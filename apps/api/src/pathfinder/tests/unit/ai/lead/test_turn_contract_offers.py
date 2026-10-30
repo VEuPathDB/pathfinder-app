@@ -4,9 +4,6 @@ other value, or no question at all."""
 
 from __future__ import annotations
 
-import pytest
-
-from pathfinder.ai.lead.reply_claims import ends_with_a_question
 from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -36,7 +33,7 @@ def _offer(**kwargs: bool) -> list[str]:
     deps = building_deps()
     for marker, value in kwargs.items():
         setattr(deps.state.turn_markers, marker, value)
-    return kinds(deps, reply(THE_OFFER, changed=True, next_state="complete"))
+    return kinds(deps, reply(THE_OFFER, next_state="complete"))
 
 
 class TestAReplyThatEndsOnAQuestion:
@@ -49,7 +46,6 @@ class TestAReplyThatEndsOnAQuestion:
     def test_a_recorded_question_stands(self) -> None:
         report = reply(
             THE_OFFER,
-            changed=True,
             next_state="complete",
             questions=[
                 AskedQuestion(
@@ -63,7 +59,7 @@ class TestAReplyThatEndsOnAQuestion:
         assert kinds(building_deps(), report) == []
 
     def test_a_question_inside_the_reply_stands(self) -> None:
-        report = reply(A_QUESTION_THEN_A_STATEMENT, changed=True, next_state="complete")
+        report = reply(A_QUESTION_THEN_A_STATEMENT, next_state="complete")
 
         assert kinds(building_deps(), report) == []
 
@@ -77,23 +73,3 @@ class TestAReplyThatEndsOnAQuestion:
 
         assert [m.kind for m in mismatches] == ["open_value_in_prose"]
         assert "``propose_changes``" not in mismatches[0].sentence
-
-
-@pytest.mark.parametrize(
-    ("prose", "ends"),
-    [
-        ("Shall I refine it?", True),
-        ("Shall I refine it?\n\n", True),
-        ("**Shall I refine it?**", True),
-        ('He asked "shall I refine it?"', True),
-        ("Refine it (shall I?)", True),
-        ("Shall I refine it? Say yes and I will.", False),
-        ("Why did it drop?\n\nThe profile removed them.", False),
-        ("The strategy holds 4 genes.", False),
-        ("", False),
-    ],
-)
-def test_the_last_paragraph_decides_whether_a_reply_ends_on_a_question(
-    prose: str, ends: bool
-) -> None:
-    assert ends_with_a_question(prose) is ends
