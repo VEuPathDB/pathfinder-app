@@ -4,8 +4,6 @@ from datetime import date
 
 import pytest
 from veupathdb.domain.parameters import InputDatasetValue, ParamValue, StringValue
-from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
-from veupathdb.wdk import WDKStepTree, WDKStrategyDetails, build_wdk_step_tree
 
 from pathfinder.domain.strategy.computed_groups import (
     SNAPSHOT_NOTE,
@@ -117,18 +115,6 @@ async def test_the_build_creates_the_strategy_with_its_description(
     ]
 
 
-class _RefusedUpdate(StubAPI):
-    async def update_strategy(
-        self,
-        strategy_id: int,
-        step_tree: WDKStepTree | None = None,
-        name: str | None = None,
-        user_id: str | None = None,
-    ) -> WDKStrategyDetails:
-        del strategy_id, step_tree, name, user_id
-        raise VEuPathDBError(VEuPathDBErrorCode.WDK_ERROR, "strategy is gone")
-
-
 async def _pushed(
     monkeypatch: pytest.MonkeyPatch, api: StubAPI, state: WDKSyncState
 ) -> list[object]:
@@ -150,16 +136,3 @@ async def test_a_first_push_sends_the_graphs_description(
     state = WDKSyncState(wdk_step_ids=dict(_IDS))
 
     assert await _pushed(monkeypatch, StubAPI(), state) == [SNAPSHOT_NOTE]
-
-
-async def test_a_create_after_a_refused_update_sends_the_description(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    other = combine("step_join", leaf("step_b"), leaf("step_a"))
-    state = WDKSyncState(
-        wdk_step_ids=dict(_IDS),
-        wdk_strategy_id=42,
-        wdk_step_tree=build_wdk_step_tree(other, _IDS),
-    )
-
-    assert await _pushed(monkeypatch, _RefusedUpdate(), state) == [SNAPSHOT_NOTE]

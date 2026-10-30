@@ -22,6 +22,14 @@
   refuses such counts before its card, through `veupathdb_mcp.separation.too_few_controls`,
   and the facts part states how many more controls make a result possible. See
   [the decision](decisions/a-strategy-from-controls-is-measured.md).
+* **A step tree the site refuses is reported on the strategy the researcher has open.**
+  A delete on QA PlasmoDB put the one-step tree (`PUT .../step-tree`, 204) and deleted the
+  two orphaned steps, so the site matched PathFinder. A `PUT .../step-tree` the site
+  refuses (QA answered 422, "227291000 is not a valid step ID.") used to mint a second
+  strategy, or to be logged and dropped, and the strategy the researcher had open kept the
+  deleted step. The refusal now raises out of `sync_strategy_for_site`, mints nothing, and
+  the commit reports it as a failure that names the site; the recorded tree stays the old
+  one, so the next commit puts the tree again.
 * **An unsettled pick is asked once, and nothing builds before it is answered.** On QA a
   TriTrypDB pass bound eleven Pfam entries under a pick at confidence 0.26: the hold added
   its question, but the slot stayed bound, the spec read ready to build and the Lead built

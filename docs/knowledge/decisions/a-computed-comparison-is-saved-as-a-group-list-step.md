@@ -73,8 +73,8 @@ spec binds a saved comparison write `noted_description(...)`, which appends
 `SNAPSHOT_NOTE` to a description the researcher wrote and adds it once. Each step named as
 a computed snapshot holds a saved list of group ids, the ids are fixed, and a later release
 maps each id to the groups it became, so the count can change. `sync_strategy_for_site`
-sends the graph's description on every create, the first push and the create after a
-refused update alike, so a build, an edit, a resync and a materialized copy all carry it.
+sends the graph's description on every create, so a build, an edit, a resync and a
+materialized copy all carry it.
 The client's `update_strategy` sends no description, so a strategy the site already holds
 keeps the description it has.
 

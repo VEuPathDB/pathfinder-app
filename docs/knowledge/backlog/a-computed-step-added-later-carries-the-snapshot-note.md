@@ -13,7 +13,7 @@ status: proposed
 
 A build or an edit whose spec binds a saved computed comparison writes
 `noted_description(...)` to the graph's `description`, and `sync_strategy_for_site` sends
-that description on every create: the first push and the create after a refused update.
+that description on every create.
 A strategy the site already holds is changed with `StrategyAPI.update_strategy`, which
 sends a step tree and a name and no description. An edit that adds a computed step to such
 a strategy writes the note to the graph and not to the site, so a researcher who opens the
