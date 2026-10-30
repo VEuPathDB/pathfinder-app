@@ -182,7 +182,8 @@ async def test_a_section_cause_that_states_a_count_is_retried() -> None:
     assert retry.content == (
         "The section intact_gene_called_pseudogene writes 7 in its cause or in "
         "what confirms it. A section's count is the findings its findingIds list, "
-        "which the run shows beside it, so neither sentence writes a number."
+        "which the run shows beside it, so neither sentence writes a number or a "
+        "link."
     )
     assert [(s.count, s.finding_ids) for s in sections] == [(6, tuple(_INTACT))]
 
@@ -194,6 +195,34 @@ async def test_a_summary_that_states_a_count_is_retried() -> None:
     await _synthesized(_first_then(written, retries))
 
     assert [retry.content for retry in retries] == [note_facts_message(["6"])]
+
+
+async def test_a_summary_that_writes_a_link_is_retried() -> None:
+    retries: list[RetryPromptPart] = []
+    written = _draft(
+        _TRUNCATED_CAUSE, summary="Curators read [the run](javascript:alert(1)) first."
+    )
+
+    await _synthesized(_first_then(written, retries))
+
+    assert [retry.content for retry in retries] == [
+        note_facts_message(["javascript:alert(1)"])
+    ]
+
+
+async def test_a_section_cause_that_writes_a_link_is_retried() -> None:
+    retries: list[RetryPromptPart] = []
+
+    await _synthesized(
+        _first_then(
+            _draft(f"{_TRUNCATED_CAUSE} See mailto:curator@example.org"), retries
+        )
+    )
+
+    (retry,) = retries
+    assert str(retry.content).startswith(
+        "The section intact_gene_called_pseudogene writes mailto:curator@example.org"
+    )
 
 
 async def test_a_section_that_cites_and_measures_is_kept_as_written() -> None:

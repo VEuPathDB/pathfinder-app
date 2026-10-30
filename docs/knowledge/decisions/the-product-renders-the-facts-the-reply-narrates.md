@@ -114,18 +114,27 @@ hold the rendered text, so a saved conversation replays with no renderer. The au
 reply text is each `ReadFact` as markdown, then the rendered note
 (`ai/audit/reply.py::reply_text`).
 
-**The one check on the note.** `domain/reply_note.py::note_facts` returns each link (http,
-https, www, doi) and each number a note writes, once, when the turn's facts hold site data
-(`TurnFacts.holds_site_data`); a note on a turn that read nothing from a site writes freely. A
-number a researcher message writes as a whole token is their word, a list's item numbers are
+**No model-written link reaches the reader.** `domain/written_links.py` reads every link a
+text writes after it decodes HTML entities: each inline link and image destination, each
+autolink, each `href` or `src` of an HTML tag, and each bare address with a scheme and `//`,
+`www.`, a protocol-relative `//host.`, or `mailto:`, `javascript:`, `vbscript:`, `data:`,
+`file:`, `tel:` or `doi:`. `render_note` shows an inline link or image as its words and drops
+every other one before it links the record references, so the only link a note shows is one it
+rendered itself. A read's title, labels and values are escaped in the audit assistant's
+markdown (`ReadFact.markdown`), and a row whose value holds a link is not shown.
+
+**The one check on the note.** `domain/reply_note.py::note_facts` returns each link a note
+writes, on any turn, and each number it writes, once, when the turn's facts hold site data
+(`TurnFacts.holds_site_data`); a note on a turn that read nothing from a site writes numbers
+freely. A number a researcher message writes as a whole token is their word, a list's item numbers are
 marks, and a name that mixes letters and digits is prose. The turn contract refuses such a note
 as the `note_facts` mismatch (`contract_messages.note_facts_message`, which names each token to
 take out) on a bound of its own
 ([the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)),
 and reads every card reply of a response whole. Past the bound the note is shown and the facts
 part carries `UNCHECKED_PROSE`; nothing is withheld. The audit assistant holds its note to the
-same check (`ai/audit/reply.py::hold_the_reply`), and an audit synthesis summary writes no
-number (`ai/audit/synthesis.py`). The turn contract's other rules read what the turn did, not
+same check (`ai/audit/reply.py::hold_the_reply`), and an audit synthesis summary and each
+section's cause and confirmation write no number and no link (`ai/audit/synthesis.py`). The turn contract's other rules read what the turn did, not
 the note's wording ([one turn contract](one-turn-contract.md)).
 
 Retired with their tests: the reference grammar (`[count:]`, `[before:]`, `[root]`,

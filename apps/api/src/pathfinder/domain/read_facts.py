@@ -7,10 +7,16 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
+from pathfinder.domain.written_links import written_links
 
 _SHOWN_DEPTH = 2
 _SHOWN_ROWS = 40
 _A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+_A_MARK = re.compile(r"([\[\]()!<>`*])")
+
+
+def _escaped(text: str) -> str:
+    return _A_MARK.sub(r"\\\1", text)
 
 
 class ReadRow(CamelModel):
@@ -30,8 +36,8 @@ class ReadFact(CamelModel):
         return [self.title, *(f"{row.label}: {row.value}" for row in self.rows)]
 
     def markdown(self) -> str:
-        rows = (f"- {row.label}: {row.value}" for row in self.rows)
-        return "\n".join([f"**{self.title}**", *rows])
+        rows = (f"- {_escaped(row.label)}: {_escaped(row.value)}" for row in self.rows)
+        return "\n".join([f"**{_escaped(self.title)}**", *rows])
 
     def redacted(self, redact: Callable[[str], str]) -> ReadFact:
         return self.model_copy(update={"title": redact(self.title)})
@@ -47,7 +53,7 @@ def _label(named: Sequence[str]) -> str:
 
 
 def _shown(row: StatisticRowFact) -> bool:
-    return len(_named(row)) <= _SHOWN_DEPTH and not row.value.startswith("http")
+    return len(_named(row)) <= _SHOWN_DEPTH and not written_links(row.value)
 
 
 def read_fact(fact: StatisticFact) -> ReadFact:

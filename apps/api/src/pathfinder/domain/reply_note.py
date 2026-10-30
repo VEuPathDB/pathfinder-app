@@ -4,16 +4,13 @@ import re
 
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.written_links import without_links, written_links
 
 A_RECORD = re.compile(r"(?P<gap>[ \t]*)\[record:(?P<record_id>[^\[\]\s]+)\]")
 _A_TOKEN = re.compile(r"[\w:./,%+-]+")
 _EDGE_MARKS = ".,:;/+-_"
 _NUMBER = r"\d[\d,]*(?:\.\d+)?"
 _A_NUMBER = re.compile(rf"[+-]?{_NUMBER}(?:[-/]{_NUMBER})*%?")
-_A_LINK = re.compile(
-    r"(?:https?:[\\/]*|www\.|doi:|(?<![:\w/\\])[\\/]{2}(?=[\w-]+\.))[^\s<>()\[\]\"'`]+",
-    re.IGNORECASE,
-)
 _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
 
@@ -26,7 +23,7 @@ def render_note(note: str, facts: TurnFacts) -> str:
         gap = match.group("gap")
         return "" if url is None else f"{gap}[{record_id}]({url})"
 
-    return A_RECORD.sub(linked, note)
+    return A_RECORD.sub(linked, without_links(note))
 
 
 def linked_records(rendered: str) -> list[str]:
@@ -49,16 +46,16 @@ def written_numbers(text: str, said: frozenset[str] = frozenset()) -> list[str]:
 
 
 def note_facts(note: str, facts: TurnFacts) -> list[str]:
+    plain = A_RECORD.sub(" ", note)
+    links = list(dict.fromkeys(written_links(plain)))
     if not facts.holds_site_data():
-        return []
+        return links
     said = frozenset(
         token.casefold()
         for message in facts.request_messages
         for token in _tokens(message)
     )
-    plain = A_RECORD.sub(" ", note)
-    links = list(dict.fromkeys(_A_LINK.findall(plain)))
-    return [*links, *written_numbers(_A_LINK.sub(" ", plain), said)]
+    return [*links, *written_numbers(without_links(plain), said)]
 
 
 __all__ = [
