@@ -10,9 +10,9 @@ from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import Field
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from veupathdb_mcp.separation import CandidateProposal
+from veupathdb_mcp.separation import CandidateProposal, too_few_controls
 
 from pathfinder.ai.graph.stream_events import separation_result_event
 from pathfinder.ai.lead.card_reply import CardReply
@@ -112,3 +112,26 @@ async def separate_controls(
     del ctx, reply, positive_controls, negative_controls, mode, literature, budget
     msg = "separate_controls runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
+
+
+async def separation_can_run(
+    ctx: RunContext[LeadDeps],
+    *,
+    reply: CardReply,
+    positive_controls: list[str],
+    negative_controls: list[str],
+    mode: SeparationMode,
+    literature: tuple[CandidateProposal, ...] = (),
+    budget: int = SEPARATION_BUDGET,
+) -> None:
+    del reply, mode, literature, budget
+    short = too_few_controls(positive_controls, negative_controls)
+    if short is None:
+        return
+    ctx.deps.turn_markers.too_few_controls = short
+    msg = (
+        f"{short.sentence} Nothing was started and no card was shown. The facts "
+        "beside the reply show these counts. Ask the researcher for more controls, "
+        "and do not call separate_controls again with these lists."
+    )
+    raise ModelRetry(msg)

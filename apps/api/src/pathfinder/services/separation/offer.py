@@ -15,8 +15,10 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.separation import (
     MeasuredCandidate,
     SeparationNode,
+    SeparationRequest,
     SeparationResult,
     SkipReason,
+    TooFewControls,
 )
 
 from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
@@ -235,4 +237,25 @@ def separation_report(
     )
 
 
-__all__ = ["RECORD_TYPE", "separation_report"]
+def too_few_controls_report(
+    short: TooFewControls,
+    *,
+    task_id: UUID,
+    site_id: str,
+    request: SeparationRequest,
+) -> SeparationReport:
+    return SeparationReport(
+        task_id=str(task_id),
+        site_id=site_id,
+        mode=request.mode,
+        offer=None,
+        measured=[],
+        unresolved_positive=short.unresolved_positive,
+        unresolved_negative=short.unresolved_negative,
+        shortfall=[short.sentence],
+        charged_requests=short.charged_requests,
+        budget=request.budget,
+    )
+
+
+__all__ = ["RECORD_TYPE", "separation_report", "too_few_controls_report"]

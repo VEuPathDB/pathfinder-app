@@ -9,6 +9,7 @@ from uuid import UUID
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
+from veupathdb_mcp.separation import TooFewControls
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.stored_verdicts import StoredList
@@ -282,6 +283,7 @@ class TurnMarkers(CamelModel):
     refused_calls: list[RefusedCall] = Field(default_factory=list)
     # The control tests asked again under this message, and answered from the first.
     control_tests_asked_again: list[ControlTestTarget] = Field(default_factory=list)
+    too_few_controls: TooFewControls | None = None
 
     @property
     def changed_strategy(self) -> bool:

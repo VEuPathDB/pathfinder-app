@@ -15,6 +15,13 @@
   that goes to OpenAI whichever model is picked, and what deleting a conversation removes and
   keeps. See
   [the decision](decisions/the-site-comes-from-the-website-that-frames-pathfinder.md).
+* **Too few controls are asked for before a run.** With 4 positive and 2 negative
+  controls, a separation run made 583 site requests and reported that no search
+  separates the sets, though GO:0006468 held every positive and no negative: the
+  best tail any read can reach is 1/15, about 0.067, never under 0.05. The tool now
+  refuses such counts before its card, through `veupathdb_mcp.separation.too_few_controls`,
+  and the facts part states how many more controls make a result possible. See
+  [the decision](decisions/a-strategy-from-controls-is-measured.md).
 * **An unsettled pick is asked once, and nothing builds before it is answered.** On QA a
   TriTrypDB pass bound eleven Pfam entries under a pick at confidence 0.26: the hold added
   its question, but the slot stayed bound, the spec read ready to build and the Lead built

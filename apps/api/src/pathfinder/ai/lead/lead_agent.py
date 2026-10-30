@@ -94,7 +94,10 @@ from pathfinder.ai.tools.standalone.optimization import (
 )
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_search
-from pathfinder.ai.tools.standalone.separation import separate_controls
+from pathfinder.ai.tools.standalone.separation import (
+    separate_controls,
+    separation_can_run,
+)
 from pathfinder.ai.tools.standalone.step_ids import read_step_ids
 from pathfinder.ai.tools.standalone.step_tally import (
     count_step_by_column,
@@ -176,6 +179,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
                 sequential=True,
                 requires_approval=True,
                 max_retries=3,
+                args_validator=separation_can_run,
             ),
             Tool(adopt_separating_strategy, requires_approval=True),
             *lead_audit_tools(),
