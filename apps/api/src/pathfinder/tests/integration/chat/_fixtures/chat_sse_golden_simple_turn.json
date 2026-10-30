@@ -95,7 +95,7 @@
     "type": "text-start"
   },
   {
-    "delta": "[mock] hi",
+    "delta": "\\[mock\\] hi",
     "id": "<REDACTED>",
     "type": "text-delta"
   },

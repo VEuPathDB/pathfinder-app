@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     blame_deps,
@@ -159,5 +160,7 @@ def test_a_link_past_the_bound_never_reaches_the_reader() -> None:
     let_through = hold_the_turn_contract(ctx, answer)
 
     assert isinstance(let_through, LeadResponse)
-    assert render_note(let_through.prose, turn_facts(deps)) == "Read the review and ."
+    assert render_note(let_through.prose, turn_facts(deps)) == plain_markdown(
+        "Read [the review](javascript:alert(1)) and https://evil.example."
+    )
     assert deps.state.turn_markers.unchecked_reply is True

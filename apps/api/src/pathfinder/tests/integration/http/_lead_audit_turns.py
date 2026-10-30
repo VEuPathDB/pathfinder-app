@@ -29,6 +29,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.tests._support.audit_planning import STRAINS
+from pathfinder.tests._support.read_text import as_read
 from pathfinder.tests.integration.chat._helpers import (
     chat_turn_jobs,
     parse_sse_body,
@@ -116,7 +117,7 @@ def called(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 def text(chunks: list[dict[str, Any]]) -> str:
-    return "".join(c["delta"] for c in of_type(chunks, "text-delta"))
+    return as_read("".join(c["delta"] for c in of_type(chunks, "text-delta")))
 
 
 def summaries(chunks: list[dict[str, Any]]) -> list[str]:

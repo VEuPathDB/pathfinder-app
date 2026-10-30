@@ -14,14 +14,14 @@ def test_a_held_record_renders_as_its_link() -> None:
     note = "Start with [record:PF3D7_1315100], a well-studied kinase."
 
     assert render_note(note, _READ) == (
-        f"Start with [PF3D7_1315100]({_URL}), a well-studied kinase."
+        f"Start with [PF3D7_1315100]({_URL})\\, a well\\-studied kinase\\."
     )
 
 
 def test_a_record_the_turn_does_not_hold_is_dropped() -> None:
     note = "Compare it with [record:PF3D7_9999999]."
 
-    assert render_note(note, _READ) == "Compare it with."
+    assert render_note(note, _READ) == "Compare it with\\."
 
 
 def test_the_rendered_note_names_the_records_it_links() -> None:

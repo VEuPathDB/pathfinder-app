@@ -14,6 +14,7 @@ from pathfinder.ai.lead.turn_contract import hold_the_turn_contract
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_note import render_note
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import reply
@@ -61,12 +62,12 @@ def test_a_note_citing_the_sample_shown_last_stands_and_links_each_record() -> N
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     assert render_note(answer.prose, turn_facts(deps)) == (
-        "Here is the same sample again: "
-        + ", ".join(
+        plain_markdown("Here is the same sample again: ")
+        + plain_markdown(", ").join(
             f"[{g}](https://qa.hostdb.org/hostdb.qa/app/record/gene/{g})"
             for g in _SAMPLE
         )
-        + "."
+        + plain_markdown(".")
     )
 
 
@@ -76,7 +77,7 @@ def test_a_record_the_conversation_never_showed_is_dropped() -> None:
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     assert render_note(answer.prose, turn_facts(deps)) == (
-        "The sample now holds as well."
+        plain_markdown("The sample now holds as well.")
     )
 
 

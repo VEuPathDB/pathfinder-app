@@ -38,6 +38,7 @@ from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import UNCHECKED_PROSE, StepFact, TurnFacts
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.classed_strategy import classed_steps
@@ -125,7 +126,7 @@ async def test_the_text_part_is_the_prose_rendered_from_the_facts_part(
     (shown,) = [chunk["data"] for chunk in written if chunk["type"] == "data-facts"]
     text = [chunk["delta"] for chunk in written if chunk["type"] == "text-delta"]
 
-    assert text == [_PROSE]
+    assert text == [plain_markdown(_PROSE)]
     assert TurnFacts.model_validate(shown).root_count == 9
 
 
@@ -148,7 +149,8 @@ def test_a_cards_reply_is_rendered_from_the_facts_it_is_released_with() -> None:
     released = hold.release(facts, [])
 
     assert [c.delta for c in released if isinstance(c, TextDeltaChunk)] == [
-        f"Start with [{_EINT}]({_EINT_URL}). Which field should it search?"
+        f"Start with [{_EINT}]({_EINT_URL})"
+        + plain_markdown(". Which field should it search?")
     ]
 
 
@@ -224,7 +226,7 @@ def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged()
         c["delta"]
         for p in payloads
         if (c := _extract_chunk(p)) is not None and c["type"] == "text-delta"
-    ] == [loop_stop_prose(None)]
+    ] == [plain_markdown(loop_stop_prose(None))]
 
 
 def test_a_note_let_through_past_the_bound_is_shown_with_its_notice() -> None:
@@ -244,4 +246,4 @@ def test_a_note_let_through_past_the_bound_is_shown_with_its_notice() -> None:
         c["delta"]
         for p in payloads
         if (c := _extract_chunk(p)) is not None and c["type"] == "text-delta"
-    ] == ["It keeps 1,234 genes, among them."]
+    ] == [plain_markdown("It keeps 1,234 genes, among them.")]

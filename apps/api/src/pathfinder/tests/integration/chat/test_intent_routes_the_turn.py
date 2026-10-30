@@ -16,6 +16,7 @@ from procrastinate.testing import InMemoryConnector
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.tests._support.qa_recording import needs_suite_recordings
+from pathfinder.tests._support.read_text import as_read
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 from pathfinder.tests.integration.http.conftest import client_for
 
@@ -102,4 +103,4 @@ async def test_a_context_statement_answers_in_prose(
         for chunk in chunks
         if chunk.get("type") == "text-delta"
     )
-    assert text == _CONTEXT_REPLY
+    assert as_read(text) == _CONTEXT_REPLY

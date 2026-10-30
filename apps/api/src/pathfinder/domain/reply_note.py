@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import html
 import re
 
 from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.turn_facts import TurnFacts
-from pathfinder.domain.written_links import without_links, written_links
+from pathfinder.domain.written_links import (
+    plain_markdown,
+    without_links,
+    written_links,
+)
 
 A_RECORD = re.compile(r"(?P<gap>[ \t]*)\[record:(?P<record_id>[^\[\]\s]+)\]")
 _A_TOKEN = re.compile(r"[\w:./,%+-]+")
@@ -16,14 +21,17 @@ _A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
 def render_note(note: str, facts: TurnFacts) -> str:
     links = {s.record_id: s.url for s in reversed(facts.citable_records())}
-
-    def linked(match: re.Match[str]) -> str:
-        record_id = match.group("record_id")
-        url = links.get(record_id)
-        gap = match.group("gap")
-        return "" if url is None else f"{gap}[{record_id}]({url})"
-
-    return A_RECORD.sub(linked, without_links(note))
+    text = html.unescape(note)
+    shown: list[str] = []
+    start = 0
+    for match in A_RECORD.finditer(text):
+        shown.append(plain_markdown(text[start : match.start()]))
+        url = links.get(match.group("record_id"))
+        if url is not None:
+            shown.append(f"{match.group('gap')}[{match.group('record_id')}]({url})")
+        start = match.end()
+    shown.append(plain_markdown(text[start:]))
+    return "".join(shown)
 
 
 def linked_records(rendered: str) -> list[str]:

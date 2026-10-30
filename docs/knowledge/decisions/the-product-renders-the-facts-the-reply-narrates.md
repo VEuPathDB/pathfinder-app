@@ -114,14 +114,16 @@ hold the rendered text, so a saved conversation replays with no renderer. The au
 reply text is each `ReadFact` as markdown, then the rendered note
 (`ai/audit/reply.py::reply_text`).
 
-**No model-written link reaches the reader.** `domain/written_links.py` reads every link a
-text writes after it decodes HTML entities: each inline link and image destination, each
-autolink, each `href` or `src` of an HTML tag, and each bare address with a scheme and `//`,
-`www.`, a protocol-relative `//host.`, or `mailto:`, `javascript:`, `vbscript:`, `data:`,
-`file:`, `tel:` or `doi:`. `render_note` shows an inline link or image as its words and drops
-every other one before it links the record references, so the only link a note shows is one it
-rendered itself. A read's title, labels and values are escaped in the audit assistant's
-markdown (`ReadFact.markdown`), and a row whose value holds a link is not shown.
+**No model-written link reaches the reader.** The note is plain text: `render_note` decodes its
+HTML entities and escapes every ASCII punctuation character (`domain/written_links.py::plain_markdown`),
+so no markdown or HTML the model writes forms a link, an image, an autolink or a reference
+definition, whatever its shape. The only links in a rendered note are the record links
+`render_note` inserts after it escapes the text. Filtering link shapes was rejected: a filter
+missed reference-style links and `scheme:` forms, and stripping one construct can rebuild
+another. The audit assistant's markdown escapes each read's title, labels and values the same
+way (`ReadFact.markdown`), and a row whose value holds a link is not shown. `written_links`
+still finds the links a note writes, inline, image, autolink, HTML, bare `scheme://`,
+`scheme:\\`, `www.` and `mailto:`, `javascript:` and the like, so the correction can name them.
 
 **The one check on the note.** `domain/reply_note.py::note_facts` returns each link a note
 writes, on any turn, and each number it writes, once, when the turn's facts hold site data
