@@ -21,6 +21,7 @@ from pathfinder.domain.audit.verdicts import (
     review_agreement,
 )
 from pathfinder.domain.reply_note import written_numbers
+from pathfinder.domain.written_links import without_links, written_links
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
 from pathfinder.services.audit.verdicts import VerdictView
@@ -126,15 +127,19 @@ def _misordered(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str |
     )
 
 
+def _written(text: str) -> list[str]:
+    return [*written_links(text), *written_numbers(without_links(text))]
+
+
 def _counted(draft: SynthesisDraft) -> str | None:
     for section in draft.sections:
-        written = written_numbers(f"{section.cause} {section.confirmed_by}")
+        written = _written(f"{section.cause} {section.confirmed_by}")
         if written:
             return (
                 f"The section {section.error_type} writes {', '.join(written)} in "
                 "its cause or in what confirms it. A section's count is the "
                 "findings its findingIds list, which the run shows beside it, so "
-                "neither sentence writes a number."
+                "neither sentence writes a number or a link."
             )
     return None
 
@@ -151,9 +156,9 @@ def _synthesizable(
     )
     if problem is not None:
         raise ModelRetry(problem)
-    numbers = written_numbers(output.summary)
-    if numbers:
-        raise ModelRetry(note_facts_message(numbers))
+    written = _written(output.summary)
+    if written:
+        raise ModelRetry(note_facts_message(written))
     return output
 
 

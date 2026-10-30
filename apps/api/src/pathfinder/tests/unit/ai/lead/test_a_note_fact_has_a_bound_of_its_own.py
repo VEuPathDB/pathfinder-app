@@ -7,8 +7,14 @@ from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadTurnState, hold_the_turn_contract
+from pathfinder.ai.lead.turn_contract import (
+    LeadResponse,
+    LeadTurnState,
+    hold_the_turn_contract,
+)
+from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.column_reach import ReachedColumn, StepReach, TransformReach
+from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -143,3 +149,15 @@ def test_a_turn_that_read_nothing_from_a_site_writes_its_note_freely() -> None:
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     assert deps.state.turn_markers.unchecked_reply is False
+
+
+def test_a_link_past_the_bound_never_reaches_the_reader() -> None:
+    deps = reading_deps()
+    ctx = replace(run_context_for(deps), retry=3)
+    answer = reply("Read [the review](javascript:alert(1)) and https://evil.example.")
+
+    let_through = hold_the_turn_contract(ctx, answer)
+
+    assert isinstance(let_through, LeadResponse)
+    assert render_note(let_through.prose, turn_facts(deps)) == "Read the review and ."
+    assert deps.state.turn_markers.unchecked_reply is True
