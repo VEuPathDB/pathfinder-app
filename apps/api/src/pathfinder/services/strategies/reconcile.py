@@ -42,6 +42,7 @@ async def reconcile_sync_state_with_wdk(
         return
 
     sync_state.wdk_strategy_name = detail.name
+    sync_state.wdk_strategy_description = detail.description
     live_ids = {node.step_id for node in walk_wdk_step_tree(detail.step_tree)}
     dropped = {
         local: wdk

@@ -31,10 +31,16 @@ class _RefusingSite(StubAPI):
         step_tree: WDKStepTree | None = None,
         name: str | None = None,
         user_id: str | None = None,
+        *,
+        description: str | None = None,
     ) -> WDKStrategyDetails:
         del user_id
         self._record(
-            "update_strategy", strategy_id=strategy_id, step_tree=step_tree, name=name
+            "update_strategy",
+            strategy_id=strategy_id,
+            step_tree=step_tree,
+            name=name,
+            description=description,
         )
         raise WDKError(_REFUSAL, status=HTTPStatus.UNPROCESSABLE_ENTITY)
 

@@ -25,6 +25,7 @@ from veupathdb.wdk import (
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.strategy_description import strategy_description
 from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
@@ -133,6 +134,12 @@ async def _apply_decorations(
 
 
 @dataclass(frozen=True)
+class StrategyLabels:
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
 class _PushedStrategy:
     """The WDK strategy the push landed in, and whether the push minted it."""
 
@@ -143,9 +150,8 @@ class _PushedStrategy:
 async def _create_or_update_wdk_strategy(
     api: StrategyAPI,
     step_tree: WDKStepTree,
-    name: str,
+    labels: StrategyLabels,
     sync_state: WDKSyncState,
-    description: str | None,
 ) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
@@ -156,8 +162,10 @@ async def _create_or_update_wdk_strategy(
     wdk_strategy_id = sync_state.wdk_strategy_id
 
     if wdk_strategy_id is None:
-        result = await api.create_strategy(step_tree, name, description=description)
-        sync_state.wdk_strategy_name = name
+        result = await api.create_strategy(
+            step_tree, labels.name, description=labels.description
+        )
+        _record_labels(sync_state, labels)
         logger.info("Created WDK strategy", wdk_strategy_id=result.id)
         return _PushedStrategy(result.id, created=True)
 
@@ -165,37 +173,50 @@ async def _create_or_update_wdk_strategy(
         await api.update_strategy(
             strategy_id=wdk_strategy_id,
             step_tree=step_tree,
-            name=name,
+            name=labels.name,
+            description=labels.description,
         )
-        sync_state.wdk_strategy_name = name
+        _record_labels(sync_state, labels)
         logger.info("Updated WDK strategy step tree", wdk_strategy_id=wdk_strategy_id)
         return _PushedStrategy(wdk_strategy_id, created=False)
 
-    await put_the_strategy_name(api, sync_state, name)
+    await put_the_strategy_labels(api, sync_state, labels)
     return _PushedStrategy(wdk_strategy_id, created=False)
 
 
-async def put_the_strategy_name(
-    api: StrategyAPI, sync_state: WDKSyncState, name: str
-) -> None:
-    """Send the name when the one WDK holds is known and is another.
+def _record_labels(sync_state: WDKSyncState, labels: StrategyLabels) -> None:
+    sync_state.wdk_strategy_name = labels.name
+    sync_state.wdk_strategy_description = labels.description
 
-    A refused name is logged: WDK keeps the name it holds, and the next push
-    sends this one again.
-    """
-    held = sync_state.wdk_strategy_name
-    if sync_state.wdk_strategy_id is None or held is None or held == name:
+
+def _lagging(held: str | None, wanted: str) -> str | None:
+    return wanted if held is not None and held != wanted else None
+
+
+async def put_the_strategy_labels(
+    api: StrategyAPI, sync_state: WDKSyncState, labels: StrategyLabels
+) -> None:
+    if sync_state.wdk_strategy_id is None:
+        return
+    name = _lagging(sync_state.wdk_strategy_name, labels.name)
+    description = _lagging(sync_state.wdk_strategy_description, labels.description)
+    if name is None and description is None:
         return
     try:
-        await api.update_strategy(sync_state.wdk_strategy_id, name=name)
+        await api.update_strategy(
+            sync_state.wdk_strategy_id, name=name, description=description
+        )
     except VEuPathDBError as exc:
         logger.warning(
-            "WDK did not take the strategy's name",
+            "WDK did not take the strategy's labels",
             wdk_strategy_id=sync_state.wdk_strategy_id,
             error=str(exc),
         )
         return
-    sync_state.wdk_strategy_name = name
+    if name is not None:
+        sync_state.wdk_strategy_name = name
+    if description is not None:
+        sync_state.wdk_strategy_description = description
 
 
 @dataclass
@@ -292,10 +313,11 @@ async def sync_strategy_for_site(
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
-    name = strategy_name or name_for_the_push(graph, user_prompt)
-    pushed = await _create_or_update_wdk_strategy(
-        api, step_tree, name, sync_state, graph.description
+    labels = StrategyLabels(
+        name=strategy_name or name_for_the_push(graph, user_prompt),
+        description=strategy_description(graph, pushable_id),
     )
+    pushed = await _create_or_update_wdk_strategy(api, step_tree, labels, sync_state)
     wdk_strategy_id = pushed.wdk_strategy_id
 
     # A filter narrows what its step answers, so the read follows it. Reading

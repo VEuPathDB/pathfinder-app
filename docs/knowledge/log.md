@@ -30,6 +30,14 @@
   deleted step. The refusal now raises out of `sync_strategy_for_site`, mints nothing, and
   the commit reports it as a failure that names the site; the recorded tree stays the old
   one, so the next commit puts the tree again.
+* **The site holds the strategy's description.** On QA PlasmoDB a strategy PathFinder
+  built, cut to one step and extended again held `"description": ""` on the site through all
+  three pushes, while PathFinder showed "Find transcript results for Predicted Signal
+  Peptide.". The description is now the stated one, else a sentence read off the root
+  (`domain/strategy/strategy_description.py`); every push sends the one WDK lags on, and the
+  same delete then left that sentence on the site. This takes veupathdb-py 0.1.0b26, whose
+  `update_strategy` sends a description. See
+  [the decision](decisions/one-name-for-a-strategy.md).
 * **An unsettled pick is asked once, and nothing builds before it is answered.** On QA a
   TriTrypDB pass bound eleven Pfam entries under a pick at confidence 0.26: the hold added
   its question, but the slot stayed bound, the spec read ready to build and the Lead built

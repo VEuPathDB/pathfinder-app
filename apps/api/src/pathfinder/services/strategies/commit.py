@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     overwritten_slot,
 )
+from pathfinder.domain.strategy.strategy_description import strategy_description
 from pathfinder.services.strategies.batch_refusal import (
     entry_state,
     refusal_after_the_batch,
@@ -54,9 +55,10 @@ from pathfinder.services.strategies.stated_sides import canonical_batch
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync import (
+    StrategyLabels,
     SyncResult,
     UnclassedRootError,
-    put_the_strategy_name,
+    put_the_strategy_labels,
     step_tree_is_current,
     sync_strategy_for_site,
 )
@@ -343,8 +345,13 @@ async def _put_the_step_tree(
     if new_ast is None or not graph.steps:
         return None
     if step_tree_is_current(new_ast.root, sync_state):
-        await put_the_strategy_name(
-            get_strategy_api(deps.site_id), sync_state, graph.name
+        await put_the_strategy_labels(
+            get_strategy_api(deps.site_id),
+            sync_state,
+            StrategyLabels(
+                name=graph.name,
+                description=strategy_description(graph, new_ast.root.id),
+            ),
         )
         return None
     try:

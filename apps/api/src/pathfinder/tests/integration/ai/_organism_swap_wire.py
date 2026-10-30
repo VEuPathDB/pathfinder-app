@@ -114,8 +114,10 @@ class RecordingAPI:
         step_tree: WDKStepTree | None = None,
         name: str | None = None,
         user_id: str | None = None,
+        *,
+        description: str | None = None,
     ) -> WDKStrategyDetails:
-        del user_id
+        del user_id, description
         self.calls.append(
             Call(
                 "update_strategy",

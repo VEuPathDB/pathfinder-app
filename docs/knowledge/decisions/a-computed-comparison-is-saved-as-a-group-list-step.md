@@ -75,8 +75,8 @@ a computed snapshot holds a saved list of group ids, the ids are fixed, and a la
 maps each id to the groups it became, so the count can change. `sync_strategy_for_site`
 sends the graph's description on every create, so a build, an edit, a resync and a
 materialized copy all carry it.
-The client's `update_strategy` sends no description, so a strategy the site already holds
-keeps the description it has.
+A push to a strategy the site already holds sends the description too, whenever the one
+WDK holds is another ([one-name-for-a-strategy](one-name-for-a-strategy.md)).
 
 **Refusals.** Every `ValidationError` of the computed route is the builder's own limit, a
 retry. `GroupTagError` and `GroupCloudSumError` are data the site served that the

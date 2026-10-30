@@ -23,6 +23,7 @@ class WDKSyncState:
     wdk_strategy_id: int | None = None
     wdk_strategy_name: str | None = None
     """The name WDK holds for the strategy, as last read or written; None when unknown."""
+    wdk_strategy_description: str | None = None
     wdk_step_tree: WDKStepTree | None = None
     wdk_push_errors: dict[str, str] = field(default_factory=dict)
     # Snapshot of the AST as it existed at the last successful push. Lets the

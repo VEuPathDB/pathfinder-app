@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.expression_handles import shown_parameters
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.strategy_description import shown_description
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.eda.analysis_kinds import (
@@ -111,7 +112,7 @@ async def get_strategy(
         wdk_strategy_id=wdk_strategy_id,
         is_built=wdk_strategy_id is not None,
         step_count=len(graph.steps),
-        description=graph.description,
+        description=shown_description(graph),
         steps=steps,
         revision=strategy_revision(graph.to_strategy_ast(sync_state=sync_state)),
         analyses={
