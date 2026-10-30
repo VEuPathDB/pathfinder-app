@@ -23,7 +23,8 @@ class CardQuestion(ConsultQuestion):
         default="",
         description=(
             "The key of the requirement the question asks about, as the ledger "
-            "names it, or empty. A recorded question on the same requirement is "
+            "names it, or the id of the criterion whose value it asks for, or "
+            "empty. A recorded question on the same requirement or criterion is "
             "asked in its place."
         ),
     )

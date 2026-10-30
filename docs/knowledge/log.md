@@ -1,5 +1,15 @@
 # Log
 
+## 2026-10-30
+
+* **An unsettled pick is asked once, and nothing builds before it is answered.** On QA a
+  TriTrypDB pass bound eleven Pfam entries under a pick at confidence 0.26: the hold added
+  its question, but the slot stayed bound, the spec read ready to build and the Lead built
+  it. The hold now opens the slot, so the build waits for the card. A PlasmoDB card asked
+  FRAME's InterPro question and a Lead question naming the same criterion; the card now
+  keeps the recorded question alone, decided by the criterion and parameter the recorded
+  options bind. See [the decision](decisions/an-unsettled-vocabulary-pick-is-asked.md).
+
 ## 2026-10-28
 
 * **The Decisions API is always asked.** PathFinder takes veupathdb-mcp v0.2.0-b56:

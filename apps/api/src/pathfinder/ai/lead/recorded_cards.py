@@ -44,6 +44,20 @@ def _asks_about(question: OpenQuestion) -> str:
     return keys[0] if keys else ""
 
 
+def _slots_asked(question: OpenQuestion) -> set[str]:
+    slots: set[str] = set()
+    for option in question.options:
+        match option.binding:
+            case (
+                SetValues(criterion_id=criterion, params=params)
+                | ReadValues(criterion_id=criterion, params=params)
+            ):
+                slots |= {criterion, *params, *(f"{criterion}.{p}" for p in params)}
+            case _:
+                continue
+    return slots
+
+
 def card_questions(questions: Sequence[OpenQuestion]) -> list[CardQuestion]:
     """The recorded questions as the card asks them, each option by its label."""
     return [
@@ -64,9 +78,11 @@ def card_questions(questions: Sequence[OpenQuestion]) -> list[CardQuestion]:
 def the_card_asked(
     written: Sequence[CardQuestion], recorded: Sequence[OpenQuestion]
 ) -> list[CardQuestion]:
-    held = card_questions([q for q in recorded if q.options])
+    offered = [q for q in recorded if q.options]
+    held = card_questions(offered)
     prompts = {q.prompt for q in held}
     asked_about = {q.requirement for q in held} - {""}
+    asked_about |= {slot for q in offered for slot in _slots_asked(q)}
     ids = {q.id for q in held}
     own = [
         q
