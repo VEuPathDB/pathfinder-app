@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A site that is down is down on its own
-description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, marked in the site selection, read for a WDK identity only while it answers, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
+description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, named in the reply of a turn it ended, marked in the site selection, read for a WDK identity only while it answers, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
 tags: [infra, startup, availability, transport, health]
 generated: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
@@ -135,6 +135,31 @@ when the list says so or when `GET /api/v1/veupathdb/auth/status` is refused
 failure of that read to the shell's error boundary; the gate takes that answer.
 `app/(app)/layout.tsx` gates the subtree on the process being ready
 (`SystemReadyGate`) and nothing else.
+
+**A turn that a site ends names the site.** A turn that dies on a site that
+did not answer (`services/site_errors.py::unreached`: a status of 500 or more, a
+transport error or a timeout) names that site to the researcher.
+`unanswered_site` follows the error's cause chain to the `httpx` request that
+failed and returns the configured site whose origin served it, so no message
+text is parsed: the client raises
+`WDKError("Request failed after retries: ConnectError", status=502)` from the
+`httpx` error, and that error holds the request. The site can be another site
+than the conversation's, such as OrthoMCL during a PlasmoDB question. What the
+reply says about changes depends on where the turn died:
+
+- in a setup step or in the pre-turn read
+  (`ai/graph/_lead_site.py::a_dead_site_changes_nothing`), before the Lead
+  acts: `<site> did not answer, so this turn stopped and nothing was changed.`
+- in the Lead's run (`naming_a_dead_site`): the error chunk reads
+  `<site> did not answer.` and the reply states what landed, from the turn's
+  own strategy change.
+- anywhere else in the graph (`ai/conversation/turn_failure.py`): the reply
+  names the site and claims neither way.
+
+A refusal under 500, an EDA server error (it carries no request) and a failure
+with no configured site behind it keep the generic sentence. A site that is
+already degraded when the request arrives is still refused before the turn
+with 503 `SITE_UNAVAILABLE`.
 
 # What was rejected
 

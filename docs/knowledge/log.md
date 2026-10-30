@@ -9,6 +9,12 @@
   FRAME's InterPro question and a Lead question naming the same criterion; the card now
   keeps the recorded question alone, decided by the criterion and parameter the recorded
   options bind. See [the decision](decisions/an-unsettled-vocabulary-pick-is-asked.md).
+* **A turn that a site ends names the site.** A turn that died on a VEuPathDB
+  site that did not answer read "This turn stopped before it could answer. Ask
+  again." with no site named. The reply now names the site, found from the
+  failed request the error carries, and says that nothing was changed when the
+  failure came before the Lead acted. See
+  [the decision](decisions/a-site-that-is-down-is-down-on-its-own.md).
 
 ## 2026-10-28
 

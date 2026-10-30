@@ -31,6 +31,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
+from veupathdb.wdk import SiteInfo
 
 from pathfinder.ai.capabilities.metering import RunPricing, SpendMeter
 from pathfinder.ai.graph.note_labels import note_label
@@ -91,6 +92,7 @@ class _LeadRunCapture:
     guard_stop: GuardStop | None = None
     # The text of the error chunk that ended the run, when one did.
     run_error: str | None = None
+    unanswered_site: SiteInfo | None = None
     # Whether the model produced any part of an answer in this run.
     model_answered: bool = False
     declined: ModelDeclinedError | None = None

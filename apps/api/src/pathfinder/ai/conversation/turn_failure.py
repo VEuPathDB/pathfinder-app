@@ -19,13 +19,14 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 
 from pathfinder.platform.errors import AppError
+from pathfinder.services.site_errors import SiteDidNotAnswerError, unanswered_site
 
 logger = get_logger(__name__)
 
 # What a dead turn tells the researcher. This module closes the turn of every
 # assistant, so the sentences name nothing an assistant may not have. A turn
-# that died before the graph ran wrote nothing; a turn that died inside it is
-# not known either way here, so it claims neither.
+# that died before the graph ran wrote nothing; a turn that died inside it
+# claims neither, unless its failure says that it changed nothing.
 STOPPED_BEFORE_IT_RAN = (
     "This turn stopped before it could start, so nothing was changed. "
     "Send the message again."
@@ -36,12 +37,31 @@ STOPPED_WHILE_RUNNING = "This turn stopped before it could answer. Ask again."
 def turn_failure_text(exc: Exception, *, graph_ran: bool) -> str:
     """What the researcher reads when this turn dies.
 
-    A typed refusal already carries its own sentence. Any other failure is a
-    defect, whose type and message go to the log alone.
+    A typed refusal already carries its own sentence, and a site that did not
+    answer is named. Any other failure is a defect, whose type and message go
+    to the log alone.
     """
-    if isinstance(exc, AppError):
-        return exc.detail or exc.title
+    match exc:
+        case AppError():
+            return exc.detail or exc.title
+        case SiteDidNotAnswerError():
+            return _unanswered(exc.site.name, ran=graph_ran and not exc.changed_nothing)
+    site = unanswered_site(exc)
+    if site is not None:
+        return _unanswered(site.name, ran=graph_ran)
     return STOPPED_WHILE_RUNNING if graph_ran else STOPPED_BEFORE_IT_RAN
+
+
+def _unanswered(site_name: str, *, ran: bool) -> str:
+    if ran:
+        return (
+            f"{site_name} did not answer, so this turn stopped before it could "
+            "answer. Ask again."
+        )
+    return (
+        f"{site_name} did not answer, so this turn stopped and nothing was "
+        "changed. Send the message again."
+    )
 
 
 async def write_turn_failure(writer: ChatWriter, exc: Exception) -> None:
