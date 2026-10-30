@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.explain import explain_operation
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_status import step_status
+from pathfinder.domain.strategy.strategy_description import strategy_description
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.strategies.schemas import StepResponse, step_rationale_of
 
@@ -48,31 +49,6 @@ def derive_strategy_name(
     if record_type and record_type.lower() not in base.lower():
         base = f"{record_type.title()} - {base}"
     return base[:120]
-
-
-def derive_strategy_description(
-    record_type: str | None,
-    root_step: StrategyStep,
-) -> str:
-    kind = root_step.kind.value
-    if kind == "search":
-        summary = root_step.display_name or root_step.search_name
-        verb = "Find"
-    elif kind == "transform":
-        summary = root_step.display_name or root_step.search_name
-        verb = "Transform"
-    else:
-        if root_step.operator is not None:
-            summary = explain_operation(root_step.operator)
-        else:
-            summary = root_step.display_name or "combine"
-        verb = "Combine"
-    summary = (summary or "").strip()
-    if not summary:
-        summary = "results"
-    if record_type:
-        return f"{verb} {record_type} results for {summary}."
-    return f"{verb} results for {summary}."
 
 
 # ---------------------------------------------------------------------------
@@ -233,22 +209,17 @@ def build_context_strategy_ast(
     root_id = graph.primary_root_id()
     if root_id is None:
         return None
-    root_step = graph.get_step(root_id)
-    if not root_step:
+    if graph.get_step(root_id) is None:
         return None
     record_type = graph.record_type
     if not record_type:
         return None
-    description = graph.description
-    if not description:
-        description = derive_strategy_description(record_type, root_step)
-    graph.description = description
+    description = strategy_description(graph, root_id)
     sync_state = session.sync_state
     strategy_ast = graph.to_strategy_ast(root_id, sync_state=sync_state)
     if not strategy_ast:
         return None
-    if description:
-        strategy_ast.description = description
+    strategy_ast.description = description
     return ContextStrategyAstPayload(
         graph_id=graph.id,
         graph_name=graph.name,

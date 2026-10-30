@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import StrategyAst, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.domain.strategy.strategy_description import stated_description
 from pathfinder.persistence.models import (
     ConversationStrategyView,
     PersistedStrategyGraph,
@@ -128,7 +129,7 @@ def build_strategy_session(
                 graph.steps.update(flatten_tree(detached))
             graph.recompute_roots()
             graph.last_step_id = payload.root.id
-            graph.description = payload.description
+            graph.description = stated_description(payload.description)
             graph.note_words(StepWords.of(payload))
             graph.save_history(f"Loaded graph: {name}")
         except (ValueError, TypeError, KeyError) as e:

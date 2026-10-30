@@ -39,6 +39,20 @@ that ends on a thread whose stored AST carries another name puts the thread's
 name back on the AST and on WDK. An import from WDK names only a thread that has
 no name, and a branch pushes its strategy under the branch thread's name.
 
+**The description is stated, or read off the root.** `graph.description` holds only a
+description someone stated: the agent's `rename_strategy`, an `UpdateStrategyMetaOp`, a
+build's `description=` or the snapshot note. `domain/strategy/strategy_description.py` is
+the one place the strategy's description is made: the stated one, else a sentence read off
+the root the push sends ("Find transcript results for Predicted Signal Peptide."). The
+snapshot, the strategy summary and every push read it from there. The read before every push
+records the description WDK holds on `WDKSyncState.wdk_strategy_description`, a create and
+a tree put send the description, and `sync.put_the_strategy_labels` sends the name and the
+description WDK holds another value for, in one `PATCH`. A stored description that is only
+such a sentence, with or without the snapshot note after it, is read back as not stated, so
+a strategy stored before this rule takes the sentence of the tree it holds at its next push.
+Writing the read-off sentence into `graph.description` was rejected: it froze the sentence
+of the first root, and every later edit left the site and the canvas on that root.
+
 **A build does not name the strategy.** `build_strategy_from_spec` takes no name,
 so neither the spec's hydrated title nor the execution agent can give the
 strategy a name the thread does not hold. Until the title lands, a push names a
