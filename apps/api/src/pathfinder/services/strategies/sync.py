@@ -149,8 +149,9 @@ async def _create_or_update_wdk_strategy(
 ) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
-    A failed update creates a new strategy instead. An unchanged tree sends
-    only a name WDK lags on.
+    A refused update raises, so the strategy the researcher has open stays
+    the one the next push edits. An unchanged tree sends only a name WDK
+    lags on.
     """
     wdk_strategy_id = sync_state.wdk_strategy_id
 
@@ -161,28 +162,14 @@ async def _create_or_update_wdk_strategy(
         return _PushedStrategy(result.id, created=True)
 
     if step_tree != sync_state.wdk_step_tree:
-        try:
-            await api.update_strategy(
-                strategy_id=wdk_strategy_id,
-                step_tree=step_tree,
-                name=name,
-            )
-        except VEuPathDBError as update_err:
-            logger.warning(
-                "Failed to update WDK strategy, creating new",
-                wdk_strategy_id=wdk_strategy_id,
-                error=str(update_err),
-            )
-            result = await api.create_strategy(step_tree, name, description=description)
-            sync_state.wdk_strategy_name = name
-            return _PushedStrategy(result.id, created=True)
-        else:
-            sync_state.wdk_strategy_name = name
-            logger.info(
-                "Updated WDK strategy step tree",
-                wdk_strategy_id=wdk_strategy_id,
-            )
-            return _PushedStrategy(wdk_strategy_id, created=False)
+        await api.update_strategy(
+            strategy_id=wdk_strategy_id,
+            step_tree=step_tree,
+            name=name,
+        )
+        sync_state.wdk_strategy_name = name
+        logger.info("Updated WDK strategy step tree", wdk_strategy_id=wdk_strategy_id)
+        return _PushedStrategy(wdk_strategy_id, created=False)
 
     await put_the_strategy_name(api, sync_state, name)
     return _PushedStrategy(wdk_strategy_id, created=False)

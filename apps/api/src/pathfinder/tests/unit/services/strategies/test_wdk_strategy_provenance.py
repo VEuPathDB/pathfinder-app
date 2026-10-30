@@ -108,12 +108,14 @@ async def test_an_update_of_an_existing_strategy_mints_nothing(api: Mock) -> Non
 
 
 @pytest.mark.asyncio
-async def test_a_refused_update_mints_a_replacement(api: Mock) -> None:
-    api.update_strategy = AsyncMock(side_effect=WDKError("refused", status=500))
+async def test_a_refused_update_mints_nothing(api: Mock) -> None:
+    api.update_strategy = AsyncMock(side_effect=WDKError("refused", status=422))
+    state = _adopted(WDKStepTree(step_id=9999))
 
-    result = await _sync(_adopted(WDKStepTree(step_id=9999)))
+    with pytest.raises(WDKError):
+        await _sync(state)
 
-    assert (result.wdk_strategy_id, result.created_wdk_strategy) == (_MINTED_ID, True)
+    assert (state.wdk_strategy_id, api.create_strategy.await_count) == (_ADOPTED_ID, 0)
 
 
 @pytest.mark.asyncio

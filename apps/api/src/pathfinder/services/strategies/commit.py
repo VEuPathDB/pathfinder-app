@@ -8,7 +8,7 @@ from veupathdb.domain.strategy import (
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk import get_strategy_api
+from veupathdb.wdk import get_site, get_strategy_api
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.combine_naming import name_the_combines
@@ -358,9 +358,14 @@ async def _put_the_step_tree(
         failures.append(refused.failure)
         return None
     except VEuPathDBError as exc:
-        logger.warning(
-            "sync_strategy_for_site failed; persisting partial state",
-            error=str(exc),
+        root = graph.steps[new_ast.root.id]
+        site = get_site(deps.site_id).display_name
+        failures.append(
+            StepPushFailure(
+                step_id=root.id,
+                search_name=wdk_search_name(root),
+                error=f"{site} did not take the strategy's steps: {exc.detail or exc.title}",
+            )
         )
         return None
 
