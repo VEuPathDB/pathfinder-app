@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Statistics are the EDA service's computations
-description: Every statistic a reply states about the samples of an open EDA analysis is a computation the VEuPathDB EDA service ran on the analysis's subset, read back as a typed model, shown as a part and named in the reply through the `stat` reference. A PCA is the dimensionalityreduction compute, run on the worker; a two-by-two table, a contingency table, a boxplot and a fitted line are the service's pass-through visualizations, read at once. Rejected - a code sandbox the model writes analysis code in, and statistics the model chooses and computes locally from rows it reads.
+description: Every statistic a reply states about the samples of an open EDA analysis is a computation the VEuPathDB EDA service ran on the analysis's subset, read back as a typed model, shown as a part whose card holds every value, and explained by the reply in words. A PCA is the dimensionalityreduction compute, run on the worker; a two-by-two table, a contingency table, a boxplot and a fitted line are the service's pass-through visualizations, read at once. Rejected - a code sandbox the model writes analysis code in, and statistics the model chooses and computes locally from rows it reads.
 tags: [eda, statistics, pca, agent, facts, references]
 generated: { by: claude-code/opus-5, at: 2026-10-03T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-10-04T00:00:00Z }
@@ -35,12 +35,12 @@ site's EDA service runs, never with a test or a model of its own:
 
 Each result is filed on the thread as a `StatisticFact` under an id the same
 on every read of one kind and set of variables (`domain/statistic_facts.py`,
-`StrategyDomainState.statistics`), so a later message's reply can name a
-statistic an earlier message computed; the Lead's instructions list each value
-under its reference (`lead_pins.pinned_statistics`). The reply states a value
-only as `[stat:<id>.<row>]`, the renderer fills it from the fact, and a bare
-number a statistic holds is a prose fault whose fix names the reference. A
-statement a statistic makes holds no number, and the reply says it in words. A
+`StrategyDomainState.statistics`), so a later message can read a statistic
+an earlier message computed; the Lead's instructions list each value under its
+row name (`lead_pins.pinned_statistics`). The statistic's card shows every
+value, and the reply is a note that says what they mean and writes none of them
+([the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)).
+A statement a statistic makes holds no number, and the note says it in words. A
 component's row is the share of variance its label states, and a count row
 carries its noun.
 

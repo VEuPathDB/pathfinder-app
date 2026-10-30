@@ -71,8 +71,8 @@ researcher's stored words.
 **The reply explains the reason; the facts show the search.** The facts part
 beside the reply shows each step by its search's display name with its values
 and count, and the Lead's instruction asks the reply to say why each added
-search stands for the words it was chosen for. A reply that prints a search's
-url segment is refused by `unrendered_prose`.
+search stands for the words it was chosen for; the note beside the facts writes
+no link (`note_facts`).
 
 # What was rejected
 

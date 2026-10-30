@@ -7,15 +7,15 @@ generated: { by: claude-code/opus-5, at: 2026-09-15T00:00:00Z }
 status: stable
 ---
 
-> Since 2026-10-27 the rules `blamed_the_site`, `claimed_frame`, `unrecorded_question`, `unfinished_work`, `unmade_change`, `unbacked_absence` and `unstated_reading` are removed ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)); what follows describes the table as it was built.
+> Since 2026-10-27 the rules `blamed_the_site`, `claimed_frame`, `unrecorded_question`, `unfinished_work`, `unmade_change`, `unbacked_absence` and `unstated_reading` are removed ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)). Since 2026-10-30 `misreported_change` (with `LeadResponse.strategy_changed`), `stopped_check`, `failed_check`, `unnamed_record_organism`, `unplaced_breakdown` and `unrendered_prose` are removed too: the facts part states each fact they asked the prose to state, and the note beside it is held by `note_facts` ([the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)). What follows describes the table as it was built.
 
 # What was decided
 
 `ai/lead/turn_contract.py` owns the Lead's reply and the check on it, and
 `ai/lead/turn_record.py` owns the record the check reads:
 
-- `LeadResponse` - the typed reply. It carries two fields the runtime reads as claims:
-  `strategy_changed` and `asked_questions`.
+- `LeadResponse` - the typed reply. It carries one field the runtime reads as a claim:
+  `asked_questions`.
 - `TurnRecord` - a frozen model of what the turn did, built by `turn_record(ctx)` from
   `TurnMarkers`, the domain state and the derived ledger.
 - `reconcile(report, record) -> list[Mismatch]` - one pure function, one rule per failure
@@ -25,7 +25,7 @@ status: stable
   once per turn, latched on `TurnMarkers.contract_refused`, and raises one `ModelRetry`
   listing every mismatch under one heading.
 
-Seven rules cover what seven validators covered: an unverified build, a misreported change in
+Seven rules covered what seven validators covered: an unverified build, a misreported change in
 either direction, an unbuilt EDA-backed criterion, prose that blames VEuPathDB for an internal
 stop, a question the reply asks and does not record, an analysis reported without the set it
 ran on, and an out-of-scope reply that answers anyway.
@@ -33,8 +33,8 @@ ran on, and an out-of-scope reply that answers anyway.
 Rules added since are rows in the same table. `claimed_frame` is the misreported-change rule's
 sibling for the plan: a reply whose prose says the turn framed a criterion, or added one to the
 plan, is refused when `ledger.frame.diff` reports nothing added and nothing changed. The diff is
-the record and the prose is the claim. This one reads the prose because the plan has no typed
-flag the way `strategy_changed` is one, so a small regex family matches the act ("framed",
+the record and the prose is the claim. This one read the prose because the plan had no typed
+flag, so a small regex family matches the act ("framed",
 "planned", "added ... criterion", "added ... to the plan") over the reply's undenied clauses,
 and the diff guard is what keeps a reply that merely describes the plan from tripping it. A turn
 whose spec started empty has no diff to read and is not checked.
@@ -46,26 +46,22 @@ or no criterion of it holds an open slot - and tells FRAME to record the criteri
 The two answer one failure from opposite ends: the pass that asks about nothing, and the reply
 that reports what the pass never wrote.
 
-`failed_check` asks a reply over a standing failed check to state it, and an audit turn
-(`TurnRecord.audit_turn`) owes it nothing: an audit turn reaches no building tool and answers
-about the audit, not the strategy. A digest whose strategy the site no longer holds is dropped by
+A standing failed check is a notice of the facts part (`TurnFacts.failed_check`), and an
+audit turn shows none: an audit turn reaches no building tool and answers about the audit, not
+the strategy. A digest whose strategy the site no longer holds is dropped by
 `pre_turn.forget_the_verdict_of_a_dropped_strategy`: the read of the strategy answers 404 and a
 listing of the user's strategies succeeds without it. A 404 alone is no proof, because a site
 that is redeploying answers 404 too.
 
-An audit run's state has no prose rule. It reaches the reply only through a reference to the
-`audit_start` or `audit_run` fact the turn read, and a reference to a fact the turn does not
-hold is refused by `unrendered_prose`. A run the turn only listed is not held. A claim written
-in plain words with no reference is not checked; a plan that cannot start is refused to the
-Lead with its reason, so no card and no run follow from it.
+An audit run's state has no prose rule. The facts part shows each audit read of the turn
+(`TurnFacts.reads`), and a plan that cannot start is refused to the Lead with its reason, so no
+card and no run follow from it.
 
-`unrendered_prose` is the rule for what the prose may hold, and the only check on its content.
-The prose writes each count, value, record and link as a reference the emitter renders from
-the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply that writes a
-digit, an identifier shape or a link outside a reference, or a reference that names nothing the
-facts hold, and its correction names each token with the
-reference that renders it. It is refused on every answer up to [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a card's reply included; it takes no
-part in the one latch below. See
+`note_facts` is the rule for what the prose may hold, and the only check on its content. The
+prose is a note beside the facts part: it writes no number and no link of the turn, and names a
+record only as `[record:<id>]` (`domain/reply_note.py`). It is refused on every answer up to
+[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a
+card's reply included, and takes no part in the one latch below. See
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
 
 The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
@@ -90,9 +86,9 @@ question's `options`. See
 accepted classification, while the gate's last refusal stands, is refused with that refusal's
 sentence. A card answer, a typed acceptance and a turn that re-enters a parked call are exempt.
 `unsaved_controls` reads `UserIntent.named_controls`: a turn whose message names controls either
-saved a control set, recorded a question, or ended on a card. `stopped_check` reads the phase
-stop: when the verification pass stopped, the reply states that the check did not finish, whether
-or not the turn built; a stopped check records no verdict, so nothing else on the turn claims one.
+saved a control set, recorded a question, or ended on a card. A verification pass that
+stopped is a notice of the facts part (`TurnFacts.stopped_check`), whether or not the turn
+built; a stopped check records no verdict, so nothing else on the turn claims one.
 `unmade_change` reads the values an accepted `edit_strategy` classification withdraws or states:
 a turn that changed nothing, ended on no card, recorded no question and carries no refusal is
 refused, unless the reply names each value in a clause that takes the change back and says why.

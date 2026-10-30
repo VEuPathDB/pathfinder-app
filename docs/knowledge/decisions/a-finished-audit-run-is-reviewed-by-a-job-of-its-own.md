@@ -37,12 +37,10 @@ the model never writes it, so no rate rests on one judgement. The output
 validator retries a draft that names a finding no review keeps as an `error`, a
 section whose findings' reviews name another error type, a headline out of
 descending impact (the review's impact when set, else the stored one, a
-finding with none last), or a summary that states a fact no fact holds. The
-summary is held like the auditor's reply: its numbers are `[stat:...]`
-references to the run fact (`audit_run_fact`) or to the counts fact, which
-holds the kept, rejected and undecided counts, the genomes and the agreement;
-`prose_faults` refuses any other number, so a share of kept findings has no
-fact to render from, and `render_reply` stores the rendered text. With no kept
+finding with none last), or a summary that writes a number. The summary
+writes no number at all: the run shows the kept, rejected and undecided counts,
+the genomes and the agreement beside it, so a share of kept findings has no
+place in it, and the summary is stored as written (`Synthesis`). With no kept
 finding the job makes no model call, reads no budget, and stores
 `NO_FINDING_KEPT` with no section. `AuditReviewRepository.reopen_review` sets
 the review to waiting and clears the run's synthesis in one write; a review pass
