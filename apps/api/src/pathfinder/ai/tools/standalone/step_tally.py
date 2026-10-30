@@ -171,10 +171,8 @@ async def count_step_by_column(
     number of values; a number column answers its bins. A column with only a word
     cloud is counted only when it holds genome codes (``abbreviation``), every
     word is a genome code and the counts sum to the step's records. The table
-    links the step on the site; state the total with ``[tally:<id>]``, one value's
-    count with ``[tally:<id>.<value>]`` and the number of values with
-    ``[tally:<id>:values]`` and the noun of its values after it. A column that
-    cannot be counted is refused with the columns that can.
+    links the step on the site and shows every count. A column that cannot be
+    counted is refused with the columns that can.
 
     Count the strategy's result step, the root, which holds the records the
     question asks about, or the step a transform adds over it. A tally of

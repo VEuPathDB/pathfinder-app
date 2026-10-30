@@ -1,5 +1,5 @@
 """A computed comparison a framing pass made is a statistic of the thread: the
-Lead reads it by reference and a reply places its values."""
+Lead reads its values and the facts part shows its breakdown."""
 
 from __future__ import annotations
 
@@ -12,31 +12,27 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.lead_pins import pinned_statistics
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.statistic_facts import statistic_id
 from pathfinder.tests._support.computed_comparison import framed_comparison
 from pathfinder.tests._support.run_context import run_context_for
 
 
-async def test_a_reply_places_the_groups_and_the_breakdown() -> None:
-    deps, computed = await framed_comparison()
-    fact = computed.fact_id
+async def test_the_facts_show_the_groups_and_the_breakdown() -> None:
+    deps, _ = await framed_comparison()
 
-    rendered = render_reply(
-        f"The computed snapshot holds [stat:{fact}.groups] groups, "
-        f"[stat:{fact}.bothHeld] held by both sets ([stat:{fact}.bothHeldShare]), "
-        f"[stat:{fact}.residualGroups] of them residual.",
-        turn_facts(deps),
-    )
+    [shown] = turn_facts(deps).reads
+    rows = {row.label: row.value for row in shown.rows}
 
-    assert rendered == (
-        "The computed snapshot holds 7,364 groups, 1,884 held by both sets (25.6%), "
-        "1,969 of them residual."
-    )
+    assert (
+        rows["groups"],
+        rows["both held"],
+        rows["both held share"],
+        rows["residual groups"],
+    ) == ("7,364", "1,884", "25.6%", "1,969")
 
 
 async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
     deps, computed = await framed_comparison()
-    fact = computed.fact_id
     species = len(computed.sets[1].species)
 
     pinned = pinned_statistics(run_context_for(deps))
@@ -58,11 +54,11 @@ async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
         "rightOnlyShare",
         "residualGroupsShare",
     )
-    prefix = f"  - [stat:{fact}."
+    prefix = "  - "
     shown = {
-        line.removeprefix(prefix).split("] = ")[0]: line.split("] = ")[1]
+        line.removeprefix(prefix).split(" = ")[0]: line.split(" = ")[1]
         for line in (pinned or "").splitlines()
-        if line.startswith(prefix)
+        if line.startswith(prefix) and " = " in line
     }
     assert {name: shown[name] for name in names} == {
         "route": "computed snapshot",
@@ -111,5 +107,5 @@ async def test_the_turn_end_drops_the_ids_and_keeps_the_statistic() -> None:
     assert isinstance(domain, StrategyDomainState)
     assert (domain.computed_comparisons, [s.id for s in domain.statistics]) == (
         {},
-        [computed.fact_id],
+        [statistic_id("group_comparison", [computed.handle])],
     )

@@ -104,12 +104,10 @@ async def test_a_pass_stopped_on_a_cap_records_the_cap_and_its_tool() -> None:
     assert stop.tool_calls == 2
 
 
-def test_the_reply_after_a_cap_stop_is_held_to_state_it() -> None:
+def test_a_cap_stop_is_a_fact_and_no_rule_of_the_note() -> None:
     deps = reading_deps()
     deps.last_phase_stop = A_CAP_STOP
     record = turn_record(replace(run_context_for(deps), retries={}))
 
-    found = [(m.kind, m.sentence) for m in reconcile(reply(CLEAN_REPLY), record)]
-
-    assert [kind for kind, _ in found] == ["stopped_check"]
-    assert all("past its call budget for read_gene_record" in s for _, s in found)
+    assert reconcile(reply(CLEAN_REPLY), record) == []
+    assert "past its call budget for read_gene_record" in record.facts.stopped_check

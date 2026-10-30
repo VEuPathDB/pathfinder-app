@@ -41,14 +41,14 @@
     "type": "tool-input-start"
   },
   {
-    "inputTextDelta": "{\"prose\":\"[mock] hi\",\"nextState\":\"await_user\",\"strategyChanged\":false}",
+    "inputTextDelta": "{\"prose\":\"[mock] hi\",\"nextState\":\"await_user\"}",
     "toolCallId": "<REDACTED>",
     "type": "tool-input-delta"
   },
   {
     "data": {
       "costUsd": "0",
-      "totalTokens": 58
+      "totalTokens": 57
     },
     "transient": true,
     "type": "data-turn-usage"
@@ -60,7 +60,7 @@
       "costUsd": "0",
       "modelId": "mock:lead",
       "reasoningEffort": null,
-      "tokens": 58
+      "tokens": 57
     },
     "id": "<REDACTED>",
     "type": "data-lead-usage"
@@ -68,8 +68,7 @@
   {
     "input": {
       "nextState": "await_user",
-      "prose": "[mock] hi",
-      "strategyChanged": false
+      "prose": "[mock] hi"
     },
     "toolCallId": "<REDACTED>",
     "toolName": "final_result",
@@ -107,7 +106,7 @@
   {
     "data": {
       "costUsd": "0",
-      "totalTokens": 58
+      "totalTokens": 57
     },
     "transient": true,
     "type": "data-turn-usage"
@@ -119,7 +118,7 @@
       "costUsd": "0",
       "modelId": "mock:lead",
       "reasoningEffort": null,
-      "tokens": 58
+      "tokens": 57
     },
     "id": "<REDACTED>",
     "type": "data-lead-usage"

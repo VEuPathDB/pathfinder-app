@@ -1,7 +1,7 @@
-"""The recorded orthomcl thread replayed through the tools: a tally of a leaf is
-no answer about the result, the hint for a token of a multi-pick names no value
-reference, the taxonomy step keeps the organism requirement grounded, and the
-Lead's own reading card is asked with the readings the pass named."""
+"""The recorded orthomcl thread replayed through the tools: a tally of the root
+is a fact about the result, the taxonomy step keeps the organism requirement
+grounded, and the Lead's own reading card is asked with the readings the pass
+named."""
 
 from __future__ import annotations
 
@@ -18,14 +18,12 @@ from veupathdb.domain.strategy import (
 from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.frame_requirements import requirements_no_search_states
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.tools.standalone import step_tally
 from pathfinder.ai.tools.standalone.step_tally import count_step_by_column
-from pathfinder.domain.reply_references import prose_faults
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
@@ -199,14 +197,6 @@ def _deps() -> LeadDeps:
     return lead_deps(state, strategy_session=_session())
 
 
-_FIRST_REPLY = (
-    "Among the selected Plasmodium taxa, **Plasmodium yoelii yoelii 17XNL** has the "
-    f"most singleton proteins: [tally:{_TALLY_ID}.pyxn]. The comparison covered "
-    f"[tally:{_TALLY_ID}:values] taxon labels and [tally:{_TALLY_ID}] protein records "
-    "in total. The strategy and its underlying counts are available here: [url]"
-)
-
-
 async def test_turn_one_tally_of_the_root_is_the_answer() -> None:
     deps = _deps()
 
@@ -214,25 +204,7 @@ async def test_turn_one_tally_of_the_root_is_the_answer() -> None:
 
     (fact,) = deps.state.turn_markers.tallies
     assert (fact.wdk_step_id, turn_facts(deps).result_step_id) == (_ROOT, _ROOT)
-    assert prose_faults("The result holds [tally:tally_root].", turn_facts(deps)) == []
-
-
-async def test_turn_one_hint_names_no_reference_of_the_whole_taxon_list() -> None:
-    deps = _deps()
-    await count_step_by_column(run_context_for(deps), _TAXA, "abbreviation", 200)
-    facts = turn_facts(deps)
-
-    (taxon,) = facts.steps[2].parameters
-    named = "**Plasmodium yoelii yoelii 17XNL** has the most singleton proteins."
-    faults = prose_faults(named, facts)
-
-    assert (taxon.name, taxon.picks) == ("taxon_type_ahead", 5)
-    assert [(f.kind, f.references) for f in faults] == [
-        ("listed_value", ("[value:step_5ebea5e6.taxon_type_ahead]",))
-    ]
-    message = unrendered_prose_message(faults)
-    assert "write ``[value:step_5ebea5e6.taxon_type_ahead]``" not in message
-    assert "cite it through a fact that holds it alone, or take it out." in message
+    assert turn_facts(deps).tallies == [fact]
 
 
 def _checked() -> LeadDeps:

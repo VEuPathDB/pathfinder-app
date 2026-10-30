@@ -21,7 +21,7 @@ from pathfinder.ai.audit.mock import AUDITOR_GREETING
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.domain.audit.planning import START_LABEL
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
-from pathfinder.domain.reply_references import ProseFault, prose_faults
+from pathfinder.domain.reply_note import note_facts
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -67,8 +67,8 @@ _PSEUDOGENE_QUESTION = (
     f"is the pseudogene call on {_STRAIN} right; its reference gene is {_REFERENCE}"
 )
 _RENDERED = (
-    f"The model of [{_STRAIN}]({gene_record_url('plasmodb', _STRAIN)}) holds a CDS "
-    "of 900 bases."
+    f"The check above reads the model of [{_STRAIN}]"
+    f"({gene_record_url('plasmodb', _STRAIN)}) as recorded."
 )
 
 
@@ -161,6 +161,11 @@ def _text(chunks: list[dict[str, Any]]) -> str:
     return "".join(c["delta"] for c in _of_type(chunks, "text-delta"))
 
 
+def _shown(chunks: list[dict[str, Any]]) -> tuple[list[str], str]:
+    *facts, note = _text(chunks).split("\n\n")
+    return [line for fact in facts for line in fact.splitlines()], note
+
+
 def _summaries(chunks: list[dict[str, Any]]) -> list[str]:
     return [
         str(chunk["data"]["summary"])
@@ -245,9 +250,19 @@ async def test_an_approved_audit_starts_and_reads_its_progress(
     async with async_session_factory() as session:
         (run,) = await AuditRepository(session).runs(user_id=owner.id)
     assert len(audit_jobs(in_memory_jobs)) == 1
-    assert _text(started) == f"Audit run {run.id} is queued."
+    started_facts, started_note = _shown(started)
+    progress_facts, progress_note = _shown(progress)
+    assert (started_facts[0], "- phase: queued" in started_facts, started_note) == (
+        f"**Audit run {run.id} started**",
+        True,
+        "The audit is started; its run and its phase are shown above.",
+    )
     assert _called(progress) == ["list_audit_runs", "read_audit_run"]
-    assert _text(progress).startswith(f"Audit run {run.id} is queued.")
+    assert (
+        f"**Audit run {run.id}**" in progress_facts,
+        "- run phase: queued" in progress_facts,
+    ) == (True, True)
+    assert progress_note.startswith("The run above shows its phase")
 
 
 @pytest.mark.usefixtures("pseudogene_call")
@@ -271,34 +286,34 @@ async def test_the_auditor_investigates_one_gene(
     assert stored.verdict.cites == (f"audit_pseudogene_call:{_STRAIN}:{_REFERENCE}",)
 
 
-def _faults_seen(monkeypatch: pytest.MonkeyPatch) -> list[list[ProseFault]]:
-    seen: list[list[ProseFault]] = []
+def _numbers_seen(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    seen: list[list[str]] = []
 
-    def watched(*args: Any) -> list[ProseFault]:
-        faults = prose_faults(*args)
-        seen.append(faults)
-        return faults
+    def watched(*args: Any) -> list[str]:
+        written = note_facts(*args)
+        seen.append(written)
+        return written
 
-    monkeypatch.setattr(reply, "prose_faults", watched)
+    monkeypatch.setattr(reply, "note_facts", watched)
     return seen
 
 
 @pytest.mark.usefixtures("pseudogene_call")
-async def test_an_auditor_reply_with_references_renders_them(
+async def test_an_auditor_reply_shows_the_check_before_its_note(
     app: FastAPI,
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    seen = _faults_seen(monkeypatch)
+    seen = _numbers_seen(monkeypatch)
     owner = await make_user(db_session)
 
     chunks = await _post(
         app, owner.id, in_memory_jobs, _asked(uuid4(), _PSEUDOGENE_QUESTION)
     )
 
-    assert _text(chunks) == _RENDERED
-    assert seen == [[]]
+    facts, note = _shown(chunks)
+    assert ("- strain cds length: 900" in facts, note, seen) == (True, _RENDERED, [[]])
 
 
 @pytest.mark.usefixtures("pseudogene_call")
@@ -308,22 +323,13 @@ async def test_an_auditor_reply_that_writes_a_number_is_corrected(
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    seen = _faults_seen(monkeypatch)
+    seen = _numbers_seen(monkeypatch)
     owner = await make_user(db_session)
     prompt = f"{_PSEUDOGENE_QUESTION}; spell out the length"
 
     chunks = await _post(app, owner.id, in_memory_jobs, _asked(uuid4(), prompt))
 
-    first, second = seen
-    (fault,) = first
-    assert fault.token == "900"
-    assert {r.rsplit(".", 1)[1] for r in fault.references} == {
-        "referenceCdsLength]",
-        "strainCdsLength]",
-        "covered]",
-    }
-    assert second == []
-    assert _text(chunks) == _RENDERED
+    assert (seen, _shown(chunks)[1]) == ([["900"], []], _RENDERED)
 
 
 async def _stored_run(owner: RunOwner) -> UUID:
@@ -373,17 +379,27 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     view = await run_view(run_id, owner.id)
     (rate,) = view.rates
     assert rate.bounds is not None
-    seen = _faults_seen(monkeypatch)
+    seen = _numbers_seen(monkeypatch)
 
     chunks = await _post(
         app, owner.id, in_memory_jobs, _asked(thread, "How far is the audit?")
     )
 
     assert _called(chunks) == ["list_audit_runs", "read_audit_run"]
-    assert seen == [[]]
-    assert _text(chunks) == (
-        f"Audit run {run_id} is not started. Its confirmation stage has checked 7 of "
-        f"10 candidates. The first rate is at least {round(rate.bounds.low * 100, 1):g}%."
+    facts, note = _shown(chunks)
+    assert (
+        seen,
+        f"**Audit run {run_id}**" in facts,
+        "- run phase: not started" in facts,
+        note,
+    ) == (
+        [[]],
+        True,
+        True,
+        (
+            "The run above shows its phase and how far each stage has come. Its "
+            "first genome already has an error rate."
+        ),
     )
 
 
@@ -401,4 +417,4 @@ async def test_an_auditor_turn_stops_at_its_usage_limit(
     assert len(called) == 40
     assert [c["type"] for c in chunks][-2:] == ["finish", "done"]
     assert _of_type(chunks, "error") == []
-    assert _text(chunks) == budget_stop_prose(0)
+    assert _shown(chunks)[1] == budget_stop_prose(0)

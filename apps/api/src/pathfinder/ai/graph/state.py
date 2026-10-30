@@ -31,7 +31,6 @@ from pathfinder.domain.exchanges import Exchange, kept_exchanges
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.record_facts import SourceFact
-from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -144,11 +143,6 @@ class VerificationDigest(CamelModel):
     def unanswered(self) -> list[str]:
         return [t for g in self.gaps if g.fails_the_check for t in g.texts()]
 
-    def failure_stated_in(self, prose: str) -> bool:
-        """Whether the prose names each gap that fails the check, or the reason
-        when no gap does."""
-        return all(named_in_prose(prose, t) for t in self.unanswered or [self.reason])
-
 
 class StrategyDomainState(ThreadRequirements):
     """What the investigation knows: the framed spec, the searches it saw,
@@ -197,7 +191,7 @@ class StrategyDomainState(ThreadRequirements):
     # Never persisted: another surface can close or replace it between turns.
     open_eda_analysis: OpenEdaAnalysis | None = None
     # The statistics the EDA service computed on this thread, the latest read of
-    # each id. A later turn's reply references them.
+    # each id. A later turn's pins list them.
     statistics: list[StatisticFact] = Field(default_factory=list)
     # The records the latest facts part that showed records showed, each with
     # its page. A later turn cites them and reads them as the genes shown.

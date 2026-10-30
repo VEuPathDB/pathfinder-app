@@ -109,13 +109,13 @@ def test_a_spec_ready_pass_with_a_question_asks_nothing_of_the_card() -> None:
 
 
 def _kinds(deps: LeadDeps, prose: str) -> list[str]:
-    report = LeadResponse(prose=prose, strategy_changed=False)
+    report = LeadResponse(prose=prose)
     return [m.kind for m in reconcile(report, turn_record(run_context_for(deps)))]
 
 
 def test_n1_s_open_cutoff_asked_in_prose_is_refused() -> None:
     deps = _framed(asked=[_CUTOFF], at_arrival=[])
-    report = LeadResponse(prose=_N1_PROSE, strategy_changed=False)
+    report = LeadResponse(prose=_N1_PROSE)
 
     found = reconcile(report, turn_record(run_context_for(deps)))
 

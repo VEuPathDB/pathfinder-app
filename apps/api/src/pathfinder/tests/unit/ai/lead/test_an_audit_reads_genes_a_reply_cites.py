@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic_ai.messages import ToolReturnPart
 
 from pathfinder.ai.audit import run_tools
-from pathfinder.ai.audit.facts import AuditRead, audit_run_fact
 from pathfinder.ai.lead import lead_audit
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -17,7 +14,7 @@ from pathfinder.domain.audit.rates import TargetReport
 from pathfinder.domain.audit.run_state import LeftUnits
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.domain.audit.stages import RunStages
-from pathfinder.domain.reply_references import prose_faults, render_reply
+from pathfinder.domain.reply_note import render_note
 from pathfinder.services.audit.review_views import ErrorTypeView, FindingLine
 from pathfinder.services.audit.verdicts import AuditCaller
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
@@ -138,17 +135,19 @@ async def test_a_listed_run_is_not_held_and_a_read_one_is() -> None:
     assert (listed, deps.state.turn_markers.audit_runs) == ([], [_RUN])
 
 
-async def test_a_run_state_reaches_the_reply_only_from_a_read_run() -> None:
+async def test_a_run_state_reaches_the_facts_only_from_a_read_run() -> None:
     deps = _audit_deps()
-    fact = audit_run_fact(_view())
-    prose = f"The audit run is [stat:{fact.id}.run.status]."
-    unread = prose_faults(prose, turn_facts(deps, refusal=""))
+    unread = turn_facts(deps, refusal="").reads
 
     await lead_audit.read_audit_run(run_context_for(deps), _RUN)
 
-    facts = turn_facts(deps, refusal="")
-    assert (len(unread), prose_faults(prose, facts)) == (1, [])
-    assert render_reply(prose, facts) == "The audit run is finished."
+    (read,) = turn_facts(deps, refusal="").reads
+    shown = {row.label: row.value for row in read.rows}
+    assert (unread, read.title, shown["run status"]) == (
+        [],
+        f"Audit run {_RUN}",
+        "finished",
+    )
 
 
 async def test_a_run_read_holds_the_genes_of_its_findings_as_records() -> None:
@@ -165,32 +164,9 @@ async def test_a_run_read_holds_the_genes_of_its_findings_as_records() -> None:
         _PSEUDOGENE,
         _REFERENCE,
     ]
-    assert prose_faults(prose, facts) == []
-    assert render_reply(prose, facts) == (
+    assert render_note(prose, facts) == (
         f"The audit calls [{_PSEUDOGENE}](https://qa.plasmodb.org/plasmo.qa/app/"
         f"record/gene/{_PSEUDOGENE}) intact."
-    )
-
-
-def test_the_model_reads_a_run_in_the_spelling_its_references_name() -> None:
-    view = _view()
-    fact = audit_run_fact(view)
-    part = ToolReturnPart(
-        tool_name="read_audit_run",
-        content=AuditRead[AuditRunView](answer=view, fact_id=fact.id),
-        tool_call_id="call_run",
-    )
-
-    sent = json.loads(part.model_response_str())
-    line = sent["answer"]["headline"][0]
-
-    assert sent["factId"] == fact.id
-    assert sent["answer"]["errorTypes"][0]["reviewed"][0]["genes"][0] == (
-        fact.value("errorTypes.0.reviewed.0.genes.0")
-    )
-    assert (line["reviewedImpact"], fact.value("headline.0.reviewedImpact")) == (
-        0.25,
-        "0.25",
     )
 
 

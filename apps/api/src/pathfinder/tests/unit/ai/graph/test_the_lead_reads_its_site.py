@@ -26,7 +26,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector
 
 _PROMPT = "Which genes are upregulated after a blood meal? [[arc:echo]]"
-_ANSWER = {"prose": "Read.", "nextState": "await_user", "strategyChanged": False}
+_ANSWER = {"prose": "Read.", "nextState": "await_user"}
 
 
 def _no_database() -> AsyncSession:

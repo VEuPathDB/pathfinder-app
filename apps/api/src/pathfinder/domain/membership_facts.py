@@ -1,5 +1,4 @@
-"""Which of the genes a turn asked about one catalog search holds, which a
-reply's record references render."""
+"""Which of the genes a turn asked about one catalog search holds."""
 
 from __future__ import annotations
 

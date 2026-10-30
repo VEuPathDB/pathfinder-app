@@ -13,6 +13,7 @@ from pydantic_ai.toolsets import AbstractToolset
 
 from pathfinder.ai.graph.turn_records import ReadRecord
 from pathfinder.domain.audit.verdicts import GeneModelVerdict, VerdictOrigin
+from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.audit.held_organisms import HeldOrganisms
@@ -68,7 +69,7 @@ class AuditDeps(AssistantDeps):
 
     def turn_facts(self, request: str) -> TurnFacts:
         return TurnFacts(
-            audit_statistics=list(self.facts),
+            reads=[read_fact(fact) for fact in self.facts],
             sources=[record.source_fact() for record in self.records],
             request_messages=[request] if request else [],
         )

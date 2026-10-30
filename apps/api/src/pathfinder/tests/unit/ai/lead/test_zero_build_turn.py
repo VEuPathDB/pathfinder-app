@@ -112,7 +112,6 @@ class _LeadJourney:
                 args={
                     "prose": _ZERO_PROSE,
                     "nextState": "await_user",
-                    "strategyChanged": True,
                 },
                 tool_call_id="call_final_2",
             )
@@ -127,7 +126,6 @@ class _LeadJourney:
             args={
                 "prose": _ZERO_PROSE,
                 "nextState": "await_user",
-                "strategyChanged": True,
             },
             tool_call_id="call_final_1",
         )

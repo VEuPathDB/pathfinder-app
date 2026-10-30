@@ -80,7 +80,6 @@ def _final_only(seen: OfferedTools) -> FunctionModel:
                     args={
                         "prose": _PROSE,
                         "nextState": "await_user",
-                        "strategyChanged": False,
                     },
                     tool_call_id="call_final",
                 ),
@@ -365,7 +364,6 @@ def _replies_twice(seen: OfferedTools) -> FunctionModel:
                     args={
                         "prose": _PROSE,
                         "nextState": "await_user",
-                        "strategyChanged": False,
                     },
                     tool_call_id=f"call_final_{len(seen.steps)}",
                 ),

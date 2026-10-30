@@ -1,24 +1,18 @@
-"""The counts a column tally of a turn returned, which a reply's ``tally``
-references render."""
+"""The counts a column tally of a turn returned."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.reference_grammar import (
-    TALLY_VALUES,
-)
 from pathfinder.domain.tally_paths import TallyPath
 
 type TallyFilter = tuple[str, tuple[str, ...]]
-
-VALUE_NOUN = "value"
 
 
 def tally_id(
@@ -68,45 +62,13 @@ class TallyFact(CamelModel):
             f"step {result_step_id}"
         )
 
-    def count(self, value: str) -> int | None:
-        """The records that hold the value, or the total for no value."""
-        if value == "":
-            return self.total
-        return next((row.count for row in self.rows if row.value == value), None)
-
     def lines(self, result_step_id: int | None = None) -> list[str]:
         return [
             self.heading(result_step_id),
-            f"[tally:{self.id}] = {counted(self.total, self.record_noun)}",
-            f"[tally:{self.id}{TALLY_VALUES}] = {self.distinct:,}",
-            *(f"[tally:{self.id}.{row.value}] = {row.count}" for row in self.rows),
+            f"In all: {counted(self.total, self.record_noun)}",
+            f"Values: {self.distinct:,}",
+            *(f"{row.value}: {row.count:,}" for row in self.rows),
         ]
 
     def redacted(self, redact: Callable[[str], str]) -> TallyFact:
         return self.model_copy(update={"title": redact(self.title)})
-
-
-def tally_count(tallies: Sequence[TallyFact], body: str) -> str | None:
-    """The count a ``tally`` reference names as ``<id>`` or ``<id>.<value>``,
-    in the tally's noun, or the number of values ``<id>:values`` names."""
-    by_id = {t.id: t for t in tallies}
-    if body.endswith(TALLY_VALUES) and body.removesuffix(TALLY_VALUES) in by_id:
-        return f"{by_id[body.removesuffix(TALLY_VALUES)].distinct:,}"
-    held_id, _, value = body.partition(".")
-    tally = by_id.get(held_id)
-    if tally is None:
-        return None
-    count = tally.count(value)
-    return None if count is None else counted(count, tally.record_noun)
-
-
-def tally_references(tallies: Sequence[TallyFact], number: str) -> Iterator[str]:
-    """Each ``tally`` reference whose count is the number."""
-    for tally in tallies:
-        if str(tally.total) == number:
-            yield f"[tally:{tally.id}]"
-        if str(tally.distinct) == number:
-            yield f"[tally:{tally.id}{TALLY_VALUES}]"
-        for row in tally.rows:
-            if str(row.count) == number:
-                yield f"[tally:{tally.id}.{row.value}]"

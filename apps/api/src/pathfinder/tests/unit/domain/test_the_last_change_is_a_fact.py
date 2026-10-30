@@ -12,7 +12,6 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.domain.last_change import LastChange, change_between, change_since
-from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.turn_facts import StepFact, TurnFacts
 
 _SIGNAL_PEPTIDE = "Predicted Signal Peptide"
@@ -79,37 +78,6 @@ def test_a_count_not_recorded_is_said_so() -> None:
     )
 
 
-def test_both_references_render_the_last_change_s_counts() -> None:
-    assert (
-        render_reply(_ASKED, _facts(_DELETED))
-        == "17 genes before the delete and 68 genes after."
-    )
-
-
-def test_a_reply_that_names_both_counts_by_reference_has_no_fault() -> None:
-    assert prose_faults(_ASKED, _facts(_DELETED)) == []
-
-
-def test_a_count_no_fact_holds_is_refused() -> None:
-    faults = prose_faults("It held 17 before the delete.", _facts(None))
-
-    assert faults == [ProseFault(token="17", kind="number")]
-
-
-def test_the_count_before_names_the_reference_that_renders_it() -> None:
-    faults = prose_faults("It held 17 before the delete.", _facts(_DELETED))
-
-    assert faults == [
-        ProseFault(token="17", kind="number", references=("[last_change:before]",))
-    ]
-
-
-def test_a_last_change_reference_with_no_change_is_unheld() -> None:
-    faults = prose_faults(_ASKED, _facts(None))
-
-    assert [f.kind for f in faults] == ["unheld_reference", "unheld_reference"]
-
-
 def test_a_delete_is_named_by_the_step_it_removed() -> None:
     assert change_between(_joined(), _text_alone()) == _DELETED
 
@@ -148,13 +116,3 @@ def test_a_turn_that_changed_the_tree_is_the_last_change() -> None:
 
 def test_no_strategy_has_no_last_change() -> None:
     assert [change_since(_joined(), _DELETED, None)] == [None]
-
-
-def test_a_difference_reads_both_sides_of_the_last_change() -> None:
-    assert (
-        render_reply(
-            "The delete added [diff:last_change:before,last_change:after].",
-            _facts(_DELETED),
-        )
-        == "The delete added 51 genes."
-    )

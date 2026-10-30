@@ -220,7 +220,7 @@ def turn_ends_before_the_run(
     untouched, so the turn ends on the new call.
     """
     if resumption.refusal is not None:
-        capture.response = stop_response(resumption.refusal, changed=False)
+        capture.response = stop_response(resumption.refusal)
         return True
     if resumption.declined:
         close_the_declined_card(resumption.parked, capture, writer)

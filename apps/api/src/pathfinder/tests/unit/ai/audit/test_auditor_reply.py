@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from pydantic_ai import AgentRunResult, DeferredToolRequests, ModelRetry
@@ -11,10 +13,10 @@ from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from pathfinder.ai.audit.auditor import build_auditor_agent
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.audit.facts import check_fact, gene_records
+from pathfinder.ai.audit.facts import audit_finding_fact, check_fact, gene_records
 from pathfinder.ai.audit.reply import AuditReply, hold_the_reply, reply_text
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
-from pathfinder.domain.reply_references import prose_faults
+from pathfinder.ai.lead.contract_messages import note_facts_message
+from pathfinder.services.audit.finding_views import FindingDetail
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit_planning import faked_site
 from pathfinder.tests._support.run_context import run_context_for
@@ -52,45 +54,64 @@ def _deps() -> AuditDeps:
     )
 
 
-def _referenced(deps: AuditDeps) -> AuditReply:
-    (fact,) = deps.facts
-    return AuditReply(
-        prose=(
-            f"The model of [record:{_STRAIN}] holds a CDS of "
-            f"[stat:{fact.id}.strainCdsLength] bases."
-        )
+_FINDING = json.loads(
+    (
+        Path(__file__).parents[3] / "fixtures/turns/fungidb_audit_finding_read.json"
+    ).read_text()
+)
+_GENE = "Afu2g18040"
+
+
+def _finding_deps() -> AuditDeps:
+    detail = FindingDetail.model_validate(_FINDING["answer"])
+    return AuditDeps(
+        site_id="fungidb",
+        user_id=uuid4(),
+        conversation_id=uuid4(),
+        request="is finding 1 of my audit right",
+        facts=[audit_finding_fact(UUID(_FINDING["run_id"]), detail)],
+        records=gene_records("fungidb", [_GENE]),
     )
 
 
-def test_a_reply_renders_its_references_from_the_turns_facts() -> None:
-    deps = _deps()
+def test_the_reply_shows_the_finding_before_its_note() -> None:
+    deps = _finding_deps()
+    note = AuditReply(
+        prose=f"The review keeps the shifted splice site of [record:{_GENE}]."
+    )
 
-    rendered = reply_text(_referenced(deps), deps)
+    shown = reply_text(note, deps).split("\n\n")
 
-    assert rendered == (
-        f"The model of [{_STRAIN}]({gene_record_url('plasmodb', _STRAIN)}) holds a "
-        "CDS of 900 bases."
+    assert (shown[0].splitlines()[:1], shown[1]) == (
+        [f"**Finding 1 of audit run {_FINDING['run_id']}**"],
+        (
+            f"The review keeps the shifted splice site of "
+            f"[{_GENE}]({gene_record_url('fungidb', _GENE)})."
+        ),
+    )
+    assert {"- finding certainty: medium", "- evidence kind: confirmation"} <= set(
+        shown[0].splitlines()
     )
 
 
-def test_a_reply_with_references_passes_the_contract() -> None:
+def test_a_note_without_a_number_passes_the_contract() -> None:
     deps = _deps()
-    reply = _referenced(deps)
+    reply = AuditReply(
+        prose=f"The check reads the model of [record:{_STRAIN}] as intact."
+    )
 
     assert hold_the_reply(run_context_for(deps), reply) == reply
     assert deps.reply_refusals == 0
 
 
-def test_a_reply_that_writes_a_number_is_refused_with_its_reference() -> None:
+def test_a_note_that_writes_a_number_of_the_turn_is_refused() -> None:
     deps = _deps()
     written = AuditReply(prose=f"The model of [record:{_STRAIN}] holds 900 bases.")
-    faults = prose_faults(written.prose, deps.turn_facts(deps.request))
 
     with pytest.raises(ModelRetry) as refused:
         hold_the_reply(run_context_for(deps), written)
 
-    assert str(refused.value) == unrendered_prose_message(faults)
-    assert deps.reply_refusals == 1
+    assert (str(refused.value), deps.reply_refusals) == (note_facts_message(["900"]), 1)
 
 
 def test_a_reply_is_let_through_once_its_refusals_are_spent() -> None:

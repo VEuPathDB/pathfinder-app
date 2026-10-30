@@ -1,10 +1,9 @@
-"""The statistics the EDA service computed on a thread, which a reply's ``stat``
-references render."""
+"""The statistics the EDA service computed on a thread, and the audit reads a
+turn returned, as rows of named values."""
 
 from __future__ import annotations
 
 import hashlib
-import re
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from itertools import combinations
@@ -41,7 +40,6 @@ type StatisticKind = Literal[
     "audit_plan",
     "audit_rate",
     "audit_start",
-    "audit_synthesis",
 ]
 
 TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
@@ -56,8 +54,6 @@ TURN_STATISTICS: frozenset[StatisticKind] = frozenset(
         "audit_start",
     }
 )
-
-type RowForm = Literal["number", "word", "boolean", "sentence"]
 
 
 @dataclass(frozen=True)
@@ -74,9 +70,6 @@ Share = Annotated[float, SchemaFormat("share")]
 Sentence = Annotated[str, SchemaFormat("sentence")]
 Identifier = Annotated[int, SchemaFormat("identifier")]
 
-_DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
-_A_CAPITAL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
-
 
 def statistic_id(kind: StatisticKind, variables: Sequence[str]) -> str:
     """The id of one statistic of these variables, the same on every read."""
@@ -85,24 +78,12 @@ def statistic_id(kind: StatisticKind, variables: Sequence[str]) -> str:
 
 
 class StatisticRowFact(CamelModel):
-    """One value of a statistic, under the name a reference gives it."""
+    """One value of a statistic, under its row name."""
 
     model_config = ConfigDict(frozen=True)
 
     name: str
     value: str
-    form: RowForm = "number"
-    code: str | None = None
-
-    def numbers(self) -> list[str]:
-        """Each number the value writes, without its digit separators."""
-        return [found.replace(",", "") for found in _DIGITS.findall(self.value)]
-
-    def note(self) -> str:
-        parts = [part for part in self.name.split(".") if not part.isdigit()]
-        named = [p for i, p in enumerate(parts) if i == 0 or p != parts[i - 1]]
-        words = " ".join(_A_CAPITAL.sub(" ", part).lower() for part in named[-2:])
-        return f"{words or self.name}: {self.value}"
 
 
 class StatisticFact(CamelModel):
@@ -114,7 +95,7 @@ class StatisticFact(CamelModel):
     kind: StatisticKind
     title: str
     rows: list[StatisticRowFact] = Field(default_factory=list)
-    # What the values show, which a reply says in words and no reference names.
+    # What the values show, in words.
     statements: list[str] = Field(default_factory=list)
 
     def value(self, name: str) -> str | None:
@@ -129,119 +110,6 @@ class StatisticFact(CamelModel):
 
     def redacted(self, redact: Callable[[str], str]) -> StatisticFact:
         return self.model_copy(update={"title": redact(self.title)})
-
-
-def statistic_row(
-    statistics: Sequence[StatisticFact], body: str
-) -> StatisticRowFact | None:
-    held_id, _, name = body.partition(".")
-    held = next((s for s in reversed(statistics) if s.id == held_id), None)
-    return (
-        None if held is None else next((r for r in held.rows if r.name == name), None)
-    )
-
-
-def statistic_value(statistics: Sequence[StatisticFact], body: str) -> str | None:
-    """The value a ``stat`` reference names as ``<id>.<row name>``."""
-    row = statistic_row(statistics, body)
-    return None if row is None else row.value
-
-
-def statistic_group_references(
-    statistics: Sequence[StatisticFact], body: str
-) -> tuple[str, ...]:
-    held_id, _, name = body.partition(".")
-    prefix = f"{name}." if name else ""
-    return tuple(
-        dict.fromkeys(
-            f"[stat:{statistic.id}.{row.name}]"
-            for statistic in statistics
-            if statistic.id == held_id
-            for row in statistic.rows
-            if row.name.startswith(prefix) and row.form not in {"sentence", "boolean"}
-        )
-    )
-
-
-def _item_keys(rows: Sequence[StatisticRowFact]) -> dict[str, set[str]]:
-    keys: dict[str, set[str]] = {}
-    for row in rows:
-        item, _, _ = row.name.rpartition(".")
-        if item.rpartition(".")[2].isdigit():
-            keys.setdefault(item, set()).update(
-                held for held in (row.value, row.code) if held is not None
-            )
-    return keys
-
-
-def _keyed_as(
-    written: Sequence[str], held: Sequence[str], keys: dict[str, set[str]]
-) -> bool:
-    return len(written) == len(held) and all(
-        w == h
-        or (
-            h.isdigit()
-            and not w.isdigit()
-            and w in keys.get(".".join(held[: i + 1]), set())
-        )
-        for i, (w, h) in enumerate(zip(written, held, strict=True))
-    )
-
-
-def statistic_keyed_references(
-    statistics: Sequence[StatisticFact], body: str, kind: str
-) -> tuple[str, ...]:
-    held_id, _, name = body.partition(".")
-    written = name.split(".")
-    return tuple(
-        dict.fromkeys(
-            f"[{kind}:{statistic.id}.{row.name}]"
-            for statistic in statistics
-            if statistic.id == held_id
-            for keys in (_item_keys(statistic.rows),)
-            for row in statistic.rows
-            if _keyed_as(written, row.name.split("."), keys)
-        )
-    )
-
-
-def statistic_named_rows(
-    statistics: Sequence[StatisticFact], body: str, kind: str
-) -> tuple[str, ...]:
-    held_id, _, name = body.partition(".")
-    written = name.split(".")
-    held = next((s for s in reversed(statistics) if s.id == held_id), None)
-    rows = [
-        row.name
-        for row in ([] if held is None else held.rows)
-        if kind == "cite" or row.form not in {"sentence", "boolean"}
-    ]
-    ending = [r for r in rows if r.split(".")[-len(written) :] == written]
-    named = ending or [r for r in rows if r.split(".")[-1] == written[-1]]
-    return tuple(f"[{kind}:{held_id}.{row}]" for row in named)
-
-
-def statistic_references(
-    statistics: Sequence[StatisticFact], number: str
-) -> Iterator[str]:
-    """Each ``stat`` reference whose value writes the number."""
-    for statistic in statistics:
-        for row in statistic.rows:
-            if number in row.numbers():
-                yield f"[stat:{statistic.id}.{row.name}]"
-
-
-def statistic_word_references(
-    statistics: Sequence[StatisticFact], token: str
-) -> tuple[str, ...]:
-    return tuple(
-        dict.fromkeys(
-            f"[stat:{statistic.id}.{row.name}]"
-            for statistic in statistics
-            for row in statistic.rows
-            if token in (row.value, row.code)
-        )
-    )
 
 
 def _span(values: Sequence[float]) -> str:
@@ -338,7 +206,7 @@ def _row_facts(row: EdaStatisticRow) -> Iterator[StatisticRowFact]:
 
 
 def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
-    """Each value the part shows, under the name a reference gives it."""
+    """Each value the part shows, under its row name."""
     return StatisticFact(
         id=part.statistic_id,
         kind=part.kind,
@@ -353,7 +221,6 @@ def statistics_fact(part: EdaStatisticsPart) -> StatisticFact:
 __all__ = [
     "TURN_STATISTICS",
     "Identifier",
-    "RowForm",
     "SchemaFormat",
     "Sentence",
     "Share",
@@ -362,10 +229,5 @@ __all__ = [
     "StatisticRowFact",
     "pca_fact",
     "statistic_id",
-    "statistic_named_rows",
-    "statistic_references",
-    "statistic_row",
-    "statistic_value",
-    "statistic_word_references",
     "statistics_fact",
 ]

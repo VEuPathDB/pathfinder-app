@@ -125,7 +125,6 @@ def test_a_lead_response_sets_the_next_state() -> None:
     capture.response = LeadResponse(
         prose="Anything else?",
         next_state="await_user",
-        strategy_changed=False,
     )
     domain = _delta(state, deps, capture)["domain"]
 
@@ -139,7 +138,6 @@ def test_a_lead_response_records_the_questions_it_asks() -> None:
     capture = _LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which RNA-seq study?",
-        strategy_changed=False,
         asked_questions=[
             AskedQuestion(
                 question="Which gametocyte RNA-seq study?",
@@ -162,7 +160,6 @@ def test_a_lead_question_is_recorded_with_no_option() -> None:
     capture = _LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which organism?",
-        strategy_changed=False,
         asked_questions=[
             AskedQuestion(
                 question="Which organism?", options=["P. vivax", "P. knowlesi"]
@@ -187,7 +184,6 @@ def test_the_record_that_names_a_dimension_wins_the_same_question() -> None:
     capture = _LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which gametocyte RNA-seq study?",
-        strategy_changed=False,
         asked_questions=[
             AskedQuestion(
                 question="Which gametocyte RNA-seq study?",
@@ -220,7 +216,6 @@ def test_a_bare_record_does_not_replace_the_dimension_already_asked() -> None:
     capture = _LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which study?",
-        strategy_changed=False,
         asked_questions=[AskedQuestion(question="Which study?")],
     )
     domain = _delta(state, deps, capture)["domain"]
@@ -249,7 +244,6 @@ def test_a_lead_response_that_asks_nothing_clears_the_open_questions() -> None:
     capture.response = LeadResponse(
         prose="Built it.",
         next_state="complete",
-        strategy_changed=True,
     )
     domain = _delta(state, deps, capture)["domain"]
 

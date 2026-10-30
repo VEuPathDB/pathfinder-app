@@ -1,4 +1,4 @@
-"""The auditor's typed reply, the text it renders to, and the reference contract it is held to."""
+"""The auditor's typed reply, and the text it renders to: the facts its reads hold, then its note."""
 
 from __future__ import annotations
 
@@ -13,13 +13,9 @@ from pydantic_ai.output import OutputContext
 
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.audit.deps import AuditDeps
-from pathfinder.ai.graph.note_labels import note_label
-from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
-from pathfinder.ai.lead.contract_messages import unrendered_prose_message
-from pathfinder.domain.reply_references import (
-    prose_faults,
-    shown_reply,
-)
+from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_NOTE
+from pathfinder.ai.lead.contract_messages import note_facts_message
+from pathfinder.domain.reply_note import note_facts, render_note
 
 _REPLY_MIN_CHARS = 20
 
@@ -32,19 +28,21 @@ class AuditReply(CamelModel):
             min_length=_REPLY_MIN_CHARS,
             max_length=PROSE_MAX_CHARS,
         ),
-        Field(description=f"Your reply. {REPLY_REFERENCES}"),
+        Field(description=f"Your reply. {REPLY_NOTE}"),
     ]
 
 
 def reply_text(reply: AuditReply, deps: AuditDeps) -> str:
-    return shown_reply(reply.prose, deps.turn_facts(deps.request), note_label())
+    facts = deps.turn_facts(deps.request)
+    shown = [audit.markdown() for audit in facts.reads]
+    return "\n\n".join([*shown, render_note(reply.prose, facts)])
 
 
 def hold_the_reply(ctx: RunContext[AuditDeps], output: AuditReply) -> AuditReply:
-    faults = prose_faults(output.prose, ctx.deps.turn_facts(ctx.deps.request))
-    if faults and may_refuse(ctx, ctx.deps.reply_refusals):
+    written = note_facts(output.prose, ctx.deps.turn_facts(ctx.deps.request))
+    if written and may_refuse(ctx, ctx.deps.reply_refusals):
         ctx.deps.reply_refusals += 1
-        raise ModelRetry(unrendered_prose_message(faults))
+        raise ModelRetry(note_facts_message(written))
     return output
 
 

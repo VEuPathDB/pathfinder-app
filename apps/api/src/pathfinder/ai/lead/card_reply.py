@@ -10,42 +10,21 @@ from pydantic import ConfigDict, Field, StringConstraints
 PROSE_MAX_CHARS = 4000
 # A reply shorter than a sentence answers nothing.
 _REPLY_MIN_CHARS = 20
-PLACEMENT_RULES = (
-    "A count reference renders with its noun, so no noun follows it. A count "
-    "or value reference stands in place of the number. A number a step sets, such as the protein count of a group, is its "
-    "[value:<step_id>.<param>]. [stat:<id>.<row>] is the value written in place, "
-    "and [cite:<id>.<row>] follows your own words for it. A yes or no is never "
-    "placed: say it in your words and write its [cite:<id>.<row>] after them. "
-    'In a list of placed values, separate the values with "; ", since a number '
-    "may hold a comma."
-)
-# The records a record reference cites. The schema and the Lead's instruction
-# both state it.
 CITABLE_RECORDS = (
     "a record this turn read, listed, checked or resolved, or one of the "
     "records the conversation showed last"
 )
-REPLY_REFERENCES = (
-    "It writes no number, identifier or link itself: each fact is a "
-    "reference the product renders from the facts beside the reply. "
-    "[count:<step_id>] a step's count, [before:<step_id>] its count before this "
-    "turn's edit, [root] and [root_before] the result's, [last_change:before] "
-    "and [last_change:after] the result's before and after the strategy's most "
-    "recent change, which an earlier turn may have made, [diff:<a>,<b>] the "
-    "difference of two counts (each side a step id, root, root_before, "
-    "before:<step_id>, last_change:before, last_change:after or "
-    "compare:<variant>), [value:<step_id>.<param>] a bound "
-    "value with its label, [source:<step_id>.<param>] who set it, "
-    "[compare:<variant>] the genes a comparison of this turn returned for a "
-    "variant on its own (add :unique, or :result for its count inside the "
-    "strategy, the count a share of the result quotes; [compare:<a>,<b>:shared] "
-    "for the genes two share), [stat:<id>.<row>] one value of a statistic the EDA service "
-    "computed this turn, [tally:<id>.<value>] the records a column tally of "
-    "this turn counted for a value, [tally:<id>] the records it counted in all, "
-    "[tally:<id>:values] how many values it counted, a number the noun of the "
-    "values follows, "
-    f"[record:<record_id>] {CITABLE_RECORDS}, [url] the strategy's "
-    f"link. {PLACEMENT_RULES}"
+REPLY_NOTE = (
+    "It is a note beside the facts the product writes. The facts show each "
+    "count, value, setting, step, record, link and check of this turn as the "
+    "site holds it, so the note restates none of them: it says what they mean "
+    "for the question, why this reading answers it, and what to do next. It "
+    "writes no number of this turn: no count, value, percent or setting. A "
+    "name is written as it stands, letters and digits together: a strain such "
+    "as 3D7, a gene symbol, a tool and its version. A record is named as "
+    f"[record:<record_id>], which links {CITABLE_RECORDS}; any other record "
+    "reference is dropped. A turn that read nothing from a site shows no "
+    "facts, and its note writes freely."
 )
 
 CardReply = Annotated[
@@ -58,7 +37,7 @@ CardReply = Annotated[
             "Your reply to the message, which the researcher reads above the "
             "card: what you found, what you recommend and why. Plain markdown. "
             "It is the whole reply of this turn, so never write it as text too. "
-            f"{REPLY_REFERENCES}"
+            f"{REPLY_NOTE}"
         ),
     ),
 ]
@@ -79,9 +58,8 @@ class CardCallReply(CamelModel):
 __all__ = [
     "CARD_NOT_SHOWN",
     "CITABLE_RECORDS",
-    "PLACEMENT_RULES",
     "PROSE_MAX_CHARS",
-    "REPLY_REFERENCES",
+    "REPLY_NOTE",
     "CardCallReply",
     "CardReply",
 ]

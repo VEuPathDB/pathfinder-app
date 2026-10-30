@@ -15,7 +15,6 @@ from pydantic_ai.messages import (
     ModelResponse,
     TextPart,
     ToolCallPart,
-    ToolReturn,
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
@@ -86,12 +85,6 @@ _PAIR = GenePairTarget(check="pseudogene_call", genes=(_STRAIN, _REFERENCE))
 _REQUEST = plan_request(STRAINS[0])
 
 
-class _Read(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    fact_id: str
-
-
 class _FindingId(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -104,15 +97,13 @@ class _Answer(BaseModel):
     finding: _FindingId
 
 
-class _FindingRead(_Read):
+class _FindingRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     answer: _Answer
 
 
 _READS: TypeAdapter[list[_FindingRead]] = TypeAdapter(list[_FindingRead])
-
-
-def _fact_id(returned: ToolReturn[Any]) -> str:
-    return _Read.model_validate(returned.return_value).fact_id
 
 
 @pytest.fixture
@@ -331,11 +322,7 @@ async def test_reading_a_finding_records_its_facts() -> None:
         finding_cite(finding_id),
         evidence_cite(finding_id, "confirmation"),
     }
-    assert (fact.kind, read.fact_id, read.answer.finding.id) == (
-        "audit_finding",
-        fact.id,
-        finding_id,
-    )
+    assert (fact.kind, read.answer.finding.id) == ("audit_finding", finding_id)
     assert fact.value("evidence.0.payload.confirmation.result.strainCdsLength") == "900"
     assert [(r.record_id, r.url) for r in ctx.deps.records] == [
         (gene, gene_record_url("plasmodb", gene)) for gene in (_STRAIN, _REFERENCE)
@@ -370,14 +357,10 @@ async def test_every_audit_read_records_its_fact(
     run_id, finding_id = await _stored_finding(owner)
     ctx = _context(owner)
 
-    returned = [
-        _fact_id(
-            await plan_gene_model_audit_tool(ctx, PlanAsk(genomes=_REQUEST.genomes))
-        ),
-        _fact_id(await list_audit_runs_tool(ctx)),
-        _fact_id(await read_audit_run_tool(ctx, run_id)),
-        _fact_id(await list_audit_findings_tool(ctx, run_id, FindingQuery())),
-    ]
+    await plan_gene_model_audit_tool(ctx, PlanAsk(genomes=_REQUEST.genomes))
+    await list_audit_runs_tool(ctx)
+    await read_audit_run_tool(ctx, run_id)
+    await list_audit_findings_tool(ctx, run_id, FindingQuery())
 
     assert [fact.kind for fact in ctx.deps.facts] == [
         "audit_plan",
@@ -385,7 +368,6 @@ async def test_every_audit_read_records_its_fact(
         "audit_run",
         "audit_findings",
     ]
-    assert returned == [fact.id for fact in ctx.deps.facts]
     plan, runs, run, findings = ctx.deps.facts
     assert (plan.value("scope.genomes.0"), runs.value("runs.0.id")) == (
         STRAINS[0],

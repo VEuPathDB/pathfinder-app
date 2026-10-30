@@ -13,6 +13,7 @@ import {
 } from "@/features/conversation/content/parts/FactsRecords";
 
 import { FactsExpression } from "./FactsExpression";
+import { CountFacts, MembershipFacts, ReadFacts } from "./FactsReads";
 
 const SOURCE_LABELS: Record<ParameterFact["source"], string> = {
   stated: "stated",
@@ -253,6 +254,7 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           text: result.sentence,
         }))}
       />
+      <CountFacts comparisons={data.comparisons ?? []} noun={noun} />
       <RecordsTable title="Records read" sources={sources} testId="facts-source" />
       <RecordsTable
         title="Genes the message names"
@@ -262,6 +264,8 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
       <ListedTables listed={data.listed ?? []} />
       <OrthologTables sources={[...sources, ...named]} />
       <MoreValueTables sources={[...sources, ...named]} />
+      <MembershipFacts memberships={data.memberships ?? []} />
+      <ReadFacts reads={data.reads ?? []} />
     </Figure>
   );
 }

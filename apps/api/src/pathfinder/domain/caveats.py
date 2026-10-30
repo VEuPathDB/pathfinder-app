@@ -12,6 +12,7 @@ from pydantic import ConfigDict, Discriminator
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.evidence import ControlTestEvidence, NamedControlSet
+from pathfinder.domain.organism_caveat import RecordsOrganismCaveat
 from pathfinder.domain.reading_caveats import ReadingCaveat, reading_caveats
 from pathfinder.domain.requirement_naming import names_a_retired_requirement
 from pathfinder.domain.site_checks import SiteCheckGap
@@ -256,7 +257,8 @@ Caveat = Annotated[
     | EditDirectionCaveat
     | PhraseCaveat
     | ReadingCaveat
-    | ZeroCombineCaveat,
+    | ZeroCombineCaveat
+    | RecordsOrganismCaveat,
     Discriminator("kind"),
 ]
 

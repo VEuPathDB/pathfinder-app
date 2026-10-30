@@ -35,7 +35,6 @@ class CheckRead(CamelModel):
     model_config = ConfigDict(extra="ignore", from_attributes=True)
 
     answer: _Verdict
-    fact_id: str
     genomes: dict[str, str]
 
 
@@ -94,7 +93,7 @@ def investigator_script(messages: list[ModelMessage]) -> ScriptedPart:
         {
             "answer": (
                 f"The check reads the model of [record:{strain}] as "
-                f"[stat:{read.fact_id}.verdict]."
+                f"{read.answer.verdict.lower()}."
             ),
             "verdicts": [pseudogene_verdict(strain, reference, read)],
         }

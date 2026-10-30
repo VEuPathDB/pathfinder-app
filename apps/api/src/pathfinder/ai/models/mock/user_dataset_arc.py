@@ -64,9 +64,7 @@ def _exported_at_the_stated_cut(messages: list[ModelMessage]) -> ToolCallPart:
         )
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
-    return lead_final(
-        f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete", strategy_changed=True
-    )
+    return lead_final(f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete")
 
 
 user_dataset_deseq = comparison(_exported_at_the_stated_cut, choose=_two_groups)

@@ -1,5 +1,5 @@
 """A statistic the EDA service computed belongs to the thread: a later turn's
-facts render it, and the Lead's instructions list it by its reference."""
+facts hold it, and the Lead's instructions list its values."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from uuid import uuid4
 from pathfinder.ai.lead.lead_pins import pinned_statistics
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -40,28 +39,19 @@ def _a_later_turn() -> LeadDeps:
     return lead_deps(state)
 
 
-def test_a_later_turn_renders_a_statistic_an_earlier_turn_computed() -> None:
-    facts = turn_facts(_a_later_turn())
-
-    assert (
-        render_reply(
-            "PC1 explains [stat:stat_1c2d3e4f.PC1] of the variance across "
-            "[stat:stat_1c2d3e4f.samples].",
-            facts,
-        )
-        == "PC1 explains 54.35% of the variance across 12 samples."
-    )
+def test_a_later_turn_holds_a_statistic_an_earlier_turn_computed() -> None:
+    assert turn_facts(_a_later_turn()).statistics == [_PCA]
 
 
-def test_the_lead_reads_each_statistic_by_its_reference() -> None:
+def test_the_lead_reads_each_statistic_by_its_row() -> None:
     assert pinned_statistics(run_context_for(_a_later_turn())) == (
         "## Statistics this conversation computed\n"
-        "Write each number below as its reference, never as the bare number.\n"
+        "Their cards show every value; say what they mean, with no number.\n"
         "- PCA of 12 samples\n"
-        "  - [stat:stat_1c2d3e4f.PC1] = 54.35%\n"
-        "  - [stat:stat_1c2d3e4f.PC2] = 12.79%\n"
-        "  - [stat:stat_1c2d3e4f.samples] = 12 samples\n"
-        "  - [stat:stat_1c2d3e4f.groups] = 3 groups\n"
+        "  - PC1 = 54.35%\n"
+        "  - PC2 = 12.79%\n"
+        "  - samples = 12 samples\n"
+        "  - groups = 3 groups\n"
         "  - PC1 separates no pair of groups; every pair's ranges on PC1 overlap."
     )
 
@@ -98,4 +88,7 @@ def test_an_audit_findings_fact_is_not_pinned_into_the_next_turn() -> None:
     pinned = pinned_statistics(run_context_for(lead_deps(state)))
 
     assert pinned is not None
-    assert ("stat_1c2d3e4f" in pinned, "stat_5a6b7c8d" in pinned) == (True, False)
+    assert ("PCA of 12 samples" in pinned, "Examplea alpha A" in pinned) == (
+        True,
+        False,
+    )

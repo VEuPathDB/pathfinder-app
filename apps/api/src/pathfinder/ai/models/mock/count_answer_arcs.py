@@ -1,5 +1,5 @@
-"""Lead arcs that answer a count question with references to the counts the
-facts hold: a step's count, the result's, and the difference of the two."""
+"""Lead arcs that answer a count question with a note beside the counts the
+facts show: a step's count, the result's, and what lies between them."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ _LIVE = "get_live_strategy_state"
 
 class _Step(ToolAnswer):
     step_id: str
+    display_name: str = ""
     estimated_size: int | None = None
     is_root: bool = False
 
@@ -35,14 +36,14 @@ def _answer(live: _Live | None) -> str:
     if leaf is None:
         return "The strategy read did not answer."
     return (
-        f"The first search step returns [count:{leaf.step_id}] and the result "
-        f"[root], so the other filters remove [diff:{leaf.step_id},root]."
+        f"The facts show the count of the first search step, {leaf.display_name}, "
+        "beside the result's; the other filters remove the genes between the two."
     )
 
 
 def derived_count(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    """Read the strategy and answer with references to a step's count, the
-    result's, and the difference of the two."""
+    """Read the strategy and answer with a note on a step's count and the
+    result's, which the facts show."""
     return [
         classify("follow_up_question"),
         scripted_call(_LIVE, {}),

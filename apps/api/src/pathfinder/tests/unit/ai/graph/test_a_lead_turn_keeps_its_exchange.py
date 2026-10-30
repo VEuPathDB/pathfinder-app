@@ -34,7 +34,7 @@ async def test_the_turn_hands_back_its_exchange_after_the_earlier_ones(
         *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
-        capture.response = LeadResponse(prose=_REPLY, strategy_changed=False)
+        capture.response = LeadResponse(prose=_REPLY)
 
     async def _pre_turn(state: PipelineState, _context: Context) -> PipelineState:
         return state

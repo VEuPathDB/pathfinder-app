@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator
 
 import httpx
@@ -50,8 +49,8 @@ _AUDIT = f"[[arc:audit]] Audit the gene models of {GENOME} against its relatives
 _FINDING = "[[arc:audit-finding]] Is finding 1 real?"
 _SPELLED = "[[arc:audit-finding-spelled]] Is finding 1 real?"
 _RENDERED = (
-    f"The model of [{STRAIN}]({gene_record_url('plasmodb', STRAIN)}) holds a CDS "
-    "of 900 bases."
+    f"The finding above reads the model of [{STRAIN}]"
+    f"({gene_record_url('plasmodb', STRAIN)}) as an error."
 )
 _CALLED_FOR_A_FINDING = [
     "classify_user_intent",
@@ -112,7 +111,15 @@ async def test_the_lead_asks_before_an_audit_starts(
         (run,) = await AuditRepository(session).runs(user_id=owner.user_id)
     assert run.conversation_id == thread
     assert len(audit_jobs(in_memory_jobs)) == 1
-    assert text(started).endswith(f"Audit run {run.id} is queued.")
+    shown = of_type(started, "data-facts")[-1]
+    (audit,) = [r for r in shown["data"]["reads"] if r["title"].startswith("Audit run")]
+    assert (audit["title"], {"label": "phase", "value": "queued"} in audit["rows"]) == (
+        f"Audit run {run.id} started",
+        True,
+    )
+    assert text(started).endswith(
+        "[mock] The audit is started; the facts show its run and its phase."
+    )
 
 
 @pytest.mark.usefixtures("signed_in")
@@ -195,7 +202,7 @@ async def test_an_audit_request_is_not_the_threads_strategy_request(
     assert domain.operational_spec is None
 
 
-async def test_the_lead_answers_with_the_plans_request_count(
+async def test_the_plans_request_count_is_a_fact(
     in_memory_jobs: InMemoryConnector,
     app: FastAPI,
     corrections: list[int],
@@ -214,13 +221,16 @@ async def test_the_lead_answers_with_the_plans_request_count(
     )
 
     assert called(chunks) == ["classify_user_intent", "plan_gene_model_audit"]
-    said = re.fullmatch(
-        rf"The run reads the site {proposal.estimate.wdk_requests:,} times, and the "
-        r"plan leaves out a genome\[\^(?P<label>n[0-9a-f]{8}-)1\]\.\n\n"
-        rf"\[\^(?P=label)1\]: left out: {re.escape(proposal.left_out[0])}",
-        text(chunks),
+    (shown,) = of_type(chunks, "data-facts")
+    (plan,) = shown["data"]["reads"]
+    assert (plan["title"], text(chunks)) == (
+        "Audit plan on plasmodb",
+        "[mock] The facts show the plan's cost and the genomes it leaves out.",
     )
-    assert said is not None, text(chunks)
+    assert {
+        "label": "estimate wdk requests",
+        "value": f"{proposal.estimate.wdk_requests:,}",
+    } in plan["rows"]
     assert corrections == [0]
 
 
@@ -246,6 +256,10 @@ async def test_the_lead_answers_a_finding_question_from_the_stored_evidence(
     assert facts["data"]["namedGenes"] == []
     assert [s["recordId"] for s in facts["data"]["sources"]] == [STRAIN, REFERENCE]
     assert facts["data"]["statistics"] == []
+    (finding,) = [
+        r for r in facts["data"]["reads"] if r["title"].startswith("Finding 1 ")
+    ]
+    assert {"label": "finding certainty", "value": "high"} in finding["rows"]
     assert (await domain_of(owner.conversation_id)).turn_markers.audit_runs_held
 
 

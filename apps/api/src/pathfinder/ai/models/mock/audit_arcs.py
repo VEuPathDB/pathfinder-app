@@ -30,19 +30,14 @@ START_REPLY = (
 )
 NOT_STARTED = "[mock] The audit was not started."
 NO_RUN = "[mock] No audit run is stored for this researcher."
-STRAIN_CDS_LENGTH = "evidence.0.payload.confirmation.result.strainCdsLength"
 _GENOME = re.compile(r"gene models of (?P<genome>.+?)(?: against .*)?$")
-
-
-class _Fact(ToolAnswer):
-    fact_id: str
 
 
 class _Proposal(ToolAnswer):
     scope: AuditScope | None = None
 
 
-class _PlanRead(_Fact):
+class _PlanRead(ToolAnswer):
     answer: _Proposal
 
 
@@ -92,7 +87,7 @@ class _Detail(ToolAnswer):
     evidence: list[_Evidence]
 
 
-class _DetailRead(_Fact):
+class _DetailRead(ToolAnswer):
     answer: _Detail
 
 
@@ -127,11 +122,10 @@ def audit_start(messages: list[ModelMessage]) -> list[ToolCallPart]:
     start = scripted_call(
         START_TOOL, {"reply": START_REPLY, "request": request, "scope": scope}
     )
-    started = last_return(current_turn(messages), START_TOOL, _Fact)
+    started = last_return(current_turn(messages), START_TOOL, ToolAnswer)
     if started is None:
         return [*head, start, lead_final(NOT_STARTED, "await_user")]
-    fact = started.fact_id
-    said = f"Audit run [stat:{fact}.runId] is [stat:{fact}.phase]."
+    said = "[mock] The audit is started; the facts show its run and its phase."
     return [*head, start, lead_final(said, "complete")]
 
 
@@ -140,11 +134,7 @@ def audit_plan(messages: list[ModelMessage]) -> list[ToolCallPart]:
     planned = _planned(messages)
     if planned is None:
         return [*head, lead_final(NOT_STARTED, "await_user")]
-    fact = planned.fact_id
-    said = (
-        f"The run reads the site [stat:{fact}.estimate.wdkRequests] times, and the "
-        f"plan leaves out a genome [cite:{fact}.leftOut.0]."
-    )
+    said = "[mock] The facts show the plan's cost and the genomes it leaves out."
     return [*head, lead_final(said, "await_user")]
 
 
@@ -178,13 +168,11 @@ def _finding_answer(
         return [classify(AUDIT), *calls, lead_final(NO_RUN, "await_user")]
     detail = found.answer
     gene = detail.finding.target.genes[0]
-    written = spelled and not retry_prompt_parts(current_turn(messages))
-    length = (
-        str(detail.evidence[0].payload.confirmation.result.strain_cds_length)
-        if written
-        else f"[stat:{found.fact_id}.{STRAIN_CDS_LENGTH}]"
-    )
-    said = f"The model of [record:{gene}] holds a CDS of {length} bases."
+    if spelled and not retry_prompt_parts(current_turn(messages)):
+        length = detail.evidence[0].payload.confirmation.result.strain_cds_length
+        said = f"The model of [record:{gene}] holds a CDS of {length} bases."
+    else:
+        said = f"The finding above reads the model of [record:{gene}] as an error."
     return [classify(AUDIT), *calls, lead_final(said, "await_user")]
 
 

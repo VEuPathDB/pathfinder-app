@@ -21,19 +21,13 @@ def test_the_intron_audits_free_text_fields_are_sentences() -> None:
 
     assert rows == [
         StatisticRowFact(
-            name="reason",
-            value="No junction track was read for this organism.",
-            form="sentence",
+            name="reason", value="No junction track was read for this organism."
         ),
         StatisticRowFact(
-            name="correctionReason",
-            value="The replacement junction keeps the frame.",
-            form="sentence",
+            name="correctionReason", value="The replacement junction keeps the frame."
         ),
         StatisticRowFact(
-            name="orthologs.reason",
-            value="No ortholog protein was read.",
-            form="sentence",
+            name="orthologs.reason", value="No ortholog protein was read."
         ),
     ]
 

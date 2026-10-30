@@ -30,11 +30,10 @@ from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
-    SharedGenes,
 )
 from pathfinder.domain.evidence import SampledGene, VerificationReview
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
-from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
+from pathfinder.domain.reply_note import note_facts, render_note
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
@@ -70,11 +69,11 @@ def _deps(session: StrategySession, *, site_id: str = "plasmodb") -> LeadDeps:
 
 
 def _rendered(deps: LeadDeps, prose: str) -> str:
-    return render_reply(prose, turn_record(run_context_for(deps)).facts)
+    return render_note(prose, turn_record(run_context_for(deps)).facts)
 
 
-def _faults(deps: LeadDeps, prose: str) -> list[ProseFault]:
-    return prose_faults(prose, turn_record(run_context_for(deps)).facts)
+def _faults(deps: LeadDeps, prose: str) -> list[str]:
+    return note_facts(prose, turn_record(run_context_for(deps)).facts)
 
 
 # The portal narrowing: the text search held 2,160 genes, then 19 at 3D7.
@@ -179,16 +178,12 @@ def test_a_turn_that_wrote_nothing_shows_no_count_before() -> None:
     )
 
 
-def test_a_reply_says_how_the_count_moved_by_reference() -> None:
+def test_how_the_count_moved_is_a_fact_and_no_word_of_the_note() -> None:
     deps = _tightened()
-    prose = (
-        "It fell from [root_before] to [root], a decrease of [diff:root_before,root]."
-    )
+    facts = turn_record(run_context_for(deps)).facts
 
-    assert _rendered(deps, prose) == (
-        "It fell from 209 genes to 38 genes, a decrease of 171 genes."
-    )
-    assert _faults(deps, "It fell by 172.") == [ProseFault(token="172", kind="number")]
+    assert (facts.root_count_before, facts.root_count) == (209, 38)
+    assert _faults(deps, "It fell by 172, so the filter is strict.") == ["172"]
 
 
 # A leaf of 627 genes under a result of 9, and one record read from the leaf.
@@ -291,7 +286,7 @@ _VECTORBASE_RECORD = (
 )
 
 
-def test_a_record_a_read_returned_is_rendered_linked_with_its_product() -> None:
+def test_a_record_a_read_returned_is_linked_to_its_page() -> None:
     deps = _leaf_read()
     deps.state.turn_markers.record_read(
         ReadRecord(
@@ -304,15 +299,9 @@ def test_a_record_a_read_returned_is_rendered_linked_with_its_product() -> None:
     )
 
     assert _rendered(deps, "The record is [record:AFUN020124].") == (
-        f"The record is [AFUN020124]({_VECTORBASE_RECORD}) (insulin receptor)."
+        f"The record is [AFUN020124]({_VECTORBASE_RECORD})."
     )
-    assert _faults(deps, "It is AFUN020124.") == [
-        ProseFault(
-            token="AFUN020124",
-            kind="identifier",
-            references=("[record:AFUN020124]",),
-        )
-    ]
+    assert _faults(deps, "It is AFUN020124, an insulin receptor.") == []
 
 
 def test_a_records_orthologs_are_a_list_of_their_own() -> None:
@@ -422,45 +411,33 @@ async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
     ]
     assert _rendered(deps, _IMAGE_REPLY) == (
         "The image contains these genes:\n\n"
-        f"- [PF3D7_0709000]({_PLASMO_RECORD}PF3D7_0709000) "
-        "(chloroquine resistance transporter)\n"
-        f"- [PF3D7_1133400]({_PLASMO_RECORD}PF3D7_1133400) "
-        "(apical membrane antigen 1)\n"
-        f"- [PF3D7_0102600]({_PLASMO_RECORD}PF3D7_0102600) "
-        "(serine/threonine protein kinase, FIKK family)"
+        f"- [PF3D7_0709000]({_PLASMO_RECORD}PF3D7_0709000)\n"
+        f"- [PF3D7_1133400]({_PLASMO_RECORD}PF3D7_1133400)\n"
+        f"- [PF3D7_0102600]({_PLASMO_RECORD}PF3D7_0102600)"
     )
 
 
 # cryptodb, build 71: mucin* over C. parvum IOWA-ATCC in the product field and
 # in every text field.
-def test_the_counts_a_comparison_returned_are_facts_a_reply_references() -> None:
+def test_the_counts_a_comparison_returned_are_lines_of_the_facts() -> None:
     step = StrategyStepNode(id="c_text", search_name="GenesByText")
     deps = _deps(_session(step, {"c_text": 2}), site_id="cryptodb")
     deps.state.turn_markers.record_comparison(
         ComparisonFact(
             variants=[
-                ComparedVariant(label="Product field", gene_count=2, unique_count=0),
-                ComparedVariant(
-                    label="All text fields", gene_count=84, unique_count=82
-                ),
+                ComparedVariant(label="Product field", gene_count=2),
+                ComparedVariant(label="All text fields", gene_count=84),
             ],
-            overlaps=[SharedGenes(a="Product field", b="All text fields", shared=2)],
         )
     )
-    prose = (
-        "Every text field finds [compare:All text fields], "
-        "[compare:All text fields:unique] beyond the [count:c_text] here."
-    )
 
-    assert _rendered(deps, prose) == (
-        "Every text field finds 84 genes, 82 genes beyond the 2 genes here."
-    )
-    assert _faults(deps, "Every text field finds 83.") == [
-        ProseFault(token="83", kind="number")
-    ]
+    assert [
+        line for line in turn_facts(deps).lines() if line.startswith("All text")
+    ] == ["All text fields: 84 genes"]
+    assert _faults(deps, "Every text field finds 83.") == ["83"]
 
 
-def test_a_number_the_researcher_writes_is_prose_in_the_reply() -> None:
+def test_a_number_the_researcher_writes_is_prose_in_the_note() -> None:
     step = StrategyStepNode(id="step_cfe9f20f", search_name="GenesByText")
     session = _session(step, {"step_cfe9f20f": 146}, site_id="piroplasmadb")
     state = pipeline_state(
@@ -470,7 +447,5 @@ def test_a_number_the_researcher_writes_is_prose_in_the_reply() -> None:
     )
     deps = lead_deps(state, strategy_session=session)
 
-    assert _faults(deps, "On chromosome 1: [count:step_cfe9f20f].") == []
-    assert _faults(deps, "On chromosome 2: [count:step_cfe9f20f].") == [
-        ProseFault(token="2", kind="number")
-    ]
+    assert _faults(deps, "On chromosome 1 they are a small share.") == []
+    assert _faults(deps, "On chromosome 2 they are a small share.") == ["2"]

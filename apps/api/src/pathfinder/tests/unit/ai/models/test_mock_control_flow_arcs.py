@@ -56,7 +56,6 @@ def test_a_count_comparison_on_a_framed_thread_changes_no_step(site_id: str) -> 
     ]
     [intent] = args_of(calls, "classify_user_intent")
     assert intent["intent"]["classification"] == "follow_up_question"
-    assert calls[-1].args_as_dict()["strategyChanged"] is False
 
 
 _UNION_REFUSED = (
@@ -94,4 +93,3 @@ def test_the_lead_answers_a_refused_union_with_the_comparison(site_id: str) -> N
         "compare_search_variants",
         "final_result",
     ]
-    assert calls[-1].args_as_dict()["strategyChanged"] is False

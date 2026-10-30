@@ -10,28 +10,22 @@ from pydantic import ValidationError
 from pathfinder.ai.lead.card_question import CardQuestion
 
 
-def test_a_reference_in_the_prompt_is_refused() -> None:
+def test_a_record_reference_in_the_prompt_is_refused() -> None:
     with pytest.raises(ValidationError) as refused:
-        CardQuestion(
-            id="q1",
-            prompt=(
-                "Enter a numeric value; the site threshold is [value:c_tm.max_tm] "
-                "and its setting is [source:c_tm.min_tm]."
-            ),
-        )
+        CardQuestion(id="q1", prompt="Keep [record:PF3D7_1133400] in the set?")
 
-    assert "['[value:c_tm.max_tm]', '[source:c_tm.min_tm]']" in str(refused.value)
-    assert "write the value in words from the sheet you read" in str(refused.value)
+    assert "['[record:PF3D7_1133400]']" in str(refused.value)
+    assert "so name the record in words" in str(refused.value)
 
 
-def test_a_reference_in_an_option_label_is_refused() -> None:
+def test_a_record_reference_in_an_option_label_is_refused() -> None:
     with pytest.raises(ValidationError):
         CardQuestion(
             id="q1",
-            prompt="Which minimum?",
+            prompt="Which gene leads the set?",
             options=[
-                ConsultOption(label="the site threshold, [value:c_pep.min]"),
-                ConsultOption(label="two peptides"),
+                ConsultOption(label="the antigen [record:PF3D7_1133400]"),
+                ConsultOption(label="the transporter"),
             ],
         )
 

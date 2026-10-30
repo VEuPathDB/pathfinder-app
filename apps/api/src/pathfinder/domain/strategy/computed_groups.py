@@ -24,7 +24,6 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 COMPARISON_PREFIX = "groups:"
 _DIGITS = 12
 COMPUTED_ROUTE = "computed snapshot"
-LEADS_BY = 2
 SNAPSHOT_CAVEAT = (
     "The ids are fixed; a later release maps each id to the groups it became, "
     "so the count can change."
@@ -69,11 +68,6 @@ class SetFacts(CamelModel):
     leading_species_share: Share
     species: tuple[SpeciesFacts, ...]
 
-    @property
-    def leading_species_leads(self) -> bool:
-        first, *rest = self.species
-        return bool(rest) and first.genomes >= LEADS_BY * rest[0].genomes
-
     @classmethod
     def of(cls, held: ComputedSet) -> SetFacts:
         leading = held.species[0]
@@ -115,23 +109,6 @@ class ComparisonFacts(CamelModel):
     compute_requests: int
     left: SetFacts
     right: SetFacts
-
-    def breakdown(self) -> tuple[tuple[str, ...], ...]:
-        sides = (("leftOnly", self.left_only), ("rightOnly", self.right_only))
-        one_sided = [path for path, count in sides if count]
-        split = ["bothHeld", *one_sided] if one_sided else []
-        residual = ["residualGroups"] if self.residual_groups else []
-        counted = tuple((path, f"{path}Share") for path in (*split, *residual))
-        leading = tuple(
-            need
-            for side, held in (("left", self.left), ("right", self.right))
-            if held.leading_species_leads
-            for need in (
-                (f"{side}.leadingSpecies",),
-                (f"{side}.leadingSpeciesShare", f"{side}.leadingSpeciesGenomes"),
-            )
-        )
-        return (*counted, *leading)
 
 
 def _leaders(held: ComputedSet) -> list[str]:
@@ -269,7 +246,6 @@ def noted_description(
 __all__ = [
     "COMPARISON_PREFIX",
     "COMPUTED_ROUTE",
-    "LEADS_BY",
     "SNAPSHOT_CAVEAT",
     "SNAPSHOT_NOTE",
     "ComparisonFacts",

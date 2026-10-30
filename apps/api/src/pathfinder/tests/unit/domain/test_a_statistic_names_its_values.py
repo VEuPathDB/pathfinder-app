@@ -11,7 +11,6 @@ from pathfinder.domain.eda_parts import (
     EdaStatisticRow,
     EdaStatisticsPart,
 )
-from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.statistic_facts import (
     StatisticFact,
     StatisticRowFact,
@@ -136,37 +135,6 @@ def test_each_box_names_its_five_numbers_its_mean_and_its_outliers() -> None:
     ]
 
 
-def test_a_stat_reference_renders_the_value_it_names() -> None:
-    facts = TurnFacts(statistics=[pca_fact(_PCA), statistics_fact(_TWO_BY_TWO)])
-    prose = (
-        f"The first component explains [stat:{_PCA_ID}.PC1] of the variance; the "
-        "odds ratio is [stat:stat_9f2c4e1a.odds ratio] "
-        "(p [stat:stat_9f2c4e1a.odds ratio p-value])."
-    )
-
-    assert prose_faults(prose, facts) == []
-    assert render_reply(prose, facts) == (
-        "The first component explains 41.2% of the variance; the odds ratio "
-        "is 3.25 (p 0.0412)."
-    )
-
-
-def test_a_bare_statistic_is_a_fault_that_names_its_reference() -> None:
-    facts = TurnFacts(statistics=[pca_fact(_PCA)])
-
-    assert prose_faults("The first component explains 41.2% of it.", facts) == [
-        ProseFault(token="41.2%", kind="number", references=(f"[stat:{_PCA_ID}.PC1]",))
-    ]
-
-
-def test_a_stat_reference_to_a_row_the_statistic_lacks_is_unheld() -> None:
-    facts = TurnFacts(statistics=[pca_fact(_PCA)])
-
-    assert prose_faults(f"[stat:{_PCA_ID}.PC3]", facts) == [
-        ProseFault(token=f"[stat:{_PCA_ID}.PC3]", kind="unheld_reference")
-    ]
-
-
 def test_the_facts_list_each_statistic_under_its_title() -> None:
     facts = TurnFacts(statistics=[statistics_fact(_TWO_BY_TWO)])
 
@@ -217,21 +185,6 @@ _SEXES = _PCA.model_copy(
 )
 
 
-def test_a_reply_states_where_each_group_sits() -> None:
-    facts = TurnFacts(statistics=[pca_fact(_SEXES)])
-    prose = (
-        f"Female samples sit at [stat:{_PCA_ID}.Female gametocytes PC1 range] and "
-        f"male samples at [stat:{_PCA_ID}.Male gametocytes PC1 range] on PC1, which "
-        f"explains [stat:{_PCA_ID}.PC1]."
-    )
-
-    assert prose_faults(prose, facts) == []
-    assert render_reply(prose, facts) == (
-        "Female samples sit at 79.31 to 86.52 and male samples at -96.6 to -70.44 "
-        "on PC1, which explains 94.26%."
-    )
-
-
 def test_what_separates_is_a_statement_no_reference_names() -> None:
     fact = pca_fact(_SEXES)
 
@@ -244,18 +197,6 @@ def test_what_separates_is_a_statement_no_reference_names() -> None:
     ]
     assert fact.lines()[-2:] == fact.statements
     assert [r.name for r in fact.rows if "separat" in r.name] == []
-
-
-def test_a_bare_group_position_is_a_fault_that_names_its_reference() -> None:
-    facts = TurnFacts(statistics=[pca_fact(_SEXES)])
-
-    assert prose_faults("Male samples reach -96.6 on PC1.", facts) == [
-        ProseFault(
-            token="96.6",
-            kind="number",
-            references=(f"[stat:{_PCA_ID}.Male gametocytes PC1 range]",),
-        )
-    ]
 
 
 def test_one_group_has_no_pairs_and_one_sample_has_no_span() -> None:

@@ -72,5 +72,5 @@ def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
         *head,
         scripted_call(_ADOPT, {"task_id": report.task_id, "reply": _ADOPT_REPLY}),
         scripted_call("verify_strategy", {"reason": "check the adopted strategy"}),
-        lead_final(f"{_BUILT}{FACTS_BESIDE}", "complete", strategy_changed=True),
+        lead_final(f"{_BUILT}{FACTS_BESIDE}", "complete"),
     ]

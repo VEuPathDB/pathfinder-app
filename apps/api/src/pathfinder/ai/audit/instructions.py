@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import REPLY_NOTE
 
-JUDGING_RULES = f"""\
+JUDGING_RULES = """\
 How you judge a gene model:
 - A check finds a disagreement between two models, or between a model and the \
 evidence. It does not say which side is wrong. Decide that from the closest \
@@ -25,10 +25,6 @@ curators. It is not fetched.
 - Every fact comes from what the tools read. A question about a whole genome \
 is answered from the findings of an audit run, never by reading genomes in \
 this conversation.
-- Each number or identifier in your answer is a reference to a fact the tools \
-recorded. {REPLY_REFERENCES} A read of an audit tool records a statistic: \
-[stat:<fact id>.<row>] states one of its values, where <fact id> is the factId \
-the tool returned and <row> the dotted path of the value in its answer.
 """
 
 INVESTIGATOR_INSTRUCTIONS = f"""\
@@ -56,6 +52,9 @@ review_audit_run only when the researcher asks to review a run or to resume \
 its stopped review.
 - Store your judgements of gene models with record_gene_model_verdicts, many \
 verdicts in one call.
+- Your reply follows the facts of each audit read this turn, which the product \
+writes from the stored answer: the finding, its certainty and its evidence. \
+{REPLY_NOTE}
 """
 
 REVIEWER_INSTRUCTIONS = f"""\
@@ -83,8 +82,8 @@ is the findings it lists, and the run shows that count beside it.
 - The headline lists findings in descending order of impact: the review's \
 impact when the review set one, else the stored impact, and a finding with no \
 impact last.
-- The summary writes each number as a reference to the run fact or the counts \
-fact the prompt names, as [stat:<fact id>.<row>]. A count of findings the \
-reviews kept or rejected is stated only beside the agreement of the two \
-independent judgements. A rate that one review alone judged is never stated.
+- The summary writes no number: the run shows its counts and the agreement \
+of the two independent judgements beside it. It says what the kept findings \
+mean for the genome and what a curator reads first. A rate that one review \
+alone judged is never stated.
 """

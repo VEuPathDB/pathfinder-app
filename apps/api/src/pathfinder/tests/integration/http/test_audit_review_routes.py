@@ -19,7 +19,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
     ReviewProgress,
-    StoredSynthesis,
+    Synthesis,
     finding_cite,
 )
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
@@ -61,8 +61,8 @@ def _review(finding_id: int) -> FindingReview:
     )
 
 
-def _synthesis(finding_id: int) -> StoredSynthesis:
-    return StoredSynthesis(
+def _synthesis(finding_id: int) -> Synthesis:
+    return Synthesis(
         sections=(
             ErrorTypeSection(
                 error_type="truncated_model",

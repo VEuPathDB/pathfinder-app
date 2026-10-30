@@ -15,7 +15,6 @@ from pathfinder.ai.lead.intent import (
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
-    turn_is_an_audit,
     turn_is_classified,
     turn_is_off_topic,
 )
@@ -31,14 +30,9 @@ from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.audit.planning import PlanRefusal
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.comparison_placement import (
-    PlacedComparison,
-    placed_comparison,
-)
 from pathfinder.domain.strategy.constraints import is_blocking
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    OperationalSpec,
     pending_analyses,
 )
 from pathfinder.domain.turn_facts import TurnFacts
@@ -69,7 +63,7 @@ class TurnRecord(CamelModel):
     build_section: BuildSection
     verification_section: VerificationSection
     created_control_sets: tuple[CreatedControlSet, ...]
-    # What the turn shows beside its reply, which the reply's references name.
+    # What the turn shows beside its reply.
     facts: TurnFacts = TurnFacts()
     # The values a frame pass of this turn left for the user to choose.
     frame_open_questions: tuple[str, ...] = ()
@@ -84,9 +78,7 @@ class TurnRecord(CamelModel):
     named_controls: NamedControls | None = None
     unfollowed_reach: StepReach | None = None
     unmet_requirements: tuple[str, ...] = ()
-    audit_turn: bool = False
     refused_plan: PlanRefusal | None = None
-    comparisons: tuple[PlacedComparison, ...] = ()
 
     def unplanned_audit(self, *, asked: bool) -> str | None:
         refused = self.refused_plan
@@ -163,8 +155,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     markers = deps.state.turn_markers
     classified = turn_is_classified(deps)
     ledger = derive_ledger(deps.state, deps.intent)
-    graph = deps.runtime.strategy_session.get_graph(None)
-    root_id = None if graph is None else graph.primary_root_id()
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=deps.build_unverified,
@@ -192,12 +182,5 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
             for g in ledger.constraints.grounded
             if is_blocking(g)
         ),
-        audit_turn=turn_is_an_audit(deps),
         refused_plan=markers.refused_plan,
-        comparisons=tuple(
-            placed_comparison(
-                held, deps.state.domain.operational_spec or OperationalSpec(), root_id
-            )
-            for held in deps.state.domain.computed_comparisons.values()
-        ),
     )

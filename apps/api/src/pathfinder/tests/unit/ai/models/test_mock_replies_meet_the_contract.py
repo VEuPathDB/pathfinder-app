@@ -1,6 +1,6 @@
-"""The reply of every arc is one the real turn contract accepts: it writes no
-number, identifier or link outside a reference. A check of a
-built thread is accepted as a turn that wrote nothing."""
+"""The reply of every arc is one the real turn contract accepts: a note that
+writes no number and no link. A check of a built thread is accepted as a turn that wrote
+nothing."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.ai.models.mock.registry import ARCS
-from pathfinder.domain.reply_references import shape_faults
+from pathfinder.domain.reply_note import note_facts, written_numbers
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -43,6 +43,7 @@ from pathfinder.tests.unit.ai.models._mock_turns import Scene, names, play
 
 SITES = ("plasmodb", "vectorbase")
 _WRITES = {"build_strategy", "edit_strategy"}
+_CHANGES = {*_WRITES, "clear_strategy", "delete_step", "create_eda_step"}
 _OWN = "own_experiment"
 
 
@@ -91,7 +92,7 @@ _TESTED = "7 of 10 positive controls recovered."
 @pytest.mark.parametrize("framed", [False, True])
 @pytest.mark.parametrize("checked_with_findings", [False, True])
 @pytest.mark.parametrize("arc", sorted(ARCS))
-def test_every_reply_writes_no_fact_outside_a_reference(
+def test_every_reply_is_a_note_with_no_number(
     arc: str, site_id: str, framed: bool, checked_with_findings: bool
 ) -> None:
     answers = {"verify_strategy": checked()} if checked_with_findings else {}
@@ -100,11 +101,15 @@ def test_every_reply_writes_no_fact_outside_a_reference(
     if names(calls)[-1] != "final_result":
         return
     report = LeadResponse.model_validate(calls[-1].args_as_dict())
-    deps = building_deps() if report.strategy_changed else reading_deps()
+    deps = building_deps() if _CHANGES & set(names(calls)) else reading_deps()
 
-    mismatches = reconcile(report, turn_record(run_context_for(deps)))
+    record = turn_record(run_context_for(deps))
+    mismatches = reconcile(report, record)
 
-    assert shape_faults(report.prose) == []
+    assert (written_numbers(report.prose), note_facts(report.prose, record.facts)) == (
+        [],
+        [],
+    )
     assert [(m.kind, m.sentence) for m in mismatches] == []
 
 
@@ -140,7 +145,6 @@ def test_a_refused_build_is_stated_in_plain_words(
 
     assert record.refused_dispatches == ("build_strategy",)
     assert names(calls)[-2:] == ["build_strategy", "final_result"]
-    assert report.strategy_changed is False
     assert (report.prose.startswith("Nothing was built: "), _OWN in report.prose) == (
         True,
         False,

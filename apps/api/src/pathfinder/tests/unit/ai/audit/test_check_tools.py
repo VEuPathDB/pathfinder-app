@@ -31,7 +31,6 @@ from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import GenePairTarget
-from pathfinder.domain.statistic_facts import statistic_value
 from pathfinder.domain.statistic_rows import model_rows
 from pathfinder.services.audit import investigation
 from pathfinder.services.audit.finding_views import (
@@ -73,7 +72,6 @@ class _Read(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     answer: object
-    fact_id: str
 
 
 def _read(part: ToolReturnPart) -> _Read:
@@ -105,7 +103,6 @@ async def test_a_check_read_records_the_given_and_resolved_ids(
         (REFERENCE, gene_record_url("plasmodb", REFERENCE), "Examplea alpha R"),
     ]
     assert _summary(returned) == "EXA_0001 against EXR_0001: INTACT"
-    assert _read(returned).fact_id == fact.id
     assert returned.model_response_object()["genomes"] == {
         STRAIN: "Examplea alpha A",
         RESOLVED: "Examplea alpha A",
@@ -334,7 +331,7 @@ async def test_the_rate_tool_is_the_library_rate() -> None:
     (fact,) = deps.facts
     assert investigation.rate_with_interval(3, 12, 4) == expected
     assert _read(returned).answer == expected
-    assert (fact.kind, _read(returned).fact_id) == ("audit_rate", fact.id)
+    assert fact.kind == "audit_rate"
     assert [fact.value(name) for name in ("confirmed", "checked", "low", "high")] == [
         "3",
         "12",
@@ -400,12 +397,6 @@ def test_finding_rows_are_dotted_paths() -> None:
     assert (fact.value("finding.verdict"), fact.value("finding.fromTarget")) == (
         "intact",
         "yes",
-    )
-    assert (
-        statistic_value(
-            [fact], f"{fact.id}.evidence.0.payload.confirmation.result.strainCdsLength"
-        )
-        == "900"
     )
 
 

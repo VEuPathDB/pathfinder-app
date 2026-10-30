@@ -9,7 +9,6 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 
 from pathfinder.ai.agents.roles import PhaseRole
-from pathfinder.domain.strategy.words import words_of
 
 
 class PhaseStopReason(StrEnum):
@@ -65,10 +64,6 @@ class PhaseStop(CamelModel):
     def phrase(self) -> str:
         """Why the pass stopped, as the predicate of a sentence about it."""
         return _REASON_PHRASE[self.reason].format(tool=self.tool_name)
-
-    def stated_by(self, prose: str) -> bool:
-        """Whether the prose names the pass and says it stopped, in any case."""
-        return {*words_of(_PASS_NAME[self.role]), "stopped"} <= set(words_of(prose))
 
     def render(self) -> str:
         """One sentence naming the stop, for the ledger and for a refusal."""

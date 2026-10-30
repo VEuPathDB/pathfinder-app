@@ -57,9 +57,9 @@ def loop_stop_prose(stop: GuardStop | None) -> str:
     )
 
 
-def stop_response(prose: str, *, changed: bool) -> LeadResponse:
+def stop_response(prose: str) -> LeadResponse:
     """The reply the runtime writes when a turn ends without one."""
-    return LeadResponse(prose=prose, next_state="await_user", strategy_changed=changed)
+    return LeadResponse(prose=prose, next_state="await_user")
 
 
 def absorb_loop_stop(
@@ -72,7 +72,6 @@ def absorb_loop_stop(
         return
     capture.response = stop_response(
         loop_stop_prose(capture.guard_stop),
-        changed=state.turn_markers.changed_strategy,
     )
 
 
@@ -223,7 +222,6 @@ def unwritten_reply(state: PipelineState) -> LeadResponse:
     change = strategy_change(state)
     return stop_response(
         f"I could not write the answer to this turn. {_NEXT[change]}",
-        changed=change != "unchanged",
     )
 
 
@@ -251,7 +249,6 @@ def run_stop_reply(
                     spent,
                     limits,
                 ),
-                changed=state.turn_markers.changed_strategy,
             )
         case UnexpectedModelBehavior() if spent_its_output_retries(exc):
             logger.warning(
@@ -325,5 +322,4 @@ def final_reply(
         return None
     return stop_response(
         fallback_prose(capture, unanswered, change=change),
-        changed=change != "unchanged",
     )

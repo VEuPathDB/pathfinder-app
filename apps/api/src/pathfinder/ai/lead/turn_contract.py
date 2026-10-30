@@ -12,17 +12,12 @@ from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.agents.refusal_bound import may_refuse
-from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_NOTE
 from pathfinder.ai.lead.contract_messages import (
-    claimed_change_message,
     eda_criterion_not_built_message,
-    failed_check_message,
+    note_facts_message,
     off_topic_essay_message,
     unclassified_turn_message,
-    unnamed_record_organism_message,
-    unplaced_breakdown_message,
-    unrendered_prose_message,
-    unreported_change_message,
     unsaved_controls_message,
     unverified_build_message,
 )
@@ -30,17 +25,11 @@ from pathfinder.ai.lead.limit_messages import (
     unfollowed_reach_message,
     unmet_requirement_message,
 )
-from pathfinder.ai.lead.reply_claims import ends_with_a_question, names_an_organism
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
-from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
-from pathfinder.ai.lead.withheld_reply import withheld_prose, withholds
+from pathfinder.ai.lead.verdict_claims import open_value_in_prose
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
-from pathfinder.domain.reply_references import (
-    prose_faults,
-    render_reply,
-    unheld_references,
-)
+from pathfinder.domain.reply_note import note_facts
 from pathfinder.domain.strategy.questions import AskedQuestion
 
 LeadTurnState = Literal["await_user", "complete"]
@@ -54,25 +43,16 @@ CONTRACT_HEADING = "This reply does not match what the turn did:"
 
 
 class LeadResponse(CamelModel):
-    """The Lead's final reply. ``prose`` holds references the emitter renders
-    from the turn's facts; ``next_state`` says whether the turn waits on the
-    user."""
+    """The Lead's final reply. ``prose`` is the note beside the facts the
+    product renders; ``next_state`` says whether the turn waits on the user."""
 
     prose: Annotated[str, text_clipped_to(PROSE_MAX_CHARS)] = Field(
         description=(
-            f"User-facing reply for this turn. Plain markdown. {REPLY_REFERENCES} "
+            f"User-facing reply for this turn. Plain markdown. {REPLY_NOTE} "
             "Do NOT include sub-agent log noise - synthesize from the Ledger."
         ),
     )
     next_state: LeadTurnState = "await_user"
-    strategy_changed: bool = Field(
-        description=(
-            "True when this turn built, edited, deleted, cleared, or exported "
-            "a step into the strategy. False when the strategy is as the turn "
-            "found it. The runtime checks this against what the turn actually "
-            "wrote."
-        ),
-    )
     unverified_reason: str = Field(
         default="",
         description=(
@@ -96,19 +76,14 @@ class LeadResponse(CamelModel):
 
 MismatchKind = Literal[
     "unverified_build",
-    "misreported_change",
     "unbuilt_eda_criterion",
     "open_value_in_prose",
-    "stopped_check",
     "unclassified_turn",
     "unsaved_controls",
     "off_topic_essay",
-    "unnamed_record_organism",
-    "unrendered_prose",
-    "failed_check",
+    "note_facts",
     "unfollowed_reach",
     "unmet_requirement",
-    "unplaced_breakdown",
     "unplanned_audit",
 ]
 
@@ -140,15 +115,6 @@ def _unverified_build(report: LeadResponse, record: TurnRecord) -> str | None:
     )
 
 
-def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
-    """The turn's markers are the record of what the strategy holds now."""
-    if report.strategy_changed == record.changed_strategy:
-        return None
-    if record.changed_strategy:
-        return unreported_change_message(record.build_outcome, record.facts)
-    return claimed_change_message(record.build_outcome, record.facts.root_count)
-
-
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
     """Only the EDA tools build a criterion waiting for its analysis."""
     del report
@@ -161,11 +127,6 @@ def _open_value_in_prose(report: LeadResponse, record: TurnRecord) -> str | None
     """A value the frame leaves open is asked on the question card."""
     del report
     return open_value_in_prose(record)
-
-
-def _stopped_check(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A check that stopped recorded no verdict, so the reply says it stopped."""
-    return unstated_stop(report.prose, record)
 
 
 def _unclassified_turn(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -205,31 +166,6 @@ def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
     return off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS)
 
 
-def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn that moved the records to another organism names that organism."""
-    outcome = record.build_outcome
-    change = None if outcome is None else outcome.organism_change
-    if not record.changed_strategy or change is None:
-        return None
-    if all(names_an_organism(report.prose, organism) for organism in change.records):
-        return None
-    return unnamed_record_organism_message(change)
-
-
-def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A check that failed on the strategy as it stands is stated or asked about."""
-    digest = record.verification_section.digest
-    if digest is None or digest.success:
-        return None
-    if record.audit_turn:
-        return None
-    if report.asked_questions or record.ends_on_a_card:
-        return None
-    if ends_with_a_question(report.prose) or digest.failure_stated_in(report.prose):
-        return None
-    return failed_check_message(digest.reason, digest.unanswered)
-
-
 def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
     reach = record.unfollowed_reach
     if reach is None or report.asked_questions or record.ends_on_a_card:
@@ -246,63 +182,37 @@ def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
     return unmet_requirement_message(unmet)
 
 
-def _unplaced_breakdown(report: LeadResponse, record: TurnRecord) -> str | None:
-    unplaced = [r for held in record.comparisons for r in held.unplaced(report.prose)]
-    return unplaced_breakdown_message(unplaced) if unplaced else None
-
-
 type _Rule = tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]]
 
-_WRITTEN_RULES: tuple[_Rule, ...] = (("unplaced_breakdown", _unplaced_breakdown),)
 _RULES: tuple[_Rule, ...] = (
     ("unverified_build", _unverified_build),
-    ("misreported_change", _misreported_change),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("open_value_in_prose", _open_value_in_prose),
-    ("stopped_check", _stopped_check),
     ("unclassified_turn", _unclassified_turn),
     ("unsaved_controls", _unsaved_controls),
     ("off_topic_essay", _off_topic_essay),
-    ("unnamed_record_organism", _unnamed_record_organism),
-    ("failed_check", _failed_check),
     ("unfollowed_reach", _unfollowed_reach),
     ("unmet_requirement", _unmet_requirement),
     ("unplanned_audit", lambda r, t: t.unplanned_audit(asked=bool(r.asked_questions))),
 )
 
 
-def _as_read(report: LeadResponse, record: TurnRecord) -> LeadResponse:
-    """The reply as the researcher reads it, once every reference renders."""
-    if unheld_references(report.prose, record.facts):
-        return report
-    return report.model_copy(update={"prose": render_reply(report.prose, record.facts)})
-
-
 def reconcile(report: LeadResponse, record: TurnRecord) -> list[Mismatch]:
-    """Every way this reply disagrees with the turn it answers, in rule order:
-    first as the researcher reads it, then by the references it writes."""
-    shown = _as_read(report, record)
-    checks = [*((r, shown) for r in _RULES), *((r, report) for r in _WRITTEN_RULES)]
+    """Every way this reply disagrees with the turn it answers, in rule order."""
     return [
         Mismatch(kind=kind, sentence=sentence)
-        for (kind, rule), read in checks
-        if (sentence := rule(read, record)) is not None
+        for kind, rule in _RULES
+        if (sentence := rule(report, record)) is not None
     ]
 
 
-def unrendered_prose(replies: Sequence[str], record: TurnRecord) -> Mismatch | None:
-    """A reply writes a fact outside a reference, or a reference names nothing
-    the turn's facts hold."""
-    faults = list(
-        dict.fromkeys(f for text in replies for f in prose_faults(text, record.facts))
+def facts_in_the_note(replies: Sequence[str], record: TurnRecord) -> Mismatch | None:
+    written = list(
+        dict.fromkeys(t for text in replies for t in note_facts(text, record.facts))
     )
-    if not faults:
+    if not written:
         return None
-    return Mismatch(kind="unrendered_prose", sentence=unrendered_prose_message(faults))
-
-
-def as_the_record_holds(report: LeadResponse, record: TurnRecord) -> LeadResponse:
-    return report.model_copy(update={"strategy_changed": record.changed_strategy})
+    return Mismatch(kind="note_facts", sentence=note_facts_message(written))
 
 
 def to_correct(
@@ -312,26 +222,26 @@ def to_correct(
     replies: Sequence[str],
 ) -> list[Mismatch]:
     """The mismatches one answer is corrected for. Each of ``replies`` is read
-    whole and refused while it cannot render, on a bound of its own; every other
-    mismatch is corrected once per turn. An answer let through with a mismatch
-    marks the turn's reply as unchecked."""
+    whole for the facts it writes on a bound of its own; every other mismatch
+    is corrected once per turn. An answer let through with a mismatch marks the
+    turn's reply as unchecked."""
     markers = ctx.deps.state.turn_markers
-    prose = unrendered_prose(replies, record)
+    written = facts_in_the_note(replies, record)
     found = [
         m for m in reconcile(report, record) if m.kind not in markers.refused_rules
     ]
-    prose_asked = prose is not None and may_refuse(ctx, markers.prose_refusals)
+    note_asked = written is not None and may_refuse(ctx, markers.prose_refusals)
     rules_asked = bool(found) and may_refuse(ctx, markers.output_refusals)
-    asked = [*([prose] if prose is not None and prose_asked else []), *found]
-    if prose_asked or rules_asked:
-        if prose_asked:
+    asked = [*([written] if written is not None and note_asked else []), *found]
+    if note_asked or rules_asked:
+        if note_asked:
             markers.prose_refusals += 1
         if rules_asked:
             markers.output_refusals += 1
             markers.refused_rules.extend(m.kind for m in found)
             markers.contract_refused = True
         return asked if rules_asked else asked[:1]
-    if prose is not None or reconcile(as_the_record_holds(report, record), record):
+    if written is not None or reconcile(report, record):
         markers.unchecked_reply = True
     return []
 
@@ -342,23 +252,16 @@ def hold_the_turn_contract(
 ) -> LeadResponse | DeferredToolRequests:
     """Refuse an answer of a turn that does not match the turn's record.
 
-    One correction carries every mismatch. Prose the product cannot render is
-    refused up to its own bound; past it, a reply that writes a number or names
-    a fact the facts lack is withheld, and any other fault goes through
-    unchecked. Every other mismatch is asked once per turn. An answer let
-    through states the strategy change the record holds.
+    One correction carries every mismatch. A note that writes a link or a
+    number is refused up to its own bound, then shown marked unchecked. Every
+    other mismatch is asked once per turn.
     """
     if not isinstance(output, LeadResponse):
         return output
-    record = turn_record(ctx)
-    mismatches = to_correct(ctx, output, record, [output.prose])
+    mismatches = to_correct(ctx, output, turn_record(ctx), [output.prose])
     if mismatches:
         raise ModelRetry(correction_for(mismatches))
-    shown = as_the_record_holds(output, record)
-    if not withholds(prose_faults(output.prose, record.facts)):
-        return shown
-    ctx.deps.state.turn_markers.unchecked_reply = False
-    return shown.model_copy(update={"prose": withheld_prose(record.facts)})
+    return output
 
 
 def correction_for(mismatches: Sequence[Mismatch]) -> str:

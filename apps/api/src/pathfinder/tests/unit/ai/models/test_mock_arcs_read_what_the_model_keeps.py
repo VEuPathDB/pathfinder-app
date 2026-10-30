@@ -77,7 +77,6 @@ def test_the_controls_reply_on_a_built_thread_changes_nothing(site_id: str) -> N
 
     calls = play("lead", site_id, "Test it [[arc:controls-test]]", scene=scene)
 
-    assert calls[-1].args_as_dict()["strategyChanged"] is False
     assert calls[-1].args_as_dict()["prose"] == f"{SUCCESS_PROSE}{FACTS_BESIDE}"
 
 

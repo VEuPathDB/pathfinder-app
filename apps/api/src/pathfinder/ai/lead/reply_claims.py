@@ -14,7 +14,6 @@ from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.column_fit import COLUMN_FIT_COUNTS
-from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 _CLAUSE_END = re.compile(r"[.!?;\n]")
 
@@ -42,13 +41,6 @@ _AN_ERROR_STRING = re.compile(
 )
 
 
-def names_an_organism(prose: str, organism: str) -> bool:
-    """Whether the prose names the organism in full or with its genus abbreviated."""
-    genus, _, rest = organism.partition(" ")
-    abbreviated = f"{genus[:1]}. {rest}" if rest else organism
-    return names_the_phrase(prose, organism) or names_the_phrase(prose, abbreviated)
-
-
 def machine_words(prose: str) -> list[str]:
     """Every internal name this reply prints, in the order they are looked for.
 
@@ -60,20 +52,6 @@ def machine_words(prose: str) -> list[str]:
     found.extend(sorted(set(_A_STEP_ID.findall(text))))
     found.extend(sorted(set(_AN_ERROR_STRING.findall(text))))
     return found
-
-
-# What may close a question after its mark: whitespace, emphasis, code, a
-# bracket or a quote.
-_CLOSING_MARKS = " \t\r\n*_`)]\"'"
-
-
-def ends_with_a_question(prose: str) -> bool:
-    """Whether the last non-empty paragraph of the prose ends with ``?``.
-
-    Marks that close the sentence after its question mark are read through, so
-    a bold or quoted question still ends the reply.
-    """
-    return prose.rstrip(_CLOSING_MARKS).endswith("?")
 
 
 def counts_named_as(prose: str, noun: str, *, instead_of: str) -> list[int]:

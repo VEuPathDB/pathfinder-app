@@ -46,11 +46,8 @@ async def count_by_column(
     the rows whose ``only_column`` is one of ``only_values`` before the count,
     for example the RNA-Seq datasets (``newcategory`` is ``RNASeq``) counted by
     organism (``organism_prefix``). A value that lists several entries counts as
-    one value of its own. The table shows every count; state the total with
-    ``[tally:<id>]``, one value's count with ``[tally:<id>.<value>]`` and the
-    number of values with ``[tally:<id>:values]`` and the noun of its values
-    after it. A
-    column the site cannot count is refused with the columns it can.
+    one value of its own. The table shows every count. A column the site
+    cannot count is refused with the columns it can.
 
     Args:
         search: The search, its parameter values and a short ``label``.

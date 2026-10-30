@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from itertools import pairwise
 
 from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     GroundedConstraint,
     message_states,
 )
-from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
 def _names(text: str, words: str) -> bool:
@@ -46,27 +44,7 @@ def names_a_retired_requirement(
     return held is not None and held.retired
 
 
-def _naming(word: str) -> bool:
-    return word not in FILLER_WORDS and not word.isdigit()
-
-
-def named_in_prose(prose: str, text: str) -> bool:
-    """Whether the prose names the text: two consecutive naming words of it in
-    order, else its naming words, else its whole text verbatim. A number or a
-    filler word names nothing."""
-    held = words_of(prose)
-    wanted = words_of(text)
-    pairs = {(a, b) for a, b in pairwise(wanted) if _naming(a) and _naming(b)}
-    if pairs:
-        return any(pair in pairs for pair in pairwise(held))
-    naming = [w for w in wanted if _naming(w)]
-    if not naming:
-        return text in prose
-    return all(w in held for w in naming)
-
-
 __all__ = [
-    "named_in_prose",
     "names_a_retired_requirement",
     "requirement_naming",
 ]

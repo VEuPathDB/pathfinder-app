@@ -19,7 +19,7 @@ const ORTHOLOG_COLUMNS = [{ head: "Gene" }, { head: "Organism" }];
 const LISTED_COLUMNS = [{ head: "Gene" }];
 const VALUE_COLUMNS = [{ head: "Value" }];
 
-function RecordLink({ url, text }: { url: string; text: string }): ReactElement {
+export function RecordLink({ url, text }: { url: string; text: string }): ReactElement {
   return (
     <a
       href={url}
@@ -43,7 +43,7 @@ function details(source: SourceFact): string {
   return words.join(", ");
 }
 
-function Titled({
+export function Titled({
   title,
   testId,
   children,

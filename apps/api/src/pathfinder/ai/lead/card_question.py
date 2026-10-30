@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.graph.turn_state import ConsultQuestion
 from pydantic import Field, model_validator
 
-from pathfinder.domain.reference_grammar import A_REFERENCE
+from pathfinder.domain.reply_note import A_RECORD
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, ConstraintKind
 
 
@@ -31,19 +31,17 @@ class CardQuestion(ConsultQuestion):
 
     @model_validator(mode="after")
     def _is_written_for_the_researcher(self) -> CardQuestion:
-        """A question is read by the researcher, so it carries no reference.
-
-        A reference renders in the reply from the turn's facts; a card arrives
-        before the facts exist, so a value a question states is written in
-        words from the sheet the pass read.
-        """
+        """A card arrives before the facts that link a record, so a question
+        names a record in words."""
         texts = [self.prompt, self.context, *(o.label for o in self.options)]
-        found = [m.group() for text in texts for m in A_REFERENCE.finditer(text or "")]
+        found = [
+            m.group().strip() for text in texts for m in A_RECORD.finditer(text or "")
+        ]
         if found:
             msg = (
                 f"the question {self.prompt!r} carries the reference(s) {found}; a "
-                "card is read by the researcher before the facts exist, so write the "
-                "value in words from the sheet you read"
+                "card is read before the facts that link it exist, so name the "
+                "record in words"
             )
             raise ValueError(msg)
         return self

@@ -123,7 +123,6 @@ def _classify_then_answer(classification: str) -> FunctionModel:
                 args={
                     "prose": _ANSWER,
                     "nextState": "await_user",
-                    "strategyChanged": False,
                 },
                 tool_call_id="call_final",
             )

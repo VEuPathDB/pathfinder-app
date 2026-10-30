@@ -68,7 +68,7 @@ SPEC = OperationalSpec(
 )
 TURN_ONE_REPLY = (
     "The strategy correctly defines singleton groups as groups containing exactly "
-    "one protein and returns [count:step_88b8197d]."
+    "one protein and returns the singleton groups."
 )
 
 

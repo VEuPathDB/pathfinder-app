@@ -99,7 +99,7 @@ async def test_a_turn_that_ran_out_of_budget_after_a_build_says_so(
     )
 
     assert capture.response is not None
-    assert capture.response.strategy_changed is True
+    assert "the strategy" in capture.response.prose.lower()
 
 
 @pytest.mark.asyncio
@@ -110,4 +110,4 @@ async def test_a_turn_that_failed_after_a_build_says_so(
         RuntimeError("Connection error."), monkeypatch
     )
 
-    assert capture.response is None or capture.response.strategy_changed is True
+    assert capture.response is None or "the strategy" in capture.response.prose.lower()

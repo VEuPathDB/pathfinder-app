@@ -62,7 +62,6 @@ def test_four_repeated_classifications_leave_the_turn_its_answer() -> None:
                 {
                     "prose": "The phrase matches the one gene shown.",
                     "nextState": "complete",
-                    "strategyChanged": False,
                 }
             )
         return ToolCallPart(

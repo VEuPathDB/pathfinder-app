@@ -37,7 +37,6 @@ _NO_CONTROLS: dict[str, Any] = {
 _ANSWER: dict[str, Any] = {
     "prose": "Paste the control ids and I will run the sweep.",
     "nextState": "await_user",
-    "strategyChanged": False,
 }
 
 

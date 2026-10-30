@@ -87,7 +87,6 @@ def _build_verify_then_reply(messages: list[ModelMessage]) -> ToolCallPart:
         {
             "prose": _REPLY,
             "nextState": "await_user",
-            "strategyChanged": True,
             "unverifiedReason": "the verification pass stopped before it finished",
         }
     )
@@ -96,7 +95,7 @@ def _build_verify_then_reply(messages: list[ModelMessage]) -> ToolCallPart:
 def _build_then_reply_out_of_shape(messages: list[ModelMessage]) -> ToolCallPart:
     if "build_strategy" not in called_tool_names(messages):
         return _build_verify_then_reply(messages)
-    return final_result_part({"prose": _REPLY, "nextState": "await_user"})
+    return final_result_part({"nextState": "await_user"})
 
 
 def _misshapen_verifier() -> Any:
@@ -214,7 +213,7 @@ def test_a_reply_out_of_shape_every_time_ends_on_the_turns_facts(
     assert capture.run_error is None
     assert writer.chunks_of("error") == []
     assert reply is not None
-    assert (reply.prose, reply.strategy_changed) == (_UNWRITTEN, True)
+    assert reply.prose == _UNWRITTEN
     (shown,) = [chunk["data"] for chunk in writer.chunks_of("data-facts")]
     facts = TurnFacts.model_validate(shown)
     assert facts.unverified == UNVERIFIED_BUILD

@@ -50,7 +50,7 @@ from pathfinder.devtools.chat import (
 )
 from pathfinder.devtools.gates import Gate, consult_labels, gate_end
 from pathfinder.devtools.transcript import facts_lines
-from pathfinder.domain.reply_references import linked_records
+from pathfinder.domain.reply_note import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
 from pathfinder.evals.check_counts import CheckCounts, check_counts

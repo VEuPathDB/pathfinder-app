@@ -64,12 +64,6 @@ _AUDIT_REQUEST = re.compile(
 )
 
 
-class _Read(CamelModel):
-    model_config = ConfigDict(extra="ignore", from_attributes=True)
-
-    fact_id: str
-
-
 def _judged(
     turn: list[ModelMessage], strain: str, reference: str, *, spelled: bool
 ) -> ScriptedPart:
@@ -82,15 +76,12 @@ def _judged(
         return scripted_call(
             VERDICT_TOOL, {"verdicts": [pseudogene_verdict(strain, reference, read)]}
         )
-    written = spelled and not retry_prompt_parts(turn)
-    length = (
-        str(read.answer.strain_cds_length)
-        if written
-        else f"[stat:{read.fact_id}.strainCdsLength]"
-    )
-    return terminal_call(
-        {"prose": f"The model of [record:{strain}] holds a CDS of {length} bases."}
-    )
+    if spelled and not retry_prompt_parts(turn):
+        length = read.answer.strain_cds_length
+        said = f"The model of [record:{strain}] holds a CDS of {length} bases."
+    else:
+        said = f"The check above reads the model of [record:{strain}] as recorded."
+    return terminal_call({"prose": said})
 
 
 class _Proposal(CamelModel):
@@ -99,7 +90,9 @@ class _Proposal(CamelModel):
     scope: AuditScope | None
 
 
-class _PlanRead(_Read):
+class _PlanRead(CamelModel):
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
     answer: _Proposal
 
 
@@ -117,9 +110,8 @@ def _audit(turn: list[ModelMessage], genome: str) -> ScriptedPart:
         return scripted_call(START_TOOL, {"request": request, "scope": dumped})
     if started.outcome != "success":
         return terminal_call({"prose": "The audit was not started, as you answered."})
-    fact = _Read.model_validate(started.content, from_attributes=True).fact_id
     return terminal_call(
-        {"prose": f"Audit run [stat:{fact}.runId] is [stat:{fact}.phase]."}
+        {"prose": "The audit is started; its run and its phase are shown above."}
     )
 
 
@@ -129,7 +121,9 @@ class _RunId(CamelModel):
     id: UUID
 
 
-class _RunsRead(_Read):
+class _RunsRead(CamelModel):
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
     answer: list[_RunId]
 
 
@@ -145,20 +139,17 @@ class _RunView(CamelModel):
     rates: list[_Rate]
 
 
-class _RunRead(_Read):
+class _RunRead(CamelModel):
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
     answer: _RunView
 
 
 def _progress_reply(read: _RunRead) -> str:
-    fact = read.fact_id
-    said = (
-        f"Audit run [stat:{fact}.run.id] is [stat:{fact}.run.phase]. Its "
-        f"confirmation stage has checked [stat:{fact}.stages.stages.2.done] of "
-        f"[stat:{fact}.stages.stages.2.total] candidates."
-    )
+    said = "The run above shows its phase and how far each stage has come."
     rates = read.answer.rates
     if rates and rates[0].bounds is not None:
-        said += f" The first rate is at least [stat:{fact}.rates.0.bounds.low]."
+        said += " Its first genome already has an error rate."
     return said
 
 
@@ -314,7 +305,6 @@ class _SynthesisPrompt(CamelModel):
     model_config = ConfigDict(extra="ignore")
 
     kept_findings: list[_Kept]
-    counts_fact: str
 
 
 def _impact_rank(kept: _Kept) -> float:
@@ -341,8 +331,8 @@ def _synthesis_part(messages: list[ModelMessage], info: AgentInfo) -> ModelRespo
         "sections": [_synthesis_section(group) for group in grouped.values()],
         "headline": [k.finding_id for k in ranked[:MAX_HEADLINES]],
         "summary": (
-            f"The review kept [stat:{prompt.counts_fact}.kept] findings as errors and "
-            f"rejected [stat:{prompt.counts_fact}.rejected]."
+            "The review kept the findings below as errors; read the headline "
+            "findings first."
         ),
     }
     return ModelResponse(parts=[terminal_call(draft)])

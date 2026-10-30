@@ -228,7 +228,6 @@ def _answering_script(deps: LeadDeps) -> RetryRecordingScript:
             args={
                 "prose": _NUDGE_PROSE,
                 "nextState": "await_user",
-                "strategyChanged": deps.state.turn_markers.changed_strategy,
             },
             tool_call_id="call_final",
         ),

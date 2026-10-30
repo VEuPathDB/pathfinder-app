@@ -36,9 +36,7 @@ def _card(call_id: str) -> PendingApproval:
 def test_a_typed_reply_is_the_exchange_of_the_message() -> None:
     ctx = lead_run_context(user_prompt=_ASKED)
     capture = _LeadRunCapture(
-        response=LeadResponse(
-            prose="The strategy keeps 12 genes.", strategy_changed=False
-        )
+        response=LeadResponse(prose="The strategy keeps 12 genes.")
     )
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
@@ -64,7 +62,7 @@ def test_an_answered_approval_is_the_researchers_words() -> None:
     )
     capture = _LeadRunCapture(
         answered_call=_card("call_card"),
-        response=LeadResponse(prose="I kept the female set.", strategy_changed=False),
+        response=LeadResponse(prose="I kept the female set."),
     )
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
@@ -82,9 +80,7 @@ def test_a_worker_result_is_a_task_exchange() -> None:
             tool_call_id="call_task",
             tool_name="run_control_tests_on_step",
         ),
-        response=LeadResponse(
-            prose="4 of 5 positive controls are in the result.", strategy_changed=False
-        ),
+        response=LeadResponse(prose="4 of 5 positive controls are in the result."),
     )
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(

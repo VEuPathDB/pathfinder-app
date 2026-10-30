@@ -1,9 +1,7 @@
-"""The contract rules that hold a reply's open values to the question card, and
-its account of the check to a check that stopped."""
+"""The contract rule that holds a reply's open values to the question card."""
 
 from __future__ import annotations
 
-from pathfinder.ai.lead.contract_messages import unstated_stop_message
 from pathfinder.ai.lead.turn_record import TurnRecord
 
 
@@ -24,12 +22,4 @@ def open_value_in_prose(record: TurnRecord) -> str | None:
     )
 
 
-def unstated_stop(prose: str, record: TurnRecord) -> str | None:
-    """A check of the turn that stopped is stated as unfinished, built or not."""
-    stop = record.last_phase_stop
-    if stop is None or stop.role != "verification" or stop.stated_by(prose):
-        return None
-    return unstated_stop_message(stop)
-
-
-__all__ = ["open_value_in_prose", "unstated_stop"]
+__all__ = ["open_value_in_prose"]

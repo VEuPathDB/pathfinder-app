@@ -17,10 +17,11 @@ from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.read_facts import ReadFact
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import VALUE_NOUN, TallyFact
+from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.domain.value_caveats import ValueCaveat
 
 type SavedKind = Literal["gene_set", "control_set"]
@@ -205,9 +206,9 @@ UNVERIFIED_BUILD = "Nothing verified the change this turn made to the strategy."
 
 
 class TurnFacts(CamelModel):
-    """Everything a turn shows beside its reply, and every fact a reference of
-    the reply renders. ``comparisons``, ``statistics`` and ``tallies`` alone make
-    no facts part: their cards show them."""
+    """Everything a turn shows beside its reply. A comparison on its card,
+    ``statistics`` and ``tallies`` alone make no facts part: their cards show
+    them."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -237,19 +238,18 @@ class TurnFacts(CamelModel):
     # The genes the message names that the site resolved to its records.
     named_genes: list[SourceFact] = Field(default_factory=list)
     # The records the conversation showed last, before this turn. A record
-    # reference renders them; the facts part draws no row for them.
+    # reference of the note links them; the facts part draws no row for them.
     shown_before: list[SourceFact] = Field(default_factory=list, exclude=True)
     comparisons: list[ComparisonFact] = Field(default_factory=list)
-    # Which of the asked genes each membership check of this turn found held.
-    # The reply's record references render them.
-    memberships: list[MembershipFact] = Field(default_factory=list, exclude=True)
+    memberships: list[MembershipFact] = Field(default_factory=list)
     # The statistics the EDA service computed on the thread. Their card shows them.
     statistics: list[StatisticFact] = Field(default_factory=list)
-    audit_statistics: list[StatisticFact] = Field(default_factory=list, exclude=True)
+    reads: list[ReadFact] = Field(default_factory=list)
     # The column tallies this turn ran. Their card shows them.
     tallies: list[TallyFact] = Field(default_factory=list)
     result_step_id: int | None = None
     stopped_check: str = ""
+    failed_check: str = ""
     refusal: str = ""
     unchecked: str = ""
     unverified: str = ""
@@ -298,28 +298,24 @@ class TurnFacts(CamelModel):
                 self.sources,
                 self.listed,
                 self.named_genes,
+                self.memberships,
+                self.reads,
+                [c for c in self.comparisons if not c.on_its_card],
                 self.stopped_check,
+                self.failed_check,
                 self.refusal,
                 self.unchecked,
                 self.unverified,
             )
         )
 
+    def holds_site_data(self) -> bool:
+        return not self.empty() or any(
+            (self.comparisons, self.statistics, self.tallies)
+        )
+
     def strategy_url(self) -> str | None:
         return None if self.strategy_link is None else self.strategy_link.url
-
-    def counted_nouns(self) -> list[str]:
-        """The noun of the result, of each step and of each tally, once each."""
-        return list(
-            dict.fromkeys(
-                [
-                    self.record_noun,
-                    *(s.record_noun for s in self.steps),
-                    *(t.record_noun for t in self.tallies),
-                    *([VALUE_NOUN] if self.tallies else []),
-                ]
-            )
-        )
 
     def step(self, step_id: str) -> StepFact | None:
         """The step or criterion of that id, or None."""
@@ -348,9 +344,6 @@ class TurnFacts(CamelModel):
     def record_ids(self) -> list[str]:
         """The ids of the records this turn shows, in the order it shows them."""
         return [s.record_id for s in self.shown_records()]
-
-    def cited_statistics(self) -> list[StatisticFact]:
-        return [*self.statistics, *self.audit_statistics]
 
     def citable_records(self) -> list[SourceFact]:
         """Every record a record reference renders: this turn's reads and the
@@ -386,10 +379,12 @@ class TurnFacts(CamelModel):
             *(v.row(noun) for c in self.comparisons for v in c.variants),
             *(line for m in self.memberships for line in m.lines()),
             *(line for s in self.statistics for line in s.lines()),
+            *(line for a in self.reads for line in a.lines()),
             *(line for t in self.tallies for line in t.lines(self.result_step_id)),
             *(s.line() for s in self.sources if not s.step_id),
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),
+            *([self.failed_check] if self.failed_check else []),
             *([self.refusal] if self.refusal else []),
             *([self.unverified] if self.unverified else []),
         ]
@@ -451,8 +446,10 @@ class TurnFacts(CamelModel):
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
                 "memberships": [m.redacted(redact) for m in self.memberships],
                 "statistics": [s.redacted(redact) for s in self.statistics],
+                "reads": [r.redacted(redact) for r in self.reads],
                 "tallies": [t.redacted(redact) for t in self.tallies],
                 "stopped_check": redact(self.stopped_check),
+                "failed_check": redact(self.failed_check),
                 "refusal": redact(self.refusal),
             }
         )

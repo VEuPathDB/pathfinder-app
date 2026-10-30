@@ -69,7 +69,6 @@ _VERIFICATION_FINAL: dict[str, Any] = {
 _LEAD_FINAL: dict[str, Any] = {
     "prose": "scripted",
     "nextState": "await_user",
-    "strategyChanged": False,
 }
 _RESULT_A: dict[str, Any] = {
     "positiveRecoveredIds": ["PF3D7_0100100", "PF3D7_0100200", "PF3D7_0100300"],

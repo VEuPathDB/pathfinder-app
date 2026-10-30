@@ -160,11 +160,9 @@ def _checked(
     """Verify, read the strategy the site holds now, and answer with what the
     check decided, pointing at the facts beside the reply."""
     final = (
-        lead_final(f"{success}{FACTS_BESIDE}", "complete", strategy_changed=changed)
+        lead_final(f"{success}{FACTS_BESIDE}", "complete")
         if verified(messages)
-        else lead_final(
-            f"{failure}{FACTS_BESIDE}", "await_user", strategy_changed=changed
-        )
+        else lead_final(f"{failure}{FACTS_BESIDE}", "await_user")
     )
     return [
         scripted_call("verify_strategy", {"reason": "mock verification"}),

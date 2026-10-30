@@ -11,6 +11,7 @@ from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
 from pathfinder.ai.audit.synthesis import synthesize
+from pathfinder.ai.lead.contract_messages import note_facts_message
 from pathfinder.domain.audit.rates import TargetReport
 from pathfinder.domain.audit.run_state import LeftUnits
 from pathfinder.domain.audit.scope import AuditScope
@@ -21,7 +22,7 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     finding_cite,
 )
-from pathfinder.domain.reference_placement import written_numbers
+from pathfinder.domain.reply_note import written_numbers
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
@@ -39,6 +40,7 @@ _TRUNCATED_CAUSE = (
     "The NF54 model is truncated: its 556-residue product is far shorter than "
     "the approximately 1,590-residue orthologs."
 )
+_COUNTED_CAUSE = _RECORDED_CAUSE.replace("Seven", "7")
 _CITES = "finding:9; evidence:9:confirmation; evidence:9:gene_evidence."
 
 
@@ -118,7 +120,9 @@ def _kept(finding_id: int) -> VerdictView:
 
 
 def _draft(
-    cause: str, confirmed_by: str = "The sequence confirmations show it."
+    cause: str,
+    confirmed_by: str = "The sequence confirmations show it.",
+    summary: str = "Intact genes.",
 ) -> dict[str, Any]:
     section = {
         "errorType": "intact_gene_called_pseudogene",
@@ -126,7 +130,7 @@ def _draft(
         "confirmedBy": confirmed_by,
         "findingIds": _INTACT,
     }
-    return {"sections": [section], "headline": _INTACT, "summary": "Intact genes."}
+    return {"sections": [section], "headline": _INTACT, "summary": summary}
 
 
 def _first_then(wrong: dict[str, Any], retries: list[RetryPromptPart]) -> FunctionModel:
@@ -159,12 +163,12 @@ def test_a_section_counts_the_findings_it_lists() -> None:
     assert (section.count, dumped["count"], dumped["findingIds"]) == (6, 6, _INTACT)
 
 
-def test_the_numbers_a_sentence_writes_are_its_words_and_its_lone_figures() -> None:
-    assert written_numbers(_RECORDED_CAUSE) == ["Seven"]
+def test_the_numbers_a_sentence_writes_are_its_lone_figures() -> None:
+    assert written_numbers(_RECORDED_CAUSE) == []
     assert written_numbers("The review kept 7 of 9 findings, 88.9% of them.") == [
         "7",
         "9",
-        "88.9",
+        "88.9%",
     ]
     assert written_numbers(f"{_TRUNCATED_CAUSE} {_CITES} PF3D7_1423800 3D7") == []
 
@@ -172,15 +176,24 @@ def test_the_numbers_a_sentence_writes_are_its_words_and_its_lone_figures() -> N
 async def test_a_section_cause_that_states_a_count_is_retried() -> None:
     retries: list[RetryPromptPart] = []
 
-    sections = await _synthesized(_first_then(_draft(_RECORDED_CAUSE), retries))
+    sections = await _synthesized(_first_then(_draft(_COUNTED_CAUSE), retries))
 
     (retry,) = retries
     assert retry.content == (
-        "The section intact_gene_called_pseudogene writes Seven in its cause or in "
+        "The section intact_gene_called_pseudogene writes 7 in its cause or in "
         "what confirms it. A section's count is the findings its findingIds list, "
         "which the run shows beside it, so neither sentence writes a number."
     )
     assert [(s.count, s.finding_ids) for s in sections] == [(6, tuple(_INTACT))]
+
+
+async def test_a_summary_that_states_a_count_is_retried() -> None:
+    retries: list[RetryPromptPart] = []
+    written = _draft(_TRUNCATED_CAUSE, summary="The review kept 6 intact genes.")
+
+    await _synthesized(_first_then(written, retries))
+
+    assert [retry.content for retry in retries] == [note_facts_message(["6"])]
 
 
 async def test_a_section_that_cites_and_measures_is_kept_as_written() -> None:
