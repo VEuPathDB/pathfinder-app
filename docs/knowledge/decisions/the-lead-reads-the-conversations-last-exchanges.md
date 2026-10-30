@@ -15,7 +15,7 @@ the conversation's last `EXCHANGE_WINDOW` (six) exchanges
 (`domain/exchanges.py`): what the researcher wrote, or how they answered a card,
 the reply exactly as it was rendered to them, and the question or offer a card
 turn ended on. `ai/graph/_lead_exchange.turn_exchange` builds one at the end of
-each Lead run, from the same `render_reply` text the stream carried, and
+each Lead run, from the same `render_note` text the stream carried, and
 `lead_pins.pinned_conversation` renders them as "The conversation so far" before
 "User's latest message". A number in an exchange held when it was shown; the
 ledger and the facts hold the strategy now.

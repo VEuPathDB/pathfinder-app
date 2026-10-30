@@ -15,6 +15,13 @@
   failed request the error carries, and says that nothing was changed when the
   failure came before the Lead acted. See
   [the decision](decisions/a-site-that-is-down-is-down-on-its-own.md).
+* **The reply is a note beside the facts the product writes.** The reference grammar
+  (`[count:]`, `[value:]`, `[stat:]`, `[cite:]` and the rest) and the rules that policed its
+  placement are gone; the facts part now also shows a failed check, the records' organism after
+  a move, each membership check, each count with no card and each audit read or computed
+  comparison as a `ReadFact`. The note names a record only as `[record:<id>]`, and one bounded
+  check (`note_facts`) refuses a link or a number of the turn, then shows the note unchecked.
+  See [the decision](decisions/the-product-renders-the-facts-the-reply-narrates.md).
 
 ## 2026-10-28
 
@@ -242,7 +249,7 @@
   and each is refused on a row of the other form. The notes join the reply only where it is
   emitted, under labels of its own. A synthesis summary is stored with its references
   and rendered on every read. See
-  [a value is placed by stat and cited by cite](decisions/a-value-is-placed-by-stat-and-cited-by-cite.md).
+  a value is placed by stat and cited by cite (superseded by [the product renders the facts](decisions/the-product-renders-the-facts-the-reply-narrates.md)).
 * **A finding line states when its two reviews disagree.** `FindingLine` carries
   `reviewsDisagree` and `disagreementText`, from `FindingReview.disagreement` on the stored
   review row, so a disputed finding in a synthesis section or in the headline always shows

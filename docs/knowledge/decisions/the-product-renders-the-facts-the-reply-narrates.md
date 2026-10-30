@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: The product renders the facts; the reply narrates
-description: Every turn that holds a fact writes a typed facts part before the Lead's reply, built from the strategy, the spec and the ledger and rendered by React; the reply writes each fact as a reference the emitter renders from the same facts, and one rule refuses prose that writes a fact itself or names one the facts lack. A guard that read the model's free text for facts, widening that guard, and rendering the facts as markdown in the reply were rejected.
+description: Every turn that holds a fact writes a typed facts part before the reply, built from the strategy, the spec, the ledger and the turn's reads and rendered by React; the reply is a note beside it that writes no number and no link of the turn and names a record only as [record:<id>], and one bounded check refuses a note that writes one. A guard that read the model's free text for facts, a reference grammar the reply wrote in place of each fact, and rendering the Lead's facts as markdown in the reply were rejected.
 tags: [agents, lead, turn-contract, reply, facts]
 generated: { by: claude-code/opus-5, at: 2026-09-28T00:00:00Z }
-verified: { by: claude-code/opus-5.5, at: 2026-09-30T20:00:00Z }
+verified: { by: claude-code/opus-5.5, at: 2026-10-30T00:00:00Z }
 status: stable
 ---
 
@@ -21,148 +21,125 @@ It holds:
   vocabulary label read for it and who set it; a default or chosen value carries its
   measurement clauses (`measurement_clauses.counted_clauses`), a card value its option label,
   a stated or held value nothing more; a placeholder the site left (`BoundValue.placeholder`)
-  reads "not set (site placeholder)" with no measurement. A bound parameter the sheet does not show (`BoundValue.visible` false: a phyletic profile pattern, an RNA-Seq `dataset_url`, a hidden `channel`) draws no row, no ledger value line and no reason term, and still rides the step, and a value a count measures never shows a not-measurable clause. A measurement a row shows as a note
-  is no caveat as well (`TurnFacts._one_drawer_per_measurement`), and a clause or a caveat
-  names a pick of more than three values by its size (`measurement_clauses.shown_value`); the
-  row shows it whole. An analysis row names its filters and its measured variable as the study
-  does (`AnalysisBinding.shown_subset`, `value_variable_name`, read by the export, or by the
-  pre-turn for a step the graph editor or the site added) and each
-  chosen cut beside the count the compute holds at its other reading (`CutTallies`). While nothing is built the bound criteria of the spec
-  stand in as a draft, each with the count it bound at;
-- the root count, the titles of the steps the turn deleted, and the strategy link the build
-  recorded; the pre-turn records the root and every step's count once, when the message
-  arrives (`TurnMarkers.at_arrival`), and every count before an edit derives from that record
-  (`TurnMarkers.count_before`, `root_count_before`): a step this turn's writes moved shows the
-  count the message found, a step the turn created or left unchanged shows none, an export
-  that took a step's place shows that step's count, and the root shows the count of the root
-  the message found after any write, a delete included;
+  reads "not set (site placeholder)" with no measurement. A bound parameter the sheet does not
+  show (`BoundValue.visible` false: a phyletic profile pattern, an RNA-Seq `dataset_url`, a
+  hidden `channel`) draws no row, no ledger value line and no reason term, and still rides the
+  step, and a value a count measures never shows a not-measurable clause. A measurement a row
+  shows as a note is no caveat as well (`TurnFacts._one_drawer_per_measurement`), and a clause
+  or a caveat names a pick of more than three values by its size
+  (`measurement_clauses.shown_value`); the row shows it whole. An analysis row names its filters
+  and its measured variable as the study does (`AnalysisBinding.shown_subset`,
+  `value_variable_name`, read by the export, or by the pre-turn for a step the graph editor or
+  the site added) and each chosen cut beside the count the compute holds at its other reading
+  (`CutTallies`). While nothing is built the bound criteria of the spec stand in as a draft,
+  each with the count it bound at;
+- the root count, the titles of the steps the turn deleted, the strategy's last change and the
+  strategy link the build recorded; the pre-turn records the root and every step's count once,
+  when the message arrives (`TurnMarkers.at_arrival`), and every count before an edit derives
+  from that record (`TurnMarkers.count_before`, `root_count_before`): a step this turn's writes
+  moved shows the count the message found, a step the turn created or left unchanged shows
+  none, an export that took a step's place shows that step's count, and the root shows the
+  count of the root the message found after any write, a delete included;
 - the caveats (`caveats_for` over the verdict on the strategy, so an assumed value shows even
   before a check), the gaps (with each requirement a framing pass reports the site has no
-  search for, `FrameResult.requirement_problems`, in the words the thread holds, so a turn that builds
-  nothing still shows what the site lacks), the column fits, and the requirements the researcher withdrew or
-  an answer replaced (`retired_requirements`), shown as retired and never as gaps; a
-  withdrawn combination shows only the sides a delete removed
-  (`RetiredRequirement.shown_requirements`), never a side a step can still answer;
-- the gene sets and control sets this turn saved, the control results it measured, a
-  stopped check;
+  search for, `FrameResult.requirement_problems`, in the words the thread holds, so a turn that
+  builds nothing still shows what the site lacks), the column fits, and the requirements the
+  researcher withdrew or an answer replaced (`retired_requirements`), shown as retired and never
+  as gaps; a withdrawn combination shows only the sides a delete removed
+  (`RetiredRequirement.shown_requirements`), never a side a step can still answer; a turn whose
+  change carried the records to another organism adds a `records_organism` caveat
+  (`domain/organism_caveat.py::RecordsOrganismCaveat`) that names that organism and the seed's;
+- the gene sets and control sets this turn saved, the control results it measured, a stopped
+  check, and that the last check of the strategy failed (`failed_check`, shown on any turn but
+  an audit turn while that verdict stands), with its reason unless a gap of the facts already
+  states it;
 - every record a read of the turn returned, as a `SourceFact` under the step whose listing gave
   it (`TurnMarkers.listed_from`, the WDK step a sample or a step read listed the gene from) with
-  its product, its other words (gene name, chromosome, and the orthologs of the one organism a read asked for with `ortholog_organism`; the first rows of the ortholog table are never drawn) and the fit the check judged (`VerificationReview.sampled_genes`), never under the
-  root when it is a leaf's; a record a step the live strategy no longer holds listed is no
-  source; every id a listing or a sample of the turn returned, as a `ListedFact` under the
-  step it listed (`TurnMarkers.listings`), each id linked to its record page; the other references the turn read; and the genes the message names
-  that the classification gate resolved, each with its site record link (`named_genes`);
+  its product, its other words (gene name, chromosome, and the orthologs of the one organism a
+  read asked for with `ortholog_organism`; the first rows of the ortholog table are never drawn)
+  and the fit the check judged (`VerificationReview.sampled_genes`), never under the root when
+  it is a leaf's; a record a step the live strategy no longer holds listed is no source; every
+  id a listing or a sample of the turn returned, as a `ListedFact` under the step it listed
+  (`TurnMarkers.listings`), each id linked to its record page; the other references the turn
+  read; and the genes the message names that the classification gate resolved, each with its
+  site record link (`named_genes`);
 - the counts each completed comparison of the turn returned (`comparisons`, a
-  `domain/comparison_facts.py::ComparisonFact` per `compare_search_variants` call, read from
-  `VariantComparison.fact`: each variant that ran with its genes, its unique genes and its
-  result in place, the wire value of each parameter whose value differs between the variants,
-  and the genes each pair shares); the comparison card shows them, so the facts part draws no
-  row for them, and the text form of the facts (`TurnFacts.lines`) gives each variant a row with
-  the values it differs by beside its count; `count_search` records its count as a comparison
-  of one variant (`SearchCount.fact`), and `genes_in_search` records the asked genes and the
-  search as two sets that share the genes held (`SearchMembership.fact`);
-- which of the asked genes each membership check held (`memberships`, a
-  `domain/membership_facts.py::MembershipFact`), each gene linked to its record page so
-  `[record:<id>]` renders it; the field stays off the wire, so the facts part draws no row for it;
-- the records the conversation showed last (`shown_before`, the `TurnFacts.shown_records` of
-  the latest facts part that showed any, kept as `StrategyDomainState.shown_records`), each
-  as that part showed it, so `[record:<id>]` renders it in a later turn; the field stays off
-  the wire and out of `lines` and `record_ids`, so it is no fact of this turn;
-- the provider's or the site's refusal whole, with only a link's query left out because a
-  query can carry a credential.
+  `domain/comparison_facts.py::ComparisonFact`: each variant that ran with its genes, its result
+  in place and the wire value of each parameter whose value differs between the variants). A
+  `compare_search_variants` comparison is on its card (`on_its_card`), so the facts part draws no
+  row for it; a `count_search` count has no card, so the facts part draws it as "label: N
+  genes". The text form of the facts (`TurnFacts.lines`) gives every variant a row;
+- which of the asked genes each membership check held (`memberships`, the
+  `domain/membership_facts.py::MembershipFact` that `genes_in_search` records): held, not held
+  and past the capped read, each gene linked to its record page;
+- each read with no card of its own (`reads`, a `domain/read_facts.py::ReadFact`): an audit read
+  of this turn (a run, a list of runs, a page of findings, a finding with its stored certainty
+  and evidence, a plan, a start, a rate, a gene check) and a computed comparison the thread
+  holds; its title and the rows of its answer at most two named fields deep, each labeled in
+  words, with no link and at most forty rows;
+- the column tallies the turn ran (`tallies`), which their card draws; their text form is "In
+  all", "Values" and one "value: count" line each;
+- the records the conversation showed last (`shown_before`, the `TurnFacts.shown_records` of the
+  latest facts part that showed any, kept as `StrategyDomainState.shown_records`), which a record
+  reference of a later note links; the field stays off the wire and out of `lines` and
+  `record_ids`, so it is no fact of this turn;
+- the provider's or the site's refusal whole, with only a link's query left out because a query
+  can carry a credential.
 
-React renders it (`content/parts/DataFacts.tsx`, one test id per fact kind and per step row),
-beside the reply in the default thread.
+React renders it (`content/parts/DataFacts.tsx`, `DataFactsNotices.tsx`, `FactsRecords.tsx` and
+`FactsReads.tsx`, one test id per fact kind and per step row), beside the reply in the default
+thread. The statistics the EDA service computed have their own card, and the Lead's pinned
+statistics list each as "row = value" for the Lead to read.
 
-The reply writes no fact itself. `LeadResponse.prose` and a card's `reply` hold references,
-and `domain/reply_references.py::render_reply` replaces each with the fact it names; a
-reference that names nothing the facts hold, which only a card's reply let through past
-[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)
-carries, is shown as its plain words (a typed reply that still names one past the bound is
-withheld):
+**What shows where, by answer.** A strategy built or edited: the steps with their values and
+who set each, the result count with its noun, the last change, the strategy link, and the
+caveats and gaps of the computed verdict beside the evidence card the check leaves. A tally or
+ranking: the tally card's table of value and count. A gene or record read: the records table,
+each record with its product, its other words and its fit. An audit read: its `ReadFact`. A
+failed or refused turn: one notice line (`stopped_check`, `failed_check`, `refusal`,
+`unverified`, `unchecked`).
 
-| reference | renders |
-|---|---|
-| `[count:<step_id>]` | the step's count, thousands-separated, with the record noun |
-| `[before:<step_id>]` | the step's count before this turn's edit |
-| `[root]`, `[root_before]` | the root's count now and before the edit |
-| `[last_change:before]`, `[last_change:after]` | the root's count before and after the strategy's most recent change, made by this turn or an earlier one |
-| `[diff:<a>,<b>]` | the difference of two counts; a side is a step id, `root`, `root_before`, `before:<step_id>`, `last_change:before`, `last_change:after` or `compare:<variant>`, and the two sides differ |
-| `[value:<step_id>.<param>]` | the bound value with its label (`ParameterFact.shown`); a label that repeats the value is dropped on the type, a range reads as its bounds, one number when they are equal, and a filter as its clauses, each field by the name the parameter sheet shows with its terms or bounds (`BoundValue.words`, `value_binding.plain_value`, `value_text`); no kind reads as its JSON wire text |
-| `[source:<step_id>.<param>]` | who set it: "you stated", "your answer on a card", "the site's default", "chosen", "held by the strategy" |
-| `[compare:<variant>]` | the variant's genes; `:unique`, `:result`, and `[compare:<a>,<b>:shared]` |
-| `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread or an audit read returned: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`); `[cite:<id>.<row>]` renders a numbered note after words that state the value ([a value is placed by stat and cited by cite](a-value-is-placed-by-stat-and-cited-by-cite.md)) |
-| `[record:<record_id>]` | a read, listed, checked or resolved record's id, or one the conversation showed last, linked to its page, with its product (`TurnFacts.citable_records`) |
-| `[url]` | the strategy's link |
+**The note.** `LeadResponse.prose`, a card's `reply` and `AuditReply.prose` are a note beside the
+facts: what they mean for the question, why this reading answers it, and what to do next
+(`ai/lead/card_reply.py::REPLY_NOTE`, read by the schema descriptions and the Lead's
+instruction). A name is written as it stands, letters and digits together ("3D7", "ME49",
+"PfEMP1", "SignalP-6.0", "GO:0016301"). The one reference is `[record:<record_id>]`:
+`domain/reply_note.py::render_note` links a record the facts can cite
+(`TurnFacts.citable_records`: this turn's reads, listings, checks and resolved genes, then the
+records shown last) to its page and drops any other. The emitter renders once, from the facts
+object the turn shows: `show_the_facts` keeps the `TurnFacts` it writes on the run capture,
+`ai/graph/_lead_capture.py::_emit_residual_prose` renders the typed reply from it and
+`ai/graph/_lead_card_hold.py::CardHold.release` each held card's reply. The conversation events
+hold the rendered text, so a saved conversation replays with no renderer. The audit assistant's
+reply text is each `ReadFact` as markdown, then the rendered note
+(`ai/audit/reply.py::reply_text`).
 
-The emitter renders once, from the facts object the turn shows:
-`ai/graph/_lead_facts.py::show_the_facts` keeps the `TurnFacts` it writes on the run capture,
-`ai/graph/_lead_capture.py::_emit_residual_prose` renders the typed reply from it, and
-`ai/graph/_lead_card_hold.py::CardHold.release` renders each held card's reply from it. The
-replies the runtime writes when a run ends without one (`ai/graph/_lead_stops.py`) take the same
-path; they are the runtime's own text and name no reference.
+**The one check on the note.** `domain/reply_note.py::note_facts` returns each link (http,
+https, www, doi) and each number a note writes, once, when the turn's facts hold site data
+(`TurnFacts.holds_site_data`); a note on a turn that read nothing from a site writes freely. A
+number a researcher message writes as a whole token is their word, a list's item numbers are
+marks, and a name that mixes letters and digits is prose. The turn contract refuses such a note
+as the `note_facts` mismatch (`contract_messages.note_facts_message`, which names each token to
+take out) on a bound of its own
+([the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)),
+and reads every card reply of a response whole. Past the bound the note is shown and the facts
+part carries `UNCHECKED_PROSE`; nothing is withheld. The audit assistant holds its note to the
+same check (`ai/audit/reply.py::hold_the_reply`), and an audit synthesis summary writes no
+number (`ai/audit/synthesis.py`). The turn contract's other rules read what the turn did, not
+the note's wording ([one turn contract](one-turn-contract.md)).
 
-The turn contract's only check on prose content is `unrendered_prose`
-(`turn_contract.unrendered_prose`, `reply_references.prose_faults`). It reads each token's
-shape, not the presence of a digit. It refuses a number outside a reference (`_A_NUMBER`:
-digits with thousands separators, a decimal point, an exponent, a range, a percent or a glued
-unit, "37C", "5x", "2-fold", "1e-6", and a log scale, "log2"; an item number that starts a
-line is the list's mark only when it is 1 or follows the item number before it), an
-identifier shape (`domain/scratchpad_facts.hard_facts` gene ids and search names such as
-`PF3D7_0908300`, `PKNH_1234500`, `TGME49_233460`, `LmjF.36.0010`; `reply_suggestions._AN_ACCESSION`, the Pfam,
-InterPro and Ensembl accessions; a snake_case, colon-joined or uuid token, so a GO term and a
-step id), a link, a reference that names nothing
-the facts hold, and a bracket outside a reference that nests, opens with a reference's name
-(`[count:]`, `[URL]`) or is never closed. A bracketed word that names no reference (`[mock]`)
-is prose and renders as written. A name that mixes letters and digits in neither shape is
-prose ("PfEMP1", "IL-6", "CD4+", "H3K27me3", "ME49", "3D7", and a version glued to a tool's
-name, "SignalP-6.0"). A number that a researcher message of the thread writes as a whole
-token is the researcher's word and is prose ("chromosome 1", "p 0.001"); an identifier shape
-the message writes is still refused, since `[record:]` renders it (`TurnFacts.request_messages`,
-kept off the wire). A rendered value the researcher did not state shows the decimals of the
-parameter's published initial value, never more than four significant digits, and four
-significant digits where those decimals show zero (`BoundValue.rounded`,
-`domain/strategy/number_precision.py`); the facts row and the `[value:]` reference show the same
-text. The check reads a number word only where the grammar places a reference
-(`domain/reference_placement.py`): a number word (one to twelve, "twice", "times", "dozen",
-"half", "third", "quarter", "fifth", "percent", a "<word>-fold") in the clause of a `[value:]`,
-`[count:]`, `[before:]`, `[root]`, `[root_before]`, `[last_change:]` or `[diff:]` reference is
-refused, since a number claim comes from a reference as a digit does; "both" names two inputs
-and stands. A number a step sets, such as the protein count of a group, is written as its
-`[value:<step_id>.<param>]`. A number word outside a reference's clause is not refused: treating
-it as a digit would refuse "one of", "no one" and "two steps" unless a word exemption were added,
-which is a heuristic. The cost is that an unbacked claim outside a clause, such as "across five
-species", goes through; its guard is the Lead's instruction "A count or value reference stands in
-place of the number, so its clause writes no number word ... A number a step sets, such as the
-protein count of a group, is its [value:<step_id>.<param>]" (`ai/lead/_lead_instructions.py`,
-`card_reply.PLACEMENT_RULES`). A count noun ("gene", "record", their plurals, the strategy's record noun)
-next after a count reference, or after only continuation words ("more", "fewer", "additional",
-"matching"), the words that name a step, or a hyphenated compound with at most one word after
-it ("single-copy ortholog groups"), is refused, since the reference renders with its
-noun. Elsewhere a small count of steps in words is structure. Its correction
-(`contract_messages.unrendered_prose_message`) names each token with the references that
-render it: a count, a difference of two counts, a comparison count, a value, a record or the
-link; a number that a read record's product holds names that record's
-`[record:]`, which renders the product. It is refused on every answer up to [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md) and takes no part in
-the one correction the other rules share (`to_correct`). Every card's reply of a response is
-read whole (`to_correct(..., replies)`), so no reply is rendered that the check did not read. The
-facts are this turn's: a count an earlier turn showed is rendered only while a step still holds
-it, except the counts of the strategy's most recent change, which stay a fact until the next
-change (`TurnFacts.last_change`, read from the thread's revision rows by
-`revision_ops.last_change` when the message arrives and from the live tree once the turn writes,
-so it never disagrees with `[root_before]` and `[root]`). Retired with their tests: `fact_outside_the_block`, `facts_in_prose.py`
-(`outside_the_facts`, `misattributed_source`, `altered_record_text`), their three messages,
-`TurnRecord.prose_refusal`, `held_facts`, `held_counts`, `machine_names`, `TurnFacts.held_lines`,
-`TurnFacts.counts`, `TurnFacts.sources_named`, `RECORD_WORDS`, `VariantComparison.counts`, and
-`TurnMarkers.facts_corrected`, `compared_labels`, `compared_counts`. The Lead's instruction and
-the schema descriptions of `LeadResponse.prose` and `CardReply` (`card_reply.REPLY_REFERENCES`)
-state the grammar, and the mock model writes references (`count_answer_arcs.derived_count`,
-`facts_arcs.list_ids`). `LeadResponse.sources` is gone: the references a turn read are facts.
-
-Retired with their tests and messages: `unnamed_search`, `misstated_count`,
-`counted_in_the_wrong_unit`, `machine_words`, `unstated_gap`, `unstated_caveat`,
-`misstated_control_list`, `misnamed_deletion`, `unretrieved_source`, `unbacked_evidence`,
-`unwritten_gene_set`, `unwritten_control_set`.
+Retired with their tests: the reference grammar (`[count:]`, `[before:]`, `[root]`,
+`[root_before]`, `[last_change:]`, `[diff:]`, `[value:]`, `[source:]`, `[compare:]`, `[stat:]`,
+`[cite:]`, `[tally:]`, `[url]`) and its modules (`reply_references`, `reference_grammar`,
+`reference_placement`, `reply_notes`, `reply_suggestions`, `source_words`, `tally_labels`,
+`strategy/comparison_placement`), the withheld reply, the placement, list and reference fault
+messages, the note labels, `LeadResponse.strategy_changed`, the `factId` of an audit read and a
+computed comparison, and the rules `unrendered_prose`, `misreported_change`, `stopped_check`,
+`failed_check`, `unnamed_record_organism` and `unplaced_breakdown`, each of which the facts part
+now states. Earlier: `unnamed_search`, `misstated_count`, `counted_in_the_wrong_unit`,
+`machine_words`, `unstated_gap`, `unstated_caveat`, `misstated_control_list`,
+`misnamed_deletion`, `unretrieved_source`, `unbacked_evidence`, `unwritten_gene_set`,
+`unwritten_control_set`.
 
 The eval extract reads each turn's facts part beside its reply (`chunk_reader.read_turns`), the
 runner scores what a turn showed (its facts lines, then its reply), and `ObservedOutcome.assumed`
@@ -171,35 +148,33 @@ with who set them (`uncarried_assumptions`).
 
 # Why
 
-A check on free text reads a sentence the model wrote and guesses which of its tokens are facts.
-It refused true values (a difference of two shown counts, a count a comparison returned, a
-parameter value written against its unit) and made the model rewrite correct text, and each
-fix widened the guess. A reference is a fact by construction: the product writes the number
-from the same object the facts part shows, so the reply cannot disagree with it, and the only
-thing left to check is whether the prose writes a fact itself.
+A fact the product writes from the object the facts part shows cannot disagree with it. A note
+that states no fact leaves one thing to check: whether it writes one. Every rule that policed
+how a reply placed a fact refused true text and made the model rewrite it; a note places no
+fact, so there is no placement to police.
 
 # What was rejected
 
+- **A reference grammar the reply wrote in place of each fact.** The model wrote
+  `[count:<step_id>]`, `[value:<step_id>.<param>]`, `[stat:<id>.<row>]` and a dozen other
+  kinds, the emitter rendered them, and rules on placement, nouns and repetition held the prose
+  to the grammar. The rules policed a trap the grammar made: a count reference rendered its own
+  noun, so the noun the model wrote after it doubled ("797 groups of ortholog groups"), and a
+  value written beside the reference that rendered it doubled too. The rule against a written
+  number pushed the model to spell names out ("three-D-seven" for 3D7). Over 61 recorded reply
+  refusals in live QA runs, 14 refused a correct draft and 12 retries were worse than the draft
+  they replaced.
 - **Reading the model's free text for facts** (`fact_outside_the_block`, with its source-word
   and record-text rules). Its tokens were guessed from shapes, so a thousands separator, a unit,
   an ordinal, a hyphen, a record's own words and a question's options each needed a rule, and a
   true count outside the held set was refused.
-- **Refusing a source word outside a reference.** The check once refused "default", "chosen",
-  "stated" and "you asked" anywhere in the prose and offered the `[source:]` references of the
-  rows of that source. Who set each value is a fact the facts part shows on its row, and
-  `[source:]` renders it; the four words are ordinary English, so the rule refused true
-  sentences ("the site's default SignalP-6.0") and words that state no source ("the chosen
-  searches"), and a correction that offers a reference to put in place of an adjective does not
-  converge. Measured over 2,607 replies: 251 were sent back for a source word, 229 of the 278
-  words matched a value of that source, and 13 of the 14 turns that ran out of output retries
-  ran out on it, the same correction three times.
-- **Widening the prose guard to accept differences and comparison counts.** Another rule on
-  prose, with the same false-positive shape.
-- **A validation context on the output type.** The check needs the turn's facts, which only the
-  run holds, and the runtime writes its own stop replies from the record, with counts in them;
-  the output validator reads the facts from the run and leaves the runtime's text alone.
-- **Rendering the facts as markdown in the reply.** The reply would still be a string the model
-  could edit, and the eval and the e2e specs would read counts out of prose again.
+- **Rendering the Lead's facts as markdown in the reply.** The reply would still be a string the
+  model could edit, and the eval and the e2e specs would read counts out of prose again. The
+  audit assistant has no data part of its own, so its facts are markdown the product writes
+  before the note, never text the model writes.
+- **Withholding a note past the bound.** It hid the interpretation the researcher asked for
+  while the facts part already showed the true values; the unchecked notice says what the note
+  is.
 - **Showing a record a replaced step listed under "read earlier, no longer in the strategy".**
   The facts part is the copy of the strategy the researcher holds, and such a record is
   evidence for none of its steps.
@@ -210,19 +185,19 @@ thing left to check is whether the prose writes a fact itself.
 
 # What would prove this wrong
 
-`tests/unit/domain/test_the_reply_is_rendered_from_the_facts.py` holds every reference kind and
-every fault, `tests/unit/domain/test_a_reference_renders_from_a_recorded_turn.py` every kind over
-the facts two recorded turns showed, the differences of every pair of their counts and the
-malformed brackets, `tests/unit/ai/lead/test_the_reply_names_facts_by_reference.py` the contract on a
-typed reply and a card's reply, `tests/unit/ai/graph/test_the_reply_is_rendered_from_the_facts_it_shows.py`
-that the text part and the facts part come from one `TurnFacts`,
-`tests/unit/ai/lead/test_the_facts_hold_the_thread.py` the counts before an edit, the sources
-by step, the resolved genes and the comparison counts,
-`tests/unit/ai/lead/test_the_facts_hold_what_the_turn_read.py` the listings,
-`tests/unit/ai/lead/test_the_turn_shows_its_facts.py` the builder,
-`tests/unit/ai/graph/test_the_facts_are_written_before_the_reply.py` and
-`tests/unit/ai/graph/test_the_text_beside_a_card.py` the order on the wire, and
-`tests/unit/ai/models/test_mock_replies_meet_the_contract.py` every mock arc's reply. The
-corpus cases `uat-core-d-microsporidiadb` and `uat-core-a-cryptodb` hold the rendered counts
-on the real model; a count question answered with no count on them proves the grammar is not
+`tests/unit/domain/test_a_note_names_records_and_writes_no_fact.py` holds the record links, the
+dropped record, the names with digits and the free note of a turn with no site data;
+`tests/unit/ai/lead/test_the_note_writes_no_fact_the_facts_show.py` and
+`tests/unit/ai/lead/test_a_note_fact_has_a_bound_of_its_own.py` the contract on a typed reply and
+a card's reply and its bound;
+`tests/unit/ai/graph/test_the_reply_is_rendered_from_the_facts_it_shows.py` that the text part
+and the facts part come from one `TurnFacts`; `tests/unit/ai/lead/test_a_failed_check_is_a_fact.py`,
+`tests/unit/ai/lead/test_the_record_organism_is_a_fact.py`,
+`tests/unit/ai/audit/test_an_audit_finding_read_is_a_fact.py` (a recorded fungidb finding) and
+`apps/web/src/features/conversation/content/parts/FactsReads.test.tsx` the new facts;
+`tests/unit/ai/lead/test_the_facts_hold_the_thread.py` the counts before an edit, the sources by
+step and the resolved genes; `tests/unit/ai/lead/test_the_turn_shows_its_facts.py` the builder;
+`tests/unit/ai/graph/test_the_facts_are_written_before_the_reply.py` the order on the wire; and
+`tests/unit/ai/models/test_mock_replies_meet_the_contract.py` every mock arc's note. A live note
+that spells a name out or restates a count the facts part shows proves the instruction is not
 followed.

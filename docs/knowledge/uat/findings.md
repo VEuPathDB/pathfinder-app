@@ -690,7 +690,7 @@ Reproduced with the chat debugger on 2026-09-27: `classify_user_intent` -> `clar
 
 ## FND-35 - The repetition guard stops VERIFY inside one parallel batch and the turn fails
 
-Fixed in a18: the guard escalates a blocked call only in a model step later than the one that received the warning, for both of its rules (`assistant-core` v0.3.0a20), a stopped check ends as `VerificationStopped` with no verdict and no card, the ledger and the `stopped_check` contract rule make the Lead say the check did not finish, and a call-budget stop names its tool.
+Fixed in a18: the guard escalates a blocked call only in a model step later than the one that received the warning, for both of its rules (`assistant-core` v0.3.0a20), a stopped check ends as `VerificationStopped` with no verdict and no card, the ledger and the facts part (`TurnFacts.stopped_check`) say the check did not finish, and a call-budget stop names its tool.
 
 Found by the a18 model report.
 

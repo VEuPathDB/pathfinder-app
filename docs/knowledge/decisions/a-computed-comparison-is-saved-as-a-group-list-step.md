@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A computed comparison is saved as a group list step
-description: A compare that veupathdb-mcp answers on its computed route is held by a `groups:` handle and becomes a criterion on the site's group id list search, through the same criterion path a saved gene set takes, its ids uploaded to the researcher's account by `counted_id_list`; its counts are a `group_comparison` statistic the reply places with `[stat:]`. Inlining the ids, a step outside the spec, and a parallel step-building path were rejected.
+description: A compare that veupathdb-mcp answers on its computed route is held by a `groups:` handle and becomes a criterion on the site's group id list search, through the same criterion path a saved gene set takes, its ids uploaded to the researcher's account by `counted_id_list`; its counts are a `group_comparison` statistic the facts part shows. Inlining the ids, a step outside the spec, and a parallel step-building path were rejected.
 tags: [orthomcl, phyletic, frame, strategy, facts]
 generated: { by: claude-code/opus-5.5, at: 2026-10-25T00:00:00Z }
 status: stable
@@ -16,7 +16,7 @@ answer with `route: "expression"` is handled as before: an `expr:` handle that
 decision *a compare past one expression is computed from group clouds*) returns
 `ComputedComparison`: the group count, `bothHeld`, `leftOnly`, `rightOnly`, `ties`,
 `residualGroups`, each set's genomes, species, groups and proteins, the probe and compute
-requests, a `factId` and a `groups:` handle. The group ids stay in
+requests and a `groups:` handle. The group ids stay in
 `computed_comparisons` (`domain/strategy/computed_groups.py::HeldComparison`). At the
 turn end they are kept only while an open question, a declined proposal, a separation
 offer or a pending approval names the handle, the check that keeps an `expr:` handle
@@ -54,26 +54,15 @@ shares of the groups and of each set's genomes as percentages, the route as its 
 Its statements say the groups are a snapshot, that `ties` counts over every group either
 set holds and is no part of the selected groups, and which species leads each set, or
 that two species tie for it. A
-framing pass records the statistic when the Lead applies the pass, and the Lead reads it
-under its references.
+framing pass records the statistic when the Lead applies the pass, and the Lead reads its
+rows in its pinned statistics.
 
 **The reply.** A group that one set alone holds is absent from the other set, not larger
-in it, so the count alone overstates the comparison. The turn contract's
-`unplaced_breakdown` rule (`ai/lead/turn_contract.py`, over `TurnRecord.comparisons`,
-each a `PlacedComparison` from `domain/strategy/comparison_placement.py`) parses the
-references the reply writes into their kind and body, never its words. A reply places the
-group count with `[stat:]` or `[cite:]` of the fact's `groups`, the `[count:]` of a step
-bound to the comparison's dataset, or `[root]` when that step is the root. It then places
-one row of each item `ComparisonFacts.breakdown()` names, as `[stat:]` or `[cite:]`:
-`bothHeld` or its share, and each one-sided count above 0 or its share, when a one-sided
-count is above 0; `residualGroups` or its share when above 0; and, for a set whose leading
-species leads, `leadingSpecies` and `leadingSpeciesShare` or `leadingSpeciesGenomes`. A
-species leads (`SetFacts.leading_species_leads`, a property and so no row of the card)
-when its set holds more than one species and it has at least `LEADS_BY` (twice) the
-genomes of the next one; the recorded right set leads with 20 genomes against 7, and a
-set of one species states nothing new. The refusal names each missing item. It is asked
-once per turn, so a turn that saves the groups after a card asks again when its reply
-places the count of the saved step.
+in it, so the count alone overstates the comparison. The facts part shows the whole
+breakdown while the thread holds the comparison (`TurnFacts.reads`, one
+`domain/read_facts.py::ReadFact` of the statistic): the group count, `bothHeld`, each
+one-sided count, `residualGroups`, their shares and each set's leading species. The reply
+is a note that says what the breakdown means and writes none of its numbers.
 
 **On the site.** WDK shows the list search's own description on the step and lets a
 client set only `customName`, `expanded`, `expandedName` and `displayPreferences` on it

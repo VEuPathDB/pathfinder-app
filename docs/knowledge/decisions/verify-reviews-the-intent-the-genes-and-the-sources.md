@@ -206,8 +206,8 @@ verdict on the strategy as its own sentence, and each column fit
 (`ai/lead/turn_facts.py`, see
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)).
 The reply says what each means for the question and restates none of their
-numbers; the turn contract's `unrendered_prose` refuses a reply that
-writes one. A caveat is a measurement the runtime reads from the records: a value
+numbers; the turn contract's `note_facts` refuses a note that writes
+one. A caveat is a measurement the runtime reads from the records: a value
 the checker writes is never one. A computed check short of the request is a
 gap row of its own.
 
