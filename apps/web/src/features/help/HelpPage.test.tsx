@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { SiteFrame } from "@/lib/sites/currentSite";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { HelpPage } from "./HelpPage";
@@ -19,15 +20,26 @@ const HEADINGS = [
   "Signing in and choosing a site",
   "How a conversation works",
   "What to check",
+  "Memory",
   "Models",
   "When a model declines",
   "Saving and exporting",
   "Your data",
 ];
 
+const LOCKED: SiteFrame = { kind: "locked", siteId: "plasmodb" };
+const SWITCHABLE: SiteFrame = { kind: "switchable" };
+const UNKNOWN: SiteFrame = { kind: "unknown" };
+
+function section(container: HTMLElement, id: string): HTMLElement {
+  const found = container.querySelector<HTMLElement>(`section#${id}`);
+  if (found === null) throw new Error(`no section ${id}`);
+  return found;
+}
+
 describe("HelpPage", () => {
   it("shows its title and every section heading, in order", () => {
-    render(<HelpPage />);
+    render(<HelpPage site={LOCKED} />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Help" })).toBeVisible();
     expect(
@@ -35,8 +47,62 @@ describe("HelpPage", () => {
     ).toEqual(HEADINGS);
   });
 
+  it("names what PathFinder can do beyond building a strategy", () => {
+    const { container } = render(<HelpPage site={LOCKED} />);
+
+    expect(
+      [...section(container, "what").querySelectorAll("li")].map(
+        (item) => item.textContent.split(".")[0],
+      ),
+    ).toEqual([
+      "Check a strategy against genes you already know",
+      "Look for searches that separate your known genes",
+      "Try other settings for one search and score each setting against your known genes",
+      "Explore study data",
+      "Remember useful results from one conversation to the next",
+    ]);
+  });
+
+  it("names the site a component site's website locks, and no site switch", () => {
+    const { container } = render(<HelpPage site={LOCKED} />);
+
+    expect(section(container, "sign-in")).toHaveTextContent(
+      "Here, PathFinder works on PlasmoDB.",
+    );
+    expect(container).not.toHaveTextContent("Switch site");
+  });
+
+  it("names Switch site where the website offers it", () => {
+    const { container } = render(<HelpPage site={SWITCHABLE} />);
+
+    expect(section(container, "sign-in")).toHaveTextContent(
+      "To start a conversation on another site, choose Switch site at the bottom of the left bar and pick the site.",
+    );
+  });
+
+  it("names neither the site nor the switch before the site is known", () => {
+    const { container } = render(<HelpPage site={UNKNOWN} />);
+
+    expect(section(container, "sign-in")).toHaveTextContent(
+      "Each conversation stays on the site where you started it.",
+    );
+    expect(container).not.toHaveTextContent("Switch site");
+    expect(container).not.toHaveTextContent("Here, PathFinder works on");
+  });
+
+  it("names the answers each card waits for and the stop control", () => {
+    const { container } = render(<HelpPage site={LOCKED} />);
+
+    const conversation = section(container, "conversation");
+    expect(conversation).toHaveTextContent("choose Yes or No");
+    expect(conversation).toHaveTextContent("it asks you to Approve or Deny");
+    expect(conversation).toHaveTextContent(
+      "To stop a reply while it is being written, choose Stop in the message box.",
+    );
+  });
+
   it("links to the data statement from its own section", () => {
-    render(<HelpPage />);
+    render(<HelpPage site={LOCKED} />);
 
     expect(
       screen.getByRole("link", { name: "Your data in PathFinder" }),
@@ -44,7 +110,7 @@ describe("HelpPage", () => {
   });
 
   it("links a declined request to the section that explains it", () => {
-    render(<HelpPage />);
+    render(<HelpPage site={LOCKED} />);
 
     expect(
       screen.getByRole("link", { name: "what PathFinder does when a model declines" }),
@@ -52,7 +118,7 @@ describe("HelpPage", () => {
   });
 
   it("leads back to the app", () => {
-    render(<HelpPage />);
+    render(<HelpPage site={LOCKED} />);
 
     expect(screen.getByRole("link", { name: "Back to PathFinder" })).toHaveAttribute(
       "href",
@@ -61,11 +127,12 @@ describe("HelpPage", () => {
   });
 
   it.each([
+    ["Memory", "memory"],
     ["Model", "model"],
     ["Provider keys", "keys"],
   ] as const)("opens Settings on the %s tab from its mention", async (name, tab) => {
     useSettingsModalStore.setState({ isOpen: false, tab: "advanced" });
-    render(<HelpPage />);
+    render(<HelpPage site={LOCKED} />);
 
     const link = screen.getByRole("link", { name });
     expect(link).toHaveAttribute("href", "/conversation");
@@ -75,9 +142,9 @@ describe("HelpPage", () => {
   });
 
   it("names Settings as the only way to the model", () => {
-    const { container } = render(<HelpPage />);
+    const { container } = render(<HelpPage site={LOCKED} />);
 
-    expect(container.querySelector("section#models")).toHaveTextContent(
+    expect(section(container, "models")).toHaveTextContent(
       "To change it, open Settings and the Model tab.",
     );
   });

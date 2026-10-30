@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { HelpPage } from "@/features/help/HelpPage";
+import { HelpRoute } from "./HelpRoute";
 
 export const metadata: Metadata = { title: "Help - PathFinder" };
 
 export default function Page() {
-  return <HelpPage />;
+  return <HelpRoute />;
 }

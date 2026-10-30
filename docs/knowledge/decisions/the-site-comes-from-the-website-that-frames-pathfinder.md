@@ -39,6 +39,11 @@ column (`apps/web/src/features/audit/AuditRunsPage.tsx`).
 The app shell mirrors the resolved site into the session store's `selectedSite`,
 which the chat runtime and the composer read outside the route.
 
+The Help page follows the same rule. `apps/web/src/app/help/HelpRoute.tsx` reads
+`lib/sites/currentSite.ts::siteFrame`, so the page names the locked site on a component
+site's website, names Switch site where the switcher shows, and names neither before the
+site list and the page's origin are known.
+
 # What was rejected
 
 **The website adds and strips the site segment.** The website page knows its project,
@@ -58,3 +63,5 @@ website, the notice for another site's conversation, and the switch on a website
 offers it.
 `apps/web/src/app/(app)/audits/page.test.tsx` requires the locked site's `siteId` on
 the audits read, and none on the portal.
+`apps/web/src/app/help/HelpRoute.test.tsx` requires no Switch site on the Help page on a
+component site's website, and Switch site on the portal's.

@@ -7,10 +7,12 @@ test.describe("Help and the data statement", () => {
     chatPage,
   }) => {
     await chatPage.goto();
+    const switchers = await page.getByRole("button", { name: "Switch site" }).count();
 
     await page.getByRole("link", { name: "Help", exact: true }).click();
     await expect(page).toHaveURL(`${BASE_URL}/help`, { timeout: ROUTE_TIMEOUT_MS });
     await expect(page.getByRole("heading", { level: 1, name: "Help" })).toBeVisible();
+    await expect(page.getByText(/choose Switch site/)).toHaveCount(switchers);
 
     await page.getByRole("link", { name: "Your data in PathFinder" }).click();
     await expect(page).toHaveURL(`${BASE_URL}/help/your-data`, {

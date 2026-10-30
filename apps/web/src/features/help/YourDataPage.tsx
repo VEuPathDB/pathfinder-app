@@ -51,13 +51,24 @@ export function YourDataPage() {
         </p>
         <p>
           This goes to the provider of the model that answers: OpenAI by default,
-          Anthropic for a Claude model, Google for a Gemini model. Some small requests
-          go to OpenAI whichever model you pick: a check of your message and of tool
-          output for hidden instructions, unless the deployment turns it off; naming a
-          new conversation from your first message, or the next one if naming fails;
-          condensing long notes; and turning memory summaries and search words into
-          vectors.
+          Anthropic for a Claude model, or Google for a Gemini model.
         </p>
+        <p>Some requests go to OpenAI whichever model you pick:</p>
+        <InfoList>
+          <li>
+            a check of your message, and of what the assistant&apos;s tools read, for
+            hidden instructions, unless the deployment turns it off;
+          </li>
+          <li>conversation titles and summaries of long notes;</li>
+          <li>
+            matching what the assistant looks for to the site&apos;s searches and
+            parameter values;
+          </li>
+          <li>
+            turning memories and search words into numbers for search, with the
+            text-embedding-3-large model.
+          </li>
+        </InfoList>
         <p>
           Each provider&apos;s own terms say what it does with this data:{" "}
           <ExternalLink href="https://openai.com/enterprise-privacy/">
@@ -81,9 +92,11 @@ export function YourDataPage() {
 
       <Section id="other-services" title="Other services">
         <p>
-          You sign in on the VEuPathDB website, and PathFinder receives the sign-in
-          token it gives your browser, never your password. To read a count, PathFinder
-          sometimes makes a temporary strategy in your account and then deletes it.
+          You sign in on the VEuPathDB website. PathFinder receives the sign-in token
+          the website gives your browser, never your password. It uses the token to act
+          as you on the site: to run searches and to save strategies in your account. To
+          read a count, PathFinder sometimes makes a temporary strategy in your account
+          and then deletes it.
         </p>
         <p>
           If the deployment turns on literature and web search, the search words the
@@ -102,8 +115,10 @@ export function YourDataPage() {
         </p>
         <p>
           Each message you send, and each background task, waits in a queue with its
-          request, its files and your sign-in token. The queue deletes it when the work
-          ends. A file you export is kept for 10 minutes.
+          request, its files and your sign-in token. The queue entry is deleted when the
+          work ends. An audit keeps your sign-in token sealed while it runs and erases
+          it when it stops. A file you export can be downloaded for 10 minutes and is
+          then deleted.
         </p>
         <p>
           Server logs record your account ID with each event. If the deployment turns on
@@ -124,14 +139,24 @@ export function YourDataPage() {
 
       <Section id="deleting" title="Deleting your data">
         <p>
-          Delete a conversation from the conversation list. One that holds a strategy
-          goes to Recently deleted first, and Delete permanently removes it with any
-          copy waiting for review, but not its audits. Its strategy stays in your
-          VEuPathDB account unless you tick Also delete strategy from the site. Settings
-          deletes memories, provider keys and everything at once, audits included, on
-          its <SettingsTabLink tab="memory">Memory</SettingsTabLink>,{" "}
-          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> and{" "}
-          <SettingsTabLink tab="data">Data</SettingsTabLink> tabs.
+          Delete a conversation from the conversation list. It moves to Recently
+          deleted, where you can restore it. Delete permanently, in Recently deleted,
+          removes its messages, files, notes, strategy history, ratings and any copy
+          waiting for review. It keeps the gene sets, control sets and audits made in
+          the conversation, your memories, and the strategy in your VEuPathDB account.
+        </p>
+        <p>
+          If you tick the box to also delete the strategy on the site, the conversation
+          is deleted at once.
+        </p>
+        <p>
+          In Settings, the <SettingsTabLink tab="memory">Memory</SettingsTabLink> tab
+          deletes memories. A deleted memory leaves a fingerprint of its content, so
+          that PathFinder does not save it again on its own. The{" "}
+          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab removes a key
+          and keeps only its last four characters. The{" "}
+          <SettingsTabLink tab="data">Data</SettingsTabLink> tab clears your data for
+          one site or for every site, and each button says what it deletes.
         </p>
         <p>
           Deleting does not remove your monthly spend, the email address of your
@@ -176,8 +201,8 @@ export function YourDataPage() {
           A copy used beyond review never carries your name, your account or a link to
           your conversation. Findings are reported only in summaries, never as your
           conversation. PathFinder does not sell copies or give them to anyone to train
-          their AI models. Before review, PathFinder removes email addresses and
-          passwords in web addresses.
+          their AI models. Before review, PathFinder removes email addresses, and
+          sign-in names and passwords written into web addresses.
         </p>
         <p>
           If we start using copies in a way this page does not describe, we update this
@@ -193,10 +218,16 @@ export function YourDataPage() {
         <p>
           Add a key in Settings, on the{" "}
           <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab. PathFinder
-          checks it with one short request, stores it sealed and sends it only to its
-          provider, which then bills you for every model of that provider except the
-          check for hidden instructions. Claude Sonnet 5.5 and Claude Opus 5.5 run only
-          on your own Anthropic key.
+          checks it with one short request, stores it sealed and never shows it again.
+          It opens the key only when a reply starts, in the part of PathFinder that runs
+          the assistant, and only for that reply. It sends the key only to its provider.
+        </p>
+        <p>
+          Your key pays for that provider&apos;s models. The check for hidden
+          instructions, the matching of searches and values, and the numbers for search
+          always run on the deployment&apos;s OpenAI account. If the provider refuses
+          your key, the reply stops. PathFinder does not use its own key instead. Claude
+          Sonnet 5.5 and Claude Opus 5.5 run only on your own Anthropic key.
         </p>
       </Section>
 
