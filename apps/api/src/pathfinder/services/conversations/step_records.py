@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb import strip_html_tags
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import WDKRecordInstance, get_site, get_strategy_api
+from veupathdb.wdk import WDKRecordInstance, get_strategy_api
 from veupathdb_mcp.wdk import view_filters_for
 
 from pathfinder.persistence.repositories import ConversationRepository
@@ -20,6 +20,7 @@ from pathfinder.services.gene_records.attributes import product_attribute
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.gene_sets.step_genes import extract_gene_id
 from pathfinder.services.strategies.record_classes import step_record_class
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -107,8 +108,6 @@ async def read_step_records(
         offset=page.offset,
         limit=page.limit,
         record_type=record_type,
-        step_url=get_site(site_id).strategy_url(
-            sync_state.wdk_strategy_id, wdk_step_id
-        ),
+        step_url=result_list_url(site_id, sync_state.wdk_strategy_id, wdk_step_id),
         records=[_record(site_id, record, product) for record in answer.records],
     )

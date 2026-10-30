@@ -165,7 +165,8 @@ describe("EditorContent", () => {
       offset: 0,
       limit: 50,
       recordType: "transcript",
-      stepUrl: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22",
+      stepUrl:
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22/summary:_default",
       records: [
         {
           geneId: "PF3D7_1133400",

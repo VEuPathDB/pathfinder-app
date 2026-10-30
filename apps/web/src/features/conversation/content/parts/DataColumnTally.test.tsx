@@ -42,7 +42,7 @@ const TALLY: ColumnTally = {
 };
 
 const STEP_URL =
-  "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/1188/227284080";
+  "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/1188/227284080/summary:_default";
 
 const PROTEINS: ColumnTally = {
   id: "tally_5e6f7a8b",

@@ -33,7 +33,8 @@ vi.mock(
 
 import { StepResults } from "./StepResults";
 
-const STEP_URL = "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22";
+const STEP_URL =
+  "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22/summary:_default";
 
 function geneId(n: number): string {
   return `PF3D7_${String(n).padStart(7, "0")}`;

@@ -42,6 +42,7 @@ def _thread(
     ast: StrategyAst | None,
     *,
     created_here: bool = False,
+    wdk_strategy_id: int | None = None,
 ) -> tuple[Conversation, ConversationStrategyView]:
     now = datetime.now(UTC)
     conversation = Conversation(
@@ -54,6 +55,7 @@ def _thread(
         updated_at=now,
     )
     strategy = ConversationStrategyView(
+        wdk_strategy_id=wdk_strategy_id,
         wdk_strategy_created_here=created_here,
         is_saved=True,
         step_count=1,
@@ -107,3 +109,25 @@ def test_the_response_says_who_created_the_veupathdb_strategy() -> None:
 
     assert built_here.wdk_strategy_created_here is True
     assert opened_here.wdk_strategy_created_here is False
+
+
+def test_both_dtos_open_the_result_list_of_the_pushed_root() -> None:
+    ast = _ast().model_copy(update={"wdk_step_ids": {"step_a": 227289210}})
+    thread = _thread(ast, wdk_strategy_id=214647970)
+    url = (
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
+        "214647970/227289210/summary:_default"
+    )
+
+    assert (
+        build_conversation_response(*thread).wdk_url,
+        build_conversation_summary(*thread).wdk_url,
+    ) == (url, url)
+
+
+def test_a_strategy_whose_root_is_not_pushed_opens_its_page() -> None:
+    thread = _thread(_ast(), wdk_strategy_id=214647970)
+
+    assert build_conversation_response(*thread).wdk_url == (
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/214647970"
+    )

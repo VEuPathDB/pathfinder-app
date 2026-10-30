@@ -84,7 +84,10 @@ async def test_a_pushed_step_answers_its_page_of_genes(
         "offset": 0,
         "limit": 2,
         "recordType": "transcript",
-        "stepUrl": "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11",
+        "stepUrl": (
+            "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11"
+            "/summary:_default"
+        ),
         "records": [
             {
                 "geneId": "TGME49_200010",

@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from veupathdb.domain.strategy import StepFilter, StrategyStepNode, flatten_tree
 from veupathdb.wdk import (
-    SiteInfo,
     StrategyAPI,
     WDKIdentifier,
     WDKStrategyDetails,
@@ -28,15 +27,6 @@ _WDK_STEP_ID = 1001
 _STRATEGY = 77
 _UNFILTERED = 1825
 _FILTERED = 71
-
-_SITE = SiteInfo(
-    id="plasmodb",
-    name="plasmodb",
-    display_name="PlasmoDB",
-    base_url="https://qa.plasmodb.org/plasmo.qa/service",
-    project_id="PlasmoDB",
-    is_portal=False,
-)
 
 
 class _Site:
@@ -88,7 +78,6 @@ def _api(site: _Site) -> StrategyAPI:
 def site(monkeypatch: pytest.MonkeyPatch) -> _Site:
     served = _Site()
     monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: _api(served))
-    monkeypatch.setattr(sync, "get_site", lambda _site_id: _SITE)
     return served
 
 
@@ -127,3 +116,13 @@ async def test_the_result_reports_the_filtered_size(site: _Site) -> None:
 
     assert result.counts == {_STEP: _FILTERED}
     assert result.root_count == _FILTERED
+
+
+@pytest.mark.asyncio
+async def test_the_result_links_to_the_result_list_of_its_root(site: _Site) -> None:
+    result = await _sync(WDKSyncState(wdk_step_ids={_STEP: _WDK_STEP_ID}))
+
+    assert result.wdk_url == (
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
+        f"{_STRATEGY}/{_WDK_STEP_ID}/summary:_default"
+    )

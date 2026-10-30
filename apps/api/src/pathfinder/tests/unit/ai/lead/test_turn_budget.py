@@ -44,8 +44,8 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     SITE_ID,
     STEP,
     STRATEGY_LINE,
+    STRATEGY_PAGE,
     TITLE,
-    URL,
     WORDS,
     built,
     built_outcome,
@@ -335,7 +335,7 @@ def test_a_split_strategy_names_no_final_step() -> None:
     report = _report(built(), None, session)
 
     assert report.split("\n\n")[0] == (
-        f"The strategy holds 2 steps. It is on VEuPathDB at {URL.rsplit('/', 1)[0]}."
+        f"The strategy holds 2 steps. It is on VEuPathDB at {STRATEGY_PAGE}."
     )
 
 

@@ -19,7 +19,6 @@ from veupathdb.wdk import (
     WDKStepTree,
     WDKStrategyDetails,
     build_wdk_step_tree,
-    get_site,
     get_strategy_api,
 )
 
@@ -39,6 +38,7 @@ from pathfinder.services.strategies.record_classes import (
     fill_record_classes,
     unclassed_step_failure,
 )
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -330,7 +330,7 @@ async def sync_strategy_for_site(
     sync_state.step_counts = state.counts
     sync_state.step_validations = state.validations
 
-    wdk_url = get_site(site_id).strategy_url(wdk_strategy_id, state.root_step_id)
+    wdk_url = result_list_url(site_id, wdk_strategy_id, state.root_step_id)
     zeros = sorted([sid for sid, c in state.counts.items() if c == 0])
 
     return SyncResult(

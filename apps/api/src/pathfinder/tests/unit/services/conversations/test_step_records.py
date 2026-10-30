@@ -70,7 +70,10 @@ async def test_a_pushed_step_answers_its_genes_and_the_site_links(
         offset=0,
         limit=50,
         record_type="transcript",
-        step_url="https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11",
+        step_url=(
+            "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11"
+            "/summary:_default"
+        ),
         records=[
             StepRecord(
                 gene_id="TGME49_200010",

@@ -190,9 +190,9 @@ request lacks.
 
 ## Where the gaps and caveats are shown
 
-The facts part beside the Lead's reply links the strategy at the root it
-holds now (`services/strategies/commit.py::live_strategy_url`, from the sync
-state), and VERIFY's work order names the root's count from the same state,
+The facts part beside the Lead's reply links the result list of the root it
+holds now (`services/strategies/result_list.py::live_result_list_url`, from the
+sync state), and VERIFY's work order names the root's count from the same state,
 never from the last build. The stopped-turn text reads the same link, and a
 delete or an edit records the build as the live state holds it
 (`services/strategies/graph_outcome.py::live_outcome`). The build outcome

@@ -33,7 +33,8 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.services.strategies import data_marks
-from pathfinder.services.strategies.commit import CommitResult, live_strategy_url
+from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.services.strategies.result_list import live_result_list_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -168,8 +169,9 @@ async def test_an_edit_that_leaves_the_tree_in_place_keeps_the_strategy_link(
 ) -> None:
     deps = await _edited(monkeypatch)
 
-    assert live_strategy_url("plasmodb", deps.runtime.strategy_session.sync_state) == (
-        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/900/11"
+    sync = deps.runtime.strategy_session.sync_state
+    assert live_result_list_url("plasmodb", sync) == (
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/900/11/summary:_default"
     )
 
 

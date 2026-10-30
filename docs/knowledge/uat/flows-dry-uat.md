@@ -41,7 +41,7 @@ The model check of each flow is its corpus case, named in [the index](index.md).
 | 3 | Same | Send `That's stricter than I meant. I don't need an ortholog in all 15 Toxoplasma strains, one in the reference strain ME49 is enough. Please change it to: ortholog in T. gondii ME49, none in Homo sapiens, and tell me the new count. Also please use strain names, not codes.` | The profile on `Toxoplasma gondii ME49` only, excluding `Homo sapiens`: 497; the reply of this turn states 497, whole sentences only |
 | 4 | Same | Send `I got an error message saying the content was flagged for biological risk and to send the message again. Did my change to ME49-only go through? What is the count now?` | Yes, 497; the reply names `Toxoplasma gondii ME49` |
 | 5 | Same | Send `OK, 497. Now narrow it: and that are predicted to be secreted.` | AND `Predicted Signal Peptide` (437) = 68 |
-| 6 | Same | Send `Thanks, 68 is a workable list. Can you give me the link to this strategy on CryptoDB so I can open it there?` | A link on the route the site serves, `https://cryptodb.org/cryptodb/app/workspace/strategies/<strategy id>/<root step id>`; never `/app/strategy/<id>` |
+| 6 | Same | Send `Thanks, 68 is a workable list. Can you give me the link to this strategy on CryptoDB so I can open it there?` | A link on the route the site serves, `https://cryptodb.org/cryptodb/app/workspace/strategies/<strategy id>/<root step id>/summary:_default`; never `/app/strategy/<id>` |
 
 ## U3 - An exact family phrase states its wildcard count - piroplasmadb
 

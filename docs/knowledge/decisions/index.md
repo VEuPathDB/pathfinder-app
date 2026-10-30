@@ -107,6 +107,7 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 
 - [PathFinder shows what the AI did, and the site is where a researcher edits by hand](pathfinder-shows-what-the-ai-did-and-the-site-edits.md) - a screen the site has is a link to it and what the site cannot show is PathFinder's UI; the EDA tab keeps the picker, the subset and the comparison as text, the figure at the analysis's own cut, the export and one link to the site's analysis page, and reads the shared document fresh on every load; copying the notebook cells was rejected because it is two UIs of one document with no AI value
 - [A parent term is a selection, so the tree expands it](parent-term-is-a-selection.md) - a correct organism scope rendered as "0 of 62 selected"
+- [A site link opens the result list of the root step](a-site-link-opens-the-result-list-of-the-root-step.md) - every link to a strategy on a site is `/app/workspace/strategies/<strategy>/<root step>/summary:_default` from `services/strategies/result_list.py`, the root step with the site's result table showing; the strategy page and the step with no tab were rejected because both open the tab the researcher last chose for that search
 - [The logo is a tsetse in a loop of the site colours](the-logo-is-a-tsetse-in-a-loop-of-the-site-colours.md) - the mark alone is the logo, `assets/brand/` is its one source and `lib/brand.ts` the web app's one name for it; a mosquito, a rosette, the portal's palette and site-coloured nodes were rejected because each reads as an existing VEuPathDB mark
 
 ## Testing

@@ -240,7 +240,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     );
     await expect(link).toHaveAttribute(
       "href",
-      new RegExp(`^${web}/app/workspace/strategies/\\d+/\\d+$`),
+      new RegExp(`^${web}/app/workspace/strategies/\\d+/\\d+/summary:_default$`),
     );
 
     const rail = await openChecking(page);

@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
-from veupathdb.wdk import get_site
 
 from pathfinder.ai.graph.stream_events import evidence_card_event
 from pathfinder.ai.graph.turn_records import ControlTestRun
@@ -35,6 +34,7 @@ from pathfinder.domain.strategy.build_outcome import (
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.services.evidence.control_enrichment import with_enrichment
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.site_counts import SiteCounts, read_step_counts
 
 
@@ -68,7 +68,7 @@ def _strategy_url(sources: CardSources, site: SiteCounts | None) -> str | None:
     if sources.wdk_strategy_id is None:
         return None
     root = sources.root_wdk_step_id if site is None else site.root_step_id
-    return get_site(sources.site_id).strategy_url(sources.wdk_strategy_id, root)
+    return result_list_url(sources.site_id, sources.wdk_strategy_id, root)
 
 
 def _steps(sources: CardSources, site: SiteCounts | None) -> list[CheckedStepCount]:

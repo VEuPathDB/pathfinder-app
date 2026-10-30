@@ -194,7 +194,7 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           rel="noreferrer"
           className="mt-2 block text-sm font-medium text-primary underline-offset-2 hover:underline"
         >
-          {`Open on ${siteShortName(link.siteId)}`}
+          {`Open results on ${siteShortName(link.siteId)}`}
         </a>
       )}
       <Sentences
