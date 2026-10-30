@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
-from veupathdb_mcp.separation import CandidateProposal
+from veupathdb_mcp.separation import MAX_CONTROLS, CandidateProposal
 
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.standalone.separation import SEPARATION
@@ -102,3 +102,15 @@ def test_the_budget_is_a_request_estimate_with_its_bounds() -> None:
 
     assert (budget["minimum"], budget["maximum"], budget["default"]) == (200, 2000, 600)
     assert (SEPARATION_BUDGET, SEPARATION.estimated_duration_seconds) == (600, 300)
+
+
+def test_each_control_list_takes_the_librarys_limit() -> None:
+    schema = _lead_tool(_TOOL).function_schema.json_schema["properties"]
+
+    assert [
+        schema[side]["maxItems"] for side in ("positive_controls", "negative_controls")
+    ] == [
+        MAX_CONTROLS,
+        MAX_CONTROLS,
+    ]
+    assert MAX_CONTROLS == 500

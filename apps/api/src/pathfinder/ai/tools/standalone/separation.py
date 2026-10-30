@@ -12,7 +12,11 @@ from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from veupathdb_mcp.separation import CandidateProposal, too_few_controls
+from veupathdb_mcp.separation import (
+    MAX_CONTROLS,
+    CandidateProposal,
+    too_few_controls,
+)
 
 from pathfinder.ai.graph.stream_events import separation_result_event
 from pathfinder.ai.lead.card_reply import CardReply
@@ -26,8 +30,6 @@ from pathfinder.domain.separation import (
 )
 from pathfinder.platform.durable_worker import durable_agent_tool
 
-# The intersection's answer lists every control the target holds.
-MAX_CONTROLS = 500
 MAX_LITERATURE = 8
 
 
