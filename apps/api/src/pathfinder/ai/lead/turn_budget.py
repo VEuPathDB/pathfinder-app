@@ -21,7 +21,7 @@ from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
-from pathfinder.services.strategies.commit import live_strategy_url
+from pathfinder.services.strategies.result_list import live_result_list_url
 
 # One turn's ceiling on the Lead's own model requests, and on the tool calls
 # they make. A sub-agent pass runs under a ceiling of its own.
@@ -76,7 +76,7 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
     if graph is None or not graph.steps:
         return "Nothing was built."
     held = f"The strategy holds {count_noun(len(graph.steps), 'step')}"
-    url = live_strategy_url(session.site_id, session.sync_state)
+    url = live_result_list_url(session.site_id, session.sync_state)
     root_id = strategy_root_id(graph, session.sync_state)
     if root_id is None:
         if ledger.build.stale_build is not None:

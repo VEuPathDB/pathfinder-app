@@ -58,13 +58,13 @@ from pathfinder.domain.turn_facts import (
 )
 from pathfinder.domain.zero_combine import zero_combine_caveats
 from pathfinder.services.gene_sets.homes import site_kind
-from pathfinder.services.strategies.commit import live_strategy_url
+from pathfinder.services.strategies.result_list import live_result_list_url
 
 
 def _strategy_link(
     site_id: str, sync: SyncStateProtocol | None
 ) -> StrategyLinkFact | None:
-    url = live_strategy_url(site_id, sync)
+    url = live_result_list_url(site_id, sync)
     return None if url is None else StrategyLinkFact(site_id=site_id, url=url)
 
 

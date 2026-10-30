@@ -10,7 +10,7 @@ from pydantic_ai.toolsets import FunctionToolset, WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
-from veupathdb.wdk import WDKStepTree, get_site
+from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.tools.standalone import step_tally
@@ -22,6 +22,7 @@ from pathfinder.services.experiment.column_tally import (
 )
 from pathfinder.services.experiment.step_tally import CountedStep
 from pathfinder.services.experiment.tally_rows import TallyRow
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import lead_run_context
 
@@ -107,8 +108,10 @@ async def test_a_transform_step_is_counted_and_linked_on_the_site(ran: _Ran) -> 
 
     result = await count_step_by_column(ctx, _PROTEINS_STEP, "abbreviation")
 
-    step_url = get_site("orthomcl").strategy_url(_STRATEGY, _PROTEINS_STEP)
-    assert step_url.endswith(f"/app/workspace/strategies/{_STRATEGY}/{_PROTEINS_STEP}")
+    step_url = result_list_url("orthomcl", _STRATEGY, _PROTEINS_STEP)
+    assert step_url.endswith(
+        f"/app/workspace/strategies/{_STRATEGY}/{_PROTEINS_STEP}/summary:_default"
+    )
     assert ran.asked == [
         (
             CountedStep(
@@ -179,7 +182,7 @@ async def test_the_count_and_the_link_name_the_strategys_site(ran: _Ran) -> None
     ((step, _),) = ran.asked
     assert (step.site_id, step.step_url) == (
         "orthomcl",
-        get_site("orthomcl").strategy_url(_STRATEGY, _PROTEINS_STEP),
+        result_list_url("orthomcl", _STRATEGY, _PROTEINS_STEP),
     )
 
 

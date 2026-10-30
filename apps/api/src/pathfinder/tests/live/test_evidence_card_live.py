@@ -16,7 +16,6 @@ from veupathdb.wdk import (
     NewStepSpec,
     WDKSearchConfig,
     WDKStepTree,
-    get_site,
     get_strategy_api,
 )
 from veupathdb_mcp.controls import run_step_control_tests
@@ -27,6 +26,7 @@ from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.ai.tools.standalone.experiment import control_test_run
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.build_outcome import BuiltCounts, NodeResult
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.site_counts import read_step_counts
 from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
 
@@ -133,4 +133,4 @@ async def test_the_card_holds_what_the_test_and_the_site_returned(
     assert [(step.recorded_count, step.site_count) for step in card.steps] == [
         (site_size, site_size)
     ]
-    assert card.strategy_url == get_site(_SITE).strategy_url(strategy_id, step_id)
+    assert card.strategy_url == result_list_url(_SITE, strategy_id, step_id)

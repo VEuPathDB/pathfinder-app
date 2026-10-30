@@ -11,7 +11,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from veupathdb.domain.strategy import StepValidation, StrategyStepNode, flatten_tree
 from veupathdb.wdk import (
-    SiteInfo,
     StrategyAPI,
     WDKIdentifier,
     WDKStep,
@@ -24,14 +23,6 @@ from pathfinder.services.strategies.sync import SyncResult, sync_strategy_for_si
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _WDK_STEP_ID = 1001
-_SITE = SiteInfo(
-    id="plasmodb",
-    name="plasmodb",
-    display_name="PlasmoDB",
-    base_url="https://qa.plasmodb.org/plasmo.qa/service",
-    project_id="PlasmoDB",
-    is_portal=False,
-)
 
 
 def _invalid_step() -> WDKStep:
@@ -89,7 +80,6 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     recorded: list[str] = []
     api = _recording_api(recorded)
     monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync, "get_site", lambda _site_id: _SITE)
     return recorded
 
 

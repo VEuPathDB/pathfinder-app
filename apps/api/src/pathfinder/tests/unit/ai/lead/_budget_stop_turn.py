@@ -19,10 +19,10 @@ TITLE = "Up at 24 h against 18 h and 36 h"
 SEARCH = "GenesByEdaSubset"
 _WDK_STEP = 440_545_693
 _WDK_STRATEGY = 330_683_723
-URL = (
-    "https://qa.vectorbase.org/vectorbase.qa/app/workspace/strategies/"
-    f"{_WDK_STRATEGY}/{_WDK_STEP}"
+STRATEGY_PAGE = (
+    f"https://qa.vectorbase.org/vectorbase.qa/app/workspace/strategies/{_WDK_STRATEGY}"
 )
+URL = f"{STRATEGY_PAGE}/{_WDK_STEP}/summary:_default"
 OBJECTION = "The step keeps genes higher at 24 h than at 36 h, not at 18 h."
 QUESTION = "Should the comparison use 18 h alone as the reference?"
 BUDGET = (

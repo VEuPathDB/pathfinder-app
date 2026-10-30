@@ -9,7 +9,7 @@ export const EVIDENCE_CARD: EvidenceCard = {
   checkedAt: "2026-09-24T09:30:00Z",
   wdkStrategyId: 300125410,
   strategyUrl:
-    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573",
+    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573/summary:_default",
   siteRead: "read",
   steps: [
     {
@@ -68,7 +68,7 @@ export const REVIEWED_CARD: EvidenceCard = {
   checkedAt: "2026-09-24T15:46:23.827656Z",
   wdkStrategyId: 330699223,
   strategyUrl:
-    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330699223/440597243",
+    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330699223/440597243/summary:_default",
   siteRead: "read",
   steps: [
     {

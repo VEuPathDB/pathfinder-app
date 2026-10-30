@@ -14,7 +14,6 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import SiteNotFoundError
-from veupathdb.wdk import get_site
 
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
@@ -25,6 +24,7 @@ from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.services.strategies.result_list import result_list_url
 from pathfinder.services.strategies.schemas import (
     StepResponse,
     step_response_from_strategy_ast,
@@ -80,15 +80,21 @@ class ConversationResponse(CamelModel):
     strategy_revision: str = Field(default="")
 
 
-def _compute_wdk_url(site_id: str, wdk_strategy_id: int | None) -> str | None:
+def _compute_wdk_url(
+    site_id: str, wdk_strategy_id: int | None, payload: StrategyAst | None
+) -> str | None:
     if wdk_strategy_id is None or not site_id:
         return None
+    root = (
+        None
+        if payload is None or payload.wdk_step_ids is None
+        else payload.wdk_step_ids.get(payload.root.id)
+    )
     # A thread on a site this deployment no longer serves still lists.
     try:
-        site = get_site(site_id)
+        return result_list_url(site_id, wdk_strategy_id, root)
     except SiteNotFoundError:
         return None
-    return site.strategy_url(wdk_strategy_id)
 
 
 def derive_steps_from_strategy_ast(payload: StrategyAst | None) -> list[StepResponse]:
@@ -138,7 +144,7 @@ def build_conversation_response(
     """Build a detail-view ``ConversationResponse`` from a ``Conversation``."""
     payload = parse_strategy_ast(strategy.strategy_ast)
     root_step_id = extract_root_step_id(payload)
-    wdk_url = _compute_wdk_url(conversation.site_id, strategy.wdk_strategy_id)
+    wdk_url = _compute_wdk_url(conversation.site_id, strategy.wdk_strategy_id, payload)
 
     return ConversationResponse(
         id=conversation.id,
@@ -174,8 +180,8 @@ def build_conversation_summary(
 ) -> ConversationResponse:
     """Build a list-view ``ConversationResponse`` (steps=[]) from a ``Conversation``."""
     effective_site_id = site_id or conversation.site_id
-    wdk_url = _compute_wdk_url(effective_site_id, strategy.wdk_strategy_id)
     payload = parse_strategy_ast(strategy.strategy_ast)
+    wdk_url = _compute_wdk_url(effective_site_id, strategy.wdk_strategy_id, payload)
 
     return ConversationResponse(
         id=conversation.id,

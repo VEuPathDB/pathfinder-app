@@ -13,7 +13,11 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
 
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.lead.intent import (
+    BUILDING_INTENTS,
+    IntentClassification,
+    UserIntent,
+)
 from pathfinder.ai.lead.lead_tools import delete_step
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
@@ -24,7 +28,7 @@ from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSp
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import StrategyLinkFact
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
-from pathfinder.services.strategies.commit import live_strategy_url
+from pathfinder.services.strategies.result_list import live_result_list_url
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from pathfinder.tests._support.bound_values import bound
@@ -98,7 +102,7 @@ def test_after_a_delete_the_link_names_the_root_the_strategy_holds() -> None:
 
     assert facts.strategy_link == StrategyLinkFact(
         site_id="cryptodb",
-        url=f"https://qa.cryptodb.org/cryptodb.qa/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}",
+        url=f"https://qa.cryptodb.org/cryptodb.qa/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}/summary:_default",
     )
     assert facts.root_count == 483
 
@@ -113,7 +117,7 @@ def test_after_a_value_only_edit_the_link_is_still_shown() -> None:
 
     assert turn_facts(deps).strategy_link == StrategyLinkFact(
         site_id="piroplasmadb",
-        url=f"https://qa.piroplasmadb.org/piro.qa/app/workspace/strategies/{_STRATEGY}/902",
+        url=f"https://qa.piroplasmadb.org/piro.qa/app/workspace/strategies/{_STRATEGY}/902/summary:_default",
     )
 
 
@@ -127,7 +131,7 @@ def test_an_orthomcl_link_names_its_site_and_opens_the_root_step() -> None:
 
     assert turn_facts(deps).strategy_link == StrategyLinkFact(
         site_id="orthomcl",
-        url=f"https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/{_STRATEGY}/77",
+        url=f"https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/{_STRATEGY}/77/summary:_default",
     )
 
 
@@ -141,7 +145,27 @@ def test_a_portal_link_names_the_portal_and_opens_the_root_step() -> None:
 
     assert turn_facts(deps).strategy_link == StrategyLinkFact(
         site_id="veupathdb",
-        url=f"https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/{_STRATEGY}/512",
+        url=f"https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/{_STRATEGY}/512/summary:_default",
+    )
+
+
+@pytest.mark.parametrize("kind", sorted(BUILDING_INTENTS))
+def test_every_reply_that_builds_or_edits_opens_the_root_result_list(
+    kind: IntentClassification,
+) -> None:
+    step = "step_9a1e4c07"
+    state = pipeline_state("plasmodb", domain=domain_answering(_spec(step)))
+    intent = UserIntent(classification=kind, inferred_goal="signal peptide genes")
+    session = _session("plasmodb", step, 227289210, 479)
+
+    facts = turn_facts(lead_deps(state, intent=intent, strategy_session=session))
+
+    assert facts.strategy_link == StrategyLinkFact(
+        site_id="plasmodb",
+        url=(
+            "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
+            f"{_STRATEGY}/227289210/summary:_default"
+        ),
     )
 
 
@@ -277,12 +301,12 @@ async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
 
     build = derive_ledger(ctx.deps.state, None).build
     counts = built_counts(session.graph, session.sync_state)
-    link = live_strategy_url("plasmodb", session.sync_state)
+    link = live_result_list_url("plasmodb", session.sync_state)
     assert (counts.root_count, link) == (
         483,
         (
             "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
-            f"{_STRATEGY}/{_LIVE_ROOT}"
+            f"{_STRATEGY}/{_LIVE_ROOT}/summary:_default"
         ),
     )
     assert [(n.node_id, counts.of(n.node_id)) for n in build.node_results] == [

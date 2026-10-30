@@ -158,7 +158,7 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
       has: page.getByTestId("data-gene-set"),
     });
     const factsLink = chatPage.factsIn(saved).getByTestId("facts-strategy-link");
-    await expect(factsLink).toHaveText(`Open on ${site}`);
+    await expect(factsLink).toHaveText(`Open results on ${site}`);
     await expect(factsLink).toHaveAttribute(
       "href",
       new RegExp(`^${literal(url)}/\\d+$`),

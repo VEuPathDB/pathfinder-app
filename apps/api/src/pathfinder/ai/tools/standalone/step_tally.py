@@ -12,7 +12,6 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.wdk import get_site
 from veupathdb_mcp.wdk import (
     DEFAULT_COLUMN_COUNT_TOP,
     MAX_COLUMN_COUNT_TOP,
@@ -35,6 +34,7 @@ from pathfinder.services.experiment.step_tally import (
     run_step_tally,
     step_reach,
 )
+from pathfinder.services.strategies.result_list import result_list_url
 
 COLUMN_PAGE = 100
 
@@ -192,7 +192,7 @@ async def count_step_by_column(
     step_url = (
         None
         if strategy_id is None
-        else get_site(session.site_id).strategy_url(strategy_id, wdk_step_id)
+        else result_list_url(session.site_id, strategy_id, wdk_step_id)
     )
     refused = ctx.deps.refused_tally_columns.setdefault(wdk_step_id, set())
     try:

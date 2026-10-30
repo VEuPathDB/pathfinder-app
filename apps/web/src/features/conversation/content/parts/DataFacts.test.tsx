@@ -9,7 +9,7 @@ import { DataFacts } from "./DataFacts";
 import { DataFactsNotices } from "./DataFactsNotices";
 
 const URL =
-  "https://qa.amoebadb.org/amoeba.qa/app/workspace/strategies/440299573/440299574";
+  "https://qa.amoebadb.org/amoeba.qa/app/workspace/strategies/440299573/440299574/summary:_default";
 const TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene";
 const CLAUSE =
   "Minimum expression percentile at the site's default of 80: 1,665 genes; at 0: 8,201";
@@ -259,48 +259,45 @@ describe("DataFacts", () => {
     );
   });
 
-  it("links the strategy and names the set this turn saved", () => {
+  it("links the result list and names the set this turn saved", () => {
     render(<DataFacts data={FACTS} />);
 
-    expect(screen.getByRole("link", { name: "Open on AmoebaDB" })).toHaveAttribute(
-      "href",
-      URL,
-    );
+    expect(
+      screen.getByRole("link", { name: "Open results on AmoebaDB" }),
+    ).toHaveAttribute("href", URL);
     expect(screen.getByTestId("facts-saved-set")).toHaveTextContent(
       "Saved gene set peptidases draft, 74 genes",
     );
   });
 
-  it("names OrthoMCL on the link that opens an OrthoMCL step", () => {
+  it("names OrthoMCL on the link that opens an OrthoMCL result list", () => {
     const url =
-      "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/330871000/441174000";
+      "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/330871000/441174000/summary:_default";
     render(<DataFacts data={{ strategyLink: { siteId: "orthomcl", url } }} />);
 
-    const link = screen.getByRole("link", { name: "Open on OrthoMCL" });
+    const link = screen.getByRole("link", { name: "Open results on OrthoMCL" });
     expect(link).toHaveAttribute("href", url);
-    expect(link).toHaveTextContent("Open on OrthoMCL");
+    expect(link).toHaveTextContent("Open results on OrthoMCL");
   });
 
-  it("names PlasmoDB on the link that opens a PlasmoDB step", () => {
+  it("names PlasmoDB on the link that opens a PlasmoDB result list", () => {
     const url =
-      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330528343/440299573";
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330528343/440299573/summary:_default";
     render(<DataFacts data={{ strategyLink: { siteId: "plasmodb", url } }} />);
 
-    expect(screen.getByRole("link", { name: "Open on PlasmoDB" })).toHaveAttribute(
-      "href",
-      url,
-    );
+    expect(
+      screen.getByRole("link", { name: "Open results on PlasmoDB" }),
+    ).toHaveAttribute("href", url);
   });
 
-  it("names VEuPathDB on the link that opens a portal step", () => {
+  it("names VEuPathDB on the link that opens a portal result list", () => {
     const url =
-      "https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/330871000/441174000";
+      "https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/330871000/441174000/summary:_default";
     render(<DataFacts data={{ strategyLink: { siteId: "veupathdb", url } }} />);
 
-    expect(screen.getByRole("link", { name: "Open on VEuPathDB" })).toHaveAttribute(
-      "href",
-      url,
-    );
+    expect(
+      screen.getByRole("link", { name: "Open results on VEuPathDB" }),
+    ).toHaveAttribute("href", url);
   });
 
   it("draws no link for a part with the bare url shape", () => {

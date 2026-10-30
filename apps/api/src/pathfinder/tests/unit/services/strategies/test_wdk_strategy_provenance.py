@@ -12,7 +12,6 @@ import pytest
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
 from veupathdb.wdk import (
-    SiteInfo,
     StrategyAPI,
     WDKIdentifier,
     WDKStepTree,
@@ -27,14 +26,6 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 _WDK_STEP_ID = 1001
 _ADOPTED_ID = 42
 _MINTED_ID = 777
-_SITE = SiteInfo(
-    id="plasmodb",
-    name="plasmodb",
-    display_name="PlasmoDB",
-    base_url="https://qa.plasmodb.org/plasmo.qa/service",
-    project_id="PlasmoDB",
-    is_portal=False,
-)
 
 
 def _details(strategy_id: int) -> WDKStrategyDetails:
@@ -71,7 +62,6 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
     stub.get_strategy = AsyncMock(side_effect=get_strategy)
     stub.update_strategy = AsyncMock(return_value=None)
     monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: stub)
-    monkeypatch.setattr(sync, "get_site", lambda _site_id: _SITE)
     return stub
 
 

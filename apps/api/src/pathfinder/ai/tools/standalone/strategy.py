@@ -44,10 +44,8 @@ from pathfinder.domain.strategy.build_outcome import (
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.services.strategies.commit import (
-    apply_operations_and_commit,
-    live_strategy_url,
-)
+from pathfinder.services.strategies.commit import apply_operations_and_commit
+from pathfinder.services.strategies.result_list import live_result_list_url
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 
 logger = get_logger(__name__)
@@ -158,7 +156,7 @@ async def build_strategy(
         )
     except ApplyError as exc:
         raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
-    url = live_strategy_url(session.site_id, session.sync_state)
+    url = live_result_list_url(session.site_id, session.sync_state)
     counts = built_counts(graph, session.sync_state)
     payload = _build_outcome_payload(outcome, graph, url, counts)
     metadata = [graph_snapshot_chunk(session, graph)]

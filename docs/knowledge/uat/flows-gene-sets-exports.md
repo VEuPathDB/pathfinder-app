@@ -29,9 +29,9 @@ Measured on plasmodb: `UAT G1`, 116, source `strategy`; 17 s, $0.012. The reply 
 | 3 | Evidence card | `Run GO, pathway or word enrichment in <Site>` | The site's strategy page opens (enrichment runs on the site) |
 | 4 | Right rail `Strategy` | `Open strategy on PlasmoDB` | The site shows the strategy: 3 steps, 116 genes |
 | 5 | Canvas | The topbar's `Open strategy on PlasmoDB`, and the step editor's `Open in PlasmoDB` | The same strategy |
-| 6 | Figure `Strategy` | `Open on PlasmoDB` | The site opens the strategy at its root step, with that step's record list |
+| 6 | Figure `Strategy` | `Open results on PlasmoDB` | The site opens the strategy at its root step, with the result table of that step showing |
 
-The Strategy panel and the canvas topbar read `Open strategy on <Site>`, the `Strategy` figure of a reply reads `Open on <Site>`, and every other `Open` link to the site reads `Open in <Site>`.
+The Strategy panel and the canvas topbar read `Open strategy on <Site>`, the `Strategy` figure of a reply reads `Open results on <Site>`, and every other `Open` link to the site reads `Open in <Site>`.
 
 ## G3 - Publish to the VEuPathDB workspace - once on plasmodb
 
