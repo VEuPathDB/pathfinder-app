@@ -12,6 +12,9 @@ os.environ.setdefault(
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder"
 )
+os.environ.setdefault("OPENAI_API_KEY", "docs-build-placeholder")
+os.environ.setdefault("API_SECRET_KEY", "docs-build-secret-key-0000000000000000")
+os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "default")
 
 # -- Project information -----------------------------------------------------
 

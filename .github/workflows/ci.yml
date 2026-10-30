@@ -182,6 +182,7 @@ jobs:
           API_SECRET_KEY: spec-generation-secret-key-0000000000
           PATHFINDER_CHAT_PROVIDER: default
           ANTHROPIC_API_KEY: spec-generation-placeholder
+          OPENAI_API_KEY: spec-generation-placeholder
           VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
         run: uv run python -m pathfinder.devtools.openapi check
 
