@@ -16,6 +16,7 @@ from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.facts import audit_finding_fact, check_fact, gene_records
 from pathfinder.ai.audit.reply import AuditReply, hold_the_reply, reply_text
 from pathfinder.ai.lead.contract_messages import note_facts_message
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.audit.finding_views import FindingDetail
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit_planning import faked_site
@@ -83,10 +84,10 @@ def test_the_reply_shows_the_finding_before_its_note() -> None:
     shown = reply_text(note, deps).split("\n\n")
 
     assert (shown[0].splitlines()[:1], shown[1]) == (
-        [f"**Finding 1 of audit run {_FINDING['run_id']}**"],
+        [f"**{plain_markdown('Finding 1 of audit run ' + _FINDING['run_id'])}**"],
         (
             f"The review keeps the shifted splice site of "
-            f"[{_GENE}]({gene_record_url('fungidb', _GENE)})."
+            f"[{_GENE}]({gene_record_url('fungidb', _GENE)})\\."
         ),
     )
     assert {"- finding certainty: medium", "- evidence kind: confirmation"} <= set(

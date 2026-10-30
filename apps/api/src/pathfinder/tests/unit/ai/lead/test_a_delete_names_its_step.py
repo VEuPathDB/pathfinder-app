@@ -34,6 +34,7 @@ from pathfinder.ai.lead.live_state import LiveStepState, LiveStrategyState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
@@ -178,7 +179,9 @@ async def test_a_parked_delete_writes_its_question_for_the_card(
         message_id=uuid4(),
     )
 
-    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [DELETE_REPLY]
+    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [
+        plain_markdown(DELETE_REPLY)
+    ]
     summaries = writer.data_of("data-tool-summary")
     assert [(s["toolCallId"], s["summary"]) for s in summaries] == [
         ("call_delete", ASKED)

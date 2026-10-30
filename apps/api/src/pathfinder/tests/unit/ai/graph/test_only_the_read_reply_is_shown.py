@@ -25,6 +25,7 @@ from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.written_links import plain_markdown
 
 _COMMENTARY = {
     "pydantic_ai": {
@@ -132,7 +133,7 @@ def test_the_reply_text_is_the_validated_output() -> None:
     part = texts[0].id
     assert texts == [
         _Written(type="text-start", id=part),
-        _Written(type="text-delta", id=part, delta=_PROSE),
+        _Written(type="text-delta", id=part, delta=plain_markdown(_PROSE)),
         _Written(type="text-end", id=part),
     ]
 
@@ -171,7 +172,9 @@ def test_a_card_turn_writes_only_the_card_reply_before_the_card() -> None:
 
     assert _texts(written) == [
         _Written(type="text-start", id="reply-A"),
-        _Written(type="text-delta", id="reply-A", delta="I can tighten both."),
+        _Written(
+            type="text-delta", id="reply-A", delta=plain_markdown("I can tighten both.")
+        ),
         _Written(type="text-end", id="reply-A"),
     ]
     assert _types(written) == [

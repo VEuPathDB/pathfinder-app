@@ -25,6 +25,7 @@ from pathfinder.ai.lead.sub_agent_dispatch import MintedSpec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.control_sets import ControlSetResponse, NewControlSet
 from pathfinder.tests._support.database import detached_session
 from pathfinder.tests._support.separation import TASK_ID, recorded_offer
@@ -103,7 +104,9 @@ async def test_the_offer_parks_the_turn_on_its_card(
         ADOPT_TOOL,
         {"task_id": str(TASK_ID), "reply": CARD_REPLY},
     )
-    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [CARD_REPLY]
+    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [
+        plain_markdown(CARD_REPLY)
+    ]
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         CALL_ID
     ]

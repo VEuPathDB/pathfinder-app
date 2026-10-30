@@ -15,6 +15,7 @@ from pathfinder.domain.audit.run_state import LeftUnits
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.domain.audit.stages import RunStages
 from pathfinder.domain.reply_note import render_note
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.audit.review_views import ErrorTypeView, FindingLine
 from pathfinder.services.audit.verdicts import AuditCaller
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
@@ -166,7 +167,7 @@ async def test_a_run_read_holds_the_genes_of_its_findings_as_records() -> None:
     ]
     assert render_note(prose, facts) == (
         f"The audit calls [{_PSEUDOGENE}](https://qa.plasmodb.org/plasmo.qa/app/"
-        f"record/gene/{_PSEUDOGENE}) intact."
+        f"record/gene/{_PSEUDOGENE})" + plain_markdown(" intact.")
     )
 
 

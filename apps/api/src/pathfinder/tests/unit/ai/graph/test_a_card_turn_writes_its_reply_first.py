@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     Collector,
     drive_lead,
@@ -89,7 +90,9 @@ async def test_the_reply_streams_before_the_approval_request(
         types.index("tool-approval-request"),
     ]
     assert order == sorted(order)
-    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [ANALYSIS]
+    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [
+        plain_markdown(ANALYSIS)
+    ]
 
 
 async def test_an_empty_reply_is_refused_before_any_card(
@@ -110,4 +113,6 @@ async def test_an_empty_reply_is_refused_before_any_card(
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         "call_card_1"
     ]
-    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [ANALYSIS]
+    assert [c["delta"] for c in writer.chunks_of("text-delta")] == [
+        plain_markdown(ANALYSIS)
+    ]

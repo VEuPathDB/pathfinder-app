@@ -8,6 +8,7 @@ from pathfinder.domain.record_facts import ListedFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, names, play
 
 # The first ids of the Hammondia microneme result, as the listing read them.
@@ -47,6 +48,10 @@ def test_the_listing_arc_names_the_ids_the_facts_list() -> None:
     assert names(calls) == ["classify_user_intent", "read_step_ids", "final_result"]
     assert args_of(calls, "read_step_ids") == [{"limit": LISTED}]
     assert render_note(prose, facts) == (
-        f"The result starts with {', '.join(f'[{g}]({_PAGE}{g})' for g in _IDS)}."
+        "The result starts with "
+        + plain_markdown(", ").join(f"[{g}]({_PAGE}{g})" for g in _IDS)
+        + plain_markdown(".")
     )
-    assert render_note(prose, TurnFacts(steps=[step])) == "The result starts with,,,,."
+    assert render_note(prose, TurnFacts(steps=[step])) == plain_markdown(
+        "The result starts with,,,,."
+    )

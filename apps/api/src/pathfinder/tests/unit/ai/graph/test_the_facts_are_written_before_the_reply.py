@@ -21,6 +21,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.database import no_database
 
 _REPLY = "I saved the genes; the set is shown beside this reply."
@@ -103,5 +104,5 @@ async def test_a_turn_whose_facts_hold_nothing_writes_no_facts_part(
 
     assert "data-facts" not in [chunk["type"] for chunk in written]
     assert [chunk["delta"] for chunk in written if chunk["type"] == "text-delta"] == [
-        _REPLY
+        plain_markdown(_REPLY)
     ]

@@ -40,6 +40,7 @@ from pathfinder.tests._support.audit_planning import (
     serve_gene_genomes,
 )
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
+from pathfinder.tests._support.read_text import as_read
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -158,7 +159,7 @@ def _called(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 def _text(chunks: list[dict[str, Any]]) -> str:
-    return "".join(c["delta"] for c in _of_type(chunks, "text-delta"))
+    return as_read("".join(c["delta"] for c in _of_type(chunks, "text-delta")))
 
 
 def _shown(chunks: list[dict[str, Any]]) -> tuple[list[str], str]:

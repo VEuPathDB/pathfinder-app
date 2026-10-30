@@ -12,11 +12,13 @@ _HTML = re.compile(
 _AUTOLINK = re.compile(r"<(?P<dest>[A-Za-z][\w+.-]*:[^<>\s]*)>")
 _BARE = re.compile(
     r"(?<![\w/\\])(?P<dest>(?:[A-Za-z][\w+.-]*://|www\.|"
+    r"[A-Za-z][\w+.-]*:[\\/]+|"
     r"(?:mailto|javascript|vbscript|data|file|tel|doi):|[\\/]{2}(?=[\w-]+\.))"
     r"[^\s<>()\[\]\"'`]*(?:\([^\s()]*\))?)",
     re.IGNORECASE,
 )
 _TRAILING = ".,;:!?"
+_A_MARK = re.compile(r"[!-/:-@\[-`{-~]")
 
 
 def _bare(match: re.Match[str]) -> tuple[str, str]:
@@ -50,6 +52,10 @@ def _unlinked(text: str) -> tuple[str, list[str]]:
     return plain, found
 
 
+def plain_markdown(text: str) -> str:
+    return _A_MARK.sub(r"\\\g<0>", html.unescape(text))
+
+
 def written_links(text: str) -> list[str]:
     return _unlinked(text)[1]
 
@@ -58,4 +64,4 @@ def without_links(text: str) -> str:
     return _unlinked(text)[0]
 
 
-__all__ = ["without_links", "written_links"]
+__all__ = ["plain_markdown", "without_links", "written_links"]

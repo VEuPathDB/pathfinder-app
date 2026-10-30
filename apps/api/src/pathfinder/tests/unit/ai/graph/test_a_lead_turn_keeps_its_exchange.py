@@ -20,6 +20,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.database import no_database
 
 _EARLIER = Exchange(said="Show me a sample of five genes.", reply="Five genes: ...")
@@ -69,6 +70,9 @@ async def test_the_turn_hands_back_its_exchange_after_the_earlier_ones(
 
     match handed_back.update:
         case {"domain": StrategyDomainState() as domain}:
-            assert domain.exchanges == [_EARLIER, Exchange(said=_ASKED, reply=_REPLY)]
+            assert domain.exchanges == [
+                _EARLIER,
+                Exchange(said=_ASKED, reply=plain_markdown(_REPLY)),
+            ]
         case other:
             pytest.fail(f"the turn handed back no domain: {other!r}")

@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.reply_note import linked_records
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests.unit.ai.lead.test_the_facts_hold_the_thread import (
     _joined_by_orthology,
@@ -49,10 +50,10 @@ def test_the_ids_a_listing_returned_are_rows_under_their_step() -> None:
 
 def test_an_id_a_listing_returned_renders_linked_to_its_record() -> None:
     assert _rendered(_listed_after_the_join(), _DROPPED_REPLY) == (
-        f"The four that dropped out are [HHA_208730]({_TOXO_RECORD}HHA_208730), "
-        f"[HHA_208740]({_TOXO_RECORD}HHA_208740), "
+        f"The four that dropped out are [HHA_208730]({_TOXO_RECORD}HHA_208730)\\, "
+        f"[HHA_208740]({_TOXO_RECORD}HHA_208740)\\, "
         f"[HHA_218310]({_TOXO_RECORD}HHA_218310) and "
-        f"[HHA_247195]({_TOXO_RECORD}HHA_247195)."
+        f"[HHA_247195]({_TOXO_RECORD}HHA_247195)\\."
     )
 
 
@@ -62,7 +63,9 @@ def test_an_id_listed_from_a_step_the_strategy_no_longer_holds_is_dropped() -> N
         "step_join": 227295700
     }
 
-    assert _rendered(deps, _DROPPED_REPLY) == ("The four that dropped out are,, and.")
+    assert _rendered(deps, _DROPPED_REPLY) == (
+        plain_markdown("The four that dropped out are,, and.")
+    )
 
 
 # The 19 Hammondia genes the check listed from the join, and the five of them

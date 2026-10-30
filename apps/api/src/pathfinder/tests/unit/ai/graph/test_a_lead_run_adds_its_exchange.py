@@ -10,6 +10,7 @@ from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_exchange import turn_exchange
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.exchanges import Exchange
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.run_context import lead_run_context
 
 _ASKED = "Keep SRP171130 then. Exclude anything also expressed in male antennae."
@@ -40,7 +41,7 @@ def test_a_typed_reply_is_the_exchange_of_the_message() -> None:
     )
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
-        said=_ASKED, reply="The strategy keeps 12 genes."
+        said=_ASKED, reply=plain_markdown("The strategy keeps 12 genes.")
     )
 
 
@@ -50,7 +51,7 @@ def test_a_card_turn_keeps_the_card_it_asked() -> None:
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
         said=_ASKED,
-        reply="The study has three male antennae samples.",
+        reply=plain_markdown("The study has three male antennae samples."),
         card="Which male antennae samples should I exclude? (options: All three; None)",
     )
 
@@ -68,7 +69,7 @@ def test_an_answered_approval_is_the_researchers_words() -> None:
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
         kind="card_answer",
         said="no: use the female set only",
-        reply="I kept the female set.",
+        reply=plain_markdown("I kept the female set."),
     )
 
 
@@ -84,5 +85,6 @@ def test_a_worker_result_is_a_task_exchange() -> None:
     )
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
-        kind="task_result", reply="4 of 5 positive controls are in the result."
+        kind="task_result",
+        reply=plain_markdown("4 of 5 positive controls are in the result."),
     )

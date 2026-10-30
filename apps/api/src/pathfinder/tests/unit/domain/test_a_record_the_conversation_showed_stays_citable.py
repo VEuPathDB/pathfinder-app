@@ -41,18 +41,18 @@ def test_a_listed_record_shown_before_renders_linked_to_its_page() -> None:
 
     assert render_note(prose, _SHOWN) == (
         f"The sample was [ENSMUSG00000035929]({_HOSTDB_PAGE}ENSMUSG00000035929) "
-        f"and [ENSMUSG00000067235]({_HOSTDB_PAGE}ENSMUSG00000067235)."
+        f"and [ENSMUSG00000067235]({_HOSTDB_PAGE}ENSMUSG00000067235)\\."
     )
 
 
 def test_a_read_record_shown_before_renders_linked_to_its_page() -> None:
     assert render_note("It is [record:CPATCC_0009860].", _SHOWN) == (
-        f"It is [CPATCC_0009860]({_CRYPTO_PAGE}CPATCC_0009860)."
+        f"It is [CPATCC_0009860]({_CRYPTO_PAGE}CPATCC_0009860)\\."
     )
 
 
 def test_a_record_never_shown_is_dropped() -> None:
-    assert render_note("It is [record:ENSMUSG00000073409].", _SHOWN) == "It is."
+    assert render_note("It is [record:ENSMUSG00000073409].", _SHOWN) == "It is\\."
 
 
 def test_records_shown_before_alone_are_no_site_data_of_this_turn() -> None:

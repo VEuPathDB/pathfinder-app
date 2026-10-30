@@ -299,7 +299,7 @@ def test_a_record_a_read_returned_is_linked_to_its_page() -> None:
     )
 
     assert _rendered(deps, "The record is [record:AFUN020124].") == (
-        f"The record is [AFUN020124]({_VECTORBASE_RECORD})."
+        f"The record is [AFUN020124]({_VECTORBASE_RECORD})\\."
     )
     assert _faults(deps, "It is AFUN020124, an insulin receptor.") == []
 
@@ -410,10 +410,10 @@ async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
         (g.gene_id, f"{_PLASMO_RECORD}{g.gene_id}") for g in _IMAGE_GENES
     ]
     assert _rendered(deps, _IMAGE_REPLY) == (
-        "The image contains these genes:\n\n"
-        f"- [PF3D7_0709000]({_PLASMO_RECORD}PF3D7_0709000)\n"
-        f"- [PF3D7_1133400]({_PLASMO_RECORD}PF3D7_1133400)\n"
-        f"- [PF3D7_0102600]({_PLASMO_RECORD}PF3D7_0102600)"
+        "The image contains these genes\\:\n\n"
+        f"\\- [PF3D7_0709000]({_PLASMO_RECORD}PF3D7_0709000)\n"
+        f"\\- [PF3D7_1133400]({_PLASMO_RECORD}PF3D7_1133400)\n"
+        f"\\- [PF3D7_0102600]({_PLASMO_RECORD}PF3D7_0102600)"
     )
 
 
