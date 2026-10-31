@@ -1,5 +1,115 @@
 # Log
 
+## 2026-10-31
+
+* **Every suggested question was run once on its QA site.** 55 of the 56 suggestions ran
+  as written, and 22 rewordings ran (the OrthoMCL single-copy rewording and 21 for
+  suggestions that failed), one turn each on the QA sites on Luna, through the worker. A suggestion stays only when its strategy meets every constraint the
+  question states: VERIFY reports no failed check, and the step tree, read by hand,
+  binds what the question asks. A PCA suggestion stays when the PCA ran on the named
+  study with the named coloring and the reply answers the question. 31 suggestions
+  passed as written, 18 rewordings passed, and 7 suggestions were removed, so 49 are
+  offered (five sites now offer three, the portal two). The OrthoMCL suggestion
+  "List single-copy ortholog groups across the apicomplexans." now reads "List ortholog
+  groups with exactly one protein from every apicomplexan genome."; it bound
+  `APIC>=139T AND APIC=139` on Phyletic Pattern and returned 2 groups, without the two
+  veupathdb-mcp changes the backlog item named. Genome, not species: the clade holds
+  139 genomes of 74 species. Most rewordings name one genome on each side of an
+  ortholog question, because a genus was bound as every genome of the genus
+  ([backlog](backlog/an-ortholog-in-a-genus-means-any-of-its-genomes.md)). Four
+  differential-expression jobs failed with no reason
+  ([backlog](backlog/a-failed-differential-expression-job-says-why.md)), and "under
+  30 kDa" kept a 10 kDa minimum
+  ([backlog](backlog/an-upper-bound-alone-keeps-no-default-lower-bound.md)). QA
+  answered 500 to POST `.../columns/organism/reports/byValue` in 8 turns, so those
+  turns record the organism check as unchecked; one 500 on GET
+  `/strategy-lists/public` recovered on the client's retry. 77 turns cost $4.24 on the
+  deployment's usage row (46,589,389 tokens). Removing a suggestion changed no agent
+  prompt, guard or check. Biologist-proposed candidates remain
+  ([backlog](backlog/a-suggested-prompt-is-measured-before-it-ships.md)).
+
+  The runs, one row each (USD is the debugger's own price of the turn):
+
+  | run | site | question | strategy | count | VERIFY | tokens | USD | outcome |
+  |---|---|---|---|---|---|---|---|---|
+  | orthomcl-2r | orthomcl | List ortholog groups with exactly one protein from every apicomplexan genome. | 214648840 | 2 | pass | 493,591 | 0.037 | kept (reworded); APIC>=139T AND APIC=139 |
+  | plasmodb-1 | plasmodb | Which P. falciparum genes are upregulated in gametocytes compared to asexual blood stages? | 214648860 | 996 | pass | 459,623 | 0.026 | kept |
+  | plasmodb-2 | plasmodb | Plasmodium falciparum 3D7 genes with a Pfam protein kinase domain and at least 2 transmembrane domains. | 214648920 | 1 | pass | 768,723 | 0.071 | kept |
+  | plasmodb-3 | plasmodb | Open the 'Female and male gametocyte' study on PlasmoDB, run a PCA of the samples colored by sex, and tell me whether female and male gametocytes separate and on which component. |  |  | none (PCA) | 346,003 | 0.018 | kept |
+  | plasmodb-4 | plasmodb | Which Plasmodium genes have orthologs in both P. berghei and P. knowlesi but no ortholog in Toxoplasma gondii? | 214649050 | 73,911 | pass | 524,543 | 0.053 | reworded: required all 4 P. knowlesi genomes |
+  | toxodb-1 | toxodb | Which T. gondii genes are upregulated in mouse-brain bradyzoites compared to tachyzoites? |  |  | none | 96,761 | 0.010 | reworded: no bradyzoite vs tachyzoite study found |
+  | toxodb-2 | toxodb | Toxoplasma gondii ME49 genes annotated with the GO term 'protein kinase activity' that also have a predicted signal peptide. | 214649350 | 24 | pass | 677,181 | 0.066 | kept |
+  | toxodb-3 | toxodb | Open the mouse brain bradyzoite time course study on ToxoDB, run a PCA of the samples colored by days post infection, and tell me how much variance the first two components explain. |  |  | none (PCA) | 437,997 | 0.021 | kept |
+  | toxodb-4 | toxodb | Which T. gondii genes have an ortholog in Neospora caninum and at least one transmembrane domain? | 214649480 | 22,675 | pass | 649,629 | 0.072 | reworded: required both N. caninum genomes, all T. gondii strains |
+  | cryptodb-1 | cryptodb | Which C. parvum genes are upregulated in sporozoites compared to intracellular stages? | 214649670 | 106 | pass | 569,252 | 0.044 | kept |
+  | cryptodb-2 | cryptodb | Cryptosporidium parvum Iowa II genes annotated with the GO term 'ATP binding' that also have a predicted signal peptide. | 214649840 | 6 | pass | 578,321 | 0.060 | kept |
+  | cryptodb-3 | cryptodb | Cryptosporidium parvum Iowa II genes whose product description contains the phrase 'oocyst wall protein'. | 214649970 | 10 | pass | 415,258 | 0.036 | kept |
+  | cryptodb-4 | cryptodb | Which Cryptosporidium genes have an ortholog in Plasmodium but no ortholog in Toxoplasma? | 214650150 | 501 | pass | 572,848 | 0.054 | reworded: required all 61 Plasmodium genomes |
+  | piroplasmadb-1 | piroplasmadb | Which B. bovis genes are differentially expressed during development? | 214650310 | 2,035 | pass | 561,850 | 0.031 | kept |
+  | piroplasmadb-2 | piroplasmadb | Babesia bovis T2Bo genes with a Pfam protein kinase domain and no transmembrane domain. | 214650400 | 45 | pass | 571,009 | 0.059 | kept |
+  | piroplasmadb-3 | piroplasmadb | Open the 'Calf blood stage vs tick kinete stage' B. bigemina study on PiroplasmaDB, run a PCA of the samples colored by stage, and tell me whether the stages separate. |  |  | none (PCA) | 371,648 | 0.018 | kept |
+  | piroplasmadb-4 | piroplasmadb | Which piroplasm genes have orthologs in Babesia and Theileria but no ortholog in Toxoplasma? |  |  | asked | 415,414 | 0.043 | reworded: stopped on a per-strain clarifying question |
+  | giardiadb-1 | giardiadb | Which Giardia genes change over time in axenic trophozoite cultures? | 214650430 | 770 | pass | 509,515 | 0.029 | kept |
+  | giardiadb-2 | giardiadb | Giardia Assemblage A isolate WB genes annotated with the GO term 'cysteine-type peptidase activity'. | 214650450 | 40 | pass | 587,048 | 0.051 | kept |
+  | giardiadb-3 | giardiadb | Open the 'Giardia Encystation Time Course' study on GiardiaDB, run a PCA of the samples colored by time point, and tell me which component tracks encystation. |  |  | none | 304,402 | 0.017 | reworded: time is continuous, one color group |
+  | giardiadb-4 | giardiadb | Which Giardia genes have an ortholog in Cryptosporidium but no ortholog in Toxoplasma? | 214650560 | 310 | pass | 536,130 | 0.051 | reworded: required all 18 Cryptosporidium genomes |
+  | amoebadb-1 | amoebadb | Which E. invadens genes are upregulated during encystation/excystation? | 214650720 | 1,219 | pass | 488,519 | 0.028 | reworded: covered encystation only |
+  | amoebadb-2 | amoebadb | Entamoeba histolytica HM-1:IMSS genes with a Pfam protein kinase domain and at least one transmembrane domain. | 214650820 | 47 | pass | 576,328 | 0.068 | kept |
+  | amoebadb-3 | amoebadb | Entamoeba histolytica HM-1:IMSS genes whose product description contains the phrase 'cysteine proteinase'. | 214650940 | 13 | pass | 483,756 | 0.040 | kept |
+  | amoebadb-4 | amoebadb | Which Entamoeba genes have an ortholog in Giardia and at least one transmembrane domain? | 214650960 | 2,259 | pass | 616,831 | 0.075 | reworded: required all 8 Giardia genomes |
+  | microsporidiadb-1 | microsporidiadb | Which N. parisii genes are differentially expressed over an infection time course in C. elegans? |  |  | asked | 539,334 | 0.030 | reworded: asked which time points |
+  | microsporidiadb-2 | microsporidiadb | Encephalitozoon cuniculi GB-M1 genes with a predicted signal peptide and a molecular weight under 30 kDa. | 214650970 | 31 | pass | 507,053 | 0.053 | reworded: kept the 10 kDa default minimum |
+  | microsporidiadb-3 | microsporidiadb | Nematocida parisii ERTm1 genes whose product description contains the phrase 'polar tube'. | 214650980 | 0 | asked | 420,645 | 0.034 | reworded: 0 genes |
+  | microsporidiadb-4 | microsporidiadb | Which microsporidian genes have a fungal ortholog but no ortholog in animals? | 214651100 | 0 | asked | 554,226 | 0.057 | reworded: 0 records, asked which clade |
+  | tritrypdb-1 | tritrypdb | Which T. brucei genes are differentially expressed between procyclic and bloodstream forms? |  |  | none | 427,491 | 0.025 | removed: DESeq job failed |
+  | tritrypdb-2 | tritrypdb | Trypanosoma brucei brucei TREU927 genes with a Pfam protein kinase domain and at least 3 transmembrane domains. | 214651400 | 3 | pass | 626,834 | 0.062 | kept |
+  | tritrypdb-3 | tritrypdb | Open the 'Metacyclic vs Procyclic form transcriptomes (2020)' study on TriTrypDB, run a PCA of the samples colored by life cycle form, and tell me whether the forms separate. |  |  | none (PCA) | 379,902 | 0.018 | kept |
+  | tritrypdb-4 | tritrypdb | Which TriTryp genes have orthologs in T. brucei, T. cruzi, and Leishmania and at least one transmembrane domain? | 214651590 | 3,768 | pass | 656,581 | 0.084 | reworded: required all 52 genomes |
+  | fungidb-1 | fungidb | Which A. fumigatus genes are upregulated under hypoxia vs normoxia? |  |  | asked | 477,340 | 0.038 | reworded: asked for the sample mapping |
+  | fungidb-2 | fungidb | Candida albicans SC5314 genes annotated with the GO term 'DNA-binding transcription factor activity' with at least 2 exons. | 214651700 | 21 | pass | 1,025,965 | 0.109 | kept |
+  | fungidb-3 | fungidb | Open the host temperature stress study for Cryptococcus neoformans H99 on FungiDB, run a PCA of the samples colored by temperature, and tell me whether 30C and 37C separate. |  |  | none (PCA) | 422,889 | 0.020 | kept |
+  | fungidb-4 | fungidb | Find fungal genes with orthologs in C. albicans, A. fumigatus, and C. neoformans and at least one transmembrane domain. | 214651830 | 278,630 | pass | 668,534 | 0.081 | reworded: required all 9 genomes across Fungi |
+  | hostdb-1 | hostdb | Which human liver genes are upregulated during P. berghei liver-stage infection? |  |  | none | 675,007 | 0.035 | removed: DESeq job failed |
+  | hostdb-2 | hostdb | Homo sapiens REF genes annotated with the GO term 'toll-like receptor signaling pathway' that also have a predicted signal peptide. | 214651840 | 0 | asked | 533,750 | 0.054 | reworded: SignalP-6.0 holds 0 human genes |
+  | hostdb-3 | hostdb | Mus musculus C57BL6J genes whose product description contains the phrase 'interferon-induced'. | 214651850 | 7 | pass | 437,179 | 0.036 | kept |
+  | hostdb-4 | hostdb | Which human blood genes are differentially expressed during Candida albicans infection? | 214652060 | 2,844 | pass | 426,507 | 0.025 | kept |
+  | vectorbase-1 | vectorbase | Which A. gambiae midgut genes are upregulated in P. falciparum-infected vs uninfected mosquitoes? | 214652080 | 499 | pass | 396,469 | 0.025 | kept |
+  | vectorbase-2 | vectorbase | Anopheles gambiae PEST genes annotated with the GO term 'odorant binding' that also have a predicted signal peptide. | 214652100 | 67 | pass | 1,303,100 | 0.184 | kept |
+  | vectorbase-3 | vectorbase | Open the 'HMBPP-supplemented blood meal' study on VectorBase, run a PCA of the samples colored by blood meal type, and tell me whether the meals separate. |  |  | none (PCA) | 278,266 | 0.016 | kept |
+  | vectorbase-4 | vectorbase | Which A. gambiae whole-body genes change after a bloodmeal? | 214652270 | 1,034 | pass | 385,076 | 0.024 | kept |
+  | trichdb-1 | trichdb | Trichomonas vaginalis G3 genes with a Pfam protein kinase domain and at least one transmembrane domain. | 214652290 | 22 | pass | 502,757 | 0.051 | kept |
+  | trichdb-2 | trichdb | Trichomonas vaginalis G3 genes annotated with the GO term 'cysteine-type peptidase activity'. | 214652310 | 246 | pass | 561,977 | 0.050 | kept |
+  | trichdb-3 | trichdb | Open the 'T vaginalis transcriptome response to metronidazole' study on TrichDB, run a PCA of the samples colored by treatment, and tell me whether treated and untreated samples separate. |  |  | none (PCA) | 300,402 | 0.016 | kept |
+  | trichdb-4 | trichdb | Which Trichomonas genes have an ortholog in Giardia but no ortholog in Entamoeba? | 214652340 | 2,655 | pass | 824,177 | 0.063 | reworded: required all Giardia, excluded all Entamoeba genomes |
+  | orthomcl-1 | orthomcl | Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii? | 214652360 | 797 | pass | 650,056 | 0.050 | kept |
+  | orthomcl-3 | orthomcl | Which ortholog groups contain sequences from Plasmodium and Cryptosporidium but not from Toxoplasma? | 214652380 | 105 | pass | 474,878 | 0.040 | kept |
+  | orthomcl-4 | orthomcl | Which ortholog groups contain both apicomplexan and kinetoplastid sequences? | 214652390 | 2,087 | pass | 467,458 | 0.041 | kept |
+  | veupathdb-1 | veupathdb | Which genes are conserved across Plasmodium, Toxoplasma, and Cryptosporidium but absent from the human proteome? |  |  | asked | 681,465 | 0.063 | reworded: asked which Cryptosporidium genome |
+  | veupathdb-2 | veupathdb | Find parasite protein kinases (InterPro) with an ortholog in both Plasmodium and Trypanosoma. |  |  | asked | 1,301,356 | 0.175 | reworded: asked which Trypanosoma genome |
+  | veupathdb-3 | veupathdb | Which Plasmodium gametocyte-upregulated genes also have a bradyzoite-stage ortholog in Toxoplasma? | 214652670 | 176 | pass | 1,107,895 | 0.113 | removed: three readings (gametocyte Day12 vs Day1, top-20% bradyzoite percentile) |
+  | veupathdb-4 | veupathdb | Find pathogen genes with a signal peptide and no ortholog in any fungal genome. |  |  | asked | 503,464 | 0.068 | reworded: asked which pathogen scope |
+  | plasmodb-4r | plasmodb | Which Plasmodium falciparum 3D7 genes have orthologs in Plasmodium berghei ANKA and Plasmodium knowlesi strain H but no ortholog in Toxoplasma gondii ME49? | 214652810 | 1,355 | pass | 460,325 | 0.046 | kept |
+  | toxodb-1r | toxodb | Which T. gondii ME49 genes are upregulated in bradyzoites compared to tachyzoites in the stage-specific RNA-sequencing study? | 214652900 | 1,535 | pass | 379,855 | 0.024 | kept |
+  | toxodb-4r | toxodb | Which Toxoplasma gondii ME49 genes have an ortholog in Neospora caninum Liverpool and at least one transmembrane domain? | 214652910 | 1,523 | pass | 642,388 | 0.062 | kept |
+  | cryptodb-4r | cryptodb | Which Cryptosporidium parvum Iowa II genes have an ortholog in Plasmodium falciparum 3D7 but no ortholog in Toxoplasma gondii ME49? | 214652930 | 61 | pass | 480,840 | 0.044 | kept |
+  | piroplasmadb-4r | piroplasmadb | Which Babesia bovis T2Bo genes have an ortholog in Theileria annulata strain Ankara but no ortholog in Toxoplasma gondii ME49? | 214652950 | 461 | pass | 632,149 | 0.055 | kept |
+  | giardiadb-3r | giardiadb | Open the 'Giardia Encystation Time Course' study on GiardiaDB, run a PCA of the samples colored by time point, and tell me how much variance the first two components explain. |  |  | none | 343,128 | 0.018 | removed: still one color group |
+  | giardiadb-4r | giardiadb | Which Giardia Assemblage A isolate WB genes have an ortholog in Cryptosporidium parvum Iowa II but no ortholog in Toxoplasma gondii ME49? | 214652980 | 51 | pass | 502,729 | 0.044 | kept |
+  | amoebadb-1r | amoebadb | Which E. invadens genes are upregulated during encystation compared to trophozoites? | 214653000 | 1,669 | pass | 429,111 | 0.025 | kept |
+  | amoebadb-4r | amoebadb | Which Entamoeba histolytica HM-1:IMSS genes have an ortholog in Giardia Assemblage A isolate WB and at least one transmembrane domain? | 214653010 | 282 | pass | 717,129 | 0.069 | kept |
+  | microsporidiadb-1r | microsporidiadb | Which N. parisii genes are differentially expressed between 8 hours and 64 hours of infection in C. elegans? |  |  | none | 477,502 | 0.027 | removed: DESeq job failed |
+  | microsporidiadb-2r | microsporidiadb | Encephalitozoon cuniculi GB-M1 genes with a predicted signal peptide and a molecular weight between 10 and 30 kDa. | 214653060 | 31 | pass | 519,191 | 0.051 | kept |
+  | microsporidiadb-3r | microsporidiadb | Encephalitozoon cuniculi GB-M1 genes whose product description contains the phrase 'polar tube protein'. | 214653150 | 2 | pass | 503,391 | 0.038 | kept |
+  | microsporidiadb-4r | microsporidiadb | Which Encephalitozoon cuniculi GB-M1 genes have an ortholog in Saccharomyces cerevisiae S288C but no ortholog in Homo sapiens? | 214653250 | 37 | pass | 475,422 | 0.043 | kept |
+  | tritrypdb-4r | tritrypdb | Which Trypanosoma brucei brucei TREU927 genes have orthologs in Trypanosoma cruzi CL Brener Esmeraldo-like and Leishmania major strain Friedlin and at least one transmembrane domain? | 214653360 | 1,085 | pass | 818,348 | 0.072 | kept |
+  | fungidb-1r | fungidb | Which A. fumigatus Af293 genes are upregulated after 12 hours of hypoxia compared to normoxia? |  |  | none | 408,626 | 0.025 | removed: DESeq job failed |
+  | fungidb-4r | fungidb | Which Candida albicans SC5314 genes have orthologs in Aspergillus fumigatus Af293 and Cryptococcus neoformans var. grubii H99 and at least one transmembrane domain? | 214653490 | 867 | pass | 709,957 | 0.075 | kept |
+  | hostdb-2r | hostdb | Homo sapiens REF genes annotated with the GO term 'toll-like receptor signaling pathway' that also have at least one transmembrane domain. | 214653520 | 18 | pass | 705,403 | 0.076 | kept |
+  | trichdb-4r | trichdb | Which Trichomonas vaginalis G3 genes have an ortholog in Giardia Assemblage A isolate WB but no ortholog in Entamoeba histolytica HM-1:IMSS? | 214653530 | 2,000 | pass | 451,083 | 0.042 | kept |
+  | veupathdb-1r | veupathdb | Which Plasmodium falciparum 3D7 genes have orthologs in Toxoplasma gondii ME49 and Cryptosporidium parvum Iowa II but no ortholog in Homo sapiens? | 214653560 | 367 | pass | 683,122 | 0.058 | kept |
+  | veupathdb-2r | veupathdb | Find Plasmodium falciparum 3D7 genes with an InterPro protein kinase domain that have an ortholog in Trypanosoma brucei brucei TREU927. |  |  | asked | 859,438 | 0.079 | removed: asked which InterPro kinase entry |
+  | veupathdb-4r | veupathdb | Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and no ortholog in any fungal genome. | 214653610 | 361 | pass | 846,355 | 0.087 | kept |
+
 ## 2026-10-30
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site
