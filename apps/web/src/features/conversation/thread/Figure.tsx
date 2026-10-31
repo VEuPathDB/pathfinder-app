@@ -105,8 +105,8 @@ function SectionHead({
   action: ReactNode;
 }): ReactElement {
   return (
-    <div className="mb-2 flex items-center justify-between gap-2">
-      <h3 className={SECTION_HEADING}>
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <h3 className={`${SECTION_HEADING} min-w-0`}>
         {section.letter}.{" "}
         <span data-testid="figure-title">{title ?? section.title}</span>
       </h3>
