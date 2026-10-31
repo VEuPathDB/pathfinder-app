@@ -30,7 +30,7 @@ and strategy id. The api and the worker install
 (`main.py::_install_the_wdk_lines`, `jobs/worker.py`); the served tool server installs the
 same line. Each request holds the Postgres advisory lock `wdk-strategy:<site>:<strategy id>`
 on a connection of the line's own pool (`STRATEGY_LINE_POOL_SIZE`,
-`STRATEGY_LINE_MAX_OVERFLOW`, `STRATEGY_LINE_POOL_TIMEOUT_SECONDS`, 1, 1 and none by
+`STRATEGY_LINE_MAX_OVERFLOW`, `STRATEGY_LINE_POOL_TIMEOUT_SECONDS`, 1, 0 and none by
 default), so the line never takes a connection from the request pool. One place covers
 PathFinder's reads, its name and saved-mark `PATCH`es, its deletes, its step-tree writes
 and every strategy read inside veupathdb-mcp, such as the control tests' copy of a step's

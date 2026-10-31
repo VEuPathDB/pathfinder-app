@@ -10,10 +10,10 @@
   answered 409. Every request on a strategy now waits in a per-strategy line:
   veupathdb-py 0.1.0b27 passes it through a host-installed gate, and the api, the worker
   and wdk-mcp install veupathdb-mcp's Postgres line there, on a pool of its own
-  (`STRATEGY_LINE_POOL_SIZE`, `STRATEGY_LINE_MAX_OVERFLOW`, 1 and 1). A step-tree write
+  (`STRATEGY_LINE_POOL_SIZE`, `STRATEGY_LINE_MAX_OVERFLOW`, 1 and 0). A step-tree write
   whose read-back answers another tree fails the push (`TreeNotHeldError`, 409) instead of
   reporting the edit as saved; the per-step "does not hold this step" record went with it.
-  The connection budget's total is 89. A canvas edit during a turn is still applied; the
+  The connection budget's total is 86. A canvas edit during a turn is still applied; the
   backlog holds it. See
   [the decision](decisions/a-request-on-a-wdk-strategy-waits-in-its-line.md).
 * **The step editor names the searches also considered, unscored.** The editor showed the
