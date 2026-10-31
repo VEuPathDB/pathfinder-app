@@ -194,6 +194,7 @@ export function useChatRuntime({
       }
     },
     onFinish: () => {
+      setDelivered(conversationCursors.read(conversationId));
       chatApi.setMessages(reduceWithdrawnTurns);
       void refetchStrategy(queryClient, conversationId);
       invalidateConversationList();
