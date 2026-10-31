@@ -38,7 +38,6 @@ what left.
 56. [A histogram fit and a byValue fit agree on one step](a-histogram-fit-and-a-by-value-fit-agree-on-one-step.md) - the recorded tm_count histogram sums to 854 transcripts and the byValue report of the same search to 840, with no request bodies kept; record one step with both reports, `totalCount` and the bodies, since until then a histogram fit may overstate its total.
 
 54. [Three site bugs are reported to VEuPathDB](two-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
-75. [A refused answer is marked corrected](a-refused-answer-is-marked-corrected.md) - assistant-core marks only function tool retries corrected, and pydantic-ai 2.54 sends a final answer's retry through handle_output_tool_result, so a refused answer reads as a failed call and two browser tests fail; release assistant-core with the override and take the pin.
 76. [Parallel browser test workers act as one user](parallel-browser-test-workers-act-as-one-user.md) - Every Playwright worker carries the account's website login, which names the account's own PathFinder user ahead of the dev login, so two workers of a shard share one user's rows; give each worker its own user or run one worker per stack.
 
 ## Known and accepted

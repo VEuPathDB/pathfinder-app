@@ -27,8 +27,15 @@
   its title. Three app faults the suite found are fixed: the browser now follows the
   completion turn of a task started behind an approval card; a section head wraps its
   actions, so a long study title no longer pushes "Open study" over the next column; and a
-  comparison exports only once its figure has loaded. The two remaining gaps are backlog
-  items 75 and 76.
+  comparison exports only once its figure has loaded. assistant-core 0.3.0b15 marks a
+  refused final answer corrected and keeps an answered approval on a reloaded call, and
+  veupathdb-mcp 0.2.0b60 with it gives the offline embedder a vector per word, computed off
+  the event loop, so a title finds its study; the api, the web client and both MCP images
+  take them. The worker writes the runtime's `data-tool-approval` record at the start of an
+  answering turn, before the call re-enters, and the approval row reads it when a reloaded
+  call that is still running carries no approval, so an approved sweep or separation run
+  reads as approved while it runs. Parallel workers
+  sharing one user are backlog item 76.
 
 ## 2026-10-30
 

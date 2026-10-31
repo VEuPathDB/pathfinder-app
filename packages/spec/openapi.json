@@ -27156,6 +27156,40 @@
         "title": "ThresholdSides",
         "type": "object"
       },
+      "ToolApprovalPayload": {
+        "properties": {
+          "toolCallId": {
+            "title": "Toolcallid",
+            "type": "string"
+          },
+          "approvalId": {
+            "title": "Approvalid",
+            "type": "string"
+          },
+          "approved": {
+            "title": "Approved",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "approvalId",
+          "approved"
+        ],
+        "title": "ToolApprovalPayload",
+        "type": "object"
+      },
       "ToolSummaryPayload": {
         "description": "Payload for the tool-summary chunk. The tool call id names the call the\nline describes, so a reducer patches that call's part and appends nothing.",
         "properties": {
@@ -28688,6 +28722,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TaskProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "toolApproval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolApprovalPayload"
               },
               {
                 "type": "null"
