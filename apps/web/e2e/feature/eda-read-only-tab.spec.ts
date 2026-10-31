@@ -26,6 +26,7 @@ import {
   routeEdaReads,
   SITE_ID,
   STUDY_TITLE,
+  VOLCANO_TAB_SELECTION,
   VOLCANO_VIZ,
 } from "../fixtures/eda";
 
@@ -115,7 +116,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
       "Higher in either group, |effect size| >= 1, p <= 0.05",
     );
     await expect(tab.getByTestId("eda-volcano-selection")).toHaveText(
-      "1 gene selected, 1 of 3 retained by the comparison",
+      VOLCANO_TAB_SELECTION,
     );
 
     await expect(tab.locator("input, select, textarea")).toHaveCount(0);

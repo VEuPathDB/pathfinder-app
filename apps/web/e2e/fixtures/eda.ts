@@ -133,6 +133,7 @@ const selected = EDA.volcano.retainedPointIds;
 const dropped = EDA.volcano.points.filter((point) => point.pValue === null).length;
 export const VOLCANO_SELECTED = selected;
 export const VOLCANO_SELECTION = `${number(selected.length)} ${selected.length === 1 ? "gene" : "genes"} selected at these thresholds - ${number(EDA.volcano.retainedPoints)} of ${number(EDA.volcano.totalPoints)} retained by the comparison`;
+export const VOLCANO_TAB_SELECTION = `${String(selected.length)} ${selected.length === 1 ? "gene" : "genes"} selected, ${String(EDA.volcano.retainedPoints)} of ${String(EDA.volcano.totalPoints)} retained by the comparison`;
 export const VOLCANO_DROPPED =
   dropped === 1
     ? "1 point without a p-value was not plotted"
