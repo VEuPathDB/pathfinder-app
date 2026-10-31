@@ -22,12 +22,10 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
-from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
-    blame_deps,
     reading_deps,
     reply,
 )
@@ -45,13 +43,7 @@ FROM_GROUPS = TransformReach(
     countable=1,
     columns=[ReachedColumn(name="abbreviation", display_name="Taxon Code")],
 )
-QUESTION = AskedQuestion(
-    question="Shall I restrict the groups to Plasmodium genomes?",
-    dimension=ConstraintKind.ORGANISM,
-    recommended_value="Plasmodium genomes",
-)
 HONEST = "The strategy leaves Plasmodium species unmet."
-WRITTEN = "The strategy leaves Plasmodium species unmet across 5 genomes."
 
 
 def _unmet_and_unfollowed() -> LeadDeps:
@@ -103,12 +95,13 @@ def _correction(
     return str(refused.value)
 
 
-def test_two_rule_refusals_leave_the_prose_its_correction() -> None:
+def test_each_rule_is_corrected_once_and_the_third_answer_stands() -> None:
     deps = _unmet_and_unfollowed()
 
     first = _correction(deps, 0, HONEST, "await_user")
     second = _correction(deps, 1, HONEST, "complete")
-    third = _correction(deps, 2, WRITTEN, "await_user")
+    ctx = replace(run_context_for(deps), retry=2)
+    third = reply(HONEST, next_state="await_user")
 
     assert ("step_columns found" in first, "The researcher stated" in first) == (
         True,
@@ -118,49 +111,21 @@ def test_two_rule_refusals_leave_the_prose_its_correction() -> None:
         False,
         True,
     )
-    assert "``5``" in third
+    assert hold_the_turn_contract(ctx, third) == third
     assert deps.state.turn_markers.refused_rules == [
         "unfollowed_reach",
         "unmet_requirement",
     ]
-    assert (
-        deps.state.turn_markers.output_refusals,
-        deps.state.turn_markers.prose_refusals,
-    ) == (2, 1)
+    assert deps.state.turn_markers.output_refusals == 2
 
 
-def test_a_note_number_past_the_bound_is_shown_marked_unchecked() -> None:
+def test_a_model_written_link_is_shown_as_plain_text() -> None:
     deps = reading_deps()
-    ctx = replace(run_context_for(deps), retry=3)
-    answer = reply("It returns 66 genes.", next_state="complete", questions=[QUESTION])
-
-    assert hold_the_turn_contract(ctx, answer) == answer
-    assert deps.state.turn_markers.unchecked_reply is True
-
-
-def test_a_note_number_within_the_bound_is_refused_with_the_number() -> None:
-    message = _correction(reading_deps(), 0, "It returns 66 genes.", "await_user")
-
-    assert "``66``" in message
-
-
-def test_a_turn_that_read_nothing_from_a_site_writes_its_note_freely() -> None:
-    deps = blame_deps()
-    answer = reply("A genome of 23 Mb holds 14 chromosomes.")
-
-    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
-    assert deps.state.turn_markers.unchecked_reply is False
-
-
-def test_a_link_past_the_bound_never_reaches_the_reader() -> None:
-    deps = reading_deps()
-    ctx = replace(run_context_for(deps), retry=3)
     answer = reply("Read [the review](javascript:alert(1)) and https://evil.example.")
 
-    let_through = hold_the_turn_contract(ctx, answer)
+    let_through = hold_the_turn_contract(run_context_for(deps), answer)
 
     assert isinstance(let_through, LeadResponse)
     assert render_note(let_through.prose, turn_facts(deps)) == plain_markdown(
         "Read [the review](javascript:alert(1)) and https://evil.example."
     )
-    assert deps.state.turn_markers.unchecked_reply is True

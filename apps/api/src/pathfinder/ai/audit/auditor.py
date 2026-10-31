@@ -20,7 +20,7 @@ from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolse
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.instructions import AUDITOR_INSTRUCTIONS
 from pathfinder.ai.audit.mock import build_audit_mock
-from pathfinder.ai.audit.reply import AuditReply, HoldTheReply
+from pathfinder.ai.audit.reply import AuditReply
 from pathfinder.ai.audit.run_tools import READ_TOOL_NAMES, build_run_toolset
 from pathfinder.ai.audit.start_card import ask_about_the_audits
 from pathfinder.ai.audit.verdict_tool import record_gene_model_verdicts
@@ -95,7 +95,6 @@ def build_auditor_agent() -> AuditorAgent:
                 HandleDeferredToolCalls[AuditDeps](
                     handler=ask_about_the_audits_handler
                 ),
-                HoldTheReply(),
                 StopAtTheBudget(),
             ]
         ),

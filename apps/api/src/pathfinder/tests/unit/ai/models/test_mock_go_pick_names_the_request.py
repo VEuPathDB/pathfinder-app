@@ -1,5 +1,5 @@
-"""The GO pick of every scripted build carries the concept the request names,
-so the label guard on a typeahead pick accepts it on every site."""
+"""The GO pick of every scripted build is an entry its lookup matched, so the
+typeahead pick checks accept it on every site."""
 
 from __future__ import annotations
 
@@ -125,22 +125,11 @@ def _refusals(values: SiteValues, request: str) -> list[str]:
 
 
 @pytest.mark.parametrize("site_id", _SITES)
-def test_the_go_pick_passes_the_label_guard(site_id: str) -> None:
+def test_the_go_pick_passes_the_pick_checks(site_id: str) -> None:
     values = SiteValues.for_site(site_id)
     request = f"Find {values.organism} genes annotated with {GO_CONCEPT}."
 
     assert _refusals(values, request) == []
-
-
-@pytest.mark.parametrize("site_id", _SITES)
-def test_a_request_for_another_concept_refuses_the_pick(site_id: str) -> None:
-    values = SiteValues.for_site(site_id)
-    request = f"Find {values.organism} genes annotated with kinase activity."
-
-    refused = _refusals(values, request)
-
-    assert len(refused) == len(_go_criteria(values)) == 2
-    assert all("shares no uncommon word" in message for message in refused)
 
 
 @pytest.mark.parametrize("site_id", _SITES)

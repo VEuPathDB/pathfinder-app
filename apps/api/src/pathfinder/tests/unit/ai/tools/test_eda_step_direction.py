@@ -1,4 +1,4 @@
-"""create_eda_step names the kept side by its group and refuses a caption that disagrees."""
+"""create_eda_step names the kept side by its group."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
@@ -62,29 +61,7 @@ def _wire(monkeypatch: pytest.MonkeyPatch, commit: object) -> None:
     wire_gene_count(monkeypatch, study=de_study, genes=DE_GENES)
 
 
-async def test_a_caption_naming_only_the_reference_group_is_refused(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    applied: list[Any] = []
-    _wire(monkeypatch, recording_commit(applied))
-
-    with pytest.raises(ModelRetry) as refused:
-        await eda_step.create_eda_step(
-            lead_ctx,
-            effect_size_threshold=1.0,
-            significance_threshold=0.05,
-            effect_direction="upOnly",
-            caption="Genes higher in 24h pbm",
-        )
-
-    message = str(refused.value)
-    assert '"Genes higher in 24h pbm"' in message
-    assert KEPT_UP in message
-    assert "downOnly" in message
-    assert applied == []
-
-
-async def test_a_caption_naming_the_kept_group_is_accepted(
+async def test_an_up_only_export_keeps_group_b(
     monkeypatch: pytest.MonkeyPatch,
     lead_ctx: RunContext[LeadDeps],
     session: StrategySession,
@@ -97,7 +74,6 @@ async def test_a_caption_naming_the_kept_group_is_accepted(
         effect_size_threshold=1.0,
         significance_threshold=0.05,
         effect_direction="upOnly",
-        caption="Genes higher in 18h pbm and 36h pbm than in 24h pbm",
     )
 
     result = returned(answer, eda_step.EdaStepCreated)
@@ -107,7 +83,7 @@ async def test_a_caption_naming_the_kept_group_is_accepted(
     assert applied[0][0].step.display_name == KEPT_UP
 
 
-async def test_the_step_is_named_by_the_direction_not_by_the_caption(
+async def test_the_step_is_named_by_the_direction(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
@@ -118,7 +94,6 @@ async def test_the_step_is_named_by_the_direction_not_by_the_caption(
         effect_size_threshold=1.0,
         significance_threshold=0.05,
         effect_direction="downOnly",
-        caption="Genes up at 24h pbm",
     )
 
     assert applied[0][0].step.display_name == (
@@ -130,52 +105,7 @@ async def test_the_step_is_named_by_the_direction_not_by_the_caption(
     )
 
 
-async def test_a_caption_that_names_no_group_asks_for_one_and_suggests_no_direction(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    applied: list[Any] = []
-    _wire(monkeypatch, recording_commit(applied))
-
-    with pytest.raises(ModelRetry) as refused:
-        await eda_step.create_eda_step(
-            lead_ctx,
-            effect_size_threshold=1.0,
-            significance_threshold=0.05,
-            effect_direction="upOnly",
-            caption="Genes expressed higher at 24 hours than at 18 or 36 hours",
-        )
-
-    message = str(refused.value)
-    assert "names no label of either group" in message
-    assert "group A (24h pbm)" in message
-    assert "group B (18h pbm, 36h pbm)" in message
-    assert KEPT_UP in message
-    assert "downOnly" not in message
-    assert applied == []
-
-
-async def test_a_one_sided_export_without_a_caption_is_refused(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    applied: list[Any] = []
-    _wire(monkeypatch, recording_commit(applied))
-
-    with pytest.raises(ModelRetry) as refused:
-        await eda_step.create_eda_step(
-            lead_ctx,
-            effect_size_threshold=1.0,
-            significance_threshold=0.05,
-            effect_direction="upOnly",
-        )
-
-    message = str(refused.value)
-    assert "needs a caption" in message
-    assert "group A (24h pbm)" in message
-    assert "group B (18h pbm, 36h pbm)" in message
-    assert applied == []
-
-
-async def test_a_two_sided_export_needs_no_caption(
+async def test_a_two_sided_export_keeps_both_sides(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
@@ -196,7 +126,7 @@ async def test_a_subset_export_states_no_selection(
     applied: list[Any] = []
     _wire(monkeypatch, recording_commit(applied))
 
-    answer = await eda_step.create_eda_step(lead_ctx, caption="Any words at all")
+    answer = await eda_step.create_eda_step(lead_ctx)
 
     assert returned(answer, eda_step.EdaStepCreated).selection is None
     assert applied[0][0].step.display_name == "heat shock subset"

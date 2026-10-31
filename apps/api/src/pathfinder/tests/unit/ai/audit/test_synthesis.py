@@ -264,26 +264,6 @@ async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
     assert (retries, list(found.headline)) == ([], headline)
 
 
-@pytest.mark.parametrize(
-    ("summary", "token"),
-    [
-        ("80% of the findings were kept.", "80"),
-        ("The review kept 2 findings.", "2"),
-    ],
-)
-async def test_a_summary_that_writes_a_number_is_retried(
-    summary: str, token: str
-) -> None:
-    retries: list[RetryPromptPart] = []
-    wrong = _draft([_section(_TRUNCATED, 1, 2)], [1, 2], summary)
-
-    found = await _synthesized([_stored(1), _stored(2)], _first_then(wrong, retries))
-
-    (retry,) = retries
-    assert token in str(retry.content)
-    assert found.summary == "Two kept."
-
-
 async def test_a_summary_in_words_is_stored_as_written() -> None:
     retries: list[RetryPromptPart] = []
     summary = (

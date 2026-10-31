@@ -11,7 +11,6 @@ from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
 from pathfinder.ai.audit.synthesis import synthesize
-from pathfinder.ai.lead.contract_messages import note_facts_message
 from pathfinder.domain.audit.rates import TargetReport
 from pathfinder.domain.audit.run_state import LeftUnits
 from pathfinder.domain.audit.scope import AuditScope
@@ -22,7 +21,6 @@ from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     finding_cite,
 )
-from pathfinder.domain.reply_note import written_numbers
 from pathfinder.services.audit.verdicts import VerdictView
 from pathfinder.services.audit.views import AuditRunSummary, AuditRunView
 
@@ -163,66 +161,12 @@ def test_a_section_counts_the_findings_it_lists() -> None:
     assert (section.count, dumped["count"], dumped["findingIds"]) == (6, 6, _INTACT)
 
 
-def test_the_numbers_a_sentence_writes_are_its_lone_figures() -> None:
-    assert written_numbers(_RECORDED_CAUSE) == []
-    assert written_numbers("The review kept 7 of 9 findings, 88.9% of them.") == [
-        "7",
-        "9",
-        "88.9%",
-    ]
-    assert written_numbers(f"{_TRUNCATED_CAUSE} {_CITES} PF3D7_1423800 3D7") == []
-
-
-async def test_a_section_cause_that_states_a_count_is_retried() -> None:
+async def test_a_section_cause_that_states_a_count_is_kept_as_written() -> None:
     retries: list[RetryPromptPart] = []
 
     sections = await _synthesized(_first_then(_draft(_COUNTED_CAUSE), retries))
 
-    (retry,) = retries
-    assert retry.content == (
-        "The section intact_gene_called_pseudogene writes 7 in its cause or in "
-        "what confirms it. A section's count is the findings its findingIds list, "
-        "which the run shows beside it, so neither sentence writes a number or a "
-        "link."
-    )
-    assert [(s.count, s.finding_ids) for s in sections] == [(6, tuple(_INTACT))]
-
-
-async def test_a_summary_that_states_a_count_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
-    written = _draft(_TRUNCATED_CAUSE, summary="The review kept 6 intact genes.")
-
-    await _synthesized(_first_then(written, retries))
-
-    assert [retry.content for retry in retries] == [note_facts_message(["6"])]
-
-
-async def test_a_summary_that_writes_a_link_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
-    written = _draft(
-        _TRUNCATED_CAUSE, summary="Curators read [the run](javascript:alert(1)) first."
-    )
-
-    await _synthesized(_first_then(written, retries))
-
-    assert [retry.content for retry in retries] == [
-        note_facts_message(["javascript:alert(1)"])
-    ]
-
-
-async def test_a_section_cause_that_writes_a_link_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
-
-    await _synthesized(
-        _first_then(
-            _draft(f"{_TRUNCATED_CAUSE} See mailto:curator@example.org"), retries
-        )
-    )
-
-    (retry,) = retries
-    assert str(retry.content).startswith(
-        "The section intact_gene_called_pseudogene writes mailto:curator@example.org"
-    )
+    assert (retries, sections[0].cause) == ([], _COUNTED_CAUSE)
 
 
 async def test_a_section_that_cites_and_measures_is_kept_as_written() -> None:

@@ -200,7 +200,6 @@ a resumed turn like any other.
 `ai/lead/edit_dispatch.py`,
 `domain/strategy/analysis_binding.py`,
 `domain/strategy/message_reading.py::read_combination`,
-`ai/lead/intent.py::unstated_operator_refusal`,
 `tests/unit/domain/strategy/test_combination_operator_is_stated.py`,
 `tests/unit/ai/lead/test_classifier_reads_the_stated_operator.py`,
 `tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`,

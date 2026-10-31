@@ -11,13 +11,9 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.combination_check import (
     combination_violation,
-    first_combination_violation,
 )
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -150,39 +146,6 @@ class TestThreeOrMoreTerms:
         assert "must be INTERSECT" in violation
         assert "joins two of them at UNION" in violation
 
-    def test_the_breach_of_a_three_term_request_names_its_operator(self) -> None:
-        criteria = [
-            Criterion(id="c_kinase", text="kinases by molecular function"),
-            Criterion(id="c_ms", text="trophozoite mass spectrometry evidence"),
-            Criterion(id="c_derisi", text="DeRisi timecourse expression"),
-        ]
-        structure = SpecStructure(
-            root=spec_joined(
-                CombineOp.UNION,
-                spec_leaf("c_kinase"),
-                spec_joined(
-                    CombineOp.INTERSECT, spec_leaf("c_ms"), spec_leaf("c_derisi")
-                ),
-            )
-        )
-
-        breach = first_combination_violation(
-            [
-                Constraint(
-                    kind=ConstraintKind.COMBINATION,
-                    requested_value=_OR_THREE.expression,
-                    label="how the evidence combines",
-                    source=ConstraintSource.USER_EXPLICIT,
-                )
-            ],
-            criteria,
-            structure,
-        )
-
-        assert breach is not None
-        assert breach.required is CombineOp.UNION
-        assert "joins two of them at INTERSECT" in breach.message
-
     @given(tree=_binary_trees(_FOUR_IDS))
     def test_an_or_holds_exactly_when_every_combine_unions(
         self, tree: StructureNode
@@ -273,39 +236,6 @@ _OR_NAMED_TRANSFORM = CombinationRequest(
 
 class TestAStatementThatNamesTheTransform:
     """A transform the statement names stands for its whole input."""
-
-    def test_an_or_refuses_an_intersect_when_the_statement_names_the_transform(
-        self,
-    ) -> None:
-        structure = SpecStructure(
-            root=spec_joined(
-                CombineOp.UNION,
-                spec_leaf("c_kinase"),
-                spec_joined(
-                    CombineOp.INTERSECT,
-                    spec_transform("c_orth", spec_leaf("c_ms")),
-                    spec_leaf("c_derisi"),
-                ),
-            )
-        )
-
-        breach = first_combination_violation(
-            [
-                Constraint(
-                    kind=ConstraintKind.COMBINATION,
-                    requested_value=_OR_NAMED_TRANSFORM.expression,
-                    label="how the evidence combines",
-                    source=ConstraintSource.USER_EXPLICIT,
-                )
-            ],
-            _NAMED_TRANSFORM_CRITERIA,
-            structure,
-        )
-
-        assert breach is not None
-        assert breach.required is CombineOp.UNION
-        assert "must be UNION" in breach.message
-        assert "joins two of them at INTERSECT" in breach.message
 
     def test_an_or_accepts_a_union_when_the_statement_names_the_transform(self) -> None:
         root = spec_joined(

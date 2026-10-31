@@ -88,16 +88,6 @@ def unsaved_controls_message(positives: int, negatives: int) -> str:
     )
 
 
-_COPY_THE_CARD = (
-    "Control counts and control gene ids are read from the control tests, the "
-    "scored comparisons and the sweeps this turn ran, from the evidence card "
-    "of the last check, and from the separation offer this reply's card "
-    "carries or the conversation adopted. A count of sampled genes that fit is read from the "
-    "sample the check judged. Copy them; never restate one from memory. When "
-    "none of them holds a result, report no result."
-)
-
-
 def unread_gene_sentence(gene_id: str) -> str:
     """Why a sampled gene whose record the turn did not read cannot stand."""
     return (
@@ -116,25 +106,12 @@ def unbacked_digest_message(found: Sequence[str]) -> str:
     return " ".join(
         [
             *found,
-            _COPY_THE_CARD,
             (
                 "A sampled gene is one whose record read_gene_record returned this "
                 "turn, and a source is one research_literature_search, "
                 "research_web_search or read_gene_record returned this turn. "
-                "Return the same digest with every control count, "
-                "control gene id, sampled gene and source taken from what this "
-                "turn read, or leave out what it did not."
+                "Return the same digest with every sampled gene and source "
+                "taken from what this turn read, or leave out what it did not."
             ),
         ]
-    )
-
-
-def note_facts_message(written: Sequence[str]) -> str:
-    named = ", ".join(f"``{token}``" for token in written)
-    return (
-        f"The note writes {named}. The facts beside the reply show every "
-        "count, value, setting and link of this turn as the site holds it, so "
-        "the note writes none: take each out and keep the rest of the note as "
-        "it is. A name with digits, such as a strain or a tool version, stays "
-        "as written, and a record is named as [record:<record_id>]."
     )

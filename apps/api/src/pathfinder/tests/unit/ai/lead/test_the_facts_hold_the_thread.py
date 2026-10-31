@@ -33,7 +33,7 @@ from pathfinder.domain.comparison_facts import (
 )
 from pathfinder.domain.evidence import SampledGene, VerificationReview
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
-from pathfinder.domain.reply_note import note_facts, render_note
+from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
@@ -70,10 +70,6 @@ def _deps(session: StrategySession, *, site_id: str = "plasmodb") -> LeadDeps:
 
 def _rendered(deps: LeadDeps, prose: str) -> str:
     return render_note(prose, turn_record(run_context_for(deps)).facts)
-
-
-def _faults(deps: LeadDeps, prose: str) -> list[str]:
-    return note_facts(prose, turn_record(run_context_for(deps)).facts)
 
 
 # The portal narrowing: the text search held 2,160 genes, then 19 at 3D7.
@@ -178,12 +174,11 @@ def test_a_turn_that_wrote_nothing_shows_no_count_before() -> None:
     )
 
 
-def test_how_the_count_moved_is_a_fact_and_no_word_of_the_note() -> None:
+def test_how_the_count_moved_is_a_fact() -> None:
     deps = _tightened()
     facts = turn_record(run_context_for(deps)).facts
 
     assert (facts.root_count_before, facts.root_count) == (209, 38)
-    assert _faults(deps, "It fell by 172, so the filter is strict.") == ["172"]
 
 
 # A leaf of 627 genes under a result of 9, and one record read from the leaf.
@@ -301,7 +296,6 @@ def test_a_record_a_read_returned_is_linked_to_its_page() -> None:
     assert _rendered(deps, "The record is [record:AFUN020124].") == (
         f"The record is [AFUN020124]({_VECTORBASE_RECORD})\\."
     )
-    assert _faults(deps, "It is AFUN020124, an insulin receptor.") == []
 
 
 def test_a_records_orthologs_are_a_list_of_their_own() -> None:
@@ -434,18 +428,3 @@ def test_the_counts_a_comparison_returned_are_lines_of_the_facts() -> None:
     assert [
         line for line in turn_facts(deps).lines() if line.startswith("All text")
     ] == ["All text fields: 84 genes"]
-    assert _faults(deps, "Every text field finds 83.") == ["83"]
-
-
-def test_a_number_the_researcher_writes_is_prose_in_the_note() -> None:
-    step = StrategyStepNode(id="step_cfe9f20f", search_name="GenesByText")
-    session = _session(step, {"step_cfe9f20f": 146}, site_id="piroplasmadb")
-    state = pipeline_state(
-        "piroplasmadb",
-        user_prompt="What fraction of the VESA1 genes are on chromosome 1?",
-        domain=StrategyDomainState(original_request="Find the VESA1 genes."),
-    )
-    deps = lead_deps(state, strategy_session=session)
-
-    assert _faults(deps, "On chromosome 1 they are a small share.") == []
-    assert _faults(deps, "On chromosome 2 they are a small share.") == ["2"]

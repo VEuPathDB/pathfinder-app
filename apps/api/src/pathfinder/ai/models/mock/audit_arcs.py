@@ -6,7 +6,6 @@ from uuid import UUID
 from assistant_core.models.scripted import (
     current_turn,
     last_user_text,
-    retry_prompt_parts,
     scripted_call,
 )
 from pydantic import TypeAdapter
@@ -160,28 +159,18 @@ def _finding_reads(
     return calls, details[0] if details else None
 
 
-def _finding_answer(
-    messages: list[ModelMessage], *, spelled: bool
-) -> list[ToolCallPart]:
+def _finding_answer(messages: list[ModelMessage]) -> list[ToolCallPart]:
     calls, found = _finding_reads(messages)
     if found is None:
         return [classify(AUDIT), *calls, lead_final(NO_RUN, "await_user")]
     detail = found.answer
     gene = detail.finding.target.genes[0]
-    if spelled and not retry_prompt_parts(current_turn(messages)):
-        length = detail.evidence[0].payload.confirmation.result.strain_cds_length
-        said = f"The model of [record:{gene}] holds a CDS of {length} bases."
-    else:
-        said = f"The finding above reads the model of [record:{gene}] as an error."
+    said = f"The finding above reads the model of [record:{gene}] as an error."
     return [classify(AUDIT), *calls, lead_final(said, "await_user")]
 
 
 def audit_finding(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    return _finding_answer(messages, spelled=False)
-
-
-def audit_finding_spelled(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    return _finding_answer(messages, spelled=True)
+    return _finding_answer(messages)
 
 
 def audit_investigation(messages: list[ModelMessage]) -> list[ToolCallPart]:

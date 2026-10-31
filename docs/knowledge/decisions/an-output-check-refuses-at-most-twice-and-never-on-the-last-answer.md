@@ -61,12 +61,7 @@ problem, or whose readings the site refuses down to fewer than two, reaches the
 card with its text and options alone, the site's first sentence in the gap. A
 question whose readings name no stated requirement keeps them, and a pick of one
 carries `names_no_requirement`: its caveat and the line VERIFY and the Lead read
-say the pick replaces none, so each requirement is judged on its words. A note,
-typed or a card's reply, that still writes a number or a link of the turn past the
-bound (`note_facts`) goes through as written, a record reference it cannot link
-dropped, and the facts part carries a note that the reply holds statements not
-checked against the result (`TurnFacts.unchecked`); nothing is withheld, because
-the facts part beside it shows every true value. Past the budget, or on a second
+say the pick replaces none, so each requirement is judged on its words. Past the budget, or on a second
 answer after the one correction, the contract still runs `reconcile` and marks any
 mismatch it finds.
 A reply to a build no check saw is not a mismatch when it states the reason in

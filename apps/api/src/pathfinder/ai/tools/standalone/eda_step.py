@@ -228,7 +228,6 @@ async def create_eda_step(
     effect_size_threshold: float | None = None,
     significance_threshold: float | None = None,
     effect_direction: EdaEffectDirection | None = None,
-    caption: str = "",
 ) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
     """Export the open EDA analysis into the researcher's strategy as a step.
 
@@ -291,11 +290,6 @@ async def create_eda_step(
     export's genes from the result. It needs a strategy with one root, and it
     names the whole placement, so it travels with none of the three above.
 
-    A one-sided export needs ``caption``: the genes it keeps, naming the kept
-    group's label first ("Genes higher in 24h pbm than in 18h pbm"). A caption
-    that names no group label, or whose first label is the other group's, is
-    refused and nothing is written.
-
     Available once ``preview_eda_subset`` has counted the open analysis, on
     this message or an earlier one, so the number you export is one the conversation
     measured.
@@ -310,8 +304,6 @@ async def create_eda_step(
         effect_size_threshold: Minimum absolute effect size to keep.
         significance_threshold: Maximum p-value to keep.
         effect_direction: upOnly keeps group B's side, downOnly group A's.
-        caption: The genes a one-sided export keeps, kept group named first.
-            Required for upOnly and downOnly.
     """
     binding = await bound_analysis(ctx)
     if binding is None:
@@ -330,7 +322,7 @@ async def create_eda_step(
         VolcanoAsk(effect_size_threshold, significance_threshold, effect_direction),
         ctx.deps.state.researcher_messages(),
     )
-    comparison = compared_groups(analysis, thresholds, caption)
+    comparison = compared_groups(analysis, thresholds)
     node = plan.node
 
     session = ctx.deps.runtime.strategy_session

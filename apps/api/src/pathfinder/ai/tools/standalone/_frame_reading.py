@@ -9,7 +9,7 @@ from pydantic_ai import ModelRetry
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.domain.strategy.operational_spec import BoundValue
-from pathfinder.domain.strategy.readings import AcceptedReading
+from pathfinder.domain.strategy.readings import AcceptedReading, ReadingChooser
 
 
 def offered_reading(
@@ -19,16 +19,18 @@ def offered_reading(
     bound: Mapping[str, BoundValue],
 ) -> AcceptedReading | None:
     values = {name: held.value for name, held in bound.items()}
+    kept = next(
+        (
+            c.accepted_reading
+            for c in state.operational_spec_draft.criteria
+            if c.id == criterion_id
+        ),
+        None,
+    )
+    if kept is not None and kept.unbound(values):
+        kept = None
     if not reading:
-        kept = next(
-            (
-                c.accepted_reading
-                for c in state.operational_spec_draft.criteria
-                if c.id == criterion_id
-            ),
-            None,
-        )
-        return None if kept is None or kept.unbound(values) else kept
+        return kept
     offers = [r for r in state.offered_readings if r.criterion_id == criterion_id]
     if not offers:
         msg = (
@@ -44,7 +46,7 @@ def offered_reading(
             f"Pass the label of one it offered: {[r.reading for r in offers]}."
         )
         raise ModelRetry(msg)
-    accepted = read.accepted()
+    accepted = read.accepted(ReadingChooser.ASSISTANT)
     moved = [f"{name} = {read.params[name]!r}" for name in accepted.unbound(values)]
     if moved:
         msg = (
@@ -52,4 +54,4 @@ def offered_reading(
             f"Bind those values with it, or pass the reading whose values you bind."
         )
         raise ModelRetry(msg)
-    return accepted
+    return kept if accepted.same_reading(kept) else accepted

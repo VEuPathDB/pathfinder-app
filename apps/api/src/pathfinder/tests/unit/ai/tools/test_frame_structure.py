@@ -18,11 +18,6 @@ from pathfinder.ai.tools.standalone.frame_structure import (
     SetStructureResult,
     set_structure,
 )
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -180,118 +175,6 @@ class TestNestedBranches:
         )
 
         assert result.criteria_combined == 3
-
-
-_COMBINATION = "mass spectrometry evidence OR DeRisi expression"
-
-# The kinase drug-target shape: four kinase evidence sources unioned, then
-# intersected with the two lines of evidence the user asked to OR.
-_DRUG_TARGET_CRITERIA = [
-    Criterion(id="k_go", text="kinases by molecular function", search_name="GenesByGo"),
-    Criterion(id="k_ipr", text="kinases by InterPro domain", search_name="GenesByIpr"),
-    Criterion(id="k_ec", text="kinases by EC number", search_name="GenesByEc"),
-    Criterion(
-        id="k_fam", text="kinases by protein family", search_name="GenesByFamily"
-    ),
-    Criterion(
-        id="c_ms",
-        text="trophozoite mass spectrometry evidence",
-        search_name="GenesByMassSpec",
-    ),
-    Criterion(
-        id="c_derisi",
-        text="DeRisi timecourse expression",
-        search_name="GenesByRNASeqEvidence",
-    ),
-]
-
-
-def _requirement(value: str) -> Constraint:
-    return Constraint(
-        kind=ConstraintKind.COMBINATION,
-        requested_value=value,
-        label="how the evidence combines",
-        source=ConstraintSource.USER_EXPLICIT,
-    )
-
-
-def _combination_state() -> AgentToolState:
-    state = AgentToolState(combination_requirements=[_requirement(_COMBINATION)])
-    for criterion in _DRUG_TARGET_CRITERIA:
-        state.frame_set_criterion(criterion)
-    return state
-
-
-def _kinase_union() -> StructureNode:
-    return _combine(CombineOp.UNION, *[_leaf(c.id) for c in _DRUG_TARGET_CRITERIA[:4]])
-
-
-class TestStatedCombinationGate:
-    """A stated combination is checked against the PROPOSED tree before it is
-    written, so a saved strategy's mirrored operator never reaches it."""
-
-    @pytest.mark.asyncio
-    async def test_a_tree_that_intersects_a_stated_or_is_refused(self) -> None:
-        st = _combination_state()
-
-        with pytest.raises(ModelRetry) as caught:
-            await set_structure(
-                _ctx(st),
-                root=_combine(
-                    CombineOp.INTERSECT,
-                    _kinase_union(),
-                    _leaf("c_derisi"),
-                    _leaf("c_ms"),
-                ),
-            )
-
-        message = str(caught.value)
-        assert _COMBINATION in message
-        assert "UNION" in message
-        assert "INTERSECT" in message
-        assert st.operational_spec_draft.structure is None
-
-    @pytest.mark.asyncio
-    async def test_the_same_tree_with_a_union_branch_is_written(self) -> None:
-        st = _combination_state()
-
-        result = returned(
-            await set_structure(
-                _ctx(st),
-                root=_combine(
-                    CombineOp.INTERSECT,
-                    _kinase_union(),
-                    _combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi")),
-                ),
-            ),
-            SetStructureResult,
-        )
-
-        assert result.criteria_combined == 6
-        assert _drafted_root(st).operator == CombineOp.INTERSECT
-
-    @pytest.mark.asyncio
-    async def test_a_requirement_naming_no_criterion_is_written_through(self) -> None:
-        st = _combination_state()
-        st.combination_requirements = [_requirement("proteomics OR microscopy")]
-
-        await set_structure(
-            _ctx(st),
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi")),
-        )
-
-        assert _drafted_root(st).operator == CombineOp.INTERSECT
-
-    @pytest.mark.asyncio
-    async def test_no_stated_combination_leaves_the_tool_alone(self) -> None:
-        st = AgentToolState()
-
-        await set_structure(
-            _ctx(st),
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi")),
-        )
-
-        assert _drafted_root(st).operator == CombineOp.INTERSECT
 
 
 def _bound(criterion_id: str, role: CriterionRole) -> Criterion:

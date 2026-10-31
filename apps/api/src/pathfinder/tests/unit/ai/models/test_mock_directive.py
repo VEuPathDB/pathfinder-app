@@ -175,7 +175,6 @@ def test_the_registry_holds_every_named_arc() -> None:
             "audit",
             "audit-plan",
             "audit-finding",
-            "audit-finding-spelled",
             "audit-investigation",
         ]
     )

@@ -71,8 +71,7 @@ researcher's stored words.
 **The reply explains the reason; the facts show the search.** The facts part
 beside the reply shows each step by its search's display name with its values
 and count, and the Lead's instruction asks the reply to say why each added
-search stands for the words it was chosen for; the note beside the facts writes
-no link (`note_facts`).
+search stands for the words it was chosen for.
 
 # What was rejected
 

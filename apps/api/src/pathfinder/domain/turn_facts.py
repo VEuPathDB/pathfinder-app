@@ -253,8 +253,6 @@ class TurnFacts(CamelModel):
     refusal: str = ""
     unchecked: str = ""
     unverified: str = ""
-    # The researcher's messages of the thread. A number they write is their word.
-    request_messages: list[str] = Field(default_factory=list, exclude=True)
 
     @field_validator("caveats", mode="after")
     @classmethod
@@ -307,11 +305,6 @@ class TurnFacts(CamelModel):
                 self.unchecked,
                 self.unverified,
             )
-        )
-
-    def holds_site_data(self) -> bool:
-        return not self.empty() or any(
-            (self.comparisons, self.statistics, self.tallies)
         )
 
     def strategy_url(self) -> str | None:

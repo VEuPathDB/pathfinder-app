@@ -8,11 +8,6 @@ from veupathdb.eda import EdaAnalysisDetail, differential_expression_computation
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
-from pathfinder.services.eda.direction import (
-    caption_verdict,
-    direction_sentence,
-    sign_sentence,
-)
 from pathfinder.services.eda.export import exported_dataset
 
 
@@ -44,55 +39,13 @@ def refuse_a_direction_without_a_volcano(
         raise ModelRetry(msg)
 
 
-def _groups(comparison: EdaComparison) -> str:
-    return (
-        f"group A ({', '.join(comparison.group_a)}) and group B "
-        f"({', '.join(comparison.group_b)})"
-    )
-
-
 def compared_groups(
-    analysis: EdaAnalysisDetail,
-    thresholds: VolcanoThresholds | None,
-    caption: str,
+    analysis: EdaAnalysisDetail, thresholds: VolcanoThresholds | None
 ) -> EdaComparison | None:
-    """The groups a compute export compares, once its caption agrees with them.
-
-    A one-sided export needs a caption whose first group label is a label of
-    the kept group. The subset export compares no groups.
-    """
+    """The groups a compute export compares. The subset export compares none."""
     if thresholds is None:
         return None
-    comparison = analysis_comparison(analysis)
-    direction = thresholds.effect_direction
-    kept = direction_sentence(comparison, direction)
-    if direction != "upAndDown" and not caption:
-        msg = (
-            f'effect_direction="{direction}" needs a caption that names the kept '
-            f"group's label first. The compute compares {_groups(comparison)}. "
-            f"{sign_sentence(comparison)} This call keeps: {kept}. Nothing was "
-            f"written."
-        )
-        raise ModelRetry(msg)
-    verdict = caption_verdict(caption, comparison, direction)
-    if verdict == "agrees":
-        return comparison
-    if verdict == "names_no_group":
-        msg = (
-            f'The caption "{caption}" names no label of either group: '
-            f"{_groups(comparison)}. Write a caption that names the kept "
-            f"group's label first. This call keeps: {kept}. Nothing was written."
-        )
-        raise ModelRetry(msg)
-    other = "downOnly" if direction == "upOnly" else "upOnly"
-    msg = (
-        f'The caption "{caption}" does not agree with '
-        f'effect_direction="{direction}", which keeps: {kept}. '
-        f"{sign_sentence(comparison)} Nothing was written. Name the kept "
-        f"group's label first in the caption, or send "
-        f'effect_direction="{other}" to keep the other side.'
-    )
-    raise ModelRetry(msg)
+    return analysis_comparison(analysis)
 
 
 def refuse_half_a_cut(

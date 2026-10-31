@@ -1,9 +1,8 @@
-"""The classifier records a combination only under the researcher's own operator."""
+"""A combination the classifier records is held to the operator the strategy builds."""
 
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead import classification_gate
@@ -105,22 +104,6 @@ async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
         if g.constraint.kind is ConstraintKind.COMBINATION
     ]
     return grounded
-
-
-async def test_a_hoisted_or_is_refused_and_names_the_connectives() -> None:
-    state = pipeline_state(user_prompt=VACCINE)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-
-    with pytest.raises(ModelRetry) as refused:
-        await classify_user_intent(ctx, _intent("OR"))
-
-    text = str(refused.value)
-    assert '", and "' in text
-    assert '"no transmembrane domains beyond a signal anchor"' in text
-    assert "split the request into separate constraints" in text
-    assert "alternative within it, not a top-level OR" in text
-    assert state.domain.requirements == []
-    assert ctx.deps.intent is None
 
 
 async def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None:

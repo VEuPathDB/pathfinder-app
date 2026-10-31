@@ -52,7 +52,6 @@ async def _exported_search(monkeypatch: pytest.MonkeyPatch, dataset_id: str) -> 
         effect_size_threshold=1.0,
         significance_threshold=0.05,
         effect_direction="upOnly",
-        caption="Genes higher in normal than in febrile",
     )
 
     [op] = applied[0]

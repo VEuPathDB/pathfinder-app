@@ -24,7 +24,6 @@ from pathfinder.domain.strategy.step_rationale import (
     RationaleBasis,
     SearchRationale,
 )
-from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 _COMPARED = 3
 
@@ -85,8 +84,7 @@ def rationale_for(
     """The recorded reason for this binding, or a retry naming what is wrong.
 
     A binding on the search the criterion already runs keeps its reason while
-    it changes no value the reason was derived from, or only an organism the
-    reason does not name. One that changes such a value records the edit's
+    it changes no value the reason was derived from, or only an organism. One that changes such a value records the edit's
     why, checked like a new one against the catalog read the reason holds, and
     is refused without one.
     """
@@ -108,7 +106,7 @@ def rationale_for(
             organisms = {info.name for info in infos if info.organism_param}
             if not changed:
                 return ChosenWhy(kept)
-            if set(changed) <= organisms and not _names_the_old_value(kept, changed):
+            if set(changed) <= organisms:
                 rewired = kept.model_copy(update={"derived_from": shown_params(values)})
                 return ChosenWhy(rewired)
             if why is None:
@@ -144,17 +142,6 @@ def _shown_term(why: SearchChoice, infos: Sequence[ParameterInfo]) -> str:
     if why.basis != "parameter":
         return why.term
     return next((i.display_name for i in infos if i.name == why.term), why.term)
-
-
-def _names_the_old_value(kept: SearchRationale, changed: Sequence[str]) -> bool:
-    """Whether the reason's words hold a word of a value this edit changes."""
-    said = set(words_of(kept.sentence))
-    return any(
-        word in said
-        for name in changed
-        for word in words_of(kept.derived_from.get(name, ""))
-        if word not in FILLER_WORDS
-    )
 
 
 def _read_behind(

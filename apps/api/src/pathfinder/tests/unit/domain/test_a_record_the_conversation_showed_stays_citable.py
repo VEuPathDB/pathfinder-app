@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
-from pathfinder.domain.reply_note import linked_records, note_facts, render_note
+from pathfinder.domain.reply_note import linked_records, render_note
 from pathfinder.domain.turn_facts import TurnFacts
 
 _HOSTDB_PAGE = "https://qa.hostdb.org/hostdb.qa/app/record/gene/"
@@ -53,10 +53,6 @@ def test_a_read_record_shown_before_renders_linked_to_its_page() -> None:
 
 def test_a_record_never_shown_is_dropped() -> None:
     assert render_note("It is [record:ENSMUSG00000073409].", _SHOWN) == "It is\\."
-
-
-def test_records_shown_before_alone_are_no_site_data_of_this_turn() -> None:
-    assert note_facts("The first is one of 5 genes.", _SHOWN) == []
 
 
 def test_the_records_shown_before_are_no_row_and_no_record_of_this_turn() -> None:

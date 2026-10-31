@@ -23,7 +23,6 @@ from pathfinder.ai.lead.intent import (
     question_asks_a_change_message,
     question_withdraws_message,
     unstated_ids_message,
-    unstated_operator_refusal,
     untyped_ids,
 )
 from pathfinder.services.gene_records.read import gene_record_url
@@ -136,10 +135,6 @@ def classification_refusal(
     state: PipelineState, intent: UserIntent, site: SiteReading
 ) -> str | None:
     """Why this intent does not describe the turn's message, or None."""
-    message = state.user_prompt
-    operator = unstated_operator_refusal(intent, message)
-    if operator is not None:
-        return operator
     if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
         intent.asks_a_change
     ):

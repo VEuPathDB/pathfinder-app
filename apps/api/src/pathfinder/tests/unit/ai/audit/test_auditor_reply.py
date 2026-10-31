@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic_ai import AgentRunResult, DeferredToolRequests, ModelRetry
+from pydantic_ai import AgentRunResult, DeferredToolRequests
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
@@ -14,13 +14,11 @@ from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 from pathfinder.ai.audit.auditor import build_auditor_agent
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.facts import audit_finding_fact, check_fact, gene_records
-from pathfinder.ai.audit.reply import AuditReply, hold_the_reply, reply_text
-from pathfinder.ai.lead.contract_messages import note_facts_message
+from pathfinder.ai.audit.reply import AuditReply, reply_text
 from pathfinder.domain.written_links import plain_markdown
 from pathfinder.services.audit.finding_views import FindingDetail
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.audit_planning import faked_site
-from pathfinder.tests._support.run_context import run_context_for
 
 _STRAIN = "EXA_0001"
 _REFERENCE = "EXR_0001"
@@ -49,7 +47,6 @@ def _deps() -> AuditDeps:
         site_id="plasmodb",
         user_id=uuid4(),
         conversation_id=uuid4(),
-        request="is the pseudogene call on EXA_0001 right",
         facts=[fact],
         records=gene_records("plasmodb", (_STRAIN, _REFERENCE)),
     )
@@ -69,7 +66,6 @@ def _finding_deps() -> AuditDeps:
         site_id="fungidb",
         user_id=uuid4(),
         conversation_id=uuid4(),
-        request="is finding 1 of my audit right",
         facts=[audit_finding_fact(UUID(_FINDING["run_id"]), detail)],
         records=gene_records("fungidb", [_GENE]),
     )
@@ -95,40 +91,6 @@ def test_the_reply_shows_the_finding_before_its_note() -> None:
     )
 
 
-def test_a_note_without_a_number_passes_the_contract() -> None:
-    deps = _deps()
-    reply = AuditReply(
-        prose=f"The check reads the model of [record:{_STRAIN}] as intact."
-    )
-
-    assert hold_the_reply(run_context_for(deps), reply) == reply
-    assert deps.reply_refusals == 0
-
-
-def test_a_note_that_writes_a_number_of_the_turn_is_refused() -> None:
-    deps = _deps()
-    written = AuditReply(prose=f"The model of [record:{_STRAIN}] holds 900 bases.")
-
-    with pytest.raises(ModelRetry) as refused:
-        hold_the_reply(run_context_for(deps), written)
-
-    assert (str(refused.value), deps.reply_refusals) == (note_facts_message(["900"]), 1)
-
-
-def test_a_reply_is_let_through_once_its_refusals_are_spent() -> None:
-    deps = _deps().model_copy(update={"reply_refusals": 2})
-    written = AuditReply(prose=f"The model of [record:{_STRAIN}] holds 900 bases.")
-
-    assert hold_the_reply(run_context_for(deps), written) == written
-
-
-def test_a_number_the_researcher_wrote_is_their_word() -> None:
-    deps = _deps().model_copy(update={"request": "is a CDS of 900 bases right"})
-    written = AuditReply(prose=f"The model of [record:{_STRAIN}] holds 900 bases.")
-
-    assert hold_the_reply(run_context_for(deps), written) == written
-
-
 def _answering(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
     del messages
     (tool,) = info.output_tools
@@ -136,7 +98,7 @@ def _answering(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
     return ModelResponse(parts=[ToolCallPart(tool_name=tool.name, args=args)])
 
 
-async def test_the_reply_check_is_a_capability(
+async def test_the_auditor_answers_with_its_typed_reply(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     faked_site(monkeypatch)

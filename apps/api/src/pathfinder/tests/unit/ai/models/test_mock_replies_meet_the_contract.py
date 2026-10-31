@@ -17,8 +17,8 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.ai.models.mock.numbers import written_numbers
 from pathfinder.ai.models.mock.registry import ARCS
-from pathfinder.domain.reply_note import note_facts, written_numbers
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -106,10 +106,7 @@ def test_every_reply_is_a_note_with_no_number(
     record = turn_record(run_context_for(deps))
     mismatches = reconcile(report, record)
 
-    assert (written_numbers(report.prose), note_facts(report.prose, record.facts)) == (
-        [],
-        [],
-    )
+    assert written_numbers(report.prose) == []
     assert [(m.kind, m.sentence) for m in mismatches] == []
 
 

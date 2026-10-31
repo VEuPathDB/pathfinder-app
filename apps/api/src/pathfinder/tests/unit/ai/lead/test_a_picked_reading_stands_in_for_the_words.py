@@ -42,7 +42,11 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.questions import OpenQuestion, SlotQuestion
-from pathfinder.domain.strategy.readings import AcceptedReading, Reading
+from pathfinder.domain.strategy.readings import (
+    AcceptedReading,
+    Reading,
+    ReadingChooser,
+)
 from pathfinder.services.strategies import reading_check
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -194,6 +198,7 @@ def _held() -> AcceptedReading:
         params={_EXPRESSION: SHARE},
         replaces=[_PRESENT.key],
         stand_in=_STAND_IN.key,
+        chosen_by=ReadingChooser.RESEARCHER_ON_A_CARD,
     )
 
 
@@ -242,6 +247,7 @@ async def test_a_picked_reading_without_a_caveat_adds_no_caveat() -> None:
         params={_EXPRESSION: EVERY},
         replaces=[_PRESENT.key],
         stand_in=f"other:{_EVERY_LABEL}",
+        chosen_by=ReadingChooser.RESEARCHER_ON_A_CARD,
     )
     assert caveats_for(deps.state.domain.operational_spec, []) == []
 
@@ -373,7 +379,7 @@ def test_the_ledger_shows_a_held_reading_under_its_criterion() -> None:
     rendered = render_frame_full(FrameSection(spec=spec)).splitlines()
 
     assert [line for line in rendered if "READING" in line] == [
-        f"    READING the researcher accepted: {_LINE}"
+        f"    READING picked by the researcher on a card: {_LINE}"
     ]
 
 

@@ -36,6 +36,27 @@
   call that is still running carries no approval, so an approved sweep or separation run
   reads as approved while it runs. Parallel workers
   sharing one user are backlog item 76.
+* **A reading says who chose it.** A reading a criterion holds carries its chooser
+  (`AcceptedReading.chosen_by`: the researcher on a recorded card, or the assistant), a reading
+  a framing pass built without asking is the assistant's until a card picks one of its labels
+  (`StrategyDomainState.picked_readings`), and the ledger summary lists each under
+  `## Readings` with its chooser. A held reading's frame line no longer says "the researcher
+  accepted" whatever chose it, and each bound value names who set it in words. Backlog 61
+  leaves. See [the decision](decisions/a-reading-says-who-chose-it.md).
+* **No check reads a model's text with a pattern.** The note check on the Lead's reply and a
+  card's reply, the audit reply's and the audit synthesis's copies, the code-fence half of the
+  off-topic rule, VERIFY's control and sample claim reader, the classifier's operator check,
+  FRAME's stated-combination and stated-OR structure refusals, the proposal card's coverage
+  check and its `answers` and `leftToAsk` keys, the two pick-label word refusals, the
+  rationale's old-value word check, the criterion-text half of the edit guard's stated values
+  and the EDA export's caption check are gone with their tests. The refused-call memory, which
+  compares a tool name and a digest of its typed arguments, stays on the Lead's toolset and
+  every sub-agent's. Backlog 63 leaves. See
+  [a refusal rests on typed state](decisions/a-refusal-rests-on-typed-state.md).
+  Replayed on QA with Luna, one case at a time: of the 88 corpus cases that passed the last
+  full run (one more left out after its reads drew QA 500s), main passed 75 and this change 73;
+  each of the eight cases that flipped ran three more times on each, and they passed 18 of 32
+  on main and 18 of 32 here.
 
 ## 2026-10-30
 

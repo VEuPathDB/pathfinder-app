@@ -125,19 +125,13 @@ way (`ReadFact.markdown`), and a row whose value holds a link is not shown. `wri
 still finds the links a note writes, inline, image, autolink, HTML, bare `scheme://`,
 `scheme:\\`, `www.` and `mailto:`, `javascript:` and the like, so the correction can name them.
 
-**The one check on the note.** `domain/reply_note.py::note_facts` returns each link a note
-writes, on any turn, and each number it writes, once, when the turn's facts hold site data
-(`TurnFacts.holds_site_data`); a note on a turn that read nothing from a site writes numbers
-freely. A number a researcher message writes as a whole token is their word, a list's item numbers are
-marks, and a name that mixes letters and digits is prose. The turn contract refuses such a note
-as the `note_facts` mismatch (`contract_messages.note_facts_message`, which names each token to
-take out) on a bound of its own
-([the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)),
-and reads every card reply of a response whole. Past the bound the note is shown and the facts
-part carries `UNCHECKED_PROSE`; nothing is withheld. The audit assistant holds its note to the
-same check (`ai/audit/reply.py::hold_the_reply`), and an audit synthesis summary and each
-section's cause and confirmation write no number and no link (`ai/audit/synthesis.py`). The turn contract's other rules read what the turn did, not
-the note's wording ([one turn contract](one-turn-contract.md)).
+**No check reads the note.** The instruction asks the note to write no number and no link of
+the turn, and nothing refuses one that does: the check that read the note's tokens for numbers
+and links (`note_facts`), the audit reply's copy of it and the audit synthesis's were removed
+on 2026-10-31 ([a refusal rests on typed state](a-refusal-rests-on-typed-state.md)). A link the
+note writes never reaches the reader, because `render_note` escapes every markdown mark, and
+the facts part beside the note shows every true value. The turn contract's rules read what the
+turn did, not the note's wording ([one turn contract](one-turn-contract.md)).
 
 Retired with their tests: the reference grammar (`[count:]`, `[before:]`, `[root]`,
 `[root_before]`, `[last_change:]`, `[diff:]`, `[value:]`, `[source:]`, `[compare:]`, `[stat:]`,

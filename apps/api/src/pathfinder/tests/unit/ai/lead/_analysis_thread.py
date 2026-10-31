@@ -120,7 +120,6 @@ async def export(
         effect_size_threshold=1.0,
         significance_threshold=0.05,
         effect_direction="upOnly",
-        caption=f"Genes higher in 24h than in {reference}",
     )
     thread.assert_invariants()
     return returned(answer, EdaStepCreated)

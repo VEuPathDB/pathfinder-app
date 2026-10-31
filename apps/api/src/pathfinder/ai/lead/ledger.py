@@ -84,6 +84,10 @@ class InvestigationLedger(CamelModel):
             return []
         return [_drop_line(entry) for entry in spec.dropped]
 
+    def _reading_lines(self) -> list[str]:
+        lines = self.frame.reading_lines()
+        return ["", "## Readings", *lines] if lines else []
+
     def render_summary(self) -> str:
         """Render the compact markdown view the Lead reads in pinned context.
 
@@ -129,6 +133,7 @@ class InvestigationLedger(CamelModel):
                 f"- open_slots: {self.frame.open_slot_count}",
                 f"- needs_user: {self.frame.needs_user}",
                 f"- ready_to_build: {self.frame.ready_to_build}",
+                *self._reading_lines(),
                 "",
                 "## Build",
                 *(

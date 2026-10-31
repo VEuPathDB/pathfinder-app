@@ -28,7 +28,6 @@ type FaultName =
   | "unlisted-search"
   | "off-vocabulary"
   | "organism-split"
-  | "unshown-count"
   | "open-value-in-prose";
 
 const TURN_BUDGET_MS = 600_000;
@@ -188,31 +187,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       /^organism on GenesWithSignalPeptide has no entry matching \['Organismus fictus'\]\./,
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-  });
-
-  test("A count the facts do not show is taken out of the reply", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted("single", "unshown-count", S1_TEXT(siteOrganism(siteId))),
-    );
-    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-    await chatPage.expectRootCount(counts.root);
-
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    const refusals = await loggedRefusals(apiClient, id);
-    expect(refusals).toContain(
-      `The note writes \`\`${printed(counts.root + 1)}\`\`. The facts beside the reply show every count, value, setting and link of this turn as the site holds it, so the note writes none: take each out and keep the rest of the note as it is.`,
-    );
-    const reply = await replyText(apiClient, id);
-    expect(reply).toContain("shown beside this reply");
-    expect(reply).not.toMatch(/\d/);
   });
 
   test("FND-6 - an unclear sampled gene is shown on the card and is no caveat", async ({

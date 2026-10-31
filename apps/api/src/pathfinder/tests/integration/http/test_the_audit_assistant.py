@@ -14,14 +14,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
-from pathfinder.ai.audit import reply
 from pathfinder.ai.audit.budget_stop import budget_stop_prose
 from pathfinder.ai.audit.check_tools import CHECK_TOOL_NAMES
 from pathfinder.ai.audit.mock import AUDITOR_GREETING
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.domain.audit.planning import START_LABEL
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
-from pathfinder.domain.reply_note import note_facts
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
@@ -287,26 +285,12 @@ async def test_the_auditor_investigates_one_gene(
     assert stored.verdict.cites == (f"audit_pseudogene_call:{_STRAIN}:{_REFERENCE}",)
 
 
-def _numbers_seen(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
-    seen: list[list[str]] = []
-
-    def watched(*args: Any) -> list[str]:
-        written = note_facts(*args)
-        seen.append(written)
-        return written
-
-    monkeypatch.setattr(reply, "note_facts", watched)
-    return seen
-
-
 @pytest.mark.usefixtures("pseudogene_call")
 async def test_an_auditor_reply_shows_the_check_before_its_note(
     app: FastAPI,
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    seen = _numbers_seen(monkeypatch)
     owner = await make_user(db_session)
 
     chunks = await _post(
@@ -314,23 +298,7 @@ async def test_an_auditor_reply_shows_the_check_before_its_note(
     )
 
     facts, note = _shown(chunks)
-    assert ("- strain cds length: 900" in facts, note, seen) == (True, _RENDERED, [[]])
-
-
-@pytest.mark.usefixtures("pseudogene_call")
-async def test_an_auditor_reply_that_writes_a_number_is_corrected(
-    app: FastAPI,
-    db_session: AsyncSession,
-    in_memory_jobs: InMemoryConnector,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    seen = _numbers_seen(monkeypatch)
-    owner = await make_user(db_session)
-    prompt = f"{_PSEUDOGENE_QUESTION}; spell out the length"
-
-    chunks = await _post(app, owner.id, in_memory_jobs, _asked(uuid4(), prompt))
-
-    assert (seen, _shown(chunks)[1]) == ([["900"], []], _RENDERED)
+    assert ("- strain cds length: 900" in facts, note) == (True, _RENDERED)
 
 
 async def _stored_run(owner: RunOwner) -> UUID:
@@ -371,7 +339,6 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     app: FastAPI,
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     owner = await make_user(db_session)
     thread = uuid4()
@@ -380,7 +347,6 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     view = await run_view(run_id, owner.id)
     (rate,) = view.rates
     assert rate.bounds is not None
-    seen = _numbers_seen(monkeypatch)
 
     chunks = await _post(
         app, owner.id, in_memory_jobs, _asked(thread, "How far is the audit?")
@@ -389,12 +355,10 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
     assert _called(chunks) == ["list_audit_runs", "read_audit_run"]
     facts, note = _shown(chunks)
     assert (
-        seen,
         f"**Audit run {run_id}**" in facts,
         "- run phase: not started" in facts,
         note,
     ) == (
-        [[]],
         True,
         True,
         (

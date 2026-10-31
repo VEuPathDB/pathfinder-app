@@ -15,7 +15,11 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.readings import AcceptedReading, ReadValues
+from pathfinder.domain.strategy.readings import (
+    AcceptedReading,
+    ReadingChooser,
+    ReadValues,
+)
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests.unit.ai.tools._rationale_catalog import choice
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -117,8 +121,30 @@ async def test_an_offered_reading_answered_in_words_is_recorded() -> None:
 
     [criterion] = state.operational_spec_draft.criteria
     assert criterion.accepted_reading == AcceptedReading(
-        reading=_SHARE_LABEL, caveat=_SHARE_CAVEAT, params={_EXPRESSION: SHARE}
+        reading=_SHARE_LABEL,
+        caveat=_SHARE_CAVEAT,
+        params={_EXPRESSION: SHARE},
+        chosen_by=ReadingChooser.ASSISTANT,
     )
+
+
+async def test_a_reading_picked_on_a_card_stays_the_researchers_on_a_re_bind() -> None:
+    state = _holding(SHARE)
+    held = state.operational_spec_draft.criteria[0].model_copy(
+        update={
+            "accepted_reading": _HELD.model_copy(
+                update={"chosen_by": ReadingChooser.RESEARCHER_ON_A_CARD}
+            )
+        }
+    )
+    state.operational_spec_draft.criteria = [held]
+    state.offered_readings = _offered()
+
+    await _bind(state, SHARE, _SHARE_LABEL)
+
+    [criterion] = state.operational_spec_draft.criteria
+    assert criterion.accepted_reading is not None
+    assert criterion.accepted_reading.chosen_by is ReadingChooser.RESEARCHER_ON_A_CARD
 
 
 async def test_a_bind_without_a_reading_records_none() -> None:

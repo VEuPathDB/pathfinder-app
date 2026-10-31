@@ -17,10 +17,6 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_organisms import (
     stated_cross_organism_refusal,
 )
-from pathfinder.domain.strategy.combination_check import (
-    first_combination_violation,
-    unstated_union,
-)
 from pathfinder.domain.strategy.named_combine import (
     combination_operators,
     named_combine_breach,
@@ -77,29 +73,6 @@ class SetStructureResult(CamelModel):
     dropped: list[StructureDrop] = Field(default_factory=list)
 
 
-def _refuse_a_tree_that_breaks_a_stated_combination(
-    state: AgentToolState, proposed: SpecStructure
-) -> None:
-    """Reject a tree that answers a different question than the user asked.
-
-    The check abstains when a requirement states no single operator, or when
-    its terms name no distinct criteria of the draft.
-    """
-    breach = first_combination_violation(
-        state.combination_requirements,
-        state.operational_spec_draft.criteria,
-        proposed,
-    )
-    if breach is None:
-        return
-    msg = (
-        f"The structure is refused: {breach.message}. Restate the tree so "
-        f"those criteria sit under one {breach.required.value} branch, and "
-        f"combine that branch with the rest."
-    )
-    raise ModelRetry(msg)
-
-
 def _refuse_a_tree_that_moves_an_unnamed_combine(
     state: AgentToolState, proposed: SpecStructure
 ) -> None:
@@ -139,32 +112,6 @@ def _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(
         f"from {was.combine_operator.value} to {now.combine_operator.value}, and "
         f"the message states no {now.combine_operator.value}. A combine's "
         f"operator changes only to one the message states."
-    )
-    raise ModelRetry(msg)
-
-
-def _refuse_a_union_no_one_stated(
-    state: AgentToolState, proposed: SpecStructure, held: frozenset[str]
-) -> None:
-    """A UNION that adds an arm to the strategy's own steps changes the
-    researcher's answer, so it stands only on a stated OR over its arms."""
-    found = unstated_union(
-        proposed,
-        held,
-        state.combination_requirements,
-        state.operational_spec_draft.criteria,
-    )
-    if found is None:
-        return
-    msg = (
-        f"The structure is refused: a UNION joins {', '.join(found.held)}, which "
-        f"the strategy holds, to {', '.join(found.added)}, which this turn adds, "
-        f"and the researcher stated no alternative that joins them. A UNION "
-        f"changes the researcher's result. A question that compares two counts "
-        f"is answered by the Lead's compare_search_variants and adds no step. "
-        f"Join the new criteria as the request says, or leave them out of the "
-        f"tree; when the request is ambiguous, end needs_user with a Drop/Keep "
-        f"question on the new criteria."
     )
     raise ModelRetry(msg)
 
@@ -312,13 +259,10 @@ async def set_structure(
     UNION them into their own branch and INTERSECT that branch with the
     others -- do not flatten it into a chain, which asks a different
     question. WDK step trees carry a primary and a secondary input, so a
-    branch on either side is representable. A combination the user stated is
-    checked here: a tree that joins those criteria with another operator is
-    refused, and so is a tree that leaves a combine the message names by its
-    place ("the last combine") or moves any other combine. An edit that names
-    no combine by its place changes a combine's operator only to one the
-    message or a stated combination states. A UNION that joins a step the strategy holds to a criterion this
-    turn adds is refused unless the researcher stated that OR. An INTERSECT
+    branch on either side is representable. A tree that leaves a combine the
+    message names by its place ("the last combine") or moves any other combine
+    is refused. An edit that names no combine by its place changes a combine's
+    operator only to one the message or a stated combination states. An INTERSECT
     input that states only the organism another input already runs on,
     matches every gene of it, or repeats another input's searches and values,
     is dropped, and ``dropped`` says what became of its text.
@@ -327,10 +271,8 @@ async def set_structure(
     proposed = SpecStructure(root=root)
     graph = ctx.deps.strategy_session.get_graph(None)
     live = frozenset(graph.steps) if graph is not None else frozenset[str]()
-    _refuse_a_tree_that_breaks_a_stated_combination(state, proposed)
     _refuse_a_tree_that_moves_an_unnamed_combine(state, proposed)
     _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(state, proposed)
-    _refuse_a_union_no_one_stated(state, proposed, live)
     _refuse_a_node_the_role_contradicts(state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
     await _refuse_a_tree_the_site_cannot_run(ctx.deps.site_id, state, proposed)

@@ -226,57 +226,6 @@ def _graph_with_expr() -> StrategyGraph:
     return graph_of(combine("step_expr_join", leaf(_EXPR), leaf(_TM)))
 
 
-def test_a_value_the_criterion_states_is_refused() -> None:
-    graph = _with_value(
-        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
-    )
-
-    refusal = _values_refusal(graph, _spec())
-
-    assert refusal is not None
-    assert "ProfileGeneId" in refusal
-    assert "TGME49_201780" in refusal
-    assert "set_criterion" in refusal
-
-
-def test_a_value_that_already_departed_is_not_refused_again() -> None:
-    """The write answers for what it changes, not for what it found."""
-    spec = _spec()
-    graph = _with_value(
-        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
-    )
-    before = contradicted_values(spec_stated_values(spec), graph, {})
-
-    assert [found.parameter for found in before.values()] == ["ProfileGeneId"]
-    assert (
-        new_value_contradiction(
-            stated=spec_stated_values(spec), graph=graph, before=before
-        )
-        is None
-    )
-
-
-def test_an_entry_value_is_measured_in_the_form_the_catalog_writes() -> None:
-    """A departure the write found reads the same on both sides of the batch."""
-    spec = _spec()
-    entry = _with_value(
-        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
-    )
-    canonical = {_MIC2: {"ProfileGeneId": StringValue(value="tgme49_300100")}}
-    before = contradicted_values(spec_stated_values(spec), entry, canonical)
-    after = _with_value(
-        _graph(), _MIC2, "ProfileGeneId", StringValue(value="tgme49_300100")
-    )
-
-    assert [found.written for found in before.values()] == ["tgme49_300100"]
-    assert (
-        new_value_contradiction(
-            stated=spec_stated_values(spec), graph=after, before=before
-        )
-        is None
-    )
-
-
 def test_a_value_the_spec_left_to_the_search_default_is_applied() -> None:
     spec = _spec()
     criterion = next(c for c in spec.criteria if c.id == _MIC2)
@@ -329,17 +278,6 @@ def test_a_stated_value_freezes_its_own_parameter_only() -> None:
     assert _values_refusal(graph, spec) is None
 
 
-def test_a_value_the_spec_states_and_the_edit_repeats_is_applied() -> None:
-    spec = _spec()
-    criterion = next(c for c in spec.criteria if c.id == _MIC2)
-    graph = _with_value(
-        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_201780")
-    )
-
-    assert stated_values(spec, criterion)["ProfileGeneId"] == "TGME49_201780"
-    assert _values_refusal(graph, spec) is None
-
-
 def test_a_step_no_criterion_names_is_left_alone() -> None:
     spec = _spec()
     graph = _with_value(
@@ -348,3 +286,47 @@ def test_a_step_no_criterion_names_is_left_alone() -> None:
 
     assert stated_values(spec, spec.criteria[0]) == {}
     assert _values_refusal(graph, spec) is None
+
+
+def test_a_value_the_criterion_text_carries_is_not_stated() -> None:
+    spec = _spec()
+    criterion = next(c for c in spec.criteria if c.id == _MIC2)
+    graph = _with_value(
+        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
+    )
+
+    assert stated_values(spec, criterion) == {}
+    assert _values_refusal(graph, spec) is None
+
+
+def test_a_value_that_already_departed_is_not_refused_again() -> None:
+    """The write answers for what it changes, not for what it found."""
+    spec = _spec()
+    _with_percentile_criterion(spec, min_expression_percentile=NumberValue(value=90))
+    graph = _with_value(
+        _graph_with_expr(), _EXPR, "min_expression_percentile", NumberValue(value=80)
+    )
+    before = contradicted_values(spec_stated_values(spec), graph, {})
+
+    assert [found.parameter for found in before.values()] == [
+        "min_expression_percentile"
+    ]
+    assert (
+        new_value_contradiction(
+            stated=spec_stated_values(spec), graph=graph, before=before
+        )
+        is None
+    )
+
+
+def test_a_value_the_spec_states_and_the_edit_repeats_is_applied() -> None:
+    spec = _spec()
+    _with_percentile_criterion(spec, min_expression_percentile=NumberValue(value=90))
+    graph = _with_value(
+        _graph_with_expr(), _EXPR, "min_expression_percentile", NumberValue(value=90)
+    )
+
+    assert (stated_values(spec, spec.criteria[-1]), _values_refusal(graph, spec)) == (
+        {"min_expression_percentile": "90"},
+        None,
+    )

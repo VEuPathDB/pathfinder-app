@@ -55,7 +55,6 @@ FAULTS: dict[str, Fault] = {
     "short-card-reply": Fault("lead", fault_calls.short_card_reply),
     "unlisted-search": Fault("frame", fault_calls.unlisted_search),
     "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
-    "unshown-count": Fault("lead", reply_faults.unshown_count),
     "organism-split": Fault("lead", reply_faults.organism_split, stands=True),
     "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
 }

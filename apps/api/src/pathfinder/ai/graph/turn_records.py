@@ -207,7 +207,6 @@ class TurnMarkers(CamelModel):
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
     output_refusals: int = 0
-    prose_refusals: int = 0
     refused_rules: list[str] = Field(default_factory=list)
     unchecked_reply: bool = False
     # The EDA datasets this turn opened an analysis on.

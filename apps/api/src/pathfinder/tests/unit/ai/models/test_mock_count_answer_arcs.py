@@ -14,7 +14,6 @@ from veupathdb.domain.strategy import (
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.reply_note import note_facts
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.classed_strategy import classed_steps
@@ -89,9 +88,8 @@ def test_the_count_arc_answers_with_a_note_beside_the_counts() -> None:
         "get_live_strategy_state",
         "final_result",
     ]
-    assert (facts.root_count, note_facts(prose, facts), prose) == (
+    assert (facts.root_count, prose) == (
         53,
-        [],
         (
             "The facts show the count of the first search step, Predicted Signal "
             "Peptide, beside the result's; the other filters remove the genes "

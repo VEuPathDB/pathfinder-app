@@ -11,16 +11,12 @@ from veupathdb.domain.strategy import CombineOp
 from pathfinder.domain.strategy.combination_check import (
     combination_terms_overlap,
     combination_violation,
-    first_combination_violation,
     match_terms,
     meeting_operator,
     required_operator,
 )
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -222,108 +218,6 @@ class TestCombinationViolation:
     def test_required_operator_maps_the_word_to_the_wdk_operator(self) -> None:
         assert required_operator("OR") is CombineOp.UNION
         assert required_operator("AND") is CombineOp.INTERSECT
-
-
-def _requirement(value: str) -> Constraint:
-    return Constraint(
-        kind=ConstraintKind.COMBINATION,
-        requested_value=value,
-        label="how the evidence combines",
-        source=ConstraintSource.USER_EXPLICIT,
-    )
-
-
-def _breach_message(
-    requirements: list[Constraint],
-    criteria: list[Criterion],
-    structure: SpecStructure,
-) -> str:
-    """The first breach's message, empty when no requirement is breached."""
-    breach = first_combination_violation(requirements, criteria, structure)
-    return "" if breach is None else breach.message
-
-
-class TestFirstCombinationViolation:
-    def test_the_breach_carries_the_operator_the_request_needs(self) -> None:
-        structure = SpecStructure(
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-
-        breach = first_combination_violation(
-            [_requirement("mass spectrometry evidence OR DeRisi expression")],
-            _CRITERIA,
-            structure,
-        )
-
-        assert breach is not None
-        assert breach.required is CombineOp.UNION
-        assert "INTERSECT" in breach.message
-
-    def test_a_recommendation_is_not_a_stated_combination(self) -> None:
-        """Only what the user stated gates the tree."""
-        structure = SpecStructure(
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-        stated = _requirement("mass spectrometry evidence OR DeRisi expression")
-        recommended = stated.model_copy(
-            update={"source": ConstraintSource.ASSUMED},
-        )
-
-        assert _breach_message([recommended], _CRITERIA, structure) == ""
-        assert "INTERSECT" in _breach_message([stated], _CRITERIA, structure)
-
-    def test_a_honored_requirement_is_no_breach(self) -> None:
-        structure = SpecStructure(
-            root=_combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-
-        assert (
-            _breach_message(
-                [_requirement("mass spectrometry evidence OR DeRisi expression")],
-                _CRITERIA,
-                structure,
-            )
-            == ""
-        )
-
-    def test_a_mixed_operator_requirement_abstains(self) -> None:
-        structure = SpecStructure(
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-
-        assert (
-            _breach_message(
-                [_requirement("mass spectrometry OR DeRisi AND kinases")],
-                _CRITERIA,
-                structure,
-            )
-            == ""
-        )
-
-    def test_a_requirement_naming_no_criterion_abstains(self) -> None:
-        structure = SpecStructure(
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-
-        assert (
-            _breach_message(
-                [_requirement("proteomics OR microscopy")], _CRITERIA, structure
-            )
-            == ""
-        )
-
-    def test_a_requirement_of_another_kind_is_not_read(self) -> None:
-        structure = SpecStructure(
-            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
-        )
-        other = Constraint(
-            kind=ConstraintKind.OTHER,
-            requested_value="mass spectrometry evidence OR DeRisi expression",
-            label="note",
-            source=ConstraintSource.USER_EXPLICIT,
-        )
-
-        assert _breach_message([other], _CRITERIA, structure) == ""
 
 
 class TestDuplicateLeaves:

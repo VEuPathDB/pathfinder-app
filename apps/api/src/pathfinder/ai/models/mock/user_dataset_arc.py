@@ -2,7 +2,7 @@
 at the cut the message states. The export runs the site's user-dataset search.
 
 The study is the card the message names, the researcher's upload; the groups
-are the sample variable with two values, and the caption names the kept group.
+are the sample variable with two values.
 """
 
 from __future__ import annotations
@@ -12,18 +12,15 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.eda_arc import (
-    applied_filter,
     comparison,
     group_variables,
 )
 from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE
 from pathfinder.ai.models.mock.reads import text_return
 from pathfinder.domain.eda_parts import (
-    EdaComparison,
     EdaEffectDirection,
     EdaFilterSheetEntry,
 )
-from pathfinder.services.eda.direction import direction_sentence
 
 # The cut the arc's message states: log2 fold change above 5, p below 1e-10, up only.
 _DIRECTION: EdaEffectDirection = "upOnly"
@@ -49,19 +46,9 @@ def _two_groups(
     )
 
 
-def _caption(messages: list[ModelMessage]) -> str:
-    """The genes the stated direction keeps, named by the compared groups."""
-    chosen = applied_filter(messages)
-    labels = [] if chosen is None else chosen.string_set
-    compared = EdaComparison(group_a=labels[:1], group_b=labels[1:2])
-    return direction_sentence(compared, _DIRECTION)
-
-
 def _exported_at_the_stated_cut(messages: list[ModelMessage]) -> ToolCallPart:
     if text_return(messages, "create_eda_step") is None:
-        return scripted_call(
-            "create_eda_step", {**STATED_CUT, "caption": _caption(messages)}
-        )
+        return scripted_call("create_eda_step", STATED_CUT)
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
     return lead_final(f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete")

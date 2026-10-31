@@ -50,7 +50,6 @@ def build_deps(state: TurnState, context: AuditTurnContext) -> AuditDeps:
         tool_sources=(
             AuditRetrievalToolset(CombinedToolset(sources)) if sources else None
         ),
-        request=state.user_prompt,
     )
 
 

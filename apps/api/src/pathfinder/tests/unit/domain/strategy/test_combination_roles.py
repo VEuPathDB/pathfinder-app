@@ -9,7 +9,8 @@ from __future__ import annotations
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.combination_check import (
-    first_combination_violation,
+    combination_violation,
+    enough_members,
     match_terms,
 )
 from pathfinder.domain.strategy.constraints import (
@@ -53,8 +54,15 @@ def _breach_message(
     structure: SpecStructure,
 ) -> str:
     """The first breach's message, empty when no requirement is breached."""
-    breach = first_combination_violation(requirements, criteria, structure)
-    return "" if breach is None else breach.message
+    for requirement in requirements:
+        request = CombinationRequest.parse(requirement.requested_value)
+        matched = None if request is None else match_terms(request.terms, criteria)
+        if request is None or matched is None or not enough_members(matched):
+            continue
+        found = combination_violation(request, matched.members.values(), structure)
+        if found is not None:
+            return found
+    return ""
 
 
 _SIGNAL = Criterion(

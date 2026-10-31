@@ -12,7 +12,6 @@ from assistant_core.models.scripted import (
     current_turn,
     has_any,
     last_user_text,
-    retry_prompt_parts,
     scripted_call,
     scripted_text,
     terminal_call,
@@ -54,7 +53,6 @@ VERDICT_TOOL = "record_gene_model_verdicts"
 RATE_TOOL = "rate_with_interval"
 PROGRESS_QUESTIONS = ("how is the audit", "how far is the audit")
 CHECK_FOREVER = "check every gene"
-SPELL_OUT = "spell out"
 LITERATURE_TOOL = "research_literature_search"
 MOCK_REVIEWER_MODEL_ID = "mock:reviewer"
 MOCK_SYNTHESIS_MODEL_ID = "mock:synthesis"
@@ -64,9 +62,7 @@ _AUDIT_REQUEST = re.compile(
 )
 
 
-def _judged(
-    turn: list[ModelMessage], strain: str, reference: str, *, spelled: bool
-) -> ScriptedPart:
+def _judged(turn: list[ModelMessage], strain: str, reference: str) -> ScriptedPart:
     read = check_read(turn, PSEUDOGENE_CALL)
     if read is None:
         return scripted_call(
@@ -76,11 +72,7 @@ def _judged(
         return scripted_call(
             VERDICT_TOOL, {"verdicts": [pseudogene_verdict(strain, reference, read)]}
         )
-    if spelled and not retry_prompt_parts(turn):
-        length = read.answer.strain_cds_length
-        said = f"The model of [record:{strain}] holds a CDS of {length} bases."
-    else:
-        said = f"The check above reads the model of [record:{strain}] as recorded."
+    said = f"The check above reads the model of [record:{strain}] as recorded."
     return terminal_call({"prose": said})
 
 
@@ -189,7 +181,7 @@ def _auditor_script(messages: list[ModelMessage]) -> ScriptedPart:
         return judge_the_run(turn, judged.group("run"))
     pair = gene_pair(text) if PSEUDOGENE_QUESTION in lowered else None
     if pair is not None:
-        return _judged(turn, *pair, spelled=SPELL_OUT in lowered)
+        return _judged(turn, *pair)
     return terminal_call({"prose": AUDITOR_GREETING})
 
 

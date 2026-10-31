@@ -80,6 +80,8 @@ def derive_ledger(
             spec=state.domain.operational_spec,
             spec_before_turn=state.domain.spec_before_turn,
             open_questions=state.domain.open_questions,
+            named_readings=state.domain.named_readings,
+            picked_readings=state.domain.picked_readings,
         ),
         build=_derive_build_section(state),
         verification=_derive_verification_section(state),

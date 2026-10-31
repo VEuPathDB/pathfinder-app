@@ -18,7 +18,6 @@ from pathfinder.ai.models.mock import (
 from pathfinder.ai.models.mock.arc import Arc, Script, Sequence, history_free
 from pathfinder.ai.models.mock.audit_arcs import (
     audit_finding,
-    audit_finding_spelled,
     audit_investigation,
     audit_plan,
     audit_start,
@@ -217,7 +216,6 @@ ARCS: dict[str, Arc] = {
     "audit": _arc(lead(audit_start)),
     "audit-plan": _arc(lead(audit_plan)),
     "audit-finding": _arc(lead(audit_finding)),
-    "audit-finding-spelled": _arc(lead(audit_finding_spelled)),
     "audit-investigation": _arc(lead(audit_investigation)),
 }
 

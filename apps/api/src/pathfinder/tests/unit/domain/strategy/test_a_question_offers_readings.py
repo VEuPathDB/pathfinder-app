@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.questions import (
 from pathfinder.domain.strategy.readings import (
     AcceptedReading,
     Reading,
+    ReadingChooser,
     ReadValues,
     reading_problems,
 )
@@ -127,7 +128,9 @@ def test_a_picked_reading_carries_the_requirements_it_replaces() -> None:
         replaces=[_PRESENT],
     )
 
-    assert read.accepted() == _accepted().model_copy(update={"replaces": [_PRESENT]})
+    assert read.accepted(ReadingChooser.ASSISTANT) == _accepted().model_copy(
+        update={"replaces": [_PRESENT]}
+    )
 
 
 def _keyed_readings(*keys: list[str]) -> list[dict[str, str | list[str]]]:

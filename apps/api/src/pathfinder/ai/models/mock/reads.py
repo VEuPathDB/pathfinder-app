@@ -222,19 +222,6 @@ def live_root_wdk_step_id(messages: list[ModelMessage]) -> int | None:
     return next((s.wdk_step_id for s in steps if s.is_root), None)
 
 
-def _count_sentence(count: int | None) -> str:
-    if count is None:
-        return "The site gives no count for the strategy now."
-    return f"The strategy returns {count:,} genes."
-
-
-def unshown_count_sentence(messages: list[ModelMessage]) -> str:
-    """A count the facts part does not show: one past the root count the site answers."""
-    read = last_return(messages, "get_live_strategy_state", _Live)
-    count = None if read is None else read.root_count
-    return _count_sentence(None if count is None else count + 1)
-
-
 class _Controls(ToolAnswer):
     positive_recovered_ids: list[str] | None = None
     positive_missed_ids: list[str] | None = None

@@ -20,18 +20,10 @@ Lead asks in prose.
   realises. The Lead's reply is an argument of the card call and streams before the card; the
   turn parks on the approval exactly as a `consult_user` turn does. The web draws it as
   `ProposalCard` (the question, the changes, Yes, No and a note field that is always shown).
-- **Each stated part has a change or a question.** Each `ProposedChange` names in `answers`
-  the `Constraint.key` of every requirement it answers, and `Proposal.left_to_ask` names each
-  requirement no change answers and the reply asks about. `lead_proposal.refuse_a_card_that_leaves_a_part`,
-  the tool's `args_validator`, refuses the card before the researcher reads it when a key names
-  no requirement the thread holds, or when a live, user-explicit requirement the classifier
-  recorded for this message (`TurnMarkers.requirements_added`) is in neither list, naming it by
-  its label. `domain/strategy/card_coverage.py::uncovered_requirements` decides coverage: a
-  requirement the strategy holds needs no change (a record type the spec counts, an organism the
-  scope or a step's values name, a data type, a threshold, a fold change or a percentile the
-  grounding holds, any value a criterion's words or values state), and a
-  combination is covered when each of its terms is. A call the researcher approved runs as
-  approved. Words are not matched against wire values: the keys are the link.
+- **No coverage check.** Nothing matches the words of a requirement against the card's
+  changes; the coverage check and the `answers` and `leftToAsk` keys it read were removed
+  (see [a refusal rests on typed state](a-refusal-rests-on-typed-state.md)). A call the
+  researcher approved runs as approved.
 - **Yes.** The approval resumes the run and pydantic-ai executes the tool body, which dispatches
   `run_edit` with `Proposal.brief(note)` as the edit's work order: the question, every change,
   and the note the card sent as a `data-user-question-answers` answer. The model never has to
