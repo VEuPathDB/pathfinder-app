@@ -30,6 +30,7 @@ from procrastinate.worker import Worker
 from veupathdb import set_observer
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 from veupathdb_mcp.search_line import install_search_line
+from veupathdb_mcp.strategy_line import install_strategy_line
 
 from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
@@ -164,6 +165,12 @@ async def amain() -> None:
         pool_size=settings.search_line_pool_size,
         max_overflow=settings.search_line_max_overflow,
         pool_timeout=settings.search_line_pool_timeout_seconds,
+    )
+    install_strategy_line(
+        settings.database_url,
+        pool_size=settings.strategy_line_pool_size,
+        max_overflow=settings.strategy_line_max_overflow,
+        pool_timeout=settings.strategy_line_pool_timeout_seconds,
     )
     procrastinate_app.perform_import_paths()
     # The workers are built here rather than through run_worker_async so each

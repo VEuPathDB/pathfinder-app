@@ -33,7 +33,7 @@ from pathfinder.services.strategies import (
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult, UnclassedRootError
-from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 
 STRATEGY_ID = 330643473
 
@@ -351,32 +351,32 @@ async def test_a_re_rooted_union_re_roots_the_wdk_strategy(api: _RecordingAPI) -
 
 
 @pytest.mark.asyncio
-async def test_a_step_the_strategy_does_not_hold_is_a_failed_push(
+async def test_a_tree_the_strategy_does_not_hold_after_the_put_is_a_failed_push(
     api: _RecordingAPI,
 ) -> None:
-    """A detached step has no result, so the edit is not reported as a success."""
+    """The edit is not reported as a success, and the old tree stays recorded."""
     api.keeps_its_own_root = True
     step_a = _leaf("step_a", "GenesByMolecularWeight")
     step_b = _leaf("step_b", "GenesByTaxon")
     root = _join("step_join", step_a, step_b, CombineOp.INTERSECT)
     deps = _seed(root, {"step_a": 100, "step_b": 200, "step_join": 440436303}, api)
+    held_before = api.strategy_tree
 
     result = await apply_and_commit(
         deps=deps,
         op=UpdateCombineOperatorOp(step_id="step_join", operator=CombineOp.UNION),
     )
 
-    sync_state = deps.strategy_session.sync_state
-    assert sync_state is not None
     assert [failure.step_id for failure in result.failures] == ["step_join"]
-    assert "step_join" in sync_state.wdk_push_errors
+    assert "not the tree written" in result.failures[0].error
+    assert ensure_sync_state(deps.strategy_session).wdk_step_tree == held_before
 
 
 @pytest.mark.asyncio
-async def test_a_later_put_that_holds_the_step_ends_the_detached_record(
+async def test_the_next_put_the_strategy_holds_records_the_tree(
     api: _RecordingAPI,
 ) -> None:
-    """The record names the last put, so a strategy that lists the step ends it."""
+    """A tree the strategy did not hold is put again by the next edit."""
     api.keeps_its_own_root = True
     root = _join(
         "step_join",
@@ -389,9 +389,6 @@ async def test_a_later_put_that_holds_the_step_ends_the_detached_record(
         deps=deps,
         op=UpdateCombineOperatorOp(step_id="step_join", operator=CombineOp.UNION),
     )
-    sync_state = deps.strategy_session.sync_state
-    assert sync_state is not None
-    assert "step_join" in sync_state.wdk_push_errors
 
     api.keeps_its_own_root = False
     result = await apply_and_commit(
@@ -399,7 +396,8 @@ async def test_a_later_put_that_holds_the_step_ends_the_detached_record(
     )
 
     assert result.failures == []
-    assert sync_state.wdk_push_errors == {}
+    assert len(api.named("update_strategy")) == 2
+    assert ensure_sync_state(deps.strategy_session).wdk_step_tree == api.strategy_tree
 
 
 @pytest.mark.asyncio

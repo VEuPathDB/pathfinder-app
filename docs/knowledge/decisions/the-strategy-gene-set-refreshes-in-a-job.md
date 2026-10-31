@@ -32,7 +32,9 @@ publication write only their own column, so they cannot write older genes back.
 
 **A late job cannot write an older answer.** The job reads the stored strategy
 under the thread's strategy write lock, then reads the genes from WDK, then
-writes them with the answer revision it read first. A write that lands between
+writes them with the answer revision it read first. Its strategy read waits in the strategy's
+line ([the line decision](a-request-on-a-wdk-strategy-waits-in-its-line.md)), because a
+WDK read saves the strategy back and would restore a tree a concurrent write replaced. A write that lands between
 the two reads defers a new job, because the running job no longer holds the
 queueing lock. `domain/strategy/revision.py::answer_revision` fingerprints the
 root's inputs only (searches, parameters, operators, shape), so a rename or a
@@ -95,4 +97,5 @@ added step change the answer and would still wait 29 to 94 s.
 but a turn sent right after a canvas edit waits behind the refresh: on a
 vectorbase root of 4456 genes the job took 29.81 s and 31.25 s. The refresh
 writes only the gene set, and the answer revision already keeps a late job
-from writing an older answer, so the turn's lock protects nothing.
+from writing an older answer. Its WDK strategy read is a write on the site; the
+strategy's line, held for each request, orders it after a step-tree write.

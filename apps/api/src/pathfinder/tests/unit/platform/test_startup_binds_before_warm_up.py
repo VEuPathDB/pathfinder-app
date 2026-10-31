@@ -112,6 +112,7 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main, "install_search_line", lambda url, expensive, **pool: None
     )
+    monkeypatch.setattr(main, "install_strategy_line", lambda url, **pool: None)
 
 
 async def test_startup_returns_while_warm_up_still_runs(
@@ -146,6 +147,7 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
     del isolated_lifespan
     installed: list[object] = []
     lines: list[tuple[str, object, dict[str, object]]] = []
+    strategy_lines: list[tuple[str, dict[str, object]]] = []
 
     async def _no_warm_up() -> None:
         return None
@@ -157,12 +159,23 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
         "install_search_line",
         lambda url, expensive, **pool: lines.append((url, expensive, pool)),
     )
+    monkeypatch.setattr(
+        main,
+        "install_strategy_line",
+        lambda url, **pool: strategy_lines.append((url, pool)),
+    )
 
     app = FastAPI()
     async with main.lifespan(app):
         pass
 
     assert [type(observer) for observer in installed] == [PathfinderObserver]
+    assert strategy_lines == [
+        (
+            get_settings().database_url,
+            {"pool_size": 1, "max_overflow": 0, "pool_timeout": None},
+        )
+    ]
     assert lines == [
         (
             get_settings().database_url,
