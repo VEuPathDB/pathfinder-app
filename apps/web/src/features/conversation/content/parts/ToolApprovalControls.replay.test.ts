@@ -112,3 +112,39 @@ describe("findToolApproval on a message the durable tail replays whole", () => {
     expect(findToolApproval(messages, CALL_ID)?.decision).toBe("pending");
   });
 });
+
+describe("findToolApproval on a message the snapshot rebuilt", () => {
+  const snapshot = (approved: boolean): UIMessage[] => [
+    {
+      id: MESSAGE_ID,
+      role: "assistant",
+      parts: [
+        { type: "step-start" },
+        {
+          type: `tool-${TOOL_NAME}`,
+          toolCallId: CALL_ID,
+          state: "input-available",
+          input: INPUT,
+        },
+        {
+          type: "data-tool-approval",
+          id: CALL_ID,
+          data: { toolCallId: CALL_ID, approvalId: CALL_ID, approved },
+        },
+        {
+          type: "data-background-task-started",
+          data: { taskId: TASK_ID, toolName: TOOL_NAME, estimatedDurationSeconds: 900 },
+        },
+      ],
+    },
+  ];
+
+  it("reads a running call's answer from its recorded approval", () => {
+    const view = findToolApproval(snapshot(true), CALL_ID);
+    expect([view?.approvalId, view?.decision]).toEqual([CALL_ID, "approved"]);
+  });
+
+  it("reads a recorded refusal as denied", () => {
+    expect(findToolApproval(snapshot(false), CALL_ID)?.decision).toBe("denied");
+  });
+});

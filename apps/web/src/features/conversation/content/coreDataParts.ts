@@ -30,6 +30,7 @@ export type CoreDataPartKind =
   | "data-turn-withdrawn"
   | "data-lead-usage"
   | "data-tool-summary"
+  | "data-tool-approval"
   | "data-user-question-answers"
   | "data-research.sources";
 
@@ -51,6 +52,7 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-lead-usage": noRender,
   // The trace reads the line; the thread never draws it as a part of its own.
   "data-tool-summary": noRender,
+  "data-tool-approval": noRender,
   // The consult answers travel back to the backend and draw nothing.
   "data-user-question-answers": noRender,
   "data-research.sources": noRender,

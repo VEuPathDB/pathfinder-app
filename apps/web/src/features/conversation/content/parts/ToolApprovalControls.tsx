@@ -10,6 +10,7 @@ import {
 import type { ReactElement } from "react";
 import { toast } from "sonner";
 import { deleteCascadePayloadSchema } from "@pathfinder/shared/generated/zod/deleteCascadePayloadSchema";
+import { toolApprovalPayloadSchema } from "@pathfinder/shared/generated/zod/toolApprovalPayloadSchema";
 import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
 
 import { recordProductEvent } from "@/lib/api/productEvents";
@@ -91,6 +92,25 @@ function removedSteps(messages: UIMessage[], toolCallId: string): string[] {
   return [];
 }
 
+function recordedAnswer(
+  messages: UIMessage[],
+  toolCallId: string,
+): { approvalId: string; decision: ApprovalDecision } | null {
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "data-tool-approval") continue;
+      const parsed = toolApprovalPayloadSchema.safeParse(part.data);
+      if (parsed.success && parsed.data.toolCallId === toolCallId) {
+        return {
+          approvalId: parsed.data.approvalId,
+          decision: parsed.data.approved ? "approved" : "denied",
+        };
+      }
+    }
+  }
+  return null;
+}
+
 /** The approval carried by one tool call, across every message in the thread. */
 export function findToolApproval(
   messages: UIMessage[],
@@ -99,17 +119,22 @@ export function findToolApproval(
   for (const message of messages) {
     for (const part of message.parts) {
       if (!isToolUIPart(part) || part.toolCallId !== toolCallId) continue;
-      const approval = part.approval;
-      if (approval === undefined) continue;
+      const answer =
+        part.approval === undefined
+          ? recordedAnswer(messages, toolCallId)
+          : {
+              approvalId: part.approval.id,
+              decision:
+                part.state === "approval-requested" &&
+                answeredInALaterMessage(messages, message.id)
+                  ? "answered"
+                  : decisionOf(part),
+            };
+      if (answer === null) continue;
       return {
-        approvalId: approval.id,
+        ...answer,
         toolName: getToolName(part),
         input: part.input,
-        decision:
-          part.state === "approval-requested" &&
-          answeredInALaterMessage(messages, message.id)
-            ? "answered"
-            : decisionOf(part),
         asked: firstSummaryLine(messages, toolCallId),
         removes: removedSteps(messages, toolCallId),
       };
