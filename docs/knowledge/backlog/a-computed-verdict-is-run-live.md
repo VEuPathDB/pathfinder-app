@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A computed verdict is run live
-description: The verdict computed from the site was tested only on recorded bodies; replay the eval cases that verify before a push, and record one organism column body.
+description: The verifying eval cases pass live on QA; record one organism column body now that the organism check counts the organism_full column.
 tags: [verification, evals, live]
 generated: { by: claude-code/opus-5.5, at: 2026-10-27T00:00:00Z }
 status: proposed
@@ -11,14 +11,17 @@ status: proposed
 
 ## What is open
 
-- The checks in `ai/lead/verify_checks.py` ran only against recorded WDK bodies and
-  stubbed reads. The organism check reads the root's `organism` column with the byValue
-  reporter at `top` 200; no recorded body of that column exists, so its values are the
-  recorded organism vocabulary. Replay the corpus cases that verify (the S2 cases with
-  `failedChecks` 0, and the OrthoMCL singleton ranking) on QA, one at a time, and record
-  one organism column body.
+- The organism check in `ai/lead/verify_checks.py` reads a root of more than 2,000 records
+  with the byValue reporter; no recorded body of that column exists, so its tests read the
+  recorded organism vocabulary. Every root of the verifying cases holds at most 343 records,
+  so their live replays read the organisms from the standard report and never send this
+  reporter.
+- The check named the `organism` column, whose byValue report the sites answer with HTTP 500.
+  The countable column is `organism_full`, which the site's own organism filter uses; on one
+  QA PlasmoDB step `organism` answered 500 and `organism_full` answered 200. The check now
+  counts `organism_full` (pull request 37).
 
 ## Done when
 
-The replayed cases pass with the counts above, and an organism column body is recorded under
-`tests/fixtures/wdk`.
+The byValue body of `organism_full` on one step is recorded under `tests/fixtures/wdk` and read
+by the organism check's tests in place of the vocabulary.

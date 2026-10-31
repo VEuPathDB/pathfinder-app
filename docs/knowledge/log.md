@@ -1,6 +1,28 @@
 # Log
 
-## 2026-10-30
+## 2026-10-31
+
+* **The computed verdict holds live on QA.** The verifying eval cases ran once each on the
+  QA sites, in process, every role on `openai:gpt-5.6-luna`, one turn at a time. No site
+  answered 5xx, 429 or a timeout during a turn.
+
+  | case | verdict | root count | site checks | tokens | cost |
+  |---|---|---|---|---|---|
+  | `uat-s2-plasmodb` | pass | 116 | 6 pass, 2 unchecked, 0 failed | 545,843 | $0.0487 |
+  | `uat-s2-fungidb` | pass | 64 | 5 pass, 2 unchecked, 0 failed | 658,542 | $0.0624 |
+  | `uat-s2-toxodb` | pass | 78 | 6 pass, 2 unchecked, 0 failed | 420,192 | $0.0405 |
+  | `uat-s2-vectorbase` | pass | 343 | 5 pass, 2 unchecked, 0 failed | 458,425 | $0.0498 |
+  | `uat-s2-veupathdb` | pass | 116 | 6 pass, 0 failed | 594,990 | $0.0647 |
+  | `orthomcl-singletons-counted-by-organism` | pass | 523,795 | 4 pass, 3 unchecked, 0 failed | 775,118 | $0.0511 |
+  | `uat-n13-plasmodb` (two turns) | pass | 158 | 6 and 4 pass, 0 failed | 912,059 | $0.0812 |
+
+  Each S2 organism check passed on every record of the root, read from the standard report.
+  The singleton ranking tallied 523,795 proteins over 840 taxon codes: Brachionus plicatilis
+  18,260, Oryza sativa Japonica Group 9,365, Trichomonas vaginalis G3 9,301. The seven
+  cases cost $0.3984 in all. No tool call of the eight turns was refused and sent again, so
+  the resent-build bound is not yet seen live (backlog 60). No organism column body was
+  recorded: the check named the `organism` column, whose byValue report the sites answer with
+  HTTP 500; the countable column is `organism_full` (pull request 37), so backlog 69 records it.
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site
   now names the root step and the site's result table tab, `summary:_default`, so the site
