@@ -21,8 +21,8 @@
   18,260, Oryza sativa Japonica Group 9,365, Trichomonas vaginalis G3 9,301. The seven
   cases cost $0.3984 in all. No tool call of the eight turns was refused and sent again, so
   the resent-build bound is not yet seen live (backlog 60). No organism column body was
-  recorded: QA VectorBase answered the step byValue report on `organism` with HTTP 500, as
-  QA PlasmoDB did on 2026-10-28, so backlog 69 waits on the site.
+  recorded: the check named the `organism` column, whose byValue report the sites answer with
+  HTTP 500; the countable column is `organism_full` (pull request 37), so backlog 69 records it.
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site
   now names the root step and the site's result table tab, `summary:_default`, so the site
