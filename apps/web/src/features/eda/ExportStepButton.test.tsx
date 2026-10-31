@@ -232,6 +232,25 @@ describe("ExportStepButton", () => {
     expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
   });
 
+  it("waits for the figure of a filtered comparison and never exports its subset", () => {
+    useEdaStore.getState().applyAnalysisState(
+      analysis({
+        numFilters: 1,
+        filterSummaries: ["strain is one of 1037cl1, cl15cy1"],
+        compute: {
+          method: "DESeq",
+          identifierVariable: "Gene",
+          valueVariable: "Sense Count",
+          comparatorVariable: "strain",
+          groupA: ["1037cl1"],
+          groupB: ["cl15cy1"],
+        },
+      }),
+    );
+    render(<ExportStepButton conversationId="conv-1" />);
+    expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
+  });
+
   it("exports the volcano and leaves the cut to the analysis the site stores", async () => {
     let body: unknown = null;
     server.use(
