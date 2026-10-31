@@ -72,6 +72,24 @@ describe("Figure", () => {
     expect(screen.getByTestId("figure-title").textContent).toBe("Sectioned");
   });
 
+  it("wraps a section's actions under a title too long for its column", () => {
+    render(
+      <FigureSectionContext value={{ letter: "D", title: "Study" }}>
+        <Figure
+          title="5 asexual and sexual stage transcriptomes"
+          caption={null}
+          action={<button type="button">Open study</button>}
+        >
+          <p>body</p>
+        </Figure>
+      </FigureSectionContext>,
+    );
+    const head = screen.getByRole("heading", { level: 3 }).parentElement;
+    expect(head).not.toBe(null);
+    expect(classesOf(head as HTMLElement)).toContain("flex-wrap");
+    expect(classesOf(screen.getByRole("heading", { level: 3 }))).toContain("min-w-0");
+  });
+
   it("draws no figcaption when the title is null", () => {
     const { container } = render(
       <Figure title={null} caption="1,543 of 5,511 genes retained">
