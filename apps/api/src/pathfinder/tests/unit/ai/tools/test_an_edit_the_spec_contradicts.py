@@ -7,23 +7,18 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import NumberValue, StringValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy_edits import (
     replace_subtree,
     update_combine_operator,
     update_leaf_params,
 )
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from pathfinder.tests._support.bound_values import bound
 
 from ._spec_contradiction_case import (
     MIC2,
     PROFILE,
     PROFILE_JOIN,
+    STATED_PERCENTILE,
+    grounded_deps,
     measured_deps,
     union_of_the_same_three,
 )
@@ -106,36 +101,10 @@ class TestAnEditTheSpecContradictsIsRefused:
         assert stub_api.named("update_step_search_config") != []
 
 
-def _grounded_percentile(deps: AgentDeps) -> None:
-    draft = deps.agent_state.operational_spec_draft
-    draft.criteria = [
-        c.model_copy(
-            update={
-                "search_name": "GenesByRNASeqEvidence",
-                "resolved_params": bound(
-                    {"min_expression_percentile": NumberValue(value=90)}
-                ),
-            }
-        )
-        if c.id == MIC2
-        else c
-        for c in draft.criteria
-    ]
-    draft.constraints = [
-        Constraint(
-            kind=ConstraintKind.PERCENTILE,
-            requested_value="top 10%",
-            label="expression percentile",
-            source=ConstraintSource.USER_EXPLICIT,
-        )
-    ]
-
-
 async def test_a_value_a_stated_requirement_grounds_onto_is_refused(
     stub_api: StubAPI,
 ) -> None:
-    deps = measured_deps()
-    _grounded_percentile(deps)
+    deps = grounded_deps(dict(STATED_PERCENTILE))
 
     with pytest.raises(ModelRetry) as excinfo:
         await update_leaf_params(

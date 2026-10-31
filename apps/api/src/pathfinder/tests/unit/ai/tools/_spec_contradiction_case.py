@@ -9,12 +9,17 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from veupathdb.domain.parameters import ParamValue, StringValue, to_wire
+from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     SpecStructure,
@@ -46,13 +51,10 @@ WDK_STEP_IDS = {
     ROOT: 204,
 }
 _PATTERN = "%bbes:Y%btau:N%chom:Y%hsap:N%tgme:Y%"
-STATED_GENE: dict[str, ParamValue] = {
-    "ProfileGeneId": StringValue(value="TGME49_201780")
-}
-DEPARTED_GENE: dict[str, ParamValue] = {
-    "ProfileGeneId": StringValue(value="TGME49_300100")
-}
-SECOND_LOOK = "ProfileGeneId: the catalog turns this value down"
+PERCENTILE = "min_expression_percentile"
+STATED_PERCENTILE: dict[str, ParamValue] = {PERCENTILE: NumberValue(value=90)}
+DEPARTED_PERCENTILE: dict[str, ParamValue] = {PERCENTILE: NumberValue(value=80)}
+SECOND_LOOK = "min_expression_percentile: the catalog turns this value down"
 
 
 def records_the_call(
@@ -82,21 +84,28 @@ def refuses_a_second_look(
     return _validate
 
 
-async def lowercases_the_gene(*_args: Any, **kwargs: Any) -> ValidatedParams:
-    """A catalog that rewrites the gene id, the way a vocabulary match does."""
+def _decimal(value: ParamValue) -> StringValue:
+    wire = to_wire(value)
+    return StringValue(value=wire if "." in wire else f"{wire}.0")
+
+
+async def writes_the_percentile_as_a_decimal(
+    *_args: Any, **kwargs: Any
+) -> ValidatedParams:
+    """A catalog that rewrites the percentile, the way a number param is read."""
     params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
-    gene = params.get("ProfileGeneId")
-    if gene is not None:
-        params["ProfileGeneId"] = StringValue(value=to_wire(gene).lower())
+    held = params.get(PERCENTILE)
+    if held is not None:
+        params[PERCENTILE] = _decimal(held)
     return ValidatedParams(params=params, record_class="transcript")
 
 
 async def cascades_from_the_size(*_args: Any, **kwargs: Any) -> ValidatedParams:
-    """A catalog whose gene vocabulary answers to the result size."""
+    """A catalog whose percentile answers to the result size."""
     params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
     size = params.get("ProfileNumToReturn")
     if size is not None and to_wire(size) == "100":
-        params["ProfileGeneId"] = StringValue(value="TGME49_300100")
+        params[PERCENTILE] = NumberValue(value=80)
     return ValidatedParams(params=params, record_class="transcript")
 
 
@@ -166,6 +175,33 @@ def measured_deps(*, mic2_params: dict[str, ParamValue] | None = None) -> AgentD
             ),
         ),
     )
+    return deps
+
+
+def grounded_deps(mic2_params: dict[str, ParamValue]) -> AgentDeps:
+    """The same strategy, with MIC2 holding a percentile a stated requirement
+    grounds onto at 90, and the step holding ``mic2_params``."""
+    deps = measured_deps(mic2_params=mic2_params)
+    draft = deps.agent_state.operational_spec_draft
+    draft.criteria = [
+        c.model_copy(
+            update={
+                "search_name": "GenesByRNASeqEvidence",
+                "resolved_params": bound(dict(STATED_PERCENTILE)),
+            }
+        )
+        if c.id == MIC2
+        else c
+        for c in draft.criteria
+    ]
+    draft.constraints = [
+        Constraint(
+            kind=ConstraintKind.PERCENTILE,
+            requested_value="top 10%",
+            label="expression percentile",
+            source=ConstraintSource.USER_EXPLICIT,
+        )
+    ]
     return deps
 
 

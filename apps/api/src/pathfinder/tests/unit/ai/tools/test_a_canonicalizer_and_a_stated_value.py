@@ -3,31 +3,36 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import ParamValue, StringValue
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, leaves
 
-from pathfinder.ai.tools.standalone.strategy import apply_operations
+from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.standalone.strategy_edits import (
+    replace_subtree,
     update_leaf_params,
 )
 from pathfinder.domain.strategy.operations import UpdateStepParamsOp
 from pathfinder.domain.strategy.revision import strategy_revision
 
 from ._spec_contradiction_case import (
-    DEPARTED_GENE,
+    DEPARTED_PERCENTILE,
     MIC2,
+    PERCENTILE,
     PROFILE,
     PROFILE_JOIN,
     RON2,
     ROOT,
     SIGNAL,
     SIMILARITY_JOIN,
-    STATED_GENE,
+    STATED_PERCENTILE,
     TM,
     TM_JOIN,
-    lowercases_the_gene,
-    measured_deps,
+    cascades_from_the_size,
+    grounded_deps,
+    records_the_call,
     refuses_a_second_look,
+    writes_the_percentile_as_a_decimal,
 )
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -37,6 +42,9 @@ from ._strategy_edit_stubs import (
     leaf,
     pin_validator,
 )
+
+_SIZE = {"ProfileNumToReturn": StringValue(value="100")}
+_DEPARTED_AS_READ = {PERCENTILE: StringValue(value="80.0")}
 
 
 @pytest.fixture
@@ -48,78 +56,141 @@ class TestACanonicalizerAndTheStatedValueGuard:
     async def test_a_canonicalizer_that_shifts_an_untouched_value_does_not_refuse(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The catalog rewrites a value the write never sent; the write stands."""
-        pin_validator(monkeypatch, lowercases_the_gene)
-        deps = measured_deps(mic2_params=STATED_GENE)
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
 
-        await update_leaf_params(
-            ctx(deps), MIC2, {"ProfileNumToReturn": StringValue(value="100")}
-        )
+        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
 
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == {
-            "ProfileGeneId": StringValue(value="tgme49_201780"),
-            "ProfileNumToReturn": StringValue(value="100"),
+            PERCENTILE: StringValue(value="90.0"),
+            **_SIZE,
         }
         assert stub_api.named("update_step_search_config") != []
+
+    async def test_the_same_canonicalizer_still_refuses_a_real_change(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await update_leaf_params(ctx(deps), MIC2, dict(DEPARTED_PERCENTILE))
+
+        assert "set_criterion" in str(excinfo.value)
+        assert "90.0" in str(excinfo.value)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps[MIC2].parameters == STATED_PERCENTILE
+        assert stub_api.calls == []
 
     async def test_a_departure_the_write_found_survives_the_canonicalizer(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The gene already departed; a patch on another parameter still lands."""
-        pin_validator(monkeypatch, lowercases_the_gene)
-        deps = measured_deps(mic2_params=DEPARTED_GENE)
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(DEPARTED_PERCENTILE))
 
-        await update_leaf_params(
-            ctx(deps), MIC2, {"ProfileNumToReturn": StringValue(value="100")}
-        )
+        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
 
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps[MIC2].parameters == {
-            "ProfileGeneId": StringValue(value="tgme49_300100"),
-            "ProfileNumToReturn": StringValue(value="100"),
-        }
+        assert graph.steps[MIC2].parameters == {**_DEPARTED_AS_READ, **_SIZE}
         assert stub_api.named("update_step_search_config") != []
+
+    async def test_a_departed_value_the_write_moves_again_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(DEPARTED_PERCENTILE))
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await update_leaf_params(
+                ctx(deps), MIC2, {PERCENTILE: NumberValue(value=70)}
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert "90.0" in str(excinfo.value)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps[MIC2].parameters == DEPARTED_PERCENTILE
+        assert stub_api.calls == []
 
     async def test_a_patch_that_repeats_a_departed_value_is_applied(
         self, stub_api: StubAPI
     ) -> None:
-        """The write leaves the value where it found it, so it departs nothing."""
-        deps = measured_deps(mic2_params=DEPARTED_GENE)
+        deps = grounded_deps(dict(DEPARTED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(DEPARTED_GENE))
+        await update_leaf_params(ctx(deps), MIC2, dict(DEPARTED_PERCENTILE))
 
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps[MIC2].parameters == DEPARTED_GENE
+        assert graph.steps[MIC2].parameters == DEPARTED_PERCENTILE
         assert stub_api.named("update_step_search_config") == []
+
+    async def test_a_dependent_value_the_patch_moves_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, cascades_from_the_size)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
+
+        assert "set_criterion" in str(excinfo.value)
+        assert "80" in str(excinfo.value)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps[MIC2].parameters == STATED_PERCENTILE
+        assert stub_api.calls == []
+
+    async def test_a_subtree_that_repeats_a_departed_value_is_applied(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(_DEPARTED_AS_READ))
+
+        await replace_subtree(
+            ctx(deps), MIC2, leaf(MIC2, {**DEPARTED_PERCENTILE, **_SIZE})
+        )
+
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps[MIC2].parameters == {**_DEPARTED_AS_READ, **_SIZE}
+        assert len(stub_api.named("update_step_search_config")) == 1
 
     async def test_a_patch_that_touches_no_stated_value_asks_the_catalog_once(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A second look at an untouched value could refuse a good patch."""
         seen: list[dict[str, ParamValue]] = []
         pin_validator(monkeypatch, refuses_a_second_look(seen))
-        deps = measured_deps(mic2_params=STATED_GENE)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
 
-        await update_leaf_params(
-            ctx(deps), MIC2, {"ProfileNumToReturn": StringValue(value="100")}
-        )
+        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
 
         assert len(seen) == 1
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps[MIC2].parameters == {
-            **STATED_GENE,
-            "ProfileNumToReturn": StringValue(value="100"),
-        }
+        assert graph.steps[MIC2].parameters == {**STATED_PERCENTILE, **_SIZE}
         assert stub_api.named("update_step_search_config") != []
+
+    async def test_a_patch_on_a_stated_value_asks_for_its_canonical_form(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        seen: list[dict[str, ParamValue]] = []
+        pin_validator(monkeypatch, records_the_call(seen))
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+
+        await update_leaf_params(ctx(deps), MIC2, dict(STATED_PERCENTILE))
+
+        assert len(seen) == 2
+        assert stub_api.named("update_step_search_config") == []
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps[MIC2].parameters == STATED_PERCENTILE
 
 
 def _measured_tree(mic2_params: dict[str, ParamValue]) -> StrategyStepNode:
-    """The five-criterion toxodb tree, with the gene the model writes at MIC2."""
     return combine(
         ROOT,
         combine(TM_JOIN, leaf(TM), leaf(SIGNAL), op=CombineOp.UNION),
@@ -137,28 +208,100 @@ def _measured_tree(mic2_params: dict[str, ParamValue]) -> StrategyStepNode:
 
 
 class TestABuildOverADepartedValue:
-    """The graph holds the catalog's form of a departed value; the model sends its own."""
+    async def test_a_build_that_repeats_a_departed_value_is_applied(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(_DEPARTED_AS_READ))
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        await build_strategy(
+            ctx(deps),
+            _measured_tree(dict(DEPARTED_PERCENTILE)),
+            base_revision=strategy_revision(graph.to_strategy_ast()),
+        )
+
+        rebuilt = deps.strategy_session.graph
+        assert rebuilt is not None
+        assert rebuilt.steps[MIC2].parameters == _DEPARTED_AS_READ
+        assert stub_api.named("create_step") != []
+
+    async def test_a_build_that_moves_a_stated_value_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await build_strategy(
+                ctx(deps),
+                _measured_tree(dict(DEPARTED_PERCENTILE)),
+                base_revision=strategy_revision(graph.to_strategy_ast()),
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert graph.steps[MIC2].parameters == STATED_PERCENTILE
+        assert stub_api.calls == []
+
+    async def test_a_refused_build_leaves_the_tree_the_caller_wrote(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        tree = _measured_tree(dict(DEPARTED_PERCENTILE))
+
+        with pytest.raises(ModelRetry):
+            await build_strategy(
+                ctx(deps),
+                tree,
+                base_revision=strategy_revision(graph.to_strategy_ast()),
+            )
+
+        written = next(node for node in leaves(tree) if node.id == MIC2)
+        assert written.parameters == DEPARTED_PERCENTILE
 
 
 class TestABatchOverADepartedValue:
-    """Every batch reaches the same seam, so a patch batch reads the same forms."""
-
     async def test_a_batch_that_repeats_a_departed_value_is_applied(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        pin_validator(monkeypatch, lowercases_the_gene)
-        deps = measured_deps(
-            mic2_params={"ProfileGeneId": StringValue(value="tgme49_300100")}
-        )
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(_DEPARTED_AS_READ))
         graph = deps.strategy_session.graph
         assert graph is not None
 
         await apply_operations(
             ctx(deps),
             strategy_revision(graph.to_strategy_ast()),
-            [UpdateStepParamsOp(step_id=MIC2, parameters=dict(DEPARTED_GENE))],
+            [UpdateStepParamsOp(step_id=MIC2, parameters=dict(DEPARTED_PERCENTILE))],
         )
 
-        assert graph.steps[MIC2].parameters == {
-            "ProfileGeneId": StringValue(value="tgme49_300100")
-        }
+        assert graph.steps[MIC2].parameters == _DEPARTED_AS_READ
+
+    async def test_a_batch_that_moves_a_stated_value_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
+        deps = grounded_deps(dict(STATED_PERCENTILE))
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await apply_operations(
+                ctx(deps),
+                strategy_revision(graph.to_strategy_ast()),
+                [
+                    UpdateStepParamsOp(
+                        step_id=MIC2, parameters=dict(DEPARTED_PERCENTILE)
+                    )
+                ],
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert graph.steps[MIC2].parameters == STATED_PERCENTILE
+        assert stub_api.calls == []
