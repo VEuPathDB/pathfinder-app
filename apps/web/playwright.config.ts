@@ -52,11 +52,10 @@ const NAMED_SITE_TAG = /@named-site\b/;
  * VEuPathDB refuses guest service calls, so every worker acts as the registered
  * account: `e2e/fixtures/test.ts` puts `WDK_TEST_TOKEN` in the `Authorization`
  * cookie of the per-worker storage state (`e2e/.auth/worker-{N}.json`), which is
- * the token the API forwards to WDK. PathFinder identity stays per worker via
- * `/dev/login?user_id=worker-{N}`, so parallel workers never share gene sets,
- * strategies, or conversations: `clearAllGeneSets` only affects the calling
- * worker's user. The postcondition client in `e2e/fixtures/api-client.ts` copies
- * the whole browser cookie jar, so it carries both cookies too.
+ * the token the API forwards to WDK. The website login names the account's own
+ * PathFinder user ahead of the `/dev/login` cookie, so parallel workers share
+ * one user. The postcondition client in `e2e/fixtures/api-client.ts` copies the whole browser
+ * cookie jar, so it carries both cookies too.
  */
 export default defineConfig<SiteOption>({
   testDir: "./e2e",

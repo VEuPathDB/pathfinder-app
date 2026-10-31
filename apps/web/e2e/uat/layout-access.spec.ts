@@ -396,10 +396,15 @@ test.describe("Layout and access", () => {
           ].join("\n"),
         ),
       );
-      const recovered = page.getByTestId("data-evidence-card").getByRole("button", {
+      const tested = page
+        .getByTestId("data-evidence-card")
+        .filter({ has: page.getByTestId("evidence-controls") });
+      await expect(tested).not.toHaveCount(0, { timeout: 480_000 });
+      await chatPage.openAppendices();
+      const recovered = tested.getByRole("button", {
         name: /^[\d,]+ positive controls recovered, click to copy the ids$/,
       });
-      await expect(recovered).not.toHaveCount(0, { timeout: 480_000 });
+      await expect(recovered).not.toHaveCount(0);
     },
   );
 });

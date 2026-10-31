@@ -210,7 +210,7 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | X2 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s2-{plasmodb,vectorbase,toxodb,fungidb}` | - |
 | X3 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-vectorbase`, `uat-s5-toxodb` | `all-unclear` (FND-6, also seen here) |
 | X4 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-fungidb` | - |
-| X5 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-veupathdb` (step 1), `uat-x5-veupathdb` (step 2) | `syntenic-left-off` |
+| X5 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-veupathdb` (step 1), `uat-x5-veupathdb` (step 2) | - |
 | X6 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-x6-vectorbase`, `uat-n8-plasmodb` (the plasmodb half) | - |
 | R1 | none: an operator takes a site down | - | - |
 | R2 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |

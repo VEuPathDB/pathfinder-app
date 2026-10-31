@@ -22,7 +22,7 @@ import {
 import {
   expectBuild,
   expectEvidence,
-  expectEveryRequirementAnswered,
+  expectNoCheckFailed,
   openTrace,
   traceRows,
 } from "../fixtures/build-checks";
@@ -240,7 +240,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     chatPage,
     graphPage,
     apiClient,
-    page,
     siteId,
   }) => {
     const id = await buildOn(
@@ -252,21 +251,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       ),
     );
 
-    const steps = (await readConversation(apiClient, id)).steps ?? [];
-    for (const step of steps) expect(step.displayName ?? "").not.toMatch(/GPI/i);
-    if (steps.length === 0) {
-      await expectNoStrategy(graphPage, apiClient, id);
-    } else {
-      const requirement = page
-        .getByTestId("data-evidence-card")
-        .getByTestId("evidence-requirements")
-        .getByRole("row")
-        .filter({ hasText: /GPI/i });
-      await expect(requirement.getByTestId("evidence-requirement-answer")).toHaveText(
-        "No search on this site states it",
-        { timeout: 60_000 },
-      );
-    }
+    await expectNoStrategy(graphPage, apiClient, id);
     await expect(
       chatPage
         .factsIn(chatPage.assistantMessages)
@@ -360,7 +345,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       LAYOUTS["zero-then-relax"],
     );
     expect(relaxed.root).toBeGreaterThan(0);
-    await expectEveryRequirementAnswered(await expectEvidence(page, relaxed.root));
+    await expectNoCheckFailed(await expectEvidence(page, relaxed.root));
   });
 
   test("N5 - An edit that would break the tree", async ({

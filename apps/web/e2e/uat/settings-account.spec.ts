@@ -17,7 +17,11 @@ import {
   formatUsage,
 } from "@/features/conversation/usageFormat";
 import { formatCompactClean, formatPrice } from "@/features/settings/format";
-import { presetsForProvider, rolesForAssistant } from "@/features/settings/tierPresets";
+import {
+  distinctPresets,
+  presetsForProvider,
+  rolesForAssistant,
+} from "@/features/settings/tierPresets";
 import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import { readsLabel } from "@/lib/models/attachments";
 import { phaseLabel } from "@/lib/models/phaseRoles";
@@ -44,10 +48,10 @@ const COUNT_QUESTION = "How many genes does this strategy return?";
 
 const TAB_LABELS = ["Model", "Provider keys", "Data", "Memory", "Privacy", "Advanced"];
 const TIER_LABELS: Record<string, string> = {
-  quality: "Quality",
-  balanced: "Balanced",
-  default: "Default",
   fast: "Fast",
+  default: "Default",
+  balanced: "Balanced",
+  quality: "Quality",
 };
 
 function settingsDialog(page: Page): Locator {
@@ -141,7 +145,10 @@ test.describe("Settings and account", () => {
     const provider = models.defaultProvider;
     const roles = rolesForAssistant(tiers.presets, DEFAULT_ASSISTANT_ID, provider);
     const tierNames = Object.keys(
-      presetsForProvider(tiers.presets, DEFAULT_ASSISTANT_ID, provider),
+      distinctPresets(
+        presetsForProvider(tiers.presets, DEFAULT_ASSISTANT_ID, provider),
+        models.defaultTier,
+      ),
     );
     const other = tierNames.find((tier) => tier !== models.defaultTier) ?? "";
     await openSite(page, siteId);
@@ -165,7 +172,11 @@ test.describe("Settings and account", () => {
     const presets = dialog.getByRole("button", {
       name: /^(Quality|Balanced|Default|Fast)$/,
     });
-    await expect(presets).toHaveText(["Fast", "Default", "Balanced", "Quality"]);
+    await expect(presets).toHaveText(
+      Object.keys(TIER_LABELS)
+        .filter((tier) => tierNames.includes(tier))
+        .map((tier) => TIER_LABELS[tier] ?? tier),
+    );
     const deployed = dialog.getByRole("button", {
       name: TIER_LABELS[models.defaultTier] ?? "",
       exact: true,
@@ -346,10 +357,10 @@ test.describe("Settings and account", () => {
       `Remove the ${siteName} conversations. One linked to a VEuPathDB strategy moves to Recently deleted, and the strategy stays.`,
     );
     await expect(dialog).toContainText(
-      `Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.`,
+      `Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review, and the judgements made about your genes. Conversations move to Recently deleted. Strategies and memories stay.`,
     );
     await expect(dialog).toContainText(
-      "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing.",
+      "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site, and the judgements made about your genes. Conversations move to Recently deleted. Strategies stay but stop syncing.",
     );
     await expect(dialog.getByTestId("wdk-purge-description")).toContainText(
       "Everything above, plus the strategies PathFinder created in VEuPathDB.",

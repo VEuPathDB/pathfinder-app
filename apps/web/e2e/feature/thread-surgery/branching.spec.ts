@@ -11,7 +11,7 @@ import {
 } from "../../fixtures/api-client";
 import { LAYOUTS } from "../../fixtures/arc-layouts";
 import { expectBuild } from "../../fixtures/build-checks";
-import { resultLine, siteOrganism } from "../../fixtures/site-reads";
+import { printed, siteOrganism } from "../../fixtures/site-reads";
 
 const ASK_COUNT = "how many genes are in this strategy?";
 const ASK_AGAIN = "and how many now?";
@@ -46,16 +46,18 @@ test.describe("Thread branching", { tag: "@turn" }, () => {
     await chatPage.sendAndSettle(build);
     const parentId = chatPage.lastStrategyId ?? "";
     const counts = await expectBuild(page, apiClient, parentId, siteId, LAYOUTS.single);
-    // The build reply is the only one whose facts state the result.
-    const built = new RegExp(escapeRegExp(resultLine(counts.root)));
+    const evidence = page.getByTestId("data-evidence-card").filter({
+      has: page.getByTestId("evidence-steps").filter({ hasText: printed(counts.root) }),
+    });
+    const built = chatPage.assistantMessages.filter({ has: evidence });
     await chatPage.sendTurn(ASK_COUNT, echoOf(ASK_COUNT));
 
-    const childId = await chatPage.branchFromAssistantReply(built);
+    const childId = await chatPage.branchFrom(built);
     await expect(chatPage.userMessage(build)).toHaveCount(1, { timeout: 30_000 });
 
     await chatPage.sendTurn(ASK_AGAIN, echoOf(ASK_AGAIN));
 
-    const grandchildId = await chatPage.branchFromAssistantReply(built);
+    const grandchildId = await chatPage.branchFrom(built);
     expect(new Set([parentId, childId, grandchildId]).size).toBe(3);
 
     await expect(chatPage.userMessage(build)).toHaveCount(1, { timeout: 30_000 });
