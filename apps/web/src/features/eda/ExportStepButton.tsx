@@ -39,7 +39,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
   const siteName = siteShortName(siteId);
   // A drawn figure exports its volcano cut; a subset alone exports its genes.
   const computeComplete = volcano !== undefined;
-  const holdsSubset = (analysis?.numFilters ?? 0) > 0;
+  const holdsSubset = (analysis?.numFilters ?? 0) > 0 && analysis?.compute == null;
 
   const exportStep = useMutation({
     mutationFn: async (): Promise<ExportOutcome> => {
