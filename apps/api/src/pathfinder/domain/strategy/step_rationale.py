@@ -79,7 +79,6 @@ class SearchRationale(CamelModel):
     # The bound search's own score in the read, None for a listing.
     similarity: float | None = None
     compared: list[ComparedSearch] = Field(default_factory=list, max_length=3)
-    answered: int = 0
     query: str = ""
     tool_call_id: str
     # The urls, DOIs and PMIDs this turn retrieved that FRAME cites for it.
