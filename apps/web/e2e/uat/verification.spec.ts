@@ -22,6 +22,7 @@ import {
   printed,
   readConversation,
   readNodes,
+  storedNodes,
   siteControlSets,
   siteGeneIdPrefix,
   siteOrganism,
@@ -450,7 +451,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     });
 
     await expect
-      .poll(async () => (await readNodes(apiClient, id)).length, { timeout: 240_000 })
+      .poll(async () => (await storedNodes(apiClient, id)).length, { timeout: 240_000 })
       .toBeGreaterThan(0);
     await expect(
       page.getByTestId("task-row").filter({ hasText: "Run control tests" }),
@@ -460,6 +461,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       .filter({ has: page.getByTestId("evidence-controls") });
     await expect(evidence).toHaveCount(1, { timeout: TASK_BUDGET_MS });
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
+    await chatPage.openAppendices();
 
     const layout = layoutOf(await readNodes(apiClient, id));
     expect(layout.steps).toBeGreaterThan(0);
