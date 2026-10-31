@@ -111,6 +111,7 @@ import type {
   TaskListResponse,
   TaskProgress as TaskProgressStreamPart,
   TestedParameter,
+  ToolApprovalPayload,
   ToolSummaryPayload,
   TurnUsage,
   UpdateConversationRequest,
@@ -413,6 +414,7 @@ export type KnownDataPartKind =
   | "data-turn-withdrawn"
   | "data-lead-usage"
   | "data-tool-summary"
+  | "data-tool-approval"
   | "data-eda.analysis-state"
   | "data-eda.subset-preview"
   | "data-eda.viz"
@@ -459,6 +461,7 @@ export interface DataPartPayloadMap {
   "data-turn-withdrawn": TurnWithdrawnPayload;
   "data-lead-usage": DataLeadUsagePayload;
   "data-tool-summary": ToolSummaryPayload;
+  "data-tool-approval": ToolApprovalPayload;
   "data-eda.analysis-state": EdaAnalysisState;
   "data-eda.subset-preview": EdaSubsetPreviewPart;
   "data-eda.viz": EdaVizPart;

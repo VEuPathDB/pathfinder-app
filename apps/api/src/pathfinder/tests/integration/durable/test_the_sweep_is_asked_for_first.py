@@ -242,3 +242,40 @@ async def test_a_refused_sweep_defers_nothing(
     denials = [c for c in chunks if c["type"] == "tool-output-denied"]
     assert [c["toolCallId"] for c in denials] == [call_id]
     assert _sweep_jobs(in_memory_jobs) == []
+
+
+async def test_the_answering_turn_records_the_answer_before_the_call(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    signed_in_to_veupathdb: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+    conversation_id = uuid4()
+    asked = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(conversation_id, SWEEP_PROMPT),
+    )
+    call_id = _approval_call_id(asked)
+
+    chunks = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        _approval_body(conversation_id, call_id, approved=True),
+    )
+
+    kinds = [c["type"] for c in chunks]
+    recorded = kinds.index("data-tool-approval")
+    reentry = kinds.index("tool-input-available")
+    assert chunks[recorded]["data"] == {
+        "toolCallId": call_id,
+        "approvalId": call_id,
+        "approved": True,
+    }
+    assert recorded < reentry
+    assert "start-step" not in kinds[:reentry]

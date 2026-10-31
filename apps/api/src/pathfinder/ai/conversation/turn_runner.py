@@ -14,6 +14,7 @@ from assistant_core.conversation.open_tool_calls import (
     OpenToolCalls,
     write_tool_call_errors,
 )
+from assistant_core.graph.approvals import approval_answer_events
 from assistant_core.graph.stream_events import (
     turn_failed_event,
     turn_status_event,
@@ -26,6 +27,7 @@ from assistant_core.platform.observability import TraceScope, traced
 from assistant_core.spec import (
     AssistantSpec,
     TurnContextRequest,
+    TurnStart,
     turn_input,
 )
 from pydantic_ai.ui.vercel_ai.response_types import (
@@ -224,7 +226,12 @@ async def _run_turn_with_context(
                 exclude_none=True,
             ),
         )
-        graph_input = _graph_input(request, spec, writer, start_event_id)
+        turn_start = _turn_start(request, writer, start_event_id)
+        for answer in approval_answer_events(turn_start.approval_responses):
+            await writer.write(
+                answer.model_dump(by_alias=True, mode="json", exclude_none=True),
+            )
+        graph_input = turn_input(spec.build_initial_state(turn_start))
 
     title_task: asyncio.Task[str] | None = None
     if body.last_user_text.strip() and not named:
@@ -304,23 +311,18 @@ async def _consume_graph_stream(ctx: _StreamConsumerCtx) -> None:
         await _handle_custom(payload, ctx.result, ctx.writer)
 
 
-def _graph_input(
+def _turn_start(
     request: TurnRequest,
-    spec: AssistantSpec,
     writer: ChatWriter,
     start_event_id: int,
-) -> dict[str, Any]:
-    return turn_input(
-        spec.build_initial_state(
-            build_turn_start(
-                request.body,
-                request.user_id,
-                turn_message_id=writer.turn_id,
-                turn_start_event_id=start_event_id - 1,
-                durable_result=request.durable_result,
-                durable_results=request.durable_results,
-            ),
-        ),
+) -> TurnStart:
+    return build_turn_start(
+        request.body,
+        request.user_id,
+        turn_message_id=writer.turn_id,
+        turn_start_event_id=start_event_id - 1,
+        durable_result=request.durable_result,
+        durable_results=request.durable_results,
     )
 
 
