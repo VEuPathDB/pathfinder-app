@@ -10687,10 +10687,6 @@ components:
           type: array
           maxItems: 3
           title: Compared
-        answered:
-          type: integer
-          title: Answered
-          default: 0
         query:
           type: string
           title: Query

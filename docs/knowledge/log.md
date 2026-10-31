@@ -16,6 +16,11 @@
   The connection budget's total is 89. A canvas edit during a turn is still applied; the
   backlog holds it. See
   [the decision](decisions/a-request-on-a-wdk-strategy-waits-in-its-line.md).
+* **The step editor names the searches also considered, unscored.** The editor showed the
+  catalog query, the chosen search's score and the count of searches the read answered, and
+  a score beside each search it was chosen over. It now shows the reason and the names of
+  the searches also considered, as the graph and the facts do. A search reason no longer
+  carries the count of searches its read answered, which nothing read.
 
 ## 2026-10-30
 

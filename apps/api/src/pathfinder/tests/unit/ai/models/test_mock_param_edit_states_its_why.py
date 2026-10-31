@@ -48,7 +48,6 @@ _HELD_REASON = SearchRationale(
     basis="parameter",
     term="Minimum Number of Transmembrane Domains",
     reason="sets min_tm to the value the request states",
-    answered=1,
     tool_call_id="call_turn1_read",
     derived_from={name: to_wire(value) for name, value in _HELD_VALUES.items()},
 )
