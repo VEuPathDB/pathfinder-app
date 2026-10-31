@@ -82,18 +82,6 @@ def _off_vocabulary(intended: ToolCallPart) -> ToolCallPart | None:
     return _criterion(binding.model_copy(update={"params": params}))
 
 
-def _syntenic_left_off(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's syntenic binding with its synteny parameter left at the default."""
-    binding = _binding(intended)
-    if binding is None or binding.params is None:
-        return None
-    synteny = [name for name in binding.params if "synten" in name.casefold()]
-    if not synteny:
-        return None
-    params = {**binding.params, **dict.fromkeys(synteny)}
-    return _criterion(binding.model_copy(update={"params": params}))
-
-
 class _Tested(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -174,7 +162,6 @@ def _short_card_reply(intended: ToolCallPart) -> ToolCallPart | None:
 
 unlisted_search: WrongCall = history_free(lambda: _unlisted_search)
 off_vocabulary: WrongCall = history_free(lambda: _off_vocabulary)
-syntenic_left_off: WrongCall = history_free(lambda: _syntenic_left_off)
 all_unclear: WrongCall = history_free(lambda: _all_unclear)
 sweep_without_controls: WrongCall = history_free(lambda: _sweep_without_controls)
 short_card_reply: WrongCall = history_free(lambda: _short_card_reply)
