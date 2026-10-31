@@ -34,7 +34,6 @@ _CHOSEN = SearchRationale(
             name="GenesByText", display_name="Gene Text Search", similarity=0.41
         )
     ],
-    answered=20,
     query="genes with a predicted GPI anchor",
     tool_call_id="call_gpi",
 )

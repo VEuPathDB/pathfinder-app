@@ -50,7 +50,6 @@ _HELD = SearchRationale(
             similarity=0.4,
         )
     ],
-    answered=12,
     query="rhoptry annotation",
     tool_call_id="call_turn1_read",
     sources=["https://example.org/rhoptry-review"],

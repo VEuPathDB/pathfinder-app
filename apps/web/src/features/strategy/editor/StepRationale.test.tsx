@@ -19,7 +19,6 @@ const CHOSEN: Rationale = {
     { name: "GenesByText", displayName: "Gene Text Search", similarity: 0.41 },
     { name: "GenesWithSignalPeptide", displayName: "Predicted Signal Peptide" },
   ],
-  answered: 20,
   query: "GPI anchor attachment signal",
   toolCallId: "call_gpi",
   short: "nearest to GPI anchor",
@@ -54,7 +53,7 @@ const MEASURED: Rationale = {
 describe("StepRationale", () => {
   afterEach(() => cleanup());
 
-  it("gives the term and reason, the query it answered and what it was chosen over", () => {
+  it("gives the term and reason and names the searches also considered, unscored", () => {
     render(<StepRationale rationale={CHOSEN} />);
 
     const block = screen.getByTestId("step-rationale");
@@ -64,15 +63,22 @@ describe("StepRationale", () => {
         "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
       ).tagName,
     ).toBe("P");
-    expect(within(block).getByTestId("step-rationale-query")).toHaveTextContent(
-      "catalog query: GPI anchor attachment signal; this search scored 0.44 of 20 answered",
-    );
-    expect(within(block).getByText("Chosen over").tagName).toBe("P");
+    expect(within(block).getByText("Also considered").tagName).toBe("P");
     expect(
       within(block)
         .getAllByTestId("step-rationale-compared")
         .map((row) => row.textContent),
-    ).toEqual(["Gene Text Search 0.41", "Predicted Signal Peptide not scored"]);
+    ).toEqual(["Gene Text Search", "Predicted Signal Peptide"]);
+    expect(block).not.toHaveTextContent("GPI anchor attachment signal");
+    expect(block).not.toHaveTextContent("0.41");
+  });
+
+  it("names nothing else when no other search was considered", () => {
+    render(<StepRationale rationale={{ ...CHOSEN, compared: [] }} />);
+
+    const block = screen.getByTestId("step-rationale");
+    expect(within(block).queryByText("Also considered")).toBeNull();
+    expect(within(block).queryAllByTestId("step-rationale-compared")).toEqual([]);
   });
 
   it("gives an analysis step the compute its document holds", () => {
@@ -81,7 +87,6 @@ describe("StepRationale", () => {
     const block = screen.getByTestId("step-rationale");
     expect(within(block).getByText("Why these genes").tagName).toBe("P");
     expect(within(block).getByText(COMPUTED.reason).tagName).toBe("P");
-    expect(within(block).queryByTestId("step-rationale-query")).toBeNull();
   });
 
   it("gives a measured step the counts its own step returned and the paper", () => {
