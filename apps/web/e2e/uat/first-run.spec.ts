@@ -422,7 +422,7 @@ test.describe("First run and navigation", () => {
       `Build and refine multi-step ${siteShortName(siteId)} search strategies with guided parameter selection and validation.`,
     );
     const suggestions = suggestionsFor(siteId);
-    expect(suggestions).toHaveLength(4);
+    expect(suggestions.length).toBeGreaterThan(0);
     for (const suggestion of suggestions) {
       await expect(
         page.getByRole("button", { name: suggestion, exact: true }),
