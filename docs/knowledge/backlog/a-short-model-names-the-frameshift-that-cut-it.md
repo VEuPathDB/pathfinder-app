@@ -46,11 +46,19 @@ annotation truncation instead.
 4. For a strain genome, read the same run in the gene of the reference strain
    the strain check already names. Report both counts so that a one-base
    difference between near-identical genomes is visible.
-5. Release veupathdb-mcp and take the pin.
-6. In PathFinder, `_length` maps `FRAMESHIFT` to its own error type, a
+5. Ask the site's own variant calls whether the strain's reads carry the change. On a site that
+   serves short variants (PlasmoDB's variation record type), search `VariantsByLocation` over the
+   run in the reference genome and read each variant's `VariantStrains` table (genotype, allele,
+   read depth and read frequency per sample) for the strain's sample. Report one of: an indel is
+   called in the strain's reads; the strain is called as the reference; no variant is called in any
+   sample; or the strain is not among the sequenced samples. Each answer names the search, the
+   variant record ids and the sample, so it can be traced.
+6. Release veupathdb-mcp and take the pin.
+7. In PathFinder, `_length` maps `FRAMESHIFT` to its own error type, a
    frameshift in the assembly, with words that say the model follows the
-   assembly and the assembly likely miscounts the run.
-7. Tests: a recorded window with a one-base insertion in a poly-A run gives
+   assembly and, when the strain's variant calls show no indel, that the assembly likely miscounts
+   the run.
+8. Tests: a recorded window with a one-base insertion in a poly-A run gives
    `FRAMESHIFT` at that run. A clean truncation with no frame change still
    gives `GENOME_ENCODES`.
 
