@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.experiment.paged_tally import GENOME_COLUMN
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.column_reads import ColumnSite, serve_columns
@@ -119,7 +120,7 @@ def _exported_details() -> WDKStrategyDetails:
 def _organisms(*counted: tuple[str, int]) -> ColumnCounts:
     return ColumnCounts(
         step_id=_EXPORTED,
-        column="organism",
+        column=GENOME_COLUMN,
         display_name="Organism",
         kind="string",
         total_records=sum(count for _, count in counted),
@@ -135,8 +136,8 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
     serve_columns(monkeypatch, ColumnSite({}, {}))
     server = ToolServer(
         counts=_organisms(
-            ("<i>Plasmodium falciparum</i> 3D7", 4179),
-            ("<i>Plasmodium falciparum</i> IT", 21),
+            ("Plasmodium falciparum 3D7", 4179),
+            ("Plasmodium falciparum IT", 21),
         )
     )
     serve(monkeypatch, TallySite(column_catalog(), step_count=4200), server)
@@ -153,7 +154,7 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
         ),
         requirement=f"organism:{_PF}",
     )
-    assert server.counted == [("plasmodb", _EXPORTED, "organism", 200)]
+    assert server.counted == [("plasmodb", _EXPORTED, GENOME_COLUMN, 200)]
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
         [SiteCheckGap(check=organism)],
@@ -165,7 +166,7 @@ async def test_an_organism_column_the_site_does_not_count_leaves_it_unchecked(
 ) -> None:
     serve_the_site(monkeypatch, _exported_details(), [column_catalog()])
     serve_columns(monkeypatch, ColumnSite({}, {}))
-    refused = ColumnNotCountedError(_EXPORTED, "organism", None, ("gene_type",))
+    refused = ColumnNotCountedError(_EXPORTED, GENOME_COLUMN, None, ("gene_type",))
     serve(
         monkeypatch,
         TallySite(column_catalog(), step_count=4200),
@@ -189,7 +190,7 @@ async def test_a_step_that_holds_only_the_selected_organism_passes(
     serve(
         monkeypatch,
         TallySite(column_catalog(), step_count=4200),
-        ToolServer(counts=_organisms(("<i>Plasmodium falciparum</i> 3D7", 4200))),
+        ToolServer(counts=_organisms(("Plasmodium falciparum 3D7", 4200))),
     )
 
     delta = await verify(monkeypatch, _exported_deps(), UNANSWERED_DIGEST)
