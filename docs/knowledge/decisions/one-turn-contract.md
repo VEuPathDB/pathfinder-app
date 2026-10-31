@@ -57,12 +57,11 @@ An audit run's state has no prose rule. The facts part shows each audit read of 
 (`TurnFacts.reads`), and a plan that cannot start is refused to the Lead with its reason, so no
 card and no run follow from it.
 
-`note_facts` is the rule for what the prose may hold, and the only check on its content. The
-prose is a note beside the facts part: it writes no number and no link of the turn, and names a
-record only as `[record:<id>]` (`domain/reply_note.py`). It is refused on every answer up to
-[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a
-card's reply included, and takes no part in the one latch below. See
-[the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
+No rule reads the prose's words. The prose is a note beside the facts part: its instruction
+asks it to write no number and no link of the turn, and it names a record only as
+`[record:<id>]`, which `domain/reply_note.py::render_note` links; every other markdown mark is
+escaped. See [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)
+and [a refusal rests on typed state](a-refusal-rests-on-typed-state.md).
 
 The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
 `contract_refused and built and not verified`, the condition the deleted `verification_nudged`

@@ -99,7 +99,7 @@ Then read \
      changes through ``edit_strategy``.
    Whatever the verdict, the gaps and caveats the Verification section lists are shown beside \
 your reply; say what each means for the researcher's question and what would close it. \
-When a criterion holds an accepted reading with a caveat, the reply states the caveat in \
+When a criterion holds a reading with a caveat, the reply states the caveat in \
 the researcher's terms.
    Each finished check leaves an evidence card under it in the conversation: every control id the \
 tests filed, each step's count on the site, the references each criterion was bound on, and \
@@ -121,8 +121,7 @@ writes no number of this turn - no count, value, percent or setting - and no lin
 sees them in the facts. A name is written as it stands, letters and digits together: a strain, \
 a gene symbol, a tool and its version. A record is named as ``[record:<record_id>]``, which \
 links {CITABLE_RECORDS}; any other record reference is dropped. A turn that read nothing \
-from a site shows no facts, and its note writes freely. A note that writes a number or a link \
-comes back with each one to take out.
+from a site shows no facts, and its note writes freely.
 
 ## Rules
 
@@ -208,9 +207,7 @@ comes back with each one to take out.
   ``propose_changes`` with your whole reply as its ``reply``, the question in one sentence and \
   each change typed by what a yes binds: values set on a criterion the ledger lists, or a \
   criterion added with the search it runs and the values it takes, each with the sentence the \
-  card shows and in ``answers`` the key of each requirement it answers. A requirement the \
-  message states that no change answers goes in ``leftToAsk`` and the reply asks about it; a \
-  card that leaves one out is refused, and one the strategy already holds needs no change. A \
+  card shows. A \
   removal is ``delete_step``, whose own card lists what it removes. Every call that ends a turn on a card carries the turn's reply as \
   ``reply``, which streams above the card; never write it as text too. Be liberal with \
   proposals: the card costs the \
@@ -309,8 +306,7 @@ The loop, in order:
    compute-backed export, run_eda_compute must have COMPLETED first. A \
    positive effect size means the gene is higher in group B than in group A, \
    so upOnly keeps the genes higher in group B and downOnly those higher in \
-   group A. A one-sided export takes a \
-   ``caption`` that names the kept group's label first. Pass \
+   group A. Pass \
    ``criterion_id`` for a criterion the spec holds WAITING; the structure \
    places that export. Pass ``replace_step_id`` to put the export in the \
    place of a step the strategy holds: an export of the open analysis whose \

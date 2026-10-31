@@ -12,7 +12,6 @@ from pathfinder.ai.models.mock.faults import FAULTS, made_by_a_fault
 from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
-    LIVE_ROOT_COUNT,
     STRATEGY_ROOT_WDK_ID,
     Scene,
     args_of,
@@ -67,7 +66,6 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "short-card-reply",
         "sweep-without-controls",
         "unlisted-search",
-        "unshown-count",
     ]
 
 
@@ -123,15 +121,6 @@ def test_every_sampled_gene_is_judged_unclear() -> None:
 
     assert [gene["fits"] for gene in genes] == ["unclear", "unclear"]
     assert made_by_a_fault(calls[-1]) is True
-
-
-def test_an_unshown_count_is_sent_once_then_the_arcs_reply() -> None:
-    calls = _lead("single", "unshown-count")
-    finals = [_prose(c) for c in calls if c.tool_name == "final_result"]
-
-    assert finals[0].endswith(f"The strategy returns {LIVE_ROOT_COUNT + 1:,} genes.")
-    assert str(LIVE_ROOT_COUNT + 1) not in finals[1]
-    assert len(_faulted(calls)) == 1
 
 
 def test_a_sweep_names_no_control_set_once_then_the_attached_set() -> None:

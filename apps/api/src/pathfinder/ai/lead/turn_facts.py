@@ -320,7 +320,6 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     )
     gaps = _gaps(deps, ledger)
     return TurnFacts(
-        request_messages=said,
         record_noun=noun,
         steps=built or _draft_steps(spec, said),
         draft=not built,

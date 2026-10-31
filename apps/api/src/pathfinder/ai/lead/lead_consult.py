@@ -39,7 +39,7 @@ from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     requirement_choices,
 )
-from pathfinder.domain.strategy.readings import ReadValues
+from pathfinder.domain.strategy.readings import ReadingChooser, ReadValues
 from pathfinder.domain.strategy.requirement_lifecycle import (
     stood_in_for,
 )
@@ -104,7 +104,9 @@ def _apply(
                 expressions=domain.built_expressions,
             )
             domain.operational_spec = spec_with_reading(
-                bound, read.criterion_id, read.accepted()
+                bound,
+                read.criterion_id,
+                read.accepted(ReadingChooser.RESEARCHER_ON_A_CARD),
             )
         case Withdraw(constraint_id=key):
             domain.withdraw(c for c in domain.requirements if c.key == key)
@@ -145,6 +147,7 @@ def apply_option_bindings(
             if option is not None:
                 _apply(state, option, sheets)
             elif label in readings:
+                domain.pick_reading(label)
                 words.append(label)
             elif label not in labels.get(answer.prompt, set()):
                 domain.record_request_text(label)

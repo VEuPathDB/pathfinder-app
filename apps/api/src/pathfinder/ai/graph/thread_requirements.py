@@ -70,10 +70,15 @@ class ThreadRequirements(BaseModel):
     # requirement on the same dimension replaces one.
     recommendations: list[Constraint] = Field(default_factory=list)
     named_readings: list[ChosenReading] = Field(default_factory=list)
+    picked_readings: list[str] = Field(default_factory=list)
 
     def name_reading(self, reading: ChosenReading | None) -> None:
         if reading is not None and reading not in self.named_readings:
             self.named_readings.append(reading)
+
+    def pick_reading(self, label: str) -> None:
+        if label not in self.picked_readings:
+            self.picked_readings.append(label)
 
     def reading_labels(self) -> list[str]:
         return list(

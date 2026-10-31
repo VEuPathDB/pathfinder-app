@@ -122,4 +122,3 @@ async def test_the_facts_beside_the_reply_ask_for_more_controls() -> None:
             ],
         )
     ]
-    assert facts.holds_site_data()

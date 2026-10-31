@@ -165,9 +165,6 @@ three typed lists, and the evidence card carries the same review.
 `review_held_to_the_turn` (`ai/lead/verify_review.py`) runs on every returned
 digest before the verdict is recorded:
 
-- Each stated combination the structure breaks (`first_combination_violation`,
-  run per requirement) is an `unmet` structure row, and replaces a checker's row
-  about the same criteria.
 - Each word of `Criterion.unexpressed_qualifiers` is an `unexpressed` row; a row
   that names the word and calls it met is corrected.
 - A sampled gene stands only when a `read_gene_record` of this turn read its
@@ -206,8 +203,7 @@ verdict on the strategy as its own sentence, and each column fit
 (`ai/lead/turn_facts.py`, see
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)).
 The reply says what each means for the question and restates none of their
-numbers; the turn contract's `note_facts` refuses a note that writes
-one. A caveat is a measurement the runtime reads from the records: a value
+numbers. A caveat is a measurement the runtime reads from the records: a value
 the checker writes is never one. A computed check short of the request is a
 gap row of its own.
 

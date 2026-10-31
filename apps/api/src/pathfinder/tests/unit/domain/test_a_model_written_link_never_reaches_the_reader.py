@@ -3,7 +3,7 @@ import re
 import pytest
 
 from pathfinder.domain.read_facts import ReadFact, ReadRow, read_fact
-from pathfinder.domain.reply_note import linked_records, note_facts, render_note
+from pathfinder.domain.reply_note import linked_records, render_note
 from pathfinder.domain.statistic_facts import StatisticFact, StatisticRowFact
 from pathfinder.domain.turn_facts import SourceFact, TurnFacts
 from pathfinder.domain.written_links import written_links
@@ -48,7 +48,7 @@ def test_a_record_the_turn_does_not_hold_renders_no_link() -> None:
     assert (linked_records(rendered), rendered) == ([], "Compare it with\\.")
 
 
-def test_the_links_a_note_writes_are_found_for_its_correction() -> None:
+def test_every_link_shape_a_text_writes_is_found() -> None:
     note = (
         "See [it](&#104;ttps://evil.example/x), https:\\\\evil.com, "
         "javascript:alert(1) and <mailto:a@example.org>."
@@ -59,12 +59,6 @@ def test_the_links_a_note_writes_are_found_for_its_correction() -> None:
         "mailto:a@example.org",
         "https:\\\\evil.com",
         "javascript:alert(1)",
-    ]
-
-
-def test_a_note_with_no_site_data_still_writes_no_link() -> None:
-    assert note_facts("See www.example.org and 14 chromosomes.", TurnFacts()) == [
-        "www.example.org"
     ]
 
 

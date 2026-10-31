@@ -72,11 +72,7 @@ def test_the_deps_carry_the_turns_thread_site_and_message() -> None:
         user_id,
         state.conversation_id,
     )
-    assert (deps.request, deps.origin, deps.tool_sources) == (
-        "How far is the audit?",
-        "auditor",
-        None,
-    )
+    assert (deps.origin, deps.tool_sources) == ("auditor", None)
 
 
 async def test_a_research_read_of_the_turns_source_is_a_read_a_verdict_may_cite() -> (

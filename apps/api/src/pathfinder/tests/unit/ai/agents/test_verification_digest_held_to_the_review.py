@@ -78,18 +78,6 @@ async def _verified(
     return result.output, script.retries
 
 
-async def test_a_count_the_sample_does_not_hold_is_corrected_once() -> None:
-    review = {"sampledGenes": [_gene(_READ[0], "yes"), _gene(_READ[1], "no")]}
-
-    _digest_out, retries = await _verified("All 2 sampled genes fit.", review)
-
-    assert len(retries) == 1
-    assert (
-        "The reply says all 2 sampled genes fit; the check sampled 2 genes: 1 fit, "
-        "1 do not fit (`PF3D7_0935800`), 0 unclear."
-    ) in retries[0]
-
-
 async def test_a_gene_whose_record_no_read_returned_is_refused() -> None:
     review = {"sampledGenes": [_gene("PF3D7_1133400", "yes")]}
 

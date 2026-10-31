@@ -10,11 +10,9 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai.messages import (
     ModelMessage,
-    ModelRequest,
     ModelResponse,
     TextPart,
     ToolCallPart,
-    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
@@ -39,10 +37,6 @@ from pathfinder.tests.unit.ai.graph._approval_turn import (
 __all__ = ["writer"]
 
 SEARCH = "Orthology Phylogenetic Profile"
-RESTATES_A_COUNT = (
-    "The strategy now returns 4 genes, and the check found two limitations. "
-    "I can tighten both."
-)
 POINTS_AT_THE_FACTS = (
     f"I added {SEARCH} for the syntenic orthologs, and the check found two "
     "limitations; the counts are shown beside this reply. I can tighten both."
@@ -191,35 +185,6 @@ def _cards_on_the_wire(writer: Collector) -> list[str]:
     ]
 
 
-async def test_a_card_whose_reply_restates_a_count_is_asked_once(
-    writer: Collector, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    seen, capture = await _built_turn_ending_on_a_card(
-        monkeypatch, writer, [RESTATES_A_COUNT, POINTS_AT_THE_FACTS]
-    )
-
-    assert len(seen) == 2
-    denials = [
-        str(part.content)
-        for message in seen[1]
-        if isinstance(message, ModelRequest)
-        for part in message.parts
-        if isinstance(part, ToolReturnPart) and part.tool_call_id == "call_card_0"
-    ]
-    assert len(denials) == 1
-    denial = denials[0]
-    assert "This reply does not match what the turn did:" in denial
-    assert "``4``" in denial
-    assert capture.pending_approval is not None
-    assert capture.pending_approval.tool_call_id == "call_card_1"
-    assert _written_text(writer) == plain_markdown(POINTS_AT_THE_FACTS)
-    assert _cards_on_the_wire(writer) == ["call_card_1"]
-    assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
-        "call_card_1"
-    ]
-    assert writer.chunks_of("tool-output-denied") == []
-
-
 async def test_a_card_whose_reply_matches_the_turn_parks_in_one_run(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -259,16 +224,6 @@ def _asked(call_id: str) -> list[tuple[str, str]]:
     ]
 
 
-def _returns_to(messages: list[ModelMessage], call_id: str) -> list[str]:
-    return [
-        str(part.content)
-        for message in messages
-        if isinstance(message, ModelRequest)
-        for part in message.parts
-        if isinstance(part, ToolReturnPart) and part.tool_call_id == call_id
-    ]
-
-
 async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -295,30 +250,6 @@ async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
         < wire.index(f"tool-approval-request:{DELETE}")
     )
     assert _written_text(writer) == plain_markdown(POINTS_AT_THE_FACTS + DELETE_REPLY)
-
-
-async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
-    writer: Collector, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    seen: list[list[ModelMessage]] = []
-    monkeypatch.setattr(
-        _lead_model,
-        "get_mock_model",
-        lambda: _card_beside_a_delete(RESTATES_A_COUNT, seen),
-    )
-    state = _built_state()
-
-    capture = await drive_lead(state=state, deps=_built_deps(state), writer=writer)
-
-    assert len(seen) == 2
-    for call_id in (CARD, DELETE):
-        correction = _returns_to(seen[1], call_id)
-        assert len(correction) == 1
-        assert "``4``" in correction[0]
-    on_the_wire = {call_id for _, call_id in _calls_on_the_wire(writer)}
-    assert on_the_wire.isdisjoint({CARD, DELETE})
-    assert _written_text(writer) == ""
-    assert capture.pending_approval is None
 
 
 async def test_the_facts_are_written_once_before_the_reply_the_card_carries(

@@ -10,7 +10,7 @@ from typing import Any, Literal
 from assistant_core.models.scripted import scripted_call, terminal_call
 from pydantic_ai.messages import ToolCallPart
 
-from pathfinder.domain.reply_note import written_numbers
+from pathfinder.ai.models.mock.numbers import written_numbers
 
 LeadTurnState = Literal["await_user", "complete"]
 

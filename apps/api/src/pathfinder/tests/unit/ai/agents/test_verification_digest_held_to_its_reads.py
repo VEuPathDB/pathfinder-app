@@ -128,18 +128,6 @@ def test_a_source_no_read_returned_is_refused() -> None:
     )
 
 
-def test_a_sample_count_the_sample_does_not_hold_is_refused() -> None:
-    delta = _delta(
-        "**2** of 2 sampled genes fit.",
-        sampledGenes=[_gene(_READ_GENE, "yes")],
-    )
-
-    assert _refusal(delta).startswith(
-        "The reply says 2 of 2 sampled genes fit; the check sampled 1 genes: 1 fit, "
-        "0 do not fit, 0 unclear."
-    )
-
-
 _UNREAD = WithheldEvidence(
     kind="sampled_gene",
     sentence=(

@@ -1,6 +1,5 @@
-"""A typeahead pick binds the entry whose label is the looked-up term alone when
-the lookup matched one, and binds no entry the site labels obsolete unless the
-request says obsolete."""
+"""A typeahead pick binds no entry the site labels obsolete unless the request
+says obsolete."""
 
 from __future__ import annotations
 
@@ -85,69 +84,6 @@ _NARROWER_REFUSED = (
     "Bind the exact entry alone; the others state a narrower or related "
     "question, unless the request names them."
 )
-
-
-def test_a_narrower_pick_without_the_exact_term_is_refused() -> None:
-    with pytest.raises(ModelRetry) as refused:
-        _immune(["GO:0002250"])
-
-    assert refused.value.message == _NARROWER_REFUSED
-
-
-def test_the_exact_term_with_a_narrower_one_is_refused() -> None:
-    with pytest.raises(ModelRetry) as refused:
-        _immune(["GO:0006955", "GO:0002250"])
-
-    assert refused.value.message == _NARROWER_REFUSED
-
-
-def test_the_exact_term_alone_binds() -> None:
-    assert _immune(["GO:0006955"]) == ["GO:0006955"]
-
-
-def test_a_narrower_pick_written_out_binds_beside_the_exact_term() -> None:
-    assert _immune(
-        ["GO:0006955", "GO:0002250"],
-        "Genes for immune response, and for adaptive immune response.",
-    ) == ["GO:0006955", "GO:0002250"]
-
-
-def test_an_entry_another_term_matched_is_untouched() -> None:
-    state = _state("Genes for immune response.", "immune response", ["GO:0006955"])
-    state.record_lookup(
-        _GO,
-        _PARAM,
-        VocabLookup(
-            terms=["adaptive immunity"],
-            matches=[
-                PhrasingMatch(
-                    term="adaptive immunity",
-                    phrasing="adaptive immunity",
-                    reach="phrase",
-                    values=["GO:0002250"],
-                )
-            ],
-        ),
-    )
-
-    assert _bind(state, "immune response", ["GO:0006955", "GO:0002250"]) == [
-        "GO:0006955",
-        "GO:0002250",
-    ]
-
-
-def test_a_narrower_pick_the_request_writes_out_binds() -> None:
-    assert _immune(["GO:0002250"], "Genes for adaptive immune response.") == [
-        "GO:0002250"
-    ]
-
-
-def test_a_pick_binds_when_no_entry_is_the_exact_term() -> None:
-    state = _state(
-        "Genes for innate immunity.", "innate immunity", ["GO:0002218", "GO:0002250"]
-    )
-
-    assert _bind(state, "innate immunity", ["GO:0002218"]) == ["GO:0002218"]
 
 
 def _glycosylation(picks: list[str], message: str) -> list[str]:

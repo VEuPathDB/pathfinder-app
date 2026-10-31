@@ -1,6 +1,6 @@
 """A reason records the values it was derived from. An edit that changes one of
 them records the edit's own why, or asks for one; an edit that changes none, or
-only an organism the reason does not name, keeps the reason."""
+only an organism, keeps the reason."""
 
 from __future__ import annotations
 
@@ -97,13 +97,25 @@ def _served(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_value_edit_records_its_own_why_when_the_kept_reason_names_the_old_value() -> (
-    None
-):
-    new_reason = (
-        "Search Plasmodium falciparum 3D7 for the literal rhoptry annotation in "
-        "product-description fields."
-    )
+async def test_a_value_edit_with_no_why_is_refused() -> None:
+    state = _state()
+
+    with pytest.raises(ModelRetry) as refusal:
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=_EDIT | {"text_expression": '"rhoptry protein"'},
+        )
+
+    assert "Pass a why for the values this call binds" in str(refusal.value)
+    [criterion] = state.operational_spec_draft.criteria
+    assert criterion.rationale == _HELD
+
+
+@pytest.mark.asyncio
+async def test_an_organism_edit_keeps_a_reason_that_names_the_old_organism() -> None:
     state = _state()
 
     result = returned(
@@ -113,45 +125,18 @@ async def test_a_value_edit_records_its_own_why_when_the_kept_reason_names_the_o
             text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
             search_name=_TEXT.url_segment,
             params=dict(_EDIT),
-            why=choice("parameter", "Text term (use * as wildcard)", new_reason),
         ),
         SetCriterionResult,
     )
 
     assert result.rationale is not None
-    assert (result.rationale.reason, result.rationale.sources) == (new_reason, [])
-    assert (result.rationale.tool_call_id, result.rationale.query) == (
-        "call_turn1_read",
-        "rhoptry annotation",
+    assert (
+        result.rationale.reason,
+        result.rationale.derived_from["text_search_organism"],
+    ) == (
+        _HELD.reason,
+        '["Plasmodium falciparum 3D7"]',
     )
-    [criterion] = state.operational_spec_draft.criteria
-    assert criterion.rationale == result.rationale
-    assert "Apicomplexa" not in result.rationale.sentence
-
-
-@pytest.mark.asyncio
-async def test_a_value_edit_with_no_why_is_refused_naming_the_values_it_changes() -> (
-    None
-):
-    state = _state()
-
-    with pytest.raises(ModelRetry) as refusal:
-        await set_criterion(
-            frame_ctx(state),
-            criterion_id="step_2381d896",
-            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
-            search_name=_TEXT.url_segment,
-            params=dict(_EDIT),
-        )
-
-    assert str(refusal.value) == (
-        "step_2381d896: its reason was derived from text_search_organism "
-        '["Apicomplexa"], which this edit changes, so the reason no longer holds: '
-        f"'{_HELD.sentence}'. Pass a why for the values this call binds. Nothing "
-        "was recorded."
-    )
-    [criterion] = state.operational_spec_draft.criteria
-    assert criterion.rationale == _HELD
 
 
 @pytest.mark.asyncio
@@ -175,35 +160,6 @@ async def test_an_edit_s_why_is_recorded_though_the_kept_reason_names_no_value()
             text="Genes annotated as rhoptry proteins",
             search_name=_TEXT.url_segment,
             params=_EDIT | {"text_expression": '"rhoptry protein"'},
-            why=choice("parameter", "Text term (use * as wildcard)", new_reason),
-        ),
-        SetCriterionResult,
-    )
-
-    assert result.rationale is not None
-    assert result.rationale.reason == new_reason
-
-
-@pytest.mark.asyncio
-async def test_a_reason_is_derived_again_whatever_spelling_the_strategy_holds() -> None:
-    """The step holds the site's leaf list; the reason was derived from the node."""
-    state = _state()
-    criterion = state.operational_spec_draft.criteria[0]
-    criterion.resolved_params["text_search_organism"] = BoundValue(
-        value=MultiPickValue(
-            values=["Plasmodium falciparum 3D7", "Toxoplasma gondii ME49"]
-        ),
-        source="stated",
-    )
-    new_reason = "Search Plasmodium falciparum 3D7 alone for the rhoptry annotation."
-
-    result = returned(
-        await set_criterion(
-            frame_ctx(state),
-            criterion_id="step_2381d896",
-            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
-            search_name=_TEXT.url_segment,
-            params=dict(_EDIT),
             why=choice("parameter", "Text term (use * as wildcard)", new_reason),
         ),
         SetCriterionResult,

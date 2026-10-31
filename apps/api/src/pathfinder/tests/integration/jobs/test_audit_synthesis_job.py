@@ -194,12 +194,12 @@ async def test_the_synthesis_carries_the_review_agreement(
     )
     retries: list[RetryPromptPart] = []
     ids = list(stored.values())
-    written = "The review keeps every truncated model as an error."
+    written = "80% of the findings were kept"
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
         retries.extend(retry_prompt_parts(messages))
-        summary = written if retries else "80% of the findings were kept"
+        summary = written
         section = {
             "errorType": "truncated_model",
             "cause": "The models stop early.",
@@ -216,8 +216,7 @@ async def test_the_synthesis_carries_the_review_agreement(
 
     await work_reviews(jobs)
 
-    (retry,) = retries
-    assert "80" in str(retry.content)
+    assert retries == []
     run = await _read_run(app, owner, run_id)
     assert run["synthesis"]["agreement"] == {"sampled": 3, "agreed": 2, "share": 0.667}
     assert (run["synthesis"]["summary"], run["synthesis"]["headline"]) == (written, ids)

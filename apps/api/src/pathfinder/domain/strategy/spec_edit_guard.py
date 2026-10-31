@@ -21,7 +21,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.step_naming import states_the_wire_form
 
 __all__ = [
     "JoinContradiction",
@@ -134,9 +133,9 @@ def new_join_contradiction(
 def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]:
     """The parameter values this criterion holds because the user stated them.
 
-    A value is stated when the criterion's own words carry it, or when a
-    requirement the user stated grounds onto it. Every other value is the
-    model's or the search's own, and an edit may change it.
+    A value is stated when a requirement the user stated grounds onto it.
+    Every other value is the model's or the search's own, and an edit may
+    change it.
     """
     grounded = {
         (g.realized_param, g.realized_value)
@@ -149,7 +148,7 @@ def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]
     found: dict[str, str] = {}
     for name, value in criterion.param_values.items():
         wire = to_wire(value)
-        if (name, wire) in grounded or states_the_wire_form(criterion.text, wire):
+        if (name, wire) in grounded:
             found[name] = wire
     return found
 

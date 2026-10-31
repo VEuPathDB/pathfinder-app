@@ -38,17 +38,13 @@ records the last card on `ExtractedVerification.evidence`, its texts redacted.
 
 ## The grounding rule
 
-`ai/lead/evidence_claims.py` reads two kinds of claim from prose: a control count ("7 of 10
-positive controls", "0/12 negatives") and a backticked control gene id inside a clause that
-says the target returned it or not. A count names controls ("positive controls",
-"negatives"), and the clause's verb says which list it is read from; a clause with no verb may
-name either. A claim is backed when a control result of this message holds it (a control test,
-a scored comparison variant, a sweep setting) or the last check's card does, while the
-strategy is the one that check judged. VERIFY's digest (prose, key findings) is held by an
-output validator on the verification agent, once per check (`TurnMarkers.refused_digests`,
-keyed by the dispatch), refused once with the recorded values in the correction. The Lead's
-reply states no control result at all: the facts part beside it shows each result of the turn,
-and `note_facts` refuses a note that writes a count itself.
+The card and the facts part show every control count and control gene id from the typed
+evidence, so no check reads VERIFY's prose or the Lead's reply for them. VERIFY's output
+validator holds only typed parts of its review to the reads of the turn: a sampled gene whose
+record no `read_gene_record` call returned and a source no read returned are refused once per
+check (`TurnMarkers.refused_digests`, keyed by the dispatch), then dropped from the review and
+recorded as withheld (`ai/agents/verification_digest.py`). The Lead's instruction asks its reply
+to restate no control result.
 
 ## The workbench
 
@@ -77,4 +73,4 @@ numbers from two computations, and eight of its panels re-implemented what the s
 
 `tests/live/test_evidence_card_live.py` builds a step on plasmodb, runs a control test of 25
 positives and 32 negatives on it and assembles a card: every list, count and link must equal
-what the site returned. `tests/unit/ai/lead/test_evidence_claims.py` holds the parser.
+what the site returned.

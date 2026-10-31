@@ -26,6 +26,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.question_options import OptionBinding, SetValues
 from pathfinder.domain.strategy.questions import OpenQuestion
+from pathfinder.domain.strategy.reading_choices import CHOSEN_BY, VALUE_SET_BY
 from pathfinder.domain.strategy.readings import ReadValues
 
 # The most values one question card offers.
@@ -137,14 +138,16 @@ def _render_criterion(
         out.append(f"    WHY {reason.line()}")
     out.extend(
         f"    {crit.display_name_of(name)} ({name}) = {shown_value(name, bound.value)} "
-        f"({bound.source})"
+        f"({VALUE_SET_BY[bound.source]})"
         for name, bound in crit.shown_values.items()
     )
     out.extend(
         f"    MEASURED {clause}" for clause in measurement_clauses(crit, noun=noun)
     )
     if (held := crit.held_reading) is not None:
-        out.append(f"    READING the researcher accepted: {reading_line(crit, held)}")
+        out.append(
+            f"    READING {CHOSEN_BY[held.chosen_by]}: {reading_line(crit, held)}"
+        )
     out.extend(
         f"    OPEN {s.param_name}: {_asked(s, questions)}" for s in crit.open_params
     )

@@ -15,7 +15,6 @@ from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_NOTE
 from pathfinder.ai.lead.contract_messages import (
     eda_criterion_not_built_message,
-    note_facts_message,
     off_topic_essay_message,
     unclassified_turn_message,
     unsaved_controls_message,
@@ -29,7 +28,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
-from pathfinder.domain.reply_note import note_facts
 from pathfinder.domain.strategy.questions import AskedQuestion
 
 LeadTurnState = Literal["await_user", "complete"]
@@ -37,7 +35,6 @@ LeadTurnState = Literal["await_user", "complete"]
 # An out-of-scope reply is a redirect, and a redirect is two sentences.
 OFF_TOPIC_REPLY_MAX_CHARS = 400
 _ASKED_LIMIT = 8
-_CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
 
@@ -81,7 +78,6 @@ MismatchKind = Literal[
     "unclassified_turn",
     "unsaved_controls",
     "off_topic_essay",
-    "note_facts",
     "unfollowed_reach",
     "unmet_requirement",
     "unplanned_audit",
@@ -160,8 +156,7 @@ def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
     """An out-of-scope turn reaches no tool, so the prose is the only cost."""
     if not record.off_topic:
         return None
-    prose = report.prose
-    if _CODE_FENCE not in prose and len(prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
+    if len(report.prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
         return None
     return off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS)
 
@@ -206,42 +201,21 @@ def reconcile(report: LeadResponse, record: TurnRecord) -> list[Mismatch]:
     ]
 
 
-def facts_in_the_note(replies: Sequence[str], record: TurnRecord) -> Mismatch | None:
-    written = list(
-        dict.fromkeys(t for text in replies for t in note_facts(text, record.facts))
-    )
-    if not written:
-        return None
-    return Mismatch(kind="note_facts", sentence=note_facts_message(written))
-
-
 def to_correct(
-    ctx: RunContext[LeadDeps],
-    report: LeadResponse,
-    record: TurnRecord,
-    replies: Sequence[str],
+    ctx: RunContext[LeadDeps], report: LeadResponse, record: TurnRecord
 ) -> list[Mismatch]:
-    """The mismatches one answer is corrected for. Each of ``replies`` is read
-    whole for the facts it writes on a bound of its own; every other mismatch
-    is corrected once per turn. An answer let through with a mismatch marks the
-    turn's reply as unchecked."""
+    """The mismatches one answer is corrected for, each once per turn. An
+    answer let through with a mismatch marks the turn's reply as unchecked."""
     markers = ctx.deps.state.turn_markers
-    written = facts_in_the_note(replies, record)
     found = [
         m for m in reconcile(report, record) if m.kind not in markers.refused_rules
     ]
-    note_asked = written is not None and may_refuse(ctx, markers.prose_refusals)
-    rules_asked = bool(found) and may_refuse(ctx, markers.output_refusals)
-    asked = [*([written] if written is not None and note_asked else []), *found]
-    if note_asked or rules_asked:
-        if note_asked:
-            markers.prose_refusals += 1
-        if rules_asked:
-            markers.output_refusals += 1
-            markers.refused_rules.extend(m.kind for m in found)
-            markers.contract_refused = True
-        return asked if rules_asked else asked[:1]
-    if written is not None or reconcile(report, record):
+    if found and may_refuse(ctx, markers.output_refusals):
+        markers.output_refusals += 1
+        markers.refused_rules.extend(m.kind for m in found)
+        markers.contract_refused = True
+        return found
+    if reconcile(report, record):
         markers.unchecked_reply = True
     return []
 
@@ -252,13 +226,12 @@ def hold_the_turn_contract(
 ) -> LeadResponse | DeferredToolRequests:
     """Refuse an answer of a turn that does not match the turn's record.
 
-    One correction carries every mismatch. A note that writes a link or a
-    number is refused up to its own bound, then shown marked unchecked. Every
-    other mismatch is asked once per turn.
+    One correction carries every mismatch, and each mismatch is asked once
+    per turn.
     """
     if not isinstance(output, LeadResponse):
         return output
-    mismatches = to_correct(ctx, output, turn_record(ctx), [output.prose])
+    mismatches = to_correct(ctx, output, turn_record(ctx))
     if mismatches:
         raise ModelRetry(correction_for(mismatches))
     return output

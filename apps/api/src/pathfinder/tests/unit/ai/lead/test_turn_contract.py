@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
-    LeadResponse,
-    facts_in_the_note,
     reconcile,
 )
 from pathfinder.ai.lead.turn_record import turn_record
@@ -184,14 +181,9 @@ class TestTheOffTopicEssayRule:
     def test_the_cap_on_an_out_of_scope_reply_is_four_hundred_characters(self) -> None:
         assert OFF_TOPIC_REPLY_MAX_CHARS == 400
 
-    def test_a_reply_that_writes_code_is_a_mismatch(self) -> None:
-        mismatches = reconcile(
-            reply(WITH_CODE),
-            turn_record(run_context_for(off_topic_deps())),
-        )
-
-        assert [m.kind for m in mismatches] == ["off_topic_essay"]
-        assert "code" in mismatches[0].sentence
+    def test_a_short_reply_that_writes_code_stands(self) -> None:
+        assert len(WITH_CODE) <= OFF_TOPIC_REPLY_MAX_CHARS
+        assert kinds(off_topic_deps(), reply(WITH_CODE)) == []
 
     def test_a_reply_over_the_cap_is_a_mismatch(self) -> None:
         assert len(AN_ESSAY) > OFF_TOPIC_REPLY_MAX_CHARS
@@ -212,25 +204,3 @@ class TestTheOffTopicEssayRule:
         deps = off_topic_deps(IntentClassification.FOLLOW_UP_QUESTION)
 
         assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []
-
-
-_RECORD_URL = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460"
-
-
-def _unrendered(deps: LeadDeps, report: LeadResponse) -> list[str]:
-    found = facts_in_the_note([report.prose], turn_record(run_context_for(deps)))
-    return [] if found is None else [found.kind]
-
-
-class TestTheLinksTheReplyGives:
-    def test_a_link_in_the_prose_is_refused(self) -> None:
-        deps = reading_deps()
-        deps.state.turn_markers.record_retrieved_source(_RECORD_URL)
-        report = reply(f"The [gene record]({_RECORD_URL}) states its exons.")
-
-        assert _unrendered(deps, report) == ["note_facts"]
-
-    def test_a_doi_in_the_prose_is_refused(self) -> None:
-        report = reply("See doi:10.1000/invented.2026.99 for the review.")
-
-        assert _unrendered(reading_deps(), report) == ["note_facts"]

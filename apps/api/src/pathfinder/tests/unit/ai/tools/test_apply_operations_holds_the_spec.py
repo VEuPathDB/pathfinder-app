@@ -11,7 +11,6 @@ from uuid import uuid4
 import pytest
 from pydantic import JsonValue, ValidationError
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -31,7 +30,6 @@ from pathfinder.domain.strategy.operations import (
     GraphOperation,
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
-    UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
@@ -40,7 +38,6 @@ from pathfinder.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
 )
-from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
@@ -231,41 +228,6 @@ class TestABatchTheSpecContradicts:
         assert payload["applied"] == 2
         assert graph.steps["step_c2"].operator == CombineOp.UNION
         assert stub_api.named("create_combined_step") != []
-
-    async def test_a_value_the_criterion_states_is_refused(
-        self, stub_api: StubAPI
-    ) -> None:
-        deps = self._deps_with_structure()
-        criterion = next(
-            c
-            for c in deps.agent_state.operational_spec_draft.criteria
-            if c.id == "step_k1"
-        )
-        criterion.text = "the kinase PF3D7_1133400"
-        criterion.resolved_params = bound(
-            {
-                "gene_id": StringValue(value="PF3D7_1133400"),
-            }
-        )
-        graph = deps.strategy_session.graph
-        assert graph is not None
-        revision = strategy_revision(graph.to_strategy_ast())
-
-        with pytest.raises(ModelRetry) as excinfo:
-            await apply_operations(
-                ctx(deps),
-                revision,
-                [
-                    UpdateStepParamsOp(
-                        step_id="step_k1",
-                        parameters={"gene_id": StringValue(value="PF3D7_0930300")},
-                    )
-                ],
-            )
-
-        assert "set_criterion" in str(excinfo.value)
-        assert graph.steps["step_k1"].parameters == {}
-        assert stub_api.calls == []
 
 
 class TestTheCommitService:

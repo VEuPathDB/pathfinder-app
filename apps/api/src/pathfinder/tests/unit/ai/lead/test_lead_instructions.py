@@ -83,7 +83,6 @@ def test_the_eda_section_states_the_sign_of_the_effect_size_by_group() -> None:
     ]
     assert "positive effect size means the gene is higher in group B" in eda_section
     assert "upOnly keeps the genes higher in group B" in eda_section
-    assert "``caption`` that names the kept group's label first" in eda_section
 
 
 def test_the_eda_loop_ends_with_verification() -> None:

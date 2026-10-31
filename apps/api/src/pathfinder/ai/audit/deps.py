@@ -25,8 +25,6 @@ FINDINGS_PER_CALL = 25
 class AuditDeps(AssistantDeps):
     origin: VerdictOrigin = "auditor"
     tool_sources: SkipValidation[AbstractToolset[Any]] | None = None
-    request: str = ""
-    reply_refusals: int = 0
     reads: set[str] = Field(default_factory=set)
     facts: list[StatisticFact] = Field(default_factory=list)
     records: list[ReadRecord] = Field(default_factory=list)
@@ -67,9 +65,8 @@ class AuditDeps(AssistantDeps):
     def held_reads(self) -> frozenset[str]:
         return frozenset(self.reads)
 
-    def turn_facts(self, request: str) -> TurnFacts:
+    def turn_facts(self) -> TurnFacts:
         return TurnFacts(
             reads=[read_fact(fact) for fact in self.facts],
             sources=[record.source_fact() for record in self.records],
-            request_messages=[request] if request else [],
         )

@@ -4,8 +4,6 @@ recorded whole by the intent gate and the arc goes on."""
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 from pydantic_ai.messages import ToolCallPart
 
@@ -14,7 +12,6 @@ from pathfinder.ai.lead.intent import ClassifiedIntent, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.turn_contract import (
     LeadResponse,
-    facts_in_the_note,
     reconcile,
 )
 from pathfinder.ai.lead.turn_record import turn_record
@@ -24,7 +21,6 @@ from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
-    building_deps,
     reading_deps,
 )
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -37,7 +33,6 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
     SHEET_ORGANISMS,
     Scene,
     args_of,
-    built_thread,
     names,
     play,
 )
@@ -61,21 +56,6 @@ def _finals(calls: list[ToolCallPart]) -> list[LeadResponse]:
         for call in calls
         if call.tool_name == "final_result"
     ]
-
-
-def test_a_written_count_is_refused_then_the_reply_writes_none() -> None:
-    scene = replace(built_thread(), faulted={"final_result": _REFUSED})
-    calls = play("lead", _SITE, _token("single", "unshown-count"), scene=scene)
-    wrong, right = _finals(calls)
-    record = turn_record(run_context_for(building_deps()))
-    refused = facts_in_the_note([wrong.prose], record)
-
-    assert (None if refused is None else refused.kind) == "note_facts"
-    assert (facts_in_the_note([right.prose], record), reconcile(right, record)) == (
-        None,
-        [],
-    )
-    assert len(_faulted(calls)) == 1
 
 
 @pytest.mark.parametrize("site_id", SITES)

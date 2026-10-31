@@ -4,6 +4,7 @@ reading the researcher accepted for a criterion."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
@@ -34,6 +35,11 @@ def why_no_readings(
     return ""
 
 
+class ReadingChooser(StrEnum):
+    RESEARCHER_ON_A_CARD = "researcher_on_a_card"
+    ASSISTANT = "assistant"
+
+
 class Reading(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -53,9 +59,10 @@ class ReadValues(CamelModel):
     replaces: list[str] = Field(default_factory=list)
     names_no_requirement: bool = False
 
-    def accepted(self) -> AcceptedReading:
+    def accepted(self, chosen_by: ReadingChooser) -> AcceptedReading:
         return AcceptedReading(
             reading=self.reading,
+            chosen_by=chosen_by,
             caveat=self.caveat,
             params=self.params,
             replaces=self.replaces,
@@ -72,6 +79,7 @@ class AcceptedReading(CamelModel):
     replaces: list[str] = Field(default_factory=list)
     names_no_requirement: bool = False
     stand_in: str = ""
+    chosen_by: ReadingChooser = ReadingChooser.ASSISTANT
 
     def unbound(self, values: Mapping[str, ParamValue]) -> list[str]:
         return [

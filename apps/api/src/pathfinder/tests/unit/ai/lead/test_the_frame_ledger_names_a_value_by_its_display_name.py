@@ -64,13 +64,13 @@ def test_each_value_line_names_the_display_name_and_the_readable_value() -> None
     lines = render_frame_full(_section()).splitlines()
 
     assert (
-        "    Minimum expression percentile (min_expression_percentile) = 80 (default)"
-        in lines
-    )
+        "    Minimum expression percentile (min_expression_percentile) = 80 "
+        "(the site's default)"
+    ) in lines
     assert (
-        "    Samples (samples_percentile_generic) = asexual blood stages (stated)"
-        in lines
-    )
+        "    Samples (samples_percentile_generic) = asexual blood stages "
+        "(stated by the researcher)"
+    ) in lines
 
 
 def test_a_parameter_the_site_does_not_show_has_no_value_line() -> None:

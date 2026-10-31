@@ -20450,6 +20450,10 @@
             "default": "",
             "title": "Standin",
             "type": "string"
+          },
+          "chosenBy": {
+            "$ref": "#/components/schemas/ReadingChooser",
+            "default": "assistant"
           }
         },
         "required": [
@@ -20488,14 +20492,6 @@
             "description": "Each parameter the search takes a stated value for, by name.",
             "title": "Params",
             "type": "object"
-          },
-          "answers": {
-            "description": "The key of each requirement this change answers, copied from the key the Constraints section lists for it.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Answers",
-            "type": "array"
           }
         },
         "required": [
@@ -22686,14 +22682,6 @@
             "maxItems": 8,
             "minItems": 1,
             "title": "Proposedchanges",
-            "type": "array"
-          },
-          "leftToAsk": {
-            "description": "The key of each requirement of this message that no change answers and the reply asks the researcher about, written as in a change's answers.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Lefttoask",
             "type": "array"
           },
           "note": {
@@ -25162,14 +25150,6 @@
             "minItems": 1,
             "title": "Proposedchanges",
             "type": "array"
-          },
-          "leftToAsk": {
-            "description": "The key of each requirement of this message that no change answers and the reply asks the researcher about, written as in a change's answers.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Lefttoask",
-            "type": "array"
           }
         },
         "required": [
@@ -25256,6 +25236,14 @@
         ],
         "title": "ReadingCaveat",
         "type": "object"
+      },
+      "ReadingChooser": {
+        "enum": [
+          "researcher_on_a_card",
+          "assistant"
+        ],
+        "title": "ReadingChooser",
+        "type": "string"
       },
       "RecalledMemoriesPayload": {
         "properties": {
@@ -25995,14 +25983,6 @@
             "minProperties": 1,
             "title": "Params",
             "type": "object"
-          },
-          "answers": {
-            "description": "The key of each requirement this change answers, copied from the key the Constraints section lists for it.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Answers",
-            "type": "array"
           }
         },
         "required": [

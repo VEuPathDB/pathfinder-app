@@ -69,7 +69,7 @@ def hold_the_contract_on_a_card(
     record = turn_record(ctx).model_copy(update={"ends_on_a_card": True})
     replies = _replies_beside_the_cards(requests)
     report = LeadResponse(prose="\n\n".join(replies)[:PROSE_MAX_CHARS])
-    mismatches = to_correct(ctx, report, record, replies)
+    mismatches = to_correct(ctx, report, record)
     if not mismatches:
         return None
     denial: DeferredToolApprovalResult = ToolDenied(

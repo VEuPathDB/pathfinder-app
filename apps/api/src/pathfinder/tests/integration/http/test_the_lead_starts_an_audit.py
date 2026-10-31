@@ -47,7 +47,6 @@ pytestmark = pytest.mark.usefixtures(
 
 _AUDIT = f"[[arc:audit]] Audit the gene models of {GENOME} against its relatives"
 _FINDING = "[[arc:audit-finding]] Is finding 1 real?"
-_SPELLED = "[[arc:audit-finding-spelled]] Is finding 1 real?"
 _RENDERED = (
     f"The finding above reads the model of [{STRAIN}]"
     f"({gene_record_url('plasmodb', STRAIN)}) as an error."
@@ -278,23 +277,3 @@ async def test_a_thread_without_a_run_holds_no_audit_runs(
 
     domain = await domain_of(owner.conversation_id)
     assert domain.turn_markers.audit_runs_held is False
-
-
-async def test_a_literal_number_in_a_finding_answer_is_corrected(
-    in_memory_jobs: InMemoryConnector,
-    app: FastAPI,
-    corrections: list[int],
-) -> None:
-    owner = await seed_thread()
-    await stored_finding(owner)
-
-    chunks = await post(
-        app,
-        owner.user_id,
-        in_memory_jobs,
-        chat_post_body(owner.conversation_id, _SPELLED),
-    )
-
-    assert called(chunks) == _CALLED_FOR_A_FINDING
-    assert corrections == [1, 0]
-    assert text(chunks) == _RENDERED

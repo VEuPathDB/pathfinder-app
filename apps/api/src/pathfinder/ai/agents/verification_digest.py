@@ -16,13 +16,6 @@ from pathfinder.ai.lead.contract_messages import (
     unretrieved_review_source_sentence,
 )
 from pathfinder.ai.lead.deltas import VerificationDelta
-from pathfinder.ai.lead.evidence_claims import (
-    backing_results,
-    control_claims,
-    sample_claims,
-    unbacked_claims,
-    unbacked_sample_claims,
-)
 from pathfinder.domain.evidence import (
     VerificationReview,
     WithheldEvidence,
@@ -47,16 +40,7 @@ def _withheld(kind: WithheldKind, sentence: str) -> WithheldEvidence:
 
 def _held_review(ctx: RunContext[AgentDeps], digest: VerificationDigest) -> _Held:
     markers = ctx.deps.turn_markers
-    scope = ctx.deps.verification_scope
     review = digest.review
-    text = "\n".join([digest.prose, *digest.key_findings])
-    results = backing_results(
-        (run.evidence for run in markers.control_tests), scope.last_card, ()
-    )
-    claims = [
-        *unbacked_claims(control_claims(text), results),
-        *unbacked_sample_claims(sample_claims(text), review.sampled_genes),
-    ]
     unread = [
         gene
         for gene in review.sampled_genes
@@ -69,7 +53,6 @@ def _held_review(ctx: RunContext[AgentDeps], digest: VerificationDigest) -> _Hel
         if not reference or markers.retrieved_as(reference) is None
     ]
     withheld = [
-        *(_withheld("claim", claim) for claim in claims),
         *(_withheld("sampled_gene", unread_gene_sentence(g.gene_id)) for g in unread),
         *(
             _withheld(

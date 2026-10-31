@@ -50,7 +50,6 @@ from pathfinder.ai.lead.lead_pins import (
 )
 from pathfinder.ai.lead.lead_proposal import (
     propose_changes,
-    refuse_a_card_that_leaves_a_part,
 )
 from pathfinder.ai.lead.lead_reads import get_live_strategy_state, read_ledger_section
 from pathfinder.ai.lead.lead_tools import (
@@ -172,7 +171,6 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(
                 propose_changes,
                 requires_approval=True,
-                args_validator=refuse_a_card_that_leaves_a_part,
             ),
             Tool(
                 separate_controls,

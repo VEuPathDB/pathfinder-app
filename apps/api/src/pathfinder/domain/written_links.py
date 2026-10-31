@@ -60,8 +60,4 @@ def written_links(text: str) -> list[str]:
     return _unlinked(text)[1]
 
 
-def without_links(text: str) -> str:
-    return _unlinked(text)[0]
-
-
-__all__ = ["plain_markdown", "without_links", "written_links"]
+__all__ = ["plain_markdown", "written_links"]

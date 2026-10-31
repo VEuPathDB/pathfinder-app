@@ -12,7 +12,6 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.audit.instructions import SYNTHESIS_INSTRUCTIONS
-from pathfinder.ai.lead.contract_messages import note_facts_message
 from pathfinder.domain.audit.verdicts import (
     GeneModelVerdict,
     ReviewAgreement,
@@ -20,8 +19,6 @@ from pathfinder.domain.audit.verdicts import (
     SynthesisDraft,
     review_agreement,
 )
-from pathfinder.domain.reply_note import written_numbers
-from pathfinder.domain.written_links import without_links, written_links
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import REVIEW_ROLE
 from pathfinder.services.audit.verdicts import VerdictView
@@ -127,38 +124,15 @@ def _misordered(draft: SynthesisDraft, kept: Mapping[int, KeptFinding]) -> str |
     )
 
 
-def _written(text: str) -> list[str]:
-    return [*written_links(text), *written_numbers(without_links(text))]
-
-
-def _counted(draft: SynthesisDraft) -> str | None:
-    for section in draft.sections:
-        written = _written(f"{section.cause} {section.confirmed_by}")
-        if written:
-            return (
-                f"The section {section.error_type} writes {', '.join(written)} in "
-                "its cause or in what confirms it. A section's count is the "
-                "findings its findingIds list, which the run shows beside it, so "
-                "neither sentence writes a number or a link."
-            )
-    return None
-
-
 def _synthesizable(
     ctx: RunContext[SynthesisDeps], output: SynthesisDraft
 ) -> SynthesisDraft:
     kept = ctx.deps.kept
     problem = (
-        _unkept(output, kept)
-        or _mistyped(output, kept)
-        or _misordered(output, kept)
-        or _counted(output)
+        _unkept(output, kept) or _mistyped(output, kept) or _misordered(output, kept)
     )
     if problem is not None:
         raise ModelRetry(problem)
-    written = _written(output.summary)
-    if written:
-        raise ModelRetry(note_facts_message(written))
     return output
 
 

@@ -19,18 +19,10 @@ refusal names the lookup call to make; with a lookup it names the entries the lo
 matched. An entry the criterion already binds, and one the researcher's message writes
 out as a whole token, is no new pick.
 
-When a lookup term matched an entry whose label is that term, the pick for the entries
-that term matched is that entry alone (`_refuse_a_pick_beside_the_exact_term`): another
-entry the same term matched is refused unless a request message writes its label term
-out, because a narrower entry beside the exact one states a different question and adds
-nothing to the count (for "glycosome", GO:0020015 with three narrower GO terms counted
-115 genes, as GO:0020015 alone does). An entry a different lookup term matched is
-another concept and is not checked against this one. A new pick whose label shares no
-uncommon content word with the request messages is refused unless a request message
-writes its label term out (`_refuse_a_pick_off_the_request_words`), where a word more
-than a tenth of the vocabulary's labels hold is common and a vocabulary of fewer than ten
-labels holds none, so PF03392 ("Insect pheromone-binding family, A10/OS-D"), which
-shares only "binding" with "odorant-binding protein", is refused.
+No check compares the words of a pick's label with the lookup term or the request: the
+checks that refused a pick beside the entry whose label is the looked-up term, and a pick
+whose label shares no uncommon word with the request, were removed (see
+[a refusal rests on typed state](a-refusal-rests-on-typed-state.md)).
 
 `services/strategies/cut_picks.py::read_picks` records, for a pick from a lookup, the
 lookup's phrasings and how many of its matches the pick took (`picked_from_a_lookup`,

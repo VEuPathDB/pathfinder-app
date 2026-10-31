@@ -6,9 +6,6 @@ its positive side "Up in" group B. ``upOnly`` keeps group B's side.
 
 from __future__ import annotations
 
-import re
-from typing import Literal
-
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 
 
@@ -55,42 +52,3 @@ def selection_sentence(
     if count is None:
         return f"Keeps the genes {kept}."
     return f"Kept {count:,} genes {kept}."
-
-
-CaptionVerdict = Literal["agrees", "names_the_other_group", "names_no_group"]
-
-
-def _named_at(caption: str, label: str) -> int | None:
-    """Where the caption names the label as a whole word, or None."""
-    found = re.search(
-        rf"(?<![^\W_]){re.escape(label)}(?![^\W_])", caption, flags=re.IGNORECASE
-    )
-    return None if found is None else found.start()
-
-
-def _first_label(caption: str, comparison: EdaComparison) -> str | None:
-    """The label the caption names first; the longest one wins a tie."""
-    found = [
-        (position, -len(label), label)
-        for label in [*comparison.group_a, *comparison.group_b]
-        if (position := _named_at(caption, label)) is not None
-    ]
-    return min(found)[2] if found else None
-
-
-def caption_verdict(
-    caption: str,
-    comparison: EdaComparison,
-    effect_direction: EdaEffectDirection,
-) -> CaptionVerdict:
-    """Whether the first group label the caption names is one the export keeps.
-
-    A two-sided export keeps both groups, so any caption agrees with it.
-    """
-    if effect_direction == "upAndDown":
-        return "agrees"
-    first = _first_label(caption, comparison)
-    if first is None:
-        return "names_no_group"
-    kept = comparison.group_b if effect_direction == "upOnly" else comparison.group_a
-    return "agrees" if first in kept else "names_the_other_group"

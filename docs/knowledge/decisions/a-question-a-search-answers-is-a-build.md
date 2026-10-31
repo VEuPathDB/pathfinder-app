@@ -18,10 +18,7 @@ literature answers - a product, a mechanism, a rate - stays a research question.
 A question that compares counts - two strains, two searches, two values of one
 parameter - is the exception: it is a `follow_up_question` answered by
 `compare_search_variants`, which counts each side on the site as an anonymous report and
-adds no step. The comparison card is the provenance of both numbers. FRAME's
-`set_structure` holds the same rule on the tree: a UNION that joins a step the strategy
-holds to an arm the turn adds is refused unless the researcher stated an OR over those
-arms (`combination_check.unstated_union`), and the refusal names the comparison.
+adds no step. The comparison card is the provenance of both numbers.
 
 `compare_search_variants` counts each variant in place in the strategy's result, so it
 takes only searches a step runs. A count of any other catalog search is `count_search`,

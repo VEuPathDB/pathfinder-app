@@ -273,9 +273,3 @@ def test_a_membership_check_shows_the_genes_held_and_not_held() -> None:
         for m in facts.model_dump(by_alias=True)["memberships"]
     ] == [("Signal peptide", asked[1:])]
     assert facts.empty() is False
-
-
-def test_the_request_messages_stay_off_the_wire() -> None:
-    facts = TurnFacts(request_messages=["What fraction are on chromosome 1?"])
-
-    assert "requestMessages" not in facts.model_dump(by_alias=True)

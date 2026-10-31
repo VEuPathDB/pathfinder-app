@@ -14,6 +14,7 @@ from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.domain.caveats import Caveat
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -29,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.questions import OpenQuestion
+from pathfinder.domain.strategy.reading_choices import reading_choice_lines
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.domain.strategy.value_binding import plain_value
@@ -119,10 +121,16 @@ class FrameSection(CamelModel):
     # what a reader needs, and a second whole spec per chunk is not.
     spec_before_turn: OperationalSpec | None = Field(default=None, exclude=True)
     open_questions: list[OpenQuestion] = Field(default_factory=list, exclude=True)
+    named_readings: list[ChosenReading] = Field(default_factory=list, exclude=True)
+    picked_readings: list[str] = Field(default_factory=list, exclude=True)
 
     @computed
     def present(self) -> bool:
         return self.spec is not None
+
+    def reading_lines(self) -> list[str]:
+        criteria = [] if self.spec is None else self.spec.criteria
+        return reading_choice_lines(criteria, self.named_readings, self.picked_readings)
 
     def spec_diff(self) -> SpecDiff | None:
         """What this turn did to the spec it started from, or None on a fresh

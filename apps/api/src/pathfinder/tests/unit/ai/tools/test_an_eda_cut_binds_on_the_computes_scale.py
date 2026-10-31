@@ -29,7 +29,6 @@ from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 
 _LOG2 = "log2(Fold Change)"
-_CAPTION = "Genes higher in normal than in febrile"
 
 
 def _analysis(label: str) -> Any:
@@ -65,7 +64,6 @@ async def _exported_cut(
         effect_size_threshold=threshold,
         significance_threshold=0.05,
         effect_direction="upOnly",
-        caption=_CAPTION,
     )
 
     created = returned(answer, eda_step.EdaStepCreated)

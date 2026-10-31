@@ -1,47 +1,23 @@
 """The wrong calls of the faults the turn contract and the intent gate answer:
-a note that writes a count of its turn, an open value asked in prose,
-and a classification that splits the organism."""
+an open value asked in prose, and a classification that splits the organism."""
 
 from __future__ import annotations
 
 from assistant_core.models.scripted import current_scope_id, scripted_call
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.messages import ToolCallPart
 
 from pathfinder.ai.models.mock.arc import history_free
 from pathfinder.ai.models.mock.fault_calls import (
     ANSWER,
     CONSULT,
-    CallFault,
     WrongCall,
 )
-from pathfinder.ai.models.mock.reads import unshown_count_sentence
 from pathfinder.ai.models.mock.site_values import SiteValues
 
 CLASSIFY = "classify_user_intent"
 # A binomial is two words; the words after it name the strain.
 _BINOMIAL = 2
-
-
-class _Prose(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    prose: str
-
-
-def unshown_count(messages: list[ModelMessage]) -> CallFault:
-    """The arc's note with a count of its turn written in it."""
-    count = unshown_count_sentence(messages)
-
-    def fault(intended: ToolCallPart) -> ToolCallPart | None:
-        if intended.tool_name != ANSWER:
-            return None
-        prose = _Prose.model_validate(intended.args_as_dict()).prose
-        return scripted_call(
-            ANSWER, {**intended.args_as_dict(), "prose": f"{prose} {count}"}
-        )
-
-    return fault
 
 
 def split_organism(organism: str) -> tuple[str, str] | None:

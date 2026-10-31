@@ -5,15 +5,11 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.graph.turn_state import PendingApproval
-from pydantic_ai import DeferredToolRequests
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from pydantic_ai.tools import ToolDenied
 
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
-from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.intent import (
     ANSWERING_INTENTS,
@@ -167,32 +163,6 @@ def test_a_turn_that_started_an_audit_withholds_every_read() -> None:
     withheld = withhold_by_turn_state(run_context_for(deps), sorted(names))
 
     assert withheld == names
-
-
-def test_a_start_cards_note_writes_no_number_of_the_turn() -> None:
-    deps = _classified(IntentClassification.GENE_MODEL_AUDIT)
-    planned = StatisticFact(
-        id="stat_plan",
-        kind="audit_plan",
-        title="Audit plan on plasmodb",
-        rows=[StatisticRowFact(name="estimate.wdkRequests", value="900")],
-    )
-    deps.state.turn_markers.record_audit_facts([planned])
-    call = ToolCallPart(
-        tool_name=START_TOOL,
-        args={"reply": "The run reads the site 900 times.", "request": {}},
-        tool_call_id="call_start",
-    )
-
-    results = hold_the_contract_on_a_card(
-        run_context_for(deps), DeferredToolRequests(approvals=[call])
-    )
-
-    assert results is not None
-    denial = results.approvals["call_start"]
-    assert isinstance(denial, ToolDenied)
-    assert "``900``" in denial.message
-    assert denial.message.endswith(f"{CARD_NOT_SHOWN} Answer again with the card.")
 
 
 _STRAIN = requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum 3D7")
