@@ -60,7 +60,6 @@ async def test_a_binding_records_what_the_catalog_answered(
             ),
             ComparedSearch(name="GenesByText", display_name="Gene Text Search"),
         ],
-        answered=4,
         query=QUERY,
         tool_call_id="call_read",
         derived_from=result.resolved_params,
@@ -69,6 +68,33 @@ async def test_a_binding_records_what_the_catalog_answered(
         chosen,
         chosen,
     )
+
+
+@pytest.mark.asyncio
+async def test_a_binding_carries_no_count_of_the_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    result = await choose(state, NEAREST)
+
+    assert result.rationale is not None
+    assert sorted(result.rationale.model_dump(by_alias=True)) == [
+        "basis",
+        "compared",
+        "derivedFrom",
+        "kind",
+        "query",
+        "reason",
+        "searchName",
+        "sentence",
+        "short",
+        "similarity",
+        "sources",
+        "term",
+        "toolCallId",
+    ]
 
 
 @pytest.mark.asyncio

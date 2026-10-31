@@ -41,7 +41,6 @@ _CHOSEN = SearchRationale(
             name="GenesByText", display_name="Gene Text Search", similarity=0.4
         )
     ],
-    answered=12,
     query="all P. falciparum 3D7 genes",
     tool_call_id="call_taxon",
 )

@@ -38,7 +38,6 @@ _CHOSEN = SearchRationale(
     compared=[
         ComparedSearch(name="GenesByGoTerm", display_name="GO Term", similarity=0.51)
     ],
-    answered=12,
     query="protease genes",
     tool_call_id="call_7",
 )

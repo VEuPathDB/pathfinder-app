@@ -132,7 +132,6 @@ def rationale_for(
             )
             for h in others[:_COMPARED]
         ],
-        answered=len(read.hits),
         query=read.query,
         tool_call_id=read.tool_call_id,
         sources=sources_retrieved(ctx, criterion_id, why.sources),
