@@ -22,6 +22,7 @@ import {
   FEBRILE_COUNTS,
   FEBRILE_SUMMARY,
   NEEDS_QA_RECORDING,
+  openAnalysisCard,
   routeEdaReads,
   SITE_ID,
   STUDY_TITLE,
@@ -89,9 +90,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
 
     await page.goto(`conversation/${conversationId}`);
     await sendTurn(page, "compare febrile and normal samples");
-    await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
-      timeout: 20_000,
-    });
+    await openAnalysisCard(page);
 
     // The dev server compiles the tab route on first request.
     await page.getByRole("button", { name: "Open study", exact: true }).click();

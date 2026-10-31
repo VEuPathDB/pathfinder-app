@@ -227,7 +227,11 @@ export class ChatPage {
    * branch fails here rather than as a missing message later.
    */
   async branchFromAssistantReply(pattern: RegExp): Promise<string> {
-    const reply = this.assistantReply(pattern);
+    return this.branchFrom(this.assistantReply(pattern));
+  }
+
+  /** Branch into a new chat from the one assistant reply `reply` resolves to. */
+  async branchFrom(reply: Locator): Promise<string> {
     await expect(reply).toHaveCount(1, { timeout: 30_000 });
     const forkResponse = this.page.waitForResponse(
       (r) =>

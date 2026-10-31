@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import type { Page } from "@playwright/test";
+import { type Locator, type Page, expect } from "@playwright/test";
+
+import { ChatPage } from "../pages/chat.page";
 
 export const NEEDS_QA_RECORDING =
   "needs a QA recording: re-record once QA access exists";
@@ -222,4 +224,12 @@ export async function routeEdaReads(page: Page): Promise<void> {
   await page.route("**/api/v1/eda/viz?*", (route) =>
     route.fulfill(edaJson(VOLCANO_RESPONSE)),
   );
+}
+
+export async function openAnalysisCard(page: Page): Promise<Locator> {
+  const card = page.getByTestId("data-eda-analysis-state");
+  await expect(card).toHaveCount(1, { timeout: 20_000 });
+  await new ChatPage(page).openAppendices();
+  await expect(card).toBeVisible();
+  return card;
 }

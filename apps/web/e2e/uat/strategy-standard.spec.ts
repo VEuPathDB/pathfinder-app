@@ -19,7 +19,7 @@ import {
 import {
   expectBuild,
   expectEvidence,
-  expectEveryRequirementAnswered,
+  expectNoCheckFailed,
   openTrace,
   sampledGeneIds,
   traceRows,
@@ -105,7 +105,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     for (const input of inputs) expect(input).toBeGreaterThanOrEqual(counts.root);
 
-    await expectEveryRequirementAnswered(await expectEvidence(page, counts.root));
+    await expectNoCheckFailed(await expectEvidence(page, counts.root));
     await chatPage.expectRootCount(counts.root);
   });
 

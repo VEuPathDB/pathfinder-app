@@ -148,21 +148,18 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
 
     const site = siteShortName(siteId);
     const url = (await readConversation(apiClient, id)).wdkUrl ?? "";
-    expect(url).toMatch(/\/app\/workspace\/strategies\/\d+$/);
+    expect(url).toMatch(/\/app\/workspace\/strategies\/\d+\/\d+\/summary:_default$/);
     const card = await expectEvidence(page, counts.root);
     await expect(
       card.getByRole("link", { name: `Run GO, pathway or word enrichment in ${site}` }),
-    ).toHaveAttribute("href", new RegExp(`^${literal(url)}(/\\d+)?$`));
+    ).toHaveAttribute("href", url);
 
     const saved = chatPage.assistantMessages.filter({
       has: page.getByTestId("data-gene-set"),
     });
     const factsLink = chatPage.factsIn(saved).getByTestId("facts-strategy-link");
     await expect(factsLink).toHaveText(`Open results on ${site}`);
-    await expect(factsLink).toHaveAttribute(
-      "href",
-      new RegExp(`^${literal(url)}/\\d+$`),
-    );
+    await expect(factsLink).toHaveAttribute("href", url);
 
     await graphPage.openRailStrategyPanel();
     const railLink = page.getByRole("link", {

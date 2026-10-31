@@ -72,10 +72,6 @@ export async function expectBuild(
   return counts;
 }
 
-/** The words a requirement row shows in place of a step that answers it. */
-export const UNANSWERED =
-  /^(Nothing in the strategy answers it|No search on this site states it)$/;
-
 /** The evidence card of a check that states the root count, and no verdict. */
 export async function expectEvidence(page: Page, rootCount: number): Promise<Locator> {
   const card = page.getByTestId("data-evidence-card").filter({
@@ -86,12 +82,12 @@ export async function expectEvidence(page: Page, rootCount: number): Promise<Loc
   return card;
 }
 
-/** Every requirement row of the card names the steps that answer it. */
-export async function expectEveryRequirementAnswered(card: Locator): Promise<void> {
-  const answers = card.getByTestId("evidence-requirement-answer");
-  await expect(answers).not.toHaveCount(0);
-  for (const answer of await answers.allTextContents())
-    expect(answer.trim()).not.toMatch(UNANSWERED);
+/** The card lists the site's checks, and the site answered every one without a failure. */
+export async function expectNoCheckFailed(card: Locator): Promise<void> {
+  const results = card.getByTestId("evidence-check").locator("td:nth-child(2)");
+  await expect(results).not.toHaveCount(0);
+  for (const result of await results.allTextContents())
+    expect(result.trim()).not.toMatch(/^(Failed|No answer from the site)$/);
 }
 
 /**

@@ -20,6 +20,7 @@ import {
   routeEdaReads,
   SITE_ID,
 } from "../fixtures/eda";
+import { gotoOnSite } from "../pages/navigation";
 
 async function openConversation(context: BrowserContext): Promise<string> {
   const response = await context.request.post(`${BASE_URL}/api/v1/conversations/open`, {
@@ -82,7 +83,7 @@ test.describe("EDA export as a strategy step", () => {
       answerExport();
     });
 
-    await page.goto(`conversation/${conversationId}/eda`);
+    await gotoOnSite(page, SITE_ID, `conversation/${conversationId}/eda`);
     await expect(page.getByTestId("eda-viz-volcano")).toBeVisible({ timeout: 60_000 });
 
     const exportButton = page.getByRole("button", { name: "Export as step" });

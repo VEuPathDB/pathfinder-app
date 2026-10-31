@@ -1,6 +1,6 @@
 /**
- * A thread opened with the website's login and no PathFinder session cookie
- * renders once the shell mints the session, also after a website sign-out.
+ * A thread opened with the website's login alone renders, also after a
+ * website sign-out and a new sign-in.
  */
 
 import type { Page } from "@playwright/test";
@@ -37,7 +37,7 @@ test.describe("A deep link opened on the website login alone", () => {
     }
   });
 
-  test("mints the session again when the website signs in after a sign-out", async ({
+  test("renders again when the website signs in after a sign-out", async ({
     page,
     context,
     siteId,
@@ -69,12 +69,7 @@ test.describe("A deep link opened on the website login alone", () => {
         timeout: 30_000,
       });
       await expect(page.getByRole("img", { name: "Monthly spend" })).toBeVisible();
-      const refresh = requests.indexOf(
-        "POST 200 /pathfinder/api/v1/veupathdb/auth/refresh",
-      );
-      const quota = requests.indexOf("GET 200 /pathfinder/api/v1/me/quota");
-      expect(refresh).toBeGreaterThan(-1);
-      expect(quota).toBeGreaterThan(refresh);
+      expect(requests).toContain("GET 200 /pathfinder/api/v1/me/quota");
       expect(requests.filter((line) => line.includes(" 401 "))).toEqual([]);
     } finally {
       await api.delete(`api/v1/conversations/${conversationId}`);

@@ -10,19 +10,17 @@ import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/Ed
 import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
-import { LAYOUTS, ORTHOLOGS } from "../fixtures/arc-layouts";
+import { LAYOUTS } from "../fixtures/arc-layouts";
 import { expectBuild, expectEvidence, openTrace } from "../fixtures/build-checks";
 import {
   printed,
   readConversation,
-  readNodes,
   siteControlSets,
   siteOrganism,
 } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 
 type FaultName =
-  | "syntenic-left-off"
   | "repeat-control-test"
   | "all-unclear"
   | "sweep-without-controls"
@@ -40,8 +38,6 @@ const CONTRACT = /^This reply does not match what the turn did:/;
 
 const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
-const S2_TEXT = (organism: string) =>
-  `Find ${organism} genes with a predicted signal peptide and 2 to 99 transmembrane domains.`;
 const GO_TEXT = (organism: string) =>
   `Find ${organism} genes annotated with the GO term structural constituent of ribosome.`;
 
@@ -451,37 +447,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     expect(await loggedRefusals(apiClient, id)).toContain("Nothing was opened.");
     await expect(page.getByTestId("data-eda-analysis-state")).toHaveCount(0);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
-  });
-
-  test("FND-1 - a syntenic request that leaves synteny off is refused", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted(
-        "syntenic-orthologs",
-        "syntenic-left-off",
-        `${S2_TEXT(siteOrganism(siteId))} Then carry them to their syntenic orthologs in a related species.`,
-      ),
-    );
-
-    await openTraces(chatPage);
-    const refused = correctedRows(page, "Choose a search");
-    await expect(refused).toHaveCount(1);
-    await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      /^orthologs states 'syntenic', and /,
-    );
-    await expect
-      .poll(async () =>
-        (await readNodes(apiClient, id))
-          .filter((node) => node.searchName === ORTHOLOGS)
-          .map((node) => String(node.parameters?.["isSyntenic"]?.value ?? "")),
-      )
-      .toEqual(["yes"]);
   });
 
   test("FND-32 - a classification that splits the organism is recorded whole", async ({

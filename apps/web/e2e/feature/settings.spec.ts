@@ -22,7 +22,7 @@ test.describe("Settings", () => {
     await settingsPage.open();
     await settingsPage.openTab("Advanced");
 
-    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowDown");
     await settingsPage.expectOnlyTabActive("Model");
     await page.keyboard.press("End");
     await settingsPage.expectOnlyTabActive("Advanced");

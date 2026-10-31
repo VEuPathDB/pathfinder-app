@@ -13,7 +13,7 @@ import { LAYOUTS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
 import {
   controlsCaveat,
   expectBuild,
-  expectEveryRequirementAnswered,
+  expectNoCheckFailed,
   openTrace,
   traceRows,
 } from "../fixtures/build-checks";
@@ -201,16 +201,16 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     await expect(card.getByTestId("evidence-verdict")).toHaveCount(0);
     await expectStepTable(card, counts);
 
-    const requirements = card.getByTestId("evidence-requirements");
-    await expect(requirements.getByRole("columnheader")).toHaveText([
-      "Requirement",
-      "Answered by",
-      "How",
+    const checks = card.getByTestId("evidence-checks");
+    await expect(checks.getByRole("columnheader")).toHaveText([
+      "Check",
+      "Result",
+      "What the site answered",
     ]);
-    await expectEveryRequirementAnswered(card);
-    for (const row of await bodyCells(requirements)) {
-      expect(row[0]).not.toMatch(/Message \d/);
-      expect(row[1]).not.toMatch(/step_[0-9a-f]{8}/);
+    await expectNoCheckFailed(card);
+    for (const row of await bodyCells(checks)) {
+      expect(row[0]).not.toMatch(/step_[0-9a-f]{8}/);
+      expect(row[2] ?? "").not.toBe("");
     }
 
     const sampled = card.getByTestId("evidence-sampled-genes");

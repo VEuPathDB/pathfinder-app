@@ -24,7 +24,7 @@ import type { WdkStrategyListItem } from "@pathfinder/shared/generated/types/Wdk
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { BASE_URL, addWebsiteLogin, test, expect } from "../fixtures/test";
+import { BASE_URL, test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
@@ -211,21 +211,17 @@ async function openRowMenu(row: Locator) {
 }
 
 /**
- * A browser context signed in as its own PathFinder user with the registered
- * VEuPathDB token, the way the worker fixture signs a worker in.
+ * A browser context signed in as its own synthetic PathFinder user. A website
+ * login would name the registered account's user instead.
  */
 async function signedInUser(
   browser: Browser,
   userId: string,
-  {
-    acknowledgeNotice,
-    websiteLogin,
-  }: { acknowledgeNotice: boolean; websiteLogin: boolean },
+  { acknowledgeNotice }: { acknowledgeNotice: boolean },
 ): Promise<BrowserContext> {
   const context = await browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
-  if (websiteLogin) await addWebsiteLogin(context);
   const login = await context.request.post(
     `${BASE_URL}/api/v1/dev/login?user_id=${userId}`,
     { headers: CSRF_HEADERS },
@@ -282,7 +278,6 @@ test.describe("First run and navigation", () => {
 
     const fresh = await signedInUser(browser, `uat-f1-${Date.now()}`, {
       acknowledgeNotice: false,
-      websiteLogin: true,
     });
     const freshPage = await fresh.newPage();
     await gotoOnSite(freshPage, siteId, `${BASE_URL}/conversation`);
@@ -917,7 +912,6 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
 
     const other = await signedInUser(browser, `uat-f12-${Date.now()}`, {
       acknowledgeNotice: true,
-      websiteLogin: false,
     });
     const bPage = await other.newPage();
     const bChat = new ChatPage(bPage);

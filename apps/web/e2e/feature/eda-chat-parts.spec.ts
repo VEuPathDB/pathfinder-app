@@ -21,6 +21,7 @@ import {
   FEBRILE_SUMMARY,
   FILTERED_ANALYSIS,
   NEEDS_QA_RECORDING,
+  openAnalysisCard,
   SITE_ID,
   STUDY_TITLE,
   SUBSET_COVERAGE,
@@ -88,8 +89,7 @@ test.describe("EDA data parts render in the thread", () => {
     await page.goto(`conversation/${conversationId}`);
     await sendTurn(page, "explore the heat shock study");
 
-    const card = page.getByTestId("data-eda-analysis-state");
-    await expect(card).toBeVisible({ timeout: 20_000 });
+    const card = await openAnalysisCard(page);
     await expect(card).toContainText(STUDY_TITLE);
     for (const count of FEBRILE_COUNTS) {
       await expect(card).toContainText(countLine(count));
@@ -150,9 +150,7 @@ test.describe("EDA data parts render in the thread", () => {
     await page.goto(`conversation/${conversationId}`);
     await sendTurn(page, "open the heat shock study");
 
-    await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
-      timeout: 20_000,
-    });
+    await openAnalysisCard(page);
 
     // The rail auto-opens the Progress panel on the first user message, so the
     // Studies toggle reads "Open Studies" until it is clicked.
@@ -204,9 +202,7 @@ test.describe("EDA data parts render in the thread", () => {
     await page.goto(`conversation/${conversationId}`);
     await sendTurn(page, "explore the heat shock study");
 
-    await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
-      timeout: 20_000,
-    });
+    await openAnalysisCard(page);
     // The dev server compiles the tab route on first request, so the
     // navigation assertion waits longer than the default.
     await page.getByRole("button", { name: "Open study", exact: true }).click();

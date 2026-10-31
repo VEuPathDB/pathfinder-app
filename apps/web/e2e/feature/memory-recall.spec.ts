@@ -25,6 +25,7 @@ test.describe("Recalled memories", () => {
   test("renders the recalled-memory card from data-memory-retrieved", async ({
     page,
     context,
+    chatPage,
   }) => {
     const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
@@ -87,7 +88,9 @@ test.describe("Recalled memories", () => {
     await composer.press("Enter");
 
     const card = page.getByTestId("data-memory-retrieved");
-    await expect(card).toBeVisible({ timeout: 20_000 });
+    await expect(card).toHaveCount(1, { timeout: 20_000 });
+    await chatPage.openAppendices();
+    await expect(card).toBeVisible();
     await expect(page.getByTestId("figure-caption")).toContainText("2 memories");
     // Each row names its kind by the label the memory settings use.
     await expect(card.getByRole("listitem")).toHaveText([

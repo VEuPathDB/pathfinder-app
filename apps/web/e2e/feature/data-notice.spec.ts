@@ -1,20 +1,13 @@
 import type { Browser, BrowserContext } from "@playwright/test";
 
 import { CSRF_HEADERS } from "../fixtures/api-client";
-import {
-  BASE_URL,
-  DEFAULT_SITE,
-  addWebsiteLogin,
-  expect,
-  test,
-} from "../fixtures/test";
+import { BASE_URL, DEFAULT_SITE, expect, test } from "../fixtures/test";
 import { gotoOnSite } from "../pages/navigation";
 
 async function newResearcher(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
-  await addWebsiteLogin(context);
   const login = await context.request.post(
     `${BASE_URL}/api/v1/dev/login?user_id=data-notice-${Date.now()}`,
     { headers: CSRF_HEADERS },
