@@ -10,9 +10,11 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai.messages import (
     ModelMessage,
+    ModelRequest,
     ModelResponse,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
@@ -22,6 +24,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.held_counts import session_holding
@@ -121,16 +124,32 @@ def _built_deps(state: PipelineState) -> LeadDeps:
     return lead_deps(state, strategy_session=session)
 
 
+_WAITING = Criterion(
+    id="c_cut",
+    text="genes higher in the infected samples",
+    needs_analysis_on="DS_waiting",
+)
+
+
+def _waiting_on_an_analysis(state: PipelineState) -> PipelineState:
+    state.domain.operational_spec = OperationalSpec(goal="g", criteria=[_WAITING])
+    return state
+
+
 async def _built_turn_ending_on_a_card(
     monkeypatch: pytest.MonkeyPatch,
     writer: Collector,
     replies: list[str],
+    *,
+    waiting: bool = False,
 ) -> tuple[list[list[ModelMessage]], Any]:
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
         _lead_model, "get_mock_model", lambda: _card_turn(replies, seen)
     )
     state = _built_state()
+    if waiting:
+        _waiting_on_an_analysis(state)
     capture = await drive_lead(state=state, deps=_built_deps(state), writer=writer)
     return seen, capture
 
@@ -183,6 +202,55 @@ def _cards_on_the_wire(writer: Collector) -> list[str]:
         for chunk in writer.chunks_of("tool-input-start")
         if chunk["toolName"] == PROPOSAL_TOOL
     ]
+
+
+def _returns_to(messages: list[ModelMessage], call_id: str) -> list[str]:
+    return [
+        str(part.content)
+        for message in messages
+        if isinstance(message, ModelRequest)
+        for part in message.parts
+        if isinstance(part, ToolReturnPart) and part.tool_call_id == call_id
+    ]
+
+
+async def test_a_card_the_contract_refuses_is_asked_once_then_parks(
+    writer: Collector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen, capture = await _built_turn_ending_on_a_card(
+        monkeypatch, writer, [POINTS_AT_THE_FACTS, POINTS_AT_THE_FACTS], waiting=True
+    )
+
+    assert len(seen) == 2
+    [denial] = _returns_to(seen[1], "call_card_0")
+    assert "This reply does not match what the turn did:" in denial
+    assert 'open_eda_analysis(dataset_id="DS_waiting")' in denial
+    assert capture.pending_approval is not None
+    assert capture.pending_approval.tool_call_id == "call_card_1"
+    assert _cards_on_the_wire(writer) == ["call_card_1"]
+    assert writer.chunks_of("tool-output-denied") == []
+
+
+async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
+    writer: Collector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[list[ModelMessage]] = []
+    monkeypatch.setattr(
+        _lead_model,
+        "get_mock_model",
+        lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen),
+    )
+    state = _waiting_on_an_analysis(_built_state())
+
+    capture = await drive_lead(state=state, deps=_built_deps(state), writer=writer)
+
+    assert len(seen) == 2
+    for call_id in (CARD, DELETE):
+        [correction] = _returns_to(seen[1], call_id)
+        assert "DS_waiting" in correction
+    on_the_wire = {call_id for _, call_id in _calls_on_the_wire(writer)}
+    assert on_the_wire.isdisjoint({CARD, DELETE})
+    assert capture.pending_approval is None
 
 
 async def test_a_card_whose_reply_matches_the_turn_parks_in_one_run(
