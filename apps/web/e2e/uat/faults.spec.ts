@@ -207,9 +207,8 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await openTraces(chatPage);
     await expectCorrection(page);
     const refusals = await loggedRefusals(apiClient, id);
-    expect(refusals).toContain("Your reply writes facts the product renders.");
     expect(refusals).toContain(
-      `- \`\`${printed(counts.root + 1)}\`\`: no fact holds it, so take it out.`,
+      `The note writes \`\`${printed(counts.root + 1)}\`\`. The facts beside the reply show every count, value, setting and link of this turn as the site holds it, so the note writes none: take each out and keep the rest of the note as it is.`,
     );
     const reply = await replyText(apiClient, id);
     expect(reply).toContain("shown beside this reply");
