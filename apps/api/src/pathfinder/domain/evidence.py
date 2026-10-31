@@ -169,13 +169,14 @@ class SampledGene(CamelModel):
     )
 
 
-WithheldKind = Literal["sampled_gene", "source", "claim"]
+WithheldKind = Literal["sampled_gene", "source"]
+StoredWithheldKind = WithheldKind | Literal["claim"]
 
 
 class WithheldEvidence(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    kind: WithheldKind
+    kind: StoredWithheldKind
     sentence: str
 
 
