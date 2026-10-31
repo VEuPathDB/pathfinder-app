@@ -52,7 +52,10 @@ annotation truncation instead.
    read depth and read frequency per sample) for the strain's sample. Report one of: an indel is
    called in the strain's reads; the strain is called as the reference; no variant is called in any
    sample; or the strain is not among the sequenced samples. Each answer names the search, the
-   variant record ids and the sample, so it can be traced.
+   variant record ids and the sample, so it can be traced. The served calls hold almost no indel
+   inside a run of seven or more identical bases, although such runs vary often among field
+   isolates, so for a homopolymer frameshift a missing call says nothing: report it as not
+   determinable from the served data, and use the absence of a call only outside homopolymers.
 6. Release veupathdb-mcp and take the pin.
 7. In PathFinder, `_length` maps `FRAMESHIFT` to its own error type, a
    frameshift in the assembly, with words that say the model follows the
