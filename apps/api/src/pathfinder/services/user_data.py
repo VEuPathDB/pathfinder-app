@@ -30,6 +30,7 @@ from pathfinder.persistence.repositories.audit_reviews import AuditReviewReposit
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
 from pathfinder.persistence.rows import rows_changed
+from pathfinder.services.strategies.strategy_line import held_strategy
 
 logger = get_logger(__name__)
 
@@ -387,7 +388,8 @@ async def _purge_wdk_strategies(
         async def _delete_one(strategy_id: int, *, site: str = purge_site) -> bool:
             async with semaphore:
                 try:
-                    await get_strategy_api(site).delete_strategy(strategy_id)
+                    async with held_strategy(site, strategy_id):
+                        await get_strategy_api(site).delete_strategy(strategy_id)
                 except (VEuPathDBError, OSError, RuntimeError) as exc:
                     logger.warning(
                         "Failed to delete WDK strategy during user data purge",

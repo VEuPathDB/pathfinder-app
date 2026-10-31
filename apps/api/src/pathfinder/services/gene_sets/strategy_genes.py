@@ -8,6 +8,7 @@ from veupathdb_mcp.wdk import build_snapshot_from_wdk, canonicalize_synced_param
 from pathfinder.domain.gene_homes import holds_genes
 from pathfinder.services.gene_sets.homes import StepGenes, read_genes_of, site_kind
 from pathfinder.services.gene_sets.types import ResultNotGenes, StrategyRootContext
+from pathfinder.services.strategies.strategy_line import held_strategy
 
 
 class RecordsAreNotGenesError(ValidationError):
@@ -34,7 +35,8 @@ class StrategyGenes:
 
 async def read_strategy_genes(site_id: str, wdk_strategy_id: int) -> StrategyGenes:
     api = get_strategy_api(site_id)
-    strategy = await api.get_strategy(wdk_strategy_id)
+    async with held_strategy(site_id, wdk_strategy_id):
+        strategy = await api.get_strategy(wdk_strategy_id)
     root = strategy.steps.get(str(strategy.root_step_id))
     if root is None:
         msg = f"Strategy {wdk_strategy_id} does not list its root step"

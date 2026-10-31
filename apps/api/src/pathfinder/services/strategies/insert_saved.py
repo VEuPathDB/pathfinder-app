@@ -44,6 +44,7 @@ from pathfinder.services.strategies.graph_rollback import graph_labels, restore_
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
 )
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.write_lock import strategy_write_scope
 
 logger = get_logger(__name__)
@@ -79,7 +80,8 @@ async def clone_saved_strategy(
     """
     api = get_strategy_api(site_id)
     try:
-        saved = await api.get_strategy(saved_wdk_strategy_id)
+        async with held_strategy(site_id, saved_wdk_strategy_id):
+            saved = await api.get_strategy(saved_wdk_strategy_id)
     except VEuPathDBError as exc:
         raise NotFoundError(
             code=ErrorCode.STRATEGY_NOT_FOUND,

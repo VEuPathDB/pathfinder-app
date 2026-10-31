@@ -1,5 +1,20 @@
 # Log
 
+## 2026-10-31
+
+* **A strategy read no longer restores the tree a write replaced.** WDK saves a strategy
+  back on every read (`StrategyService.getStrategy` calls `StepFactory.updateStrategy`,
+  which writes `root_step_id` and every step of the copy it loaded). The gene-set refresh
+  read a strategy while a canvas delete's `PUT .../step-tree` was in flight and put the
+  five-step tree back over the three-step one; the delete's two orphaned steps then
+  answered 409. Every strategy request PathFinder sends now holds the Postgres advisory
+  lock `wdk-strategy:<site>:<strategy id>` for that request, and a step-tree write whose
+  read-back answers another tree fails the push (`TreeNotHeldError`, 409) instead of
+  reporting the edit as saved. The per-step "does not hold this step" record went with
+  it. The control tests' read inside `veupathdb_mcp` is not in the line yet; the backlog
+  holds it. See
+  [the decision](decisions/a-request-on-a-wdk-strategy-waits-in-its-line.md).
+
 ## 2026-10-30
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site

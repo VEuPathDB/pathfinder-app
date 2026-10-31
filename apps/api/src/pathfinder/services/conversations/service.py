@@ -66,6 +66,7 @@ from pathfinder.services.strategies.plan_validation import validate_plan_or_rais
 from pathfinder.services.strategies.save_substrategy import (
     SavedSubstrategyResult,
 )
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.wdk_sync import (
     lazy_fetch_wdk_detail,
     sync_is_saved_to_wdk,
@@ -270,7 +271,8 @@ class ConversationService:
         if delete_from_wdk and wdk_id and conversation.site_id:
             try:
                 api = get_strategy_api(conversation.site_id)
-                await api.delete_strategy(wdk_id)
+                async with held_strategy(conversation.site_id, wdk_id):
+                    await api.delete_strategy(wdk_id)
             except (VEuPathDBError, OSError, RuntimeError) as e:
                 logger.warning(
                     "WDK strategy delete failed",

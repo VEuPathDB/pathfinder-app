@@ -13,6 +13,7 @@ from veupathdb.wdk import WDKStrategyDetails, get_strategy_api
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -41,7 +42,8 @@ async def read_the_live_strategy(
     if strategy_id is None or not sync_state.wdk_step_ids:
         return None
     try:
-        return await get_strategy_api(site_id).get_strategy(strategy_id)
+        async with held_strategy(site_id, strategy_id):
+            return await get_strategy_api(site_id).get_strategy(strategy_id)
     except VEuPathDBError, OSError:
         logger.warning("Live strategy read failed", strategy_id=strategy_id)
         return None
@@ -57,7 +59,8 @@ async def the_site_dropped_the_strategy(
         return False
     api = get_strategy_api(site_id)
     try:
-        await api.get_strategy(strategy_id)
+        async with held_strategy(site_id, strategy_id):
+            await api.get_strategy(strategy_id)
     except WDKError as refused:
         if refused.status != _GONE:
             return False

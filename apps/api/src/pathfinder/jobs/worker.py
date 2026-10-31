@@ -48,6 +48,10 @@ from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.audit.lease_pool import close_audit_lease_engine
 from pathfinder.services.audit.queue import AUDIT_QUEUE
 from pathfinder.services.search_waits import runs_on_the_deployment_line
+from pathfinder.services.strategies.strategy_line import (
+    postgres_strategy_line,
+    use_strategy_line,
+)
 
 AUDIT_SHUTDOWN_SECONDS = 5.0
 _CANNOT_SCREEN = "the injection judge did not build; this worker consumes no jobs"
@@ -165,6 +169,7 @@ async def amain() -> None:
         max_overflow=settings.search_line_max_overflow,
         pool_timeout=settings.search_line_pool_timeout_seconds,
     )
+    use_strategy_line(postgres_strategy_line(async_session_factory))
     procrastinate_app.perform_import_paths()
     # The workers are built here rather than through run_worker_async so each
     # heartbeat thread can read the worker id procrastinate registers.

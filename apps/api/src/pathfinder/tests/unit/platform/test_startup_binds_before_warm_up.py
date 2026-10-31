@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
+from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from veupathdb.errors import WDKError
 
@@ -112,6 +113,7 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main, "install_search_line", lambda url, expensive, **pool: None
     )
+    monkeypatch.setattr(main, "use_strategy_line", lambda line: line)
 
 
 async def test_startup_returns_while_warm_up_still_runs(
@@ -146,6 +148,7 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
     del isolated_lifespan
     installed: list[object] = []
     lines: list[tuple[str, object, dict[str, object]]] = []
+    strategy_lines: list[object] = []
 
     async def _no_warm_up() -> None:
         return None
@@ -157,12 +160,17 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
         "install_search_line",
         lambda url, expensive, **pool: lines.append((url, expensive, pool)),
     )
+    monkeypatch.setattr(
+        main, "postgres_strategy_line", lambda factory: ("postgres", factory)
+    )
+    monkeypatch.setattr(main, "use_strategy_line", strategy_lines.append)
 
     app = FastAPI()
     async with main.lifespan(app):
         pass
 
     assert [type(observer) for observer in installed] == [PathfinderObserver]
+    assert strategy_lines == [("postgres", async_session_factory)]
     assert lines == [
         (
             get_settings().database_url,

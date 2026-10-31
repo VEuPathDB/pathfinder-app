@@ -35,6 +35,7 @@ from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.write_lock import (
     strategy_write_lock,
     strategy_write_scope,
@@ -221,7 +222,10 @@ async def put_the_name_on_wdk(named: NamedThread) -> None:
     if named.wdk_strategy_id is None:
         return
     try:
-        async with asyncio.timeout(WDK_RENAME_SECONDS):
+        async with (
+            asyncio.timeout(WDK_RENAME_SECONDS),
+            held_strategy(named.site_id, named.wdk_strategy_id),
+        ):
             await get_strategy_api(named.site_id).update_strategy(
                 named.wdk_strategy_id, name=named.name
             )

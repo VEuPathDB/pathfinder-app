@@ -11,6 +11,7 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_strategy_api, walk_wdk_step_tree
 
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -32,7 +33,8 @@ async def reconcile_sync_state_with_wdk(
     if wdk_strategy_id is None or not sync_state.wdk_step_ids:
         return
     try:
-        detail = await get_strategy_api(site_id).get_strategy(wdk_strategy_id)
+        async with held_strategy(site_id, wdk_strategy_id):
+            detail = await get_strategy_api(site_id).get_strategy(wdk_strategy_id)
     except (VEuPathDBError, OSError) as exc:
         logger.warning(
             "WDK reconciliation read failed; proceeding with stale sync_state",

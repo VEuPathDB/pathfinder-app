@@ -4,6 +4,8 @@ Provides:
 - ``get_estimated_size`` -- get result count for a built step
 """
 
+from contextlib import nullcontext
+
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
@@ -14,6 +16,7 @@ from veupathdb_mcp.wdk import get_estimated_size_for_site
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import EstimatedSizeResult
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.services.strategies.strategy_line import held_strategy
 
 
 async def get_estimated_size(
@@ -38,10 +41,16 @@ async def get_estimated_size(
             ctx=ctx,
             status="warn",
         )
+    site_id = ctx.deps.strategy_session.site_id
     try:
-        result = await get_estimated_size_for_site(
-            ctx.deps.strategy_session.site_id, wdk_step_id, wdk_strategy_id
-        )
+        async with (
+            nullcontext()
+            if wdk_strategy_id is None
+            else held_strategy(site_id, wdk_strategy_id)
+        ):
+            result = await get_estimated_size_for_site(
+                site_id, wdk_step_id, wdk_strategy_id
+            )
     except (VEuPathDBError, OSError) as e:
         message = str(e)
         if wdk_strategy_id is None:

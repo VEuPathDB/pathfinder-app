@@ -8,6 +8,8 @@ from pydantic import ConfigDict
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import WDKStrategyDetails, get_strategy_api
 
+from pathfinder.services.strategies.strategy_line import held_strategy
+
 logger = get_logger(__name__)
 
 
@@ -27,7 +29,8 @@ async def read_site_strategy(
     site_id: str, wdk_strategy_id: int
 ) -> WDKStrategyDetails | None:
     try:
-        return await get_strategy_api(site_id).get_strategy(wdk_strategy_id)
+        async with held_strategy(site_id, wdk_strategy_id):
+            return await get_strategy_api(site_id).get_strategy(wdk_strategy_id)
     except VEuPathDBError as exc:
         logger.warning(
             "The site did not answer the strategy read",

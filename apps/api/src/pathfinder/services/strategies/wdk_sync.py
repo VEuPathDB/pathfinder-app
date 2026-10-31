@@ -30,6 +30,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
 from pathfinder.platform.errors import InternalError
 from pathfinder.services.eda.analysis_kinds import analysis_kinds_of
 from pathfinder.services.strategies.naming import placeholder_strategy_name
+from pathfinder.services.strategies.strategy_line import held_strategy
 
 logger = get_logger(__name__)
 
@@ -78,7 +79,8 @@ async def fetch_and_convert(
     WDK stores no PathFinder metadata, so each EDA step's analysis kind is read
     from the site's catalog here.
     """
-    wdk_strategy = await api.get_strategy(wdk_id)
+    async with held_strategy(site_id, wdk_id):
+        wdk_strategy = await api.get_strategy(wdk_id)
 
     payload, wire_by_step_id = build_snapshot_from_wdk(wdk_strategy)
 
@@ -268,7 +270,8 @@ async def sync_is_saved_to_wdk(
 
     try:
         api = get_strategy_api(site_id)
-        await api.set_saved(wdk_id, is_saved=strategy.is_saved)
+        async with held_strategy(site_id, wdk_id):
+            await api.set_saved(wdk_id, is_saved=strategy.is_saved)
     except VEuPathDBError as exc:
         logger.warning(
             "Failed to sync isSaved to WDK",

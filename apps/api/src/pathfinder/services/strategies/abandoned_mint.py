@@ -22,6 +22,7 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.services.conversations.strategy_ops import (
     list_saved_strategy_consumers,
 )
+from pathfinder.services.strategies.strategy_line import held_strategy
 
 logger = get_logger(__name__)
 
@@ -170,7 +171,8 @@ async def delete_released_mint(release: ReleasableMint | None) -> None:
         return
     api = get_strategy_api(release.site_id)
     try:
-        held = await api.get_strategy(release.wdk_strategy_id)
+        async with held_strategy(release.site_id, release.wdk_strategy_id):
+            held = await api.get_strategy(release.wdk_strategy_id)
     except RELEASE_FAILURES as exc:
         logger.warning(
             "Abandoned WDK strategy kept: the site did not answer the saved mark",
@@ -189,7 +191,8 @@ async def delete_released_mint(release: ReleasableMint | None) -> None:
         )
         return
     try:
-        await api.delete_strategy(release.wdk_strategy_id)
+        async with held_strategy(release.site_id, release.wdk_strategy_id):
+            await api.delete_strategy(release.wdk_strategy_id)
     except RELEASE_FAILURES as exc:
         logger.warning(
             "Failed to delete the WDK strategy an abandoned turn minted",

@@ -35,6 +35,7 @@ from pathfinder.services.gene_sets.step_genes import (
     TooManyGenesError,
     fetch_all_gene_ids,
 )
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
@@ -135,7 +136,8 @@ async def build_gold_strategy(
     try:
         gene_ids = await fetch_all_gene_ids(api, root_step_id)
     except TooManyGenesError:
-        await api.delete_strategy(wdk_strategy_id)
+        async with held_strategy(site_id, wdk_strategy_id):
+            await api.delete_strategy(wdk_strategy_id)
         raise
 
     conversation_id: UUID | None = None
@@ -171,16 +173,18 @@ async def build_gold_strategy(
 
 async def fetch_strategy_gene_ids(
     *,
-    api: Any,
+    site_id: str,
     wdk_strategy_id: int,
 ) -> list[str]:
     """Fetch all gene IDs from a chat's linked WDK strategy.
 
-    :param api: StrategyAPI instance for the site.
+    :param site_id: the site the strategy lives on.
     :param wdk_strategy_id: the WDK strategy the chat is linked to.
     :returns: List of gene ID strings.
     """
-    strategy = await api.get_strategy(wdk_strategy_id)
+    api = get_strategy_api(site_id)
+    async with held_strategy(site_id, wdk_strategy_id):
+        strategy = await api.get_strategy(wdk_strategy_id)
     return await fetch_all_gene_ids(api, strategy.root_step_id)
 
 
@@ -196,9 +200,8 @@ async def get_strategy_gene_ids(
     strategy = await repo.get_strategy(conversation.id)
     if not strategy.wdk_strategy_id:
         return StrategyGeneIdsResult(error="No WDK strategy linked")
-    api = get_strategy_api(site_id)
     gene_ids = await fetch_strategy_gene_ids(
-        api=api,
+        site_id=site_id,
         wdk_strategy_id=strategy.wdk_strategy_id,
     )
     if not gene_ids:

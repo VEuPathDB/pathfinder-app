@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import procrastinate
 import pytest
+from assistant_core.platform.db import async_session_factory
 from procrastinate.jobs import DeleteJobCondition
 from procrastinate.testing import InMemoryConnector
 
@@ -100,6 +101,7 @@ class _AmainRun:
     metrics_servers: list[tuple[int, str]]
     observers: list[object]
     search_lines: list[tuple[str, object, dict[str, object]]]
+    strategy_lines: list[object]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -131,6 +133,7 @@ async def _run_amain(
     metrics_servers: list[tuple[int, str]] = []
     observers: list[object] = []
     search_lines: list[tuple[str, object, dict[str, object]]] = []
+    strategy_lines: list[object] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         name = "audit-run" if "name" in kwargs else "run"
@@ -179,6 +182,14 @@ async def _run_amain(
                 (url, expensive, pool)
             ),
         ),
+        patch(
+            "pathfinder.jobs.worker.postgres_strategy_line",
+            side_effect=lambda factory: ("postgres", factory),
+        ),
+        patch(
+            "pathfinder.jobs.worker.use_strategy_line",
+            side_effect=strategy_lines.append,
+        ),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch.object(AuditRepository, "resumable_runs", read_runs),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
@@ -217,6 +228,7 @@ async def _run_amain(
         metrics_servers=metrics_servers,
         observers=observers,
         search_lines=search_lines,
+        strategy_lines=strategy_lines,
     )
 
 
@@ -238,6 +250,7 @@ async def test_amain_installs_the_observer_and_the_search_line() -> None:
             {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
         )
     ]
+    assert run.strategy_lines == [("postgres", async_session_factory)]
 
 
 async def test_amain_deletes_every_job_that_reaches_a_final_state() -> None:

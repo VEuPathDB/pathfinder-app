@@ -40,6 +40,7 @@ from pathfinder.services.experiment.seed.catalog import (
     seed_databases,
 )
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
+from pathfinder.services.strategies.strategy_line import held_strategy
 from pathfinder.services.wdk_build import site_build
 
 STRATEGY_NAME = "pathfinder seed measure"
@@ -76,7 +77,8 @@ async def measure_seed(
         return SeedMeasurement.model_validate({**stamp, "refusal": str(exc)})
     finally:
         if strategy_id is not None:
-            await api.delete_strategy(strategy_id)
+            async with held_strategy(seed.site_id, strategy_id):
+                await api.delete_strategy(strategy_id)
         else:
             await api.delete_orphaned_steps(made)
     return SeedMeasurement.model_validate(
