@@ -28281,13 +28281,20 @@
       "WithheldEvidence": {
         "properties": {
           "kind": {
-            "enum": [
-              "sampled_gene",
-              "source",
-              "claim"
+            "anyOf": [
+              {
+                "enum": [
+                  "sampled_gene",
+                  "source"
+                ],
+                "type": "string"
+              },
+              {
+                "const": "claim",
+                "type": "string"
+              }
             ],
-            "title": "Kind",
-            "type": "string"
+            "title": "Kind"
           },
           "sentence": {
             "title": "Sentence",
