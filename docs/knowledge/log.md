@@ -1,5 +1,14 @@
 # Log
 
+## 2026-10-31
+
+* **The NF54 short model is a frameshift in the assembly.** PfNF54_040013300 is 556 aa against
+  1,629 aa for PF3D7_0407700. The two proteins match for 527 residues, the NF54 assembly holds 29 A
+  where 3D7 holds 28, and the rest of the 3D7 protein translates from the NF54 DNA one frame over.
+  The manual check left [the remaining audit phases](backlog/the-remaining-audit-phases-are-built.md),
+  and the length check gained a card to report such a frameshift itself
+  ([card](backlog/a-short-model-names-the-frameshift-that-cut-it.md)).
+
 ## 2026-10-30
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site
