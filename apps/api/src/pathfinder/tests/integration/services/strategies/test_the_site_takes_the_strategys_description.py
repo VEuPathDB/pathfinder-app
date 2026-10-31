@@ -76,11 +76,19 @@ def _site(
     router.get(f"{base}/users/current").mock(
         return_value=httpx.Response(200, json={"id": _USER, "isGuest": False})
     )
-    router.get(f"{base}/users/{_USER}/strategies/{_STRATEGY}").mock(
-        return_value=httpx.Response(200, json=_strategy(held))
-    )
+    tree = dict(held)
+
+    def _read(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_strategy(tree))
+
+    def _write(request: httpx.Request) -> httpx.Response:
+        tree.clear()
+        tree.update(json.loads(request.content)["stepTree"])
+        return httpx.Response(204)
+
+    router.get(f"{base}/users/{_USER}/strategies/{_STRATEGY}").mock(side_effect=_read)
     put = router.put(f"{base}/users/{_USER}/strategies/{_STRATEGY}/step-tree").mock(
-        return_value=httpx.Response(204)
+        side_effect=_write
     )
     patch = router.patch(f"{base}/users/{_USER}/strategies/{_STRATEGY}").mock(
         return_value=httpx.Response(204)
