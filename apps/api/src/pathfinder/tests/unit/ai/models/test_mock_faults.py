@@ -66,7 +66,6 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "repeat-control-test",
         "short-card-reply",
         "sweep-without-controls",
-        "syntenic-left-off",
         "unlisted-search",
         "unshown-count",
     ]
@@ -93,18 +92,6 @@ def test_an_organism_no_vocabulary_lists_is_sent_once_then_the_sheets() -> None:
     ]
 
     assert organisms == [[fault_calls.UNLISTED_ORGANISM], [_ORGANISM]]
-    assert len(_faulted(calls)) == 1
-
-
-def test_a_syntenic_binding_leaves_synteny_off_once_then_sets_it() -> None:
-    calls = _frame("syntenic-orthologs", "syntenic-left-off")
-    synteny = [
-        a["params"]["isSyntenic"]
-        for a in args_of(calls, "set_criterion")
-        if a["search_name"] == "GenesByOrthologs" and "params" in a
-    ]
-
-    assert synteny == [None, "yes"]
     assert len(_faulted(calls)) == 1
 
 

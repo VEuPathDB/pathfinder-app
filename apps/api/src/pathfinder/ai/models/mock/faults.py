@@ -46,7 +46,6 @@ class Fault:
 
 
 FAULTS: dict[str, Fault] = {
-    "syntenic-left-off": Fault("frame", fault_calls.syntenic_left_off),
     # The arc's own test is the first of the two identical calls.
     "repeat-control-test": Fault(
         "verification", fault_calls.repeat_control_test, times=2

@@ -47,6 +47,7 @@ from pathfinder.ai.models.mock.lead_flow import (
     extend_or_build,
     framed_only,
     lead,
+    lead_each_turn,
     thread_is_framed,
 )
 from pathfinder.ai.models.mock.lifecycle_arcs import (
@@ -164,7 +165,7 @@ ARCS: dict[str, Arc] = {
     "add-step": _built(frame_edits.add_step_frame, edit_journey),
     "replace-subtree": _built(frame_edits.replace_frame, edit_journey),
     "delete-step-card": _arc(lead(edit_arcs.delete_card)),
-    "clear": _arc(lead(edit_arcs.clear)),
+    "clear": _arc(lead_each_turn(edit_arcs.clear)),
     "proposal": _arc(lead(edit_arcs.proposal), frame=frame_edits.add_step_frame),
     "sweep": _arc(lead(edit_arcs.sweep)),
     "consult": _arc(consult, frame=open_value_frame),

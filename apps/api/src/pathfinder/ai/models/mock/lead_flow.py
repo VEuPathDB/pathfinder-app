@@ -115,6 +115,16 @@ def lead(sequence: Sequence) -> Script:
     return script
 
 
+def lead_each_turn(sequence: Sequence) -> Script:
+    """The Lead script that plays ``sequence`` over the calls of its own turn."""
+
+    def script(messages: list[ModelMessage]) -> ToolCallPart:
+        turn = current_turn(messages)
+        return run_sequence(turn, sequence(turn))
+
+    return script
+
+
 def thread_is_framed(messages: list[ModelMessage]) -> bool:
     """Whether the Lead's pinned spec held a framed request when the turn
     began, so a frame of this turn's own does not count."""

@@ -103,7 +103,7 @@ def loop_frame() -> ToolCallPart:
     return scripted_call("list_searches", _LOOP_ARGS)
 
 
-_NUMBERED = re.compile(r"^- (R\d+): (.+)$", re.MULTILINE)
+_NUMBERED = re.compile(r"^- (R\d+) \([^)]*\): (.+)$", re.MULTILINE)
 
 
 def asked_property() -> str:

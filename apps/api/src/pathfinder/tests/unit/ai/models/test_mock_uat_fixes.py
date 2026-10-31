@@ -9,6 +9,12 @@ from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, SUCCESS_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.specs import CriterionReply, criterion_call
 from pathfinder.ai.models.mock.strategy_specs import intersect_spec
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from pathfinder.domain.strategy.requirement_reports import requirements_block
 from pathfinder.tests.unit.ai.models._mock_pins import (
     edit_order,
     framed_pins,
@@ -122,13 +128,21 @@ def test_the_saved_gene_set_reply_names_the_set_and_no_count(site_id: str) -> No
 def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
     text = "Find genes with a predicted GPI anchor [[arc:no-search-states-it]]"
 
-    listed = Scene(
-        instructions=(
-            "## Requirements the researcher stated\n"
-            f"- R1: {site_id}\n"
-            "- R2: a predicted GPI anchor"
-        )
-    )
+    stated = [
+        Constraint(
+            kind=ConstraintKind.ORGANISM,
+            requested_value=site_id,
+            label=site_id,
+            source=ConstraintSource.USER_EXPLICIT,
+        ),
+        Constraint(
+            kind=ConstraintKind.OTHER,
+            requested_value="a predicted GPI anchor",
+            label="a predicted GPI anchor",
+            source=ConstraintSource.USER_EXPLICIT,
+        ),
+    ]
+    listed = Scene(instructions=requirements_block(stated) or "")
 
     calls = play("frame", site_id, text, work_order=_ORDER, scene=listed)
 
