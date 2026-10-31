@@ -1,6 +1,12 @@
 "use client";
 
-import { getToolName, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
+import {
+  getToolName,
+  isToolUIPart,
+  type DynamicToolUIPart,
+  type ToolUIPart,
+  type UIMessage,
+} from "ai";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
 import { deleteCascadePayloadSchema } from "@pathfinder/shared/generated/zod/deleteCascadePayloadSchema";
@@ -43,12 +49,20 @@ export interface ToolApprovalView {
   removes: string[];
 }
 
-function decisionOf(
-  state: ToolUIPart["state"],
-  approved: boolean | undefined,
-): ApprovalDecision {
-  if (state === "approval-requested") return "pending";
-  return approved === true ? "approved" : "denied";
+function decisionOf(part: ToolUIPart | DynamicToolUIPart): ApprovalDecision {
+  switch (part.state) {
+    case "approval-requested":
+      return "pending";
+    case "approval-responded":
+      return part.approval.approved ? "approved" : "denied";
+    case "output-denied":
+      return "denied";
+    case "input-streaming":
+    case "input-available":
+    case "output-available":
+    case "output-error":
+      return "approved";
+  }
 }
 
 function firstSummaryLine(messages: UIMessage[], toolCallId: string): string | null {
@@ -95,7 +109,7 @@ export function findToolApproval(
           part.state === "approval-requested" &&
           answeredInALaterMessage(messages, message.id)
             ? "answered"
-            : decisionOf(part.state, approval.approved),
+            : decisionOf(part),
         asked: firstSummaryLine(messages, toolCallId),
         removes: removedSteps(messages, toolCallId),
       };
