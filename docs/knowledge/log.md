@@ -21,6 +21,14 @@
   a score beside each search it was chosen over. It now shows the reason and the names of
   the searches also considered, as the graph and the facts do. A search reason no longer
   carries the count of searches its read answered, which nothing read.
+* **The browser tests run against the current app.** The Playwright suite ran against a
+  stack on QA PlasmoDB with the mock model: 179 of 208 tests passed before, and every test
+  passes after except three EDA flows, which need an offline embedder that ranks a study by
+  its title. Three app faults the suite found are fixed: the browser now follows the
+  completion turn of a task started behind an approval card; a section head wraps its
+  actions, so a long study title no longer pushes "Open study" over the next column; and a
+  comparison exports only once its figure has loaded. The two remaining gaps are backlog
+  items 75 and 76.
 
 ## 2026-10-30
 
