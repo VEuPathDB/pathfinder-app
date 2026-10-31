@@ -55,6 +55,7 @@ PINNED_SCHEMA_NAMES = frozenset(
         "delete_cascade",
         "scratchpad_updated",
         "proposal",
+        "tool_approval",
     }
 )
 
@@ -71,6 +72,7 @@ PINNED_CORE_KINDS = frozenset(
         "data-conversation-title",
         "data-tool-summary",
         "data-scratchpad-updated",
+        "data-tool-approval",
     }
 )
 
