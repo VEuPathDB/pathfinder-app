@@ -60,7 +60,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
 
     stub.create_strategy = AsyncMock(side_effect=create_strategy)
     stub.get_strategy = AsyncMock(side_effect=get_strategy)
-    stub.update_strategy = AsyncMock(return_value=None)
+    stub.update_strategy = AsyncMock(side_effect=get_strategy)
     monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: stub)
     return stub
 

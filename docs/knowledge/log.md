@@ -1,5 +1,22 @@
 # Log
 
+## 2026-10-31
+
+* **A strategy read no longer restores the tree a write replaced.** WDK saves a strategy
+  back on every read (`StrategyService.getStrategy` calls `StepFactory.updateStrategy`,
+  which writes `root_step_id` and every step of the copy it loaded). The gene-set refresh
+  read a strategy while a canvas delete's `PUT .../step-tree` was in flight and put the
+  five-step tree back over the three-step one; the delete's two orphaned steps then
+  answered 409. Every request on a strategy now waits in a per-strategy line:
+  veupathdb-py 0.1.0b27 passes it through a host-installed gate, and the api, the worker
+  and wdk-mcp install veupathdb-mcp's Postgres line there, on a pool of its own
+  (`STRATEGY_LINE_POOL_SIZE`, `STRATEGY_LINE_MAX_OVERFLOW`, 1 and 1). A step-tree write
+  whose read-back answers another tree fails the push (`TreeNotHeldError`, 409) instead of
+  reporting the edit as saved; the per-step "does not hold this step" record went with it.
+  The connection budget's total is 89. A canvas edit during a turn is still applied; the
+  backlog holds it. See
+  [the decision](decisions/a-request-on-a-wdk-strategy-waits-in-its-line.md).
+
 ## 2026-10-30
 
 * **A site link opens the result list.** Every link PathFinder writes to a strategy on a site

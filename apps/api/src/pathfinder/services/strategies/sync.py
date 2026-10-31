@@ -1,7 +1,7 @@
 """Pushes local graph state to WDK: step tree, strategy, counts, decorations."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import (
@@ -12,7 +12,7 @@ from veupathdb.domain.strategy import (
     walk,
     wdk_search_name,
 )
-from veupathdb.errors import VEuPathDBError
+from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import (
     MissingWDKStepIdError,
     StrategyAPI,
@@ -20,6 +20,7 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
     build_wdk_step_tree,
     get_strategy_api,
+    walk_wdk_step_tree,
 )
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
@@ -51,6 +52,18 @@ class UnclassedRootError(StrategyCompilationError):
         self.failure = failure
 
 
+class TreeNotHeldError(WDKError):
+    def __init__(self, written: WDKStepTree, held: WDKStepTree) -> None:
+        super().__init__(
+            detail=(
+                f"after the write the strategy holds root step {held.step_id} over "
+                f"{len(walk_wdk_step_tree(held))} steps, not the tree written, root "
+                f"step {written.step_id} over {len(walk_wdk_step_tree(written))} steps"
+            ),
+            status=409,
+        )
+
+
 @dataclass
 class SyncResult:
     """Outcome of a successful strategy sync."""
@@ -64,8 +77,6 @@ class SyncResult:
     step_count: int
     created_wdk_strategy: bool = False
     """True when this sync minted the WDK strategy, rather than updating one."""
-    detached_step_ids: list[str] = field(default_factory=list)
-    """Steps the WDK strategy does not list after its step tree was put."""
 
 
 def build_step_tree_from_graph(
@@ -156,7 +167,8 @@ async def _create_or_update_wdk_strategy(
     """Create a new WDK strategy, or update the existing one.
 
     A refused update raises, so the strategy the researcher has open stays
-    the one the next push edits. An unchanged tree sends only a name WDK
+    the one the next push edits. An update the strategy does not hold after
+    the write raises the same way. An unchanged tree sends only a name WDK
     lags on.
     """
     wdk_strategy_id = sync_state.wdk_strategy_id
@@ -170,12 +182,14 @@ async def _create_or_update_wdk_strategy(
         return _PushedStrategy(result.id, created=True)
 
     if step_tree != sync_state.wdk_step_tree:
-        await api.update_strategy(
+        held = await api.update_strategy(
             strategy_id=wdk_strategy_id,
             step_tree=step_tree,
             name=labels.name,
             description=labels.description,
         )
+        if held.step_tree != step_tree:
+            raise TreeNotHeldError(step_tree, held.step_tree)
         _record_labels(sync_state, labels)
         logger.info("Updated WDK strategy step tree", wdk_strategy_id=wdk_strategy_id)
         return _PushedStrategy(wdk_strategy_id, created=False)
@@ -227,7 +241,6 @@ class _StrategyState:
     validations: dict[str, StepValidation]
     root_count: int | None
     root_step_id: int
-    was_read: bool
 
 
 async def _fetch_strategy_state(
@@ -241,13 +254,13 @@ async def _fetch_strategy_state(
         strategy_info = await api.get_strategy(wdk_strategy_id)
     except VEuPathDBError as e:
         logger.warning("Strategy count lookup failed", error=str(e))
-        return _StrategyState({}, {}, None, step_tree.step_id, was_read=False)
+        return _StrategyState({}, {}, None, step_tree.step_id)
     else:
         counts, validations, root_count = _extract_counts_and_validations(
             strategy_info, wdk_step_ids
         )
         return _StrategyState(
-            counts, validations, root_count, strategy_info.root_step_id, was_read=True
+            counts, validations, root_count, strategy_info.root_step_id
         )
 
 
@@ -329,13 +342,9 @@ async def sync_strategy_for_site(
     )
 
     all_steps = walk(root_step)
-    detached = _detached(all_steps, state)
 
     sync_state.wdk_strategy_id = wdk_strategy_id
-    # The recorded tree is what the strategy holds. Recording a tree the
-    # strategy did not take would stop the next commit from putting it again.
-    if not detached:
-        sync_state.wdk_step_tree = step_tree
+    sync_state.wdk_step_tree = step_tree
     sync_state.step_counts = state.counts
     sync_state.step_validations = state.validations
 
@@ -351,15 +360,7 @@ async def sync_strategy_for_site(
         zero_step_ids=zeros,
         step_count=len(all_steps),
         created_wdk_strategy=pushed.created,
-        detached_step_ids=detached,
     )
-
-
-def _detached(all_steps: list[StrategyStepNode], state: _StrategyState) -> list[str]:
-    """The pushed steps the strategy does not list, so they compute nothing."""
-    if not state.was_read:
-        return []
-    return sorted(step.id for step in all_steps if step.id not in state.counts)
 
 
 def _validate_graph(

@@ -36,6 +36,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import get_discovery_service
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 from veupathdb_mcp.search_line import install_search_line
+from veupathdb_mcp.strategy_line import install_strategy_line
 
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_screening
@@ -43,7 +44,7 @@ from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.platform.body_limit import RequestBodyLimitMiddleware
-from pathfinder.platform.config import get_settings
+from pathfinder.platform.config import Settings, get_settings
 from pathfinder.platform.error_handlers import (
     RUNTIME_REFUSALS,
     apply_error_handler,
@@ -187,6 +188,22 @@ def _report_warm_up_death(task: asyncio.Task[Any]) -> None:
     get_readiness().fail_loading(error)
 
 
+def _install_the_wdk_lines(settings: Settings) -> None:
+    install_search_line(
+        settings.database_url,
+        runs_on_the_deployment_line,
+        pool_size=settings.search_line_pool_size,
+        max_overflow=settings.search_line_max_overflow,
+        pool_timeout=settings.search_line_pool_timeout_seconds,
+    )
+    install_strategy_line(
+        settings.database_url,
+        pool_size=settings.strategy_line_pool_size,
+        max_overflow=settings.strategy_line_max_overflow,
+        pool_timeout=settings.strategy_line_pool_timeout_seconds,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan handler."""
@@ -214,13 +231,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_observability(service_name="pathfinder-api", engine=get_engine())
     metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
     set_observer(PathfinderObserver())
-    install_search_line(
-        settings.database_url,
-        runs_on_the_deployment_line,
-        pool_size=settings.search_line_pool_size,
-        max_overflow=settings.search_line_max_overflow,
-        pool_timeout=settings.search_line_pool_timeout_seconds,
-    )
+    _install_the_wdk_lines(settings)
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415
 

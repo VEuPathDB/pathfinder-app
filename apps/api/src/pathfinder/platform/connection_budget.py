@@ -27,6 +27,7 @@ OPENER_CALLS = {
     "pathfinder.services.conversations.thread_lock": 1,
     "veupathdb_mcp.embeddings.db": 1,
     "veupathdb_mcp.search_line.line": 1,
+    "veupathdb_mcp.strategy_line.line": 1,
 }
 
 
@@ -41,6 +42,9 @@ class PoolBudget:
 def connection_budget(settings: Settings) -> tuple[PoolBudget, ...]:
     request = settings.db_pool_size + settings.db_max_overflow
     line = settings.search_line_pool_size + settings.search_line_max_overflow
+    strategy_line = (
+        settings.strategy_line_pool_size + settings.strategy_line_max_overflow
+    )
     embedding = settings.embedding_db_pool_size + settings.embedding_db_max_overflow
     return (
         PoolBudget("api", "request pool", ("assistant_core.platform.db",), request),
@@ -74,6 +78,12 @@ def connection_budget(settings: Settings) -> tuple[PoolBudget, ...]:
             "expensive-search line",
             ("veupathdb_mcp.search_line.line",),
             line,
+        ),
+        PoolBudget(
+            "api",
+            "strategy line",
+            ("veupathdb_mcp.strategy_line.line",),
+            strategy_line,
         ),
         PoolBudget("worker", "request pool", ("assistant_core.platform.db",), request),
         PoolBudget(
@@ -116,6 +126,12 @@ def connection_budget(settings: Settings) -> tuple[PoolBudget, ...]:
             line,
         ),
         PoolBudget(
+            "worker",
+            "strategy line",
+            ("veupathdb_mcp.strategy_line.line",),
+            strategy_line,
+        ),
+        PoolBudget(
             "wdk-mcp",
             "embedding index pool",
             ("veupathdb_mcp.embeddings.db",),
@@ -126,5 +142,11 @@ def connection_budget(settings: Settings) -> tuple[PoolBudget, ...]:
             "expensive-search line",
             ("veupathdb_mcp.search_line.line",),
             line,
+        ),
+        PoolBudget(
+            "wdk-mcp",
+            "strategy line",
+            ("veupathdb_mcp.strategy_line.line",),
+            strategy_line,
         ),
     )

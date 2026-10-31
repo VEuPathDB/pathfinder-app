@@ -36,6 +36,7 @@ the budget (35 connections measured on the test database).
 | api | memory store, held for the process | none | 1 |
 | api | shared LISTEN connection of every chat stream | none | 1 |
 | api | expensive-search line (veupathdb-mcp `install_search_line`) | `SEARCH_LINE_POOL_SIZE` 1 + `SEARCH_LINE_MAX_OVERFLOW` 1 | 2 |
+| api | strategy line (veupathdb-mcp `install_strategy_line`) | `STRATEGY_LINE_POOL_SIZE` 1 + `STRATEGY_LINE_MAX_OVERFLOW` 0 | 1 |
 | worker | request pool | `DB_POOL_SIZE` + `DB_MAX_OVERFLOW` | 12 |
 | worker | job queue pool | `JOB_QUEUE_POOL_MAX_SIZE` | 4 |
 | worker | job queue LISTEN, one per procrastinate worker (turns and audits) | none | 2 |
@@ -43,16 +44,18 @@ the budget (35 connections measured on the test database).
 | worker | audit run and review leases, one per audit job, on a pool of their own | `AUDIT_CONCURRENCY` 2 (at most 4) | 2 |
 | worker | heartbeat, one per procrastinate worker | none | 2 |
 | worker | expensive-search line | as the api | 2 |
+| worker | strategy line | as the api | 1 |
 | wdk-mcp | embedding index pool | `EMBEDDING_DB_POOL_SIZE` 2 + `EMBEDDING_DB_MAX_OVERFLOW` 6 | 8 |
 | wdk-mcp | expensive-search line | `SEARCH_LINE_POOL_SIZE` + `SEARCH_LINE_MAX_OVERFLOW` | 2 |
+| wdk-mcp | strategy line | `STRATEGY_LINE_POOL_SIZE` + `STRATEGY_LINE_MAX_OVERFLOW` | 1 |
 | research-mcp, service, searxng | none | none | 0 |
-| **total** | | | **83** |
+| **total** | | | **86** |
 
 The api and the worker share the request pool with the embedding index
 (`use_embedding_session_factory`), and a durable job's reads come from the
 worker's request pool. An audit run holds its lease for the whole run, so the
 leases have a pool of their own (`services/audit/lease_pool.py`) and the turns
-keep the worker's request pool; `AUDIT_CONCURRENCY` 4 makes the total 85. A chat turn, a durable job and a
+keep the worker's request pool; `AUDIT_CONCURRENCY` 4 makes the total 88. A chat turn, a durable job and a
 completion turn each hold at most a checkpointer and a memory store at once,
 which is the per-job row. Raising `WORKER_CONCURRENCY` or a pool setting means
 recomputing the total: the unit test fails when the defaults leave the budget.

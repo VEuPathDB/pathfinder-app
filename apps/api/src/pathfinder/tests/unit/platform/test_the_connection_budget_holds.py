@@ -50,8 +50,8 @@ def test_every_process_fits_the_budget_with_the_default_settings() -> None:
     for pool in budget:
         per_process[pool.process] += pool.worst_case
 
-    assert dict(per_process) == {"api": 41, "worker": 32, "wdk-mcp": 10}
-    assert sum(per_process.values()) == 83
+    assert dict(per_process) == {"api": 42, "worker": 33, "wdk-mcp": 11}
+    assert sum(per_process.values()) == 86
     assert sum(per_process.values()) <= CONNECTION_BUDGET
     assert DATABASE_CONNECTION_LIMIT - CONNECTION_BUDGET == 10
 

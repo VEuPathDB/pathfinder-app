@@ -296,39 +296,6 @@ class _WDKCommitOutcome:
     sync_result: SyncResult | None
 
 
-_DETACHED = "the WDK strategy does not hold this step, so it computes nothing"
-
-
-def _detached_failures(
-    graph: StrategyGraph,
-    sync_state: WDKSyncState,
-    sync_result: SyncResult,
-) -> list[StepPushFailure]:
-    """A step the strategy leaves out of its tree is a failed push.
-
-    The step exists in the account and answers no count, so reporting it as
-    pushed would put a number on the edit that WDK never computed. The record
-    names the last put, so a put that lists the step again ends it.
-    """
-    for step_id in sync_result.counts:
-        if sync_state.wdk_push_errors.get(step_id) == _DETACHED:
-            sync_state.wdk_push_errors.pop(step_id)
-    failures: list[StepPushFailure] = []
-    for step_id in sync_result.detached_step_ids:
-        step = graph.steps.get(step_id)
-        if step is None:
-            continue
-        sync_state.wdk_push_errors[step_id] = _DETACHED
-        failures.append(
-            StepPushFailure(
-                step_id=step_id,
-                search_name=wdk_search_name(step),
-                error=_DETACHED,
-            )
-        )
-    return failures
-
-
 async def _put_the_step_tree(
     *,
     deps: StrategyMutationContext,
@@ -439,9 +406,6 @@ async def _commit_to_wdk(
             failures=failures,
         )
     )
-    if sync_result is not None:
-        failures.extend(_detached_failures(graph, sync_state, sync_result))
-
     # A step the put replaced belongs to no strategy either. Its local id now
     # names the new WDK step, so there is no mapping to forget for it, and a
     # put that did not land leaves it on the tree.

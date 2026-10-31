@@ -100,6 +100,7 @@ class _AmainRun:
     metrics_servers: list[tuple[int, str]]
     observers: list[object]
     search_lines: list[tuple[str, object, dict[str, object]]]
+    strategy_lines: list[tuple[str, dict[str, object]]]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -131,6 +132,7 @@ async def _run_amain(
     metrics_servers: list[tuple[int, str]] = []
     observers: list[object] = []
     search_lines: list[tuple[str, object, dict[str, object]]] = []
+    strategy_lines: list[tuple[str, dict[str, object]]] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         name = "audit-run" if "name" in kwargs else "run"
@@ -179,6 +181,10 @@ async def _run_amain(
                 (url, expensive, pool)
             ),
         ),
+        patch(
+            "pathfinder.jobs.worker.install_strategy_line",
+            side_effect=lambda url, **pool: strategy_lines.append((url, pool)),
+        ),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch.object(AuditRepository, "resumable_runs", read_runs),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
@@ -200,6 +206,9 @@ async def _run_amain(
                 search_line_pool_size=1,
                 search_line_max_overflow=1,
                 search_line_pool_timeout_seconds=None,
+                strategy_line_pool_size=1,
+                strategy_line_max_overflow=1,
+                strategy_line_pool_timeout_seconds=None,
                 input_screening_enabled=screening,
                 metrics_port=metrics[0],
                 metrics_addr=metrics[1],
@@ -217,6 +226,7 @@ async def _run_amain(
         metrics_servers=metrics_servers,
         observers=observers,
         search_lines=search_lines,
+        strategy_lines=strategy_lines,
     )
 
 
@@ -235,6 +245,12 @@ async def test_amain_installs_the_observer_and_the_search_line() -> None:
         (
             "postgresql+asyncpg://user@host/db",
             runs_on_the_deployment_line,
+            {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
+        )
+    ]
+    assert run.strategy_lines == [
+        (
+            "postgresql+asyncpg://user@host/db",
             {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
         )
     ]
