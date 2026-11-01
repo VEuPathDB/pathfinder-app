@@ -7,6 +7,7 @@ what left.
 
 ## Ranked
 
+77. [Requirements are typed data](requirements-are-typed-data.md) - every decision about a requirement reads words of a model-written value; replace `requested_value` with typed requirements carrying an id, a verbatim quote and criterion links, and move attribution, lifecycle, drops and the verdict's comparisons onto them in steps 2 to 15.
 60. [The last pushed round is checked live](a-pushed-round-is-checked-live.md) - The gene-certainty attribution, the resent-build bound and the per-organism singleton count across all of OrthoMCL were tested only against recorded turns; run them once live.
 62. [A phyletic set is described once](a-phyletic-set-is-described-once.md) - veupathdb-py describes a phyletic set's genome and species breakdown once per expression on its branch fix/describe-a-set-once; release veupathdb-py, release veupathdb-mcp pinning it, and take both pins.
 66. [Thread surgery is a runtime primitive](thread-surgery-is-a-runtime-primitive.md) - Fork and revert are copy code in PathFinder that must track rules owned by assistant-core, LangGraph and WDK; move fork into the runtime as fork_thread, make revert a fork without the tail, and give external effects a compensating saga.
