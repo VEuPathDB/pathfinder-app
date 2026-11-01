@@ -7,6 +7,7 @@ the calls the arc made, and the filter sheet the Lead's instructions pin.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -39,6 +40,7 @@ _SHEET_HEAD = "### filter sheet for "
 _SHEET = TypeAdapter(list[EdaFilterSheetEntry])
 _FILTERS = "set_eda_filters"
 _TWO_GROUPS = 2
+_DATASET_ID = re.compile(r"\b(?:DS|EDAUD)_[A-Za-z0-9]+\b")
 _COMPARED_PROSE = "I compared the two groups of the study."
 _EXPORTED_PROSE = (
     "I compared the two groups of the study and added the genes that differ "
@@ -230,7 +232,11 @@ class _Study:
 
 
 def _here(messages: list[ModelMessage]) -> _Card | None:
-    """The study this site opens that the message names, else the first one."""
+    """The dataset the message names by id, else the study this site opens that
+    the message names, else the first one."""
+    by_id = _DATASET_ID.search(message())
+    if by_id is not None:
+        return _Card(dataset_id=by_id.group(0))
     here = [s for s in _studies(messages) or [] if s.not_here is None]
     asked = message().lower()
     named = [s for s in here if s.display_name and s.display_name.lower() in asked]
