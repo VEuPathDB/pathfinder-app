@@ -50,7 +50,8 @@ const READOUT_LIMIT = 50;
  * studies by name, so the message is the title of a study the site publishes.
  */
 async function compareText(api: ApiClient, siteId: string): Promise<string> {
-  return (await ownStudy(api, siteId)).displayName;
+  const study = await ownStudy(api, siteId);
+  return `${study.displayName} (${study.datasetId})`;
 }
 const COMPARISON_TOOLS = [
   "Find studies",
