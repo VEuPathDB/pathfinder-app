@@ -42,7 +42,10 @@ successor. `ThreadRequirements.record(intent, messages)`
   nothing. The gate records each `withdrawn` statement in the source the thread
   recorded for the first requirement it names, live before retired
   (`ThreadRequirements.withdrawn_as_recorded`); the classifier's own `source`
-  stands only where it names nothing recorded.
+  stands only where it names nothing recorded. This clause is superseded by
+  [a withdrawal names a held requirement by its number](a-withdrawal-names-a-held-requirement-by-its-number.md),
+  which measured it keeping six withdrawn requirements live; the code holds it
+  until that decision is built.
 - A value only an ask of the message carries is no requirement, and a
   `follow_up_question` is all ask (`UserIntent.researcher_asks`); a compared side
   of a `follow_up_question` is never one (the `UserIntent` validator), and a

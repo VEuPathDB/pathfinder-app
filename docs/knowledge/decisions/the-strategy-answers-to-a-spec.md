@@ -90,7 +90,11 @@ matters. An "or" inside one term's span is an alternative within that
 requirement and never a connective. A message that names a "union" or an
 "intersection" states that operator. `classify_user_intent` refuses a
 combination whose terms the message carries and whose operator it does not,
-and the refusal quotes the connective between the two terms.
+and the refusal quotes the connective between the two terms. The connective
+reading stays, but a term will be located by the researcher's verbatim quote and
+not by its words
+([a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md));
+the word location is what the code does until that decision is built.
 
 An edit is planned against `answered_spec`
 (`ai/lead/edit_dispatch.py::run_edit`). FRAME's derived dispositions, its work

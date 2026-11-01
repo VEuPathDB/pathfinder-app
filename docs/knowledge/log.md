@@ -1,5 +1,27 @@
 # Log
 
+## 2026-11-01
+
+* **Requirements become typed data, measured first.** An offline replay ran the
+  current requirement decisions (attribution, combination displacement,
+  withdrawal and its source, stand-ins, delete retirement, the pick, ask and side
+  drops, the ask filter and the combination's term location) over the saved
+  debugger and eval runs: 522 conversations, 1,018 classifications, no model and
+  no site call. 60 distinct requirements the researcher stated were marked
+  assumed, and none was marked stated that the researcher had not written; six
+  withdrawn requirements stayed live; ten combination attributions were wrong;
+  every requirement of two requests phrased as questions was dropped; five delete
+  or side retirements kept a requirement whose step was gone. 84.0% of the
+  classifier's values are a verbatim substring of a researcher message. Three
+  decisions record the choices:
+  [a requirement is the researcher's when it quotes their words](decisions/a-requirement-is-the-researchers-when-it-quotes-their-words.md),
+  [a withdrawal names a held requirement by its number](decisions/a-withdrawal-names-a-held-requirement-by-its-number.md),
+  which supersedes the value-words clause of the requirement lifecycle, and
+  [an unlinked requirement is not verified and never blocks](decisions/an-unlinked-requirement-is-not-verified-and-never-blocks.md).
+  The work that builds them is backlog item 77,
+  [requirements are typed data](backlog/requirements-are-typed-data.md). No code
+  changed.
+
 ## 2026-10-31
 
 * **A strategy read no longer restores the tree a write replaced.** WDK saves a strategy

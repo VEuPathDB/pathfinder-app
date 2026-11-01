@@ -37,7 +37,11 @@ in code.
 
 An `unchecked` check names why in `why_unchecked`. `no_check` is a requirement
 kind or a step property with nothing to compare on the site; it never blocks
-the verdict. `site_unanswered` is a read the site did not answer: the strategy
+the verdict. Once requirements are typed, a hard requirement that is untyped or
+that no criterion links is unchecked the same way and shown "not verified"
+([an unlinked requirement is not verified and never blocks](an-unlinked-requirement-is-not-verified-and-never-blocks.md));
+until then a hard stated requirement its grounding marks ungroundable or
+substituted fails its check (`domain/requirement_checks.py::grounded_check`). `site_unanswered` is a read the site did not answer: the strategy
 read, a column read, the organism count, or a count the strategy read leaves
 out. Any such check makes the verdict not checked: `success` is false, nothing
 fails, the disposition stays `done` with no handoff, the reason says the site
