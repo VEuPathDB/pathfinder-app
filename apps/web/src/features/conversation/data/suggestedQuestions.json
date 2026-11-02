@@ -3,59 +3,54 @@
     "Which P. falciparum genes are upregulated in gametocytes compared to asexual blood stages?",
     "Plasmodium falciparum 3D7 genes with a Pfam protein kinase domain and at least 2 transmembrane domains.",
     "Open the 'Female and male gametocyte' study on PlasmoDB, run a PCA of the samples colored by sex, and tell me whether female and male gametocytes separate and on which component.",
-    "Which Plasmodium genes have orthologs in both P. berghei and P. knowlesi but no ortholog in Toxoplasma gondii?"
+    "Which Plasmodium falciparum 3D7 genes have orthologs in Plasmodium berghei ANKA and Plasmodium knowlesi strain H but no ortholog in Toxoplasma gondii ME49?"
   ],
   "toxodb": [
-    "Which T. gondii genes are upregulated in mouse-brain bradyzoites compared to tachyzoites?",
+    "Which T. gondii ME49 genes are upregulated in bradyzoites compared to tachyzoites in the stage-specific RNA-sequencing study?",
     "Toxoplasma gondii ME49 genes annotated with the GO term 'protein kinase activity' that also have a predicted signal peptide.",
     "Open the mouse brain bradyzoite time course study on ToxoDB, run a PCA of the samples colored by days post infection, and tell me how much variance the first two components explain.",
-    "Which T. gondii genes have an ortholog in Neospora caninum and at least one transmembrane domain?"
+    "Which Toxoplasma gondii ME49 genes have an ortholog in Neospora caninum Liverpool and at least one transmembrane domain?"
   ],
   "cryptodb": [
     "Which C. parvum genes are upregulated in sporozoites compared to intracellular stages?",
     "Cryptosporidium parvum Iowa II genes annotated with the GO term 'ATP binding' that also have a predicted signal peptide.",
     "Cryptosporidium parvum Iowa II genes whose product description contains the phrase 'oocyst wall protein'.",
-    "Which Cryptosporidium genes have an ortholog in Plasmodium but no ortholog in Toxoplasma?"
+    "Which Cryptosporidium parvum Iowa II genes have an ortholog in Plasmodium falciparum 3D7 but no ortholog in Toxoplasma gondii ME49?"
   ],
   "piroplasmadb": [
     "Which B. bovis genes are differentially expressed during development?",
     "Babesia bovis T2Bo genes with a Pfam protein kinase domain and no transmembrane domain.",
     "Open the 'Calf blood stage vs tick kinete stage' B. bigemina study on PiroplasmaDB, run a PCA of the samples colored by stage, and tell me whether the stages separate.",
-    "Which piroplasm genes have orthologs in Babesia and Theileria but no ortholog in Toxoplasma?"
+    "Which Babesia bovis T2Bo genes have an ortholog in Theileria annulata strain Ankara but no ortholog in Toxoplasma gondii ME49?"
   ],
   "giardiadb": [
     "Which Giardia genes change over time in axenic trophozoite cultures?",
     "Giardia Assemblage A isolate WB genes annotated with the GO term 'cysteine-type peptidase activity'.",
-    "Open the 'Giardia Encystation Time Course' study on GiardiaDB, run a PCA of the samples colored by time point, and tell me which component tracks encystation.",
-    "Which Giardia genes have an ortholog in Cryptosporidium but no ortholog in Toxoplasma?"
+    "Which Giardia Assemblage A isolate WB genes have an ortholog in Cryptosporidium parvum Iowa II but no ortholog in Toxoplasma gondii ME49?"
   ],
   "amoebadb": [
-    "Which E. invadens genes are upregulated during encystation/excystation?",
+    "Which E. invadens genes are upregulated during encystation compared to trophozoites?",
     "Entamoeba histolytica HM-1:IMSS genes with a Pfam protein kinase domain and at least one transmembrane domain.",
     "Entamoeba histolytica HM-1:IMSS genes whose product description contains the phrase 'cysteine proteinase'.",
-    "Which Entamoeba genes have an ortholog in Giardia and at least one transmembrane domain?"
+    "Which Entamoeba histolytica HM-1:IMSS genes have an ortholog in Giardia Assemblage A isolate WB and at least one transmembrane domain?"
   ],
   "microsporidiadb": [
-    "Which N. parisii genes are differentially expressed over an infection time course in C. elegans?",
-    "Encephalitozoon cuniculi GB-M1 genes with a predicted signal peptide and a molecular weight under 30 kDa.",
-    "Nematocida parisii ERTm1 genes whose product description contains the phrase 'polar tube'.",
-    "Which microsporidian genes have a fungal ortholog but no ortholog in animals?"
+    "Encephalitozoon cuniculi GB-M1 genes with a predicted signal peptide and a molecular weight between 10 and 30 kDa.",
+    "Encephalitozoon cuniculi GB-M1 genes whose product description contains the phrase 'polar tube protein'.",
+    "Which Encephalitozoon cuniculi GB-M1 genes have an ortholog in Saccharomyces cerevisiae S288C but no ortholog in Homo sapiens?"
   ],
   "tritrypdb": [
-    "Which T. brucei genes are differentially expressed between procyclic and bloodstream forms?",
     "Trypanosoma brucei brucei TREU927 genes with a Pfam protein kinase domain and at least 3 transmembrane domains.",
     "Open the 'Metacyclic vs Procyclic form transcriptomes (2020)' study on TriTrypDB, run a PCA of the samples colored by life cycle form, and tell me whether the forms separate.",
-    "Which TriTryp genes have orthologs in T. brucei, T. cruzi, and Leishmania and at least one transmembrane domain?"
+    "Which Trypanosoma brucei brucei TREU927 genes have orthologs in Trypanosoma cruzi CL Brener Esmeraldo-like and Leishmania major strain Friedlin and at least one transmembrane domain?"
   ],
   "fungidb": [
-    "Which A. fumigatus genes are upregulated under hypoxia vs normoxia?",
     "Candida albicans SC5314 genes annotated with the GO term 'DNA-binding transcription factor activity' with at least 2 exons.",
     "Open the host temperature stress study for Cryptococcus neoformans H99 on FungiDB, run a PCA of the samples colored by temperature, and tell me whether 30C and 37C separate.",
-    "Find fungal genes with orthologs in C. albicans, A. fumigatus, and C. neoformans and at least one transmembrane domain."
+    "Which Candida albicans SC5314 genes have orthologs in Aspergillus fumigatus Af293 and Cryptococcus neoformans var. grubii H99 and at least one transmembrane domain?"
   ],
   "hostdb": [
-    "Which human liver genes are upregulated during P. berghei liver-stage infection?",
-    "Homo sapiens REF genes annotated with the GO term 'toll-like receptor signaling pathway' that also have a predicted signal peptide.",
+    "Homo sapiens REF genes annotated with the GO term 'toll-like receptor signaling pathway' that also have at least one transmembrane domain.",
     "Mus musculus C57BL6J genes whose product description contains the phrase 'interferon-induced'.",
     "Which human blood genes are differentially expressed during Candida albicans infection?"
   ],
@@ -69,18 +64,16 @@
     "Trichomonas vaginalis G3 genes with a Pfam protein kinase domain and at least one transmembrane domain.",
     "Trichomonas vaginalis G3 genes annotated with the GO term 'cysteine-type peptidase activity'.",
     "Open the 'T vaginalis transcriptome response to metronidazole' study on TrichDB, run a PCA of the samples colored by treatment, and tell me whether treated and untreated samples separate.",
-    "Which Trichomonas genes have an ortholog in Giardia but no ortholog in Entamoeba?"
+    "Which Trichomonas vaginalis G3 genes have an ortholog in Giardia Assemblage A isolate WB but no ortholog in Entamoeba histolytica HM-1:IMSS?"
   ],
   "orthomcl": [
     "Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii?",
-    "List single-copy ortholog groups across the apicomplexans.",
+    "List ortholog groups with exactly one protein from every apicomplexan genome.",
     "Which ortholog groups contain sequences from Plasmodium and Cryptosporidium but not from Toxoplasma?",
     "Which ortholog groups contain both apicomplexan and kinetoplastid sequences?"
   ],
   "veupathdb": [
-    "Which genes are conserved across Plasmodium, Toxoplasma, and Cryptosporidium but absent from the human proteome?",
-    "Find parasite protein kinases (InterPro) with an ortholog in both Plasmodium and Trypanosoma.",
-    "Which Plasmodium gametocyte-upregulated genes also have a bradyzoite-stage ortholog in Toxoplasma?",
-    "Find pathogen genes with a signal peptide and no ortholog in any fungal genome."
+    "Which Plasmodium falciparum 3D7 genes have orthologs in Toxoplasma gondii ME49 and Cryptosporidium parvum Iowa II but no ortholog in Homo sapiens?",
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and no ortholog in any fungal genome."
   ]
 }

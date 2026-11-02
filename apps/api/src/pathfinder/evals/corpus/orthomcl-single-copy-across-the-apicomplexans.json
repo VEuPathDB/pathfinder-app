@@ -34,7 +34,7 @@
     "addedAt": "2026-10-21",
     "stagingId": "",
     "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
-    "curatorNote": "The suggested OrthoMCL prompt as it ships today. The turn may first ask whether every genome or every species is meant; the recommended reading is taken."
+    "curatorNote": "A single-copy request within a clade that names neither genomes nor species. The turn may first ask whether every genome or every species is meant; the recommended reading is taken."
   },
   "gates": {
     "policy": "auto",

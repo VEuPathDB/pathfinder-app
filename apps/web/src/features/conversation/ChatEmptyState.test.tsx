@@ -12,6 +12,7 @@ import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { useSettingsStore } from "@/state/useSettingsStore";
 
 import { ChatEmptyState } from "./ChatEmptyState";
+import suggestedQuestions from "./data/suggestedQuestions.json";
 
 function EmptyThread({ children }: { children: ReactNode }) {
   const runtime = useLocalRuntime({
@@ -39,6 +40,30 @@ describe("ChatEmptyState", () => {
     expect(screen.getByTestId("chat-empty-blurb").textContent).toBe(
       "Build and refine multi-step PlasmoDB search strategies with guided " +
         "parameter selection and validation.",
+    );
+  });
+
+  it("offers at least one suggestion on every site of the bank", () => {
+    const empty = Object.entries(suggestedQuestions)
+      .filter(([, prompts]) => prompts.length === 0)
+      .map(([siteId]) => siteId);
+
+    expect(empty).toEqual([]);
+  });
+
+  it("offers every suggestion of the selected site", () => {
+    useSessionStore.getState().setSelectedSite("orthomcl");
+    render(
+      <EmptyThread>
+        <ChatEmptyState assistantId="pathfinder" />
+      </EmptyThread>,
+    );
+
+    for (const prompt of suggestedQuestions.orthomcl) {
+      expect(screen.getByRole("button", { name: prompt })).toBeInTheDocument();
+    }
+    expect(suggestedQuestions.orthomcl).toContain(
+      "List ortholog groups with exactly one protein from every apicomplexan genome.",
     );
   });
 });
