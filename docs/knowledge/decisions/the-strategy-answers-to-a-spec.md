@@ -74,13 +74,15 @@ A site that does not answer writes nothing: the turn and the canvas edit go on
 over the stored graph, and the refresh refuses with 503.
 
 **The operator is FRAME's tree, held to the researcher's words.** The reading
-of the message records no combination, and no code reads a connective between
-the researcher's phrases: how requirements combine is the tree FRAME builds. A
-combination requirement is the researcher's only by its own quote
-([a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md)).
-The reader that checks each combine node's operator against the researcher's
-words, and asks on a card when it disagrees, is step 4 of
-[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md).
+of the message records no combination, a card answer records none, and no code
+reads a connective between the researcher's phrases: how requirements combine is
+the tree FRAME builds. After each framing pass, each combine whose inputs each link
+a quoted requirement is read once by Decisions against the researcher's messages
+and the branches' quotes; a confident other operator is asked on the card and holds
+the build until it is answered, and each combine shows who chose its operator
+([operators come from FRAME's tree](operators-come-from-frames-tree.md)). The
+readings live on `OperationalSpec.operator_reads`, beside the structure and not on
+its nodes, so `diff_specs` reads no reading as a rewired tree.
 
 An edit is planned against `answered_spec`
 (`ai/lead/edit_dispatch.py::run_edit`). FRAME's derived dispositions, its work

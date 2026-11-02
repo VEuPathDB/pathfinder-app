@@ -5,12 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Annotated
 
-from pydantic import ConfigDict, Discriminator, model_validator
+from pydantic import ConfigDict, Discriminator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.combination_check import match_terms
 from pathfinder.domain.strategy.constraints import (
-    CombinationRequest,
     Constraint,
     ConstraintKind,
     ConstraintStatus,
@@ -19,7 +17,6 @@ from pathfinder.domain.strategy.constraints import (
     StoredConstraint,
     WithdrawnLifecycle,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
 
 RetiredLifecycle = Annotated[
     WithdrawnLifecycle | ReplacedLifecycle, Discriminator("state")
@@ -37,27 +34,13 @@ class RetiredRequirement(CamelModel):
 
     constraint: StoredConstraint
     lifecycle: RetiredLifecycle
-    # The terms of a withdrawn combination whose criteria a delete removed.
-    sides: tuple[str, ...] = ()
-
-    @model_validator(mode="after")
-    def _only_a_withdrawn_combination_has_sides(self) -> RetiredRequirement:
-        if self.sides and (
-            self.constraint.kind is not ConstraintKind.COMBINATION
-            or self.lifecycle.state != "withdrawn"
-        ):
-            msg = "only a withdrawn combination names the sides a delete removed"
-            raise ValueError(msg)
-        return self
 
     def shown_requirements(self) -> list[str]:
         """The requirement each row of this retirement names.
 
-        A withdrawn combination names only the sides a delete removed. A step
-        can still answer each other side.
+        A withdrawn combination names none: each requirement its criteria
+        linked has a row of its own.
         """
-        if self.sides:
-            return list(self.sides)
         withdrawn = self.lifecycle.state == "withdrawn"
         if withdrawn and self.constraint.kind is ConstraintKind.COMBINATION:
             return []
@@ -113,59 +96,6 @@ def retire(
         [c for c in held if c.id not in retired_ids],
         [*(r for r in retired if r.constraint.id not in retired_ids), *newly],
     )
-
-
-def dropped_sides(
-    combination: Constraint,
-    deleted: Sequence[Criterion],
-    remaining: Sequence[Criterion],
-) -> tuple[str, ...]:
-    """The terms of a combination that name a deleted criterion.
-
-    Each term names the criterion whose own text shares the most words with
-    it. When the terms name no criteria one to one, no term is dropped.
-    """
-    request = CombinationRequest.parse(combination.requested_value)
-    if request is None:
-        return ()
-    matched = match_terms(request.terms, [*deleted, *remaining])
-    if matched is None:
-        return ()
-    named = {**matched.members, **matched.transforms, **matched.excludes}
-    gone = {c.id for c in deleted}
-    return tuple(term for term in request.terms if named[term] in gone)
-
-
-def retire_dropped_sides(
-    held: Sequence[Constraint],
-    retired: Sequence[RetiredRequirement],
-    *,
-    deleted: Sequence[Criterion],
-    remaining: Sequence[Criterion],
-    turn_id: str,
-) -> tuple[list[Constraint], list[RetiredRequirement]]:
-    """The live and the retired requirements once a delete removes a side of a
-    combination: the combination is withdrawn, and names the sides it lost."""
-    withdrawn = [r.constraint for r in retired if r.lifecycle.state == "withdrawn"]
-    sides = {
-        c.id: dropped
-        for c in [*held, *withdrawn]
-        if c.kind is ConstraintKind.COMBINATION
-        and (dropped := dropped_sides(c, deleted, remaining))
-    }
-    live, kept = retire(
-        held, retired, [c for c in held if c.id in sides], turn_id=turn_id
-    )
-    return live, [
-        RetiredRequirement(
-            constraint=r.constraint,
-            lifecycle=r.lifecycle,
-            sides=sides[r.constraint.id],
-        )
-        if r.constraint.id in sides
-        else r
-        for r in kept
-    ]
 
 
 def reopened(

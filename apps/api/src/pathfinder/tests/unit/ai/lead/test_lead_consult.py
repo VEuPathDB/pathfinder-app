@@ -106,7 +106,7 @@ class TestAnswersBecomeRequirements:
     """An answer is a requirement of the investigation, not prose in a log."""
 
     @pytest.mark.asyncio
-    async def test_a_stated_combination_lands_as_a_combination_requirement(
+    async def test_a_stated_combination_lands_on_the_question_s_dimension(
         self,
     ) -> None:
         state = _state()
@@ -130,7 +130,7 @@ class TestAnswersBecomeRequirements:
         )
 
         [requirement] = state.domain.requirements
-        assert requirement.kind is ConstraintKind.COMBINATION
+        assert requirement.kind is ConstraintKind.OTHER
         assert (
             requirement.requested_value
             == "mass spectrometry evidence OR DeRisi expression"
@@ -140,7 +140,7 @@ class TestAnswersBecomeRequirements:
         assert requirement.hard is True
 
     @pytest.mark.asyncio
-    async def test_a_combination_stated_in_the_note_is_read(self) -> None:
+    async def test_a_combination_stated_in_the_note_is_no_combination(self) -> None:
         state = _state()
         _answered(
             state,
@@ -158,7 +158,7 @@ class TestAnswersBecomeRequirements:
         )
 
         [requirement] = state.domain.requirements
-        assert requirement.kind is ConstraintKind.COMBINATION
+        assert requirement.kind is ConstraintKind.OTHER
         assert requirement.requested_value == "mass spec OR DeRisi expression"
 
     @pytest.mark.asyncio

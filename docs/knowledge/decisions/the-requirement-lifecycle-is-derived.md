@@ -20,11 +20,10 @@ successor. `ThreadRequirements.record(intent, messages)`
   threshold, fold change, percentile, data type, comparator) replaces the value
   the thread held for it, which retires as `replaced(by=<new id>)`
   (`stated_requirements.with_requirements`). Two values stated in one message
-  both stand, and a message that adds an alternative with an include verb
-  (`message_reading.adds_an_alternative`) adds the value beside the held one.
-  `other` and `combination` hold many values; a new combination displaces a held
-  one over the same terms, and a message that swaps an `other` value names the
-  old one's number among its withdrawals.
+  both stand, and a value the reading states `beside` a held requirement's number
+  adds beside that one. `other` and `combination` hold many values; no reading or
+  card writes a new combination, and a message that swaps an `other` value names
+  the old one's number among its withdrawals.
 - A value whose quote no researcher message holds (`assumed`, see
   [a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md))
   never displaces a value the researcher stated of a single-valued dimension: it is dropped, neither recorded
@@ -50,13 +49,9 @@ successor. `ThreadRequirements.record(intent, messages)`
 - An approved `delete_step` retires each live requirement that a deleted
   criterion links and no remaining criterion links
   (`retire_what_a_delete_leaves_unanswered`, see
-  [a criterion links the requirement it answers](a-criterion-links-the-requirement-it-answers.md)).
-  A combination a term of which
-  names a deleted criterion, by the words of that criterion's own text
-  (`combination_check.match_terms`), is withdrawn, live or already withdrawn,
-  and records those terms as its `sides` (`requirement_lifecycle.retire_dropped_sides`).
-  Its retired row names the sides alone; a withdrawn combination no delete
-  named a side of shows no row, because a step can still answer each side
+  [a criterion links the requirement it answers](a-criterion-links-the-requirement-it-answers.md)),
+  a held combination among them. A withdrawn combination shows no row: each
+  requirement its criteria linked has a row of its own
   (`RetiredRequirement.shown_requirements`).
 
 FRAME's disposition of each criterion the dispatch found is the computed diff of

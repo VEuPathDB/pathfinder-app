@@ -179,9 +179,6 @@ def _combination(value: str, source: ConstraintSource) -> Constraint:
 _WITHDRAWN_UNION = _combination(
     "surface features OR blood-stage expression", ConstraintSource.ASSUMED
 )
-_KEPT_INTERSECTION = _combination(
-    "surface features AND blood-stage expression", ConstraintSource.USER_EXPLICIT
-)
 
 
 async def test_the_undo_flips_the_root_back_and_touches_nothing_else(
@@ -203,7 +200,7 @@ async def test_an_undo_that_withdraws_the_change_it_undoes_runs_no_frame_pass(
     undo = _Undo(
         monkeypatch,
         stored=_tree(CombineOp.INTERSECT),
-        intent=_undo_intent(_KEPT_INTERSECTION, withdrawn=(_WITHDRAWN_UNION,)),
+        intent=_undo_intent(withdrawn=(_WITHDRAWN_UNION,)),
     )
 
     await undo.run()

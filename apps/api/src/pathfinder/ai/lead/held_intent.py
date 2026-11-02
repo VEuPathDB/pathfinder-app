@@ -148,6 +148,16 @@ def _without(intent: UserIntent, unheld: set[str]) -> UserIntent:
     )
 
 
+def _placed_beside(intent: UserIntent, held: Sequence[Constraint]) -> list[Constraint]:
+    numbered = numbered_requirements(held)
+    stated = [] if intent.request is None else intent.request.requirements
+    beside = {r.quote: numbered[r.beside].id for r in stated if r.beside in numbered}
+    return [
+        c.model_copy(update={"beside": beside[c.quote]}) if c.quote in beside else c
+        for c in intent.explicit_constraints
+    ]
+
+
 def _withdrawn_ids(intent: UserIntent, held: Sequence[Constraint]) -> list[str]:
     numbered = numbered_requirements(held)
     taken_back = [] if intent.request is None else intent.request.withdrawn
@@ -164,8 +174,12 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
         )
         intent = intent.model_copy(update={"explicit_constraints": constraints})
     intent = _without(intent, set(_unheld_ids(state, intent, site, said)))
+    held = state.domain.requirements
     intent = intent.model_copy(
-        update={"withdrawn_ids": _withdrawn_ids(intent, state.domain.requirements)}
+        update={
+            "withdrawn_ids": _withdrawn_ids(intent, held),
+            "explicit_constraints": _placed_beside(intent, held),
+        }
     )
     deps.intent = intent
     markers.intent_classified = True

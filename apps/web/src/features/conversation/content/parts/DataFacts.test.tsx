@@ -221,6 +221,30 @@ describe("DataFacts", () => {
     );
   });
 
+  it("shows who chose a combine's operator beside it", () => {
+    const steps = FACTS.steps ?? [];
+    render(
+      <DataFacts
+        data={{
+          ...FACTS,
+          steps: steps.map((step) =>
+            step.stepId === "s_and" ? { ...step, operatorSource: "chosen" } : step,
+          ),
+        }}
+      />,
+    );
+
+    const [source] = screen.getAllByTestId("facts-step-operator-source");
+    expect(source).toHaveTextContent("(chosen)");
+    expect(source).toHaveAttribute("data-source", "chosen");
+  });
+
+  it("shows no operator source on a step whose operator none read", () => {
+    render(<DataFacts data={FACTS} />);
+
+    expect(screen.queryAllByTestId("facts-step-operator-source")).toHaveLength(0);
+  });
+
   it("shows caveats, gaps and withdrawn requirements as their sentences", () => {
     render(<DataFacts data={FACTS} />);
 

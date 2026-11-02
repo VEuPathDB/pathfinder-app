@@ -24,7 +24,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     StoredConstraint,
 )
-from pathfinder.domain.strategy.message_reading import adds_an_alternative
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.questions import (
@@ -37,7 +36,6 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     reopened,
     restored,
     retire,
-    retire_dropped_sides,
 )
 from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.stated_requirements import (
@@ -161,15 +159,10 @@ class ThreadRequirements(BaseModel):
         """Take what this message states and the held requirements it withdraws
         by id. ``messages`` are the researcher's words, this message first."""
         held = list(self.requirements)
-        newest = messages[0] if messages else ""
         stated = identified(
             attributed(intent.explicit_constraints, messages), self._recorded()
         )
-        self._record(
-            with_requirements(
-                held, stated, adds_alternatives=adds_an_alternative(newest)
-            )
-        )
+        self._record(with_requirements(held, stated))
         still_held = [c for c in self.requirements if c in held]
         added = [c for c in self.requirements if c not in held]
         self.withdraw(
@@ -304,22 +297,14 @@ class ThreadRequirements(BaseModel):
         self, deleted: Sequence[Criterion], remaining: Sequence[Criterion]
     ) -> None:
         """Withdraw each live requirement a deleted criterion links and no
-        remaining one links, and each combination a side of which names a
-        deleted criterion. An organism or a record type scopes the whole
-        strategy, so a delete withdraws neither."""
+        remaining one links, a combination among them. An organism or a record
+        type scopes the whole strategy, so a delete withdraws neither."""
         self.withdraw(
             c
             for c in self.requirements
             if c.kind not in STRATEGY_SCOPES
             and any(d.links(c.id) for d in deleted)
             and not any(r.links(c.id) for r in remaining)
-        )
-        self.requirements, self.retired_requirements = retire_dropped_sides(
-            self.requirements,
-            self.retired_requirements,
-            deleted=deleted,
-            remaining=remaining,
-            turn_id=self._turn_id(),
         )
 
     def recorded_by_id(self, ids: Collection[str]) -> list[Constraint]:

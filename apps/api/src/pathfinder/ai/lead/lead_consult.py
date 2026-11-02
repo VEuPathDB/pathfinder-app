@@ -23,15 +23,16 @@ from pathfinder.domain.strategy.card_answers import (
 )
 from pathfinder.domain.strategy.constraints import (
     STRATEGY_SCOPES,
-    CombinationRequest,
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
 from pathfinder.domain.strategy.expression_handles import shown_wire
+from pathfinder.domain.strategy.operator_reading import with_operator
 from pathfinder.domain.strategy.question_options import (
     Keep,
     SaveComputedGroups,
+    SetOperator,
     SetValues,
     TypedOption,
     Withdraw,
@@ -87,22 +88,14 @@ async def consult_can_ask(
 def _answer_requirement(
     prompt: str, labels: list[str], note: str, dimension: ConstraintKind
 ) -> Constraint | None:
-    """The words an answer states as a requirement, or None when it states none.
-
-    The requirement states the question's dimension. Words that read as a
-    combination expression are typed as one, so the structure gate and the
-    verification hold can check it.
-    """
+    """The words an answer states as a requirement on the question's
+    dimension, or None when it states none."""
     stated = "; ".join(labels) if labels else note
     if not stated:
         return None
-    expression = next(
-        (t for t in (*labels, note) if CombinationRequest.parse(t) is not None),
-        None,
-    )
     return Constraint(
-        kind=dimension if expression is None else ConstraintKind.COMBINATION,
-        requested_value=expression or stated,
+        kind=dimension,
+        requested_value=stated,
         # A question carries the label. An unlabelled one falls back to the
         # answer, because a requirement is always named.
         label=prompt[:_LABEL_LIMIT] or stated[:_LABEL_LIMIT],
@@ -145,7 +138,9 @@ def _apply(
             domain.withdraw(c for c in domain.requirements if c.id == withdrawn)
         case SaveComputedGroups(handle=handle, save=True):
             state.turn_markers.saves_asked.append(handle)
-        case SetValues() | ReadValues() | Keep() | SaveComputedGroups():
+        case SetOperator(criteria=criteria, operator=operator) if spec is not None:
+            domain.operational_spec = with_operator(spec, criteria, operator)
+        case SetValues() | ReadValues() | Keep() | SaveComputedGroups() | SetOperator():
             pass
 
 
@@ -159,9 +154,9 @@ def apply_option_bindings(
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
-    A value binds and a withdrawal retires; typed words, a picked reading a
-    framing pass named and the note, never another offered label, become a
-    requirement on the dimension ``asked`` names. That requirement replaces
+    A value binds, an operator rewires its combine and a withdrawal retires;
+    typed words, a picked reading a framing pass named and the note, never
+    another offered label, become a requirement on the dimension ``asked`` names. That requirement replaces
     each one ``replaced`` holds under the question's prompt.
     """
     domain = state.domain

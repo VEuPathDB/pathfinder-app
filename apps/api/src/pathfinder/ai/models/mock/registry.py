@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from assistant_core.models.scripted import scripted_call, terminal_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
@@ -77,6 +79,12 @@ from pathfinder.ai.models.mock.lifecycle_arcs import (
 )
 from pathfinder.ai.models.mock.lookup_arcs import odorant_binding_frame
 from pathfinder.ai.models.mock.note_arc import noted
+from pathfinder.ai.models.mock.operator_arc import (
+    operator_card,
+    operator_reading,
+    read_as_intersect,
+    union_of_the_stated,
+)
 from pathfinder.ai.models.mock.reads import frame_summary
 from pathfinder.ai.models.mock.requirement_arcs import (
     comparison_sides,
@@ -267,6 +275,10 @@ ARCS: dict[str, Arc] = {
     "muris-phrase": _built(spec_frame(phrase_label_arcs.muris_phrase_spec)),
     "narrowed-organism": _arc(narrowed_reading, lead(narrowed_organism)),
     "withdrawn-requirement": _arc(withdrawn_reading, lead(withdrawn_requirement)),
+    "operator-card": replace(
+        _arc(operator_reading, operator_card, frame=spec_frame(union_of_the_stated)),
+        operators=read_as_intersect,
+    ),
     "audit": _arc(_AUDIT, lead(audit_start)),
     "audit-plan": _arc(_AUDIT, lead(audit_plan)),
     "audit-finding": _arc(_AUDIT, lead(audit_finding)),

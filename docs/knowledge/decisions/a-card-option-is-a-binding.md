@@ -13,7 +13,9 @@ status: stable
 A question FRAME asks about one parameter (`SlotQuestion` with `criterionId` and
 `paramName`) becomes an `OpenQuestion` whose options are `TypedOption`s:
 `SetValues` binds wire values on one criterion, `Withdraw` retires one requirement
-by its `Constraint.key`, and `Keep` keeps it. No option binds its own label: a
+by its `Constraint.key`, and `Keep` keeps it. `SetOperator` sets the operator of one
+combine, named by its criteria
+([operators come from FRAME's tree](operators-come-from-frames-tree.md)). No option binds its own label: a
 question that binds no slot (the Lead's reply, a FRAME question that names no slot)
 is typed with no option and answered in the researcher's words. A slot question on
 an open parameter the site offers a vocabulary for offers the vocabulary's values,

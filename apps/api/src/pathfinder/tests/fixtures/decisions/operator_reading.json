@@ -1,0 +1,92 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "recorded": "2026-11-03, the OpenAI Decisions API on gpt-6-luna, the request the reader sends"
+  },
+  "request": {
+    "model": "gpt-6-luna",
+    "input": "## The researcher's messages, oldest first\n1. Find kinases that are expressed in gametocytes in P. falciparum 3D7.\n\n## Branch A answers these words of the researcher\n- \"kinases\"\n\n## Branch B answers these words of the researcher\n- \"expressed in gametocytes\"",
+    "questions": [
+      {
+        "type": "choice",
+        "name": "operator",
+        "instructions": "How do the researcher's messages combine the records of branch A and branch B? Read only the researcher's messages.",
+        "choices": [
+          {
+            "value": "intersect",
+            "description": "records in both branch A and branch B"
+          },
+          {
+            "value": "union",
+            "description": "records in branch A, in branch B, or in both"
+          },
+          {
+            "value": "left_minus_right",
+            "description": "records in branch A that are not in branch B"
+          },
+          {
+            "value": "right_minus_left",
+            "description": "records in branch B that are not in branch A"
+          },
+          {
+            "value": "colocated",
+            "description": "records of branch A that lie near records of branch B on the genome"
+          },
+          {
+            "value": "not_combined_directly",
+            "description": "the messages join branch A and branch B only through another part of the request"
+          },
+          {
+            "value": "not_stated",
+            "description": "the messages do not say how branch A and branch B combine"
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "answers": [
+      {
+        "type": "choice",
+        "name": "operator",
+        "choice": "intersect",
+        "probabilities": [
+          {
+            "value": "intersect",
+            "probability": 0.79
+          },
+          {
+            "value": "union",
+            "probability": 0.04
+          },
+          {
+            "value": "left_minus_right",
+            "probability": 0.0
+          },
+          {
+            "value": "right_minus_left",
+            "probability": 0.01
+          },
+          {
+            "value": "colocated",
+            "probability": 0.0
+          },
+          {
+            "value": "not_combined_directly",
+            "probability": 0.13
+          },
+          {
+            "value": "not_stated",
+            "probability": 0.03
+          }
+        ],
+        "confidence": 0.76
+      }
+    ],
+    "usage": {
+      "input_tokens": 309,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0
+    }
+  }
+}

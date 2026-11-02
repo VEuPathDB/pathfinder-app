@@ -162,10 +162,21 @@ def build_journey(
     failure: str = FEEDBACK_PROSE,
 ) -> list[ToolCallPart]:
     """Frame, build and verify; a refused build answers with the edit route."""
-    head = [
+    return [
         scripted_call("frame_problem", {"reason": "mock frame"}),
-        scripted_call(BUILD, {}),
+        *built_journey(messages, success=success, failure=failure),
     ]
+
+
+def built_journey(
+    messages: list[ModelMessage],
+    *,
+    success: str = SUCCESS_PROSE,
+    failure: str = FEEDBACK_PROSE,
+) -> list[ToolCallPart]:
+    """Build the spec the thread holds and verify it; a refused build answers
+    with the edit route."""
+    head = [scripted_call(BUILD, {})]
     unbuilt = _unbuilt(messages)
     if unbuilt is not None:
         return [*head, unbuilt]

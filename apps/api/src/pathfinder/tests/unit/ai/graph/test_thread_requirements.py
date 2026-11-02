@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
@@ -262,15 +260,18 @@ def test_a_count_question_that_asks_for_a_build_states_its_requirements() -> Non
 
 _GS_B = _stated(ConstraintKind.ORGANISM, "Giardia Assemblage B isolate GS_B")
 _KINASE_NO_TM = _combination("protein kinase domain AND no transmembrane domain")
+_LINKS = [RequirementLink(requirement=_KINASE_NO_TM.id)]
 _KINASE_STEP = Criterion(
     id="step_kinase",
     text="Giardia Assemblage B isolate GS_B genes with a protein kinase domain",
     search_name="GenesByInterproDomain",
+    answers=_LINKS,
 )
 _NO_TM_STEP = Criterion(
     id="step_no_tm",
     text="Giardia Assemblage B isolate GS_B genes without a transmembrane domain",
     search_name="GenesByTransmembraneDomains",
+    answers=_LINKS,
 )
 _REMOVE_THE_EXCLUSION = (
     "Please remove the transmembrane domain exclusion; I want all the protein "
@@ -298,28 +299,28 @@ def test_a_withdrawn_combination_names_no_side_while_its_steps_stand() -> None:
     )
 
 
-def test_a_delete_names_the_side_of_a_withdrawn_combination_its_step_answered() -> None:
-    thread = _recorded(
-        [_GS_B, _KINASE_NO_TM],
-        _REMOVE_THE_EXCLUSION,
-        _intent(withdrawn_ids=[_KINASE_NO_TM.id]),
-    )
-
-    thread.retire_what_a_delete_leaves_unanswered([_NO_TM_STEP], [_KINASE_STEP])
-
-    assert (thread.requirements, _shown(thread)) == (
-        [_GS_B],
-        [(_KINASE_NO_TM.requested_value, ["no transmembrane domain"])],
-    )
-
-
-def test_a_delete_withdraws_a_live_combination_by_the_side_it_drops() -> None:
+def _deleting(
+    deleted: list[Criterion], remaining: list[Criterion]
+) -> ThreadRequirements:
     thread = ThreadRequirements(
         turn_markers=TurnMarkers(message_id=uuid4()),
         requirements=[_GS_B, _KINASE_NO_TM],
     )
+    thread.retire_what_a_delete_leaves_unanswered(deleted, remaining)
+    return thread
 
-    thread.retire_what_a_delete_leaves_unanswered([_NO_TM_STEP], [_KINASE_STEP])
+
+def test_a_delete_that_leaves_a_linked_criterion_keeps_the_combination() -> None:
+    thread = _deleting([_NO_TM_STEP], [_KINASE_STEP])
+
+    assert (thread.requirements, thread.retired_requirements) == (
+        [_GS_B, _KINASE_NO_TM],
+        [],
+    )
+
+
+def test_a_delete_of_every_linked_criterion_withdraws_the_combination() -> None:
+    thread = _deleting([_NO_TM_STEP, _KINASE_STEP], [])
 
     assert (
         thread.requirements,
@@ -328,52 +329,27 @@ def test_a_delete_withdraws_a_live_combination_by_the_side_it_drops() -> None:
     ) == (
         [_GS_B],
         [WithdrawnLifecycle(turn_id=str(thread.turn_markers.message_id))],
-        [(_KINASE_NO_TM.requested_value, ["no transmembrane domain"])],
+        [(_KINASE_NO_TM.requested_value, [])],
     )
 
 
-_SIGNAL_STEP = Criterion(
-    id="step_signal",
-    text="Giardia Assemblage B isolate GS_B genes with a signal peptide",
-    search_name="GenesWithSignalPeptide",
-)
+def test_a_delete_leaves_a_combination_no_criterion_links_live() -> None:
+    unlinked = [
+        c.model_copy(update={"answers": []}) for c in (_NO_TM_STEP, _KINASE_STEP)
+    ]
 
-
-@pytest.mark.parametrize(
-    ("combination", "deleted", "remaining"),
-    [
-        pytest.param(
-            _KINASE_NO_TM,
-            _SIGNAL_STEP,
-            [_KINASE_STEP, _NO_TM_STEP],
-            id="no-term-names-the-step",
-        ),
-        pytest.param(
-            _combination("protein kinase domain, no transmembrane domain"),
-            _NO_TM_STEP,
-            [_KINASE_STEP],
-            id="no-operator-joins-the-terms",
-        ),
-    ],
-)
-def test_a_delete_no_term_of_a_combination_names_leaves_it_live(
-    combination: Constraint, deleted: Criterion, remaining: list[Criterion]
-) -> None:
-    thread = ThreadRequirements(
-        turn_markers=TurnMarkers(message_id=uuid4()),
-        requirements=[_GS_B, combination],
-    )
-
-    thread.retire_what_a_delete_leaves_unanswered([deleted], remaining)
+    thread = _deleting(unlinked, [])
 
     assert (thread.requirements, thread.retired_requirements) == (
-        [_GS_B, combination],
+        [_GS_B, _KINASE_NO_TM],
         [],
     )
 
 
-def test_an_organism_an_include_verb_adds_stands_beside_the_held_one() -> None:
-    vivax = _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
+def test_an_organism_stated_beside_the_held_one_stands_beside_it() -> None:
+    vivax = _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01").model_copy(
+        update={"beside": _ORGANISM.id}
+    )
 
     thread = _recorded(
         [_ORGANISM],

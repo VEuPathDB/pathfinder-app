@@ -4,18 +4,14 @@ message states, and the checks that an edit moves only the combines it states.""
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from typing import Literal
 
 from pydantic import ConfigDict
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.combination_check import (
-    CombinationBreach,
-    required_operator,
-)
-from pathfinder.domain.strategy.constraints import CombinationRequest, Constraint
+from pathfinder.domain.strategy.combination_check import CombinationBreach
 from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
@@ -124,15 +120,6 @@ def _moved_combine(
     return next(
         (move for move in _operator_moves(proposed, held) if move[0] is not held_named),
         None,
-    )
-
-
-def combination_operators(combinations: Sequence[Constraint]) -> frozenset[CombineOp]:
-    """The combine operators the stated combinations require."""
-    return frozenset(
-        required_operator(request.operator)
-        for c in combinations
-        if (request := CombinationRequest.parse(c.requested_value)) is not None
     )
 
 

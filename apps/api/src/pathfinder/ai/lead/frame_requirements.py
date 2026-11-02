@@ -1,5 +1,6 @@
 """The held requirements a framing pass reports the site has no search for or
-failed to run, and the questions the card asks about them."""
+failed to run, and the questions the card asks about them and about each
+combine the researcher's words read as another operator."""
 
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.strategy.constraints import (
     STRATEGY_SCOPES,
     Constraint,
@@ -16,6 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from pathfinder.domain.strategy.expression_handles import held_readings
+from pathfinder.domain.strategy.operator_questions import operator_questions
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     unanswered_questions,
@@ -73,8 +76,9 @@ def questions_for_the_card(
     deps: LeadDeps, result: FrameResult, lacking: Sequence[Constraint]
 ) -> list[OpenQuestion]:
     """The pass's questions, with one per requirement whose search the site
-    failed to run and a drop offer for each other one no search states, less
-    those the researcher answered."""
+    failed to run, a drop offer for each other one no search states and one per
+    combine the researcher's words read as another operator, less those the
+    researcher answered."""
     domain = deps.state.domain
     refused = [
         (requirement, _display_name(domain, search))
@@ -88,21 +92,31 @@ def questions_for_the_card(
     unstated = [
         c for c in requirements_no_search_states(deps, lacking) if c.id not in kept
     ]
+    operators = (
+        []
+        if spec is None
+        else operator_questions(
+            spec, domain.requirements, noun=counted_noun(spec.record_type)
+        )
+    )
     return unanswered_questions(
-        with_save_offers(
-            with_refusals(
-                with_withdrawals(
-                    result.questions(
-                        domain.operational_spec,
-                        domain.requirements,
-                        held_readings(domain.built_expressions),
+        [
+            *with_save_offers(
+                with_refusals(
+                    with_withdrawals(
+                        result.questions(
+                            domain.operational_spec,
+                            domain.requirements,
+                            held_readings(domain.built_expressions),
+                        ),
+                        unstated,
+                        criteria=criteria,
                     ),
-                    unstated,
-                    criteria=criteria,
+                    refused,
                 ),
-                refused,
+                domain.computed_comparisons,
             ),
-            domain.computed_comparisons,
-        ),
+            *operators,
+        ],
         answered=[q.question for q in domain.answered_questions],
     )

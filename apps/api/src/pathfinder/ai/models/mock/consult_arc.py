@@ -291,13 +291,14 @@ def _returns_the_card(part: object) -> bool:
             return False
 
 
-def _since_the_answer(messages: list[ModelMessage]) -> list[ModelMessage]:
+def since_the_answer(messages: list[ModelMessage]) -> list[ModelMessage]:
     """The run after the card's answer came back."""
     answered = [i for i, message in enumerate(messages) if _answers_the_card(message)]
     return messages[answered[-1] :] if answered else messages
 
 
-def _asking(messages: list[ModelMessage]) -> list[ToolCallPart]:
+def frame_and_ask(messages: list[ModelMessage]) -> list[ToolCallPart]:
+    """Frame, and ask the card the pass left, else answer with what it found."""
     head = [scripted_call("frame_problem", {"reason": "mock frame"})]
     asked = open_questions(messages)
     if asked:
@@ -314,8 +315,8 @@ def consult(messages: list[ModelMessage]) -> ToolCallPart:
     """Frame and ask the open value on the card; the answered card resumes on
     a frame of the answer, the build and its check."""
     if not deferred_tool_resolved(messages, CONSULT):
-        return next_unmade_call(_asking(messages), messages)
-    return next_unmade_call(build_journey(messages), _since_the_answer(messages))
+        return next_unmade_call(frame_and_ask(messages), messages)
+    return next_unmade_call(build_journey(messages), since_the_answer(messages))
 
 
 def card_answered(state: PipelineState) -> bool:
@@ -365,4 +366,4 @@ def withdraw(messages: list[ModelMessage]) -> ToolCallPart:
     it, whatever the pass's disposition; the answered card builds the rest."""
     if not deferred_tool_resolved(messages, CONSULT):
         return next_unmade_call(_withdrawing(messages), messages)
-    return next_unmade_call(build_journey(messages), _since_the_answer(messages))
+    return next_unmade_call(build_journey(messages), since_the_answer(messages))

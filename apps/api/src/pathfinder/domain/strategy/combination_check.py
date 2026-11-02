@@ -1,142 +1,23 @@
-"""Whether a strategy tree combines criteria the way the user stated.
-
-A stated combination names its criteria by their words. This module matches
-those words to criteria and reads the operators that join them. Only a filter
-and a seed are members of that combine: a transform stands on the path to the
-root, and an exclusion is subtracted from a branch.
+"""Where a strategy tree joins criteria: the combine they meet at, and whether
+a transform or an exclusion stands over them. Only a filter and a seed are
+members of a combine: a transform stands on the path to the root, and an
+exclusion is subtracted from a branch.
 """
 
 from __future__ import annotations
 
-import re
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable
 from typing import NamedTuple
 
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.domain.strategy.constraints import (
-    CombinationOperator,
-    CombinationRequest,
-)
 from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
     SpecStructure,
     StructureNode,
     criteria_under,
 )
-from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
-_CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
-
-_REQUIRED_OPERATOR: dict[CombinationOperator, CombineOp] = {
-    "OR": CombineOp.UNION,
-    "AND": CombineOp.INTERSECT,
-}
 _MIN_MEETING_CRITERIA = 2
-
-
-def required_operator(operator: CombinationOperator) -> CombineOp:
-    """The WDK combine operator a stated operator requires."""
-    return _REQUIRED_OPERATOR[operator]
-
-
-def _words(text: str) -> frozenset[str]:
-    """The content words of a phrase, with camel-case names split apart."""
-    spaced = _CAMEL_BOUNDARY_RE.sub(" ", text)
-    return frozenset(words_of(spaced)) - FILLER_WORDS
-
-
-def combination_terms_overlap(first: str, second: str) -> bool:
-    """Whether two combination statements talk about the same criteria.
-
-    Two statements overlap when any term of one shares a content word with
-    any term of the other. A statement that does not parse overlaps nothing.
-    """
-    a = CombinationRequest.parse(first)
-    b = CombinationRequest.parse(second)
-    if a is None or b is None:
-        return False
-    return any(
-        _words(term_a) & _words(term_b) for term_a in a.terms for term_b in b.terms
-    )
-
-
-def _best_match(
-    wanted: frozenset[str], words_by_id: Mapping[str, frozenset[str]]
-) -> str | None:
-    """The criterion sharing the most words with a term.
-
-    A tie names two criteria equally well, so it matches neither.
-    """
-    ranked = sorted(
-        ((len(wanted & words), cid) for cid, words in words_by_id.items()),
-        reverse=True,
-    )
-    overlapping = [entry for entry in ranked if entry[0]]
-    if not overlapping:
-        return None
-    if len(overlapping) > 1 and overlapping[0][0] == overlapping[1][0]:
-        return None
-    return overlapping[0][1]
-
-
-class TermMatch(NamedTuple):
-    """The criteria a statement's terms name, split by where the tree holds them.
-
-    ``members`` are the criteria a combine joins. A ``transform`` stands on the
-    path to the root and an ``exclude`` is subtracted from a branch, so neither
-    is a member of the combine the statement's operator names.
-    """
-
-    members: dict[str, str]
-    transforms: dict[str, str]
-    excludes: dict[str, str]
-
-
-_MEMBER_ROLES = frozenset({"filter", "seed"})
-
-
-def match_terms(
-    terms: Sequence[str], criteria: Sequence[Criterion]
-) -> TermMatch | None:
-    """The criterion each term names, or None when the check must abstain.
-
-    A term matches the criterion whose text and search name share the most
-    words with it, and the terms must name distinct criteria.
-    """
-    words_by_id = {c.id: _words(f"{c.text} {c.search_name}") for c in criteria}
-    role_by_id = {c.id: c.role for c in criteria}
-    matched: dict[str, str] = {}
-    for term in terms:
-        wanted = _words(term)
-        if not wanted:
-            return None
-        found = _best_match(wanted, words_by_id)
-        if found is None:
-            return None
-        matched[term] = found
-    if len(matched) != len(terms):
-        return None
-    if len(set(matched.values())) != len(matched):
-        return None
-    return TermMatch(
-        members={
-            term: cid
-            for term, cid in matched.items()
-            if role_by_id[cid] in _MEMBER_ROLES
-        },
-        transforms={
-            term: cid for term, cid in matched.items() if role_by_id[cid] == "transform"
-        },
-        excludes={
-            term: cid for term, cid in matched.items() if role_by_id[cid] == "exclude"
-        },
-    )
-
-
-def enough_members(matched: TermMatch) -> bool:
-    """Whether the statement names criteria a combine can be read over."""
-    return len(matched.members) >= _MIN_MEETING_CRITERIA
 
 
 def _nodes(node: StructureNode) -> Iterable[StructureNode]:
@@ -185,32 +66,21 @@ def exclusion_stands_over(
     return False
 
 
-class _Brought(NamedTuple):
-    """What a branch carries into the combine above it."""
+def _brought(node: StructureNode, wanted: frozenset[str]) -> frozenset[str]:
+    """The wanted criteria this branch brings into the combine above it.
 
-    named: frozenset[str]
-    unnamed: bool
-
-
-def _brought(node: StructureNode, wanted: frozenset[str]) -> _Brought:
-    """The criteria this branch brings, split by whether the statement names them.
-
-    A leaf brings its own criterion. A transform the statement names stands for
-    its whole input; any other transform brings what its input brings. A
-    combine brings what its inputs bring.
+    A leaf brings its own criterion. A wanted transform stands for its whole
+    input; any other transform brings what its input brings. A combine brings
+    what its inputs bring.
     """
     if node.kind == "combine":
-        brought = [_brought(child, wanted) for child in node.inputs]
-        return _Brought(
-            named=frozenset[str]().union(*(item.named for item in brought)),
-            unnamed=any(item.unnamed for item in brought),
-        )
+        return frozenset[str]().union(*(_brought(c, wanted) for c in node.inputs))
     criterion_id = node.criterion_id
     if criterion_id is not None and criterion_id in wanted:
-        return _Brought(named=frozenset({criterion_id}), unnamed=False)
+        return frozenset({criterion_id})
     if node.kind == "transform":
         return _brought(node.inputs[0], wanted)
-    return _Brought(named=frozenset[str](), unnamed=True)
+    return frozenset[str]()
 
 
 def _meeting_node(node: StructureNode, wanted: frozenset[str]) -> StructureNode | None:
@@ -219,7 +89,7 @@ def _meeting_node(node: StructureNode, wanted: frozenset[str]) -> StructureNode 
     Distinct ids, not occurrences: a duplicated leaf must not stand in for a
     criterion that sits elsewhere in the tree.
     """
-    if not wanted <= _brought(node, wanted).named:
+    if not wanted <= _brought(node, wanted):
         return None
     for child in node.inputs:
         deeper = _meeting_node(child, wanted)
@@ -247,89 +117,18 @@ def meeting_operator(
     """The operator of the node where these criteria meet.
 
     None when one of them is absent from the tree, or when they meet at a node
-    that combines nothing. A transform the statement does not name is
+    that combines nothing. A transform that is not one of them is
     transparent: the criteria under it still meet at the combine above.
     """
     node = _meeting_combine(structure, criterion_ids)
     return None if node is None else node.operator
 
 
-def _split_operator(
-    node: StructureNode, wanted: frozenset[str], required: CombineOp
-) -> CombineOp | None:
-    """The first operator in this subtree that joins wanted criteria wrongly.
-
-    A combine is constrained when every criterion it brings has a name in the
-    statement. One that also brings an unnamed criterion answers a question of
-    its own, so it carries any operator.
-    """
-    for child in node.inputs:
-        found = _split_operator(child, wanted, required)
-        if found is not None:
-            return found
-    operator = node.operator
-    if operator is None or operator is required:
-        return None
-    held = _brought(node, wanted)
-    if held.unnamed or len(held.named) < _MIN_MEETING_CRITERIA:
-        return None
-    return operator
-
-
 class CombinationBreach(NamedTuple):
-    """A stated combination the tree does not honor, and the operator it joins
-    the criteria with instead."""
+    """A combine the researcher names that the tree does not honor, and the
+    operator it joins the criteria with instead."""
 
     required: CombineOp
     expression: str
     built: str
     message: str
-
-
-def combination_breach(
-    request: CombinationRequest,
-    matched_ids: Collection[str],
-    structure: SpecStructure,
-) -> CombinationBreach | None:
-    """How this tree breaks the requested combination, or None.
-
-    Every combine that joins two or more of the named criteria and nothing
-    else carries the stated operator, at any depth under the meeting node.
-    """
-    required = required_operator(request.operator)
-    meeting = _meeting_combine(structure, matched_ids)
-    if meeting is None or meeting.operator is not required:
-        found = None if meeting is None else meeting.operator
-        joined = "no combine node" if found is None else found.value
-        return CombinationBreach(
-            required=required,
-            expression=request.expression,
-            built=joined,
-            message=(
-                f"the user requires {request.expression!r}: those criteria must "
-                f"meet at {required.value}, but the tree joins them at {joined}"
-            ),
-        )
-    split = _split_operator(meeting, frozenset(matched_ids), required)
-    if split is None:
-        return None
-    return CombinationBreach(
-        required=required,
-        expression=request.expression,
-        built=split.value,
-        message=(
-            f"the user requires {request.expression!r}: every combine over those "
-            f"criteria must be {required.value}, but the tree joins two of them "
-            f"at {split.value}"
-        ),
-    )
-
-
-def combination_violation(
-    request: CombinationRequest,
-    matched_ids: Collection[str],
-    structure: SpecStructure,
-) -> str | None:
-    """Why this tree does not state the requested combination, or None."""
-    breach = combination_breach(request, matched_ids, structure)
-    return None if breach is None else breach.message

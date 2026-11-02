@@ -43,6 +43,8 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
+from pathfinder.domain.strategy.operator_reading import operator_source
+from pathfinder.domain.strategy.operator_reads import OperatorSource
 from pathfinder.domain.strategy.option_labels import with_readings
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
@@ -81,6 +83,14 @@ def _considered(criterion: Criterion | None) -> list[str]:
     return criterion.rationale.considered()
 
 
+def _searches_under(steps: Mapping[str, StrategyStep], step_id: str) -> frozenset[str]:
+    step = steps.get(step_id)
+    if step is None:
+        return frozenset()
+    own = frozenset() if step.operator is not None else frozenset({step_id})
+    return own.union(*(_searches_under(steps, i) for i in step.input_ids()))
+
+
 def _step_fact(
     step: StrategyStep,
     criteria: Mapping[str, Criterion],
@@ -106,6 +116,14 @@ def _step_fact(
     )
 
 
+def _operator_source(
+    step: StrategyStep, graph: StrategyGraph, spec: OperationalSpec | None
+) -> OperatorSource | None:
+    if step.operator is None or spec is None:
+        return None
+    return operator_source(spec, _searches_under(graph.steps, step.id))
+
+
 def _built_steps(
     graph: StrategyGraph | None,
     spec: OperationalSpec | None,
@@ -120,18 +138,18 @@ def _built_steps(
     root_id = None if graph is None else graph.primary_root_id()
     if graph is None or root_id is None:
         return []
-    criteria = {} if spec is None else {c.id: c for c in spec.criteria}
     counts = {} if sync is None else dict(sync.step_counts)
     errors = (
         {}
         if outcome is None
         else {n.node_id: n.error for n in outcome.node_results if n.error}
     )
+    criteria = {} if spec is None else {c.id: c for c in spec.criteria}
     record_types = _record_types(graph)
     return [
         _step_fact(
             step, criteria, counts, errors, counted_noun(record_types[step.id]), said
-        )
+        ).model_copy(update={"operator_source": _operator_source(step, graph, spec)})
         for step in graph.steps_in_tree_order(root_id)
     ]
 

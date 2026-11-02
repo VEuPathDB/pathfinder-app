@@ -178,8 +178,11 @@ def test_the_frame_dispatch_carries_the_first_turn_combination() -> None:
         lead_deps(state, intent=_answering_intent()), call_id="call_test"
     )
 
-    assert [c.requested_value for c in deps.agent_state.combination_requirements] == [
-        _COMBINATION
+    assert [c.requested_value for c in deps.agent_state.stated_requirements] == [
+        "Plasmodium vivax",
+        _COMBINATION,
+        "the second one",
+        "non-synonymous",
     ]
 
 
@@ -251,7 +254,9 @@ def test_an_abandoned_combination_reaches_no_sub_agent() -> None:
         lead_deps(state, intent=_abandoning_intent()), call_id="call_test"
     )
 
-    assert deps.agent_state.combination_requirements == []
+    assert _COMBINATION not in [
+        c.requested_value for c in deps.agent_state.stated_requirements
+    ]
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
 
 
@@ -359,5 +364,7 @@ def test_a_new_goal_replaces_the_requirements_a_frame_question_left_open() -> No
     deps = agent_deps_for(
         lead_deps(state, intent=_abandoning_intent()), call_id="call_test"
     )
-    assert deps.agent_state.combination_requirements == []
+    assert _COMBINATION not in [
+        c.requested_value for c in deps.agent_state.stated_requirements
+    ]
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]

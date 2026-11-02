@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Discriminator, Field
+from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.readings import ReadValues
@@ -46,8 +47,16 @@ class SaveComputedGroups(CamelModel):
     save: bool
 
 
+class SetOperator(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["set_operator"] = "set_operator"
+    criteria: list[str] = Field(min_length=2)
+    operator: CombineOp
+
+
 OptionBinding = Annotated[
-    SetValues | ReadValues | Withdraw | Keep | SaveComputedGroups,
+    SetValues | ReadValues | Withdraw | Keep | SaveComputedGroups | SetOperator,
     Discriminator("kind"),
 ]
 
@@ -99,6 +108,8 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             return (option.binding.kind, key)
         case SaveComputedGroups(handle=handle, save=save):
             return (option.binding.kind, handle, str(save))
+        case SetOperator(criteria=criteria, operator=operator):
+            return (option.binding.kind, *sorted(criteria), operator.value)
 
 
 def refuse_a_single_option(question: str, labels: Sequence[str]) -> None:

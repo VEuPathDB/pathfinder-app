@@ -17,6 +17,8 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
+    CriterionRole,
+    RequirementLink,
     SpecStructure,
     StructureNode,
 )
@@ -144,24 +146,33 @@ class TestThePercentileBound:
         assert grounded.note == "the requested share and direction could not be read"
 
 
-_MS_CRITERION = Criterion(
-    id="c_ms",
-    text="trophozoite mass spectrometry evidence",
-    search_name="GenesByMassSpec",
+_HELD_COMBINATION = Constraint(
+    id="r_comb",
+    kind=ConstraintKind.COMBINATION,
+    requested_value="mass spectrometry evidence OR DeRisi expression",
+    source=ConstraintSource.USER_EXPLICIT,
+    label="how the evidence combines",
 )
-_DERISI_CRITERION = Criterion(
-    id="c_derisi",
-    text="DeRisi timecourse expression",
-    search_name="GenesByRNASeqEvidence",
-)
+_LINK = [RequirementLink(requirement="r_comb")]
 
 
-def _joined(operator: CombineOp) -> SpecStructure:
+def _linked(cid: str, search: str, role: CriterionRole = "filter") -> Criterion:
+    return Criterion(id=cid, text=cid, search_name=search, role=role, answers=_LINK)
+
+
+_MS_CRITERION = _linked("c_ms", "GenesByMassSpec")
+_DERISI_CRITERION = _linked("c_derisi", "GenesByRNASeqEvidence")
+_ORTHOLOG_CRITERION = _linked("c_ortho", "GenesByOrthologs", "transform")
+_EXCLUDE_CRITERION = _linked("c_crypto", "GenesByOrthologPhyleticPattern", "exclude")
+
+
+def _joined(operator: CombineOp, *inputs: StructureNode) -> SpecStructure:
     return SpecStructure(
         root=StructureNode(
             kind="combine",
             operator=operator,
-            inputs=[
+            inputs=list(inputs)
+            or [
                 StructureNode(kind="leaf", criterion_id="c_ms"),
                 StructureNode(kind="leaf", criterion_id="c_derisi"),
             ],
@@ -169,203 +180,125 @@ def _joined(operator: CombineOp) -> SpecStructure:
     )
 
 
-def _ground_combination(
-    value: str, structure: SpecStructure | None
+def _ground_held(
+    structure: SpecStructure | None, *criteria: Criterion
 ) -> GroundedConstraint:
     [grounded] = ground_constraints(
-        [_explicit(ConstraintKind.COMBINATION, value, "how the evidence combines")],
+        [_HELD_COMBINATION],
         RealizedSpec(
-            search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
+            search_names=[c.search_name for c in criteria],
             param_values={},
             structure=structure,
-            criteria=[_MS_CRITERION, _DERISI_CRITERION],
+            criteria=list(criteria),
         ),
     )
     return grounded
 
 
-class TestGroundingACombination:
-    def test_a_stated_or_the_tree_unions_is_grounded(self) -> None:
-        grounded = _ground_combination(
-            "mass spectrometry evidence OR DeRisi expression", _joined(CombineOp.UNION)
+class TestGroundingAHeldCombination:
+    def test_its_linked_criteria_meet_at_the_operator_the_tree_holds(self) -> None:
+        grounded = _ground_held(
+            _joined(CombineOp.INTERSECT), _MS_CRITERION, _DERISI_CRITERION
         )
 
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert grounded.realized_value == "UNION"
-
-    def test_a_stated_or_the_tree_intersects_is_ungroundable(self) -> None:
-        grounded = _ground_combination(
-            "mass spectrometry evidence OR DeRisi expression",
-            _joined(CombineOp.INTERSECT),
-        )
-
-        assert grounded.status is ConstraintStatus.UNGROUNDABLE
-        assert "UNION" in grounded.note
-        assert "INTERSECT" in grounded.note
-        assert is_blocking(grounded) is True
-
-    def test_a_combination_naming_no_criterion_abstains(self) -> None:
-        grounded = _ground_combination(
-            "proteomics OR microscopy", _joined(CombineOp.INTERSECT)
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert "abstained" in grounded.note
-
-    def test_a_combination_without_a_structure_abstains(self) -> None:
-        grounded = _ground_combination(
-            "mass spectrometry evidence OR DeRisi expression", None
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert "abstained" in grounded.note
-
-
-_ORTHOLOG_CRITERION = Criterion(
-    id="c_ortho",
-    text="orthologs in Plasmodium vivax P01",
-    search_name="GenesByOrthologs",
-    role="transform",
-)
-_AND_THROUGH_A_TRANSFORM = (
-    "mass spectrometry evidence AND "
-    "orthologs in Plasmodium vivax P01 AND "
-    "DeRisi expression"
-)
-
-
-def _ground_with_transform(structure: SpecStructure) -> GroundedConstraint:
-    [grounded] = ground_constraints(
-        [
-            _explicit(
-                ConstraintKind.COMBINATION,
-                _AND_THROUGH_A_TRANSFORM,
-                "how the evidence combines",
-            )
-        ],
-        RealizedSpec(
-            search_names=[
-                "GenesByMassSpec",
-                "GenesByRNASeqEvidence",
-                "GenesByOrthologs",
-            ],
-            param_values={},
-            structure=structure,
-            criteria=[_MS_CRITERION, _DERISI_CRITERION, _ORTHOLOG_CRITERION],
-        ),
-    )
-    return grounded
-
-
-class TestGroundingACombinationThatNamesATransform:
-    def test_a_transform_over_a_named_criterion_grounds_the_statement(self) -> None:
-        structure = SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                operator=CombineOp.INTERSECT,
-                inputs=[
-                    StructureNode(
-                        kind="transform",
-                        criterion_id="c_ortho",
-                        inputs=[StructureNode(kind="leaf", criterion_id="c_ms")],
-                    ),
-                    StructureNode(kind="leaf", criterion_id="c_derisi"),
-                ],
-            )
-        )
-
-        grounded = _ground_with_transform(structure)
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert grounded.realized_value == "INTERSECT"
-
-    def test_a_transform_the_tree_leaves_out_abstains(self) -> None:
-        grounded = _ground_with_transform(_joined(CombineOp.INTERSECT))
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert "abstained" in grounded.note
-
-
-_EXCLUDE_CRITERION = Criterion(
-    id="c_crypto",
-    text="has an ortholog in Cryptosporidium parvum Iowa II",
-    search_name="GenesByOrthologPhyleticPattern",
-    role="exclude",
-)
-_AND_REMOVING = (
-    "mass spectrometry evidence AND DeRisi expression AND "
-    "remove any with a Cryptosporidium parvum Iowa II ortholog"
-)
-
-
-def _ground_with_exclusion(structure: SpecStructure) -> GroundedConstraint:
-    [grounded] = ground_constraints(
-        [
-            _explicit(
-                ConstraintKind.COMBINATION, _AND_REMOVING, "how the evidence combines"
-            )
-        ],
-        RealizedSpec(
-            search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
-            param_values={},
-            structure=structure,
-            criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
-        ),
-    )
-    return grounded
-
-
-def _removed_from(operator: CombineOp, kept: StructureNode) -> SpecStructure:
-    return SpecStructure(
-        root=StructureNode(
-            kind="combine",
-            operator=operator,
-            inputs=[kept, StructureNode(kind="leaf", criterion_id="c_crypto")],
-        )
-    )
-
-
-class TestGroundingACombinationThatRemovesACriterion:
-    def test_a_minus_over_the_named_criteria_grounds_the_statement(self) -> None:
-        grounded = _ground_with_exclusion(
-            _removed_from(CombineOp.MINUS, _joined(CombineOp.INTERSECT).root)
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert grounded.realized_value == "INTERSECT"
-
-    def test_an_intersect_where_the_statement_removes_abstains(self) -> None:
-        """The tree keeps the genes the statement asks to remove."""
-        grounded = _ground_with_exclusion(
-            _removed_from(CombineOp.INTERSECT, _joined(CombineOp.INTERSECT).root)
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert "abstained" in grounded.note
-
-    def test_a_statement_of_one_filter_and_one_exclusion_says_why_it_abstains(
-        self,
-    ) -> None:
-        [grounded] = ground_constraints(
-            [
-                _explicit(
-                    ConstraintKind.COMBINATION,
-                    "mass spectrometry evidence AND "
-                    "remove any with a Cryptosporidium parvum Iowa II ortholog",
-                    "how the evidence combines",
-                )
-            ],
-            RealizedSpec(
-                search_names=["GenesByMassSpec"],
-                param_values={},
-                structure=_removed_from(
-                    CombineOp.MINUS, StructureNode(kind="leaf", criterion_id="c_ms")
-                ),
-                criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
+        assert (grounded.status, grounded.realized_value, grounded.note) == (
+            ConstraintStatus.GROUNDED,
+            None,
+            (
+                "the combination check abstained: the criteria that link it meet "
+                "at INTERSECT, and that combine is read against the researcher's "
+                "words"
             ),
         )
+        assert is_blocking(grounded) is False
 
-        assert grounded.status is ConstraintStatus.GROUNDED
+    def test_a_combination_no_criterion_links_abstains(self) -> None:
+        unlinked = [
+            c.model_copy(update={"answers": []})
+            for c in (_MS_CRITERION, _DERISI_CRITERION)
+        ]
+
+        grounded = _ground_held(_joined(CombineOp.UNION), *unlinked)
+
+        assert (grounded.status, grounded.note) == (
+            ConstraintStatus.GROUNDED,
+            "the combination check abstained: no criterion links it",
+        )
+
+    def test_a_combination_without_a_structure_abstains(self) -> None:
+        grounded = _ground_held(None, _MS_CRITERION, _DERISI_CRITERION)
+
+        assert "abstained" in grounded.note
+
+    def test_a_transform_over_a_linked_criterion_is_on_the_path(self) -> None:
+        mapped = StructureNode(
+            kind="transform",
+            criterion_id="c_ortho",
+            inputs=[StructureNode(kind="leaf", criterion_id="c_ms")],
+        )
+
+        grounded = _ground_held(
+            _joined(
+                CombineOp.INTERSECT,
+                mapped,
+                StructureNode(kind="leaf", criterion_id="c_derisi"),
+            ),
+            _MS_CRITERION,
+            _DERISI_CRITERION,
+            _ORTHOLOG_CRITERION,
+        )
+
+        assert "meet at INTERSECT" in grounded.note
+
+    def test_a_transform_the_tree_leaves_out_abstains(self) -> None:
+        grounded = _ground_held(
+            _joined(CombineOp.INTERSECT),
+            _MS_CRITERION,
+            _DERISI_CRITERION,
+            _ORTHOLOG_CRITERION,
+        )
+
+        assert "abstained" in grounded.note
+
+    def test_an_exclusion_subtracted_from_the_members_is_read(self) -> None:
+        grounded = _ground_held(
+            _joined(
+                CombineOp.MINUS,
+                _joined(CombineOp.INTERSECT).root,
+                StructureNode(kind="leaf", criterion_id="c_crypto"),
+            ),
+            _MS_CRITERION,
+            _DERISI_CRITERION,
+            _EXCLUDE_CRITERION,
+        )
+
+        assert "meet at INTERSECT" in grounded.note
+
+    def test_an_exclusion_the_tree_keeps_abstains(self) -> None:
+        grounded = _ground_held(
+            _joined(
+                CombineOp.INTERSECT,
+                _joined(CombineOp.INTERSECT).root,
+                StructureNode(kind="leaf", criterion_id="c_crypto"),
+            ),
+            _MS_CRITERION,
+            _DERISI_CRITERION,
+            _EXCLUDE_CRITERION,
+        )
+
+        assert "abstained" in grounded.note
+
+    def test_one_linked_member_says_why_it_abstains(self) -> None:
+        grounded = _ground_held(
+            _joined(
+                CombineOp.MINUS,
+                StructureNode(kind="leaf", criterion_id="c_ms"),
+                StructureNode(kind="leaf", criterion_id="c_crypto"),
+            ),
+            _MS_CRITERION,
+            _EXCLUDE_CRITERION,
+        )
+
         assert "fewer than two" in grounded.note
 
 

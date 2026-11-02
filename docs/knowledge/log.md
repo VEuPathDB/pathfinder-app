@@ -2,6 +2,19 @@
 
 ## 2026-11-03
 
+* **Operators come from FRAME's tree, read against the researcher's words.** After
+  each framing pass, one Decisions question per combine whose inputs each link a
+  quoted requirement reads the researcher's messages and the branches' quotes; a
+  confident other operator is asked on the card with a keep and a change option,
+  the spec is not ready to build while it stands, and the facts part and the ledger
+  name who chose each combine. A card answer records no combination, a value added
+  beside a held one names it in `beside`, and a held combination's check names the
+  operator its linked criteria meet at, never a pass or a fail. `CombinationRequest`,
+  `match_terms`, `_best_match`, `combination_terms_overlap`, `combination_violation`,
+  `combination_operators`, `dropped_sides`, `retire_dropped_sides`,
+  `RetiredRequirement.sides`, `adds_an_alternative` and
+  `AgentToolState.combination_requirements` are deleted. See
+  [operators come from FRAME's tree](decisions/operators-come-from-frames-tree.md).
 * **A requirement is the researcher's by its quote alone.** `attributed` marks a
   requirement stated only when its quote is a casefolded substring of a
   researcher message; no word of a model-written value is matched, and a held

@@ -1,4 +1,6 @@
-"""A combination the message quotes is held to the operator the strategy builds."""
+"""A held combination the message quotes is the researcher's; its check names
+the operator its linked criteria meet at and is never a pass or a fail, because
+no word of it is read as an operator."""
 
 from __future__ import annotations
 
@@ -20,6 +22,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
     SpecStructure,
     StructureNode,
 )
@@ -93,8 +96,13 @@ async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
     state = pipeline_state(user_prompt=VACCINE)
     intent = _intent("AND")
     await hold_the_intent(lead_deps(state), intent, VACCINE)
+    [held] = state.domain.requirements
+    linked = [
+        c.model_copy(update={"answers": [RequirementLink(requirement=held.id)]})
+        for c in _CRITERIA
+    ]
     state.domain.operational_spec = OperationalSpec(
-        goal="vaccine candidates", criteria=_CRITERIA, structure=_chain(operator)
+        goal="vaccine candidates", criteria=linked, structure=_chain(operator)
     )
     [grounded] = [
         g
@@ -114,16 +122,25 @@ async def test_a_combination_the_message_quotes_is_the_users() -> None:
     ]
 
 
-async def test_an_intersect_build_honors_the_stated_and() -> None:
+async def test_an_intersect_build_names_its_operator() -> None:
     grounded = await _combination_after_build(CombineOp.INTERSECT)
 
-    assert grounded.status is ConstraintStatus.GROUNDED
-    assert grounded.realized_value == "INTERSECT"
+    assert (grounded.realized_value, "meet at INTERSECT" in grounded.note) == (
+        None,
+        True,
+    )
     assert is_blocking(grounded) is False
 
 
-async def test_a_union_build_breaks_the_stated_and() -> None:
+async def test_a_union_build_reports_its_operator_and_blocks_nothing() -> None:
     grounded = await _combination_after_build(CombineOp.UNION)
 
-    assert grounded.status is ConstraintStatus.UNGROUNDABLE
-    assert is_blocking(grounded) is True
+    assert (
+        grounded.status,
+        "meet at UNION" in grounded.note,
+        is_blocking(grounded),
+    ) == (
+        ConstraintStatus.GROUNDED,
+        True,
+        False,
+    )
