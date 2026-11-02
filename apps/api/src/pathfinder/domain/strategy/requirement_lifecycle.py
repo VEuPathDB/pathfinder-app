@@ -8,10 +8,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Discriminator, model_validator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.combination_check import (
-    combination_terms_overlap,
-    match_terms,
-)
+from pathfinder.domain.strategy.combination_check import match_terms
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
@@ -21,9 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     ReplacedLifecycle,
     StoredConstraint,
     WithdrawnLifecycle,
-    states_the_content,
 )
-from pathfinder.domain.strategy.message_reading import message_states_constraint
 from pathfinder.domain.strategy.operational_spec import Criterion
 
 RetiredLifecycle = Annotated[
@@ -75,53 +70,6 @@ class RetiredRequirement(CamelModel):
             status=ConstraintStatus.PROVISIONAL,
             lifecycle=self.lifecycle,
         )
-
-
-def _values_name_each_other(held: Constraint, stated: Constraint) -> bool:
-    a, b = held.requested_value, stated.requested_value
-    if held.kind is ConstraintKind.COMBINATION and combination_terms_overlap(a, b):
-        return True
-    return (
-        message_states_constraint(a, stated)
-        or message_states_constraint(b, held)
-        or states_the_content(a, b)
-        or states_the_content(b, a)
-    )
-
-
-def withdrawn_by(
-    held: Sequence[Constraint], statements: Sequence[Constraint]
-) -> list[Constraint]:
-    """The held requirements that some statement of a message names.
-
-    A statement names a held requirement of its kind when their values carry
-    each other's words. A kind of one value held once is named by any value.
-    """
-
-    def _named(requirement: Constraint, stated: Constraint) -> bool:
-        if stated.kind is not requirement.kind:
-            return False
-        alone = [c for c in held if c.kind is requirement.kind] == [requirement]
-        return (
-            alone and requirement.kind not in MANY_VALUED_KINDS
-        ) or _values_name_each_other(requirement, stated)
-
-    return [c for c in held if any(_named(c, s) for s in statements)]
-
-
-def with_recorded_sources(
-    statements: Sequence[Constraint], recorded: Sequence[Constraint]
-) -> list[Constraint]:
-    """Each withdrawn statement in the source of the first requirement it names.
-
-    ``recorded`` is every requirement the thread holds or retired, live first.
-    A statement that names no recorded requirement keeps its own source.
-    """
-    return [
-        statement.model_copy(update={"source": named[0].source})
-        for statement in statements
-        for named in [withdrawn_by(recorded, [statement]) or [statement]]
-    ]
 
 
 def successor_of(

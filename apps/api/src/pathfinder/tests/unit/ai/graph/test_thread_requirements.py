@@ -166,7 +166,7 @@ def test_a_withdrawn_requirement_retires_on_its_message() -> None:
     thread = _recorded(
         [_ORGANISM, _TM, _SIGNAL],
         "Drop the transmembrane domain.",
-        _intent(withdrawn=[_stated(ConstraintKind.OTHER, "transmembrane domain")]),
+        _intent(withdrawn_ids=[_TM.id]),
     )
 
     assert (thread.requirements, _lifecycles(thread)) == (
@@ -183,7 +183,7 @@ def test_a_withdrawn_value_the_message_restates_is_replaced_by_it() -> None:
     thread = _recorded(
         [chromosome_17],
         "Change chromosome 17 to chromosome 19 and tell me the count.",
-        _intent(explicit_constraints=[chromosome_19], withdrawn=[chromosome_17]),
+        _intent(explicit_constraints=[chromosome_19], withdrawn_ids=[chromosome_17.id]),
     )
 
     assert (thread.requirements, thread.retired_requirements[0].lifecycle) == (
@@ -327,7 +327,7 @@ def test_a_withdrawn_combination_names_no_side_while_its_steps_stand() -> None:
     thread = _recorded(
         [_GS_B, _KINASE_NO_TM],
         _REMOVE_THE_EXCLUSION,
-        _intent(withdrawn=[_KINASE_NO_TM]),
+        _intent(withdrawn_ids=[_KINASE_NO_TM.id]),
     )
 
     assert (thread.requirements, _shown(thread)) == (
@@ -340,7 +340,7 @@ def test_a_delete_names_the_side_of_a_withdrawn_combination_its_step_answered() 
     thread = _recorded(
         [_GS_B, _KINASE_NO_TM],
         _REMOVE_THE_EXCLUSION,
-        _intent(withdrawn=[_KINASE_NO_TM]),
+        _intent(withdrawn_ids=[_KINASE_NO_TM.id]),
     )
 
     thread.retire_what_a_delete_leaves_unanswered([_NO_TM_STEP], [_KINASE_STEP])

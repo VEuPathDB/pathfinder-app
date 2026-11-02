@@ -3,6 +3,8 @@ site's organisms and genes, and the requirements the thread recorded."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import ConfigDict, Field
 from veupathdb.model import CamelModel
 from veupathdb_mcp.audit import GeneIdRefusal, TooManyIdsError
@@ -24,7 +26,9 @@ from pathfinder.ai.lead.intent import (
     untyped_ids,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.organism_phrases import complete_organisms
+from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.services.gene_records.read import gene_record_url
 
 
@@ -144,6 +148,12 @@ def _without(intent: UserIntent, unheld: set[str]) -> UserIntent:
     )
 
 
+def _withdrawn_ids(intent: UserIntent, held: Sequence[Constraint]) -> list[str]:
+    numbered = numbered_requirements(held)
+    taken_back = [] if intent.request is None else intent.request.withdrawn
+    return [numbered[w.requirement].id for w in taken_back if w.requirement in numbered]
+
+
 async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> UserIntent:
     state = deps.state
     markers = state.turn_markers
@@ -154,7 +164,9 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
         )
         intent = intent.model_copy(update={"explicit_constraints": constraints})
     intent = _without(intent, set(_unheld_ids(state, intent, site, said)))
-    intent = state.domain.withdrawn_as_recorded(intent)
+    intent = intent.model_copy(
+        update={"withdrawn_ids": _withdrawn_ids(intent, state.domain.requirements)}
+    )
     deps.intent = intent
     markers.intent_classified = True
     worked = markers.framed or markers.consulted or markers.changed_strategy

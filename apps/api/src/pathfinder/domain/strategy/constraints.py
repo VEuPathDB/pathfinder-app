@@ -189,12 +189,6 @@ def content_words(value: str) -> frozenset[str]:
     return frozenset(word for word in words_of(value) if word not in FILLER_WORDS)
 
 
-def states_the_content(text: str, value: str) -> bool:
-    """Whether the text carries every word of the value that is not filler."""
-    wanted = content_words(value)
-    return bool(wanted) and wanted <= set(words_of(text))
-
-
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
 
 

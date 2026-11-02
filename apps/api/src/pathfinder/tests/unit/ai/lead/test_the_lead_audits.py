@@ -177,7 +177,7 @@ def test_an_audit_turn_records_no_thread_requirement() -> None:
     )
     audit = user_intent(
         IntentClassification.GENE_MODEL_AUDIT, explicit_constraints=[_STRAIN]
-    ).model_copy(update={"withdrawn": [_KINASES]})
+    ).model_copy(update={"withdrawn_ids": [_KINASES.id]})
 
     domain.record_intent(
         audit,

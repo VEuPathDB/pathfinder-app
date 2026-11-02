@@ -34,8 +34,9 @@ Four paths read the links:
   combination, which the carrier's step meets. Each one is a gap while no
   criterion of the spec links it (`OperationalSpec.unexpressed`).
 - **The withdraw offer** (`questions.with_withdrawals`) gives the drop and keep
-  options to an optionless question whose `criterion_id` names a criterion that
-  links the requirement; otherwise the card asks a question of its own.
+  options to an optionless question whose own `requirements` name the
+  requirement, else to one whose `criterion_id` names a criterion that links it;
+  otherwise the card asks a question of its own.
 - **The gap rows** (`caveats.check_gaps`) carry the requirement's id. A row whose
   requirement is withdrawn or replaced is no gap.
 

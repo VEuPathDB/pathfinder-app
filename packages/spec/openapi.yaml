@@ -17827,16 +17827,12 @@ components:
           minLength: 1
           title: Quote
           type: string
-        kind:
-          $ref: '#/components/schemas/RequirementKind'
-        value:
-          minLength: 1
-          title: Value
+        requirement:
+          default: ''
+          title: Requirement
           type: string
       required:
       - quote
-      - kind
-      - value
       title: StatedWithdrawal
       type: object
     StatisticFact:
@@ -18889,10 +18885,10 @@ components:
             $ref: '#/components/schemas/Constraint'
           title: Explicitconstraints
           type: array
-        withdrawn:
+        withdrawnIds:
           items:
-            $ref: '#/components/schemas/Constraint'
-          title: Withdrawn
+            type: string
+          title: Withdrawnids
           type: array
         namedControls:
           anyOf:

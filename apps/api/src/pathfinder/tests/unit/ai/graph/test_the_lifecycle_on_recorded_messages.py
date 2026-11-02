@@ -100,13 +100,13 @@ _DROP_TM = (
 )
 
 
-def _dropped(withdrawn_value: str) -> ThreadRequirements:
+def _dropped(*withdrawn: str) -> ThreadRequirements:
     thread = _thread(list(_PF3D7_TM_HELD))
     thread.record(
         _intent(
             IntentClassification.EDIT_STRATEGY,
             asks=[_WITHOUT_TM],
-            withdrawn=[_stated(_OTHER, withdrawn_value)],
+            withdrawn_ids=list(withdrawn),
         ),
         [_DROP_TM],
     )
@@ -114,7 +114,7 @@ def _dropped(withdrawn_value: str) -> ThreadRequirements:
 
 
 def test_dropping_the_transmembrane_part_withdraws_it_and_replaces_nothing() -> None:
-    thread = _dropped("a transmembrane domain")
+    thread = _dropped(_TM.id)
 
     assert ([c.id for c in thread.requirements], _retired(thread)) == (
         [_PF3D7.id, _APICOPLAST.id],
@@ -122,11 +122,13 @@ def test_dropping_the_transmembrane_part_withdraws_it_and_replaces_nothing() -> 
     )
 
 
-def test_a_withdrawal_names_the_held_value_without_its_article() -> None:
-    """A statement that carries every content word of a held value names it."""
-    thread = _dropped("transmembrane domain requirement")
+def test_an_id_the_thread_does_not_hold_withdraws_nothing() -> None:
+    thread = _dropped("requirement_unheld")
 
-    assert [c.id for c in thread.requirements] == [_PF3D7.id, _APICOPLAST.id]
+    assert ([c.id for c in thread.requirements], thread.retired_requirements) == (
+        [_PF3D7.id, _APICOPLAST.id, _TM.id],
+        [],
+    )
 
 
 # tritrypdb: a zinc finger domain expressed in amastigotes, then promastigotes.
@@ -147,7 +149,7 @@ def test_a_changed_stage_replaces_the_stage_and_leaves_the_domain() -> None:
         _intent(
             IntentClassification.EDIT_STRATEGY,
             explicit_constraints=[_PROMASTIGOTES, _ZINC],
-            withdrawn=[_AMASTIGOTES],
+            withdrawn_ids=[_AMASTIGOTES.id],
         ),
         [_STAGE_SWAP],
     )

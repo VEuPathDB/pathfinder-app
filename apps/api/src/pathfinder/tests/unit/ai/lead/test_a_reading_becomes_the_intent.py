@@ -83,40 +83,15 @@ def test_a_question_that_changes_nothing_is_a_follow_up() -> None:
 
 def test_a_withdrawal_on_a_question_is_a_change() -> None:
     request = StatedRequest(
-        withdrawn=[
-            StatedWithdrawal(
-                quote="drop the fold change",
-                kind="fold_change",
-                value="at least 2-fold",
-            )
-        ]
+        withdrawn=[StatedWithdrawal(quote="drop the fold change", requirement="R2")]
     )
 
     intent = intent_of(_reading("none", "status"), request)
 
-    assert (intent.classification, intent.asks_a_change) == (
+    assert (intent.classification, intent.asks_a_change, intent.withdrawn_ids) == (
         IntentClassification.EDIT_STRATEGY,
         True,
-    )
-
-
-def test_a_withdrawal_names_the_value_the_conversation_stated() -> None:
-    request = StatedRequest(
-        withdrawn=[
-            StatedWithdrawal(
-                quote="drop the fold change",
-                kind="fold_change",
-                value="at least 2-fold",
-            )
-        ]
-    )
-
-    [withdrawn] = intent_of(_reading("remove"), request).withdrawn
-
-    assert (withdrawn.kind, withdrawn.requested_value, withdrawn.quote) == (
-        ConstraintKind.FOLD_CHANGE,
-        "at least 2-fold",
-        "drop the fold change",
+        [],
     )
 
 

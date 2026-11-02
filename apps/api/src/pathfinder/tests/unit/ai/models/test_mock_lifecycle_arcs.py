@@ -1,5 +1,5 @@
-"""The lifecycle arcs state requirements with no key and no successor, and the
-thread derives the replacement and the withdrawal from what it holds."""
+"""The lifecycle arcs state requirements with no successor and withdraw one by
+its number, and the thread derives the replacement and the withdrawal."""
 
 from __future__ import annotations
 
@@ -7,10 +7,11 @@ from uuid import uuid4
 
 import pytest
 
+from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import UserIntent
-from pathfinder.ai.models.mock.lifecycle_arcs import WITHDRAWN_VALUE
 from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.constraints import (
@@ -19,7 +20,8 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ReplacedLifecycle,
 )
-from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
+from pathfinder.tests._support.site_organisms import serve_recorded_organisms
+from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.models._mock_turns import names, play
 
 SITES = ("plasmodb", "vectorbase")
@@ -67,14 +69,25 @@ def test_a_narrower_organism_replaces_the_genus_the_thread_held(site_id: str) ->
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_a_withdrawn_statement_retires_the_requirement_it_names(site_id: str) -> None:
-    tm = _stated(ConstraintKind.OTHER, f"a {WITHDRAWN_VALUE}")
+async def test_a_withdrawal_retires_the_requirement_its_number_names(
+    site_id: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    serve_recorded_organisms(monkeypatch)
+    tm = _stated(ConstraintKind.OTHER, "a transmembrane domain")
     signal = _stated(ConstraintKind.OTHER, "a signal peptide")
     message = "Drop the transmembrane domain. [[arc:withdrawn-requirement]]"
+    assert names(play("lead", site_id, message)) == ["final_result"]
+    state = pipeline_state(
+        site_id,
+        user_prompt=message,
+        user_message_id=uuid4(),
+        domain=StrategyDomainState(requirements=[tm, signal]),
+    )
+    deps = lead_deps(state)
 
-    thread = _recorded([tm, signal], message, _played(site_id, message))
+    await hold_the_intent(deps, scripted_intent(state, message), message)
 
     assert (
-        thread.requirements,
-        [(r.constraint, r.lifecycle.state) for r in thread.retired_requirements],
+        state.domain.requirements,
+        [(r.constraint, r.lifecycle.state) for r in state.domain.retired_requirements],
     ) == ([signal], [(tm, "withdrawn")])

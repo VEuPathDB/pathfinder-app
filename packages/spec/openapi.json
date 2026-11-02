@@ -26540,19 +26540,14 @@
             "title": "Quote",
             "type": "string"
           },
-          "kind": {
-            "$ref": "#/components/schemas/RequirementKind"
-          },
-          "value": {
-            "minLength": 1,
-            "title": "Value",
+          "requirement": {
+            "default": "",
+            "title": "Requirement",
             "type": "string"
           }
         },
         "required": [
-          "quote",
-          "kind",
-          "value"
+          "quote"
         ],
         "title": "StatedWithdrawal",
         "type": "object"
@@ -28035,11 +28030,11 @@
             "title": "Explicitconstraints",
             "type": "array"
           },
-          "withdrawn": {
+          "withdrawnIds": {
             "items": {
-              "$ref": "#/components/schemas/Constraint"
+              "type": "string"
             },
-            "title": "Withdrawn",
+            "title": "Withdrawnids",
             "type": "array"
           },
           "namedControls": {

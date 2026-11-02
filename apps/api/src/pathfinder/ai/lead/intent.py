@@ -105,7 +105,7 @@ class UserIntent(CamelModel):
     asks: list[str] = Field(default_factory=list)
     referenced_step_ids: list[str] = Field(default_factory=list)
     explicit_constraints: list[Constraint] = Field(default_factory=list)
-    withdrawn: list[Constraint] = Field(default_factory=list)
+    withdrawn_ids: list[str] = Field(default_factory=list)
     named_controls: NamedControls | None = None
     named_gene_ids: list[str] = Field(default_factory=list)
     reading: MessageReading | None = None

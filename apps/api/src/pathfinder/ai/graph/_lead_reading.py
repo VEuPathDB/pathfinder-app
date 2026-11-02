@@ -15,6 +15,7 @@ from pathfinder.ai.lead.message_reader import ReaderInput, read_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.domain.exchanges import exchanges_text
+from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
 
@@ -70,6 +71,12 @@ def _reader_input(state: PipelineState, deps: LeadDeps, words: str) -> ReaderInp
         ],
         question_open=bool(markers.questions_at_arrival)
         or state.pending_approval is not None,
+        held={
+            number: f"{c.kind.value}: {c.requested_value}"
+            for number, c in numbered_requirements(
+                deps.state.domain.requirements
+            ).items()
+        },
     )
 
 

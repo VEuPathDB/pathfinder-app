@@ -19,7 +19,6 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     reopened,
     restored,
     retire,
-    withdrawn_by,
 )
 
 _CUTOFF = Constraint(
@@ -70,25 +69,6 @@ def test_a_requirement_stated_again_is_live_again() -> None:
     ]
 
     assert reopened(held, [_CUTOFF, _SIGNAL]) == []
-
-
-def test_a_statement_names_the_held_requirement_its_words_carry() -> None:
-    kinase = _SIGNAL.model_copy(update={"requested_value": "protein kinase"})
-    stated = _SIGNAL.model_copy(update={"requested_value": "the signal peptide"})
-
-    assert withdrawn_by([kinase, _SIGNAL], [stated]) == [_SIGNAL]
-
-
-def test_a_statement_of_a_single_valued_kind_names_its_one_value() -> None:
-    stated = _CUTOFF.model_copy(update={"requested_value": "the expression cutoff"})
-
-    assert withdrawn_by([_CUTOFF, _SIGNAL], [stated]) == [_CUTOFF]
-
-
-def test_a_statement_names_nothing_the_thread_does_not_hold() -> None:
-    stated = _SIGNAL.model_copy(update={"requested_value": "exported"})
-
-    assert withdrawn_by([_SIGNAL], [stated]) == []
 
 
 def test_a_withdrawn_cutoff_is_no_gap_while_a_live_requirement_still_is() -> None:
