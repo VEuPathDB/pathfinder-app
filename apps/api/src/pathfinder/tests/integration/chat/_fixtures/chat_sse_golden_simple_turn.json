@@ -172,7 +172,7 @@
         "referencedStepIds": [],
         "request": null,
         "undo": false,
-        "withdrawn": []
+        "withdrawnIds": []
       },
       "verification": {
         "caveats": [],
