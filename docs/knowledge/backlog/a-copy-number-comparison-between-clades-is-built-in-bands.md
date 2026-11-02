@@ -71,6 +71,12 @@ The builder is shipped and the corpus case
 computed from the site, not written by VERIFY. No code states the clade-average caveat
 (change 1), and change 4 waits on the requirement redesign.
 
+## Live 2026-11-02
+
+Replayed on QA OrthoMCL with Luna, the bands case built no strategy. Turn 1 asked a card
+about keeping the computed comparison as a step; turn 2 replied that "the Toxoplasma
+expansion criterion was not bound into the plan".
+
 ## Done when
 
 The example question builds a banded expression after one clarifying exchange, the answer

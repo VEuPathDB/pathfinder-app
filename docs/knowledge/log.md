@@ -11,6 +11,13 @@
   read; `verify_checks.py` now reads that column, and the recorded body
   (`tests/fixtures/wdk/step_column_organism_full_by_value.json`) drives a unit
   test. The backlog item on running the computed verdict live left with it.
+* **Live runs on QA with Luna (seven corpus cases, $0.39).** The OrthoMCL single-copy
+  suggestion passed and shows the genome breakdown once. In `uat-dry3-d-hostdb` the
+  message "Change the chromosome to 19. How does the count change?" edited the strategy to
+  0 genes, so the item on a command beside a question left; turn 4 of the same case showed
+  a different five genes as "the same sample", now a backlog item. The bands case built
+  nothing, and four OrthoMCL clarifying cases built without a card or with another
+  reading; the items on clade bands and on the clarifying question record them.
 * **The backlog is ranked in three tiers and numbered from 1.** Items a tester
   would hit come first, then work after testers, then internal or blocked work.
   Each item that a GitHub issue tracks links that issue. Decisions and cards name

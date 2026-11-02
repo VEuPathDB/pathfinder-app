@@ -41,7 +41,7 @@ Single Copy Orthogroups says it cannot name a clade.
 
 The two `veupathdb-mcp` changes shipped in 0.2.0b35. Replayed on QA OrthoMCL with Luna
 (corpus case `orthomcl-single-copy-across-the-apicomplexans`), the unchanged suggestion
-builds `GroupsByPhyleticPattern` `APIC=139T AND APIC=139` and returns 2 groups. Every
+builds `GroupsByPhyleticPattern` `APIC=139T AND APIC=139` and returns 2 groups (again on 2026-11-02, with the genome breakdown shown once). Every
 suggestion was run once on 2026-10-31, but no pass or fail is recorded per suggestion and
 nothing withholds one that fails. Steps 1, 2 and 3 remain.
 

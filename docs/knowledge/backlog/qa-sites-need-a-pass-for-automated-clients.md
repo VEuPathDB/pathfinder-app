@@ -29,9 +29,6 @@ reaches QA from a laptop: `ssh -D`, then `HTTPS_PROXY=socks5://...` with `socksi
 
 **The work that remains:**
 
-- Rerun the three EDA flows of the e2e suite. The whole suite ran on 2026-10-31 against a
-  stack inside the network that reaches QA PlasmoDB, and every test passed except three
-  EDA flows, which needed the offline embedder that veupathdb-mcp 0.2.0b60 ships.
 - Lift the five api tests that skip on the two states QA does not hold on request, a
   cached AI expression summary and a crashed VDI import, when the client library records
   them (`veupathdb-py: docs/knowledge/backlog/two-states-qa-does-not-hold-on-request-are-recorded.md`).

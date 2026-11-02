@@ -10,9 +10,9 @@ what left.
 ### Before testers: a tester would hit it
 
 1. [A suggested prompt is measured before it ships](a-suggested-prompt-is-measured-before-it-ships.md) ([#24](https://github.com/VEuPathDB/pathfinder-app/issues/24)) - the OrthoMCL single-copy suggestion now builds the 2-group phyletic strategy on QA; reword it, record a pass or fail for every suggestion and withhold a failing one, and let biologists propose candidates in a reviewable file.
-2. [The last pushed round is checked live](a-pushed-round-is-checked-live.md) ([#14](https://github.com/VEuPathDB/pathfinder-app/issues/14)) - the all-organism singleton ranking passed live twice; one live audit follow-up that asks a gene's certainty and one live build refused once remain.
+2. [The last pushed round is checked live](a-pushed-round-is-checked-live.md) ([#14](https://github.com/VEuPathDB/pathfinder-app/issues/14)) - the all-organism singleton ranking and the audit follow-up passed live; one live build refused once remains.
 3. [A canvas edit waits for the turn](a-canvas-edit-waits-for-the-turn.md) - `/operations` applies a canvas edit while a turn of the same thread runs, so one commit's whole-tree write drops the other's edit; refuse or queue it while `claim_settled_thread` names the thread busy.
-4. [A message that commands a change is an edit when it also asks a question](a-message-that-commands-a-change-is-an-edit.md) - a question that asks a change now goes to framing (`asks_a_change`); one live replay of uat-dry3-d-hostdb must show the edit to chromosome 19.
+4. [A sample shown again is the same records](a-sample-shown-again-is-the-same-records.md) - asked for the same sample of five genes again, the Lead reads the first five ids of the step instead of the five it showed; show it again from what the thread recorded.
 
 ### After testers
 
@@ -31,7 +31,7 @@ what left.
 ### Internal or blocked
 
 16. [The eval reads what the researcher sees](the-eval-reads-what-the-researcher-sees.md) - the corpus phrase checks match a reply's stored markdown, where every punctuation mark is escaped, and two cases leave the consult cards the Lead now asks unanswered; read the reply as shown and record an answer for each card.
-17. [QA sites need a pass for automated clients](qa-sites-need-a-pass-for-automated-clients.md) - BLOCKED on the VEuPathDB team: outside the network the QA sites redirect every service call to a pre-release login, so the e2e jobs and both nightlies stay disabled; a stack inside the network reaches QA, and three EDA e2e flows still need a rerun.
+17. [QA sites need a pass for automated clients](qa-sites-need-a-pass-for-automated-clients.md) - BLOCKED on the VEuPathDB team: outside the network the QA sites redirect every service call to a pre-release login, so the e2e jobs and both nightlies stay disabled; a stack inside the network reaches QA and the whole e2e suite passes there.
 18. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run on QA close both.
 19. [Three site bugs are reported to VEuPathDB](three-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
 20. [A decision model is chosen on our own scorecards](a-decision-model-is-chosen-on-our-own-scorecards.md) - PARKED: the OpenAI Decisions API serves search candidates in veupathdb-mcp; the injection screen, VERIFY fit and disagreement flag are unwired, and Clef was never measured against Jev's scorecards.

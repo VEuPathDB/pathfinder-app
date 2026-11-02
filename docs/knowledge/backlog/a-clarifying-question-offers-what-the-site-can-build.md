@@ -50,6 +50,18 @@ options. Change 4 has no code. Change 5 is open: `recorded_cards.the_card_asked`
 Lead question only when its prompt or requirement id matches, and a test pins the
 duplicate. None of the replays below is recorded.
 
+## Live 2026-11-02
+
+Replayed on QA OrthoMCL with Luna, one case at a time:
+- `orthomcl-expanded-families-question-offers-readings` built `GroupsByNameList`
+  (7,364 groups) with no card.
+- `orthomcl-all-plasmodium-asks-which-all` built `GroupsByPhyleticPattern` (797 groups)
+  with no card.
+- `orthomcl-all-plasmodium-every-species-reading` built one sum over every Plasmodium
+  genome (`padl+pber+...>=1T`, 395 groups) where the reading is one term per species.
+- `orthomcl-more-proteins-in-one-genome-than-another` built 3,896 groups and was not
+  verified.
+
 ## Done when
 
 The copy-number question and the "all Plasmodium" question each reach a built strategy
