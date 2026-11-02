@@ -7,7 +7,7 @@ from assistant_core.models.scripted import scripted_call
 from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.reads import ToolAnswer, last_return
 
 # The ids a listing turn reads from the result, and names in its reply.
@@ -28,7 +28,6 @@ def list_ids(messages: list[ModelMessage]) -> list[ToolCallPart]:
         else "The listing did not answer."
     )
     return [
-        classify("follow_up_question"),
         scripted_call("read_step_ids", {"limit": LISTED}),
         lead_final(prose, "await_user"),
     ]

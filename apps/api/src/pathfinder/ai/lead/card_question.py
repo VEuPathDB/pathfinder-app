@@ -29,6 +29,15 @@ class CardQuestion(ConsultQuestion):
         ),
     )
 
+    replaces: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The numbers, such as R2, of the requirements in the ledger's list "
+            "that a stand-in the answer names takes the place of. Empty unless "
+            "the question asks for a stand-in."
+        ),
+    )
+
     @model_validator(mode="after")
     def _is_written_for_the_researcher(self) -> CardQuestion:
         """A card arrives before the facts that link a record, so a question

@@ -1,48 +1,22 @@
-"""The mock classifies a build over a framed draft as extending it."""
+"""The mock reads a build over a framed draft as extending it."""
 
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_pins import pinned_operational_spec
-from pathfinder.ai.models.mock.consult_arc import consult
-from pathfinder.ai.models.mock.lead_flow import build_journey
+from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.models.mock.reading import scripted_intent
+from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._answered_draft import framed
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 _BUILD = "Find protein kinases in P. falciparum 3D7. [[arc:single]]"
 _CONSULT = "Consult me before planning this strategy. [[arc:consult]]"
-
-
-def _pinned(spec: OperationalSpec | None) -> str:
-    """The spec pin the Lead reads, as the agent renders it."""
-    state = pipeline_state(domain=StrategyDomainState(operational_spec=spec))
-    rendered = pinned_operational_spec(run_context_for(lead_deps(state)))
-    assert rendered is not None
-    return rendered
-
-
-def _classification(
-    sequence: list[ToolCallPart],
-) -> IntentClassification:
-    head = sequence[0]
-    assert head.tool_name == "classify_user_intent"
-    return UserIntent.model_validate(head.args_as_dict()["intent"]).classification
-
-
-@pytest.mark.parametrize(
+_NOTE = "the 3D7 one"
+_DRAFTS = pytest.mark.parametrize(
     ("spec", "expected"),
     [
         (None, IntentClassification.NEW_STRATEGY),
@@ -50,41 +24,33 @@ def _classification(
     ],
     ids=["nothing_framed", "a_framed_draft"],
 )
+
+
+@_DRAFTS
 def test_a_build_request_extends_only_a_framed_draft(
     spec: OperationalSpec | None, expected: IntentClassification
 ) -> None:
-    turn: list[ModelMessage] = [
-        ModelRequest(parts=[UserPromptPart(content=_BUILD)], instructions=_pinned(spec))
-    ]
+    state = pipeline_state(
+        user_prompt=_BUILD, domain=StrategyDomainState(operational_spec=spec)
+    )
 
-    assert _classification(build_journey(turn)) == expected
+    assert scripted_intent(state, _BUILD).classification == expected
 
 
-@pytest.mark.parametrize(
-    ("spec", "expected"),
-    [
-        (None, IntentClassification.NEW_STRATEGY),
-        (framed(None), IntentClassification.EXTEND_STRATEGY),
-    ],
-    ids=["nothing_framed", "a_framed_draft"],
-)
-def test_a_resumed_consult_extends_only_a_framed_draft(
+@_DRAFTS
+def test_a_note_on_a_resumed_consult_extends_only_a_framed_draft(
     spec: OperationalSpec | None, expected: IntentClassification
 ) -> None:
-    turn: list[ModelMessage] = [
-        ModelRequest(parts=[UserPromptPart(content=_CONSULT)]),
-        ModelResponse(
-            parts=[ToolCallPart(tool_name="consult_user", args={}, tool_call_id="c1")]
-        ),
-        ModelRequest(
-            parts=[
-                ToolReturnPart(
-                    tool_name="consult_user", content="answered", tool_call_id="c1"
-                ),
-                UserPromptPart(content="The user answered your questions: ..."),
-            ],
-            instructions=_pinned(spec),
-        ),
-    ]
+    state = pipeline_state(
+        domain=StrategyDomainState(
+            operational_spec=spec, exchanges=[Exchange(said=_CONSULT)]
+        )
+    )
+    state.pending_approval = PendingApproval(
+        phase="lead", tool_call_id="c1", tool_name="consult_user"
+    )
+    state.user_question_answers = {
+        "c1": [UserQuestionAnswer(question_id="q1", prompt="Which?", note=_NOTE)]
+    }
 
-    assert _classification([consult(turn)]) == expected
+    assert scripted_intent(state, _NOTE).classification == expected

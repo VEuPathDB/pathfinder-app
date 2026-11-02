@@ -236,6 +236,7 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
             or node.display_name
             or f"{node.search_name} step"
         ),
+        answers=reading.words.answers.get(node.id, []),
         search_name=node.search_name,
         role=_role_of(node.id, kind, reading.seed_id),
         resolved_params=bind_values(node.parameters, "held", ()),

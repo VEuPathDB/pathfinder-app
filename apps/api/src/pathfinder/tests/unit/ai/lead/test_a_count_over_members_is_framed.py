@@ -4,9 +4,9 @@ import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb_mcp import catalog
 
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import search_reads
 from pathfinder.ai.tools.standalone.column_tally import count_by_column
@@ -91,9 +91,8 @@ async def test_the_first_message_reclassified_reaches_frame() -> None:
     deps = _question_turn()
     await _tally_refusal(deps)
 
-    await classify_user_intent(
-        run_context_for(deps, tool_call_id="call_reclassify"),
-        user_intent(IntentClassification.NEW_STRATEGY),
+    await hold_the_intent(
+        deps, user_intent(IntentClassification.NEW_STRATEGY), deps.state.user_prompt
     )
 
     assert tools_the_turn_offers(deps, ["frame_problem", "count_step_by_column"]) == {

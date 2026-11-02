@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, model_validator
 
-from pathfinder.domain.audit.words import CHECK_TITLES
 from pathfinder.domain.caveats import EditDirection
+from pathfinder.domain.message_reading import MessageReading, StatedRequest
 from pathfinder.domain.researcher_asks import ResearcherAsk
 from pathfinder.domain.strategy.constraints import (
-    CONSTRAINT_KINDS,
     Constraint,
     ConstraintKind,
     message_states,
 )
-from pathfinder.domain.strategy.undo_words import asks_to_undo
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
@@ -80,30 +77,6 @@ a strategy with no step the old request goes too; over steps it stays.
 """
 
 
-# The classifications that answer something the conversation asked or offered.
-_ANSWERS: frozenset[IntentClassification] = frozenset(
-    {
-        IntentClassification.CLARIFICATION_RESPONSE,
-        IntentClassification.SLOT_ANSWER,
-        IntentClassification.APPROVAL,
-        IntentClassification.DENIAL,
-    }
-)
-
-
-def _in_a_sentence(title: str) -> str:
-    return title[:1].lower() + title[1:]
-
-
-AUDIT_CLASSIFICATION = (
-    "gene_model_audit is a request to check the gene models of a genome or of "
-    "named genes for errors, whatever its verb: "
-    f"{'; '.join(_in_a_sentence(title) for title in CHECK_TITLES.values())}. "
-    "A question whether a model is right is an audit, and a request for the "
-    "genes that hold a property of their models is a build."
-)
-
-
 class NamedControls(CamelModel):
     """The gene ids a message names as the researcher's positive and negative controls."""
 
@@ -118,104 +91,25 @@ class UserIntent(CamelModel):
     carries what the classification decides and no text of the message.
     Distinct from ``ProblemFrame``: ``UserIntent`` is per-message and
     re-derived each turn; ``ProblemFrame`` is the durable scoping artifact.
-    The Lead writes this via the ``classify_user_intent`` tool as its
-    first action on a new user message; the Ledger then derives downstream
-    booleans (e.g. ``intent_satisfied``) from typed fields here.
+    It is read from the message before the Lead runs; the Ledger then derives
+    downstream booleans (e.g. ``intent_satisfied``) from typed fields here.
     """
 
-    classification: IntentClassification = Field(
-        description=(
-            "What the message asks for. off_topic is only for a message no VEuPathDB "
-            "site holds data for, such as a request for code, an essay or small "
-            "talk. A message that pastes sequences, or asks about genes, proteins, "
-            "ortholog groups, organisms or any other data a site holds, is never "
-            "off_topic, also when you do not know which search answers it: FRAME "
-            "finds the search in the site's catalog. "
-            f"{AUDIT_CLASSIFICATION}"
-        )
-    )
+    classification: IntentClassification
     inferred_goal: str = Field(max_length=500)
     is_differential: bool = False
-    differential_sides: list[str] = Field(
-        default_factory=list,
-        max_length=2,
-        description=(
-            "Two-item list of comparison conditions when "
-            "``is_differential`` is True (e.g. ``['asexual', 'gametocyte']``). "
-            "Empty otherwise."
-        ),
-    )
-    edit_direction: EditDirection = Field(
-        default="other",
-        description=(
-            "For a change to the strategy: 'loosen' when the message asks the "
-            "result to admit more records (a lower cut, a wider range, a "
-            "requirement dropped), 'tighten' when it asks for fewer, 'other' "
-            "for any other message."
-        ),
-    )
-    asks_a_change: bool = Field(
-        default=False,
-        description=(
-            "The message asks the strategy to change: a step added, removed or "
-            "replaced, its records carried to another record type, or a value "
-            "changed. True whether it is worded as a request or as a question."
-        ),
-    )
-    undo: bool = Field(
-        default=False,
-        description="The message asks to undo, revert or put back the last change.",
-    )
-    asks: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Each part of this message that asks for an answer about results "
-            "and not for records: to report, explain or compare counts or "
-            "steps, such as 'tell me how the two counts compare'. List the "
-            "ask's own words and never the records it names: those are "
-            "requirements. In the message's own words; empty when it asks for "
-            "none."
-        ),
-    )
+    differential_sides: list[str] = Field(default_factory=list, max_length=2)
+    edit_direction: EditDirection = "other"
+    asks_a_change: bool = False
+    undo: bool = False
+    asks: list[str] = Field(default_factory=list)
     referenced_step_ids: list[str] = Field(default_factory=list)
-    explicit_constraints: list[Constraint] = Field(
-        default_factory=list,
-        description=(
-            "Typed constraints the user STATED in this message. One of "
-            f"{CONSTRAINT_KINDS}. Captured fresh each turn from the literal "
-            "message - these are user-explicit by construction and override "
-            "scoping's provisional assumptions for the same dimension. A "
-            "constraint that points at an earlier reply, such as the experiment "
-            "you recommended or the third gene you listed, is written as what "
-            'that reply named, read from "The conversation so far".'
-        ),
-    )
-    withdrawn: list[Constraint] = Field(
-        default_factory=list,
-        description=(
-            "One entry per requirement this message takes back, typed as in "
-            "explicitConstraints: its dimension and its value in the words the "
-            "conversation stated it in. A new value of any dimension but "
-            "'other' takes the old one's place, so a message that only states "
-            "one withdraws nothing here. An 'other' value stands beside the "
-            "others: a message that swaps one lists the old value here."
-        ),
-    )
-    named_controls: NamedControls | None = Field(
-        default=None,
-        description=(
-            "The gene ids this message names as positive or negative controls, "
-            "typed or in an attached gene-ID list, each spelled as the message "
-            "spells it. None when the message names no control."
-        ),
-    )
-    named_gene_ids: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Every other gene id this message types or an attached file shows, "
-            "whatever the classification, each spelled as the message spells it."
-        ),
-    )
+    explicit_constraints: list[Constraint] = Field(default_factory=list)
+    withdrawn: list[Constraint] = Field(default_factory=list)
+    named_controls: NamedControls | None = None
+    named_gene_ids: list[str] = Field(default_factory=list)
+    reading: MessageReading | None = None
+    request: StatedRequest | None = None
 
     @model_validator(mode="after")
     def _no_side_is_a_constraint(self) -> UserIntent:
@@ -234,15 +128,6 @@ class UserIntent(CamelModel):
             if not _is_a_side(set(_content_words(c.requested_value)), sides)
         ]
         return self
-
-    def with_undo_read_from(self, message: str) -> UserIntent:
-        """This intent, recording an undo when the message asks for one too.
-
-        An intent the message leaves as it is stays the same object.
-        """
-        if self.undo or not asks_to_undo(message):
-            return self
-        return self.model_copy(update={"undo": True})
 
     def asks_only_to_undo(self) -> bool:
         """Whether the message asks to undo the last change and states no value.
@@ -277,20 +162,6 @@ def _is_a_side(words: set[str], sides: list[set[str]]) -> bool:
     )
 
 
-class ClassifiedIntent(CamelModel):
-    """The classification the gate recorded, and one note per correction it made."""
-
-    intent: UserIntent
-    corrections: list[str] = Field(default_factory=list)
-
-
-class RefusedClassification(CamelModel):
-    """The last classification the gate refused on this turn, and why."""
-
-    intent: UserIntent
-    sentence: str
-
-
 def occurs_in(text: str, message: str) -> bool:
     """Whether the text's words stand in the message as one consecutive run."""
     wanted = words_of(text)
@@ -311,51 +182,3 @@ def named_ids(intent: UserIntent) -> list[str]:
 def untyped_ids(intent: UserIntent, message: str) -> list[str]:
     """The gene ids the intent names that the message text does not hold."""
     return [gene_id for gene_id in named_ids(intent) if not occurs_in(gene_id, message)]
-
-
-def unstated_ids_message(ids: list[str]) -> str:
-    """The refusal of named gene ids the researcher's message does not hold."""
-    return (
-        f"The researcher's message does not hold {', '.join(ids)}. Name only the "
-        "ids the message types, the records the conversation showed last, or "
-        "the ids of this site a file it attaches shows, spelled as it spells them."
-    )
-
-
-def nothing_to_answer_message() -> str:
-    """The refusal of an answer on a conversation that asked nothing."""
-    applies = ", ".join(c.value for c in IntentClassification if c not in _ANSWERS)
-    return (
-        "No question of yours is open on this conversation and no card waits, "
-        "so this message answers none. Classify it as what it asks for: one "
-        f"of {applies}."
-    )
-
-
-def question_asks_a_change_message() -> str:
-    return (
-        "The classification marks the message as asking for a change to the "
-        "strategy, and a follow_up_question changes nothing. Classify it as the "
-        "request it is: extend_strategy or edit_strategy over a strategy, "
-        "new_strategy over none, and keep its question in asks."
-    )
-
-
-def question_withdraws_message(withdrawn: Sequence[str]) -> str:
-    """The refusal of a question classification that withdraws a requirement."""
-    named = ", ".join(f"'{value}'" for value in withdrawn)
-    return (
-        f"The classification withdraws {named}, and a question withdraws nothing. "
-        "A message that asks for the change is the request it is (edit_strategy "
-        "for a change to the strategy, its question kept in asks); one that only "
-        "asks what a change would do withdraws nothing."
-    )
-
-
-def repeated_refusal_message(refusal: str) -> str:
-    """The failure of a classification that repeats the call just refused."""
-    return (
-        f"{refusal}\n\nThis call repeats the one just refused, so it fails "
-        "without a retry. Ask the researcher the question this refusal states, "
-        "through consult_user."
-    )

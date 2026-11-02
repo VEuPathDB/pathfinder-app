@@ -46,6 +46,7 @@ def seed_criterion(
         role=role,
         values={**held, **(overrides or {})},
         site_organism=values.organism,
+        answers=(values.organism,),
     )
 
 

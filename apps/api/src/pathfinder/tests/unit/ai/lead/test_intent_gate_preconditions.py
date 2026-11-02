@@ -50,7 +50,7 @@ def _session(*, with_steps: bool) -> StrategySession:
 def _deps(
     *,
     classification: IntentClassification | None = None,
-    classified_this_turn: bool = True,
+    classified_now: bool = True,
     domain: StrategyDomainState | None = None,
     with_steps: bool = False,
 ) -> LeadDeps:
@@ -60,7 +60,7 @@ def _deps(
         domain=domain,
     )
     intent = None if classification is None else user_intent(classification)
-    if intent is not None and classified_this_turn:
+    if intent is not None and classified_now:
         state.turn_markers.intent_classified = True
     return lead_deps(
         state,

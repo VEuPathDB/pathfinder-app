@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_listing,
     serve_recorded_record_types,
@@ -21,4 +21,4 @@ def recorded_site_reads(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)

@@ -1,6 +1,6 @@
 """An INTERSECT input that states only the organism a sibling already runs on,
 or that matches every gene of that organism, narrows nothing, so the structure
-fold drops it and records its requirement."""
+fold drops it and holds open the requirements it links."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
     SpecStructure,
     StructureNode,
 )
@@ -25,7 +26,6 @@ from pathfinder.domain.strategy.spec_fold import (
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.requirement_values import without_ids
 
 PEST = "Anopheles gambiae PEST"
 PF = "Plasmodium falciparum 3D7"
@@ -37,9 +37,6 @@ RECORD_WORDS = ("gene", "genes")
 PEST_GENES = 13_845
 PF_GENES = 5_720
 UNIVERSE: dict[tuple[str, ...], int] = {(PEST,): PEST_GENES, (PF,): PF_GENES}
-ASKED = (
-    "P. falciparum genes with a signal peptide that do not vary much between isolates."
-)
 
 
 def _pest_universe(text: str = f"{PEST} genes") -> Criterion:
@@ -97,11 +94,14 @@ def _tm(organism: str = PEST) -> Criterion:
     )
 
 
-def _isolates(count: int | None = PF_GENES) -> Criterion:
+def _isolates(
+    count: int | None = PF_GENES, answers: tuple[Constraint, ...] = ()
+) -> Criterion:
     """A SNP search with every value at its default but the organism."""
     return Criterion(
         id="c_isolates",
         text="do not vary much between isolates",
+        answers=[RequirementLink(requirement=c.id) for c in answers],
         search_name="GenesByNgsSnps",
         organism_param="organismSinglePick",
         resolved_params=bound(
@@ -148,7 +148,6 @@ def _fold(
     live: tuple[str, ...] = (),
     counts: dict[str, int] | None = None,
     requirements: tuple[Constraint, ...] = (),
-    asked: str = ASKED,
 ) -> FoldedStructure:
     tree = SpecStructure(root=root)
     spec = OperationalSpec(criteria=list(criteria), structure=tree)
@@ -159,7 +158,7 @@ def _fold(
         RECORD_WORDS,
         _counts(criteria) if counts is None else counts,
         live_step_ids=live,
-    ).holding_open(requirements, [asked])
+    ).holding_open(requirements)
 
 
 def test_a_leaf_that_names_only_the_organism_is_dropped_and_met() -> None:
@@ -188,20 +187,21 @@ def _stated(value: str, kind: ConstraintKind = ConstraintKind.OTHER) -> Constrai
     )
 
 
-def test_a_binding_that_matches_its_organism_universe_holds_the_request_open() -> None:
+_VARIES = _stated("do not vary much between isolates")
+
+
+def test_a_binding_that_matches_its_organism_universe_holds_its_link_open() -> None:
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
         _signal(PF),
-        _isolates(),
+        _isolates(answers=(_VARIES,)),
+        requirements=(_VARIES,),
     )
 
     assert folded.structure.root == _leaf("c_signal")
-    assert [(d.criterion_id, d.met) for d in folded.dropped] == [("c_isolates", False)]
-    held = folded.dropped[0].requirement
-    assert held is not None
-    assert without_ids([held]) == without_ids(
-        [_stated("do not vary much between isolates")]
-    )
+    assert [(d.criterion_id, d.met, d.requirements) for d in folded.dropped] == [
+        ("c_isolates", False, (_VARIES,))
+    ]
     assert folded.dropped[0].fate == (
         f"c_isolates ('do not vary much between isolates') is dropped: it matches "
         f"all 5,720 genes of {PF}, which c_signal already runs on, so it narrows "
@@ -210,30 +210,29 @@ def test_a_binding_that_matches_its_organism_universe_holds_the_request_open() -
     )
 
 
-def test_the_stated_requirement_the_dropped_text_restates_is_the_one_held_open() -> (
-    None
-):
-    varies = _stated("vary much between isolates")
+def test_the_organism_the_dropped_criterion_links_stays_with_the_carrier() -> None:
+    organism = _stated(PF, ConstraintKind.ORGANISM)
 
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
         _signal(PF),
-        _isolates(),
-        requirements=(_stated(PF, ConstraintKind.ORGANISM), varies),
+        _isolates(answers=(organism, _VARIES)),
+        requirements=(organism, _VARIES),
     )
 
-    assert [d.requirement for d in folded.dropped] == [varies]
+    assert [d.requirements for d in folded.dropped] == [(_VARIES,)]
 
 
-def test_a_dropped_text_the_researcher_never_wrote_holds_nothing_open() -> None:
+def test_a_dropped_criterion_that_links_nothing_holds_nothing_open() -> None:
+    """The text is the researcher's words, and no link names a requirement."""
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
         _signal(PF),
         _isolates(),
-        asked="Secreted proteins of P. falciparum.",
+        requirements=(_VARIES,),
     )
 
-    assert [d.requirement for d in folded.dropped] == [None]
+    assert [d.requirements for d in folded.dropped] == [()]
     assert folded.dropped[0].fate.endswith("so it narrows nothing.")
 
 

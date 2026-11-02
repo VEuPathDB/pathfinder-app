@@ -25,6 +25,11 @@ from pathfinder.ai.tools.standalone._catalog_models import (
 from pathfinder.ai.tools.standalone._expression_handles import (
     with_stored_expressions,
 )
+from pathfinder.ai.tools.standalone._frame_answers import (
+    AnsweredRequirement,
+    linked_requirements,
+    refuse_a_param_the_sheet_lacks,
+)
 from pathfinder.ai.tools.standalone._frame_computed import set_computed_criterion
 from pathfinder.ai.tools.standalone._frame_datasets import (
     saved_id_lists,
@@ -144,6 +149,7 @@ async def set_criterion(
     computed_groups: str = "",
     why: SearchChoice | None = None,
     reading: str = "",
+    answers: list[AnsweredRequirement] | None = None,
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
 
@@ -221,6 +227,11 @@ async def set_criterion(
     label of the offered reading closest to their answer, with that reading's
     values in ``params``. With no such question it is refused.
 
+    ``answers`` goes on the call that binds: each requirement of "Requirements
+    the researcher stated" this criterion answers, by its number, and the
+    parameter that carries its value when one does. An empty list says it
+    answers none; leaving it out keeps what the criterion already answers.
+
     ``result_count`` is how many records the binding you just made matches,
     and is null for a search that runs on another step or a count that did
     not arrive in time. A binding the site refuses to count is not recorded
@@ -239,7 +250,14 @@ async def set_criterion(
     and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
     refuse_a_bound_analysis(state, criterion_id)
-    stated = Criterion(id=criterion_id, text=text, role=role)
+    stated = Criterion(
+        id=criterion_id,
+        text=text,
+        role=role,
+        answers=linked_requirements(state, criterion_id, answers),
+    )
+    if gene_set or computed_groups or saved_strategy:
+        refuse_a_param_the_sheet_lacks(stated.answers, [])
     if gene_set:
         return await set_gene_set_criterion(ctx, stated, reference=gene_set)
     if computed_groups:
@@ -279,6 +297,7 @@ async def _bind_the_search(
     with an_unserved_search_refused(ctx, criterion_id, search_name, record_type):
         definition = await _search_definition(search)
         infos = await fetch_at({})
+    refuse_a_param_the_sheet_lacks(stated.answers, infos)
     await refuse_a_search_the_criterion_cannot_use(
         ctx, record_type, definition, stated, params
     )
@@ -372,6 +391,7 @@ async def _bind_the_search(
         Criterion(
             id=criterion_id,
             text=text,
+            answers=stated.answers,
             search_name=search_name,
             search_display_name=search_display_name(definition),
             record_class=record_type,

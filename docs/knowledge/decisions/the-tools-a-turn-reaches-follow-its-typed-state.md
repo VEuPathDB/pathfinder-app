@@ -20,13 +20,10 @@ same tools, the audit tools included. A write that needs the researcher's consen
 behind its approval card (`consult_user`, `propose_changes`, `delete_step`,
 `start_gene_model_audit` and the rest), so consent does not depend on the label either.
 
-`classify_user_intent` keeps the classification as a typed record: the turn's markers,
-the requirements it states, the questions it answers, the ledger and FRAME's work order
-read it. A second call replaces it. The checks that stay are typed: an operator the
-message does not state, a question that asks a change or withdraws a requirement, an
-answer on a conversation that asked nothing, and gene ids the message does not hold; the
-same refused call sent again fails without a retry. The off-topic reply is an instruction
-(two sentences, no tool), not a tool removal.
+The classification is a typed record: the turn's markers, the requirements it states,
+the questions it answers, the ledger and FRAME's work order read it. It is read from the
+message before the Lead runs ([A message is read before the Lead runs](a-message-is-read-before-the-lead.md)).
+The off-topic reply is an instruction (two sentences, no tool), not a tool removal.
 
 # Why
 

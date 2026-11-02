@@ -26,6 +26,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     session_with_one_step,
+    user_intent,
 )
 
 _ZERO_PROMPT = "Find ME49 genes with a signal peptide and a similar profile."
@@ -76,11 +77,16 @@ def _zero_build_deps() -> LeadDeps:
     """A turn whose build pushed one step and read nothing at the root."""
     state = pipeline_state(user_prompt=_ZERO_PROMPT, user_message_id=uuid4())
     state.record_build(BuildOutcome(pushed_step_ids=["step_a"]))
-    return lead_deps(state, strategy_session=session_with_one_step())
+    state.turn_markers.intent_classified = True
+    return lead_deps(
+        state,
+        intent=user_intent(IntentClassification.NEW_STRATEGY),
+        strategy_session=session_with_one_step(),
+    )
 
 
 class _LeadJourney:
-    """Classify, answer, and answer again after the refusal names the check."""
+    """Answer, and answer again after the refusal names the check."""
 
     def __init__(self) -> None:
         self.called: list[str] = []
@@ -95,17 +101,6 @@ class _LeadJourney:
         return FunctionModel(_fn, model_name="scripted")
 
     def _next(self) -> ToolCallPart:
-        if not self.called:
-            return ToolCallPart(
-                tool_name="classify_user_intent",
-                args={
-                    "intent": {
-                        "classification": IntentClassification.NEW_STRATEGY.value,
-                        "inferredGoal": "find the ME49 genes",
-                    },
-                },
-                tool_call_id="call_classify",
-            )
         if "verify_strategy" in self.called:
             return ToolCallPart(
                 tool_name="final_result",
@@ -135,7 +130,7 @@ async def test_a_build_at_zero_verifies_and_answers_once(
     monkeypatch: pytest.MonkeyPatch,
     collector: ChunkCollector,
 ) -> None:
-    """The journey the incident took: one classification, one checked answer."""
+    """An answer over an unchecked build at zero is checked, then given once."""
     del collector
     deps = _zero_build_deps()
     journey = _LeadJourney()
@@ -155,7 +150,6 @@ async def test_a_build_at_zero_verifies_and_answers_once(
 
     assert isinstance(result.output, LeadResponse)
     assert result.output.prose == _ZERO_PROSE
-    assert journey.called.count("classify_user_intent") == 1
     assert journey.called.count("final_result") == 2
     assert journey.called.count("verify_strategy") == 1
     assert deps.state.turn_markers.verification_dispatched is True

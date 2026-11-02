@@ -173,7 +173,14 @@ def _percentile_bound(
 
 
 def _ground_percentile(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    request = PercentileRequest.parse(f"{c.requested_value} {c.label}")
+    request = next(
+        (
+            read
+            for text in (c.quote, f"{c.requested_value} {c.label}")
+            if text and (read := PercentileRequest.parse(text)) is not None
+        ),
+        None,
+    )
     if request is None:
         return GroundedConstraint(
             constraint=c,

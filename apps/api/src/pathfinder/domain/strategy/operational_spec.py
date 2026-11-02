@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.structure_reading import (
     SpareWrapper,
     record_class_at,
 )
-from pathfinder.domain.strategy.words import names_a_run_of
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
 MIN_COMBINE_INPUTS = 2
@@ -167,25 +166,20 @@ class DroppedCriterion(CamelModel):
     # The EDA dataset a drop recorded before a criterion could wait for its
     # analysis. The turn entry restates it as such a criterion.
     eda_dataset_id: str | None = None
-    # The researcher's requirement the dropped text restated, which stays open.
-    # It is a gap while no criterion of the spec states its value.
-    requirement: Constraint | None = None
+    # The requirements the dropped criterion linked, which stay open. Each is
+    # a gap while no criterion of the spec links it.
+    requirements: list[Constraint] = Field(default_factory=list)
 
 
 class UnexpressedText(CamelModel):
-    """A text the request states that no search of the spec states.
-
-    ``criterion_id`` is the criterion that holds it; once a drop holds it,
-    ``criterion_id`` is None and ``requirement`` is the requirement held open.
-    """
+    """A requirement a drop holds open that no criterion of the spec links."""
 
     model_config = ConfigDict(frozen=True)
 
     word: str
-    criterion_id: str | None
     stated_in: str
     why: str
-    requirement: Constraint | None = None
+    requirement: Constraint
 
 
 class StructureNode(CamelModel):
@@ -277,9 +271,17 @@ class SavedStrategyRef(CamelModel):
         return f"saved strategy {self.name!r} ({size})"
 
 
+class RequirementLink(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    requirement: str
+    param: str | None = None
+
+
 class Criterion(CamelModel):
     id: str
     text: str
+    answers: list[RequirementLink] = Field(default_factory=list)
     search_name: str = ""
     # The search's name on the site, which is what its step is titled.
     search_display_name: str | None = None
@@ -319,6 +321,9 @@ class Criterion(CamelModel):
     @property
     def bound(self) -> bool:
         return bool(self.search_name) or self.saved_strategy_ref is not None
+
+    def links(self, requirement_id: str) -> bool:
+        return any(link.requirement == requirement_id for link in self.answers)
 
     @property
     def held_reading(self) -> AcceptedReading | None:
@@ -440,20 +445,17 @@ class OperationalSpec(CamelModel):
         return self
 
     def unexpressed(self) -> list[UnexpressedText]:
-        """Every requirement a drop holds open that no criterion of the spec states."""
+        """Every requirement a drop holds open that no criterion of the spec links."""
         return [
             UnexpressedText(
                 word=kept.requested_value,
-                criterion_id=None,
                 stated_in=kept.label,
                 why=d.reason,
                 requirement=kept,
             )
             for d in self.dropped
-            if (kept := d.requirement) is not None
-            and not any(
-                names_a_run_of(c.text, kept.requested_value) for c in self.criteria
-            )
+            for kept in d.requirements
+            if not any(c.links(kept.id) for c in self.criteria)
         ]
 
     def counted_at(self, step_counts: Mapping[str, int | None]) -> OperationalSpec:

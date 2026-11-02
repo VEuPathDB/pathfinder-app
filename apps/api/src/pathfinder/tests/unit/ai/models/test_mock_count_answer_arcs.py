@@ -84,7 +84,6 @@ def test_the_count_arc_answers_with_a_note_beside_the_counts() -> None:
     facts = turn_record(run_context_for(_toxo_turn())).facts
 
     assert names(calls) == [
-        "classify_user_intent",
         "get_live_strategy_state",
         "final_result",
     ]

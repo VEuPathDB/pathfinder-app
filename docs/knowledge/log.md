@@ -2,6 +2,32 @@
 
 ## 2026-11-02
 
+* **A criterion links the requirement it answers.** FRAME's `set_criterion` takes
+  `answers`, the numbers of the held requirements a criterion answers and the
+  parameter that carries each; the tool maps them to ids and refuses a number or a
+  parameter that does not exist. A delete withdraws what only deleted criteria
+  link, the organism fold holds open what the dropped criterion links, a question
+  about a criterion that links a requirement offers to drop it, and a gap row
+  carries its requirement's id, so a retired one is no gap. With no link each
+  path does nothing. A stand-in card names the numbers it replaces, which the
+  ledger now prints. `requirement_naming`, `restated_requirement`,
+  `questions._names`, `stated_run_of`, `names_a_run_of` and the stand-in prompt
+  regex are deleted. See
+  [a criterion links the requirement it answers](decisions/a-criterion-links-the-requirement-it-answers.md).
+* **A message is read before the Lead runs.** The Lead no longer has a classify
+  tool. Two Decisions views on gpt-6-luna read what the message asks to happen
+  and to be told, and one call on the Lead's model writes each stated requirement
+  as a verbatim quote with its kind and value; the turn's intent is derived from
+  both and recorded before the Lead's first request. On the held-out half of 182
+  labelled corpus turns the reading told a change from no change on 96.0% against
+  91.0% for the classify tool, and its quoted requirements were 88.7% precise
+  against 68.8%. Gene ids the turn does not hold are dropped, not refused, and the
+  pinned User Intent now lists each stated requirement with its quote. See
+  [a message is read before the Lead runs](decisions/a-message-is-read-before-the-lead.md).
+* **Decisions spend is metered.** Every Decisions call is sent on the key that
+  pays for OpenAI in the turn and charged to the turn as gpt-6-luna input, with no
+  output charge (veupathdb-mcp 0.2.0b61 reports cache reads and writes). See
+  [Decisions spend is metered](decisions/decisions-spend-is-metered.md).
 * **An open card docks on the composer.** A card that waits on the researcher
   draws above the input, one at a time, with the thread keeping only the record
   of an answered card. Typed words answer a docked consult's current question;

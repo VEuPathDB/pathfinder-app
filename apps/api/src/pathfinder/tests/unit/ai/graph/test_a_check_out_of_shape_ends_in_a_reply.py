@@ -35,6 +35,7 @@ from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.turn_facts import UNVERIFIED_BUILD, TurnFacts
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.tests._support.scripted_reading import read_as
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_model
 from pathfinder.tests.unit.ai.graph.test_lead_turn_budget import _deps, _framed_state
@@ -62,17 +63,6 @@ _UNWRITTEN = (
 
 def _build_verify_then_reply(messages: list[ModelMessage]) -> ToolCallPart:
     called = called_tool_names(messages)
-    if "classify_user_intent" not in called:
-        return ToolCallPart(
-            tool_name="classify_user_intent",
-            args={
-                "intent": {
-                    "classification": "extend_strategy",
-                    "inferredGoal": "genes up at 24 h",
-                },
-            },
-            tool_call_id="call_classify",
-        )
     if "build_strategy" not in called:
         return ToolCallPart(
             tool_name="build_strategy", args={}, tool_call_id="call_build"
@@ -129,6 +119,7 @@ def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     lead_model = scripted_model(_build_verify_then_reply)
+    read_as(monkeypatch, "extend_strategy")
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", _misshapen_verifier)
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
@@ -182,6 +173,7 @@ def test_a_reply_out_of_shape_every_time_ends_on_the_turns_facts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     lead_model = scripted_model(_build_then_reply_out_of_shape)
+    read_as(monkeypatch, "extend_strategy")
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
     monkeypatch.setattr(
@@ -243,6 +235,7 @@ def test_another_model_fault_of_the_lead_ends_on_the_error(
     lead_model = FunctionModel(
         _empty, stream_function=_empty_streamed, model_name="scripted"
     )
+    read_as(monkeypatch, "extend_strategy")
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
     writer = Collector()
     state = _framed_state()

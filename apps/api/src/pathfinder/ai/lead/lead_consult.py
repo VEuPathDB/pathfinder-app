@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from types import MappingProxyType
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.graph.turn_state import UserQuestionAnswer
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -21,6 +22,7 @@ from pathfinder.domain.strategy.card_answers import (
     spec_with_reading,
 )
 from pathfinder.domain.strategy.constraints import (
+    STRATEGY_SCOPES,
     CombinationRequest,
     Constraint,
     ConstraintKind,
@@ -40,13 +42,46 @@ from pathfinder.domain.strategy.questions import (
     requirement_choices,
 )
 from pathfinder.domain.strategy.readings import ReadingChooser, ReadValues
-from pathfinder.domain.strategy.requirement_lifecycle import (
-    stood_in_for,
-)
+from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 _LABEL_LIMIT = 120
 _QUESTION_LIMIT = 300
+_NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
+
+
+def card_stand_ins(
+    questions: Sequence[CardQuestion], requirements: Sequence[Constraint]
+) -> dict[str, list[str]]:
+    numbered = numbered_requirements(requirements)
+    named = [n for q in questions for n in q.replaces]
+    unknown = [n for n in named if n not in numbered]
+    if unknown:
+        msg = (
+            f"replaces names {unknown}, which the requirement list does not hold. "
+            f"The list holds {', '.join(numbered) or 'none'}; name only those."
+        )
+        raise ModelRetry(msg)
+    scopes = [n for n in named if numbered[n].kind in STRATEGY_SCOPES]
+    if scopes:
+        msg = (
+            f"replaces names {scopes}, an organism or a record type every search "
+            f"runs in, which no stand-in takes the place of. Leave them out."
+        )
+        raise ModelRetry(msg)
+    return {
+        q.prompt: [numbered[n].id for n in q.replaces] for q in questions if q.replaces
+    }
+
+
+async def consult_can_ask(
+    ctx: RunContext[LeadDeps], questions: list[CardQuestion], *, reply: CardReply
+) -> None:
+    del reply
+    cards = ctx.deps.state.turn_markers.card_stand_ins
+    call = ctx.tool_call_id or ""
+    if call not in cards:
+        cards[call] = card_stand_ins(questions, ctx.deps.state.domain.requirements)
 
 
 def _answer_requirement(
@@ -122,13 +157,14 @@ def apply_option_bindings(
     asked: Sequence[CardQuestion] = (),
     *,
     sheets: Mapping[str, Sequence[ParameterInfo]],
+    replaced: Mapping[str, Sequence[str]] = _NO_STAND_INS,
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
     A value binds and a withdrawal retires; typed words, a picked reading a
     framing pass named and the note, never another offered label, become a
-    requirement on the dimension ``asked`` names. That
-    requirement replaces each one a question that asks for a stand-in names.
+    requirement on the dimension ``asked`` names. That requirement replaces
+    each one ``replaced`` holds under the question's prompt.
     """
     domain = state.domain
     entry = domain.operational_spec
@@ -160,9 +196,9 @@ def apply_option_bindings(
         stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
         if stated is not None:
             [held] = domain.record_requirements([stated])
+            gone = set(replaced.get(answer.prompt, ())) - {held.id}
             domain.withdraw(
-                stood_in_for(domain.requirements, prompt=answer.prompt, stand_in=held),
-                stand_in=held,
+                (c for c in domain.requirements if c.id in gone), stand_in=held
             )
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
@@ -264,7 +300,9 @@ async def consult_user(
     one that binds no recorded value comes back as the researcher's words,
     as an answer in the free-text note does. 'Drop <requirement>' and 'Keep
     <requirement>' bind a requirement the conversation holds, and a reading a
-    framing pass named, offered as written, states that reading.
+    framing pass named, offered as written, states that reading. A question
+    that asks for a stand-in names in ``replaces`` the numbers of the ledger's
+    requirements the stand-in takes the place of.
 
     This pauses the turn: the user answers each question in a carousel
     (options + optional free-text note). A picked value is bound into the
@@ -308,9 +346,12 @@ async def consult_user(
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False
         state.turn_markers.consulted = True
-        state.turn_markers.answered_card = card
         apply_option_bindings(
-            state, answers, shown, sheets=await _card_sheets(state, answers)
+            state,
+            answers,
+            shown,
+            sheets=await _card_sheets(state, answers),
+            replaced=state.turn_markers.card_stand_ins.get(ctx.tool_call_id or "", {}),
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))

@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.constraints import (
     merge_constraints,
     provisional_constraints,
 )
+from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.domain.strategy.stated_requirements import identified
 from pathfinder.domain.unmet_requirements import unmet_requirement_ids
 
@@ -188,12 +189,17 @@ def _derive_constraint_section(
     ]
     carried = _carried_requirements(state, intent)
     assumed = [*assumption_constraints(spec), *_unexpressed(state)]
+    numbers = {
+        c.id: number
+        for number, c in numbered_requirements(state.domain.requirements).items()
+    }
     if not _merged_requirements(state, intent):
         return ConstraintSection(
             grounded=assumed,
             recommended=recommended,
             carried=carried,
             composed=composed,
+            numbers=numbers,
         )
     if spec is None:
         return ConstraintSection(
@@ -201,6 +207,7 @@ def _derive_constraint_section(
             recommended=recommended,
             carried=carried,
             composed=composed,
+            numbers=numbers,
         )
     verdict = state.turn_verdict
     unmet = set() if verdict is None else set(unmet_requirement_ids(verdict.gaps))
@@ -212,6 +219,7 @@ def _derive_constraint_section(
         recommended=recommended,
         carried=carried,
         composed=composed,
+        numbers=numbers,
     )
 
 

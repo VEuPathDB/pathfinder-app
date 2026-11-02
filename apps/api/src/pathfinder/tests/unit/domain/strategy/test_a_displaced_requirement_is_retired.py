@@ -108,21 +108,13 @@ def test_the_thread_keeps_the_displaced_combination_retired() -> None:
     ]
 
 
-def test_the_fragments_of_a_displaced_combination_are_no_gaps() -> None:
+def test_a_displaced_combination_is_no_gap() -> None:
     domain = StrategyDomainState(requirements=[_ORGANISM, _OR])
     domain.record_requirements([_AND])
     gaps = check_gaps(
         words=[],
-        unstated=[
-            (
-                "Use a text search for GPI anchor in the gene product "
-                "descriptions as the stand-in"
-            ),
-            "keep it OR with the signal peptide",
-        ],
-        requirements=[
-            *(r.grounded() for r in domain.retired_requirements),
-        ],
+        unstated=[_OR],
+        retired={r.constraint.id for r in domain.retired_requirements},
     )
 
     assert gaps == []

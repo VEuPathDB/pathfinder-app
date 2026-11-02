@@ -1,6 +1,7 @@
 """The organism a request runs in is never offered for withdrawal when a pass
-reports the site lacks a search for it, and a question the pass wrote keeps
-its prompt and takes an answer in the researcher's words beside drop and keep."""
+reports the site lacks a search for it. A question about a criterion no binding
+recorded links nothing, so it keeps its prompt and takes an answer in the
+researcher's words, and the drop and keep options ask a question of their own."""
 
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.recorded_cards import the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
@@ -78,6 +80,11 @@ async def _framed(deps: LeadDeps) -> FrameResult:
     return result
 
 
+_DROP = (
+    "No search on this site states 'predicted GPI anchor'. Drop it from the request?"
+)
+
+
 @pytest.mark.asyncio
 async def test_the_card_asks_about_the_gpi_anchor_and_not_the_organism(
     monkeypatch: pytest.MonkeyPatch,
@@ -86,13 +93,20 @@ async def test_the_card_asks_about_the_gpi_anchor_and_not_the_organism(
 
     result = await _framed(deps)
 
-    [asked] = deps.state.domain.open_questions
-    assert asked.question == _SUBSTITUTE.question
-    assert [(o.label, o.binding) for o in asked.options] == [
-        ("Drop predicted GPI anchor", Withdraw(constraint_id=_GPI.id)),
-        ("Keep predicted GPI anchor", Keep(constraint_id=_GPI.id)),
+    assert [
+        (q.question, [(o.label, o.binding) for o in q.options])
+        for q in deps.state.domain.open_questions
+    ] == [
+        (_SUBSTITUTE.question, []),
+        (
+            _DROP,
+            [
+                ("Drop predicted GPI anchor", Withdraw(constraint_id=_GPI.id)),
+                ("Keep predicted GPI anchor", Keep(constraint_id=_GPI.id)),
+            ],
+        ),
     ]
-    assert [q.prompt for q in result.card_questions] == [_SUBSTITUTE.question]
+    assert [q.prompt for q in result.card_questions] == [_SUBSTITUTE.question, _DROP]
 
 
 @pytest.mark.asyncio
@@ -100,23 +114,33 @@ async def test_a_substitute_named_in_words_is_recorded_and_the_organism_stays(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     deps = _deps(monkeypatch)
-    [card] = (await _framed(deps)).card_questions
+    written = (await _framed(deps)).card_questions
+    shown = {
+        q.prompt: q.id
+        for q in the_card_asked(written, deps.state.domain.open_questions)
+    }
     deps.state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_card", tool_name="consult_user"
     )
     deps.state.user_question_answers = {
         "call_card": [
             UserQuestionAnswer(
-                question_id=card.id,
-                prompt=card.prompt,
-                chosen_labels=["Drop predicted GPI anchor"],
+                question_id=shown[_SUBSTITUTE.question],
+                prompt=_SUBSTITUTE.question,
                 note="Predicted Signal Peptide",
-            )
+            ),
+            UserQuestionAnswer(
+                question_id=shown[_DROP],
+                prompt=_DROP,
+                chosen_labels=["Drop predicted GPI anchor"],
+            ),
         ]
     }
 
     await consult_user(
-        run_context_for(deps, "call_card"), questions=[card], reply="One question."
+        run_context_for(deps, "call_card"),
+        questions=written,
+        reply="Two questions.",
     )
 
     assert [(c.kind, c.requested_value) for c in deps.state.domain.requirements] == [

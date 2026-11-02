@@ -1,5 +1,5 @@
 """The build journey the Lead's arcs share: the answer a verification decides, the
-refusal a thread with a strategy gives, and the classification each turn makes."""
+refusal a thread with a strategy gives, and the arc each turn plays."""
 
 from __future__ import annotations
 
@@ -78,7 +78,6 @@ def _prose(seq: list[ToolCallPart]) -> str:
 def _verified(success: bool) -> list[ModelMessage]:
     return [
         _user(_BUILD),
-        *_exchange("classify_user_intent", "ok", "c1"),
         *_exchange("frame_problem", {"summary": "framed"}, "f1"),
         *_exchange("build_strategy", {"outcome": {"nodeResults": []}}, "b1"),
         *_exchange("verify_strategy", {"digest": {"success": success}}, "v1"),
@@ -87,10 +86,9 @@ def _verified(success: bool) -> list[ModelMessage]:
 
 
 def _refused_build_turn() -> list[ModelMessage]:
-    """A turn that classified, framed, called build_strategy and was refused."""
+    """A turn that framed, called build_strategy and was refused."""
     return [
         _user(_BUILD),
-        *_exchange("classify_user_intent", "ok", "c1"),
         *_exchange("frame_problem", "Structure set: 3 criteria", "f1"),
         *_refused("build_strategy", build_would_replace_the_strategy(1), "b1"),
     ]
@@ -125,17 +123,16 @@ def test_the_feedback_prose_states_the_failure_and_not_the_success() -> None:
     assert not re.search(r"returned 0|too narrow|relax", SUCCESS_PROSE, re.IGNORECASE)
 
 
-def test_the_classification_is_made_once_per_turn() -> None:
-    """A second turn re-classifies; the run's first classification is not reused."""
+def test_a_second_turn_plays_the_arc_its_own_message_names() -> None:
     second_turn: list[ModelMessage] = [
         _user(_BUILD),
-        *_exchange("classify_user_intent", "ok", "c0"),
+        *_exchange("frame_problem", {"summary": "framed"}, "f0"),
         _user("Change the range [[arc:edit-param]]"),
     ]
 
     call = _lead_call(second_turn, "Change the range [[arc:edit-param]]")
 
-    assert call.tool_name == "classify_user_intent"
+    assert call.tool_name == "edit_strategy"
 
 
 def test_the_mock_reads_the_real_refusal_message() -> None:
@@ -145,12 +142,7 @@ def test_the_mock_reads_the_real_refusal_message() -> None:
 def test_a_refused_build_stops_before_verification() -> None:
     seq = build_journey(_refused_build_turn())
 
-    assert _names(seq) == [
-        "classify_user_intent",
-        "frame_problem",
-        "build_strategy",
-        "final_result",
-    ]
+    assert _names(seq) == ["frame_problem", "build_strategy", "final_result"]
 
 
 def test_the_refused_build_asks_what_to_change_and_claims_no_success() -> None:
@@ -176,7 +168,6 @@ def test_a_refused_consult_resume_reports_the_refusal_too() -> None:
     msgs: list[ModelMessage] = [
         _user("Consult me first [[arc:consult]]"),
         *_exchange("consult_user", "answered", "c0"),
-        *_exchange("classify_user_intent", "ok", "c1"),
         *_exchange("frame_problem", {"summary": "framed"}, "f1"),
         *_refused("build_strategy", build_would_replace_the_strategy(2), "b1"),
     ]
@@ -194,7 +185,6 @@ def test_an_earlier_turns_refusal_does_not_bend_the_next_turn() -> None:
     ]
 
     assert _names(build_journey(msgs)) == [
-        "classify_user_intent",
         "frame_problem",
         "build_strategy",
         "verify_strategy",

@@ -42,18 +42,8 @@ def test_a_requirement_no_search_states_is_offered_for_withdrawal(
         "lead", site_id, "Up at least 2-fold, please [[arc:withdraw]]", scene=scene
     )
 
-    classified = args_of(calls, "classify_user_intent")[0]
     [card] = args_of(calls, "consult_user")
-    assert names(calls) == [*FRAMED[:2], "consult_user", *BUILD]
-    assert classified["intent"]["explicitConstraints"] == [
-        {
-            "kind": "fold_change",
-            "label": "fold change",
-            "requestedValue": "2-fold",
-            "source": "user_explicit",
-            "hard": True,
-        }
-    ]
+    assert names(calls) == [*FRAMED[:1], "consult_user", *BUILD]
     assert [
         (q["prompt"], [o["label"] for o in q["options"]]) for q in card["questions"]
     ] == [(_DROP_QUESTION, ["Drop 2-fold", "Keep 2-fold"])]

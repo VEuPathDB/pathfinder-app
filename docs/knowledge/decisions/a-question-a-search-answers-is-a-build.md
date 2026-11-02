@@ -8,8 +8,8 @@ status: stable
 
 # The choice
 
-`classify_user_intent` (ai/lead/lead_tools.py) and the Lead's instructions
-(ai/lead/_lead_instructions.py) name the rule: "how many genes" and "which genes" ask
+The message reading's guide (ai/prompts/message_reading.md, an `effect` of new or add)
+and the Lead's instructions (ai/lead/_lead_instructions.py) name the rule: "how many genes" and "which genes" ask
 for a build, whatever the grammar of the message. The turn is `new_strategy` on a thread
 with no strategy and `extend_strategy` otherwise; `follow_up_question` keeps its meaning,
 a request to explain something that changes no data. A question the record or the

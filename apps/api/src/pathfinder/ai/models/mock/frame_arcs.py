@@ -40,6 +40,7 @@ from pathfinder.ai.models.mock.specs import (
     criterion_replies,
     frame_call,
     leaf,
+    numbered_values,
     without_dropped,
 )
 from pathfinder.ai.models.mock.strategy_specs import cross_organism_spec, single_spec
@@ -103,12 +104,9 @@ def loop_frame() -> ToolCallPart:
     return scripted_call("list_searches", _LOOP_ARGS)
 
 
-_NUMBERED = re.compile(r"^- (R\d+) \([^)]*\): (.+)$", re.MULTILINE)
-
-
-def asked_property() -> str:
-    """The property the message asks for after its last "with"."""
-    return message().rstrip(".").rpartition(" with ")[2]
+def asked_property(said: str) -> str:
+    """The property ``said`` asks for after its last "with"."""
+    return said.rstrip(".").rpartition(" with ")[2]
 
 
 def no_search_frame(messages: list[ModelMessage]) -> ToolCallPart:
@@ -121,10 +119,10 @@ def no_search_frame(messages: list[ModelMessage]) -> ToolCallPart:
         )
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
-    asked = asked_property()
+    asked = asked_property(message())
     lacking = [
         number
-        for number, value in _NUMBERED.findall(instructions_of(messages))
+        for number, value in numbered_values(instructions_of(messages))
         if value == asked
     ]
     return _unbound(f"No search on {current_scope_id.get()} states: {asked}.", lacking)

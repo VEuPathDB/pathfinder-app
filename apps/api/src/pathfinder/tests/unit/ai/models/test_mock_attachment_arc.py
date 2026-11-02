@@ -1,5 +1,5 @@
 """An attached gene-id list with no token plays the attachment arc: the ids are
-named as controls, saved as a control set, and the reply asks for negatives."""
+saved as a control set, and the reply asks for negatives."""
 
 from __future__ import annotations
 
@@ -22,12 +22,7 @@ def test_an_attached_list_with_no_token_saves_a_control_set(site_id: str) -> Non
 
     calls = play("lead", site_id, _attached(site_id))
 
-    assert names(calls) == ["classify_user_intent", "build_control_set", "final_result"]
-    (classified,) = args_of(calls, "classify_user_intent")
-    assert classified["intent"]["namedControls"] == {
-        "positiveIds": ids,
-        "negativeIds": [],
-    }
+    assert names(calls) == ["build_control_set", "final_result"]
     (saved,) = args_of(calls, "build_control_set")
     assert saved == {"name": "Controls from controls.csv", "positive_ids": ids}
     (final,) = args_of(calls, "final_result")

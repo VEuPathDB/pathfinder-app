@@ -9,7 +9,10 @@ from veupathdb.domain.strategy import StrategyAst
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+    RequirementLink,
+)
 from pathfinder.domain.strategy.step_rationale import ChosenRationale, StepRationale
 
 __all__ = [
@@ -51,6 +54,7 @@ class StepWords(CamelModel):
     criterion_texts: dict[str, str] = Field(default_factory=dict)
     analysis_kinds: dict[str, OnErrorOmit[StampedKind]] = Field(default_factory=dict)
     rationales: dict[str, OnErrorOmit[ChosenRationale]] = Field(default_factory=dict)
+    answers: dict[str, list[RequirementLink]] = Field(default_factory=dict)
 
     @classmethod
     def of(cls, ast: StrategyAst) -> StepWords:
@@ -58,7 +62,12 @@ class StepWords(CamelModel):
 
     @property
     def empty(self) -> bool:
-        return not (self.criterion_texts or self.analysis_kinds or self.rationales)
+        return not (
+            self.criterion_texts
+            or self.analysis_kinds
+            or self.rationales
+            or self.answers
+        )
 
     def kind_of(self, step_id: str, search_name: str | None) -> AnalysisKind | None:
         """The step's kind, when it was read for the search the step runs."""
@@ -86,10 +95,14 @@ class StepWords(CamelModel):
         kinds = self.analysis_kinds | newer.analysis_kinds
         kept = {s: r for s, r in self.rationales.items() if s not in spoken}
         rationales = kept | newer.rationales
+        answers = {
+            s: a for s, a in self.answers.items() if s not in spoken
+        } | newer.answers
         return StepWords(
             criterion_texts={s: t for s, t in texts.items() if s in held},
             analysis_kinds={s: k for s, k in kinds.items() if s in held},
             rationales={s: r for s, r in rationales.items() if s in held},
+            answers={s: a for s, a in answers.items() if s in held},
         )
 
 
@@ -122,6 +135,7 @@ def step_words(
             for c in searched
             if c.rationale is not None
         },
+        answers={minted.get(c.id, c.id): c.answers for c in searched if c.answers},
     )
 
 

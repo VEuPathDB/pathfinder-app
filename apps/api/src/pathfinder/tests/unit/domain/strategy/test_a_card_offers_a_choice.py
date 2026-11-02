@@ -126,7 +126,7 @@ _FOLD = Constraint(
 
 
 def test_a_requirement_no_question_asks_is_offered_to_drop_or_keep() -> None:
-    [asked] = with_withdrawals([], [_FOLD])
+    [asked] = with_withdrawals([], [_FOLD], criteria=[])
 
     assert [(o.label, o.binding) for o in asked.options] == [
         ("Drop 1.5-fold", Withdraw(constraint_id=_FOLD.id)),

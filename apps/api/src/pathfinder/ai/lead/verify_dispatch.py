@@ -27,7 +27,7 @@ from pathfinder.ai.lead.evidence_card import (
     publish_evidence_card,
 )
 from pathfinder.ai.lead.ledger import build_contradiction
-from pathfinder.ai.lead.ledger_sections import unexpressed_words
+from pathfinder.ai.lead.ledger_sections import unexpressed_gaps
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -236,12 +236,11 @@ def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
 
 
 def _gaps(deps: LeadDeps, checks: list[SiteCheck]) -> list[Gap]:
-    ledger = derive_ledger(deps.state, deps.intent)
-    retired = [r.grounded() for r in deps.state.domain.retired_requirements]
+    domain = deps.state.domain
     return [
         *check_gaps(
-            words=unexpressed_words(deps.state.domain.operational_spec),
-            requirements=[*ledger.constraints.grounded, *retired],
+            words=unexpressed_gaps(domain.operational_spec),
+            retired={r.constraint.id for r in domain.retired_requirements},
         ),
         *failed(checks),
     ]

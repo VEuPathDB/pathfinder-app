@@ -13,8 +13,11 @@ from assistant_core.models.scripted import (
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.conversation.gene_list_marker import parse_gene_list_marker
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.models.mock.arc_args import variant_args
-from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final, narrated
+from pathfinder.ai.models.mock.arc_readings import intent_of
+from pathfinder.ai.models.mock.calls import lead_final, narrated
 from pathfinder.ai.models.mock.lead_flow import check_or_build
 from pathfinder.ai.models.mock.message_words import (
     message,
@@ -29,6 +32,7 @@ from pathfinder.ai.models.mock.reads import (
     text_return,
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
+from pathfinder.ai.models.mock.turn_arc import thread_words
 
 SAVED_GENE_SET_NAME = "Mock gene set"
 _SAVE_PROSE = "You can export it and publish it to your workspace."
@@ -68,7 +72,6 @@ def save_gene_set() -> list[ToolCallPart]:
     and count."""
     name = named_after("named") or SAVED_GENE_SET_NAME
     return [
-        classify("follow_up_question"),
         scripted_call("save_gene_set", {"name": name}),
         lead_final(f"Saved as the gene set {name}. {_SAVE_PROSE}", "await_user"),
     ]
@@ -76,7 +79,7 @@ def save_gene_set() -> list[ToolCallPart]:
 
 def export(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Export the set the listing names first, on the id the listing gave."""
-    head = [classify("follow_up_question"), scripted_call("list_gene_sets", {})]
+    head = [scripted_call("list_gene_sets", {})]
     listed = text_return(messages, "list_gene_sets") is not None
     found = gene_set_id(messages)
     if listed and found is None:
@@ -94,7 +97,6 @@ def remember() -> list[ToolCallPart]:
     """Store the message as a preference, word for word, and build nothing."""
     stated = message()
     return [
-        classify("memory_request"),
         scripted_call(
             "remember",
             {
@@ -112,12 +114,11 @@ def recall_preference(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Answer with the preference the recalled memories pin, building nothing."""
     found = _PREFERENCE.search(instructions_of(messages))
     prose = _NO_PREFERENCE if found is None else found["summary"]
-    return [classify("follow_up_question"), lead_final(prose, "await_user")]
+    return [lead_final(prose, "await_user")]
 
 
 def recall() -> list[ToolCallPart]:
     return [
-        classify("follow_up_question"),
         scripted_call("search_memory", {"query": message()}),
         lead_final(_RECALLED_PROSE, "await_user"),
     ]
@@ -139,7 +140,6 @@ def recap(messages: list[ModelMessage]) -> list[ToolCallPart]:
 def variants(messages: list[ModelMessage]) -> list[ToolCallPart]:
     args = variant_args(_site().organism, live_searches(messages))
     return [
-        classify("follow_up_question"),
         scripted_call("get_live_strategy_state", {}),
         scripted_call("compare_search_variants", args),
         lead_final(_VARIANT_PROSE, "await_user"),
@@ -154,19 +154,6 @@ def attachment(messages: list[ModelMessage]) -> list[ToolCallPart]:
         return [lead_final("No attached gene-ID list reached this turn.", "await_user")]
     return [
         scripted_call(
-            CLASSIFY,
-            {
-                "intent": {
-                    "classification": "new_strategy",
-                    "inferredGoal": "[mock] save the attached positive controls",
-                    "namedControls": {
-                        "positiveIds": attached.gene_ids,
-                        "negativeIds": [],
-                    },
-                },
-            },
-        ),
-        scripted_call(
             "build_control_set",
             {
                 "name": f"Controls from {attached.file_name}",
@@ -175,6 +162,18 @@ def attachment(messages: list[ModelMessage]) -> list[ToolCallPart]:
         ),
         lead_final(_CONTROLS_PROSE, "await_user", questions=[_NEGATIVES_QUESTION]),
     ]
+
+
+def attachment_reading(state: PipelineState, words: str) -> UserIntent:
+    del words
+    attached = parse_gene_list_marker(thread_words(state))
+    if attached is None:
+        return intent_of(IntentClassification.FOLLOW_UP_QUESTION)
+    return intent_of(
+        IntentClassification.NEW_STRATEGY,
+        inferredGoal="[mock] save the attached positive controls",
+        namedControls={"positiveIds": attached.gene_ids, "negativeIds": []},
+    )
 
 
 def controls_test(messages: list[ModelMessage]) -> list[ToolCallPart]:
@@ -193,7 +192,7 @@ def controls_test(messages: list[ModelMessage]) -> list[ToolCallPart]:
             "negative_ids": negatives,
         },
     )
-    return [checked[0], saved, *checked[1:]]
+    return [saved, *checked]
 
 
 def gene_question(messages: list[ModelMessage]) -> list[ToolCallPart]:
@@ -213,7 +212,6 @@ def gene_question(messages: list[ModelMessage]) -> list[ToolCallPart]:
         )
     )
     return [
-        classify("follow_up_question"),
         scripted_call("read_gene_record", {"gene_id": gene_id}),
         lead_final(prose, "await_user"),
     ]

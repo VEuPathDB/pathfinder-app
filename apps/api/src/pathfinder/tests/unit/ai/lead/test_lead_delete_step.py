@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -435,7 +436,7 @@ async def test_the_cited_root_decides_when_it_is_not_the_largest(
     assert sorted(_graph(ctx).steps) == ["step_main"]
 
 
-async def test_an_approved_delete_withdraws_what_only_its_step_stated(
+async def test_an_approved_delete_withdraws_what_only_its_step_links(
     stub_api: StubAPI,
 ) -> None:
     ctx = _ctx()
@@ -453,6 +454,20 @@ async def test_an_approved_delete_withdraws_what_only_its_step_stated(
         source=ConstraintSource.USER_EXPLICIT,
     )
     domain.requirements = [kinase, blood]
+    spec = domain.operational_spec
+    assert spec is not None
+    spec.criteria = [
+        c.model_copy(
+            update={
+                "answers": [
+                    RequirementLink(
+                        requirement=kinase.id if c.id == "step_k1" else blood.id
+                    )
+                ]
+            }
+        )
+        for c in spec.criteria
+    ]
 
     await delete_step(ctx, step_id="step_k2", reply=_REPLY)
 

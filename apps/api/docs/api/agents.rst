@@ -34,14 +34,13 @@ so a phase is a tool invocation rather than a node in a fixed graph.
 Lead Agent
 ----------
 
-**Purpose:** Own the conversation. The Lead classifies the user's intent,
-invokes the phase sub-agents as tools, reads the typed
+**Purpose:** Own the conversation. The Lead reads the intent recorded for the
+message, invokes the phase sub-agents as tools, reads the typed
 :py:class:`~pathfinder.ai.lead.ledger.InvestigationLedger` after each call,
 and asks the user a blocking question through ``consult_user``. It never
 writes to WDK itself.
 
-**Key functions:** :py:func:`build_lead_agent`, :py:func:`classify_user_intent`,
-:py:func:`consult_user`, :py:func:`read_ledger_section`
+**Key functions:** :py:func:`build_lead_agent`, :py:func:`consult_user`, :py:func:`read_ledger_section`
 
 .. automodule:: pathfinder.ai.lead.lead_agent
    :members:

@@ -12,12 +12,7 @@ from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import CombineOp, extract_output_organisms
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-    message_states,
-)
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -32,7 +27,7 @@ from pathfinder.domain.strategy.organism_scope import (
     universe_key,
 )
 from pathfinder.domain.strategy.orthology import projected_steps
-from pathfinder.domain.strategy.words import stated_run_of, words_of
+from pathfinder.domain.strategy.words import words_of
 
 
 class FoldedSpec(CamelModel):
@@ -152,45 +147,13 @@ _HELD_BY_THE_CARRIER = frozenset(
 )
 
 
-def restated_requirement(
-    text: str, requirements: Sequence[Constraint], request_texts: Sequence[str]
-) -> Constraint | None:
-    """The researcher's requirement a criterion's text restates.
-
-    A stated requirement whose words the text carries comes first, else the
-    longest run of a researcher message the text restates. None when the text
-    restates no words of the researcher.
-    """
-    stated = next(
-        (
-            c
-            for c in requirements
-            if c.source is ConstraintSource.USER_EXPLICIT
-            and c.kind not in _HELD_BY_THE_CARRIER
-            and message_states(text, c.requested_value)
-        ),
-        None,
-    )
-    if stated is not None:
-        return stated
-    run = max((stated_run_of(m, text) for m in request_texts), key=len, default="")
-    if not run:
-        return None
-    return Constraint(
-        kind=ConstraintKind.OTHER,
-        requested_value=run,
-        label=run,
-        source=ConstraintSource.USER_EXPLICIT,
-    )
-
-
 class OrganismDrop(CamelModel):
     """An INTERSECT input the organism fold removed, and what became of its text.
 
     ``met`` is true when the text names only the organism, which the carrier's
     organism value meets; otherwise the binding matched all ``records`` genes
-    of the organism and ``requirement`` is the researcher's requirement the
-    text restated, which stays open.
+    of the organism and ``requirements`` are the requirements the dropped
+    criterion links, which stay open.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -201,7 +164,8 @@ class OrganismDrop(CamelModel):
     met: bool
     carrier_id: str
     records: int | None = None
-    requirement: Constraint | None = None
+    links: tuple[str, ...] = ()
+    requirements: tuple[Constraint, ...] = ()
 
     @property
     def fate(self) -> str:
@@ -217,11 +181,13 @@ class OrganismDrop(CamelModel):
             f"{head} it matches all {self.records:,} genes of {named}, which "
             f"{self.carrier_id} already runs on, so it narrows nothing."
         )
-        if self.requirement is None:
+        if not self.requirements:
             return dropped
+        held = ", ".join(f"'{c.requested_value}'" for c in self.requirements)
+        stays = "stays" if len(self.requirements) == 1 else "stay"
         return (
-            f"{dropped} '{self.requirement.requested_value}' stays open: bind a "
-            f"search whose values state it, or end with it as a gap."
+            f"{dropped} {held} {stays} open: bind a search whose values state "
+            f"it, or end with it as a gap."
         )
 
 
@@ -233,18 +199,18 @@ class FoldedStructure(CamelModel):
     structure: SpecStructure
     dropped: tuple[OrganismDrop, ...] = ()
 
-    def holding_open(
-        self, requirements: Sequence[Constraint], request_texts: Sequence[str]
-    ) -> FoldedStructure:
-        """The fold with each unmet drop holding open the requirement its text
-        restates."""
+    def holding_open(self, requirements: Sequence[Constraint]) -> FoldedStructure:
+        """The fold with each unmet drop holding open the requirements its
+        criterion links, less those the carrier's step meets."""
         dropped = tuple(
             drop
             if drop.met
             else drop.model_copy(
                 update={
-                    "requirement": restated_requirement(
-                        drop.text, requirements, request_texts
+                    "requirements": tuple(
+                        c
+                        for c in requirements
+                        if c.id in drop.links and c.kind not in _HELD_BY_THE_CARRIER
                     )
                 }
             )
@@ -397,6 +363,10 @@ def _organism_folded(node: StructureNode, reading: _OrganismReading) -> Structur
                 met=found.records is None,
                 carrier_id=reading.carrier_of(carrier),
                 records=found.records,
+                links=tuple(
+                    link.requirement
+                    for link in reading.by_id[candidate.named_criterion].answers
+                ),
             )
         )
     if len(kept) == 1:

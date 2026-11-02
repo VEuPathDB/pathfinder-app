@@ -59,7 +59,6 @@ def test_the_arc_goes_on_after_a_wrong_call_that_answered() -> None:
 
     assert names(calls) == [
         "read_ledger_section",
-        "classify_user_intent",
         "final_result",
     ]
 

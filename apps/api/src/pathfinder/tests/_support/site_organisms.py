@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from veupathdb.model import CamelModel
 
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
 from pathfinder.services.audit import planning
 from pathfinder.tests._support.qa_recording import qa_recording
 
@@ -35,7 +35,7 @@ def serve_recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         reads.append(site_id)
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)
     return reads
 
 

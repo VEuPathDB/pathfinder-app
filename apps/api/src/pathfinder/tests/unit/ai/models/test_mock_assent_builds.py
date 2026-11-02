@@ -1,7 +1,7 @@
 """An imperative to run and add builds, in the deterministic script.
 
 Assent to the assistant's own offer, and a retry after a failed task, ask for
-a build. The script classifies both as building intents and dispatches FRAME.
+a build. The mock reads both as building intents and dispatches FRAME.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from assistant_core.models.scripted import current_scope_id, current_user_text
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
-    ModelResponse,
     ToolCallPart,
     UserPromptPart,
 )
@@ -21,7 +20,10 @@ from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import ToolDefinition
 
+from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
+from pathfinder.ai.models.mock.reading import scripted_intent
+from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 ASSENT = (
     "Yes, rerun the differential expression and then create the strategy step "
@@ -33,7 +35,6 @@ IMPERATIVE = (
 )
 
 _LEAD_TOOLS = (
-    "classify_user_intent",
     "frame_problem",
     "build_strategy",
     "verify_strategy",
@@ -71,27 +72,15 @@ def _next_call(messages: list[ModelMessage]) -> ToolCallPart:
             raise AssertionError(text)
 
 
+@pytest.mark.parametrize("text", [ASSENT, IMPERATIVE])
+def test_the_mock_reads_an_imperative_as_a_building_intent(text: str) -> None:
+    intent = scripted_intent(pipeline_state(user_prompt=text), text)
+
+    assert intent.classification is IntentClassification.EXTEND_STRATEGY
+
+
 @pytest.mark.parametrize("scoped_text", [ASSENT, IMPERATIVE], indirect=True)
-def test_the_script_classifies_an_imperative_as_a_building_intent(
-    scoped_text: str,
-) -> None:
+def test_the_script_frames_first(scoped_text: str) -> None:
     call = _next_call([ModelRequest(parts=[UserPromptPart(content=scoped_text)])])
-
-    assert call.tool_name == "classify_user_intent"
-    assert call.args_as_dict()["intent"]["classification"] == "extend_strategy"
-
-
-@pytest.mark.parametrize("scoped_text", [ASSENT, IMPERATIVE], indirect=True)
-def test_the_script_frames_after_the_classification(scoped_text: str) -> None:
-    classified = _next_call(
-        [ModelRequest(parts=[UserPromptPart(content=scoped_text)])],
-    )
-
-    call = _next_call(
-        [
-            ModelRequest(parts=[UserPromptPart(content=scoped_text)]),
-            ModelResponse(parts=[classified]),
-        ],
-    )
 
     assert call.tool_name == "frame_problem"

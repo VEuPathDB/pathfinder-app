@@ -11,6 +11,7 @@ from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.models.mock.lifecycle_arcs import WITHDRAWN_VALUE
+from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -18,7 +19,8 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ReplacedLifecycle,
 )
-from pathfinder.tests.unit.ai.models._mock_turns import args_of, names, play
+from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
+from pathfinder.tests.unit.ai.models._mock_turns import names, play
 
 SITES = ("plasmodb", "vectorbase")
 
@@ -33,10 +35,8 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
 
 
 def _played(site_id: str, message: str) -> UserIntent:
-    calls = play("lead", site_id, message)
-    assert names(calls) == ["classify_user_intent", "final_result"]
-    [classified] = args_of(calls, "classify_user_intent")
-    return UserIntent.model_validate(classified["intent"])
+    assert names(play("lead", site_id, message)) == ["final_result"]
+    return scripted_intent(pipeline_state(site_id, user_prompt=message), message)
 
 
 def _recorded(

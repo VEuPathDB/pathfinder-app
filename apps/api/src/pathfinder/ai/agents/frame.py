@@ -169,6 +169,10 @@ Procedure:
         value the request does not support, and never a value that is not on the sheet.
       - a `transform` role's `organism` is the TARGET organism the genes are mapped into,
         named in the request; a seed/filter search's organism is the genome being searched.
+      - `answers` lists each requirement of "Requirements the researcher stated" that this
+        criterion answers, by its number, with `param` set to the sheet parameter that
+        carries its value when one does. Pass an empty list when the criterion answers
+        none of them. A delete, a fold and a gap read only these links, never the text.
    Those three calls are the whole procedure for a property. Ask for the sheet ONCE per
    criterion: it stays pinned, so a second request tells you nothing new. Use
    `get_parameter_options(search_name, parameter_id, query="<keyword>")` ONLY for a

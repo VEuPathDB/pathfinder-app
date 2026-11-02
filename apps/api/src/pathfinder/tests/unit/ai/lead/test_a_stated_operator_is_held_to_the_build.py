@@ -1,14 +1,14 @@
-"""A combination the classifier records is held to the operator the strategy builds."""
+"""A combination the message states is held to the operator the strategy builds."""
 
 from __future__ import annotations
 
 import pytest
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.domain.strategy._vaccine_request import (
@@ -60,7 +59,7 @@ def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)
 
 
 def _intent(operator: str) -> UserIntent:
@@ -92,9 +91,7 @@ def _chain(operator: CombineOp) -> SpecStructure:
 async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
     state = pipeline_state(user_prompt=VACCINE)
     intent = _intent("AND")
-    await classify_user_intent(
-        run_context_for(lead_deps(state), tool_call_id="call_classify"), intent
-    )
+    await hold_the_intent(lead_deps(state), intent, VACCINE)
     state.domain.operational_spec = OperationalSpec(
         goal="vaccine candidates", criteria=_CRITERIA, structure=_chain(operator)
     )
@@ -109,10 +106,7 @@ async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
 async def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None:
     state = pipeline_state(user_prompt=VACCINE)
 
-    await classify_user_intent(
-        run_context_for(lead_deps(state), tool_call_id="call_classify"),
-        _intent("AND"),
-    )
+    await hold_the_intent(lead_deps(state), _intent("AND"), VACCINE)
 
     assert [(c.source, c.hard) for c in state.domain.requirements] == [
         (ConstraintSource.USER_EXPLICIT, True),
@@ -132,25 +126,3 @@ async def test_a_union_build_breaks_the_stated_and() -> None:
 
     assert grounded.status is ConstraintStatus.UNGROUNDABLE
     assert is_blocking(grounded) is True
-
-
-def test_the_classifier_is_told_never_to_hoist_an_inner_or() -> None:
-    guidance = " ".join((classify_user_intent.__doc__ or "").split())
-
-    assert "the researcher's own connective between the requirements" in guidance
-    assert 'An "or" inside one requirement stays inside it' in guidance
-    assert 'joined by commas and "and" is AND' in guidance
-    assert "Never hoist" in guidance
-
-
-async def test_a_second_classification_may_change_the_classification() -> None:
-    state = pipeline_state(user_prompt=VACCINE)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    await classify_user_intent(ctx, _intent("AND"))
-    changed = _intent("AND").model_copy(
-        update={"classification": IntentClassification.EXTEND_STRATEGY}
-    )
-
-    await classify_user_intent(ctx, changed)
-
-    assert ctx.deps.intent is changed

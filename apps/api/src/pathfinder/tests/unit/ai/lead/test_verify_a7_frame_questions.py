@@ -167,7 +167,7 @@ def _drops_the_floor_the_researcher_stated(found: OperationalSpec) -> Operationa
         DroppedCriterion(
             text="top 10 percent in gametocytes",
             reason="no search ranks gametocyte expression",
-            requirement=_STAGE_FLOOR,
+            requirements=[_STAGE_FLOOR],
         )
     )
     return spec

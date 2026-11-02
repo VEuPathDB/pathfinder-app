@@ -8,6 +8,7 @@ parameters the sheet listed, so a name a site does not publish is never sent.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
@@ -60,6 +61,9 @@ class CriterionSpec:
     outside_param: str | None = None
     outside_choices: tuple[str, ...] = ()
     why: SearchWhy | None = None
+    # The requirement values the criterion answers, linked by the number the
+    # pinned list holds each under. A value the list lacks links nothing.
+    answers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -106,6 +110,25 @@ def transform(crit: CriterionSpec, source: StructureNode) -> StructureNode:
     return StructureNode(
         kind="transform", criterion_id=crit.criterion_id, inputs=[source]
     )
+
+
+_NUMBERED = re.compile(r"^- (R\d+) \([^)]*\): (.+)$", re.MULTILINE)
+
+
+def numbered_values(instructions: str) -> list[tuple[str, str]]:
+    """Each requirement of the pinned list, as its number and its value."""
+    return _NUMBERED.findall(instructions)
+
+
+def _answers(
+    crit: CriterionSpec, instructions: str, organism: set[str]
+) -> list[dict[str, str | None]]:
+    param = next(iter(organism)) if len(organism) == 1 else None
+    return [
+        {"requirement": number, "param": param if value == crit.site_organism else None}
+        for number, value in numbered_values(instructions)
+        if value in crit.answers
+    ]
 
 
 def sheet_call_args(crit: CriterionSpec) -> dict[str, Any]:
@@ -155,16 +178,19 @@ def proposal_args(
         for name in marked - {n for n, v in values.items() if v is not None}:
             values[name] = [crit.site_organism]
     params = {name: values.get(name) for name in sheet}
-    return _binding_args(crit, params, marked)
+    return _binding_args(crit, params, marked, instructions)
 
 
 def _binding_args(
-    crit: CriterionSpec, params: dict[str, Any], organism: set[str]
+    crit: CriterionSpec, params: dict[str, Any], organism: set[str], instructions: str
 ) -> dict[str, Any]:
-    """A binding call with ``params``, and why: the criterion's own reason, else
-    the first parameter it values, the organism parameter last."""
+    """A binding call with ``params``, the requirements it answers, and why: the
+    criterion's own reason, else the first parameter it values, the organism
+    parameter last."""
     args = sheet_call_args(crit)
     args["params"] = params
+    if crit.answers:
+        args["answers"] = _answers(crit, instructions, organism)
     valued = [name for name, value in params.items() if value is not None]
     stated = next(
         (name for name in valued if name not in organism), next(iter(valued), None)

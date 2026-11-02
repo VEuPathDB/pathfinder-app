@@ -51,15 +51,9 @@ def _other(value: str) -> Constraint:
 
 def _completed(
     site: str, message: str, *constraints: Constraint
-) -> tuple[list[tuple[str, str]], list[str]]:
-    completed, notes = complete_organisms(
-        list(constraints), message, recorded_organisms(site)
-    )
-    return [(c.kind.value, c.requested_value) for c in completed], notes
-
-
-def _recorded(entry: str) -> str:
-    return f'organism recorded as "{entry}"'
+) -> list[tuple[str, str]]:
+    completed = complete_organisms(list(constraints), message, recorded_organisms(site))
+    return [(c.kind.value, c.requested_value) for c in completed]
 
 
 def test_the_strain_is_part_of_the_entry_the_message_states() -> None:
@@ -92,7 +86,7 @@ def test_a_species_without_its_strain_states_no_entry() -> None:
 
 
 def test_the_split_organism_is_completed_and_the_strain_constraint_kept() -> None:
-    completed, notes = _completed(
+    completed = _completed(
         "vectorbase",
         PEST,
         _organism("Anopheles gambiae"),
@@ -110,18 +104,16 @@ def test_the_split_organism_is_completed_and_the_strain_constraint_kept() -> Non
         ("other", "PEST genes"),
         ("other", "predicted signal peptide"),
     ]
-    assert notes == [_recorded("Anopheles gambiae PEST")]
 
 
 def test_the_species_recorded_without_its_strain_is_completed() -> None:
-    completed, notes = _completed("toxodb", NEOSPORA, _organism("Neospora caninum"))
+    completed = _completed("toxodb", NEOSPORA, _organism("Neospora caninum"))
 
     assert completed == [("organism", "Neospora caninum Liverpool")]
-    assert notes == [_recorded("Neospora caninum Liverpool")]
 
 
 def test_the_strain_recorded_as_a_requirement_of_its_own_is_left_as_stated() -> None:
-    completed, notes = _completed(
+    completed = _completed(
         "toxodb", NEOSPORA, _organism("Neospora caninum"), _other("Liverpool strain")
     )
 
@@ -129,30 +121,28 @@ def test_the_strain_recorded_as_a_requirement_of_its_own_is_left_as_stated() -> 
         ("organism", "Neospora caninum Liverpool"),
         ("other", "Liverpool strain"),
     ]
-    assert notes == [_recorded("Neospora caninum Liverpool")]
 
 
 @pytest.mark.parametrize(
-    ("constraints", "recorded"),
+    "constraints",
     [
-        ([_organism("Cryptosporidium parvum")], ["Cryptosporidium parvum Iowa II"]),
-        ([_organism("C. parvum Iowa")], ["Cryptosporidium parvum Iowa II"]),
-        ([_organism("Cryptosporidium parvum Iowa II"), _other("Iowa isolate")], []),
-        ([_organism("Cryptosporidium parvum Iowa II"), _other("II")], []),
+        [_organism("Cryptosporidium parvum")],
+        [_organism("C. parvum Iowa")],
+        [_organism("Cryptosporidium parvum Iowa II"), _other("Iowa isolate")],
+        [_organism("Cryptosporidium parvum Iowa II"), _other("II")],
     ],
 )
 def test_every_prefix_of_a_two_word_strain_completes_to_the_entry(
-    constraints: list[Constraint], recorded: list[str]
+    constraints: list[Constraint],
 ) -> None:
-    completed, notes = _completed("cryptodb", IOWA, *constraints)
+    completed = _completed("cryptodb", IOWA, *constraints)
 
     assert completed[0] == ("organism", "Cryptosporidium parvum Iowa II")
     assert completed[1:] == [(c.kind.value, c.requested_value) for c in constraints[1:]]
-    assert notes == [_recorded(entry) for entry in recorded]
 
 
 def test_the_whole_entry_and_the_other_requirements_pass() -> None:
-    completed, notes = _completed(
+    completed = _completed(
         "cryptodb",
         IOWA,
         _organism("Cryptosporidium parvum Iowa II"),
@@ -163,7 +153,6 @@ def test_the_whole_entry_and_the_other_requirements_pass() -> None:
         ("organism", "Cryptosporidium parvum Iowa II"),
         ("other", "signal peptide"),
     ]
-    assert notes == []
 
 
 @pytest.mark.parametrize("site", sorted(S2))
@@ -181,13 +170,12 @@ def test_the_standard_prompts_pass_untouched(site: str) -> None:
         _stated(ConstraintKind.RECORD_TYPE, "genes"),
     ]
 
-    completed, notes = complete_organisms(stated, message, recorded_organisms(site))
+    completed = complete_organisms(stated, message, recorded_organisms(site))
 
     assert [s.entry for s in stated_organisms(message, recorded_organisms(site))] == [
         entry
     ]
     assert completed == stated
-    assert notes == []
 
 
 def test_the_orthology_constraint_that_names_the_source_organism_is_untouched() -> None:
@@ -199,12 +187,9 @@ def test_the_orthology_constraint_that_names_the_source_organism_is_untouched() 
     )
     stated = [_organism("Plasmodium vivax P01"), orthology]
 
-    completed, notes = complete_organisms(
-        stated, message, recorded_organisms("plasmodb")
-    )
+    completed = complete_organisms(stated, message, recorded_organisms("plasmodb"))
 
     assert completed == stated
-    assert notes == []
 
 
 def test_a_comparator_that_names_two_whole_entries_passes() -> None:
@@ -218,9 +203,7 @@ def test_a_comparator_that_names_two_whole_entries_passes() -> None:
         _stated(ConstraintKind.COMPARATOR, "P. falciparum 3D7 vs P. falciparum HB3"),
     ]
 
-    completed, notes = complete_organisms(
-        stated, message, recorded_organisms("plasmodb")
-    )
+    completed = complete_organisms(stated, message, recorded_organisms("plasmodb"))
 
     assert [
         s.entry for s in stated_organisms(message, recorded_organisms("plasmodb"))
@@ -229,18 +212,14 @@ def test_a_comparator_that_names_two_whole_entries_passes() -> None:
         "Plasmodium falciparum HB3",
     ]
     assert completed == stated
-    assert notes == []
 
 
 def test_an_organism_the_message_does_not_state_whole_is_left_as_recorded() -> None:
     message = "Find Plasmodium falciparum genes with a signal peptide"
 
-    completed, notes = _completed(
-        "plasmodb", message, _organism("Plasmodium falciparum")
-    )
+    completed = _completed("plasmodb", message, _organism("Plasmodium falciparum"))
 
     assert completed == [("organism", "Plasmodium falciparum")]
-    assert notes == []
 
 
 def test_the_strain_as_a_term_of_the_combination_is_left_as_stated() -> None:
@@ -248,7 +227,7 @@ def test_the_strain_as_a_term_of_the_combination_is_left_as_stated() -> None:
         "PEST genes AND predicted signal peptide AND 2 to 99 transmembrane domains"
     )
 
-    completed, notes = _completed(
+    completed = _completed(
         "vectorbase",
         PEST,
         _organism("Anopheles gambiae PEST"),
@@ -259,4 +238,3 @@ def test_the_strain_as_a_term_of_the_combination_is_left_as_stated() -> None:
         ("organism", "Anopheles gambiae PEST"),
         ("combination", combination),
     ]
-    assert notes == []

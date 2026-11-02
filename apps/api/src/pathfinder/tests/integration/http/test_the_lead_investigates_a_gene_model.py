@@ -123,7 +123,7 @@ async def test_the_lead_answers_a_gene_model_question_with_the_investigation(
         chat_post_body(owner.conversation_id, prompt),
     )
 
-    assert called(chunks) == ["classify_user_intent", "investigate_gene_models"]
+    assert called(chunks) == ["investigate_gene_models"]
     assert text(chunks) == (
         f"The check reads the model of [{STRAIN}]"
         f"({gene_record_url('plasmodb', STRAIN)}) as intact."

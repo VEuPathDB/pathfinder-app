@@ -1,13 +1,15 @@
-"""The wrong calls of the faults the turn contract and the intent gate answer:
-an open value asked in prose, and a classification that splits the organism."""
+"""The faults the turn contract and the intent's hold answer: an open value
+asked in prose, and a reading that splits the organism."""
 
 from __future__ import annotations
 
-from assistant_core.models.scripted import current_scope_id, scripted_call
+from assistant_core.models.scripted import scripted_call
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai.messages import ToolCallPart
 
+from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.models.mock.arc import history_free
+from pathfinder.ai.models.mock.arc_readings import stated
 from pathfinder.ai.models.mock.fault_calls import (
     ANSWER,
     CONSULT,
@@ -15,7 +17,6 @@ from pathfinder.ai.models.mock.fault_calls import (
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
 
-CLASSIFY = "classify_user_intent"
 # A binomial is two words; the words after it name the strain.
 _BINOMIAL = 2
 
@@ -29,36 +30,22 @@ def split_organism(organism: str) -> tuple[str, str] | None:
     return " ".join(words[:_BINOMIAL]), " ".join(words[_BINOMIAL:])
 
 
-class _Classified(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    intent: dict[str, object]
-
-
-def _organism_split(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's classification with the site organism split: the binomial as
-    the organism, and its strain as a requirement of its own."""
-    split = split_organism(SiteValues.for_site(current_scope_id.get()).organism)
-    if intended.tool_name != CLASSIFY or split is None:
-        return None
+def organism_split(intent: UserIntent, site_id: str) -> UserIntent:
+    """The arc's reading with the site organism split: the binomial as the
+    organism, and its strain as a requirement of its own."""
+    split = split_organism(SiteValues.for_site(site_id).organism)
+    if split is None:
+        return intent
     binomial, strain = split
-    stated = [
+    return UserIntent.model_validate(
         {
-            "kind": "organism",
-            "requestedValue": binomial,
-            "label": "organism",
-            "source": "user_explicit",
-        },
-        {
-            "kind": "other",
-            "requestedValue": f"{strain} genes",
-            "label": "gene category",
-            "source": "user_explicit",
-        },
-    ]
-    classified = _Classified.model_validate(intended.args_as_dict())
-    intent = {**classified.intent, "explicitConstraints": stated}
-    return scripted_call(CLASSIFY, {"intent": intent})
+            **intent.model_dump(by_alias=True),
+            "explicitConstraints": [
+                stated("organism", "organism", binomial),
+                stated("other", "gene category", f"{strain} genes"),
+            ],
+        }
+    )
 
 
 class _Option(BaseModel):
@@ -100,5 +87,4 @@ def _open_value_in_prose(intended: ToolCallPart) -> ToolCallPart | None:
     )
 
 
-organism_split: WrongCall = history_free(lambda: _organism_split)
 open_value_in_prose: WrongCall = history_free(lambda: _open_value_in_prose)

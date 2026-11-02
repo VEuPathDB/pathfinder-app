@@ -12,12 +12,11 @@ from pydantic import TypeAdapter
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.audit.run_tools import START_TOOL
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.directive import without_tokens
 from pathfinder.ai.models.mock.reads import ToolAnswer, last_answer, last_return
 from pathfinder.domain.audit.scope import AuditScope
 
-AUDIT = "gene_model_audit"
 PLAN = "plan_gene_model_audit"
 LIST_RUNS = "list_audit_runs"
 LIST_FINDINGS = "list_audit_findings"
@@ -113,7 +112,7 @@ def _planned(messages: list[ModelMessage]) -> _PlanRead | None:
 
 def audit_start(messages: list[ModelMessage]) -> list[ToolCallPart]:
     request = _request(messages)
-    head = [classify(AUDIT), scripted_call(PLAN, {"request": request})]
+    head = [scripted_call(PLAN, {"request": request})]
     planned = _planned(messages)
     if planned is None or planned.answer.scope is None:
         return [*head, lead_final(NOT_STARTED, "await_user")]
@@ -129,7 +128,7 @@ def audit_start(messages: list[ModelMessage]) -> list[ToolCallPart]:
 
 
 def audit_plan(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    head = [classify(AUDIT), scripted_call(PLAN, {"request": _request(messages)})]
+    head = [scripted_call(PLAN, {"request": _request(messages)})]
     planned = _planned(messages)
     if planned is None:
         return [*head, lead_final(NOT_STARTED, "await_user")]
@@ -162,11 +161,11 @@ def _finding_reads(
 def _finding_answer(messages: list[ModelMessage]) -> list[ToolCallPart]:
     calls, found = _finding_reads(messages)
     if found is None:
-        return [classify(AUDIT), *calls, lead_final(NO_RUN, "await_user")]
+        return [*calls, lead_final(NO_RUN, "await_user")]
     detail = found.answer
     gene = detail.finding.target.genes[0]
     said = f"The finding above reads the model of [record:{gene}] as an error."
-    return [classify(AUDIT), *calls, lead_final(said, "await_user")]
+    return [*calls, lead_final(said, "await_user")]
 
 
 def audit_finding(messages: list[ModelMessage]) -> list[ToolCallPart]:
@@ -174,10 +173,7 @@ def audit_finding(messages: list[ModelMessage]) -> list[ToolCallPart]:
 
 
 def audit_investigation(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    head = [
-        classify(AUDIT),
-        scripted_call(INVESTIGATE, {"question": _message(messages)}),
-    ]
+    head = [scripted_call(INVESTIGATE, {"question": _message(messages)})]
     found = last_return(current_turn(messages), INVESTIGATE, _Investigation)
     said = NOT_STARTED if found is None else found.answer
     return [*head, lead_final(said, "await_user")]

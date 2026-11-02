@@ -45,7 +45,7 @@ def test_the_listing_arc_names_the_ids_the_facts_list() -> None:
         ],
     )
 
-    assert names(calls) == ["classify_user_intent", "read_step_ids", "final_result"]
+    assert names(calls) == ["read_step_ids", "final_result"]
     assert args_of(calls, "read_step_ids") == [{"limit": LISTED}]
     assert render_note(prose, facts) == (
         "The result starts with "

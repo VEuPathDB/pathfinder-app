@@ -20,3 +20,13 @@ def load_system_prompt(*, include_site_hints: bool = True) -> str:
     if include_site_hints:
         parts.append(_read("site_hints.md"))
     return "\n\n---\n\n".join(parts)
+
+
+@lru_cache(maxsize=1)
+def load_reading_guide() -> str:
+    return _read("message_reading.md")
+
+
+@lru_cache(maxsize=1)
+def load_request_guide() -> str:
+    return _read("stated_request.md")

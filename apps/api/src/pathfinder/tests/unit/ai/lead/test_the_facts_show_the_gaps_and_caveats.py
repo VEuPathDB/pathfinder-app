@@ -196,7 +196,7 @@ async def test_a_requirement_the_site_lacks_is_a_gap_in_the_held_words(
 
     assert (facts.steps, facts.gaps) == (
         [],
-        [RequirementGap(text="predicted GPI anchor")],
+        [RequirementGap(text="predicted GPI anchor", requirement=_GPI.id)],
     )
     assert [gap.sentence for gap in facts.gaps] == [
         "'predicted GPI anchor': no search on this site states it"

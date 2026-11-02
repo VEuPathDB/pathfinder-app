@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     StoredConstraint,
-    states_the_content,
 )
 from pathfinder.domain.strategy.message_reading import (
     adds_an_alternative,
@@ -318,16 +317,16 @@ class ThreadRequirements(BaseModel):
     def retire_what_a_delete_leaves_unanswered(
         self, deleted: Sequence[Criterion], remaining: Sequence[Criterion]
     ) -> None:
-        """Withdraw each live requirement a deleted criterion's text states and
-        no remaining one states, and each combination a side of which names a
+        """Withdraw each live requirement a deleted criterion links and no
+        remaining one links, and each combination a side of which names a
         deleted criterion. An organism or a record type scopes the whole
         strategy, so a delete withdraws neither."""
         self.withdraw(
             c
             for c in self.requirements
             if c.kind not in STRATEGY_SCOPES
-            and _stated(c, deleted)
-            and not _stated(c, remaining)
+            and any(d.links(c.id) for d in deleted)
+            and not any(r.links(c.id) for r in remaining)
         )
         self.requirements, self.retired_requirements = retire_dropped_sides(
             self.requirements,
@@ -359,12 +358,6 @@ def _held_readings(spec: OperationalSpec | None) -> dict[str, AcceptedReading]:
         for c in ([] if spec is None else spec.criteria)
         if (held := c.held_reading) is not None
     }
-
-
-def _stated(requirement: Constraint, criteria: Sequence[Criterion]) -> bool:
-    return any(
-        states_the_content(c.text, requirement.requested_value) for c in criteria
-    )
 
 
 def _only_asked(constraint: Constraint, message: str, asks: Sequence[str]) -> bool:

@@ -3,7 +3,7 @@ recommends, and the options it offers, each typed by what answering it binds."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from types import MappingProxyType
 from typing import Annotated
 
@@ -40,7 +40,6 @@ from pathfinder.domain.strategy.readings import (
     Reading,
     ReadValues,
 )
-from pathfinder.domain.strategy.words import words_of
 
 _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
@@ -86,9 +85,11 @@ class OpenQuestion(_Question):
 
     The recommendation is typed here so the next turn reads it instead of the
     reply text that offered it. Each option carries what answering it binds.
+    ``criterion_id`` is the criterion a framing pass asked it about, else empty.
     """
 
     options: list[TypedOption] = Field(default_factory=list, max_length=_OPTIONS_LIMIT)
+    criterion_id: str = ""
 
     @model_validator(mode="after")
     def _offers_a_choice(self) -> OpenQuestion:
@@ -218,12 +219,15 @@ class SlotQuestion(AskedQuestion):
         the site counts the record type in.
         """
         if not self.names_a_slot:
-            return super().typed()
+            return (
+                super().typed().model_copy(update={"criterion_id": self.criterion_id})
+            )
         if self.readings:
             return OpenQuestion(
                 question=self.question,
                 dimension=self.dimension,
                 recommended_value=self.recommended_value,
+                criterion_id=self.criterion_id,
                 options=[
                     self._read(criterion, r, noun, replaces, stated=stated)
                     for r in self.readings
@@ -234,6 +238,7 @@ class SlotQuestion(AskedQuestion):
             question=self.question,
             dimension=self.dimension,
             recommended_value=self.recommended_value,
+            criterion_id=self.criterion_id,
             options=[
                 TypedOption(
                     id=key,
@@ -304,26 +309,28 @@ def requirement_choices(requirements: Sequence[Constraint]) -> dict[str, TypedOp
     }
 
 
-def _names(question: OpenQuestion, requirement: Constraint) -> bool:
-    """Whether a question with no option carries every word of the requirement."""
-    held = set(words_of(question.question))
-    wanted = words_of(requirement.requested_value)
-    return not question.options and all(word in held for word in wanted)
+def _about(question: OpenQuestion, linking: Collection[str]) -> bool:
+    return not question.options and question.criterion_id in linking
 
 
 def with_withdrawals(
-    questions: Sequence[OpenQuestion], unmet: Sequence[Constraint]
+    questions: Sequence[OpenQuestion],
+    unmet: Sequence[Constraint],
+    *,
+    criteria: Sequence[Criterion],
 ) -> list[OpenQuestion]:
     """The questions, with an option to withdraw each requirement no search states.
 
     A question on the requirement's dimension gains the option; an optionless
-    question naming it, or a new question, offers to drop it or keep it. An
-    optionless question keeps its own prompt, so an answer in the researcher's
-    words, such as a substitute it offers, still reaches the thread."""
+    question about a criterion that links it, or a new question, offers to drop
+    it or keep it. An optionless question keeps its own prompt, so an answer in
+    the researcher's words, such as a substitute it offers, still reaches the
+    thread."""
     asked = list(questions)
     for requirement in unmet:
         option = _withdrawal(requirement)
-        about = next((i for i, q in enumerate(asked) if _names(q, requirement)), None)
+        linking = {c.id for c in criteria if c.links(requirement.id)}
+        about = next((i for i, q in enumerate(asked) if _about(q, linking)), None)
         if about is not None:
             asked[about] = asked[about].model_copy(
                 update={"options": [option, _keeping(requirement)]}

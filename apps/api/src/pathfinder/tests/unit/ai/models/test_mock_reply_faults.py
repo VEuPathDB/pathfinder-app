@@ -1,29 +1,22 @@
 """The faults the turn contract refuses make their wrong call once, the real
-rule refuses it, and the arc then makes the right call. A split organism is
-recorded whole by the intent gate and the arc goes on."""
+rule refuses it, and the arc then makes the right call. A misreading fault
+leaves the arc's calls as they are."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic_ai.messages import ToolCallPart
 
-from pathfinder.ai.lead import classification_gate
-from pathfinder.ai.lead.intent import ClassifiedIntent, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.turn_contract import (
     LeadResponse,
     reconcile,
 )
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.ai.models.mock.directive import without_tokens
 from pathfinder.ai.models.mock.faults import made_by_a_fault
-from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests._support.run_context import run_context_for
-from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     reading_deps,
 )
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.models._mock_questions import (
     ASKED_ORGANISM,
     ORGANISM_LABEL,
@@ -32,7 +25,6 @@ from pathfinder.tests.unit.ai.models._mock_questions import (
 from pathfinder.tests.unit.ai.models._mock_turns import (
     SHEET_ORGANISMS,
     Scene,
-    args_of,
     names,
     play,
 )
@@ -59,35 +51,10 @@ def _finals(calls: list[ToolCallPart]) -> list[LeadResponse]:
 
 
 @pytest.mark.parametrize("site_id", SITES)
-async def test_a_split_organism_is_recorded_whole_by_the_gate(
-    site_id: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    organism = SiteValues.for_site(site_id).organism
-    binomial, strain = organism.rsplit(" ", 1)
-    text = f"Find {organism} genes whose proteins have a predicted signal peptide."
+def test_a_split_organism_leaves_the_arcs_calls_as_they_are(site_id: str) -> None:
+    calls = play("lead", site_id, f"Find genes {_token('single', 'organism-split')}")
 
-    async def _organisms(site: str) -> list[str]:
-        return recorded_organisms(site)
-
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
-    calls = play("lead", site_id, f"{text} {_token('single', 'organism-split')}")
-    [split] = [
-        UserIntent.model_validate(a["intent"])
-        for a in args_of(calls, "classify_user_intent")
-    ]
-    state = pipeline_state(site_id, user_prompt=without_tokens(text))
-    returned = await classify_user_intent(
-        run_context_for(lead_deps(state), tool_call_id="call_classify"), split
-    )
-
-    assert [(c.kind.value, c.requested_value) for c in split.explicit_constraints] == [
-        ("organism", binomial),
-        ("other", f"{strain} genes"),
-    ]
-    assert ClassifiedIntent.model_validate(returned.return_value).corrections == [
-        f'organism recorded as "{organism}"'
-    ]
-    assert names(calls)[:2] == ["classify_user_intent", "frame_problem"]
+    assert names(calls)[:2] == ["frame_problem", "build_strategy"]
     assert _faulted(calls) == []
 
 
@@ -103,8 +70,7 @@ def test_an_open_value_asked_in_prose_is_refused_then_asked_on_the_card() -> Non
         update={"frame_open_questions": (ASKED_ORGANISM,)}
     )
 
-    assert names(calls)[:4] == [
-        "classify_user_intent",
+    assert names(calls)[:3] == [
         "frame_problem",
         "final_result",
         "consult_user",

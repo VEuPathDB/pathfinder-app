@@ -121,7 +121,7 @@ def test_a_retry_and_a_guard_refusal_are_refused_and_an_answer_is_not() -> None:
         tool_name="read_gene_record", count=9, escalated=False, rule="call_cap"
     )
     calls = [
-        _failed(1, "classify_user_intent", []),
+        _failed(1, "frame_problem", []),
         _call(2, "read_gene_record", "completed", result=repeat.message),
         _call(3, "read_gene_record", "completed", result=cap.message),
         _call(4, "read_gene_record", "completed", result="PF3D7_0100100"),

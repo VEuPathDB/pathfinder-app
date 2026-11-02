@@ -13,14 +13,12 @@ Lead
 ----
 
 Built in :py:func:`pathfinder.ai.lead.lead_agent.build_lead_agent`. The Lead
-runs the phases as tools and reads the ledger between calls. The building
-tools stay hidden until ``classify_user_intent`` classifies the turn as one
-that builds.
+runs the phases as tools and reads the ledger between calls. Each message is
+read before the Lead runs (:py:func:`pathfinder.ai.lead.message_reader.read_message`),
+and the tools a turn reaches follow its typed state.
 
 **Turn control**
 
-- ``classify_user_intent`` -- Classify the turn. Called once, before any other
-  sub-agent call.
 - ``consult_user`` -- Ask the user a design question and block on the answer.
   Requires approval.
 - ``read_ledger_section`` -- Full detail of one ledger section.

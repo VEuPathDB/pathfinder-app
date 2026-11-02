@@ -154,6 +154,7 @@ def _refuse_an_eda_backed_search(
             id=criterion.id,
             text=criterion.text,
             role=criterion.role,
+            answers=criterion.answers,
             needs_analysis_on=dataset,
         )
     )

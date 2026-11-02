@@ -13,7 +13,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ReplacedLifecycle,
     WithdrawnLifecycle,
-    provisional_constraints,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import (
     RetiredRequirement,
@@ -97,11 +96,13 @@ def test_a_withdrawn_cutoff_is_no_gap_while_a_live_requirement_still_is() -> Non
     live, retired = retire([_CUTOFF, _SIGNAL], [], [_CUTOFF], turn_id="t4")
     gaps = check_gaps(
         words=[],
-        unstated=["top 50th percentile expression", "signal peptide"],
-        requirements=[*(r.grounded() for r in retired), *provisional_constraints(live)],
+        unstated=[_CUTOFF, *live],
+        retired={r.constraint.id for r in retired},
     )
 
-    assert gaps == [RequirementGap(text="signal peptide")]
+    assert gaps == [
+        RequirementGap(text=_SIGNAL.requested_value, requirement=_SIGNAL.id)
+    ]
 
 
 def test_a_declined_message_takes_back_what_it_retired() -> None:

@@ -22,7 +22,6 @@ def test_the_arc_exports_the_upload_at_the_stated_cut(site_id: str) -> None:
     )
 
     assert names(calls) == [
-        "classify_user_intent",
         "search_eda_studies",
         "describe_eda_study",
         "describe_eda_study",

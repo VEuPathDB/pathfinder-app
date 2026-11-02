@@ -34,7 +34,6 @@ CLEAR_MESSAGE = (
     "Clear the current strategy by calling clear_strategy with confirm=true."
 )
 BUILD = [
-    "classify_user_intent",
     "frame_problem",
     "build_strategy",
     "verify_strategy",
@@ -42,14 +41,13 @@ BUILD = [
     "final_result",
 ]
 EDIT = [
-    "classify_user_intent",
     "edit_strategy",
     "verify_strategy",
     "get_live_strategy_state",
     "final_result",
 ]
-FRAMED = ["classify_user_intent", "frame_problem", "final_result"]
-PROSE = ["classify_user_intent", "final_result"]
+FRAMED = ["frame_problem", "final_result"]
+PROSE = ["final_result"]
 
 LEAD_SEQUENCES: dict[str, list[str]] = {
     "single": BUILD,
@@ -70,17 +68,15 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
     "add-step": EDIT,
     "replace-subtree": EDIT,
     "delete-step-card": [
-        "classify_user_intent",
         "get_live_strategy_state",
         "final_result",
     ],
-    "clear": ["classify_user_intent", "clear_strategy", "final_result"],
-    "proposal": ["classify_user_intent", "propose_changes", "final_result"],
+    "clear": ["clear_strategy", "final_result"],
+    "proposal": ["propose_changes", "final_result"],
     "sweep": [
-        "classify_user_intent",
         "get_live_strategy_state",
         "build_control_set",
-        *BUILD[1:-2],
+        *BUILD[:-2],
         "optimize_search_parameters",
         "final_result",
     ],
@@ -92,33 +88,29 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
     "other-site-experiment": BUILD,
     "frame-loop": FRAMED,
     "separation": [
-        "classify_user_intent",
         "separate_controls",
         "adopt_separating_strategy",
         "verify_strategy",
         "final_result",
     ],
     "variants": [
-        "classify_user_intent",
         "get_live_strategy_state",
         "compare_search_variants",
         "final_result",
     ],
-    "save-gene-set": ["classify_user_intent", "save_gene_set", "final_result"],
+    "save-gene-set": ["save_gene_set", "final_result"],
     "export": [
-        "classify_user_intent",
         "list_gene_sets",
         "export_gene_set",
         "final_result",
     ],
-    "remember": ["classify_user_intent", "remember", "final_result"],
+    "remember": ["remember", "final_result"],
     "recall-preference": PROSE,
-    "recall": ["classify_user_intent", "search_memory", "final_result"],
+    "recall": ["search_memory", "final_result"],
     "recap": ["read_ledger_section", "get_live_strategy_state", "final_result"],
-    "gene-question": ["classify_user_intent", "read_gene_record", "final_result"],
-    "attachment": ["classify_user_intent", "build_control_set", "final_result"],
+    "gene-question": ["read_gene_record", "final_result"],
+    "attachment": ["build_control_set", "final_result"],
     "eda-compare": [
-        "classify_user_intent",
         "search_eda_studies",
         "describe_eda_study",
         "describe_eda_study",
@@ -132,7 +124,6 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "eda-other-site": [
-        "classify_user_intent",
         "search_eda_studies",
         "open_eda_analysis",
         "final_result",
@@ -141,7 +132,7 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
     "kinase-question": PROSE,
     "impact": PROSE,
     "context": PROSE,
-    "rename": ["classify_user_intent", "rename_strategy", "final_result"],
+    "rename": ["rename_strategy", "final_result"],
     "echo": ["final_result"],
 }
 
@@ -172,7 +163,7 @@ def test_a_value_the_frame_leaves_open_is_asked_on_the_card(site_id: str) -> Non
     calls = play("lead", site_id, "Do it [[arc:consult]]", scene=scene)
     [card] = args_of(calls, "consult_user")
 
-    assert names(calls) == [*FRAMED[:2], "consult_user", *BUILD]
+    assert names(calls) == [*FRAMED[:1], "consult_user", *BUILD]
     assert [
         (q["prompt"], [(o["label"], o["recommended"]) for o in q["options"]])
         for q in card["questions"]
@@ -198,14 +189,6 @@ def test_the_relax_turn_edits_the_strategy_the_first_turn_built() -> None:
     assert names(calls) == EDIT
 
 
-def test_a_build_on_a_framed_thread_extends_it() -> None:
-    calls = play(
-        "lead", "plasmodb", "[[arc:single]]", scene=Scene(instructions=framed_pins())
-    )
-
-    assert calls[0].args_as_dict()["intent"]["classification"] == "extend_strategy"
-
-
 def test_a_withheld_build_ends_the_turn_on_the_edit_route() -> None:
     refusal = {"build_strategy": build_would_replace_the_strategy(1)}
 
@@ -214,7 +197,6 @@ def test_a_withheld_build_ends_the_turn_on_the_edit_route() -> None:
     )
 
     assert names(calls) == [
-        "classify_user_intent",
         "frame_problem",
         "build_strategy",
         "final_result",
@@ -239,7 +221,6 @@ def test_the_sweep_on_a_built_thread_tunes_the_root_the_live_read_names() -> Non
     calls = play("lead", "plasmodb", "[[arc:sweep]]", scene=built_thread())
 
     assert names(calls) == [
-        "classify_user_intent",
         "get_live_strategy_state",
         "build_control_set",
         "optimize_search_parameters",
@@ -269,7 +250,7 @@ def test_the_portal_route_on_a_framed_thread_is_an_edit_that_builds_nothing() ->
         scene=Scene(instructions=framed_pins()),
     )
 
-    assert names(calls) == ["classify_user_intent", "edit_strategy", "final_result"]
+    assert names(calls) == ["edit_strategy", "final_result"]
 
 
 def test_a_build_reply_points_at_the_facts_beside_it() -> None:
@@ -293,7 +274,7 @@ def test_the_count_question_is_answered_by_the_recap_and_the_facts() -> None:
 def test_the_product_clear_message_routes_to_the_clear_arc() -> None:
     calls = play("lead", "plasmodb", CLEAR_MESSAGE)
 
-    assert names(calls) == ["classify_user_intent", "clear_strategy", "final_result"]
+    assert names(calls) == ["clear_strategy", "final_result"]
     assert calls[-1].args_as_dict()["prose"] == "The current strategy has been cleared."
 
 
@@ -322,7 +303,7 @@ def test_a_refused_rename_says_nothing_was_renamed() -> None:
 
     calls = play("lead", "plasmodb", text, scene=Scene(refused=refused))
 
-    assert names(calls) == ["classify_user_intent", "rename_strategy", "final_result"]
+    assert names(calls) == ["rename_strategy", "final_result"]
     assert calls[-1].args_as_dict()["prose"] == (
         "Nothing was renamed: this conversation holds no strategy yet."
     )
@@ -350,7 +331,6 @@ def test_the_comparison_without_a_step_exports_nothing() -> None:
     calls = play("lead", "plasmodb", text)
 
     assert names(calls) == [
-        "classify_user_intent",
         "search_eda_studies",
         "describe_eda_study",
         "describe_eda_study",
@@ -457,7 +437,6 @@ def test_a_separation_that_did_not_run_offers_nothing() -> None:
     calls = play("lead", "plasmodb", "[[arc:separation]]", scene=Scene(refused=refusal))
 
     assert names(calls) == [
-        "classify_user_intent",
         "separate_controls",
         "final_result",
     ]
@@ -485,7 +464,6 @@ def test_the_delete_card_removes_the_transmembrane_step_the_live_read_names() ->
     )
 
     assert names(calls) == [
-        "classify_user_intent",
         "get_live_strategy_state",
         "delete_step",
         "final_result",

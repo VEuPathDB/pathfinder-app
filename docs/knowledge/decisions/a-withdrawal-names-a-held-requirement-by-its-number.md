@@ -11,8 +11,8 @@ status: stable
 
 The Lead reads the requirements the thread holds as a numbered list, as FRAME
 already does ([a pass names a requirement by its number](a-pass-names-a-requirement-by-its-number.md)).
-`UserIntent.withdrawn` is a list of those numbers. The classification gate refuses a
-number the list does not hold. The thread maps each number to the id it minted for
+`UserIntent.withdrawn` is a list of those numbers. A number the list does not hold
+retires nothing. The thread maps each number to the id it minted for
 that requirement and retires it; the retirement keeps the source the thread
 recorded for it. No withdrawal reads a value's words.
 

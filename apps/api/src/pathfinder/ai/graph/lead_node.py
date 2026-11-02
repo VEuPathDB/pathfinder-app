@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
+from functools import partial
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
 
@@ -42,12 +43,14 @@ from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.usage import RunUsage
 
+from pathfinder.ai.capabilities.decisions_spend import decisions_spend_to
 from pathfinder.ai.graph._lead_answers import typed_reply
 from pathfinder.ai.graph._lead_capture import (
     _charge_token_delta,
     _emit_residual_prose,
     _LeadRunCapture,
     _persist_residual_quota,
+    absorb_outside_spend,
     emit_lead_usage,
     sub_agent_usage_recorder,
 )
@@ -68,6 +71,7 @@ from pathfinder.ai.graph._lead_events import (
 from pathfinder.ai.graph._lead_exchange import turn_exchange
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
+from pathfinder.ai.graph._lead_reading import read_the_words
 from pathfinder.ai.graph._lead_site import (
     a_dead_site_changes_nothing,
     naming_a_dead_site,
@@ -265,6 +269,13 @@ async def _drive_lead_stream(
     agent_model = lead_model.model_id
     capture.lead_model = agent_model
     capture.lead_reasoning_effort = lead_model.reasoning_effort
+    await read_the_words(
+        state,
+        deps,
+        new_message=resume_prompt is not None,
+        model_id=agent_model,
+        capture=capture,
+    )
     sub_agent_tool_calls: dict[str, str] = {}
     emit_chunk(
         writer,
@@ -381,14 +392,15 @@ async def _run_lead_turn(
         sub_agent_usage_by_call=capture.sub_agent_usage_by_call,
     )
 
-    await _drive_lead_stream(
-        state=state,
-        agent=build_agent(),
-        deps=deps,
-        capture=capture,
-        writer=writer,
-        message_id=message_id,
-    )
+    with decisions_spend_to(partial(absorb_outside_spend, capture)):
+        await _drive_lead_stream(
+            state=state,
+            agent=build_agent(),
+            deps=deps,
+            capture=capture,
+            writer=writer,
+            message_id=message_id,
+        )
 
     capture.response = final_reply(
         capture, deps.unanswered_stage, change=strategy_change(deps.state)

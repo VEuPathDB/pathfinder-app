@@ -32,6 +32,7 @@ from veupathdb_mcp.embeddings import use_embedding_session_factory
 from veupathdb_mcp.search_line import install_search_line
 from veupathdb_mcp.strategy_line import install_strategy_line
 
+from pathfinder.ai.capabilities.decisions_spend import install_decisions_transport
 from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import FINISHED_JOBS_DELETED, procrastinate_app
@@ -146,6 +147,7 @@ async def amain() -> None:
     install_catalog_prices()
     # The index shares this process's pool instead of opening a second one.
     use_embedding_session_factory(async_session_factory)
+    install_decisions_transport()
     logging.getLogger(__name__).info("Pathfinder worker starting")
     _build_the_injection_judge()
     # Turns run here, so this is the process where a declaration resolves.

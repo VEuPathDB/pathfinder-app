@@ -33,6 +33,8 @@ build.
 
 ## The model
 
+`Criterion.answers` and the paths that read it are built
+([a criterion links the requirement it answers](../decisions/a-criterion-links-the-requirement-it-answers.md)).
 A new `domain/strategy/requirements.py` holds `Requirement`, a union discriminated
 by `kind`. Every member carries `id` (minted by `ThreadRequirements`, never written
 by a model), `ref` (its number inside one classification), `source` (`stated` or
@@ -58,15 +60,9 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-3. Links (R): `Criterion.answers`. A stand-in question carries requirement
-   numbers and `_ASKS_A_STAND_IN_RE` goes (`requirement_lifecycle.stood_in_for`);
-   a delete retires the requirements whose only linking criteria it removed and
-   withdraws a combination that lost every member link (`retire_dropped_sides`,
-   `thread_requirements._stated`); `spec_fold.restated_requirement`,
-   `questions.with_withdrawals` and the gap rows (`requirement_naming`,
-   `caveats.check_gaps`) read ids.
 4. Combination typed (R): displacement by a shared member id, grounding through
-   member links (abstain with no link), `lead_consult._answer_requirement` takes a
+   member links (abstain with no link), a delete withdraws a combination that lost
+   every member link (`retire_dropped_sides`, `dropped_sides`), `lead_consult._answer_requirement` takes a
    typed combination, the FRAME floor is the member count and the allowed
    operators come from the typed field. Delete `match_terms`, `_best_match`,
    `CombinationRequest.parse` and `combination_terms_overlap`.
@@ -100,14 +96,14 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
     is regenerated from the search display name and bound labels, and a name the
     researcher wrote is never rewritten. Not R.
 15. Cleanup: delete `message_states`, `states_the_content`, `content_words`,
-    `message_states_constraint`, `record_noun`, `qualifies_a_record_noun`,
-    `requirement_naming` and `names_a_retired_requirement` with their tests; run
+    `message_states_constraint`, `record_noun` and `qualifies_a_record_noun`
+    with their tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision,
     the operator section of the strategy-answers-to-a-spec decision and the
     vocabulary convention; regenerate the shared types and update the web
     constraints section.
 
-## Open before step 3
+## Open
 
 - The typed gold set: its size and the pass threshold for typed accuracy
   (`ExpectedOutcome.requirements` on the first turn of each corpus case that

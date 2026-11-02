@@ -13,7 +13,7 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.lead_consult import consult_can_ask, consult_user
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
@@ -48,10 +48,18 @@ _PROXY = Criterion(
 )
 
 
-def test_the_leads_card_reaches_the_researcher_unchecked() -> None:
+async def test_the_leads_card_is_checked_only_for_the_numbers_it_names() -> None:
     tool = registered_tools(build_lead_agent().toolsets)["consult_user"]
+    deps = lead_deps(pipeline_state("cryptodb", user_message_id=uuid4()))
 
-    assert [tool.args_validator] == [None]
+    await consult_can_ask(
+        run_context_for(deps, "call_card"), [_WIDEN], reply="One question."
+    )
+
+    assert (tool.args_validator, deps.state.turn_markers.card_stand_ins) == (
+        consult_can_ask,
+        {"call_card": {}},
+    )
 
 
 async def test_a_picked_option_that_binds_nothing_comes_back_as_the_answer() -> None:

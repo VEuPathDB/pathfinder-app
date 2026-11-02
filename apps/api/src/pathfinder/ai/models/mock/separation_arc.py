@@ -11,7 +11,7 @@ from assistant_core.models.scripted import scripted_call
 from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE
 from pathfinder.ai.models.mock.message_words import turn_controls
 from pathfinder.ai.models.mock.reads import (
@@ -53,7 +53,6 @@ def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
     positives, negatives = turn_controls()
     report = (last_return(messages, _RUN, _Resumed) or _Resumed()).result
     head = [
-        classify("new_strategy"),
         scripted_call(
             _RUN,
             {

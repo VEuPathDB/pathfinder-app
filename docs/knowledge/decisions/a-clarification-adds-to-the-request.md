@@ -15,8 +15,8 @@ the ledger's constraint section and a fresh FRAME pass ever saw, so a
 clarification turn framed from the answer alone.
 
 - `StrategyDomainState.requirements` is the thread's list, oldest first.
-  `classify_user_intent` appends this turn's constraints through
-  `record_intent`, deduped on `(kind, requested_value)`. It is cleared only by
+  The message's reading (`ai/lead/held_intent.py::hold_the_intent`) appends this
+  turn's constraints through `record_intent`, deduped on `(kind, requested_value)`. It is cleared only by
   a `new_strategy` classification while the live graph holds no step and the
   turn has not framed, consulted or written the strategy, and by
   `clear_strategy`. Both set the whole request aside

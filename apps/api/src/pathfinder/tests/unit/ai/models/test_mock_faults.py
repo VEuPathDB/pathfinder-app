@@ -1,5 +1,5 @@
 """Each fault makes its wrong call in place of the arc's, once a turn. The arc
-makes the right call once the refusal is back, or keeps a corrected call as its own."""
+makes the right call once the refusal is back."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pydantic_ai.messages import (
 )
 
 from pathfinder.ai.models.mock import fault_calls
-from pathfinder.ai.models.mock.faults import FAULTS, made_by_a_fault
+from pathfinder.ai.models.mock.faults import FAULTS, MISREADINGS, made_by_a_fault
 from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
@@ -57,16 +57,18 @@ def _prose(call: ToolCallPart) -> str:
 
 
 def test_the_registry_names_every_fault_a_spec_injects() -> None:
-    assert sorted(FAULTS) == [
-        "all-unclear",
-        "off-vocabulary",
-        "open-value-in-prose",
-        "organism-split",
-        "repeat-control-test",
-        "short-card-reply",
-        "sweep-without-controls",
-        "unlisted-search",
-    ]
+    assert (sorted(FAULTS), sorted(MISREADINGS)) == (
+        [
+            "all-unclear",
+            "off-vocabulary",
+            "open-value-in-prose",
+            "repeat-control-test",
+            "short-card-reply",
+            "sweep-without-controls",
+            "unlisted-search",
+        ],
+        ["organism-split"],
+    )
 
 
 def test_an_unlisted_search_is_read_once_then_the_listed_one() -> None:

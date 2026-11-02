@@ -184,6 +184,16 @@ class _LeadRunCapture:
         )
 
 
+def absorb_outside_spend(
+    capture: _LeadRunCapture, tokens: int, cost: Decimal, paid_by: PaidBy
+) -> None:
+    capture.sub_agent_tokens += tokens
+    capture.sub_agent_cost += cost
+    if paid_by is PaidBy.USER:
+        capture.own_key_sub_agent_tokens += tokens
+        capture.own_key_sub_agent_cost += cost
+
+
 def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> None:
     """Add one sub-agent pass to the turn total and to its dispatch's total.
 

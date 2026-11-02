@@ -7,7 +7,7 @@ from assistant_core.models.scripted import scripted_call
 from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.reads import ToolAnswer, last_return
 
 _LIVE = "get_live_strategy_state"
@@ -45,7 +45,6 @@ def derived_count(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Read the strategy and answer with a note on a step's count and the
     result's, which the facts show."""
     return [
-        classify("follow_up_question"),
         scripted_call(_LIVE, {}),
         lead_final(_answer(last_return(messages, _LIVE, _Live)), "complete"),
     ]

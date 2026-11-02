@@ -52,6 +52,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.tests._support.scripted_reading import read_as
 from pathfinder.tests._support.site_checks import checked_site
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_model
@@ -113,11 +114,11 @@ def _deps(state: PipelineState, session: StrategySession | None = None) -> LeadD
     )
 
 
-def _classify_then_answer(classification: str) -> FunctionModel:
-    """Classify the turn, then answer on the next request."""
+def _read_then_answer() -> FunctionModel:
+    """Read the ledger, then answer on the next request."""
 
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
-        if "classify_user_intent" in called_tool_names(messages):
+        if "read_ledger_section" in called_tool_names(messages):
             return ToolCallPart(
                 tool_name="final_result",
                 args={
@@ -127,14 +128,9 @@ def _classify_then_answer(classification: str) -> FunctionModel:
                 tool_call_id="call_final",
             )
         return ToolCallPart(
-            tool_name="classify_user_intent",
-            args={
-                "intent": {
-                    "classification": classification,
-                    "inferredGoal": "write a linked list in Python",
-                },
-            },
-            tool_call_id="call_classify",
+            tool_name="read_ledger_section",
+            args={"section": "frame"},
+            tool_call_id="call_read",
         )
 
     return _thinking_model(_part)
@@ -167,7 +163,8 @@ def _thinking_model(part_for: Any) -> FunctionModel:
 def _drive(
     monkeypatch: pytest.MonkeyPatch, classification: str
 ) -> tuple[_LeadRunCapture, Collector]:
-    model = _classify_then_answer(classification)
+    read_as(monkeypatch, classification)
+    model = _read_then_answer()
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
     state = _state()
     capture = _LeadRunCapture()
@@ -189,7 +186,7 @@ def _drive(
 def test_an_off_topic_turn_ends_with_its_own_reply(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Its classification and its reply spend what any two Lead requests spend."""
+    """Its read and its reply spend what any two Lead requests spend."""
     capture, writer = _drive(monkeypatch, "off_topic")
 
     assert capture.response is not None
@@ -253,19 +250,8 @@ def _framed_state() -> PipelineState:
 
 
 def _build_then_verify(messages: list[ModelMessage]) -> ToolCallPart:
-    """Classify, build, verify; the budget ends the turn before a reply."""
+    """Build, verify; the budget ends the turn before a reply."""
     called = called_tool_names(messages)
-    if "classify_user_intent" not in called:
-        return ToolCallPart(
-            tool_name="classify_user_intent",
-            args={
-                "intent": {
-                    "classification": "extend_strategy",
-                    "inferredGoal": "genes up at 24 h",
-                },
-            },
-            tool_call_id="call_classify",
-        )
     if "build_strategy" not in called:
         return ToolCallPart(
             tool_name="build_strategy", args={}, tool_call_id="call_build"
@@ -313,8 +299,9 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
 ) -> None:
     """The turn builds one step and sees it objected to, then spends its budget."""
     monkeypatch.setattr(
-        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=3)
+        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=2)
     )
+    read_as(monkeypatch, "extend_strategy")
     lead_model = scripted_model(_build_then_verify)
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", _objecting_verifier)
@@ -353,6 +340,6 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
             STRATEGY_LINE,
             ADDED_LINE,
             f"Verification objected: 'the reference group': {OBJECTION}",
-            BUDGET.replace("80 model calls", "3 model calls"),
+            BUDGET.replace("80 model calls", "2 model calls"),
         ]
     )

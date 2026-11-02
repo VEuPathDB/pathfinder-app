@@ -24,6 +24,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import FunctionModel
 
 from pathfinder.ai.graph import _lead_model
+from pathfinder.tests._support.scripted_reading import read_as
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -44,9 +45,6 @@ ASK = "Start the kinase strategy over."
 TYPED = "Actually, keep the strategy and add a GO filter."
 DECLINED_BY_REPLY = "The researcher sent a new message instead of answering the card."
 _TIMEOUT_SECONDS = 120.0
-_CLASSIFY = {
-    "intent": {"classification": "edit_strategy", "inferredGoal": "change it"},
-}
 _WITH_THE_STACK = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
 )
@@ -94,17 +92,11 @@ def _reads(messages: list[ModelMessage]) -> list[tuple[str, Any]]:
 def _card_lead(
     tool_name: str, args: dict[str, Any], seen: list[list[tuple[str, Any]]]
 ) -> FunctionModel:
-    """Classify, raise the card, then answer."""
+    """Raise the card, then answer."""
 
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
         seen.append(_reads(messages))
         called = {c.tool_name for c in tool_calls(messages)}
-        if "classify_user_intent" not in called:
-            return ToolCallPart(
-                tool_name="classify_user_intent",
-                args=_CLASSIFY,
-                tool_call_id="call_classify",
-            )
         if tool_name not in called:
             return ToolCallPart(tool_name=tool_name, args=args, tool_call_id=CALL_ID)
         return ToolCallPart(
@@ -159,6 +151,7 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
     card: tuple[str, dict[str, Any]],
 ) -> None:
     seen: list[list[tuple[str, Any]]] = []
+    read_as(monkeypatch, "edit_strategy")
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _card_lead(*card, seen))
     conversation_id = uuid4()
     asked = await _turn(
@@ -177,13 +170,14 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
 
 
 @_WITH_THE_STACK
-async def test_a_typed_yes_runs_the_card_before_any_classification(
+async def test_a_typed_yes_runs_the_card(
     app: FastAPI,
     authed_user_id: UUID,
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen: list[list[tuple[str, Any]]] = []
+    read_as(monkeypatch, "edit_strategy")
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _card_lead(*CLEAR, seen))
     conversation_id = uuid4()
     await _turn(
@@ -219,6 +213,7 @@ async def test_a_preference_is_stored_only_after_the_researchers_yes(
 ) -> None:
     del app_memory_store
     seen: list[list[tuple[str, Any]]] = []
+    read_as(monkeypatch, "memory_request")
     monkeypatch.setattr(
         _lead_model, "get_mock_model", lambda: _card_lead(*REMEMBER, seen)
     )

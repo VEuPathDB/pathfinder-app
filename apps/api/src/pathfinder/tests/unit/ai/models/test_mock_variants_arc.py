@@ -33,7 +33,6 @@ def test_the_variants_vary_a_search_the_strategy_runs(
     [compare] = args_of(calls, "compare_search_variants")
 
     assert names(calls) == [
-        "classify_user_intent",
         "get_live_strategy_state",
         "compare_search_variants",
         "final_result",

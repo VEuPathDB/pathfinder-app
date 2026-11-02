@@ -32,7 +32,7 @@ from pathfinder.ai.agents.verification import (
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.ai.lead.intent import RefusedClassification, UserIntent
+from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.domain.strategy.constraints import (
@@ -325,8 +325,6 @@ class LeadDeps:
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
     # The counts every pass of the turn reads for other readings of a value.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
-    # The last classification the gate refused, cleared when one is accepted.
-    refused_classification: RefusedClassification | None = None
     refused_tally_columns: dict[int, set[str]] = field(default_factory=dict)
 
     @property

@@ -52,7 +52,6 @@ _RENDERED = (
     f"({gene_record_url('plasmodb', STRAIN)}) as an error."
 )
 _CALLED_FOR_A_FINDING = [
-    "classify_user_intent",
     "list_audit_runs",
     "list_audit_findings",
     "read_audit_findings",
@@ -86,11 +85,9 @@ async def test_the_lead_asks_before_an_audit_starts(
     (approval,) = of_type(asked, "tool-approval-request")
     (card,) = of_type(asked, "data-audit-start")
     assert called(asked) == [
-        "classify_user_intent",
         "plan_gene_model_audit",
         START_TOOL,
     ]
-    assert "Intent: gene_model_audit" in summaries(asked)
     assert START_LABEL in summaries(asked)
     assert card["id"] == approval["toolCallId"]
     assert card["data"]["genomes"] == [GENOME]
@@ -219,7 +216,7 @@ async def test_the_plans_request_count_is_a_fact(
         chat_post_body(owner.conversation_id, prompt),
     )
 
-    assert called(chunks) == ["classify_user_intent", "plan_gene_model_audit"]
+    assert called(chunks) == ["plan_gene_model_audit"]
     (shown,) = of_type(chunks, "data-facts")
     (plan,) = shown["data"]["reads"]
     assert (plan["title"], text(chunks)) == (

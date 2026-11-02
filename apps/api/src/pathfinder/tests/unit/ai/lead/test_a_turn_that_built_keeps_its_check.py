@@ -1,20 +1,10 @@
-"""A turn keeps the classification that did its work, and its repeats spend nothing.
-
-A repeated classification fails without a retry, a change of classification
-after the turn wrote is refused, a turn that built keeps its check, and a record
-the Lead reads again does not reach the site.
-"""
+"""A turn that built keeps its check, and a record the Lead reads again does not
+reach the site."""
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
-
 import pytest
 from pydantic_ai.messages import (
-    ModelMessage,
-    RetryPromptPart,
-    ToolCallPart,
     ToolReturnPart,
 )
 
@@ -28,11 +18,9 @@ from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary
 from pathfinder.tests.unit.ai.lead.conftest import (
-    final_result_part,
     lead_deps,
     pipeline_state,
     session_with_one_step,
-    tool_script_model,
     user_intent,
 )
 
@@ -44,66 +32,6 @@ _POLAR_TUBE_T5 = (
 )
 
 pytestmark = pytest.mark.usefixtures("recorded_site_organisms")
-
-
-def _classify_args(classification: IntentClassification, goal: str) -> dict[str, Any]:
-    return {
-        "intent": {"classification": classification.value, "inferredGoal": goal},
-    }
-
-
-def test_four_repeated_classifications_leave_the_turn_its_answer() -> None:
-    """The fifth call of one classification still ends on the Lead's reply."""
-    classify = IntentClassification.FOLLOW_UP_QUESTION
-
-    def _part(messages: list[ModelMessage]) -> ToolCallPart:
-        if len(messages) > 10:
-            return final_result_part(
-                {
-                    "prose": "The phrase matches the one gene shown.",
-                    "nextState": "complete",
-                }
-            )
-        return ToolCallPart(
-            tool_name="classify_user_intent",
-            args=_classify_args(
-                classify, f"the genes the phrase matches ({len(messages)})"
-            ),
-            tool_call_id=f"call_classify_{len(messages)}",
-        )
-
-    state = pipeline_state("microsporidiadb", user_prompt=_POLAR_TUBE_T5)
-    result = asyncio.run(
-        build_lead_agent().run(
-            _POLAR_TUBE_T5,
-            deps=lead_deps(state),
-            model=tool_script_model(_part),
-        )
-    )
-
-    assert isinstance(result.output, LeadResponse)
-    assert result.output.prose == "The phrase matches the one gene shown."
-
-
-async def test_the_reclassified_arc_on_the_real_lead_ends_on_its_answer() -> None:
-    """Five classifications on the mock model each stand, and the turn answers."""
-    prompt = f"{_POLAR_TUBE_T5} [[arc:reclassified]]"
-    bind_scripted_scope("microsporidiadb", prompt)
-    state = pipeline_state("microsporidiadb", user_prompt=prompt)
-
-    result = await build_lead_agent().run(
-        prompt, deps=lead_deps(state), model=get_mock_model()
-    )
-
-    answers = [
-        part.outcome if isinstance(part, ToolReturnPart) else "retry"
-        for message in result.all_messages()
-        for part in message.parts
-        if isinstance(part, ToolReturnPart | RetryPromptPart)
-        and part.tool_name == "classify_user_intent"
-    ]
-    assert isinstance(result.output, LeadResponse)
-    assert answers == ["success"] * 5
 
 
 def test_a_turn_that_built_keeps_its_check_under_a_question_classification() -> None:

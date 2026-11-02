@@ -151,7 +151,7 @@ def test_a_failed_tool_part_with_provider_metadata_is_accepted() -> None:
                     "role": "assistant",
                     "parts": [
                         {
-                            "type": "tool-classify_user_intent",
+                            "type": "tool-frame_problem",
                             "toolCallId": "c1",
                             "state": "output-error",
                             "errorText": "differential_sides caps at 2",

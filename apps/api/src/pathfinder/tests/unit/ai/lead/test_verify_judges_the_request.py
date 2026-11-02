@@ -17,13 +17,12 @@ from pathfinder.ai.agents.verification import (
 )
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import sub_agent_tools
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.tests._support.instructions import pinned_instructions
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     final_result_part,
@@ -86,12 +85,13 @@ def _push_name(ctx: RunContext[AgentDeps]) -> str:
 
 async def _classified(prompt: str) -> LeadDeps:
     deps = lead_deps(pipeline_state(user_prompt=prompt))
-    await classify_user_intent(
-        run_context_for(deps, tool_call_id="call_classify"),
+    await hold_the_intent(
+        deps,
         UserIntent(
             classification=IntentClassification.NEW_STRATEGY,
             inferred_goal=_PARAPHRASE,
         ),
+        deps.state.user_prompt,
     )
     return deps
 

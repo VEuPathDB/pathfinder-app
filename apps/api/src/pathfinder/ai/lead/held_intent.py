@@ -1,5 +1,5 @@
-"""The refusals the classification gate holds an intent to, read from the turn
-and from the site's organisms and genes."""
+"""The intent a reading of the researcher's words yields, held to the turn, the
+site's organisms and genes, and the requirements the thread recorded."""
 
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ from veupathdb_mcp.gene_lookup import (
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import ReadRecord
 from pathfinder.ai.lead.intent import (
+    ANSWERING_INTENTS,
     IntentClassification,
+    NamedControls,
     UserIntent,
-    nothing_to_answer_message,
-    question_asks_a_change_message,
-    question_withdraws_message,
-    unstated_ids_message,
     untyped_ids,
 )
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.organism_phrases import complete_organisms
 from pathfinder.services.gene_records.read import gene_record_url
 
 
@@ -46,11 +46,11 @@ def _carries_a_file(state: PipelineState) -> bool:
     return any(part.type == "file" for part in state.user_parts)
 
 
-def _ids_to_resolve(state: PipelineState, intent: UserIntent) -> list[str]:
+def _ids_to_resolve(state: PipelineState, intent: UserIntent, said: str) -> list[str]:
     """The ids whose standing on the site decides a refusal of this intent."""
     if not _carries_a_file(state):
         return []
-    return list(dict.fromkeys(untyped_ids(intent, state.user_prompt)))
+    return list(dict.fromkeys(untyped_ids(intent, said)))
 
 
 async def _readings(site_id: str, asked: list[str]) -> list[GeneIdReading] | None:
@@ -73,7 +73,9 @@ def _found(readings: list[GeneIdReading]) -> list[GeneIdFound]:
     return found
 
 
-async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading:
+async def read_the_site(
+    state: PipelineState, intent: UserIntent, said: str
+) -> SiteReading:
     """The organisms and genes of the site this intent is held to.
 
     Each gene the site resolves is a record this turn read.
@@ -81,7 +83,7 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
     organisms = (
         await list_organisms(state.site_id) if intent.explicit_constraints else []
     )
-    asked = _ids_to_resolve(state, intent)
+    asked = _ids_to_resolve(state, intent, said)
     readings = await _readings(state.site_id, asked)
     found = [] if readings is None else _found(readings)
     state.turn_markers.record_resolved_genes(
@@ -104,7 +106,7 @@ async def read_the_site(state: PipelineState, intent: UserIntent) -> SiteReading
 
 
 def _unheld_ids(
-    state: PipelineState, intent: UserIntent, site: SiteReading
+    state: PipelineState, intent: UserIntent, site: SiteReading, said: str
 ) -> list[str]:
     """The named ids neither the text types, the records the conversation
     showed last nor an attached file can show.
@@ -114,7 +116,7 @@ def _unheld_ids(
     shown = {record.record_id.casefold() for record in state.domain.shown_records}
     untyped = [
         gene_id
-        for gene_id in untyped_ids(intent, state.user_prompt)
+        for gene_id in untyped_ids(intent, said)
         if gene_id.casefold() not in shown
     ]
     if not _carries_a_file(state):
@@ -122,28 +124,46 @@ def _unheld_ids(
     return [gene_id for gene_id in untyped if not site.holds(gene_id)]
 
 
-def _answers_nothing(state: PipelineState, intent: UserIntent) -> bool:
-    """Whether the intent answers a question on a turn that holds none."""
-    return (
-        intent.classification is IntentClassification.CLARIFICATION_RESPONSE
-        and not state.turn_markers.questions_at_arrival
-        and state.pending_approval is None
+def _without(intent: UserIntent, unheld: set[str]) -> UserIntent:
+    if not unheld:
+        return intent
+    named = intent.named_controls
+    controls = (
+        None
+        if named is None
+        else NamedControls(
+            positive_ids=[g for g in named.positive_ids if g not in unheld],
+            negative_ids=[g for g in named.negative_ids if g not in unheld],
+        )
+    )
+    return intent.model_copy(
+        update={
+            "named_controls": controls,
+            "named_gene_ids": [g for g in intent.named_gene_ids if g not in unheld],
+        }
     )
 
 
-def classification_refusal(
-    state: PipelineState, intent: UserIntent, site: SiteReading
-) -> str | None:
-    """Why this intent does not describe the turn's message, or None."""
-    if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
-        intent.asks_a_change
-    ):
-        return question_asks_a_change_message()
-    if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
-        intent.withdrawn
-    ):
-        return question_withdraws_message([c.requested_value for c in intent.withdrawn])
-    if _answers_nothing(state, intent):
-        return nothing_to_answer_message()
-    unheld = _unheld_ids(state, intent, site)
-    return unstated_ids_message(unheld) if unheld else None
+async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> UserIntent:
+    state = deps.state
+    markers = state.turn_markers
+    site = await read_the_site(state, intent, said)
+    if intent.explicit_constraints:
+        constraints = complete_organisms(
+            intent.explicit_constraints, said, site.organisms
+        )
+        intent = intent.model_copy(update={"explicit_constraints": constraints})
+    intent = _without(intent, set(_unheld_ids(state, intent, site, said)))
+    intent = state.domain.withdrawn_as_recorded(intent)
+    deps.intent = intent
+    markers.intent_classified = True
+    worked = markers.framed or markers.consulted or markers.changed_strategy
+    if not worked and intent.classification is IntentClassification.NEW_STRATEGY:
+        state.domain.take_a_new_request(strategy_has_steps=deps.step_count > 0)
+    state.domain.record_intent(intent, request_text=said)
+    if intent.classification in ANSWERING_INTENTS:
+        state.domain.answer_the_questions_at_arrival(said)
+    return intent
+
+
+__all__ = ["SiteReading", "hold_the_intent", "read_the_site"]
