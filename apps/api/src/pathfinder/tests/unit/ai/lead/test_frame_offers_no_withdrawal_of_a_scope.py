@@ -89,8 +89,8 @@ async def test_the_card_asks_about_the_gpi_anchor_and_not_the_organism(
     [asked] = deps.state.domain.open_questions
     assert asked.question == _SUBSTITUTE.question
     assert [(o.label, o.binding) for o in asked.options] == [
-        ("Drop predicted GPI anchor", Withdraw(constraint_id=_GPI.key)),
-        ("Keep predicted GPI anchor", Keep(constraint_id=_GPI.key)),
+        ("Drop predicted GPI anchor", Withdraw(constraint_id=_GPI.id)),
+        ("Keep predicted GPI anchor", Keep(constraint_id=_GPI.id)),
     ]
     assert [q.prompt for q in result.card_questions] == [_SUBSTITUTE.question]
 

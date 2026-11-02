@@ -72,13 +72,14 @@ async def test_a_second_card_answer_is_classified_with_its_stated_parts() -> Non
     await classify_user_intent(run_context_for(deps, "call_classify_2"), answer)
 
     assert deps.intent is not None
-    assert [c.key for c in deps.intent.explicit_constraints] == [
-        "other:GPI anchored",
-        "other:variant surface glycoprotein",
+    assert [c.requested_value for c in deps.intent.explicit_constraints] == [
+        "GPI anchored",
+        "variant surface glycoprotein",
     ]
     assert [
-        (c.key, c.source.value) for c in deps.state.turn_markers.requirements_added
+        (c.requested_value, c.source.value)
+        for c in deps.state.turn_markers.requirements_added
     ] == [
-        ("other:GPI anchored", "user_explicit"),
-        ("other:variant surface glycoprotein", "user_explicit"),
+        ("GPI anchored", "user_explicit"),
+        ("variant surface glycoprotein", "user_explicit"),
     ]

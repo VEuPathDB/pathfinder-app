@@ -141,6 +141,9 @@ def _floor_question() -> OpenQuestion:
     ).typed(_trophozoite(), noun="gene")
 
 
+_TROPHOZOITES = requirement(ConstraintKind.OTHER, "expression", "trophozoites")
+
+
 def _deps(*questions: OpenQuestion) -> LeadDeps:
     state = pipeline_state(
         "amoebadb",
@@ -149,9 +152,7 @@ def _deps(*questions: OpenQuestion) -> LeadDeps:
         domain=StrategyDomainState(
             operational_spec=_spec(),
             open_questions=list(questions),
-            requirements=[
-                requirement(ConstraintKind.OTHER, "expression", "trophozoites")
-            ],
+            requirements=[_TROPHOZOITES],
         ),
     )
     return lead_deps(state)
@@ -305,12 +306,12 @@ class TestAnAnswerAppliesItsBinding:
                 TypedOption(
                     id="drop-it",
                     label="Drop the trophozoite requirement",
-                    binding=Withdraw(constraint_id="other:trophozoites"),
+                    binding=Withdraw(constraint_id=_TROPHOZOITES.id),
                 ),
                 TypedOption(
                     id="keep-it",
                     label="Keep the trophozoite requirement",
-                    binding=Keep(constraint_id="other:trophozoites"),
+                    binding=Keep(constraint_id=_TROPHOZOITES.id),
                 ),
             ],
         )
@@ -328,7 +329,7 @@ class TestAnAnswerAppliesItsBinding:
         assert [
             r.lifecycle
             for r in domain.retired_requirements
-            if r.constraint.key == "other:trophozoites"
+            if r.constraint.id == _TROPHOZOITES.id
         ] == [WithdrawnLifecycle(turn_id=str(deps.state.user_message_id))]
 
 

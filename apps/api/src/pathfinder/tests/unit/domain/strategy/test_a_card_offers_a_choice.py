@@ -129,8 +129,8 @@ def test_a_requirement_no_question_asks_is_offered_to_drop_or_keep() -> None:
     [asked] = with_withdrawals([], [_FOLD])
 
     assert [(o.label, o.binding) for o in asked.options] == [
-        ("Drop 1.5-fold", Withdraw(constraint_id="fold_change:1.5-fold")),
-        ("Keep 1.5-fold", Keep(constraint_id="fold_change:1.5-fold")),
+        ("Drop 1.5-fold", Withdraw(constraint_id=_FOLD.id)),
+        ("Keep 1.5-fold", Keep(constraint_id=_FOLD.id)),
     ]
 
 
@@ -142,7 +142,7 @@ def test_a_question_whose_only_option_withdraws_is_refused() -> None:
                 TypedOption(
                     id="drop",
                     label="Drop 1.5-fold",
-                    binding=Withdraw(constraint_id=_FOLD.key),
+                    binding=Withdraw(constraint_id=_FOLD.id),
                 )
             ],
         )

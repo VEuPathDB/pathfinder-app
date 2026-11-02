@@ -42,7 +42,7 @@ def record_roles(
 ) -> dict[str, RecordRole]:
     numbered = numbered_requirements(requirements)
     return {
-        held.key: role.role
+        held.id: role.role
         for role in stated
         if (held := numbered.get(role.requirement)) is not None
         and held.kind is ConstraintKind.RECORD_TYPE
@@ -195,7 +195,7 @@ def record_types_without_a_role(
         for number, c in numbered_requirements(requirements).items()
         if c.kind is ConstraintKind.RECORD_TYPE
         and number not in roled
-        and c.key not in held
+        and c.id not in held
     }
 
 

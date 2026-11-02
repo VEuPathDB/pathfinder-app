@@ -59,13 +59,19 @@ _V2_TEST = ControlTestEvidence(
 _V2_CAVEAT = ControlsCaveat(
     positives_returned=52, positives_total=80, negatives_returned=2, negatives_total=40
 )
+_TM = Constraint(
+    kind=ConstraintKind.OTHER,
+    label="transmembrane domains",
+    requested_value="at least 2 transmembrane domains",
+    source=ConstraintSource.USER_EXPLICIT,
+)
 _UNMET = SiteCheckGap(
     check=SiteCheck(
         kind=ConstraintKind.OTHER,
         subject="at least 2 transmembrane domains",
         status="fail",
         evidence="the strategy states tm_count = 1",
-        requirement="other:at least 2 transmembrane domains",
+        requirement=_TM.id,
     )
 )
 
@@ -126,15 +132,7 @@ def test_a_reply_that_names_the_gap_in_words_stands() -> None:
 def test_a_gap_a_requirement_the_researcher_withdrew_names_is_no_gap() -> None:
     deps = _checked(gaps=[_UNMET])
     deps.state.domain.retired_requirements = [
-        RetiredRequirement(
-            constraint=Constraint(
-                kind=ConstraintKind.OTHER,
-                label="transmembrane domains",
-                requested_value="at least 2 transmembrane domains",
-                source=ConstraintSource.USER_EXPLICIT,
-            ),
-            lifecycle=WithdrawnLifecycle(turn_id="t2"),
-        )
+        RetiredRequirement(constraint=_TM, lifecycle=WithdrawnLifecycle(turn_id="t2"))
     ]
     facts = turn_facts(deps)
 
@@ -248,7 +246,7 @@ _FOLD = SiteCheck(
     subject="1.5-fold",
     status="fail",
     evidence="1.5-fold, built 2.82843-fold (log2 1.5)",
-    requirement="fold_change:1.5-fold",
+    requirement="r-fold",
 )
 _FOLD_SENTENCE = "'1.5-fold': 1.5-fold, built 2.82843-fold (log2 1.5)"
 

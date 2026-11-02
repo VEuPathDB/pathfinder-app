@@ -41,7 +41,7 @@ def test_a_new_combination_retires_the_one_it_displaces() -> None:
 
     assert recorded.live == [_ORGANISM, _AND]
     assert recorded.displaced == [
-        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.key))
+        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.id))
     ]
 
 
@@ -64,7 +64,7 @@ def test_a_new_value_of_a_held_single_valued_kind_replaces_it() -> None:
         [_PF3D7],
         [
             RetiredRequirement(
-                constraint=_PLASMODIUM, lifecycle=ReplacedLifecycle(by=_PF3D7.key)
+                constraint=_PLASMODIUM, lifecycle=ReplacedLifecycle(by=_PF3D7.id)
             )
         ],
     )
@@ -102,9 +102,9 @@ def test_the_thread_keeps_the_displaced_combination_retired() -> None:
         request_text="make it AND instead of OR",
     )
 
-    assert [c.key for c in domain.requirements] == [_ORGANISM.key, _AND.key]
+    assert [c.id for c in domain.requirements] == [_ORGANISM.id, _AND.id]
     assert domain.retired_requirements == [
-        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.key))
+        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.id))
     ]
 
 
@@ -150,7 +150,7 @@ def test_a_stated_value_displaces_an_assumed_one() -> None:
         [
             RetiredRequirement(
                 constraint=_ASSUMED_ORGANISM,
-                lifecycle=ReplacedLifecycle(by=_ORGANISM.key),
+                lifecycle=ReplacedLifecycle(by=_ORGANISM.id),
             )
         ],
     )

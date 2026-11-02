@@ -41,6 +41,7 @@ _PF = "Plasmodium falciparum 3D7"
 _PF_IT = "Plasmodium falciparum IT"
 _EXPORTED = 441126163
 _EXPORTED_STRATEGY = 330125410
+_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", _PF)
 
 
 def _exported_deps() -> LeadDeps:
@@ -83,7 +84,7 @@ def _exported_deps() -> LeadDeps:
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="c_text")),
     )
-    state.domain.requirements = [requirement(ConstraintKind.ORGANISM, "organism", _PF)]
+    state.domain.requirements = [_ORGANISM]
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["c_text"], wdk_strategy_id=_EXPORTED_STRATEGY
     )
@@ -151,7 +152,7 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
             f"21 of the 4,200 records of step {_EXPORTED} ('Text') hold organisms the "
             f"strategy does not select: {_PF_IT} (21)"
         ),
-        requirement=f"organism:{_PF}",
+        requirement=_ORGANISM.id,
     )
     assert server.counted == [("plasmodb", _EXPORTED, "organism", 200)]
     assert (delta.digest.success, delta.digest.gaps) == (

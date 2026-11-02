@@ -6,7 +6,7 @@ from pathfinder.domain.caveats import Gap
 from pathfinder.domain.site_checks import SiteCheckGap
 
 
-def unmet_requirement_keys(gaps: Sequence[Gap]) -> list[str]:
+def unmet_requirement_ids(gaps: Sequence[Gap]) -> list[str]:
     unmet: list[str] = []
     for gap in gaps:
         match gap:
@@ -15,4 +15,4 @@ def unmet_requirement_keys(gaps: Sequence[Gap]) -> list[str]:
     return unmet
 
 
-__all__ = ["unmet_requirement_keys"]
+__all__ = ["unmet_requirement_ids"]

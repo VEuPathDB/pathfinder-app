@@ -12,6 +12,7 @@ from pathfinder.ai.lead.intent import (
 )
 from pathfinder.domain.researcher_asks import ResearcherAsk
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.tests._support.requirement_values import without_ids
 
 
 def test_user_intent_default_non_differential() -> None:
@@ -85,7 +86,9 @@ def test_the_sides_of_a_comparison_are_no_constraints() -> None:
         ],
     )
 
-    assert intent.explicit_constraints == [_organism("Enterocytozoon bieneusi H348")]
+    assert without_ids(intent.explicit_constraints) == without_ids(
+        [_organism("Enterocytozoon bieneusi H348")]
+    )
 
 
 def test_a_compared_strain_is_no_organism_requirement() -> None:
@@ -112,7 +115,9 @@ def test_a_constraint_of_a_request_that_compares_nothing_stays() -> None:
         explicit_constraints=[_organism("Enterocytozoon bieneusi H348")],
     )
 
-    assert intent.explicit_constraints == [_organism("Enterocytozoon bieneusi H348")]
+    assert without_ids(intent.explicit_constraints) == without_ids(
+        [_organism("Enterocytozoon bieneusi H348")]
+    )
 
 
 def test_a_constraint_both_sides_share_stays() -> None:
@@ -127,7 +132,9 @@ def test_a_constraint_both_sides_share_stays() -> None:
         explicit_constraints=[_organism("Plasmodium falciparum 3D7")],
     )
 
-    assert intent.explicit_constraints == [_organism("Plasmodium falciparum 3D7")]
+    assert without_ids(intent.explicit_constraints) == without_ids(
+        [_organism("Plasmodium falciparum 3D7")]
+    )
 
 
 def _other(value: str) -> Constraint:
@@ -147,10 +154,12 @@ def test_an_edit_keeps_the_value_it_swaps_in() -> None:
         ],
     )
 
-    assert intent.explicit_constraints == [
-        _organism("Mus musculus C57BL/6J"),
-        _other("chromosome 19"),
-    ]
+    assert without_ids(intent.explicit_constraints) == without_ids(
+        [
+            _organism("Mus musculus C57BL/6J"),
+            _other("chromosome 19"),
+        ]
+    )
 
 
 def test_a_differential_expression_request_keeps_its_comparator() -> None:
@@ -168,10 +177,12 @@ def test_a_differential_expression_request_keeps_its_comparator() -> None:
         explicit_constraints=[_organism("Cryptococcus neoformans H99"), comparator],
     )
 
-    assert intent.explicit_constraints == [
-        _organism("Cryptococcus neoformans H99"),
-        comparator,
-    ]
+    assert without_ids(intent.explicit_constraints) == without_ids(
+        [
+            _organism("Cryptococcus neoformans H99"),
+            comparator,
+        ]
+    )
 
 
 def test_the_intent_names_no_strategy_id() -> None:

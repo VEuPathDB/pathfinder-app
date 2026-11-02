@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.spec_fold import (
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.requirement_values import without_ids
 
 PEST = "Anopheles gambiae PEST"
 PF = "Plasmodium falciparum 3D7"
@@ -196,7 +197,11 @@ def test_a_binding_that_matches_its_organism_universe_holds_the_request_open() -
 
     assert folded.structure.root == _leaf("c_signal")
     assert [(d.criterion_id, d.met) for d in folded.dropped] == [("c_isolates", False)]
-    assert folded.dropped[0].requirement == _stated("do not vary much between isolates")
+    held = folded.dropped[0].requirement
+    assert held is not None
+    assert without_ids([held]) == without_ids(
+        [_stated("do not vary much between isolates")]
+    )
     assert folded.dropped[0].fate == (
         f"c_isolates ('do not vary much between isolates') is dropped: it matches "
         f"all 5,720 genes of {PF}, which c_signal already runs on, so it narrows "

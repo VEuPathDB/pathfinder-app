@@ -178,7 +178,7 @@ def _retired(
     retired: RetiredRequirement, words: Mapping[str, str]
 ) -> list[RetiredFact]:
     """The rows of the retired requirement, and the one that replaced it, in
-    the words the researcher stated each in; ``words`` holds them by key."""
+    the words the researcher stated each in; ``words`` holds them by id."""
     lifecycle = retired.lifecycle
     return [
         RetiredFact(
@@ -186,7 +186,7 @@ def _retired(
             state=lifecycle.state,
             replaced_by=""
             if lifecycle.state == "withdrawn"
-            else words.get(lifecycle.by, lifecycle.by),
+            else words.get(lifecycle.by, ""),
         )
         for shown in retired.shown_requirements()
     ]
@@ -194,7 +194,7 @@ def _retired(
 
 def _retired_rows(domain: StrategyDomainState) -> list[RetiredFact]:
     words = {
-        c.key: c.requested_value
+        c.id: c.requested_value
         for c in [
             *domain.requirements,
             *(r.constraint for r in domain.retired_requirements),
@@ -211,7 +211,7 @@ def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:
     markers = deps.state.turn_markers
     verdict = deps.state.turn_verdict
     held = [] if verdict is None else verdict.gaps
-    retired = {r.constraint.key for r in deps.state.domain.retired_requirements}
+    retired = {r.constraint.id for r in deps.state.domain.retired_requirements}
     words = [
         *(gap.word for gap in held if isinstance(gap, WordGap)),
         *(

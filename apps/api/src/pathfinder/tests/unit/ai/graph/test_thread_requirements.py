@@ -140,7 +140,7 @@ def test_a_narrower_organism_replaces_the_held_one_and_keeps_the_constraint() ->
 
     assert (thread.requirements, thread.retired_requirements[0].lifecycle) == (
         [_TM, _ORGANISM],
-        ReplacedLifecycle(by=_ORGANISM.key),
+        ReplacedLifecycle(by=_ORGANISM.id),
     )
 
 
@@ -170,7 +170,7 @@ def test_a_withdrawn_value_the_message_restates_is_replaced_by_it() -> None:
 
     assert (thread.requirements, thread.retired_requirements[0].lifecycle) == (
         [chromosome_19],
-        ReplacedLifecycle(by=chromosome_19.key),
+        ReplacedLifecycle(by=chromosome_19.id),
     )
 
 
@@ -223,9 +223,9 @@ def test_an_include_verb_records_the_or_as_the_researchers() -> None:
         _intent(explicit_constraints=[either]),
     )
 
-    assert [(c.key, c.source) for c in thread.requirements] == [
-        (_KINASES.key, ConstraintSource.USER_EXPLICIT),
-        (either.key, ConstraintSource.USER_EXPLICIT),
+    assert [(c.id, c.source) for c in thread.requirements] == [
+        (_KINASES.id, ConstraintSource.USER_EXPLICIT),
+        (either.id, ConstraintSource.USER_EXPLICIT),
     ]
 
 

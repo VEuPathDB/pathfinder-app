@@ -39,7 +39,7 @@ def _thread(held: list[Constraint]) -> ThreadRequirements:
 
 
 def _retired(thread: ThreadRequirements) -> list[tuple[str, object]]:
-    return [(r.constraint.key, r.lifecycle) for r in thread.retired_requirements]
+    return [(r.constraint.id, r.lifecycle) for r in thread.retired_requirements]
 
 
 _ORGANISM, _OTHER, _COMBINATION = (
@@ -82,9 +82,9 @@ def test_a_narrowed_organism_replaces_the_genus_and_keeps_the_go_term() -> None:
         [_NARROWED, _HEMOGLOBIN_ASKED],
     )
 
-    assert ([c.key for c in thread.requirements], _retired(thread)) == (
-        [_HEMOGLOBIN.key, _PF3D7.key],
-        [(_GENUS.key, ReplacedLifecycle(by=_PF3D7.key))],
+    assert ([c.id for c in thread.requirements], _retired(thread)) == (
+        [_HEMOGLOBIN.id, _PF3D7.id],
+        [(_GENUS.id, ReplacedLifecycle(by=_PF3D7.id))],
     )
 
 
@@ -116,9 +116,9 @@ def _dropped(withdrawn_value: str) -> ThreadRequirements:
 def test_dropping_the_transmembrane_part_withdraws_it_and_replaces_nothing() -> None:
     thread = _dropped("a transmembrane domain")
 
-    assert ([c.key for c in thread.requirements], _retired(thread)) == (
-        [_PF3D7.key, _APICOPLAST.key],
-        [(_TM.key, WithdrawnLifecycle(turn_id=str(thread.turn_markers.message_id)))],
+    assert ([c.id for c in thread.requirements], _retired(thread)) == (
+        [_PF3D7.id, _APICOPLAST.id],
+        [(_TM.id, WithdrawnLifecycle(turn_id=str(thread.turn_markers.message_id)))],
     )
 
 
@@ -126,7 +126,7 @@ def test_a_withdrawal_names_the_held_value_without_its_article() -> None:
     """A statement that carries every content word of a held value names it."""
     thread = _dropped("transmembrane domain requirement")
 
-    assert [c.key for c in thread.requirements] == [_PF3D7.key, _APICOPLAST.key]
+    assert [c.id for c in thread.requirements] == [_PF3D7.id, _APICOPLAST.id]
 
 
 # tritrypdb: a zinc finger domain expressed in amastigotes, then promastigotes.
@@ -152,9 +152,9 @@ def test_a_changed_stage_replaces_the_stage_and_leaves_the_domain() -> None:
         [_STAGE_SWAP],
     )
 
-    assert ([c.key for c in thread.requirements], _retired(thread)) == (
-        [_JPCM5.key, _ZINC.key, _PROMASTIGOTES.key],
-        [(_AMASTIGOTES.key, ReplacedLifecycle(by=_PROMASTIGOTES.key))],
+    assert ([c.id for c in thread.requirements], _retired(thread)) == (
+        [_JPCM5.id, _ZINC.id, _PROMASTIGOTES.id],
+        [(_AMASTIGOTES.id, ReplacedLifecycle(by=_PROMASTIGOTES.id))],
     )
 
 
@@ -185,8 +185,8 @@ def test_two_other_values_stated_together_both_stand() -> None:
         [_BOTH_ASKED],
     )
 
-    assert ([c.key for c in thread.requirements], thread.retired_requirements) == (
-        [_G3.key, _LRR.key, _TMD.key, _BOTH.key],
+    assert ([c.id for c in thread.requirements], thread.retired_requirements) == (
+        [_G3.id, _LRR.id, _TMD.id, _BOTH.id],
         [],
     )
 
@@ -203,16 +203,16 @@ def test_or_instead_of_and_replaces_the_combination_and_keeps_both_terms() -> No
     )
 
     assert (
-        [(c.key, c.source) for c in thread.requirements],
+        [(c.id, c.source) for c in thread.requirements],
         _retired(thread),
     ) == (
         [
-            (_G3.key, ConstraintSource.USER_EXPLICIT),
-            (_LRR.key, ConstraintSource.USER_EXPLICIT),
-            (_TMD.key, ConstraintSource.USER_EXPLICIT),
-            (_EITHER.key, ConstraintSource.USER_EXPLICIT),
+            (_G3.id, ConstraintSource.USER_EXPLICIT),
+            (_LRR.id, ConstraintSource.USER_EXPLICIT),
+            (_TMD.id, ConstraintSource.USER_EXPLICIT),
+            (_EITHER.id, ConstraintSource.USER_EXPLICIT),
         ],
-        [(_BOTH.key, ReplacedLifecycle(by=_EITHER.key))],
+        [(_BOTH.id, ReplacedLifecycle(by=_EITHER.id))],
     )
 
 

@@ -47,18 +47,17 @@ def requirements_no_search_states(
     """The held requirements the researcher stated that no search of the spec
     states: each one the ledger lists as ungroundable, and each one the pass
     reports the site lacks that is no scope every search runs in."""
-    held = {c.key for c in deps.state.domain.requirements}
-    reported = {c.key for c in lacking}
+    held = {c.id for c in deps.state.domain.requirements}
+    reported = {c.id for c in lacking}
     return [
         g.constraint
         for g in derive_ledger(deps.state, deps.intent).constraints.grounded
         if g.constraint.source is ConstraintSource.USER_EXPLICIT
-        and g.constraint.key in held
+        and g.constraint.id in held
         and (
             g.status is ConstraintStatus.UNGROUNDABLE
             or (
-                g.constraint.kind not in STRATEGY_SCOPES
-                and g.constraint.key in reported
+                g.constraint.kind not in STRATEGY_SCOPES and g.constraint.id in reported
             )
         )
     ]
@@ -83,9 +82,9 @@ def questions_for_the_card(
             result.requirement_problems, domain.requirements
         )
     ]
-    kept = {requirement.key for requirement, _ in refused}
+    kept = {requirement.id for requirement, _ in refused}
     unstated = [
-        c for c in requirements_no_search_states(deps, lacking) if c.key not in kept
+        c for c in requirements_no_search_states(deps, lacking) if c.id not in kept
     ]
     return unanswered_questions(
         with_save_offers(

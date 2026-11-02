@@ -192,21 +192,17 @@ def _combined_spec(operator: CombineOp) -> OperationalSpec:
 
 
 class TestTheCombinationCheck:
-    def _checked(self, operator: CombineOp) -> tuple[str, str]:
-        [grounded] = ground_against_spec(
-            [_combination_requirement()], _combined_spec(operator)
-        )
+    def _checked(self, operator: CombineOp) -> tuple[str, bool]:
+        stated = _combination_requirement()
+        [grounded] = ground_against_spec([stated], _combined_spec(operator))
         check = grounded_check(grounded)
-        return check.status, check.requirement
+        return check.status, check.requirement == stated.id
 
     def test_an_intersected_or_fails(self) -> None:
-        assert self._checked(CombineOp.INTERSECT) == (
-            "fail",
-            f"combination:{_COMBINATION}",
-        )
+        assert self._checked(CombineOp.INTERSECT) == ("fail", True)
 
     def test_a_unioned_or_passes(self) -> None:
-        assert self._checked(CombineOp.UNION) == ("pass", f"combination:{_COMBINATION}")
+        assert self._checked(CombineOp.UNION) == ("pass", True)
 
 
 class TestTheSummaryCarriesEveryDropReason:

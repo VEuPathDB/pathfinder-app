@@ -1,4 +1,4 @@
-"""Each requirement the Lead reads names the key a proposal card answers it by."""
+"""Each requirement the Lead reads names the id a card question asks it by."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ _VSG = Constraint(
 )
 
 
-def test_a_stated_requirement_names_its_key() -> None:
+def test_a_stated_requirement_names_its_id() -> None:
     section = ConstraintSection(
         grounded=[
             GroundedConstraint(constraint=_VSG, status=ConstraintStatus.PROVISIONAL)
@@ -29,6 +29,6 @@ def test_a_stated_requirement_names_its_key() -> None:
     assert section.render_stated() == [
         (
             "- VSG products (other): 'variant surface glycoprotein' -> provisional; "
-            "key other:variant surface glycoprotein"
+            f"id {_VSG.id}"
         )
     ]

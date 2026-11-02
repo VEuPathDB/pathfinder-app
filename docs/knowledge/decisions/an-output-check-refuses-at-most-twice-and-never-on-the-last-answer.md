@@ -11,9 +11,9 @@ status: stable
 # What was decided
 
 **A refusal asks only for a change the model can make.** A check runs only when
-its condition can be met. A requirement key is refused as unknown only while the
-requirement list holds keys, and a question with readings is asked for keys only
-then. A report that the site refused a search is checked against the refusals
+its condition can be met. A requirement number is refused as unknown only while the
+requirement list holds requirements, and a question with readings is asked for
+numbers only then. A report that the site refused a search is checked against the refusals
 only when the pass saw one. Each refusal names the field and the change in one
 sentence.
 

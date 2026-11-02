@@ -198,14 +198,10 @@ def test_a_record_type_with_no_role_is_compared_with_the_root(
 def test_proteins_asked_as_the_answer_fail_on_a_root_one_transform_short(
     class_names: Mapping[str, Collection[str]],
 ) -> None:
-    check = _held(
-        _record_type_requirement("protein", "record type"),
-        _groups_without_mammals(),
-        class_names,
-        "answer",
-    )
+    stated = _record_type_requirement("protein", "record type")
+    check = _held(stated, _groups_without_mammals(), class_names, "answer")
 
-    assert (check.status, check.requirement) == ("fail", "record_type:protein")
+    assert (check.status, check.requirement) == ("fail", stated.id)
 
 
 def test_a_class_passed_through_only_outside_the_tree_fails(

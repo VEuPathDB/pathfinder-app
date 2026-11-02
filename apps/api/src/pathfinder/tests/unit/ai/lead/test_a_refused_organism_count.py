@@ -30,6 +30,7 @@ from pathfinder.tests.unit.ai.lead._site_verdict import (
 )
 from pathfinder.tests.unit.ai.lead.test_a_second_organism_fails_the_verdict import (
     _EXPORTED,
+    _ORGANISM,
     _exported_deps,
     _exported_details,
 )
@@ -185,7 +186,7 @@ async def test_a_small_result_is_counted_by_gene_from_its_records_alone(
             f"2 of the {_GENES} records of step {_EXPORTED} ('Text') hold organisms "
             f"the strategy does not select: {_PF_IT} (2)"
         ),
-        requirement=f"organism:{_PF}",
+        requirement=_ORGANISM.id,
     )
     assert (digest.success, digest.not_checked) == (False, False)
 

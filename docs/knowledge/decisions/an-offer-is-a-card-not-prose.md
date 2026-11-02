@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An offer is a card, not prose
-description: The Lead offers further work on a proposal card (`propose_changes`) that parks the turn like a consult, and answers each requirement the message states with a change or a question, by its key. A yes runs the edit from the card's own changes and the researcher's note, a no ends the turn with no model call and records the declined card on the ledger, and the turn contract refuses any reply that ends on a question it did not record. A contract rule for approval turns alone and a proposal kind on the runtime's consult question were rejected.
+description: The Lead offers further work on a proposal card (`propose_changes`) that parks the turn like a consult, and answers each requirement the message states with a change or a question, by its id. A yes runs the edit from the card's own changes and the researcher's note, a no ends the turn with no model call and records the declined card on the ledger, and the turn contract refuses any reply that ends on a question it did not record. A contract rule for approval turns alone and a proposal kind on the runtime's consult question were rejected.
 tags: [agents, lead, honesty, approvals, contract]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable

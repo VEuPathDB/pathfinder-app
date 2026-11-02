@@ -171,8 +171,8 @@ async def test_a_requirement_the_site_lacks_is_asked_to_drop_or_keep(
     assert isinstance(result, FrameResult)
     [asked] = deps.state.domain.open_questions
     assert [(o.label, o.binding) for o in asked.options] == [
-        ("Drop expressed in spores", Withdraw(constraint_id=_SPORES.key)),
-        ("Keep expressed in spores", Keep(constraint_id=_SPORES.key)),
+        ("Drop expressed in spores", Withdraw(constraint_id=_SPORES.id)),
+        ("Keep expressed in spores", Keep(constraint_id=_SPORES.id)),
     ]
     [recorded, own] = the_card_asked([_SUBSTITUTE_CARD], [asked])
     assert [o.label for o in recorded.options] == [
@@ -261,8 +261,8 @@ async def test_a_pass_that_asks_about_a_requirement_the_site_lacks_is_not_refuse
     assert (asked.question, [o.binding for o in asked.options]) == (
         _GPI_QUESTION,
         [
-            Withdraw(constraint_id=_GPI_OR_SIGNAL.key),
-            Keep(constraint_id=_GPI_OR_SIGNAL.key),
+            Withdraw(constraint_id=_GPI_OR_SIGNAL.id),
+            Keep(constraint_id=_GPI_OR_SIGNAL.id),
         ],
     )
     spec = deps.state.domain.operational_spec

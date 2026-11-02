@@ -60,7 +60,7 @@ def test_a_requirement_retired_beside_a_new_value_of_its_kind_is_replaced() -> N
     )
 
     assert live == [_QUARTILE]
-    assert [r.lifecycle for r in retired] == [ReplacedLifecycle(by=_QUARTILE.key)]
+    assert [r.lifecycle for r in retired] == [ReplacedLifecycle(by=_QUARTILE.id)]
 
 
 def test_a_requirement_stated_again_is_live_again() -> None:

@@ -291,6 +291,7 @@ def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstr
         GroundedConstraint(
             constraint=text.requirement
             or Constraint(
+                id=f"word:{text.word}",
                 kind=ConstraintKind.OTHER,
                 requested_value=text.word,
                 label=text.stated_in[:_UNEXPRESSED_LABEL],
@@ -362,17 +363,13 @@ class ConstraintSection(CamelModel):
             for g in self.grounded
             if g.constraint.source is ConstraintSource.USER_EXPLICIT
         ]
-        carried = {(c.kind, c.requested_value) for c in self.carried}
+        carried = {c.id for c in self.carried}
         return _windowed(
             [
                 f"- {g.constraint.label} ({g.constraint.kind}): "
                 f"{g.constraint.requested_value!r} -> {g.status}"
-                + (
-                    " (from an earlier message)"
-                    if (g.constraint.kind, g.constraint.requested_value) in carried
-                    else ""
-                )
-                + f"; key {g.constraint.key}"
+                + (" (from an earlier message)" if g.constraint.id in carried else "")
+                + f"; id {g.constraint.id}"
                 for g in stated
             ],
             how="stated",

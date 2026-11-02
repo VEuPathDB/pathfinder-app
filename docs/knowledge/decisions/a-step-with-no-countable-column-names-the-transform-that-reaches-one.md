@@ -38,10 +38,9 @@ none of these is it. Like every rule but the prose check it is asked once per tu
 that honest second answer stands. The rule reads the typed read, never the reply's words.
 
 **A requirement the check found unmet is unmet.** A requirement gap of the standing
-verdict with status `unmet` (nothing in the strategy answers it) carries the key of the
-requirement it names (`RequirementGap.key`, set where the gap is built through
-`requirement_naming`); the ledger and the gate read the same keys
-(`domain/unmet_requirements.py`). It makes the matching constraint of the ledger
+verdict with status `unmet` (nothing in the strategy answers it) carries the id of the
+requirement it names (`SiteCheck.requirement`); the ledger and the gate read the
+same ids (`domain/unmet_requirements.py`). It makes the matching constraint of the ledger
 `ungroundable` (`ai/lead/derive.py::_as_checked`), so a hard
 requirement the researcher stated blocks. The same gap makes
 `VerificationDigest.blames_the_tree` true, so the build may change the tree after the

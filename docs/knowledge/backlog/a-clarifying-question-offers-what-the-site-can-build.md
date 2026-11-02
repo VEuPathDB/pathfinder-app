@@ -31,7 +31,7 @@ site can approximate the request (card 50).
    not ask again for the same thing in parameter terms.
 4. A request that no reading can approximate says so once, with the reason and the
    nearest thing it can build.
-5. A Lead question that rewords a recorded one without its requirement key shows beside it.
+5. A Lead question that rewords a recorded one without its requirement id shows beside it.
 
 ## Related
 

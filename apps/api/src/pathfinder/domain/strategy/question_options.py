@@ -21,7 +21,7 @@ class SetValues(CamelModel):
 
 
 class Withdraw(CamelModel):
-    """An option that withdraws one requirement, named by its key."""
+    """An option that withdraws one requirement, named by its id."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -30,7 +30,7 @@ class Withdraw(CamelModel):
 
 
 class Keep(CamelModel):
-    """An option that keeps one requirement as the thread holds it, by its key."""
+    """An option that keeps one requirement as the thread holds it, by its id."""
 
     model_config = ConfigDict(frozen=True)
 

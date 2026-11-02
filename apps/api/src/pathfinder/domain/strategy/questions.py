@@ -282,7 +282,7 @@ def _withdrawal(requirement: Constraint) -> TypedOption:
     return TypedOption(
         id=option_id(label),
         label=label,
-        binding=Withdraw(constraint_id=requirement.key),
+        binding=Withdraw(constraint_id=requirement.id),
     )
 
 
@@ -291,7 +291,7 @@ def _keeping(requirement: Constraint) -> TypedOption:
     return TypedOption(
         id=option_id(label),
         label=label,
-        binding=Keep(constraint_id=requirement.key),
+        binding=Keep(constraint_id=requirement.id),
     )
 
 

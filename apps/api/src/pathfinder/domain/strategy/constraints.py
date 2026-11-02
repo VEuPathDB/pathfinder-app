@@ -3,9 +3,12 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from enum import StrEnum
+from hashlib import sha256
 from typing import Annotated, Literal
+from uuid import uuid4
 
-from pydantic import ConfigDict, Discriminator, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Discriminator, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
@@ -66,7 +69,12 @@ class ConstraintStatus(StrEnum):
     UNGROUNDABLE = "ungroundable"
 
 
+def new_requirement_id() -> str:
+    return uuid4().hex[:12]
+
+
 class Constraint(CamelModel):
+    id: SkipJsonSchema[str] = Field(default_factory=new_requirement_id)
     kind: ConstraintKind
     requested_value: str = Field(min_length=1)
     label: str = Field(min_length=1)
@@ -84,10 +92,27 @@ class Constraint(CamelModel):
             self.kind = ConstraintKind.OTHER
         return self
 
-    @property
-    def key(self) -> str:
-        """The identity of the requirement: its dimension and the value it states."""
-        return f"{self.kind.value}:{self.requested_value}"
+
+def stored_requirement_id(kind: str, requested_value: str) -> str:
+    return sha256(f"{kind}:{requested_value}".encode()).hexdigest()[:12]
+
+
+def _with_stored_id(value: object) -> object:
+    match value:
+        case {"kind": str(kind), "requested_value": str(requested), **rest} if (
+            "id" not in rest
+        ):
+            return {
+                **rest,
+                "kind": kind,
+                "requested_value": requested,
+                "id": stored_requirement_id(kind, requested),
+            }
+        case _:
+            return value
+
+
+StoredConstraint = Annotated[Constraint, BeforeValidator(_with_stored_id)]
 
 
 class OpenLifecycle(CamelModel):
@@ -110,7 +135,7 @@ class WithdrawnLifecycle(CamelModel):
 class ReplacedLifecycle(CamelModel):
     """A requirement another requirement took the place of.
 
-    ``by`` is the key of the requirement that replaced it.
+    ``by`` is the id of the requirement that replaced it.
     """
 
     model_config = ConfigDict(frozen=True)

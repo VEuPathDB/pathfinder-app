@@ -446,7 +446,12 @@ async def test_an_approved_delete_withdraws_what_only_its_step_stated(
         label="stage",
         source=ConstraintSource.USER_EXPLICIT,
     )
-    kinase = blood.model_copy(update={"requested_value": "kinase domain"})
+    kinase = Constraint(
+        kind=ConstraintKind.OTHER,
+        requested_value="kinase domain",
+        label="stage",
+        source=ConstraintSource.USER_EXPLICIT,
+    )
     domain.requirements = [kinase, blood]
 
     await delete_step(ctx, step_id="step_k2", reply=_REPLY)

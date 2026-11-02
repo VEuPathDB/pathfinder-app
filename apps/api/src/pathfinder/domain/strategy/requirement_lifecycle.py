@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
     ReplacedLifecycle,
+    StoredConstraint,
     WithdrawnLifecycle,
     states_the_content,
 )
@@ -41,7 +42,7 @@ class RetiredRequirement(CamelModel):
 
     model_config = ConfigDict(frozen=True)
 
-    constraint: Constraint
+    constraint: StoredConstraint
     lifecycle: RetiredLifecycle
     # The terms of a withdrawn combination whose criteria a delete removed.
     sides: tuple[str, ...] = ()
@@ -130,7 +131,7 @@ def successor_of(
 ) -> Constraint | None:
     """The first requirement of the same kind the message states in its place."""
     return next(
-        (c for c in stated if c.kind is requirement.kind and c.key != requirement.key),
+        (c for c in stated if c.kind is requirement.kind and c.id != requirement.id),
         None,
     )
 
@@ -156,7 +157,7 @@ def stood_in_for(
     return [
         c
         for c in held
-        if c.key != stand_in.key
+        if c.id != stand_in.id
         and c.kind not in STRATEGY_SCOPES
         and message_states_constraint(prompt, c)
     ]
@@ -175,23 +176,23 @@ def retire(
     replaced by the chosen ``stand_in``, else by a value of its kind the
     message ``stated``, else withdrawn. A requirement the live record does not
     hold retires nothing."""
-    keys = {c.key for c in gone}
+    ids = {c.id for c in gone}
 
     def _lifecycle(requirement: Constraint) -> RetiredLifecycle:
         successor = stand_in or successor_of(requirement, stated)
         if successor is None:
             return WithdrawnLifecycle(turn_id=turn_id)
-        return ReplacedLifecycle(by=successor.key)
+        return ReplacedLifecycle(by=successor.id)
 
     newly = [
         RetiredRequirement(constraint=c, lifecycle=_lifecycle(c))
         for c in held
-        if c.key in keys
+        if c.id in ids
     ]
-    retired_keys = {r.constraint.key for r in newly}
+    retired_ids = {r.constraint.id for r in newly}
     return (
-        [c for c in held if c.key not in retired_keys],
-        [*(r for r in retired if r.constraint.key not in retired_keys), *newly],
+        [c for c in held if c.id not in retired_ids],
+        [*(r for r in retired if r.constraint.id not in retired_ids), *newly],
     )
 
 
@@ -228,21 +229,21 @@ def retire_dropped_sides(
     combination: the combination is withdrawn, and names the sides it lost."""
     withdrawn = [r.constraint for r in retired if r.lifecycle.state == "withdrawn"]
     sides = {
-        c.key: dropped
+        c.id: dropped
         for c in [*held, *withdrawn]
         if c.kind is ConstraintKind.COMBINATION
         and (dropped := dropped_sides(c, deleted, remaining))
     }
     live, kept = retire(
-        held, retired, [c for c in held if c.key in sides], turn_id=turn_id
+        held, retired, [c for c in held if c.id in sides], turn_id=turn_id
     )
     return live, [
         RetiredRequirement(
             constraint=r.constraint,
             lifecycle=r.lifecycle,
-            sides=sides[r.constraint.key],
+            sides=sides[r.constraint.id],
         )
-        if r.constraint.key in sides
+        if r.constraint.id in sides
         else r
         for r in kept
     ]
@@ -252,8 +253,8 @@ def reopened(
     retired: Sequence[RetiredRequirement], live: Sequence[Constraint]
 ) -> list[RetiredRequirement]:
     """The retired requirements a live one does not restate."""
-    stated = {c.key for c in live}
-    return [r for r in retired if r.constraint.key not in stated]
+    stated = {c.id for c in live}
+    return [r for r in retired if r.constraint.id not in stated]
 
 
 def restored(
@@ -262,7 +263,7 @@ def restored(
     """The requirements a declined message retired, and those it leaves retired.
 
     A message the researcher said no to takes back its withdrawals, and a
-    requirement it replaced by one of the ``dropped`` keys is live again.
+    requirement it replaced by one of the ``dropped`` ids is live again.
     """
 
     def _taken_back(requirement: RetiredRequirement) -> bool:

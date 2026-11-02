@@ -170,7 +170,8 @@ async def test_a_framed_group_strategy_verifies_with_no_record_type_gap(
 async def test_a_request_for_proteins_on_a_group_strategy_keeps_its_gap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _framed_deps(_record_type_requirement("proteins", "proteins"))
+    proteins = _record_type_requirement("proteins", "proteins")
+    deps = _framed_deps(proteins)
     deps.state.domain.request_messages = ["Which proteins are in these groups?"]
 
     delta = await _verify(monkeypatch, deps)
@@ -180,7 +181,7 @@ async def test_a_request_for_proteins_on_a_group_strategy_keeps_its_gap(
         subject="proteins",
         status="fail",
         evidence="the result step returns group records",
-        requirement="record_type:proteins",
+        requirement=proteins.id,
     )
     assert (delta.digest.success, delta.digest.gaps) == (
         False,

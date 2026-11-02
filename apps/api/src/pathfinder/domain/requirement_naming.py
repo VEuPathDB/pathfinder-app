@@ -19,7 +19,7 @@ def _names(text: str, words: str) -> bool:
 def requirement_naming(
     text: str, requirements: Sequence[GroundedConstraint]
 ) -> GroundedConstraint | None:
-    """The one requirement of the researcher the text names, by its key.
+    """The one requirement of the researcher the text names.
 
     A requirement a parameter of a step answers is not the one the text
     misses, so a text that names only those names none. A text that names
@@ -27,7 +27,7 @@ def requirement_naming(
     requirements come in decides nothing.
     """
     named = {
-        held.constraint.key: held
+        held.constraint.id: held
         for held in requirements
         if held.constraint.source is ConstraintSource.USER_EXPLICIT
         and _names(text, held.constraint.requested_value)

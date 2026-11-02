@@ -27,7 +27,8 @@ from pathfinder.domain.strategy.constraints import (
     merge_constraints,
     provisional_constraints,
 )
-from pathfinder.domain.unmet_requirements import unmet_requirement_keys
+from pathfinder.domain.strategy.stated_requirements import identified
+from pathfinder.domain.unmet_requirements import unmet_requirement_ids
 
 _TRANSIENT_MARKERS: frozenset[str] = frozenset(
     {
@@ -92,43 +93,37 @@ def derive_ledger(
     )
 
 
+def _recorded(state: PipelineState) -> list[Constraint]:
+    domain = state.domain
+    return [*domain.requirements, *(r.constraint for r in domain.retired_requirements)]
+
+
+def _restated(state: PipelineState, intent: UserIntent | None) -> list[Constraint]:
+    return identified(intent.explicit_constraints if intent else [], _recorded(state))
+
+
 def _thread_requirements(
     state: PipelineState, intent: UserIntent | None
 ) -> list[Constraint]:
-    """Every requirement the thread has stated, this turn's included.
-
-    The accumulation is deduped on the dimension AND the value, so two
-    free-form requirements never collapse into one.
-    """
-    stated = list(state.domain.requirements)
-    seen = {(c.kind, c.requested_value) for c in stated}
-    for constraint in intent.explicit_constraints if intent else []:
-        key = (constraint.kind, constraint.requested_value)
-        if key not in seen:
-            seen.add(key)
-            stated.append(constraint)
-    return stated
+    """Every requirement the thread has stated, this turn's included, each once."""
+    found = {c.id: c for c in state.domain.requirements}
+    for constraint in _restated(state, intent):
+        found.setdefault(constraint.id, constraint)
+    return list(found.values())
 
 
 def _carried_requirements(
     state: PipelineState, intent: UserIntent | None
 ) -> list[Constraint]:
     """The thread's requirements that the latest message did not restate."""
-    restated = {
-        (c.kind, c.requested_value)
-        for c in (intent.explicit_constraints if intent else [])
-    }
-    return [
-        c
-        for c in state.domain.requirements
-        if (c.kind, c.requested_value) not in restated
-    ]
+    restated = {c.id for c in _restated(state, intent)}
+    return [c for c in state.domain.requirements if c.id not in restated]
 
 
 def _as_checked(grounded: GroundedConstraint, unmet: set[str]) -> GroundedConstraint:
     if grounded.status is not ConstraintStatus.GROUNDED:
         return grounded
-    if grounded.constraint.key not in unmet:
+    if grounded.constraint.id not in unmet:
         return grounded
     return grounded.model_copy(
         update={
@@ -143,21 +138,27 @@ def _merged_requirements(
 ) -> list[Constraint]:
     spec = state.domain.operational_spec
     # A retired requirement stays retired whatever the spec still says of it.
-    retired = {r.constraint.key for r in state.domain.retired_requirements}
-    provisional = [c for c in spec.constraints if c.key not in retired] if spec else []
+    retired = {r.constraint.id for r in state.domain.retired_requirements}
+    stated = identified(spec.constraints if spec else [], _recorded(state))
+    provisional = [c for c in stated if c.id not in retired]
     requirements = _thread_requirements(state, intent)
     merged = merge_constraints(provisional, requirements)
-    kept = {(c.kind, c.requested_value) for c in merged}
-    merged.extend(c for c in requirements if (c.kind, c.requested_value) not in kept)
+    kept = {c.id for c in merged}
+    merged.extend(c for c in requirements if c.id not in kept)
     return merged
 
 
 def _unexpressed(state: PipelineState) -> list[GroundedConstraint]:
-    retired = {r.constraint.key for r in state.domain.retired_requirements}
+    spec = state.domain.operational_spec
+    retired = {r.constraint.id for r in state.domain.retired_requirements}
+    grounded = unexpressed_constraints(spec)
+    known = [*(spec.constraints if spec else []), *_recorded(state)]
     return [
-        g
-        for g in unexpressed_constraints(state.domain.operational_spec)
-        if g.constraint.key not in retired
+        g.model_copy(update={"constraint": c})
+        for g, c in zip(
+            grounded, identified((g.constraint for g in grounded), known), strict=True
+        )
+        if c.id not in retired
     ]
 
 
@@ -168,11 +169,11 @@ def grounded_requirements(
     merged = _merged_requirements(state, intent)
     if spec is None:
         return provisional_constraints(merged)
-    held_open = {g.constraint.key for g in _unexpressed(state)}
+    held_open = {g.constraint.id for g in _unexpressed(state)}
     return [
         g
         for g in ground_against_spec(merged, spec, marks=state.domain.data_marks)
-        if g.constraint.key not in held_open
+        if g.constraint.id not in held_open
     ]
 
 
@@ -202,7 +203,7 @@ def _derive_constraint_section(
             composed=composed,
         )
     verdict = state.turn_verdict
-    unmet = set() if verdict is None else set(unmet_requirement_keys(verdict.gaps))
+    unmet = set() if verdict is None else set(unmet_requirement_ids(verdict.gaps))
     return ConstraintSection(
         grounded=[
             *(_as_checked(g, unmet) for g in grounded_requirements(state, intent)),

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A picked reading stands in for the words it reads
-description: A question about a free-text or range parameter offers two or three readings the site validates, each an option that binds its value under the count the site returned for it, and names by number the requirements they approximate. A reading the researcher picks, or one FRAME binds from their answer in words to a question that offered it, is recorded on the criterion as its accepted reading, replaces those requirements by key with a stand-in, holds only while the criterion binds its values, and is judged by VERIFY as met by the parameter, its caveat a caveat and never an unmet row; when it ends, its stand-in is withdrawn. Judging the original words, matching requirements by the criterion's text and letting FRAME declare a reading on its own were rejected.
+description: A question about a free-text or range parameter offers two or three readings the site validates, each an option that binds its value under the count the site returned for it, and names by number the requirements they approximate. A reading the researcher picks, or one FRAME binds from their answer in words to a question that offered it, is recorded on the criterion as its accepted reading, replaces those requirements by id with a stand-in, holds only while the criterion binds its values, and is judged by VERIFY as met by the parameter, its caveat a caveat and never an unmet row; when it ends, its stand-in is withdrawn. Judging the original words, matching requirements by the criterion's text and letting FRAME declare a reading on its own were rejected.
 tags: [agents, lead, frame, verification, parameters]
 generated: { by: claude-code/opus-5.5, at: 2026-10-21T00:00:00Z }
 status: stable
@@ -19,16 +19,16 @@ request one recipe states exactly is bound with no question.
 
 **A reading is an option that binds, on a value the site builds.**
 `SlotQuestion.typed` makes one `ReadValues` option per reading, carrying the
-keys of the requirements the question names by number. The keys belong to the
-question, since every reading of it replaces the same requirements; keys
+ids of the requirements the question names by number. The ids belong to the
+question, since every reading of it replaces the same requirements; numbers
 written on each reading are read as the question's. A FRAME output
 validator (`ai/agents/frame_reading_checks.py`) sends back a reading on a
 parameter that is no free-text or range parameter, a reading whose criterion holds another open parameter,
-a question that names no key while the pinned list holds some,
+a question that names no requirement while the pinned list holds some,
 a requirement number the pinned list lacks, and a value the site's validation
 refuses, with the site's words, and two readings the site spells alike; a
-value it accepts reaches the card in the site's spelling. A key the list lacks
-is refused only while the list holds keys. Past [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a reading the site
+value it accepts reaches the card in the site's spelling. A number the list lacks
+is refused only while the list holds requirements. Past [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a reading the site
 refuses is left off the card with the site's reason in the summary; a question
 left with fewer than two readings reaches the card with its text and options
 alone. Readings that name no stated requirement reach the card, and a pick of one
@@ -48,7 +48,7 @@ compares the spec before and after each FRAME pass, each card answer and
 each replay of a change written on the site. A
 reading newly held is accepted: it is recorded as a requirement of the
 researcher's, on the question's dimension (an organism or record-type scope
-becomes `other`), and the live requirements whose keys the reading carries
+becomes `other`), and the live requirements whose ids the reading carries
 are replaced by it, whatever words FRAME chose for the criterion. A reading
 that ended withdraws its stand-in.
 
