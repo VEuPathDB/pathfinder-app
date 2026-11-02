@@ -87,7 +87,10 @@ class FrameResult(CamelModel):
             "takes, which the site builds as written, never a description in "
             "words. When requirements the researcher stated are listed, the "
             "question names in its own `requirements` the keys (R1, R2) of "
-            "those its readings approximate; with no list, it names none. The "
+            "those its readings approximate; with no list, it names none. "
+            "Every question about a held requirement names that requirement's "
+            "key in `requirements` too, so its drop and keep options join that "
+            "question and the card asks one question per requirement. The "
             "Lead asks it on the question card with those options."
         ),
     )

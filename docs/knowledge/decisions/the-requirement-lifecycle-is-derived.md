@@ -11,8 +11,8 @@ status: stable
 # What was decided
 
 `UserIntent` states requirements and nothing about their identity:
-`explicitConstraints` (dimension, value, label, hard) and `withdrawn`, the
-requirements the message takes back, typed the same way. It names no key and no
+`explicitConstraints` (dimension, value, label, quote, hard) and `withdrawnIds`,
+the held requirements the message takes back. It names no key and no
 successor. `ThreadRequirements.record(intent, messages)`
 (`ai/graph/thread_requirements.py`) derives the lifecycle:
 
@@ -23,10 +23,11 @@ successor. `ThreadRequirements.record(intent, messages)`
   both stand, and a message that adds an alternative with an include verb
   (`message_reading.adds_an_alternative`) adds the value beside the held one.
   `other` and `combination` hold many values; a new combination displaces a held
-  one over the same terms, and a message that swaps an `other` value lists the old
-  one in `withdrawn`.
-- A value only the classifier composed (`assumed`) never displaces a value the
-  researcher stated of a single-valued dimension: it is dropped, neither recorded
+  one over the same terms, and a message that swaps an `other` value names the
+  old one's number among its withdrawals.
+- A value whose quote no researcher message holds (`assumed`, see
+  [a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md))
+  never displaces a value the researcher stated of a single-valued dimension: it is dropped, neither recorded
   nor retired (`stated_requirements._outranked`). A stated value displaces an
   assumed one.
 - `other` holds many values everywhere, the ledger's merge included: two `other`
@@ -39,10 +40,13 @@ successor. `ThreadRequirements.record(intent, messages)`
   [a withdrawal names a held requirement by its number](a-withdrawal-names-a-held-requirement-by-its-number.md),
   which superseded the clause that compared the words of a withdrawal statement
   and a held value.
-- A value only an ask of the message carries is no requirement, and a
-  `follow_up_question` is all ask (`UserIntent.researcher_asks`); a compared side
-  of a `follow_up_question` is never one (the `UserIntent` validator), and a
-  card sentence is never recorded as the researcher's words.
+- Which values a message states is the message reader's: each requirement the
+  reading writes is recorded, and no test of its words against the message's
+  asks (`StatedRequest.asks`), its compared sides
+  (`StatedRequest.differential_sides`) or a picked card label drops it. A card
+  pick binds its option by id and states no requirement, a card answer in the
+  researcher's words is recorded as theirs by the card, and a card sentence is
+  never recorded as the researcher's words.
 - An approved `delete_step` retires each live requirement that a deleted
   criterion links and no remaining criterion links
   (`retire_what_a_delete_leaves_unanswered`, see

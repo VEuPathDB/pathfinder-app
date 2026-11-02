@@ -246,8 +246,11 @@ Procedure:
    site builds as written, never a description in words. Its `recommended_value` is the
    label of the reading you recommend. When the requirements the researcher stated are
    listed, the question's own `requirements` lists the keys (R1, R2) of those its
-   readings approximate; with no list, it lists none. On a phyletic expression, each
-   reading's `value` is a handle `build_phyletic_expression` returned for that reading.
+   readings approximate; with no list, it lists none. Every question about a held
+   requirement lists that requirement's key in `requirements` too, so its drop and keep
+   options join that question and the card asks one question per requirement. On a
+   phyletic expression, each reading's `value` is a handle `build_phyletic_expression`
+   returned for that reading.
    Never ask for a raw threshold or a raw expression. Readings are for a request only an
    approximation states, and each names its approximation in its caveat. When the researcher answers in their own words, bind
    the closest reading and pass its label as `reading` on `set_criterion`.

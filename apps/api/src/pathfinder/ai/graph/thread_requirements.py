@@ -24,10 +24,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     StoredConstraint,
 )
-from pathfinder.domain.strategy.message_reading import (
-    adds_an_alternative,
-    message_states_constraint,
-)
+from pathfinder.domain.strategy.message_reading import adds_an_alternative
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.questions import (
@@ -162,22 +159,11 @@ class ThreadRequirements(BaseModel):
 
     def record(self, intent: UserIntent, messages: Sequence[str]) -> None:
         """Take what this message states and the held requirements it withdraws
-        by id. ``messages`` are the researcher's words, this message first. A value only an ask of the
-        message carries is no requirement, and a question is all ask."""
+        by id. ``messages`` are the researcher's words, this message first."""
         held = list(self.requirements)
         newest = messages[0] if messages else ""
-        asks = [ask.text for ask in intent.researcher_asks(newest)]
         stated = identified(
-            (
-                c
-                for c in attributed(intent.explicit_constraints, messages, held)
-                if not _only_asked(c, newest, asks)
-                and not any(
-                    message_states_constraint(pick, c)
-                    for pick in self.turn_markers.bound_picks
-                )
-            ),
-            self._recorded(),
+            attributed(intent.explicit_constraints, messages), self._recorded()
         )
         self._record(
             with_requirements(
@@ -349,14 +335,3 @@ def _held_readings(spec: OperationalSpec | None) -> dict[str, AcceptedReading]:
         for c in ([] if spec is None else spec.criteria)
         if (held := c.held_reading) is not None
     }
-
-
-def _only_asked(constraint: Constraint, message: str, asks: Sequence[str]) -> bool:
-    """Whether an ask of the message carries the value and the rest of the
-    message does not."""
-    rest = message.casefold()
-    for ask in asks:
-        rest = rest.replace(ask.casefold(), " ")
-    return any(
-        message_states_constraint(ask, constraint) for ask in asks
-    ) and not message_states_constraint(rest, constraint)

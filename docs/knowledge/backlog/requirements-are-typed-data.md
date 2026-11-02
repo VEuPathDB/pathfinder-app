@@ -66,12 +66,6 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
    typed combination, the FRAME floor is the member count and the allowed
    operators come from the typed field. Delete `match_terms`, `_best_match`,
    `CombinationRequest.parse` and `combination_terms_overlap`.
-6. Attribution by quote (R): `attributed`, the include-verb arm,
-   `message_states_constraint` and `_span` give way to the quote rule and the
-   connective reading between members' quotes; a pick binds an option id, asks are
-   a typed list with no overlap test (`_only_asked`, `researcher_asks`), sides are
-   refs (`_no_side_is_a_constraint`), and `value_source.cut_from` compares the
-   quote with the bound value by equality.
 7. Percentile (R): compared through its link; delete `PercentileRequest.parse`.
 8. Fold change (R): cut, scale and direction against the linked parameter or the
    analysis effect size; `fold_grounding` reads no words.
@@ -93,9 +87,8 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
     and is outdated when a seed value or step is gone; a step name PathFinder made
     is regenerated from the search display name and bound labels, and a name the
     researcher wrote is never rewritten. Not R.
-15. Cleanup: delete `message_states`, `content_words`,
-    `message_states_constraint`, `record_noun` and `qualifies_a_record_noun`
-    with their tests; run
+15. Cleanup: delete `message_states`, `content_words`, `record_noun` and
+    `qualifies_a_record_noun` with their tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision,
     the operator section of the strategy-answers-to-a-spec decision and the
     vocabulary convention; regenerate the shared types and update the web

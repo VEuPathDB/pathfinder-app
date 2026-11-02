@@ -142,6 +142,7 @@ def requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:
         label=label,
         requested_value=value,
         source=ConstraintSource.USER_EXPLICIT,
+        quote=value,
     )
 
 

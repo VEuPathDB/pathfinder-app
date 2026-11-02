@@ -1,5 +1,5 @@
 """Lead arcs on a requirement's lifecycle: a comparison whose sides the reading
-writes as constraints, and a card of the Lead's own whose options are labels."""
+writes as sides, and a card of the Lead's own whose options are labels."""
 
 from __future__ import annotations
 
@@ -33,10 +33,6 @@ def comparison_sides_reading(state: PipelineState, words: str) -> UserIntent:
     return intent_of(
         IntentClassification.FOLLOW_UP_QUESTION,
         stated("organism", "organism", organism),
-        stated("other", "domain family", "polar tube protein family"),
-        stated(
-            "combination", "domain search alternatives", "InterPro OR Pfam", hard=False
-        ),
         inferredGoal="[mock] compare the name search with domains",
         isDifferential=True,
         differentialSides=COMPARED_SIDES,
@@ -44,7 +40,7 @@ def comparison_sides_reading(state: PipelineState, words: str) -> UserIntent:
 
 
 def comparison_sides(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    """The answer to a comparison read with both of its sides as constraints."""
+    """The answer to a comparison read with both of its sides."""
     del messages
     return [lead_final(_COMPARED, "complete")]
 

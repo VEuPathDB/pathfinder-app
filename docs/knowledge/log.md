@@ -2,6 +2,19 @@
 
 ## 2026-11-03
 
+* **A requirement is the researcher's by its quote alone.** `attributed` marks a
+  requirement stated only when its quote is a casefolded substring of a
+  researcher message; no word of a model-written value is matched, and a held
+  value written again is not made stated. Each requirement the reading writes is
+  recorded: no test against the message's asks, its compared sides or a picked
+  card label drops one, and the asks are read as the reading typed them. A bound
+  text is chosen when every quote its criterion links to that parameter writes
+  other words. `message_states_constraint`, `read_combination`,
+  `combination_operator_is_stated`, `_span` and the word windows,
+  `_added_as_an_alternative`, `_only_asked`, `_no_side_is_a_constraint`,
+  `researcher_asks`, `ResearcherAsk` and `TurnMarkers.bound_picks` are deleted.
+  FRAME names a held requirement's number on every question about it. See
+  [a requirement is the researcher's when it quotes their words](decisions/a-requirement-is-the-researchers-when-it-quotes-their-words.md).
 * **A withdrawal names a held requirement by its number.** The message reader's
   extraction call is given the held requirements under the numbers FRAME reads,
   and each requirement a message takes back names its number with a verbatim

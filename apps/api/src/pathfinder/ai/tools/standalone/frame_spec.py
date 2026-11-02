@@ -380,6 +380,7 @@ async def _bind_the_search(
         fetch_at=fetch_at,
         site_supplied=site_supplied,
         reason=chosen_reason(why, chosen),
+        answers=stated.answers,
     )
     bound = with_typed_ids(bound, typed, state.request_messages)
     accepted = offered_reading(state, criterion_id, reading, bound)

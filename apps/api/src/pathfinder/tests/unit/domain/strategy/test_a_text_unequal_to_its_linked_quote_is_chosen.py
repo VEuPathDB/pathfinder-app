@@ -1,5 +1,5 @@
-"""A text that leaves out the words a requirement phrase writes before it is
-chosen, not stated, and the phrase it was cut from is never a reading."""
+"""A text the linked requirement's quote writes otherwise is chosen, not
+stated, and the quote it was cut from is never a reading."""
 
 from __future__ import annotations
 
@@ -10,7 +10,9 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 from veupathdb.wdk import SiteSearchResponse
 from veupathdb_mcp.catalog import format_param_info_typed
 
-from pathfinder.ai.tools.standalone._frame_sources import bound_values
+from pathfinder.ai.tools.standalone._frame_sources import bound_values, quotes_by_param
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.operational_spec import RequirementLink
 from pathfinder.domain.strategy.value_source import cut_from
 from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
@@ -27,60 +29,57 @@ from pathfinder.tests._support.recorded_searches import suite_search
 _MESSAGE = (
     "Babesia bovis T2Bo genes with a variant erythrocyte surface antigen annotation."
 )
-_REQUIREMENTS = ["Babesia bovis T2Bo", "variant erythrocyte surface antigen annotation"]
+_QUOTE = "variant erythrocyte surface antigen"
 _SHEET = format_param_info_typed(
     suite_search("search_giardiadb_genes_by_text").parameters or []
 )
-_CYSTEINE = (
-    "Giardia muris Roberts-Thompson genes with a cysteine-rich protein annotation."
-)
 
 
-def _source(text: str, message: str, requirements: list[str]) -> str:
+def _source(text: str, message: str, quotes: list[str]) -> str:
     bound = bound_values(
         {"text_expression": StringValue(value=text)},
         infos=_SHEET,
         site_supplied=set(),
         request_texts=[message],
         reason="the model's reason",
-        requirement_phrases=requirements,
+        linked_quotes={"text_expression": quotes},
     )
     return bound["text_expression"].source
 
 
-def test_a_text_cut_from_a_stated_phrase_is_chosen() -> None:
+def test_a_text_cut_from_the_linked_quote_is_chosen() -> None:
     assert (
-        _source("erythrocyte surface antigen", _MESSAGE, _REQUIREMENTS),
-        cut_from(StringValue(value="erythrocyte surface antigen"), _REQUIREMENTS),
-    ) == ("chosen", "variant erythrocyte surface antigen")
+        _source("erythrocyte surface antigen", _MESSAGE, [_QUOTE]),
+        cut_from(StringValue(value="erythrocyte surface antigen"), [_QUOTE]),
+    ) == ("chosen", True)
 
 
-def test_the_whole_stated_phrase_stays_stated() -> None:
+def test_the_text_the_linked_quote_writes_stays_stated() -> None:
     assert (
-        _source("variant erythrocyte surface antigen", _MESSAGE, _REQUIREMENTS),
-        cut_from(
-            StringValue(value='"variant erythrocyte surface antigen"'), _REQUIREMENTS
-        ),
-    ) == ("stated", "")
+        _source(f'"{_QUOTE}"', _MESSAGE, [_QUOTE]),
+        cut_from(StringValue(value=f'"{_QUOTE}"'), [_QUOTE.upper()]),
+    ) == ("stated", False)
 
 
-def test_a_word_after_the_text_names_what_it_is_and_cuts_nothing() -> None:
-    requirements = [
-        "Giardia muris Roberts-Thompson",
-        "cysteine-rich protein annotation",
-    ]
-
-    assert _source("cysteine-rich protein", _CYSTEINE, requirements) == "stated"
+def test_a_text_no_requirement_links_keeps_its_source() -> None:
+    assert _source("erythrocyte surface antigen", _MESSAGE, []) == "stated"
 
 
-def test_an_article_before_the_text_cuts_nothing() -> None:
-    requirements = ["a cysteine-rich protein annotation"]
+def test_a_quote_linked_to_another_parameter_cuts_nothing() -> None:
+    bound = bound_values(
+        {"text_expression": StringValue(value="erythrocyte surface antigen")},
+        infos=_SHEET,
+        site_supplied=set(),
+        request_texts=[_MESSAGE],
+        reason="the model's reason",
+        linked_quotes={"text_fields": [_QUOTE]},
+    )
 
-    assert cut_from(StringValue(value="cysteine-rich protein"), requirements) == ""
+    assert bound["text_expression"].source == "stated"
 
 
 def test_only_a_text_is_cut() -> None:
-    assert cut_from(MultiPickValue(values=["erythrocyte"]), _REQUIREMENTS) == ""
+    assert cut_from(MultiPickValue(values=["erythrocyte"]), [_QUOTE]) is False
 
 
 # PiroplasmaDB GenesByText over product, Products and Notes in B. bovis T2Bo,
@@ -106,7 +105,7 @@ async def test_the_phrase_a_text_was_cut_from_is_never_a_reading(
         site_supplied=set(),
         request_texts=[_MESSAGE],
         reason="the model's reason",
-        requirement_phrases=_REQUIREMENTS,
+        linked_quotes={"text_expression": [_QUOTE]},
     )
 
     await measure_binding(
@@ -126,3 +125,24 @@ async def test_the_phrase_a_text_was_cut_from_is_never_a_reading(
         "chosen",
         ['"erythrocyte surface antigen"'],
     )
+
+
+def test_each_parameter_takes_the_quotes_of_the_requirements_linked_to_it() -> None:
+    linked = Constraint(
+        kind=ConstraintKind.OTHER,
+        requested_value="variant erythrocyte surface antigen",
+        label="annotation",
+        quote=_QUOTE,
+    )
+    unquoted = Constraint(
+        kind=ConstraintKind.ORGANISM, requested_value="Babesia bovis T2Bo", label="o"
+    )
+
+    assert quotes_by_param(
+        [
+            RequirementLink(requirement=linked.id, param="text_expression"),
+            RequirementLink(requirement=unquoted.id, param="organism"),
+            RequirementLink(requirement=linked.id),
+        ],
+        [linked, unquoted],
+    ) == {"text_expression": [_QUOTE]}

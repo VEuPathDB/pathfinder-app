@@ -199,12 +199,13 @@ async def test_no_pick_of_the_card_is_a_requirement() -> None:
     ]
 
 
-async def test_the_classified_pick_is_the_binding_and_no_requirement() -> None:
+async def test_a_requirement_the_pick_words_with_no_quote_is_kept_as_assumed() -> None:
     deps = await _answered()
 
     deps.state.domain.record_intent(_classified_answer(), request_text=_REQUEST)
 
-    assert [c.kind for c in deps.state.domain.requirements] == [
-        ConstraintKind.ORGANISM,
-        ConstraintKind.OTHER,
+    assert [(c.kind, c.source, c.hard) for c in deps.state.domain.requirements] == [
+        (ConstraintKind.ORGANISM, ConstraintSource.USER_EXPLICIT, True),
+        (ConstraintKind.OTHER, ConstraintSource.USER_EXPLICIT, True),
+        (ConstraintKind.DATA_TYPE, ConstraintSource.ASSUMED, False),
     ]

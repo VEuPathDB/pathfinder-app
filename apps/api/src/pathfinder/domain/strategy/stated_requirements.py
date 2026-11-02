@@ -7,38 +7,16 @@ from typing import NamedTuple
 
 from pathfinder.domain.strategy.combination_check import combination_terms_overlap
 from pathfinder.domain.strategy.constraints import (
-    CombinationRequest,
     Constraint,
     ConstraintKind,
     ConstraintSource,
     ReplacedLifecycle,
-    message_states,
     new_requirement_id,
-)
-from pathfinder.domain.strategy.message_reading import (
-    adds_an_alternative,
-    message_states_constraint,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import (
     MANY_VALUED_KINDS,
     RetiredRequirement,
 )
-
-
-def _added_as_an_alternative(constraint: Constraint, messages: Sequence[str]) -> bool:
-    """Whether the newest message adds an OR arm to terms the messages carry."""
-    request = (
-        CombinationRequest.parse(constraint.requested_value)
-        if constraint.kind is ConstraintKind.COMBINATION
-        else None
-    )
-    return (
-        request is not None
-        and request.operator == "OR"
-        and bool(messages)
-        and adds_an_alternative(messages[0])
-        and all(any(message_states(m, t) for m in messages) for t in request.terms)
-    )
 
 
 def _quoted(constraint: Constraint, messages: Sequence[str]) -> bool:
@@ -47,22 +25,14 @@ def _quoted(constraint: Constraint, messages: Sequence[str]) -> bool:
 
 
 def attributed(
-    constraints: Iterable[Constraint],
-    messages: Sequence[str],
-    held: Sequence[Constraint],
+    constraints: Iterable[Constraint], messages: Sequence[str]
 ) -> list[Constraint]:
-    """Each stated requirement, marked by who the researcher's words say stated it.
+    """Each stated requirement, marked by whether the researcher's words quote it.
 
-    ``messages`` are the words the researcher wrote or accepted on this thread,
-    the newest first. A value one of them carries is the user's word. A value only the
-    classifier composed is an assumption: it is surfaced, and it gates
-    nothing. A value the user already stated on this thread stays theirs.
+    ``messages`` are the words the researcher wrote or accepted on this thread.
+    A requirement whose quote one of them holds is the user's word; any other
+    is an assumption: it is surfaced, and it gates nothing.
     """
-    theirs = {
-        c.requested_value.casefold()
-        for c in held
-        if c.source is ConstraintSource.USER_EXPLICIT
-    }
     return [
         constraint.model_copy(
             update={
@@ -73,12 +43,7 @@ def attributed(
             },
         )
         for constraint in constraints
-        for stated in [
-            _quoted(constraint, messages)
-            or any(message_states_constraint(m, constraint) for m in messages if m)
-            or _added_as_an_alternative(constraint, messages)
-            or constraint.requested_value.casefold() in theirs
-        ]
+        for stated in [_quoted(constraint, messages)]
     ]
 
 

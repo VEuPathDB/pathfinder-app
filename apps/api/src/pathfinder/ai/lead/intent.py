@@ -3,17 +3,12 @@ from __future__ import annotations
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.message_reading import MessageReading, StatedRequest
-from pathfinder.domain.researcher_asks import ResearcherAsk
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    message_states,
-)
-from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.words import words_of
 
 
 class IntentClassification(StrEnum):
@@ -111,24 +106,6 @@ class UserIntent(CamelModel):
     reading: MessageReading | None = None
     request: StatedRequest | None = None
 
-    @model_validator(mode="after")
-    def _no_side_is_a_constraint(self) -> UserIntent:
-        """A question that compares holds no side as a constraint; a build
-        builds its sides. A constraint is a side when it shares a word with a
-        side and both sides do not hold all of its words."""
-        if not (
-            self.is_differential
-            and self.classification is IntentClassification.FOLLOW_UP_QUESTION
-        ):
-            return self
-        sides = [set(_content_words(side)) for side in self.differential_sides]
-        self.explicit_constraints = [
-            c
-            for c in self.explicit_constraints
-            if not _is_a_side(set(_content_words(c.requested_value)), sides)
-        ]
-        return self
-
     def asks_only_to_undo(self) -> bool:
         """Whether the message asks to undo the last change and states no value.
 
@@ -138,28 +115,6 @@ class UserIntent(CamelModel):
         return self.undo and all(
             c.kind is ConstraintKind.COMBINATION for c in self.explicit_constraints
         )
-
-    def researcher_asks(self, message: str) -> list[ResearcherAsk]:
-        """The parts of the message that ask for an answer: all of it when the
-        message is a question, else each ask that does not restate the
-        message, since the message itself is the request."""
-        if self.classification is IntentClassification.FOLLOW_UP_QUESTION:
-            return [ResearcherAsk(message=message, text=message)]
-        return [
-            ResearcherAsk(message=message, text=ask)
-            for ask in self.asks
-            if not message_states(ask, message)
-        ]
-
-
-def _content_words(text: str) -> list[str]:
-    return [word for word in words_of(text) if word not in FILLER_WORDS]
-
-
-def _is_a_side(words: set[str], sides: list[set[str]]) -> bool:
-    return any(words & side for side in sides) and not all(
-        words <= side for side in sides
-    )
 
 
 def occurs_in(text: str, message: str) -> bool:

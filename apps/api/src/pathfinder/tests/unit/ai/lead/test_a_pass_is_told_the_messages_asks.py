@@ -3,6 +3,8 @@ it never records an ask as a criterion or a requirement problem."""
 
 from __future__ import annotations
 
+import pytest
+
 from pathfinder.ai.lead.dispatch_context import framing_goal, message_asks
 from pathfinder.ai.lead.dispatch_messages import (
     answered_question_work_order,
@@ -52,6 +54,23 @@ def test_the_asks_are_the_parts_of_the_message_the_lead_answers() -> None:
         ),
         message_asks(lead_deps(state)),
     ] == [[_ASK], []]
+
+
+@pytest.mark.parametrize(
+    ("classification", "asks"),
+    [
+        (IntentClassification.FOLLOW_UP_QUESTION, []),
+        (IntentClassification.FOLLOW_UP_QUESTION, [_ASK]),
+        (IntentClassification.NEW_STRATEGY, [_MESSAGE]),
+    ],
+)
+def test_the_asks_are_the_ones_the_reading_typed(
+    classification: IntentClassification, asks: list[str]
+) -> None:
+    state = pipeline_state("hostdb", user_prompt=_MESSAGE)
+    intent = UserIntent(classification=classification, inferred_goal="g", asks=asks)
+
+    assert message_asks(lead_deps(state, intent=intent)) == asks
 
 
 def test_an_edit_pass_is_told_the_asks() -> None:

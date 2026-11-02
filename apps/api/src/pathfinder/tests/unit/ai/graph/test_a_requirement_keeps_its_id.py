@@ -19,6 +19,7 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
         requested_value=value,
         label=value,
         source=ConstraintSource.USER_EXPLICIT,
+        quote=value,
     )
 
 
