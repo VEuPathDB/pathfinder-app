@@ -73,28 +73,14 @@ values from the same read that supplies the counts. None of them writes a spec.
 A site that does not answer writes nothing: the turn and the canvas edit go on
 over the stored graph, and the refresh refuses with 503.
 
-**The operator is the researcher's, as well as the terms.** What was SAID
-includes how the requirements join. A `combination` constraint records one
-operator over the researcher's phrases, and the message must carry both
-(`domain/strategy/message_reading.py::read_combination`): each term is located in
-the message, and the text between two consecutive terms, in message order, is
-the connective. A connective with "or" (or "and/or") states OR; one with "and",
-"with", "plus" or "as well as" states AND; a bare comma or no text takes the
-next conjunction in the list, and AND when none follows, OR when the list opens
-with "either". An "include" verb states OR ("also include", "broaden ... to
-include", "add ... as an alternative"). "In addition to" and a trailing "as
-well" state neither operator, because a class added to a class is an OR and a
-property added to a property is an AND: no operator is stated, the model splits
-the constraint, no hard combination is recorded, and FRAME asks when the shape
-matters. An "or" inside one term's span is an alternative within that
-requirement and never a connective. A message that names a "union" or an
-"intersection" states that operator. The reading of the message records no
-combination; how requirements combine is FRAME's tree, read against the
-researcher's words. The connective
-reading stays, but a term will be located by the researcher's verbatim quote and
-not by its words
-([a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md));
-the word location is what the code does until that decision is built.
+**The operator is FRAME's tree, held to the researcher's words.** The reading
+of the message records no combination, and no code reads a connective between
+the researcher's phrases: how requirements combine is the tree FRAME builds. A
+combination requirement is the researcher's only by its own quote
+([a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md)).
+The reader that checks each combine node's operator against the researcher's
+words, and asks on a card when it disagrees, is step 4 of
+[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md).
 
 An edit is planned against `answered_spec`
 (`ai/lead/edit_dispatch.py::run_edit`). FRAME's derived dispositions, its work
@@ -159,8 +145,8 @@ Postgres holds.
 **Letting VERIFY re-read the sentence for the operator.** VERIFY checks the
 built tree against the recorded constraint, so a wrong operator recorded at
 classification is one it confirms: the build that followed the recorded OR was
-verified against the same OR. The operator has to be right where the
-constraint is recorded, and the check there is the message's own connective.
+verified against the same OR. The operator has to be checked against the
+researcher's words where the tree is built, not after it is built.
 
 **Recording hand-edited parameter names at the canvas commit.** It needs a
 column the API process writes and the worker clears, and it misses operators,
@@ -203,8 +189,5 @@ a resumed turn like any other.
 `domain/strategy/spec_hydration.py::spec_stating_the_live_tree`,
 `ai/lead/edit_dispatch.py`,
 `domain/strategy/analysis_binding.py`,
-`domain/strategy/message_reading.py::read_combination`,
-`tests/unit/domain/strategy/test_combination_operator_is_stated.py`,
-`tests/unit/ai/lead/test_classifier_reads_the_stated_operator.py`,
 `tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`,
 `tests/unit/ai/lead/test_a_site_edit_and_the_next_edit.py`.

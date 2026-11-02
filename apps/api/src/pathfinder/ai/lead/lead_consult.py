@@ -120,7 +120,6 @@ def _apply(
     spec = domain.operational_spec
     match option.binding:
         case SetValues() as values if spec is not None:
-            state.turn_markers.bound_picks.append(option.label)
             domain.operational_spec = spec_bound_by_card(
                 spec,
                 values,
@@ -129,7 +128,6 @@ def _apply(
                 expressions=domain.built_expressions,
             )
         case ReadValues() as read if spec is not None:
-            state.turn_markers.bound_picks.append(option.label)
             values = SetValues(criterion_id=read.criterion_id, params=read.params)
             bound = spec_bound_by_card(
                 spec,

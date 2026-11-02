@@ -202,7 +202,9 @@ def test_the_summary_marks_a_requirement_the_message_did_not_state() -> None:
         IntentClassification.NEW_STRATEGY,
         inferred_goal="mass-spec samples",
         explicit_constraints=[
-            requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
+            requirement(
+                ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"
+            ).model_copy(update={"quote": "P. falciparum"}),
             requirement(ConstraintKind.OTHER, "profile breadth", composed),
         ],
     )

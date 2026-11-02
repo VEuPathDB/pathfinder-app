@@ -15,6 +15,7 @@ def stated(kind: str, label: str, value: str, *, hard: bool = True) -> dict[str,
         "kind": kind,
         "label": label,
         "requestedValue": value,
+        "quote": value,
         "source": "user_explicit",
         "hard": hard,
     }

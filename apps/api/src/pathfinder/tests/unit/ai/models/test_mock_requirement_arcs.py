@@ -1,5 +1,5 @@
 """The requirement arcs play the shapes their findings name: a compared side the
-reading writes is no constraint."""
+reading writes is a side, never a constraint."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ SITES = ("plasmodb", "vectorbase")
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_a_compared_side_the_reading_writes_is_no_constraint(site_id: str) -> None:
+def test_a_compared_side_the_reading_writes_is_a_side(site_id: str) -> None:
     text = "Which finds more? [[arc:comparison-sides]]"
     calls = play("lead", site_id, text)
 

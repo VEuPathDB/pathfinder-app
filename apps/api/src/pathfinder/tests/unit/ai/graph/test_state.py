@@ -397,11 +397,15 @@ def test_a_requirement_the_message_does_not_state_is_not_the_users() -> None:
     ]
 
 
-def test_a_requirement_the_message_states_is_the_users() -> None:
+def test_a_requirement_the_message_quotes_is_the_users() -> None:
     domain = StrategyDomainState()
 
     domain.record_intent(
-        _classified(_requirement(ConstraintKind.ORGANISM, "organism", "P. falciparum")),
+        _classified(
+            _requirement(
+                ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"
+            ).model_copy(update={"quote": "P. falciparum"})
+        ),
         request_text="Find P. falciparum kinases, RNA-Seq only.",
     )
 
@@ -410,38 +414,18 @@ def test_a_requirement_the_message_states_is_the_users() -> None:
     ]
 
 
-def test_a_requirement_the_user_already_stated_stays_theirs() -> None:
-    """A consult answer is the user's word, so restating it is not an invention."""
+def test_a_card_answer_restated_with_no_quote_stays_the_users() -> None:
     domain = StrategyDomainState()
-    domain.record_requirements(
+    [answer] = domain.record_requirements(
         [_requirement(ConstraintKind.OTHER, "breadth", _INVENTED)]
     )
 
     domain.record_intent(
-        _classified(_requirement(ConstraintKind.PERCENTILE, "breadth", _INVENTED)),
+        _classified(_requirement(ConstraintKind.OTHER, "breadth", _INVENTED)),
         request_text=_RETRY,
     )
 
-    assert [(c.kind, c.source) for c in domain.requirements] == [
-        (ConstraintKind.OTHER, ConstraintSource.USER_EXPLICIT),
-        (ConstraintKind.PERCENTILE, ConstraintSource.USER_EXPLICIT),
-    ]
-
-
-def test_an_organism_the_user_abbreviated_is_still_theirs() -> None:
-    """The classifier writes the binomial the user abbreviated."""
-    domain = StrategyDomainState()
-
-    domain.record_intent(
-        _classified(
-            _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
-        ),
-        request_text="Find P. falciparum kinases.",
-    )
-
-    assert [(c.source, c.hard) for c in domain.requirements] == [
-        (ConstraintSource.USER_EXPLICIT, True),
-    ]
+    assert domain.requirements == [answer]
 
 
 def test_an_organism_the_message_never_names_is_not_theirs() -> None:

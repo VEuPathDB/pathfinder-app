@@ -18,12 +18,14 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._frame_rationale import ChosenWhy, SearchChoice
 from pathfinder.domain.log2_scale import in_the_sites_scale, on_scale, scale_of
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_taxa import OrganismTree
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Measurement,
     OpenSlot,
     OperationalSpec,
+    RequirementLink,
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.value_binding import bind_values, pick_terms
@@ -35,11 +37,23 @@ from pathfinder.domain.strategy.value_source import (
 from pathfinder.services.strategies.parameter_rules import rules_of
 
 _NO_CARD: Mapping[str, BoundValue] = MappingProxyType({})
+_NO_QUOTES: Mapping[str, Sequence[str]] = MappingProxyType({})
 _TEXT: ParamKind = "string"
 
 
 def _set_by_site(info: ParameterInfo | None) -> bool:
     return info is not None and rules_of(info).source == "site"
+
+
+def quotes_by_param(
+    links: Sequence[RequirementLink], requirements: Sequence[Constraint]
+) -> dict[str, list[str]]:
+    quotes = {c.id: c.quote for c in requirements if c.quote}
+    by_param: dict[str, list[str]] = {}
+    for link in links:
+        if link.param is not None and link.requirement in quotes:
+            by_param.setdefault(link.param, []).append(quotes[link.requirement])
+    return by_param
 
 
 def bound_values(
@@ -50,11 +64,11 @@ def bound_values(
     request_texts: list[str],
     reason: str,
     card_values: Mapping[str, BoundValue] = _NO_CARD,
-    requirement_phrases: Sequence[str] = (),
+    linked_quotes: Mapping[str, Sequence[str]] = _NO_QUOTES,
 ) -> dict[str, BoundValue]:
     """Each resolved value read on the published sheet, with who set it. A value
-    the site supplied or only the site sets is the default; a text that leaves
-    words out of a requirement phrase is chosen."""
+    the site supplied or only the site sets is the default; a text whose words
+    no quote linked to its parameter writes is chosen."""
     card_wire = {name: to_wire(held.value) for name, held in card_values.items()}
     by_name = {info.name: info for info in infos}
     bound: dict[str, BoundValue] = {}
@@ -73,7 +87,7 @@ def bound_values(
             )
         )
         if source == "stated" and cut_from(
-            held.value, requirement_phrases, request_texts
+            held.value, linked_quotes.get(name, ()), request_texts
         ):
             source = "chosen"
         basis = {

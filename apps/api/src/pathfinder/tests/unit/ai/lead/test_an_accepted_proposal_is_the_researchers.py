@@ -60,6 +60,7 @@ _ACCEPTED = [
         requested_value="Encephalitozoon cuniculi GB-M1",
         label="named organism",
         source=ConstraintSource.USER_EXPLICIT,
+        quote="Encephalitozoon cuniculi GB-M1",
     ),
     Constraint(
         kind=ConstraintKind.OTHER,

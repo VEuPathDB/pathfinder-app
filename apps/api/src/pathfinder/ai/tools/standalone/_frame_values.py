@@ -17,6 +17,7 @@ from pathfinder.ai.tools.standalone._frame_sources import (
     bound_values,
     card_values_of,
     on_the_sites_scale,
+    quotes_by_param,
     stated_by_their_labels,
     stated_by_their_taxa,
 )
@@ -25,7 +26,11 @@ from pathfinder.domain.strategy.named_taxa import (
     organism_trees,
     phyletic_organism_tree,
 )
-from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+    Measurement,
+    RequirementLink,
+)
 from pathfinder.domain.strategy.organism_steps import UNMARKED_ORGANISM_PARAMS
 from pathfinder.services.strategies.sheet_params import vocabularies_under
 
@@ -60,6 +65,7 @@ async def sourced_values(
     fetch_at: ParamFetcher,
     site_supplied: set[str],
     reason: str,
+    answers: list[RequirementLink],
 ) -> tuple[dict[str, BoundValue], list[Measurement]]:
     """Each value with who set it, and the label the site gives each pick; a
     value a message names by its labels or by its taxon is stated. ``infos``
@@ -72,7 +78,7 @@ async def sourced_values(
         request_texts=state.request_messages,
         reason=reason,
         card_values=card_values_of(state.operational_spec_draft, call.criterion_id),
-        requirement_phrases=[c.requested_value for c in state.stated_requirements],
+        linked_quotes=quotes_by_param(answers, state.stated_requirements),
     )
     labels = await labelled_picks(fetch_at, infos, call, bound)
     restated = stated_by_their_labels(bound, labels, infos, state.request_messages)

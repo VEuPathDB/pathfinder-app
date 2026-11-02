@@ -23,6 +23,7 @@ def _stated(kind: ConstraintKind, value: str, label: str = "") -> Constraint:
         requested_value=value,
         label=label or kind.value,
         source=ConstraintSource.USER_EXPLICIT,
+        quote=value,
     )
 
 
@@ -165,14 +166,9 @@ _G3 = _stated(_ORGANISM, "Trichomonas vaginalis G3")
 _LRR = _stated(_OTHER, "leucine-rich repeat domain", "domain requirement")
 _TMD = _stated(_OTHER, "transmembrane domain", "domain requirement")
 _BOTH = _stated(_COMBINATION, "leucine-rich repeat domain AND transmembrane domain")
-_EITHER = _stated(_COMBINATION, "leucine-rich repeat domain OR transmembrane domain")
 _BOTH_ASKED = (
     "Trichomonas vaginalis G3 genes with a leucine-rich repeat domain and a "
     "transmembrane domain."
-)
-_MAKE_IT_OR = (
-    "Actually, can you make it OR instead of AND? I want genes that have either "
-    "a leucine-rich repeat domain or a transmembrane domain."
 )
 
 
@@ -191,98 +187,3 @@ def test_two_other_values_stated_together_both_stand() -> None:
         [_G3.id, _LRR.id, _TMD.id, _BOTH.id],
         [],
     )
-
-
-def test_or_instead_of_and_replaces_the_combination_and_keeps_both_terms() -> None:
-    thread = _thread([_G3, _LRR, _TMD, _BOTH])
-
-    thread.record(
-        _intent(
-            IntentClassification.EDIT_STRATEGY,
-            explicit_constraints=[_G3, _EITHER, _LRR, _TMD],
-        ),
-        [_MAKE_IT_OR, _BOTH_ASKED],
-    )
-
-    assert (
-        [(c.id, c.source) for c in thread.requirements],
-        _retired(thread),
-    ) == (
-        [
-            (_G3.id, ConstraintSource.USER_EXPLICIT),
-            (_LRR.id, ConstraintSource.USER_EXPLICIT),
-            (_TMD.id, ConstraintSource.USER_EXPLICIT),
-            (_EITHER.id, ConstraintSource.USER_EXPLICIT),
-        ],
-        [(_BOTH.id, ReplacedLifecycle(by=_EITHER.id))],
-    )
-
-
-# microsporidiadb: a signal peptide without an ortholog, then a comparison.
-_INTESTINALIS = _stated(_ORGANISM, "Encephalitozoon intestinalis ATCC 50506")
-_SIGNAL = _stated(_OTHER, "signal peptide")
-_NO_ORTHOLOG = _stated(_OTHER, "no ortholog in Encephalitozoon cuniculi GB-M1")
-
-
-_BOTH_SIDES = (
-    "signal peptide requirement plus no ortholog in Encephalitozoon cuniculi GB-M1"
-)
-_WITHOUT_ORTHOLOGS = (
-    "Just a question, don't change anything: how many genes would there be "
-    "without the ortholog filter, i.e. only the signal peptide requirement?"
-)
-
-
-def test_a_compared_side_records_no_requirement() -> None:
-    held = [_INTESTINALIS, _SIGNAL, _NO_ORTHOLOG]
-    thread = _thread(list(held))
-
-    thread.record(
-        _intent(
-            IntentClassification.FOLLOW_UP_QUESTION,
-            asks=["how many genes would there be without the ortholog filter"],
-            is_differential=True,
-            differential_sides=["signal peptide requirement only", _BOTH_SIDES],
-            explicit_constraints=[
-                _INTESTINALIS,
-                _stated(_OTHER, "signal peptide requirement only"),
-            ],
-        ),
-        [_WITHOUT_ORTHOLOGS],
-    )
-
-    assert (thread.requirements, thread.retired_requirements) == (held, [])
-
-
-# giardiadb: a count question about an exact product phrase.
-_MURIS = _stated(_ORGANISM, "Giardia muris Roberts-Thompson")
-_CYSTEINE = _stated(_OTHER, "cysteine-rich protein annotation")
-_EXACT_PHRASE_ASK = (
-    "How many genes actually have the exact phrase 'cysteine-rich protein' in "
-    "their product description?"
-)
-
-
-_EXACT_PHRASE_MESSAGE = (
-    "Wait, 4,497 genes before the exclusion seems like almost the whole G. muris "
-    f"genome. {_EXACT_PHRASE_ASK} Just tell me, don't change the strategy yet."
-)
-
-
-def test_values_only_an_ask_carries_record_nothing() -> None:
-    held = [_MURIS, _CYSTEINE]
-    thread = _thread(list(held))
-
-    thread.record(
-        _intent(
-            IntentClassification.FOLLOW_UP_QUESTION,
-            asks=[_EXACT_PHRASE_ASK],
-            explicit_constraints=[
-                _stated(_OTHER, "exact phrase 'cysteine-rich protein'"),
-                _stated(_OTHER, "product description"),
-            ],
-        ),
-        [_EXACT_PHRASE_MESSAGE],
-    )
-
-    assert (thread.requirements, thread.retired_requirements) == (held, [])

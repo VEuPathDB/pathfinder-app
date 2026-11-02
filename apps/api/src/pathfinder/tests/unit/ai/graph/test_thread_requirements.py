@@ -27,6 +27,7 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
         requested_value=value,
         label=kind.value,
         source=ConstraintSource.USER_EXPLICIT,
+        quote=value,
     )
 
 
@@ -192,96 +193,57 @@ def test_a_withdrawn_value_the_message_restates_is_replaced_by_it() -> None:
     )
 
 
-def test_a_compared_side_is_never_a_requirement() -> None:
+def test_a_stated_requirement_that_names_a_compared_side_is_recorded() -> None:
+    vivax = _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
+
     thread = _recorded(
-        [_ORGANISM],
+        [_TM],
         "How does the count compare with Plasmodium vivax P01?",
         _intent(
             IntentClassification.FOLLOW_UP_QUESTION,
             is_differential=True,
             differential_sides=["Plasmodium falciparum 3D7", "Plasmodium vivax P01"],
-            explicit_constraints=[
-                _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
-            ],
+            explicit_constraints=[vivax],
         ),
     )
 
-    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM], [])
+    assert thread.requirements == [_TM, vivax]
 
 
 _ASK = "tell me how many have a signal peptide"
 
 
-def test_an_ask_states_no_requirement() -> None:
+def test_a_requirement_an_ask_carries_is_recorded() -> None:
+    signal = _stated(ConstraintKind.OTHER, "signal peptide")
+
     thread = _recorded(
         [_ORGANISM, _TM],
         f"Keep it as it is and {_ASK}.",
-        _intent(
-            asks=[_ASK],
-            explicit_constraints=[_stated(ConstraintKind.OTHER, "signal peptide")],
-        ),
+        _intent(asks=[_ASK], explicit_constraints=[signal]),
     )
 
-    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM, _TM], [])
+    assert thread.requirements == [_ORGANISM, _TM, signal]
 
 
-_KINASES = _stated(ConstraintKind.OTHER, "kinases")
+def test_a_requirement_whose_quote_no_message_holds_is_assumed() -> None:
+    either = _stated(ConstraintKind.COMBINATION, "kinases OR phosphatases")
+
+    thread = _recorded(
+        [],
+        "Broaden the kinases to include phosphatases.",
+        _intent(explicit_constraints=[either]),
+    )
+
+    assert [(c.id, c.source, c.hard) for c in thread.requirements] == [
+        (either.id, ConstraintSource.ASSUMED, False)
+    ]
 
 
 def _combination(value: str) -> Constraint:
     return _stated(ConstraintKind.COMBINATION, value)
 
 
-def test_an_include_verb_records_the_or_as_the_researchers() -> None:
-    either = _combination("kinases OR phosphatases")
-
-    thread = _recorded(
-        [_KINASES],
-        "Broaden the kinases to include phosphatases.",
-        _intent(explicit_constraints=[either]),
-    )
-
-    assert [(c.id, c.source) for c in thread.requirements] == [
-        (_KINASES.id, ConstraintSource.USER_EXPLICIT),
-        (either.id, ConstraintSource.USER_EXPLICIT),
-    ]
-
-
-def test_in_addition_to_records_neither_operator_as_the_researchers() -> None:
-    message = "Find genes that have a signal peptide in addition to a GPI anchor."
-    stated = [
-        _combination("signal peptide OR GPI anchor"),
-        _combination("signal peptide AND GPI anchor"),
-    ]
-
-    theirs = [
-        c.requested_value
-        for c in _recorded(
-            [], message, _intent(explicit_constraints=stated)
-        ).requirements
-        if c.source is ConstraintSource.USER_EXPLICIT
-    ]
-
-    assert theirs == []
-
-
-def test_a_question_that_names_another_organism_replaces_none() -> None:
-    thread = _recorded(
-        [_ORGANISM, _TM],
-        "And how many of those would Plasmodium vivax P01 have?",
-        _intent(
-            IntentClassification.FOLLOW_UP_QUESTION,
-            explicit_constraints=[
-                _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
-            ],
-        ),
-    )
-
-    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM, _TM], [])
-
-
 def test_a_count_question_that_asks_for_a_build_states_its_requirements() -> None:
-    """An ask that restates the whole message is the request itself."""
     message = "How many Plasmodium falciparum 3D7 genes have a signal peptide?"
     signal = _stated(ConstraintKind.OTHER, "signal peptide")
 
@@ -406,5 +368,20 @@ def test_a_delete_no_term_of_a_combination_names_leaves_it_live(
 
     assert (thread.requirements, thread.retired_requirements) == (
         [_GS_B, combination],
+        [],
+    )
+
+
+def test_an_organism_an_include_verb_adds_stands_beside_the_held_one() -> None:
+    vivax = _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
+
+    thread = _recorded(
+        [_ORGANISM],
+        "Also include Plasmodium vivax P01.",
+        _intent(explicit_constraints=[vivax]),
+    )
+
+    assert (thread.requirements, thread.retired_requirements) == (
+        [_ORGANISM, vivax],
         [],
     )

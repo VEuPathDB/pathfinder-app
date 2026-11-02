@@ -66,7 +66,7 @@ def test_the_pin_states_what_the_message_asks_and_states() -> None:
     )
 
 
-def test_an_ask_that_is_the_whole_request_is_not_pinned_as_an_ask() -> None:
+def test_an_ask_that_is_the_whole_request_is_pinned_as_typed() -> None:
     message = "Can you also require that they are expressed in trophozoites?"
     ctx = lead_run_context(user_prompt=message)
     ctx.deps.intent = UserIntent(
@@ -75,9 +75,8 @@ def test_an_ask_that_is_the_whole_request_is_not_pinned_as_an_ask() -> None:
         asks=[message],
     )
 
-    pinned = pinned_user_intent(ctx) or ""
-
-    assert ("- asks:" in pinned, "- classification: extend_strategy" in pinned) == (
-        False,
-        True,
-    )
+    assert [
+        line
+        for line in (pinned_user_intent(ctx) or "").splitlines()
+        if line.startswith("- asks:")
+    ] == [f"- asks: {message}"]

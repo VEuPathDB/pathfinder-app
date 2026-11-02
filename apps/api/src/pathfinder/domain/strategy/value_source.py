@@ -297,35 +297,19 @@ def _quoted_in(text: str, request_texts: Sequence[str]) -> bool:
 
 
 def cut_from(
-    value: ParamValue,
-    requirement_phrases: Sequence[str],
-    request_texts: Sequence[str] = (),
-) -> str:
-    """The part of a requirement phrase a text leaves words out of, in the
-    phrase's own spelling, else empty. Words written before a text modify it,
-    so a phrase that holds the text's words after a word that is not filler
-    states a narrower text than the one bound. A number states a quantity, and
-    a text a request message quotes is the whole term, so neither is cut."""
+    value: ParamValue, quotes: Sequence[str], request_texts: Sequence[str] = ()
+) -> bool:
+    """Whether a text writes other words than every quote linked to its
+    parameter. A number states a quantity, and a text a request message quotes
+    is the whole term, so neither is cut."""
     match value:
         case StringValue(value=text) if _number_of(value) is None and not _quoted_in(
             text, request_texts
         ):
             wanted = words_of(text)
         case _:
-            return ""
-    size = len(wanted)
-    for phrase in requirement_phrases:
-        tokens = list(WORD.finditer(phrase))
-        held = [token.group().casefold() for token in tokens]
-        for start in range(1, len(held) - size + 1):
-            if size and held[start : start + size] == wanted:
-                first = start
-                while first > 0 and held[first - 1] not in FILLER_WORDS:
-                    first -= 1
-                if first < start:
-                    end = tokens[start + size - 1].end()
-                    return phrase[tokens[first].start() : end]
-    return ""
+            return False
+    return bool(quotes) and all(words_of(quote) != wanted for quote in quotes)
 
 
 def value_source(

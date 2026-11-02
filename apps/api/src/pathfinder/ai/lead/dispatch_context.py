@@ -63,7 +63,7 @@ def message_asks(deps: LeadDeps) -> list[str]:
     """The parts of this turn's message the Lead answers; none is a requirement."""
     if deps.intent is None:
         return []
-    return [ask.text for ask in deps.intent.researcher_asks(deps.state.user_prompt)]
+    return list(deps.intent.asks)
 
 
 def edit_message(deps: LeadDeps) -> EditMessage:

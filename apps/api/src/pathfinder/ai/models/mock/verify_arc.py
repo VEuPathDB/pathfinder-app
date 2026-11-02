@@ -30,13 +30,8 @@ from pathfinder.ai.models.mock.reads import (
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.evidence import SampledGene, VerificationReview
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-)
-from pathfinder.domain.strategy.message_reading import (
-    message_states_constraint,
-)
+from pathfinder.domain.strategy.constraints import message_states
+from pathfinder.domain.strategy.words import words_of
 
 READ = "get_strategy"
 TEST = "run_control_tests_on_step"
@@ -86,16 +81,21 @@ def review_call(messages: list[ModelMessage]) -> ToolCallPart | None:
     return scripted_call(_RECORD, {"gene_id": unread[0]}) if unread else None
 
 
+def _names(record_organism: str, organism: str) -> bool:
+    genus, *rest = words_of(organism) or [""]
+    abbreviated = " ".join([genus[:1], *rest]) if rest else organism
+    return message_states(record_organism, organism) or message_states(
+        record_organism, abbreviated
+    )
+
+
 def review(messages: list[ModelMessage], organism: str) -> dict[str, JsonValue]:
     """The review of the genes this run read, against the organism searched."""
     root = _ROOT.search(head_work_order(messages))
     if root is None:
         return {}
-    searched = Constraint(
-        kind=ConstraintKind.ORGANISM, requested_value=organism, label="organism"
-    )
     records = gene_records(messages)
-    fits = [message_states_constraint(r.organism, searched) for r in records]
+    fits = [_names(r.organism, organism) for r in records]
     return VerificationReview(
         sampled_genes=[
             SampledGene(

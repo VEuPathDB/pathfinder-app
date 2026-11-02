@@ -1,4 +1,4 @@
-"""A combination the message states is held to the operator the strategy builds."""
+"""A combination the message quotes is held to the operator the strategy builds."""
 
 from __future__ import annotations
 
@@ -72,6 +72,7 @@ def _intent(operator: str) -> UserIntent:
                 requested_value=f" {operator} ".join(VACCINE_TERMS),
                 label="how the requirements combine",
                 source=ConstraintSource.USER_EXPLICIT,
+                quote=VACCINE[VACCINE.index("expressed") : -1],
             )
         ],
     )
@@ -103,7 +104,7 @@ async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
     return grounded
 
 
-async def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None:
+async def test_a_combination_the_message_quotes_is_the_users() -> None:
     state = pipeline_state(user_prompt=VACCINE)
 
     await hold_the_intent(lead_deps(state), _intent("AND"), VACCINE)

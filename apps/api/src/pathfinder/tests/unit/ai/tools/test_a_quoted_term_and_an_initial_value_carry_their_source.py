@@ -1,6 +1,6 @@
 """A text term the message writes in quotes is stated whole, a number at the
 initial value the site publishes is the site's unless the message names its
-parameter, and no number is cut from a requirement phrase."""
+parameter, and no number is cut from a linked quote."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ _QUOTED = 'I meant the exact phrase "GPI anchored", in quotes'
 _GPI_PHRASE = "exact quoted phrase GPI anchored"
 
 
-def _text_term(text: str, message: str, requirement: str) -> tuple[str, str]:
+def _text_term(text: str, message: str, quote: str) -> tuple[str, str]:
     held = bound_values(
         {"text_expression": StringValue(value=text)},
         infos=format_param_info_typed(
@@ -23,13 +23,13 @@ def _text_term(text: str, message: str, requirement: str) -> tuple[str, str]:
         site_supplied=set(),
         request_texts=[message],
         reason="the model's reason",
-        requirement_phrases=[requirement],
+        linked_quotes={"text_expression": [quote]},
     )["text_expression"]
     return held.source, held.basis
 
 
 def _location(
-    values: dict[str, str], message: str, requirements: list[str]
+    values: dict[str, str], message: str, quotes: list[str]
 ) -> dict[str, tuple[str, bool]]:
     """The plasmodb GenesByLocation sheet publishes start 1 and end 0."""
     bound = bound_values(
@@ -40,7 +40,7 @@ def _location(
         site_supplied=set(),
         request_texts=[message],
         reason="the model's reason",
-        requirement_phrases=requirements,
+        linked_quotes=dict.fromkeys(values, quotes),
     )
     return {name: (held.source, held.at_default) for name, held in bound.items()}
 
@@ -67,11 +67,11 @@ def test_a_term_between_curly_quotes_is_quoted_too() -> None:
     )
 
 
-def test_a_term_cut_from_a_longer_quoted_phrase_is_still_chosen() -> None:
+def test_a_term_cut_from_a_longer_linked_quote_is_still_chosen() -> None:
     assert _text_term(
         "erythrocyte surface antigen",
         'genes with a "variant erythrocyte surface antigen" annotation',
-        "variant erythrocyte surface antigen annotation",
+        "variant erythrocyte surface antigen",
     ) == ("chosen", "the model's reason")
 
 
@@ -89,9 +89,9 @@ def test_an_initial_value_the_message_writes_beside_its_name_is_stated() -> None
     ) == {"start_point": ("stated", True)}
 
 
-def test_a_number_the_message_states_is_never_cut_from_a_phrase() -> None:
+def test_a_number_the_message_states_is_never_cut_from_a_quote() -> None:
     assert _location(
         {"start_point": "1000", "end_point": "5000"},
         "Genes on chromosome 1 from 1000 to 5000",
-        ["chromosome 1 positions 1000 to 5000"],
+        ["positions 1000 to 5000"],
     ) == {"start_point": ("stated", False), "end_point": ("stated", False)}

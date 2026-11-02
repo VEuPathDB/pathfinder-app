@@ -44,7 +44,7 @@ def _turn_one_intent() -> UserIntent:
                 ConstraintKind.COMBINATION,
                 "protease evidence combination",
                 _COMBINATION,
-            ),
+            ).model_copy(update={"quote": "combine text or GO evidence"}),
         ],
     )
 
@@ -86,7 +86,9 @@ def _answering_intent() -> UserIntent:
         IntentClassification.CLARIFICATION_RESPONSE,
         inferred_goal="build the P. vivax protease strategy",
         explicit_constraints=[
-            requirement(ConstraintKind.DATA_TYPE, "RNA-seq study", "the second one"),
+            requirement(
+                ConstraintKind.DATA_TYPE, "RNA-seq study", "the second one"
+            ).model_copy(update={"quote": "the one you named second"}),
             requirement(ConstraintKind.OTHER, "SNP definition", "non-synonymous"),
         ],
     )

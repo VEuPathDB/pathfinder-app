@@ -151,10 +151,7 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
             f"- takes back {_stated(c)}"
             for c in ctx.deps.state.domain.recorded_by_id(intent.withdrawn_ids)
         ),
-        *(
-            f"- asks: {ask.text}"
-            for ask in intent.researcher_asks(ctx.deps.state.user_prompt)
-        ),
+        *(f"- asks: {ask}" for ask in intent.asks),
         *_listed("positive controls", controls.positive_ids),
         *_listed("negative controls", controls.negative_ids),
         *_listed("names genes", intent.named_gene_ids),
