@@ -70,7 +70,6 @@ from pathfinder.services.strategies.site_changes import (
 )
 from pathfinder.services.strategies.site_counts import read_site_strategy
 
-_ORGANISM_COLUMN = "organism"
 _RESULT_ORGANISMS = "the organisms of the result"
 
 
@@ -182,7 +181,7 @@ async def _counted_organisms(
         tally = await read_in_time(
             "the organism count",
             root.named,
-            run_step_tally(counted, _ORGANISM_COLUMN, MAX_COLUMN_COUNT_TOP),
+            run_step_tally(counted, GENOME_COLUMN, MAX_COLUMN_COUNT_TOP),
             deadline=READ_DEADLINE_SECONDS,
         )
     except ReporterRefusedError:

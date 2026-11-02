@@ -2,6 +2,15 @@
 
 ## 2026-11-02
 
+* **The organism check of a large result reads `organism_full`.** A root over 2,000
+  records was counted by the step column reporter on `organism`, which QA answers
+  with HTTP 500 although the record type lists `byValue` for it. Every such check
+  was recorded as a refusal and never blocked the verdict. On QA ToxoDB a valid
+  8,842-gene T. gondii ME49 step answered 500 on `organism` and 200 on
+  `organism_full`, the column the paged count and the site's own organism filter
+  read; `verify_checks.py` now reads that column, and the recorded body
+  (`tests/fixtures/wdk/step_column_organism_full_by_value.json`) drives a unit
+  test. The backlog item on running the computed verdict live left with it.
 * **The backlog is ranked in three tiers and numbered from 1.** Items a tester
   would hit come first, then work after testers, then internal or blocked work.
   Each item that a GitHub issue tracks links that issue. Decisions and cards name

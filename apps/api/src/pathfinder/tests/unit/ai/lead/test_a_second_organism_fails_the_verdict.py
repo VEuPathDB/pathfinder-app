@@ -20,7 +20,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.column_reads import ColumnSite, serve_columns
-from pathfinder.tests._support.recorded_columns import column_catalog
+from pathfinder.tests._support.recorded_columns import by_value, column_catalog
 from pathfinder.tests._support.step_tally_site import TallySite, ToolServer, serve
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 from pathfinder.tests.unit.ai.lead._site_verdict import (
@@ -120,7 +120,7 @@ def _exported_details() -> WDKStrategyDetails:
 def _organisms(*counted: tuple[str, int]) -> ColumnCounts:
     return ColumnCounts(
         step_id=_EXPORTED,
-        column="organism",
+        column="organism_full",
         display_name="Organism",
         kind="string",
         total_records=sum(count for _, count in counted),
@@ -154,7 +154,7 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
         ),
         requirement=_ORGANISM.id,
     )
-    assert server.counted == [("plasmodb", _EXPORTED, "organism", 200)]
+    assert server.counted == [("plasmodb", _EXPORTED, "organism_full", 200)]
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
         [SiteCheckGap(check=organism)],
@@ -202,5 +202,29 @@ async def test_a_step_that_holds_only_the_selected_organism_passes(
         (
             f"all 4,200 records of step {_EXPORTED} ('Text') hold an organism the "
             f"strategy selects: {_PF} (4,200)"
+        ),
+    )
+
+
+async def test_a_large_result_is_counted_from_the_organism_full_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recorded = by_value("step_column_organism_full_by_value")
+    serve_the_site(monkeypatch, _exported_details(), [column_catalog()])
+    serve_columns(monkeypatch, ColumnSite({}, {}))
+    server = ToolServer(
+        counts=_organisms(*((b.bin_label, b.value) for b in recorded.histogram))
+    )
+    serve(monkeypatch, TallySite(column_catalog(), step_count=8778), server)
+
+    delta = await verify(monkeypatch, _exported_deps(), UNANSWERED_DIGEST)
+
+    [organism] = [c for c in delta.digest.review.checks if c.kind == "organism"]
+    assert server.counted == [("plasmodb", _EXPORTED, "organism_full", 200)]
+    assert (organism.status, organism.evidence) == (
+        "fail",
+        (
+            f"8,778 of the 8,778 records of step {_EXPORTED} ('Text') hold organisms "
+            "the strategy does not select: Toxoplasma gondii ME49 (8,778)"
         ),
     )

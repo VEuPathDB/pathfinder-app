@@ -42,7 +42,7 @@ _PF_IT = "Plasmodium falciparum IT"
 _GENES, _TRANSCRIPTS = 479, 483
 _LARGE = 4200
 _SERVICE = "https://qa.plasmodb.org/plasmo.qa/service/users/1/steps"
-_BY_VALUE = f"{_SERVICE}/{_EXPORTED}/columns/organism/reports/byValue"
+_BY_VALUE = f"{_SERVICE}/{_EXPORTED}/columns/organism_full/reports/byValue"
 _STANDARD = f"{_SERVICE}/{_EXPORTED}/reports/standard"
 _GENE_VIEW = [WDKFilterValue(name="representativeTranscriptOnly", value={})]
 
@@ -108,7 +108,7 @@ def _answer(*organisms: str) -> WDKAnswer:
 def _organisms(*counted: tuple[str, int]) -> ColumnCounts:
     return ColumnCounts(
         step_id=_EXPORTED,
-        column="organism",
+        column="organism_full",
         display_name="Organism",
         kind="string",
         total_records=sum(count for _, count in counted),
