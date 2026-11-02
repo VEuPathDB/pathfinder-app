@@ -58,6 +58,7 @@ class ReaderInput(CamelModel):
     message: str
     files: list[str] = Field(default_factory=list)
     question_open: bool = False
+    held: dict[str, str] = Field(default_factory=dict)
 
 
 class ReadingGuide(CamelModel):
@@ -90,7 +91,12 @@ def reading_guide() -> ReadingGuide:
     )
 
 
-def _context(read: ReaderInput, *, latest_first: bool) -> str:
+def _held(read: ReaderInput) -> str:
+    listed = "\n".join(f"{number}: {text}" for number, text in read.held.items())
+    return f"\n\n## The requirements the conversation holds\n{listed}" if listed else ""
+
+
+def _context(read: ReaderInput, *, latest_first: bool, held: bool = False) -> str:
     steps = "\n".join(read.steps) or "(no steps)"
     attached = (
         f"\n\n## The files attached to it\n{', '.join(read.files)}"
@@ -103,6 +109,7 @@ def _context(read: ReaderInput, *, latest_first: bool) -> str:
     rest = (
         f"## The strategy now\n{read.strategy}\n\n## Its steps\n{steps}\n\n"
         f"## The conversation so far\n{read.conversation or '(this is the first message of the conversation)'}"
+        f"{_held(read) if held else ''}"
     )
     return f"{latest}\n\n{rest}" if latest_first else f"{rest}\n\n{latest}"
 
@@ -224,8 +231,10 @@ class _ModelReading(CamelModel):
     edit_direction: EditDirection = "other"
 
 
-def _prompt(read: ReaderInput, files: Sequence[UserContent]) -> list[UserContent]:
-    return [_context(read, latest_first=False), *files]
+def _prompt(
+    read: ReaderInput, files: Sequence[UserContent], *, held: bool = False
+) -> list[UserContent]:
+    return [_context(read, latest_first=False, held=held), *files]
 
 
 async def _model_reading(
@@ -267,12 +276,12 @@ async def _stated_request(
         instructions=load_request_guide(),
         capabilities=[meter.on(model_id)],
     )
-    prompt = _prompt(read, files)
+    prompt = _prompt(read, files, held=True)
     stated = (await agent.run(prompt)).output
     outside = stated.quotes_outside(read.message)
     if outside:
         stated = (await agent.run([*prompt, _quotes_refusal(outside)])).output
-    return stated.within(read.message)
+    return stated.within(read.message, read.held)
 
 
 def _settled(reading: MessageReading) -> bool:

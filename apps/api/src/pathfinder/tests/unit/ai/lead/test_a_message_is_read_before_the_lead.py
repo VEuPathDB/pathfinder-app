@@ -325,3 +325,55 @@ async def test_the_model_reading_starts_before_the_decision_answers() -> None:
 
     assert order.index("modeled") < order.index("decided")
     assert (reading.effect, reading.read_by) == ("add", "model")
+
+
+HELD = READ.model_copy(
+    update={"held": {"R1": "organism: Mus musculus", "R2": "count: chromosome 17"}}
+)
+
+
+async def test_only_the_extraction_reads_the_numbered_held_requirements() -> None:
+    ask = _Decisions(_answer(("change", 0.95), ("status", 0.9)), None)
+    model, script = _request_model(STATED)
+
+    await read_message(
+        HELD, model=model, model_id="openai:gpt-5.6-luna", meter=SpendMeter(), ask=ask
+    )
+
+    listed = "## The requirements the conversation holds\nR1: organism: Mus musculus\nR2: count: chromosome 17"
+    assert (listed in script.prompts[0], [listed in a.input for a in ask.asked]) == (
+        True,
+        [False, False],
+    )
+
+
+async def test_a_withdrawal_names_a_held_number_or_is_dropped() -> None:
+    taking_back = {
+        **STATED,
+        "withdrawn": [
+            {"quote": "Move it to chromosome 12", "requirement": "R2"},
+            {"quote": "Move it", "requirement": "R7"},
+            {"quote": "chromosome 12", "requirement": ""},
+        ],
+    }
+    ask = _Decisions(_answer(("change", 0.95), ("status", 0.9)), None)
+    model, _ = _request_model(taking_back)
+
+    _, stated = await read_message(
+        HELD, model=model, model_id="openai:gpt-5.6-luna", meter=SpendMeter(), ask=ask
+    )
+
+    assert [(w.quote, w.requirement) for w in stated.withdrawn] == [
+        ("Move it to chromosome 12", "R2")
+    ]
+
+
+async def test_a_thread_that_holds_nothing_lists_no_requirements() -> None:
+    ask = _Decisions(_answer(("change", 0.95), ("status", 0.9)), None)
+    model, script = _request_model(STATED)
+
+    await read_message(
+        READ, model=model, model_id="openai:gpt-5.6-luna", meter=SpendMeter(), ask=ask
+    )
+
+    assert "## The requirements the conversation holds" not in script.prompts[0]

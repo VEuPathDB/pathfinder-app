@@ -104,3 +104,47 @@ def test_a_question_frame_asks_about_a_criterion_carries_its_id() -> None:
     asked = SlotQuestion(question="Which GPI predictor?", criterion_id="c_gpi")
 
     assert asked.typed(_GPI_STEP).criterion_id == "c_gpi"
+
+
+def test_a_question_frame_asks_about_a_requirement_carries_its_id() -> None:
+    asked = SlotQuestion(question="Which GPI predictor?", requirements=["R1"])
+
+    assert asked.typed(replaces=[_GPI.id]).requirement_ids == [_GPI.id]
+
+
+_SIGNAL = Constraint(
+    kind=ConstraintKind.OTHER,
+    requested_value="signal peptide",
+    label="signal peptide",
+    source=ConstraintSource.USER_EXPLICIT,
+)
+_ASKS_ABOUT_SIGNAL = OpenQuestion(
+    question="No search states a signal peptide here. Use SignalP instead?",
+    requirement_ids=[_SIGNAL.id],
+)
+
+
+def test_each_requirement_takes_its_drop_and_keep_on_the_question_naming_it() -> None:
+    both = _GPI_STEP.model_copy(
+        update={
+            "answers": [
+                RequirementLink(requirement=_GPI.id),
+                RequirementLink(requirement=_SIGNAL.id),
+            ]
+        }
+    )
+
+    asked = with_withdrawals(
+        [_FRAMES, _ASKS_ABOUT_SIGNAL], [_SIGNAL, _GPI], criteria=[both]
+    )
+
+    assert [(q.question, [o.binding for o in q.options]) for q in asked] == [
+        (
+            _FRAMES.question,
+            [Withdraw(constraint_id=_GPI.id), Keep(constraint_id=_GPI.id)],
+        ),
+        (
+            _ASKS_ABOUT_SIGNAL.question,
+            [Withdraw(constraint_id=_SIGNAL.id), Keep(constraint_id=_SIGNAL.id)],
+        ),
+    ]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -41,8 +41,6 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     restored,
     retire,
     retire_dropped_sides,
-    with_recorded_sources,
-    withdrawn_by,
 )
 from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.stated_requirements import (
@@ -163,8 +161,8 @@ class ThreadRequirements(BaseModel):
         self.recommendations = held
 
     def record(self, intent: UserIntent, messages: Sequence[str]) -> None:
-        """Take what this message states and withdraws. ``messages`` are the
-        researcher's words, this message first. A value only an ask of the
+        """Take what this message states and the held requirements it withdraws
+        by id. ``messages`` are the researcher's words, this message first. A value only an ask of the
         message carries is no requirement, and a question is all ask."""
         held = list(self.requirements)
         newest = messages[0] if messages else ""
@@ -188,7 +186,9 @@ class ThreadRequirements(BaseModel):
         )
         still_held = [c for c in self.requirements if c in held]
         added = [c for c in self.requirements if c not in held]
-        self.withdraw(withdrawn_by(still_held, intent.withdrawn), stated=added)
+        self.withdraw(
+            (c for c in still_held if c.id in intent.withdrawn_ids), stated=added
+        )
         self.turn_markers.requirements_added.extend(added)
         self.record_recommendations()
 
@@ -336,17 +336,8 @@ class ThreadRequirements(BaseModel):
             turn_id=self._turn_id(),
         )
 
-    def withdrawn_as_recorded(self, intent: UserIntent) -> UserIntent:
-        """The intent, each requirement it withdraws in the source this thread
-        recorded for it. An intent this changes nothing of stays the same object."""
-        recorded = [
-            *self.requirements,
-            *(r.constraint for r in self.retired_requirements),
-        ]
-        sourced = with_recorded_sources(intent.withdrawn, recorded)
-        if sourced == intent.withdrawn:
-            return intent
-        return intent.model_copy(update={"withdrawn": sourced})
+    def recorded_by_id(self, ids: Collection[str]) -> list[Constraint]:
+        return [c for c in self._recorded() if c.id in ids]
 
     def _turn_id(self) -> str:
         return str(self.turn_markers.message_id or "")

@@ -1,6 +1,6 @@
 """Lead arcs that state requirements the thread's lifecycle is derived from: a
 narrower organism stated with no withdrawal, and a requirement taken back by
-its dimension and value alone."""
+its number."""
 
 from __future__ import annotations
 
@@ -11,9 +11,6 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.models.mock.arc_readings import intent_of, read_as, stated
 from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.site_values import SiteValues
-
-# The requirement the withdrawal arc takes back, as the reading states it.
-WITHDRAWN_VALUE = "transmembrane domain"
 
 _GOAL = "[mock] change a requirement"
 _NARROWED = "The strategy now reads the narrower organism."
@@ -33,7 +30,9 @@ def narrowed_reading(state: PipelineState, words: str) -> UserIntent:
 withdrawn_reading = read_as(
     IntentClassification.EDIT_STRATEGY,
     inferredGoal=_GOAL,
-    withdrawn=[stated("other", "domain", WITHDRAWN_VALUE)],
+    request={
+        "withdrawn": [{"quote": "Drop the transmembrane domain", "requirement": "R1"}]
+    },
 )
 
 
@@ -44,7 +43,6 @@ def narrowed_organism(messages: list[ModelMessage]) -> list[ToolCallPart]:
 
 
 def withdrawn_requirement(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    """The answer to an edit read as taking one requirement back by its
-    dimension and value."""
+    """The answer to an edit read as taking one requirement back by its number."""
     del messages
     return [lead_final(_WITHDRAWN, "await_user")]

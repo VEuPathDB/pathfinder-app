@@ -9,21 +9,23 @@ status: stable
 
 # What was decided
 
-The Lead reads the requirements the thread holds as a numbered list, as FRAME
-already does ([a pass names a requirement by its number](a-pass-names-a-requirement-by-its-number.md)).
-`UserIntent.withdrawn` is a list of those numbers. A number the list does not hold
-retires nothing. The thread maps each number to the id it minted for
-that requirement and retires it; the retirement keeps the source the thread
-recorded for it. No withdrawal reads a value's words.
+The message reader's extraction call reads the requirements the thread holds as
+a numbered list, in the order FRAME reads them
+([a pass names a requirement by its number](a-pass-names-a-requirement-by-its-number.md)).
+Each requirement a message takes back names its number (`StatedWithdrawal.requirement`)
+with a verbatim quote, and a number the list does not hold is dropped. The gate
+that holds the intent maps each number to the id the thread minted for that
+requirement (`UserIntent.withdrawn_ids`), and the thread retires exactly those ids;
+the retirement keeps the source the thread recorded for it. No withdrawal reads a
+value's words.
 
 This supersedes the withdrawal clause of
 [the requirement lifecycle is derived](the-requirement-lifecycle-is-derived.md):
 the bullet that retires each held requirement "whose value and the statement's
 carry each other's words" (`requirement_lifecycle.withdrawn_by`) and the one that
 sources a withdrawal from the first requirement its words name
-(`requirement_lifecycle.with_recorded_sources`). The rest of that decision stands.
-The code holds the superseded clause until step 5 of
-[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md) lands.
+(`requirement_lifecycle.with_recorded_sources`). Both functions are deleted. The
+rest of that decision stands.
 
 # The measurement
 
@@ -71,5 +73,5 @@ no-answer branch the thread would still need.
 A replay of the same saved runs under the numbered schema in which a withdrawal
 the researcher stated retires a requirement other than the one meant, or a
 withdrawal the numbered list cannot name because the thread does not hold the
-requirement. The unit tests step 5 adds hold a number the list lacks as refused
-and a withdrawn number as retiring exactly its id.
+requirement. The unit tests hold a number the list lacks as dropped and a
+withdrawn number as retiring exactly its id.

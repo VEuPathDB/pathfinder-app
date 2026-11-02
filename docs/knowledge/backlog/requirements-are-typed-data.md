@@ -66,8 +66,6 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
    typed combination, the FRAME floor is the member count and the allowed
    operators come from the typed field. Delete `match_terms`, `_best_match`,
    `CombinationRequest.parse` and `combination_terms_overlap`.
-5. Withdrawal by number (R): `withdrawn_by` and `with_recorded_sources` read held
-   numbers mapped to ids.
 6. Attribution by quote (R): `attributed`, the include-verb arm,
    `message_states_constraint` and `_span` give way to the quote rule and the
    connective reading between members' quotes; a pick binds an option id, asks are
@@ -95,7 +93,7 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
     and is outdated when a seed value or step is gone; a step name PathFinder made
     is regenerated from the search display name and bound labels, and a name the
     researcher wrote is never rewritten. Not R.
-15. Cleanup: delete `message_states`, `states_the_content`, `content_words`,
+15. Cleanup: delete `message_states`, `content_words`,
     `message_states_constraint`, `record_noun` and `qualifies_a_record_noun`
     with their tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision,

@@ -24,7 +24,8 @@ answers, and nothing on a turn with no words (a durable result, a card click).
   views' averaged probabilities.
 - One extraction call on the Lead's model for the turn (`StatedRequest`): each requirement
   as a verbatim quote of the message with one of eleven kinds, its value and whether it is
-  hard; each withdrawal with the value it takes back; the goal, the asks, the comparison
+  hard; each withdrawal with the number of the held requirement it takes back, from the
+  numbered list only this call reads; the goal, the asks, the comparison
   sides, the step ids, the gene ids and the controls. A quote the message does not hold is
   refused once with the quotes named; one still outside the message is dropped.
 - A model reading of effect, wants and the flags (`message_reading.md`), started with the
@@ -36,7 +37,8 @@ reads: audit, remember, context only, off topic and answers-open name the classi
 in that order, else the effect does; a withdrawal on a message whose effect is none is a
 removal. `ai/lead/held_intent.py::hold_the_intent` then completes organisms against the
 site's list, drops gene ids neither the message, the records shown last nor an attached
-file of the site holds, sources each withdrawal from the thread, and records the intent.
+file of the site holds, maps each withdrawn number to the id the thread holds it under,
+and records the intent.
 The Lead reads the result in its pinned User Intent: the classification, what the message
 asks to be told, each stated and withdrawn requirement with its quote, the asks and the
 named ids.

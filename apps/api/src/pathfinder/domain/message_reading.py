@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -68,8 +69,7 @@ class StatedWithdrawal(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     quote: str = Field(min_length=1)
-    kind: RequirementKind
-    value: str = Field(min_length=1)
+    requirement: str = ""
 
 
 class StatedRequest(CamelModel):
@@ -91,11 +91,15 @@ class StatedRequest(CamelModel):
         ]
         return [q for q in quoted if q not in said]
 
-    def within(self, said: str) -> StatedRequest:
+    def within(self, said: str, held: Collection[str]) -> StatedRequest:
         return self.model_copy(
             update={
                 "requirements": [r for r in self.requirements if r.quote in said],
-                "withdrawn": [w for w in self.withdrawn if w.quote in said],
+                "withdrawn": [
+                    w
+                    for w in self.withdrawn
+                    if w.quote in said and w.requirement in held
+                ],
             }
         )
 

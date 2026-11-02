@@ -147,7 +147,10 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
             f"- {'states' if c.hard else 'prefers'} {_stated(c)}"
             for c in intent.explicit_constraints
         ),
-        *(f"- takes back {_stated(c)}" for c in intent.withdrawn),
+        *(
+            f"- takes back {_stated(c)}"
+            for c in ctx.deps.state.domain.recorded_by_id(intent.withdrawn_ids)
+        ),
         *(
             f"- asks: {ask.text}"
             for ask in intent.researcher_asks(ctx.deps.state.user_prompt)

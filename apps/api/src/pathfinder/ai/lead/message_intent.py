@@ -88,16 +88,6 @@ def intent_of(reading: MessageReading, request: StatedRequest) -> UserIntent:
         asks=request.asks,
         referenced_step_ids=request.referenced_step_ids,
         explicit_constraints=[_constraint(r) for r in request.requirements],
-        withdrawn=[
-            Constraint(
-                kind=_OLD_KIND[w.kind],
-                requested_value=w.value,
-                label=w.value,
-                source=ConstraintSource.USER_EXPLICIT,
-                quote=w.quote,
-            )
-            for w in request.withdrawn
-        ],
         named_controls=_controls(request),
         named_gene_ids=request.named_gene_ids,
         reading=reading,

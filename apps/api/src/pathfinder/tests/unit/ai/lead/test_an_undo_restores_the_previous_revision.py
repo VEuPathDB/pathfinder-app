@@ -163,7 +163,7 @@ def _undo_intent(
         inferred_goal="undo the last change",
         undo=True,
         explicit_constraints=list(constraints),
-        withdrawn=list(withdrawn),
+        withdrawn_ids=[c.id for c in withdrawn],
     )
 
 

@@ -1,5 +1,20 @@
 # Log
 
+## 2026-11-03
+
+* **A withdrawal names a held requirement by its number.** The message reader's
+  extraction call is given the held requirements under the numbers FRAME reads,
+  and each requirement a message takes back names its number with a verbatim
+  quote; a number the list does not hold is dropped. The gate maps each number to
+  the id the thread minted, and the thread retires exactly those ids in the source
+  it recorded. `withdrawn_by`, `with_recorded_sources`, `withdrawn_as_recorded`,
+  `states_the_content` and the constraint list `UserIntent.withdrawn` are deleted.
+  An optionless question that names a requirement no search states takes its drop
+  and keep options before a new question is asked, so the card asks one question
+  per requirement. The corpus case `underspecified-request-clarifies-first` is
+  deleted. See
+  [a withdrawal names a held requirement by its number](decisions/a-withdrawal-names-a-held-requirement-by-its-number.md).
+
 ## 2026-11-02
 
 * **A criterion links the requirement it answers.** FRAME's `set_criterion` takes
