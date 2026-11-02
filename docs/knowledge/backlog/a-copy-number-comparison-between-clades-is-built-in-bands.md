@@ -52,7 +52,7 @@ question and the caveat below.
    remaining gap (average versus every genome) as a caveat, not a failure.
 4. Approximation recipes for questions over higher taxonomic groups (a species
    with many strains, a genus, a phylum) are collected with the suggested-prompt
-   candidates (card 43) and become guidance once a measured run passes.
+   candidates ([a suggested prompt is measured before it ships](a-suggested-prompt-is-measured-before-it-ships.md)) and become guidance once a measured run passes.
 
 ## Measured on QA OrthoMCL (build 8.2)
 

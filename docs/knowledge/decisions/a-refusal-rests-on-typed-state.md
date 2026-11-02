@@ -82,9 +82,9 @@ phrasing; a refusal that reads typed state holds whatever the phrasing.
   and the rules contradicted each other (one demanded a question the next refused).
 - **Narrowing each rule with more word lists.** It is the same mechanism with a larger
   surface.
-- **Widening the guards that refused too much** (backlog 63). A wider word pattern is still a
+- **Widening the guards that refused too much**. A wider word pattern is still a
   word pattern, and it fails on the next phrasing.
-- **Refusing a reply whose words claim an approval** (backlog 61). The fault was missing data:
+- **Refusing a reply whose words claim an approval**. The fault was missing data:
   the Lead could not see who chose a reading. Each reading now says who chose it
   ([a reading says who chose it](a-reading-says-who-chose-it.md)).
 

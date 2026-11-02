@@ -11,7 +11,7 @@ status: stable
 
 [A verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)
 runs one typed check per requirement. Once requirements are typed data
-([backlog item 77](../backlog/requirements-are-typed-data.md)), a check compares
+([the typed-requirements backlog item](../backlog/requirements-are-typed-data.md)), a check compares
 a requirement only through what the strategy binds for it:
 
 - An untyped requirement (a stored requirement read back from before the typed
@@ -31,7 +31,7 @@ sees which requirements nothing compared.
 The code still grounds a value requirement by reading its words with patterns
 (`constraint_grounding`, `fold_grounding`, `PercentileRequest.parse`), and a hard
 stated requirement those patterns cannot ground blocks
-(`constraints.is_blocking`), until steps 7 to 13 of backlog item 77 land.
+(`constraints.is_blocking`), until steps 7 to 13 of that item land.
 
 # What was rejected
 

@@ -1,5 +1,11 @@
 # Log
 
+## 2026-11-02
+
+* **The backlog is numbered 1 to 28 in rank order.** Each item that a GitHub
+  issue tracks links that issue. Decisions and cards name a backlog item by its
+  title, not by its number, so a renumber changes nothing outside the index.
+
 ## 2026-11-01
 
 * **A requirement is named by an id, not by its kind and value.** Every

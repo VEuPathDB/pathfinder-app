@@ -23,7 +23,7 @@ carry each other's words" (`requirement_lifecycle.withdrawn_by`) and the one tha
 sources a withdrawal from the first requirement its words name
 (`requirement_lifecycle.with_recorded_sources`). The rest of that decision stands.
 The code holds the superseded clause until step 5 of
-[backlog item 77](../backlog/requirements-are-typed-data.md) lands.
+[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md) lands.
 
 # The measurement
 

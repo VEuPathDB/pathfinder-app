@@ -16,7 +16,8 @@ abstract ("What fixed copy-number thresholds should define an expanded orthogrou
 example at least how many Toxoplasma genes per orthogroup and fewer than how many
 Plasmodium genes?"). An answer in biology terms is followed by the same refusal ("the exact
 comparison remains unavailable"), and the exchange ends without a strategy, although the
-site can approximate the request (card 50).
+site can approximate the request
+([a copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md)).
 
 ## Change
 
@@ -24,7 +25,8 @@ site can approximate the request (card 50).
    each one line: what it means biologically, what the strategy does, roughly what it
    returns or what it misses; the user picks one or answers freely.
 2. The readings come from what the catalog can express (the phyletic grammar, transforms,
-   counts, the per-step count of card 47), so a reading offered is a reading the turn
+   counts, the per-step count of
+   [a member count reaches framing on the first message](a-built-step-is-counted-by-a-column.md)), so a reading offered is a reading the turn
    can build.
 3. An answer in the user's terms (for example "2-5 copies, at least 2x more") is mapped to
    the closest buildable reading, stated back in one sentence, and built; the turn does
@@ -35,8 +37,9 @@ site can approximate the request (card 50).
 
 ## Related
 
-Card 45 (an "all" over many genomes is asked about) and card 50 (a copy-number
-comparison between clades is built in bands) are two cases of this rule.
+An "all" over many genomes that is asked about, and
+[a copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md),
+are two cases of this rule.
 
 ## Done when
 
