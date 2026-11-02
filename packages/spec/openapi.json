@@ -21733,6 +21733,11 @@
             "$ref": "#/components/schemas/ConstraintSource",
             "default": "assumed"
           },
+          "quote": {
+            "default": "",
+            "title": "Quote",
+            "type": "string"
+          },
           "hard": {
             "default": true,
             "title": "Hard",
@@ -22353,6 +22358,13 @@
             "title": "Text",
             "type": "string"
           },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementLink"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
           "searchName": {
             "default": "",
             "title": "Searchname",
@@ -22741,15 +22753,12 @@
             ],
             "title": "Edadatasetid"
           },
-          "requirement": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Constraint"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/Constraint"
+            },
+            "title": "Requirements",
+            "type": "array"
           }
         },
         "required": [
@@ -23501,6 +23510,17 @@
         ],
         "title": "EditDirectionCaveat",
         "type": "object"
+      },
+      "Effect": {
+        "enum": [
+          "none",
+          "new",
+          "add",
+          "change",
+          "remove",
+          "undo"
+        ],
+        "type": "string"
       },
       "EvidenceCard": {
         "description": "The evidence behind one verification of one strategy revision.",
@@ -24627,6 +24647,74 @@
         "title": "MemoryEntryDraft",
         "type": "object"
       },
+      "MessageReading": {
+        "properties": {
+          "effect": {
+            "$ref": "#/components/schemas/Effect"
+          },
+          "wants": {
+            "$ref": "#/components/schemas/Want"
+          },
+          "answersOpen": {
+            "default": false,
+            "title": "Answersopen",
+            "type": "boolean"
+          },
+          "disputesResult": {
+            "default": false,
+            "title": "Disputesresult",
+            "type": "boolean"
+          },
+          "audit": {
+            "default": false,
+            "title": "Audit",
+            "type": "boolean"
+          },
+          "remember": {
+            "default": false,
+            "title": "Remember",
+            "type": "boolean"
+          },
+          "contextOnly": {
+            "default": false,
+            "title": "Contextonly",
+            "type": "boolean"
+          },
+          "offTopic": {
+            "default": false,
+            "title": "Offtopic",
+            "type": "boolean"
+          },
+          "editDirection": {
+            "$ref": "#/components/schemas/EditDirection",
+            "default": "other"
+          },
+          "readBy": {
+            "$ref": "#/components/schemas/ReadBy"
+          },
+          "effectConfidence": {
+            "default": 1.0,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Effectconfidence",
+            "type": "number"
+          },
+          "wantsConfidence": {
+            "default": 1.0,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Wantsconfidence",
+            "type": "number"
+          }
+        },
+        "required": [
+          "effect",
+          "wants",
+          "readBy"
+        ],
+        "title": "MessageReading",
+        "type": "object"
+      },
       "NamedControlSet": {
         "description": "The saved control set a control test ran.",
         "properties": {
@@ -25159,6 +25247,14 @@
         "title": "Proposal",
         "type": "object"
       },
+      "ReadBy": {
+        "enum": [
+          "decisions",
+          "model",
+          "script"
+        ],
+        "type": "string"
+      },
       "ReadFact": {
         "properties": {
           "title": {
@@ -25403,6 +25499,11 @@
             "title": "Text",
             "type": "string"
           },
+          "requirement": {
+            "default": "",
+            "title": "Requirement",
+            "type": "string"
+          },
           "sentence": {
             "description": "The requirement, in the researcher's words, and what is missing.",
             "readOnly": true,
@@ -25415,6 +25516,46 @@
           "sentence"
         ],
         "title": "RequirementGap",
+        "type": "object"
+      },
+      "RequirementKind": {
+        "enum": [
+          "organism",
+          "record_type",
+          "data_type",
+          "percentile",
+          "fold_change",
+          "significance",
+          "count",
+          "ortholog",
+          "text",
+          "property",
+          "untyped"
+        ],
+        "type": "string"
+      },
+      "RequirementLink": {
+        "properties": {
+          "requirement": {
+            "title": "Requirement",
+            "type": "string"
+          },
+          "param": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Param"
+          }
+        },
+        "required": [
+          "requirement"
+        ],
+        "title": "RequirementLink",
         "type": "object"
       },
       "RetiredFact": {
@@ -26292,6 +26433,128 @@
           }
         },
         "title": "StaleBuild",
+        "type": "object"
+      },
+      "StatedRequest": {
+        "properties": {
+          "goal": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Goal",
+            "type": "string"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/StatedRequirement"
+            },
+            "title": "Requirements",
+            "type": "array"
+          },
+          "withdrawn": {
+            "items": {
+              "$ref": "#/components/schemas/StatedWithdrawal"
+            },
+            "title": "Withdrawn",
+            "type": "array"
+          },
+          "asks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Asks",
+            "type": "array"
+          },
+          "differentialSides": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Differentialsides",
+            "type": "array"
+          },
+          "referencedStepIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Referencedstepids",
+            "type": "array"
+          },
+          "namedGeneIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Namedgeneids",
+            "type": "array"
+          },
+          "positiveControlIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Positivecontrolids",
+            "type": "array"
+          },
+          "negativeControlIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Negativecontrolids",
+            "type": "array"
+          }
+        },
+        "title": "StatedRequest",
+        "type": "object"
+      },
+      "StatedRequirement": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RequirementKind"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "quote",
+          "kind",
+          "value"
+        ],
+        "title": "StatedRequirement",
+        "type": "object"
+      },
+      "StatedWithdrawal": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RequirementKind"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quote",
+          "kind",
+          "value"
+        ],
+        "title": "StatedWithdrawal",
         "type": "object"
       },
       "StatisticFact": {
@@ -27714,11 +27977,10 @@
         "type": "object"
       },
       "UserIntent": {
-        "description": "The Lead's typed parsing of the latest user message.\n\nThe message is the turn's own and is read from the state, so this model\ncarries what the classification decides and no text of the message.\nDistinct from ``ProblemFrame``: ``UserIntent`` is per-message and\nre-derived each turn; ``ProblemFrame`` is the durable scoping artifact.\nThe Lead writes this via the ``classify_user_intent`` tool as its\nfirst action on a new user message; the Ledger then derives downstream\nbooleans (e.g. ``intent_satisfied``) from typed fields here.",
+        "description": "The Lead's typed parsing of the latest user message.\n\nThe message is the turn's own and is read from the state, so this model\ncarries what the classification decides and no text of the message.\nDistinct from ``ProblemFrame``: ``UserIntent`` is per-message and\nre-derived each turn; ``ProblemFrame`` is the durable scoping artifact.\nIt is read from the message before the Lead runs; the Ledger then derives\ndownstream booleans (e.g. ``intent_satisfied``) from typed fields here.",
         "properties": {
           "classification": {
-            "$ref": "#/components/schemas/IntentClassification",
-            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog. gene_model_audit is a request to check the gene models of a genome or of named genes for errors, whatever its verb: pseudogene calls on intact genes; selenoproteins cut at their selenocysteine; gene length against orthologs; one gene split into two models; neighbouring genes fused into one model; strain model against its reference; genes missing from the annotation; organelle genes at the circular join; exon structure against RNA-seq. A question whether a model is right is an audit, and a request for the genes that hold a property of their models is a build."
+            "$ref": "#/components/schemas/IntentClassification"
           },
           "inferredGoal": {
             "maxLength": 500,
@@ -27731,7 +27993,6 @@
             "type": "boolean"
           },
           "differentialSides": {
-            "description": "Two-item list of comparison conditions when ``is_differential`` is True (e.g. ``['asexual', 'gametocyte']``). Empty otherwise.",
             "items": {
               "type": "string"
             },
@@ -27741,23 +28002,19 @@
           },
           "editDirection": {
             "$ref": "#/components/schemas/EditDirection",
-            "default": "other",
-            "description": "For a change to the strategy: 'loosen' when the message asks the result to admit more records (a lower cut, a wider range, a requirement dropped), 'tighten' when it asks for fewer, 'other' for any other message."
+            "default": "other"
           },
           "asksAChange": {
             "default": false,
-            "description": "The message asks the strategy to change: a step added, removed or replaced, its records carried to another record type, or a value changed. True whether it is worded as a request or as a question.",
             "title": "Asksachange",
             "type": "boolean"
           },
           "undo": {
             "default": false,
-            "description": "The message asks to undo, revert or put back the last change.",
             "title": "Undo",
             "type": "boolean"
           },
           "asks": {
-            "description": "Each part of this message that asks for an answer about results and not for records: to report, explain or compare counts or steps, such as 'tell me how the two counts compare'. List the ask's own words and never the records it names: those are requirements. In the message's own words; empty when it asks for none.",
             "items": {
               "type": "string"
             },
@@ -27772,7 +28029,6 @@
             "type": "array"
           },
           "explicitConstraints": {
-            "description": "Typed constraints the user STATED in this message. One of data_type, statistical_threshold, fold_change, comparator, organism, record_type, percentile, combination, other. Captured fresh each turn from the literal message - these are user-explicit by construction and override scoping's provisional assumptions for the same dimension. A constraint that points at an earlier reply, such as the experiment you recommended or the third gene you listed, is written as what that reply named, read from \"The conversation so far\".",
             "items": {
               "$ref": "#/components/schemas/Constraint"
             },
@@ -27780,7 +28036,6 @@
             "type": "array"
           },
           "withdrawn": {
-            "description": "One entry per requirement this message takes back, typed as in explicitConstraints: its dimension and its value in the words the conversation stated it in. A new value of any dimension but 'other' takes the old one's place, so a message that only states one withdraws nothing here. An 'other' value stands beside the others: a message that swaps one lists the old value here.",
             "items": {
               "$ref": "#/components/schemas/Constraint"
             },
@@ -27795,16 +28050,34 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "The gene ids this message names as positive or negative controls, typed or in an attached gene-ID list, each spelled as the message spells it. None when the message names no control."
+            ]
           },
           "namedGeneIds": {
-            "description": "Every other gene id this message types or an attached file shows, whatever the classification, each spelled as the message spells it.",
             "items": {
               "type": "string"
             },
             "title": "Namedgeneids",
             "type": "array"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatedRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -28258,6 +28531,23 @@
         "title": "VerificationSection",
         "type": "object"
       },
+      "Want": {
+        "enum": [
+          "nothing",
+          "status",
+          "show_records",
+          "show_again",
+          "explain",
+          "recommend",
+          "compare",
+          "count_by_value",
+          "look_up",
+          "analysis",
+          "save_export",
+          "help"
+        ],
+        "type": "string"
+      },
       "WithdrawnLifecycle": {
         "description": "A requirement a later message of the researcher took back.",
         "properties": {
@@ -28319,6 +28609,11 @@
           },
           "word": {
             "title": "Word",
+            "type": "string"
+          },
+          "requirement": {
+            "default": "",
+            "title": "Requirement",
             "type": "string"
           },
           "sentence": {

@@ -88,9 +88,9 @@ property added to a property is an AND: no operator is stated, the model splits
 the constraint, no hard combination is recorded, and FRAME asks when the shape
 matters. An "or" inside one term's span is an alternative within that
 requirement and never a connective. A message that names a "union" or an
-"intersection" states that operator. `classify_user_intent` refuses a
-combination whose terms the message carries and whose operator it does not,
-and the refusal quotes the connective between the two terms. The connective
+"intersection" states that operator. The reading of the message records no
+combination; how requirements combine is FRAME's tree, read against the
+researcher's words. The connective
 reading stays, but a term will be located by the researcher's verbatim quote and
 not by its words
 ([a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md));

@@ -282,13 +282,13 @@ async def set_structure(
         state.operational_spec_draft, proposed, live_step_ids=live
     )
     folded = (await _organism_folded(ctx, deduped.structure, live)).holding_open(
-        state.stated_requirements, state.request_messages
+        state.stated_requirements
     )
     dropped: list[OrganismDrop | DuplicateDrop] = [*deduped.dropped, *folded.dropped]
     state.frame_set_structure(folded.structure)
     for drop in dropped:
         state.frame_drop_criterion(
-            drop.criterion_id, drop.fate, requirement=drop.requirement
+            drop.criterion_id, drop.fate, requirements=drop.requirements
         )
     combined = len(structure_criteria(folded.structure))
     summary = f"Structure set: {combined} {'search' if combined == 1 else 'searches'}"

@@ -1,31 +1,16 @@
-"""The Lead's own tools: intent, memory, gene sets, clears and deletes."""
+"""The Lead's own tools: memory, gene sets, clears and deletes."""
 
 from __future__ import annotations
 
-from assistant_core.capabilities.refused_calls import CallRefused
-from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.card_reply import CardReply
-from pathfinder.ai.lead.classification_gate import (
-    classification_refusal,
-    read_the_site,
-)
 from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.dispatch_context import inner_context
-from pathfinder.ai.lead.intent import (
-    ANSWERING_INTENTS,
-    ClassifiedIntent,
-    IntentClassification,
-    RefusedClassification,
-    UserIntent,
-    repeated_refusal_message,
-)
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import (
     conversation,
@@ -39,195 +24,7 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
 )
-from pathfinder.domain.strategy.organism_phrases import complete_organisms
 from pathfinder.services.strategies.graph_outcome import live_outcome
-
-
-async def classify_user_intent(
-    ctx: RunContext[LeadDeps],
-    intent: UserIntent,
-) -> ToolReturn[ClassifiedIntent]:
-    """Classify the user's intent for this turn. Call this once, before any
-    other sub-agent call; a second call replaces the classification. An
-    answer the researcher gives on a card of yours under this message is
-    classified once more, with the requirements that answer states.
-
-    The message classified is this turn's own, which is pinned in your
-    instructions; it is never passed here. Construct a ``UserIntent``
-    with: ``classification`` (one of the IntentClassification enum
-    values), ``inferred_goal`` (your one-sentence paraphrase),
-    ``is_differential`` and ``differential_sides`` when the user is
-    asking a comparison question, and any referenced step/strategy IDs.
-
-    Populate ``explicit_constraints`` with one typed Constraint for every
-    requirement the user STATES in this message - data type ("RNA-Seq
-    only"), statistical threshold ("adjusted p <= 0.05"), fold change,
-    comparator ("female vs male"), organism, record type, and percentile
-    for a stated share ("top 10% expressed", "bottom quartile"), whose
-    requested value carries the share and the direction. Capture their
-    exact stated value. These override scoping's provisional assumptions
-    for the same dimension, so a clarification answer like "RNA-Seq only,
-    hard requirement" lands here even when scoping earlier assumed
-    otherwise. Leave empty if the user states no concrete requirement.
-
-    When the user says HOW their evidence lines combine - "A OR B",
-    "either mass spec or DeRisi expression", "combine the two domain
-    searches with a union", "both filters must hold" - add one constraint
-    of kind "combination". Its requested value is that combination in the
-    canonical form "<term> OR <term>" (or AND), with one term per
-    requirement, written in the user's own words for it. The operator is
-    the researcher's own connective between the requirements, never one you
-    infer. An "or" inside one requirement stays inside it: "expressed in
-    schizonts or merozoites, with a signal peptide or GPI anchor" is two
-    requirements joined by AND, each with an alternative of its own. A list
-    joined by commas and "and" is AND; a list whose last connective is "or"
-    is OR. Never hoist an inner "or" to the top level: a combination whose
-    operator the message does not state is refused. Two terms minimum, one
-    operator only: a request that mixes OR and AND is two constraints, one
-    per group. Three or more terms state one flat group: every term joins
-    at that operator, so evidence the user joins with the other operator
-    belongs in a constraint of its own. This is the only machine-checkable
-    record of the boolean shape they asked for, so a stated combination
-    that never lands here is a strategy that can silently answer the other
-    question.
-
-    A message that takes a requirement back - "drop the fold-change cutoff",
-    "forget the signal peptide" - lists it in ``withdrawn``, typed like a
-    constraint with the value the conversation stated it in. A message that
-    only narrows or swaps a value - "make that P. falciparum 3D7" - states the
-    new value in ``explicit_constraints`` and withdraws nothing: a new value
-    of an organism, a record type, a threshold, a fold change, a percentile,
-    a data type or a comparator takes the place of the one the conversation
-    holds. An "other" value stands beside the other ones, so a message that
-    swaps one - "promastigotes instead of amastigotes" - states the new value
-    and lists the old one in ``withdrawn``. Words inside ``asks`` state no
-    requirement.
-
-    Set ``hard=True`` for non-negotiable requirements ("only", "must",
-    "required", "do not use X"); set ``hard=False`` when the user states a
-    PREFERENCE with an acceptable fallback ("RNA-Seq preferred, microarray
-    fallback ok", "ideally X but Y is fine"). A soft constraint is surfaced
-    but never blocks the turn if substituted.
-
-    A message that answers a question you asked is
-    ``clarification_response``, whatever else it carries: two answers
-    followed by "go ahead and build it" is still the answer to them, and
-    the request it answers is the one the conversation is on. ``new_strategy``
-    is for a message that ABANDONS that request and states a different
-    one. On a conversation whose strategy holds no step it sets aside the old
-    request, its draft, its requirements and its open questions. A message on
-    a conversation with no open question and no waiting card answers none, so
-    ``clarification_response`` is refused there.
-
-    Any other imperative asks for a build, except a ``gene_model_audit`` as
-    the ``classification`` field defines it. "Run it", "rerun the compute",
-    "build the strategy", "add those genes as a step", "create the step" -
-    and a bare "yes, do it" typed while a card of yours waits - are
-    ``extend_strategy`` when the conversation already has a strategy, a framed
-    draft or an open analysis, and ``new_strategy`` when it has none of
-    them and answers no question of yours. A retry after a failed task is the same request
-    again, so it keeps the classification that request had. None of them
-    is a ``follow_up_question``: that value is for a message that asks you
-    to EXPLAIN something the conversation already holds. A question whose answer is
-    a count, a list or a membership is a build however it is phrased, unless it
-    compares counts or asks about the strategy the conversation holds: "did my
-    change go through?", "what is the count now?" is a ``follow_up_question``.
-
-    A question whose answer is the size or the members of a gene search on
-    the site - "how many protein-coding genes does 3D7 have", "which genes
-    on chromosome 6 carry a signal peptide" - asks for a build, whatever its
-    grammar: the search computes the answer and the step behind it is the
-    provenance. It is ``new_strategy`` on a conversation with no strategy and
-    ``extend_strategy`` otherwise, never a ``follow_up_question``. A question
-    the record or the literature answers - a product, a mechanism, a rate - is
-    not one.
-
-    A question that compares counts - two strains, two searches, two values
-    of one parameter, "how does that count compare with the reference
-    strain", "would a domain search find more genes than this one" - is a
-    ``follow_up_question`` answered by ``compare_search_variants``: each side
-    runs as an anonymous report and no step is added. Its sides go in
-    ``differential_sides``, never in ``explicit_constraints``.
-
-    A question that counts records per value of a column is a
-    ``follow_up_question`` when a step of the strategy holds those records,
-    answered by ``count_step_by_column``, or when the records are one catalog
-    search's whole result, unchanged, answered by ``count_by_column``, also on
-    a conversation with no strategy. A count per value that needs a build
-    first, because no step holds those records and no one search's whole
-    result is them, is a build: ``new_strategy`` with no strategy, and on a
-    conversation with one ``extend_strategy`` with ``asks_a_change`` set, so the
-    request is never held as a question.
-
-    Three classifications ask for no strategy at all:
-
-    - ``context_statement``: the message states what the user works on and
-      asks for nothing; one that names an organism of this site and what to
-      find in it asks for a build. Example: "I work on drug resistance".
-    - ``memory_request``: the message asks you to keep something for later.
-      Example: "Please remember for future conversations: I always work with
-      P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
-
-    - ``gene_model_audit``: an audit request as the ``classification`` field
-      defines it, a question about an audit's progress, or a question whether
-      a gene's model is right. It states no requirement and becomes no
-      strategy request.
-
-    The first two are answered in prose, and ``memory_request`` with one
-    ``remember`` call per thing to keep. None of them is a request to build.
-
-    PathFinder does its work through these tools; it writes no code and no
-    general text. In scope: building, extending, editing and verifying
-    strategies; EDA; exports; saved gene sets; memory;
-    questions about the sites, the searches, the parameters and the
-    organisms; and the biology behind a search - what a kinase is, what a
-    signal peptide is, what a p-value cutoff means here. ``off_topic`` is the
-    rest: code in any language, prose or email drafting, translation, general
-    knowledge, and any message that names no VEuPathDB object, gene, organism,
-    dataset or analysis. A borderline message that carries a real biological
-    question is in scope. An ``off_topic`` turn calls no tool after this one
-    and answers in two sentences, so a message the tools can answer, or one
-    naming genes of this site, typed or attached, is never one.
-    """
-    state = ctx.deps.state
-    markers = state.turn_markers
-    refused = ctx.deps.refused_classification
-    if refused is not None and refused.intent == intent:
-        raise CallRefused(repeated_refusal_message(refused.sentence))
-    site = await read_the_site(state, intent)
-    if (refusal := classification_refusal(state, intent, site)) is not None:
-        ctx.deps.refused_classification = RefusedClassification(
-            intent=intent, sentence=refusal
-        )
-        raise ModelRetry(refusal)
-    corrections: list[str] = []
-    if intent.explicit_constraints:
-        constraints, completed = complete_organisms(
-            intent.explicit_constraints, state.user_prompt, site.organisms
-        )
-        if completed:
-            intent = intent.model_copy(update={"explicit_constraints": constraints})
-            corrections += completed
-    intent = state.domain.withdrawn_as_recorded(
-        intent.with_undo_read_from(state.user_prompt)
-    )
-    ctx.deps.refused_classification = None
-    ctx.deps.intent = intent
-    markers.intent_classified = True
-    markers.classified_card = markers.answered_card
-    # A new request sets the old one aside until this turn frames, consults
-    # or writes; after that, a change of mind keeps the work the turn did.
-    worked = markers.framed or markers.consulted or markers.changed_strategy
-    if not worked and intent.classification is IntentClassification.NEW_STRATEGY:
-        state.domain.take_a_new_request(strategy_has_steps=ctx.deps.step_count > 0)
-    state.domain.record_intent(intent, request_text=state.user_prompt)
-    if intent.classification in ANSWERING_INTENTS:
-        state.domain.answer_the_questions_at_arrival(state.user_prompt)
-    return with_summary(
-        ClassifiedIntent(intent=intent, corrections=corrections),
-        "; ".join([f"Intent: {intent.classification.value}", *corrections]),
-        ctx=ctx,
-    )
 
 
 async def save_gene_set(

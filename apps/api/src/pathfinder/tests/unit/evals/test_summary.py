@@ -95,7 +95,7 @@ def test_the_refused_tools_round_trip_and_sum_into_the_run() -> None:
         CaseResult(
             name="a",
             verdict="pass",
-            refused_tools=["classify_user_intent", "read_gene_record"],
+            refused_tools=["frame_problem", "read_gene_record"],
         ),
         CaseResult(name="b", verdict="fail", refused_tools=["get_strategy"]),
     )
@@ -105,7 +105,7 @@ def test_the_refused_tools_round_trip_and_sum_into_the_run() -> None:
 
     assert payload["refusals"] == 3
     assert payload["cases"][0]["refusedTools"] == [
-        "classify_user_intent",
+        "frame_problem",
         "read_gene_record",
     ]
     assert restored.cases == summary.cases

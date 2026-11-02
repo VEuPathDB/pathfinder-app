@@ -43,7 +43,6 @@ LEAD_TOOL_NAMES = frozenset(
     {
         "build_control_set",
         "build_strategy",
-        "classify_user_intent",
         "clear_strategy",
         "compare_search_variants",
         "compare_variants_scored",

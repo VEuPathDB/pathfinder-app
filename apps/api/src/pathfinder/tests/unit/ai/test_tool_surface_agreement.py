@@ -94,7 +94,6 @@ _TOOL_NAME_TOKENS = frozenset(
         "resolve_gene_ids_to_records",
         # Lead orchestration
         "build_control_set",
-        "classify_user_intent",
         "compare_search_variants",
         "compare_variants_scored",
         "consult_user",

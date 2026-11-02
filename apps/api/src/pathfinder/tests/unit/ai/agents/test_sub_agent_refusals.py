@@ -16,8 +16,7 @@ from pathfinder.ai.agents.verification import build_verification_agent
 from pathfinder.tests._support.instructions import pinned_instructions
 
 # The two refusals that belong to the agents holding the write tools. What the
-# Lead may write about is a classification, not a refusal, and lives with
-# ``classify_user_intent``.
+# Lead may write about is read from the message before it runs, not refused.
 CODE_REFUSAL = "Execute arbitrary code or shell commands"
 UNRELATED_REFUSAL = "Generate content unrelated to bioinformatics research"
 

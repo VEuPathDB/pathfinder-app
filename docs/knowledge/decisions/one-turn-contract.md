@@ -81,9 +81,8 @@ not end on a card while one is open, with its options from the ledger's `OPEN` l
 question's `options`. See
 [an-offer-is-a-card-not-prose](an-offer-is-a-card-not-prose.md).
 
-`unclassified_turn` reads the classification gate: a reply on a turn whose message holds no
-accepted classification, while the gate's last refusal stands, is refused with that refusal's
-sentence. A card answer, a typed acceptance and a turn that re-enters a parked call are exempt.
+Every message is read before the Lead runs, so no turn's reply waits on a classification
+([a message is read before the Lead runs](a-message-is-read-before-the-lead.md)).
 `unsaved_controls` reads `UserIntent.named_controls`: a turn whose message names controls either
 saved a control set, recorded a question, or ended on a card. A verification pass that
 stopped is a notice of the facts part (`TurnFacts.stopped_check`), whether or not the turn

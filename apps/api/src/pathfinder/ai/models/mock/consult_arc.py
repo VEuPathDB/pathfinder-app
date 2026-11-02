@@ -12,6 +12,7 @@ from typing import Any
 from assistant_core.models.scripted import (
     current_scope_id,
     deferred_tool_resolved,
+    next_unmade_call,
     scripted_call,
 )
 from pydantic import Field
@@ -22,10 +23,18 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
+from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
-from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final, narrated
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.models.mock.arc_readings import (
+    build_reading,
+    intent_of,
+    read_as,
+    stated,
+)
+from pathfinder.ai.models.mock.calls import lead_final, narrated
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
-from pathfinder.ai.models.mock.lead_flow import build_journey, run_sequence
+from pathfinder.ai.models.mock.lead_flow import build_journey
 from pathfinder.ai.models.mock.lookup_arcs import looked_up_values
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -289,10 +298,7 @@ def _since_the_answer(messages: list[ModelMessage]) -> list[ModelMessage]:
 
 
 def _asking(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    head = [
-        classify("new_strategy"),
-        scripted_call("frame_problem", {"reason": "mock frame"}),
-    ]
+    head = [scripted_call("frame_problem", {"reason": "mock frame"})]
     asked = open_questions(messages)
     if asked:
         return [*head, scripted_call(CONSULT, card_args(asked))]
@@ -308,8 +314,23 @@ def consult(messages: list[ModelMessage]) -> ToolCallPart:
     """Frame and ask the open value on the card; the answered card resumes on
     a frame of the answer, the build and its check."""
     if not deferred_tool_resolved(messages, CONSULT):
-        return run_sequence(messages, _asking(messages))
-    return run_sequence(_since_the_answer(messages), build_journey(messages))
+        return next_unmade_call(_asking(messages), messages)
+    return next_unmade_call(build_journey(messages), _since_the_answer(messages))
+
+
+def card_answered(state: PipelineState) -> bool:
+    parked = state.pending_approval
+    return (
+        parked is not None
+        and parked.tool_name == CONSULT
+        and parked.tool_call_id in state.user_question_answers
+    )
+
+
+def consult_reading(state: PipelineState, words: str) -> UserIntent:
+    if card_answered(state):
+        return build_reading(state, words)
+    return intent_of(IntentClassification.NEW_STRATEGY)
 
 
 # The fold change the withdraw arc's message states, which no signal peptide
@@ -317,25 +338,9 @@ def consult(messages: list[ModelMessage]) -> ToolCallPart:
 WITHDRAWN = "2-fold"
 
 
-def _stating_the_fold_change() -> ToolCallPart:
-    return scripted_call(
-        CLASSIFY,
-        {
-            "intent": {
-                "classification": "new_strategy",
-                "inferredGoal": "[mock] new_strategy",
-                "explicitConstraints": [
-                    {
-                        "kind": "fold_change",
-                        "label": "fold change",
-                        "requestedValue": WITHDRAWN,
-                        "source": "user_explicit",
-                        "hard": True,
-                    }
-                ],
-            }
-        },
-    )
+withdraw_reading = read_as(
+    IntentClassification.NEW_STRATEGY, stated("fold_change", "fold change", WITHDRAWN)
+)
 
 
 class _Carded(ToolAnswer):
@@ -343,10 +348,7 @@ class _Carded(ToolAnswer):
 
 
 def _withdrawing(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    head = [
-        _stating_the_fold_change(),
-        scripted_call("frame_problem", {"reason": "mock frame"}),
-    ]
+    head = [scripted_call("frame_problem", {"reason": "mock frame"})]
     framed = last_return(messages, "frame_problem", _Carded)
     if framed is not None and framed.card_questions:
         return [*head, scripted_call(CONSULT, card_args(framed.card_questions))]
@@ -362,5 +364,5 @@ def withdraw(messages: list[ModelMessage]) -> ToolCallPart:
     """State a requirement no search states and ask the card that offers to drop
     it, whatever the pass's disposition; the answered card builds the rest."""
     if not deferred_tool_resolved(messages, CONSULT):
-        return run_sequence(messages, _withdrawing(messages))
-    return run_sequence(_since_the_answer(messages), build_journey(messages))
+        return next_unmade_call(_withdrawing(messages), messages)
+    return next_unmade_call(build_journey(messages), _since_the_answer(messages))

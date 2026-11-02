@@ -86,12 +86,11 @@ def names_the_organism(words: str, organism: str) -> bool:
 
 def complete_organisms(
     constraints: Sequence[Constraint], message: str, vocabulary: Sequence[str]
-) -> tuple[list[Constraint], list[str]]:
+) -> list[Constraint]:
     """The constraints with each organism value that begins an entry the
-    message states whole recorded as that entry, and one note per correction."""
+    message states whole recorded as that entry."""
     stated = stated_organisms(message, vocabulary)
     completed: list[Constraint] = []
-    notes: list[str] = []
     for constraint in constraints:
         whole = None
         if constraint.kind is ConstraintKind.ORGANISM:
@@ -104,5 +103,4 @@ def complete_organisms(
             completed.append(constraint)
             continue
         completed.append(constraint.model_copy(update={"requested_value": whole}))
-        notes.append(f'organism recorded as "{whole}"')
-    return completed, notes
+    return completed

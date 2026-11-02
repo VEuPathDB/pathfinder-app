@@ -39,6 +39,7 @@ from veupathdb_mcp.search_line import install_search_line
 from veupathdb_mcp.strategy_line import install_strategy_line
 
 from pathfinder import __version__
+from pathfinder.ai.capabilities.decisions_spend import install_decisions_transport
 from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
@@ -204,6 +205,11 @@ def _install_the_wdk_lines(settings: Settings) -> None:
     )
 
 
+def _install_model_hooks() -> None:
+    install_catalog_prices()
+    install_decisions_transport()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan handler."""
@@ -214,7 +220,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     )
 
     install_procrastinate_redaction()
-    install_catalog_prices()
+    _install_model_hooks()
     logger.info("Starting Pathfinder API", version=__version__, env=settings.api_env)
 
     readiness = get_readiness()

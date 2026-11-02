@@ -1,6 +1,6 @@
 """The thread derives every requirement it holds, replaces and retires from what
 a message states and withdraws; an approved delete withdraws each requirement
-only the deleted criteria stated."""
+only the deleted criteria link."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     ReplacedLifecycle,
     WithdrawnLifecycle,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import Criterion, RequirementLink
 
 
 def _stated(kind: ConstraintKind, value: str) -> Constraint:
@@ -38,6 +38,10 @@ _TM_STEP = Criterion(
     id="step_4dfb1df9",
     text="Plasmodium falciparum 3D7 genes with a transmembrane domain",
     search_name="GenesByTransmembraneDomains",
+    answers=[
+        RequirementLink(requirement=_ORGANISM.id, param="organism"),
+        RequirementLink(requirement=_TM.id),
+    ],
 )
 _PLASMOAP_STEP = Criterion(
     id="step_33f64941",
@@ -46,6 +50,7 @@ _PLASMOAP_STEP = Criterion(
         "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_"
         "ApicoplastTargeting_RSRC"
     ),
+    answers=[RequirementLink(requirement=_SIGNAL.id)],
 )
 
 
@@ -56,7 +61,7 @@ def _thread() -> ThreadRequirements:
     )
 
 
-def test_a_delete_withdraws_what_only_the_deleted_step_stated() -> None:
+def test_a_delete_withdraws_what_only_the_deleted_step_links() -> None:
     thread = _thread()
 
     thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [_PLASMOAP_STEP])
@@ -76,25 +81,38 @@ def test_a_delete_withdraws_what_only_the_deleted_step_stated() -> None:
 
 
 def test_a_delete_never_withdraws_the_organism() -> None:
-    """The organism scopes the whole strategy, whatever the remaining text says."""
+    """The organism scopes the whole strategy, whatever the deleted step links."""
     thread = _thread()
-    remaining = _PLASMOAP_STEP.model_copy(
-        update={"text": "a predicted apicoplast targeting signal"}
-    )
 
-    thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [remaining])
+    thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [_PLASMOAP_STEP])
 
     assert thread.requirements == [_ORGANISM, _SIGNAL]
 
 
-def test_a_requirement_a_remaining_criterion_also_states_survives_a_delete() -> None:
-    """The remaining text states the requirement without its article."""
+def test_a_requirement_a_remaining_criterion_also_links_survives_a_delete() -> None:
     thread = _thread()
     second_tm = _TM_STEP.model_copy(
-        update={"id": "step_tm_max", "text": "transmembrane domain count at most 3"}
+        update={
+            "id": "step_tm_max",
+            "text": "count at most 3",
+            "answers": [RequirementLink(requirement=_TM.id, param="max_tm")],
+        }
     )
 
     thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [second_tm])
+
+    assert (thread.requirements, thread.retired_requirements) == (
+        [_ORGANISM, _TM, _SIGNAL],
+        [],
+    )
+
+
+def test_a_delete_of_a_step_that_links_nothing_withdraws_nothing() -> None:
+    """The deleted text carries the requirement's words, and no link names it."""
+    thread = _thread()
+    unlinked = _TM_STEP.model_copy(update={"answers": []})
+
+    thread.retire_what_a_delete_leaves_unanswered([unlinked], [_PLASMOAP_STEP])
 
     assert (thread.requirements, thread.retired_requirements) == (
         [_ORGANISM, _TM, _SIGNAL],

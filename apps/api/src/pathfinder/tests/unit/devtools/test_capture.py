@@ -452,7 +452,7 @@ def test_the_refused_tools_are_every_retry_and_guard_refusal_in_order(
         rule="identical_arguments",
     ).message
     cap = _new(tmp_path)
-    _write(cap, _lead_input("classify_user_intent", "c1", {}))
+    _write(cap, _lead_input("frame_problem", "c1", {}))
     _write(cap, _lead_error("c1", "Validation failed: goal is required"))
     _write(cap, _call("verification", "verification", "p1", "started"))
     _write(cap, _step("read_gene_record", "c2", "p1", "started"))
@@ -460,7 +460,7 @@ def test_the_refused_tools_are_every_retry_and_guard_refusal_in_order(
     _write(cap, _step("read_gene_record", "c3", "p1", "started"))
     _write(cap, _step("read_gene_record", "c3", "p1", "completed", result=guard))
 
-    assert cap.refused_tools() == ["classify_user_intent", "read_gene_record"]
+    assert cap.refused_tools() == ["frame_problem", "read_gene_record"]
 
 
 def test_a_parked_call_stays_open_in_the_transcript(tmp_path: Path) -> None:
@@ -537,18 +537,18 @@ def test_a_tool_that_recovers_is_no_longer_looping(tmp_path: Path) -> None:
 def test_a_terminal_call_that_answered_is_not_a_row_anywhere(tmp_path: Path) -> None:
     """The reply the output tool carries is the transcript's own section."""
     cap = _new(tmp_path)
-    _write(cap, _lead_input("classify_user_intent", "c1", {}))
+    _write(cap, _lead_input("frame_problem", "c1", {}))
     _write(cap, _lead_output("c1", "new_strategy"))
     _write(cap, _lead_input(OUTPUT_TOOL, "c2", {"prose": "here is what I found"}))
     _write(cap, _lead_output("c2", "Final result processed."))
 
     cap.flush()
 
-    assert [call.tool for call in cap.rendered_calls()] == ["classify_user_intent"]
+    assert [call.tool for call in cap.rendered_calls()] == ["frame_problem"]
     assert OUTPUT_TOOL not in (tmp_path / "transcript.md").read_text()
     assert OUTPUT_TOOL not in (tmp_path / "tree.txt").read_text()
     assert [path.name for path in sorted((tmp_path / "tools").iterdir())] == [
-        "01-classify_user_intent.json"
+        "01-frame_problem.json"
     ]
     assert cap.summary().tool_calls == 2
 

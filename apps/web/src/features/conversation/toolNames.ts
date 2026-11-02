@@ -1,7 +1,6 @@
 export const TOOL_LABELS: Record<string, string> = {
   // Orchestration and inspection
   read_ledger_section: "Read progress",
-  classify_user_intent: "Read the request",
   consult_user: "Ask you",
   propose_changes: "Propose changes",
   recover_failed_steps: "Repair steps",

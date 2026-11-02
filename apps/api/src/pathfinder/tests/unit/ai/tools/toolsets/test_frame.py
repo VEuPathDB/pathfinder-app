@@ -66,6 +66,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "set_criterion": (
         frozenset(
             {
+                "answers",
                 "computed_groups",
                 "criterion_id",
                 "gene_set",

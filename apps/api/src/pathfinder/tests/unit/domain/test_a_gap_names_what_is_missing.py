@@ -5,11 +5,24 @@ from __future__ import annotations
 
 from pathfinder.domain.caveats import RequirementGap, WordGap, check_gaps
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap, failed
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+
+_EXPORTED = Constraint(
+    kind=ConstraintKind.OTHER, requested_value="exported", label="exported"
+)
+_HOST = Constraint(
+    kind=ConstraintKind.OTHER,
+    requested_value="in the host cell",
+    label="in the host cell",
+)
 
 
 def test_each_gap_is_listed_once_with_its_sentence() -> None:
     gaps = [
-        *check_gaps(words=["exported"], unstated=["exported", "in the host cell"]),
+        *check_gaps(
+            words=[WordGap(word="exported", requirement=_EXPORTED.id)],
+            unstated=[_EXPORTED, _HOST],
+        ),
         *failed(
             [
                 SiteCheck(

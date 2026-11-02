@@ -3,7 +3,7 @@ answer: typed caveats and gaps, each worded by one sentence of its own."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
@@ -14,9 +14,8 @@ from pathfinder.domain.count_words import counted
 from pathfinder.domain.evidence import ControlTestEvidence, NamedControlSet
 from pathfinder.domain.organism_caveat import RecordsOrganismCaveat
 from pathfinder.domain.reading_caveats import ReadingCaveat, reading_caveats
-from pathfinder.domain.requirement_naming import names_a_retired_requirement
 from pathfinder.domain.site_checks import SiteCheckGap
-from pathfinder.domain.strategy.constraints import GroundedConstraint
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.value_caveats import (
@@ -319,6 +318,7 @@ class RequirementGap(CamelModel):
 
     kind: Literal["requirement"] = "requirement"
     text: str
+    requirement: str = ""
 
     @computed
     def sentence(self) -> str:
@@ -343,6 +343,7 @@ class WordGap(CamelModel):
 
     kind: Literal["word"] = "word"
     word: str
+    requirement: str = ""
 
     @computed
     def sentence(self) -> str:
@@ -368,23 +369,24 @@ Gap = Annotated[
 
 def check_gaps(
     *,
-    words: Sequence[str],
-    requirements: Sequence[GroundedConstraint] = (),
-    unstated: Sequence[str] = (),
+    words: Sequence[WordGap],
+    unstated: Sequence[Constraint] = (),
+    retired: Collection[str] = (),
 ) -> list[Gap]:
-    """The words no search states, then the requirements no search on the site
-    states, once each. A gap a withdrawn or replaced requirement names is no gap."""
-    named = {word.casefold() for word in words}
-    rows: list[Gap] = [
-        WordGap(word=w)
-        for w in dict.fromkeys(words)
-        if not names_a_retired_requirement(w, requirements)
+    """The requirements a drop holds open, then the requirements no search on
+    the site states, once each. A withdrawn or replaced requirement is no gap."""
+    rows: list[Gap] = []
+    named: set[str] = set()
+    found: list[WordGap | RequirementGap] = [
+        *words,
+        *(RequirementGap(text=c.requested_value, requirement=c.id) for c in unstated),
     ]
-    for text in dict.fromkeys(unstated):
-        if text.casefold() in named or names_a_retired_requirement(text, requirements):
+    for gap in found:
+        key = gap.requirement or gap.texts()[0].casefold()
+        if gap.requirement in retired or key in named:
             continue
-        named.add(text.casefold())
-        rows.append(RequirementGap(text=text))
+        named.add(key)
+        rows.append(gap)
     return rows
 
 

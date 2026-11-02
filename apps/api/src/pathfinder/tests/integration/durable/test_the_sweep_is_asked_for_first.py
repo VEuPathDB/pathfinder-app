@@ -23,6 +23,7 @@ from pydantic_ai.models.function import FunctionModel
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.persistence.models import ControlSet
+from pathfinder.tests._support.scripted_reading import read_as
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -41,9 +42,6 @@ from pathfinder.tests.unit.ai.graph._approval_turn import (
 SWEEP_TOOL = "optimize_search_parameters"
 SWEEP_PROMPT = "tune the parameters of that step against my controls"
 SWEEP_STEP_ID = 440230693
-_CLASSIFY = {
-    "intent": {"classification": "follow_up_question", "inferredGoal": "tune it"},
-}
 _CONTROL_SET_ID = UUID("7c0a51e2-0000-4000-8000-0000005bee75")
 _SWEEP = {
     "reply": CARD_REPLY,
@@ -56,12 +54,10 @@ _TIMEOUT_SECONDS = 120.0
 
 
 def _sweeping_lead() -> FunctionModel:
-    """Classify, attach the saved controls, call the sweep, then answer."""
+    """Attach the saved controls, call the sweep, then answer."""
 
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
         called = {c.tool_name for c in tool_calls(messages)}
-        if "classify_user_intent" not in called:
-            return ToolCallPart("classify_user_intent", _CLASSIFY, "call_classify")
         if "use_control_set" not in called:
             attach = {"control_set_id": str(_CONTROL_SET_ID)}
             return ToolCallPart("use_control_set", attach, "call_attach")
@@ -74,6 +70,7 @@ def _sweeping_lead() -> FunctionModel:
 
 @pytest.fixture(autouse=True)
 def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
+    read_as(monkeypatch, "follow_up_question")
     monkeypatch.setattr(_lead_model, "get_mock_model", _sweeping_lead)
 
 

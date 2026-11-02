@@ -296,18 +296,21 @@ def test_the_summary_marks_a_requirement_carried_from_an_earlier_message() -> No
     ledger = derive_ledger(state, _answering_intent())
     summary = ledger.render_summary()
 
-    [second] = [
+    numbers = ledger.constraints.numbers
+    [combination, second] = [
         g.constraint.id
+        for value in (_COMBINATION, "the second one")
         for g in ledger.constraints.grounded
-        if g.constraint.requested_value == "the second one"
+        if g.constraint.requested_value == value
     ]
     assert (
-        f"- protease evidence combination (combination): {_COMBINATION!r} -> "
-        "provisional (from an earlier message)"
+        f"- {numbers[combination]}: protease evidence combination (combination): "
+        f"{_COMBINATION!r} -> provisional (from an earlier message)"
     ) in summary
-    [line] = [row for row in summary.splitlines() if row.startswith("- RNA-seq study")]
+    [line] = [row for row in summary.splitlines() if "RNA-seq study" in row]
     assert line == (
-        f"- RNA-seq study (data_type): 'the second one' -> provisional; id {second}"
+        f"- {numbers[second]}: RNA-seq study (data_type): 'the second one' -> "
+        f"provisional; id {second}"
     )
 
 

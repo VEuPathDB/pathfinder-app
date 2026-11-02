@@ -20,11 +20,13 @@ from pathfinder.ai.lead._delete_rules import (
     steps_outside_the_strategy,
 )
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.intent import NamedControls
 from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.exchanges import exchanges_section
 from pathfinder.domain.statistic_facts import TURN_STATISTICS
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -130,16 +132,44 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
     intent = ctx.deps.intent
     if intent is None:
         return "## User Intent\nNot classified yet."
+    reading = intent.reading
+    controls = intent.named_controls or NamedControls()
     lines = [
         "## User Intent",
         f"- classification: {intent.classification.value}",
+        *(
+            [f"- the message asks to be told: {reading.wants}"]
+            if reading is not None and reading.wants != "nothing"
+            else []
+        ),
         f"- inferred goal: {intent.inferred_goal}",
+        *(
+            f"- {'states' if c.hard else 'prefers'} {_stated(c)}"
+            for c in intent.explicit_constraints
+        ),
+        *(f"- takes back {_stated(c)}" for c in intent.withdrawn),
+        *(
+            f"- asks: {ask.text}"
+            for ask in intent.researcher_asks(ctx.deps.state.user_prompt)
+        ),
+        *_listed("positive controls", controls.positive_ids),
+        *_listed("negative controls", controls.negative_ids),
+        *_listed("names genes", intent.named_gene_ids),
     ]
     if intent.is_differential and intent.differential_sides:
         lines.append(f"- differential sides: {intent.differential_sides}")
     if intent.referenced_step_ids:
         lines.append(f"- referenced steps: {intent.referenced_step_ids}")
     return "\n".join(lines)
+
+
+def _stated(constraint: Constraint) -> str:
+    quoted = f', in its words "{constraint.quote}"' if constraint.quote else ""
+    return f"{constraint.kind.value}: {constraint.requested_value}{quoted}"
+
+
+def _listed(label: str, ids: list[str]) -> list[str]:
+    return [f"- {label}: {', '.join(ids)}"] if ids else []
 
 
 _OFF_TOPIC_REDIRECT = (

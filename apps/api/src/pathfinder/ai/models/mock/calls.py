@@ -1,20 +1,18 @@
-"""The calls every Lead arc shares: the classification it opens with and the
-answer it ends on."""
+"""The answer every Lead arc ends on, and the words it writes there."""
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Literal
 
-from assistant_core.models.scripted import scripted_call, terminal_call
+from assistant_core.models.scripted import terminal_call
 from pydantic_ai.messages import ToolCallPart
 
 from pathfinder.ai.models.mock.numbers import written_numbers
 
 LeadTurnState = Literal["await_user", "complete"]
 
-CLASSIFY = "classify_user_intent"
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -32,30 +30,6 @@ def lead_final(
             "prose": prose,
             "nextState": next_state,
             **({"askedQuestions": asked} if asked else {}),
-        },
-    )
-
-
-def stated(kind: str, label: str, value: str) -> dict[str, Any]:
-    """A requirement the researcher wrote, as a classification states it."""
-    return {
-        "kind": kind,
-        "label": label,
-        "requestedValue": value,
-        "source": "user_explicit",
-        "hard": True,
-    }
-
-
-def classify(classification: str, *requirements: dict[str, Any]) -> ToolCallPart:
-    return scripted_call(
-        CLASSIFY,
-        {
-            "intent": {
-                "classification": classification,
-                "inferredGoal": f"[mock] {classification}",
-                **({"explicitConstraints": list(requirements)} if requirements else {}),
-            },
         },
     )
 

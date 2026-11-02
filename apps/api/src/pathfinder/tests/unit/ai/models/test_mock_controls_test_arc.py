@@ -20,7 +20,6 @@ def test_the_controls_test_saves_the_pasted_controls_before_the_check() -> None:
     calls = play("lead", "vectorbase", text, scene=built_thread())
 
     assert names(calls) == [
-        "classify_user_intent",
         "build_control_set",
         "verify_strategy",
         "get_live_strategy_state",

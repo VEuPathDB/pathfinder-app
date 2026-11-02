@@ -1,17 +1,16 @@
-"""The classification gate records an organism entry the message states whole."""
+"""A turn's intent records an organism entry the message states whole."""
 
 from __future__ import annotations
 
 import pytest
 
-from pathfinder.ai.lead import classification_gate
-from pathfinder.ai.lead.intent import ClassifiedIntent, IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
+from pathfinder.ai.lead import held_intent
+from pathfinder.ai.lead.held_intent import hold_the_intent
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
-from pathfinder.tests.unit.ai.tools.conftest import summary_of
 
 S5 = (
     "Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 "
@@ -90,37 +89,29 @@ _S5_WHOLE = {
 
 @pytest.fixture
 def sites_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """The sites whose organism list the gate read, served from the recording."""
+    """The sites whose organism list was read, served from the recording."""
     read: list[str] = []
 
     async def _organisms(site_id: str) -> list[str]:
         read.append(site_id)
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)
     return read
 
 
-async def test_the_recorded_split_is_recorded_whole_with_the_correction(
-    sites_read: list[str],
-) -> None:
-    state = pipeline_state("vectorbase", user_prompt=S5)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
+def _deps(site_id: str, message: str) -> LeadDeps:
+    return lead_deps(pipeline_state(site_id, user_prompt=message))
 
-    returned = await classify_user_intent(ctx, UserIntent.model_validate(_S5_SPLIT))
 
-    corrected = 'organism recorded as "Anopheles gambiae PEST"'
-    assert ClassifiedIntent.model_validate(returned.return_value).corrections == [
-        corrected
-    ]
-    assert summary_of(returned).model_dump(by_alias=True)["data"]["summary"] == (
-        f"Intent: new_strategy; {corrected}"
-    )
+async def test_the_recorded_split_is_recorded_whole(sites_read: list[str]) -> None:
+    deps = _deps("vectorbase", S5)
+
+    held = await hold_the_intent(deps, UserIntent.model_validate(_S5_SPLIT), S5)
+
     assert [
         (c.kind.value, c.requested_value)
-        for c in ClassifiedIntent.model_validate(
-            returned.return_value
-        ).intent.explicit_constraints
+        for c in held.explicit_constraints
         if c.kind in {ConstraintKind.ORGANISM, ConstraintKind.OTHER}
     ] == [
         ("organism", "Anopheles gambiae PEST"),
@@ -130,40 +121,28 @@ async def test_the_recorded_split_is_recorded_whole_with_the_correction(
     ]
     assert [
         c.requested_value
-        for c in state.domain.requirements
+        for c in deps.state.domain.requirements
         if c.kind is ConstraintKind.ORGANISM
     ] == ["Anopheles gambiae PEST"]
-    assert (
-        ctx.deps.intent == ClassifiedIntent.model_validate(returned.return_value).intent
-    )
-    assert sites_read == ["vectorbase"]
+    assert (deps.intent, sites_read) == (held, ["vectorbase"])
 
 
-async def test_the_whole_entry_is_recorded_with_no_correction(
-    sites_read: list[str],
-) -> None:
-    state = pipeline_state("vectorbase", user_prompt=S5)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
+async def test_the_whole_entry_is_recorded_as_stated(sites_read: list[str]) -> None:
+    deps = _deps("vectorbase", S5)
 
-    returned = await classify_user_intent(ctx, UserIntent.model_validate(_S5_WHOLE))
+    await hold_the_intent(deps, UserIntent.model_validate(_S5_WHOLE), S5)
 
     assert [
         c.requested_value
-        for c in state.domain.requirements
+        for c in deps.state.domain.requirements
         if c.kind is ConstraintKind.ORGANISM
     ] == ["Anopheles gambiae PEST"]
-    assert ClassifiedIntent.model_validate(returned.return_value).corrections == []
-    assert summary_of(returned).model_dump(by_alias=True)["data"]["summary"] == (
-        "Intent: new_strategy"
-    )
     assert sites_read == ["vectorbase"]
 
 
 async def test_a_species_without_the_stated_strain_is_completed_on_toxodb(
     sites_read: list[str],
 ) -> None:
-    state = pipeline_state("toxodb", user_prompt=NEOSPORA)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
     intent = UserIntent.model_validate(
         {
             "classification": "extend_strategy",
@@ -179,63 +158,23 @@ async def test_a_species_without_the_stated_strain_is_completed_on_toxodb(
         }
     )
 
-    returned = await classify_user_intent(ctx, intent)
+    held = await hold_the_intent(_deps("toxodb", NEOSPORA), intent, NEOSPORA)
 
-    assert ClassifiedIntent.model_validate(returned.return_value).corrections == [
-        'organism recorded as "Neospora caninum Liverpool"'
+    assert [c.requested_value for c in held.explicit_constraints] == [
+        "Neospora caninum Liverpool"
     ]
-    assert [
-        c.requested_value
-        for c in ClassifiedIntent.model_validate(
-            returned.return_value
-        ).intent.explicit_constraints
-    ] == ["Neospora caninum Liverpool"]
     assert sites_read == ["toxodb"]
-
-
-async def test_the_strain_as_a_combination_term_is_recorded_as_stated(
-    sites_read: list[str],
-) -> None:
-    state = pipeline_state("vectorbase", user_prompt=S5)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    combination = (
-        "PEST genes AND predicted signal peptide AND 2 to 99 transmembrane domains"
-    )
-    stated = {
-        **_S5_WHOLE,
-        "explicitConstraints": [
-            {
-                "kind": "combination",
-                "label": "criteria combination",
-                "source": "user_explicit",
-                "requestedValue": combination,
-            },
-        ],
-    }
-
-    returned = await classify_user_intent(ctx, UserIntent.model_validate(stated))
-
-    assert ClassifiedIntent.model_validate(returned.return_value).corrections == []
-    assert [
-        c.requested_value
-        for c in ClassifiedIntent.model_validate(
-            returned.return_value
-        ).intent.explicit_constraints
-    ] == [combination]
-    assert sites_read == ["vectorbase"]
 
 
 async def test_an_intent_with_nothing_to_split_reads_no_organism_list(
     sites_read: list[str],
 ) -> None:
-    state = pipeline_state("vectorbase", user_prompt=S5)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
+    deps = _deps("vectorbase", S5)
     intent = UserIntent(
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="PEST genes with a signal peptide",
     )
 
-    await classify_user_intent(ctx, intent)
+    held = await hold_the_intent(deps, intent, S5)
 
-    assert sites_read == []
-    assert ctx.deps.intent is intent
+    assert (sites_read, held) == ([], intent)

@@ -5,20 +5,17 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from typing import Any
 
 import pytest
-from assistant_core.capabilities.stable_instructions import SECTION_UPDATE_LEAD
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
     ToolCallPart,
-    UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -42,20 +39,17 @@ UNLOCKED_ON_A_FRESH_THREAD = BUILDING_TOOLS - {
 }
 
 
-def _deps(prompt: str) -> LeadDeps:
+def _deps(prompt: str, classification: IntentClassification | None = None) -> LeadDeps:
     """A thread with one question open, so an answer classification answers it."""
     state = pipeline_state("tritrypdb", user_prompt=prompt)
     state.turn_markers.questions_at_arrival = ["Which organism?"]
-    return lead_deps(state)
-
-
-def _classify_args(classification: IntentClassification) -> dict[str, Any]:
-    return {
-        "intent": {
-            "classification": classification.value,
-            "inferredGoal": "what the user is working on",
-        },
-    }
+    deps = lead_deps(state)
+    if classification is not None:
+        deps.intent = UserIntent(
+            classification=classification, inferred_goal="what the user is working on"
+        )
+        state.turn_markers.intent_classified = True
+    return deps
 
 
 def _final_part(call_id: str = "call_final") -> ToolCallPart:
@@ -66,36 +60,35 @@ def _final_part(call_id: str = "call_final") -> ToolCallPart:
     )
 
 
-def _model(
-    prompt: str,
-    classification: IntentClassification | None,
+def _scripted(
     seen: OfferedTools,
-) -> FunctionModel:
+) -> Callable[[list[ModelMessage], AgentInfo], ModelResponse]:
     def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del messages
-        step = seen.record(info)
-        if classification is not None and step == 1:
+        if seen.record(info) == 1:
             return ModelResponse(
                 parts=[
                     ToolCallPart(
-                        tool_name="classify_user_intent",
-                        args=_classify_args(classification),
-                        tool_call_id="call_classify",
+                        tool_name="read_ledger_section",
+                        args={"section": "frame"},
+                        tool_call_id="call_read",
                     ),
                 ],
             )
         return ModelResponse(parts=[_final_part()])
 
-    return FunctionModel(_fn, model_name="scripted")
+    return _fn
+
+
+def _model(seen: OfferedTools) -> FunctionModel:
+    return FunctionModel(_scripted(seen), model_name="scripted")
 
 
 def _run(prompt: str, classification: IntentClassification | None) -> OfferedTools:
     seen = OfferedTools()
     agent = build_lead_agent()
     result = asyncio.run(
-        agent.run(
-            prompt, deps=_deps(prompt), model=_model(prompt, classification, seen)
-        )
+        agent.run(prompt, deps=_deps(prompt, classification), model=_model(seen))
     )
     assert isinstance(result.output, LeadResponse)
     return seen
@@ -138,46 +131,13 @@ def test_a_context_statement_turn_answers_in_prose() -> None:
     result = asyncio.run(
         build_lead_agent().run(
             prompt,
-            deps=_deps(prompt),
-            model=_model(prompt, IntentClassification.CONTEXT_STATEMENT, seen),
+            deps=_deps(prompt, IntentClassification.CONTEXT_STATEMENT),
+            model=_model(seen),
         ),
     )
 
     assert isinstance(result.output, LeadResponse)
     assert result.output.prose == _PROSE
-
-
-def _reclassifying_model(prompt: str, seen: OfferedTools) -> FunctionModel:
-    """A turn that classifies a build as a question, then corrects itself."""
-    return FunctionModel(_reclassifying(prompt, seen), model_name="scripted")
-
-
-def _reclassifying(
-    prompt: str, seen: OfferedTools
-) -> Callable[[list[ModelMessage], AgentInfo], ModelResponse]:
-    """The script of a turn that classifies a build as a question, then corrects itself."""
-    scripted = {
-        1: IntentClassification.FOLLOW_UP_QUESTION,
-        2: IntentClassification.EXTEND_STRATEGY,
-    }
-
-    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        del messages
-        step = seen.record(info)
-        classification = scripted.get(step)
-        if classification is None:
-            return ModelResponse(parts=[_final_part()])
-        return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    tool_name="classify_user_intent",
-                    args=_classify_args(classification),
-                    tool_call_id=f"call_{step}",
-                ),
-            ],
-        )
-
-    return _fn
 
 
 # The four calls that build an EDA-backed criterion, in the order the route
@@ -205,15 +165,13 @@ def test_every_building_intent_is_offered_the_whole_eda_route(
 ) -> None:
     """An EDA-backed criterion is built by these four, whatever the request is."""
     prompt = "Genes essential in blood stages"
-    deps = _deps(prompt)
+    deps = _deps(prompt, classification)
     deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
         dataset_id="DS_70dd50fed7", analysis_id="an-1", subset_previewed=True
     )
     seen = OfferedTools()
     agent = build_lead_agent()
-    result = asyncio.run(
-        agent.run(prompt, deps=deps, model=_model(prompt, classification, seen))
-    )
+    result = asyncio.run(agent.run(prompt, deps=deps, model=_model(seen)))
 
     assert isinstance(result.output, LeadResponse)
     assert seen.steps[1] >= EDA_ROUTE_TOOLS
@@ -235,7 +193,7 @@ _EXPLAIN_QUESTION = "What does PF3D7_0708400 do?"
 
 
 def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
-    """A gated tool stays listed, so a classification rewrites no request."""
+    """A gated tool stays listed, so no step rewrites the request."""
     prompt = (
         "Yes, rerun the differential expression and then create the strategy "
         "step from the genes that pass."
@@ -244,7 +202,9 @@ def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
 
     asyncio.run(
         build_lead_agent().run(
-            prompt, deps=_deps(prompt), model=_reclassifying_model(prompt, seen)
+            prompt,
+            deps=_deps(prompt, IntentClassification.EXTEND_STRATEGY),
+            model=_model(seen),
         ),
     )
 
@@ -252,33 +212,27 @@ def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
     assert set(seen.listed[0]) >= BUILDING_TOOLS
 
 
-def test_a_classification_rewrites_no_instruction_and_follows_its_result() -> None:
-    """The intent a call records reaches the Lead after that call, not above the history."""
+def test_the_pinned_instructions_stay_the_same_on_every_step() -> None:
     prompt = (
         "Yes, rerun the differential expression and then create the strategy "
         "step from the genes that pass."
     )
     pinned: list[str] = []
-    updates: list[str] = []
-    scripted = _reclassifying(prompt, OfferedTools())
+    scripted = _scripted(OfferedTools())
 
     def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         request = messages[-1]
         assert isinstance(request, ModelRequest)
         pinned.append(request.instructions or "")
-        updates.extend(
-            str(part.content)
-            for part in request.parts
-            if isinstance(part, UserPromptPart)
-            and SECTION_UPDATE_LEAD in str(part.content)
-        )
         return scripted(messages, info)
 
     asyncio.run(
         build_lead_agent().run(
-            prompt, deps=_deps(prompt), model=FunctionModel(_fn, model_name="scripted")
+            prompt,
+            deps=_deps(prompt, IntentClassification.EXTEND_STRATEGY),
+            model=FunctionModel(_fn, model_name="scripted"),
         ),
     )
 
+    assert len(pinned) == 2
     assert len(set(pinned)) == 1
-    assert any("## User Intent" in update for update in updates)

@@ -16,7 +16,6 @@ from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_NOTE
 from pathfinder.ai.lead.contract_messages import (
     eda_criterion_not_built_message,
     off_topic_essay_message,
-    unclassified_turn_message,
     unsaved_controls_message,
     unverified_build_message,
 )
@@ -75,7 +74,6 @@ MismatchKind = Literal[
     "unverified_build",
     "unbuilt_eda_criterion",
     "open_value_in_prose",
-    "unclassified_turn",
     "unsaved_controls",
     "off_topic_essay",
     "unfollowed_reach",
@@ -125,21 +123,6 @@ def _open_value_in_prose(report: LeadResponse, record: TurnRecord) -> str | None
     return open_value_in_prose(record)
 
 
-def _unclassified_turn(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A message is answered after its classification is accepted.
-
-    A card answer, a typed acceptance and a turn that re-enters a parked call
-    answer something the conversation holds, not the message's own request.
-    """
-    del report
-    refused = record.refused_classification
-    if refused is None or record.answered_a_card or record.ends_on_a_card:
-        return None
-    if record.resumes_parked_call:
-        return None
-    return unclassified_turn_message(refused.sentence)
-
-
 def _unsaved_controls(report: LeadResponse, record: TurnRecord) -> str | None:
     """Controls the message names are saved as a control set, or asked about."""
     named = record.named_controls
@@ -183,7 +166,6 @@ _RULES: tuple[_Rule, ...] = (
     ("unverified_build", _unverified_build),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("open_value_in_prose", _open_value_in_prose),
-    ("unclassified_turn", _unclassified_turn),
     ("unsaved_controls", _unsaved_controls),
     ("off_topic_essay", _off_topic_essay),
     ("unfollowed_reach", _unfollowed_reach),

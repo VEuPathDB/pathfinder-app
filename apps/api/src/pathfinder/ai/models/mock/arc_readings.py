@@ -1,0 +1,71 @@
+"""The intents an arc reads the turn's words as: a fixed one, or one the
+request the thread holds decides."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.ai.models.mock.arc import Reading
+
+
+def stated(kind: str, label: str, value: str, *, hard: bool = True) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "label": label,
+        "requestedValue": value,
+        "source": "user_explicit",
+        "hard": hard,
+    }
+
+
+def intent_of(
+    classification: IntentClassification, *requirements: dict[str, Any], **read: Any
+) -> UserIntent:
+    return UserIntent.model_validate(
+        {
+            "classification": classification,
+            "inferredGoal": f"[mock] {classification.value}",
+            **({"explicitConstraints": list(requirements)} if requirements else {}),
+            **read,
+        }
+    )
+
+
+def read_as(
+    classification: IntentClassification, *requirements: dict[str, Any], **read: Any
+) -> Reading:
+    def reading(state: PipelineState, words: str) -> UserIntent:
+        del state, words
+        return intent_of(classification, *requirements, **read)
+
+    return reading
+
+
+def holds_a_request(state: PipelineState) -> bool:
+    return state.domain.operational_spec is not None
+
+
+def build_reading(state: PipelineState, words: str) -> UserIntent:
+    del words
+    return intent_of(
+        IntentClassification.EXTEND_STRATEGY
+        if holds_a_request(state)
+        else IntentClassification.NEW_STRATEGY
+    )
+
+
+def growth_reading(state: PipelineState, words: str) -> UserIntent:
+    del words
+    return intent_of(
+        IntentClassification.EDIT_STRATEGY
+        if holds_a_request(state)
+        else IntentClassification.NEW_STRATEGY
+    )
+
+
+QUESTION = read_as(IntentClassification.FOLLOW_UP_QUESTION)
+NEW_REQUEST = read_as(IntentClassification.NEW_STRATEGY)
+EDIT = read_as(IntentClassification.EDIT_STRATEGY)
+EXTEND = read_as(IntentClassification.EXTEND_STRATEGY)

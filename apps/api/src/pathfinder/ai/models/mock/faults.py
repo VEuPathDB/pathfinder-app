@@ -1,7 +1,9 @@
-"""The wrong calls a fault token inserts into an arc, once per turn."""
+"""The wrong calls a fault token inserts into an arc, once per turn, and the
+misreadings it makes of the turn's words."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from assistant_core.models.scripted import (
@@ -18,6 +20,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
+from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.models.mock import fault_calls, reply_faults
 from pathfinder.ai.models.mock.arc import Role
 
@@ -26,15 +29,12 @@ from pathfinder.ai.models.mock.arc import Role
 class Fault:
     """The role a fault plays in, the wrong call it makes there, and how many
     times the turn makes it before the arc goes on. ``setup`` is the wrong call
-    of another role that gives this one something to be wrong about. A wrong
-    call that ``stands`` is one the tool corrects and accepts, so the arc reads
-    it as its own call and does not make the call it replaced."""
+    of another role that gives this one something to be wrong about."""
 
     applies_to: Role
     wrong_call: fault_calls.WrongCall
     times: int = 1
     setup: Fault | None = None
-    stands: bool = False
 
     def playing(self, role: Role) -> Fault | None:
         """The part of the fault this role plays, or None."""
@@ -55,9 +55,12 @@ FAULTS: dict[str, Fault] = {
     "short-card-reply": Fault("lead", fault_calls.short_card_reply),
     "unlisted-search": Fault("frame", fault_calls.unlisted_search),
     "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
-    "organism-split": Fault("lead", reply_faults.organism_split, stands=True),
     "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
 }
+
+Misreading = Callable[[UserIntent, str], UserIntent]
+
+MISREADINGS: dict[str, Misreading] = {"organism-split": reply_faults.organism_split}
 
 ANSWER = "final_result"
 # The id prefix that marks a call a fault made, which the arc does not count.
@@ -100,7 +103,7 @@ def fault_call(
 ) -> ToolCallPart | None:
     """The wrong call this role makes in place of ``intended``, or None once
     the fault has answered."""
-    if name is None:
+    if name is None or name in MISREADINGS:
         return None
     fault = fault_named(name).playing(role)
     if fault is None:
@@ -108,9 +111,13 @@ def fault_call(
     wrong = fault.wrong_call(messages)(intended)
     if wrong is None or _answered(messages, wrong, fault.times):
         return None
-    if fault.stands:
-        return wrong
     return replace(wrong, tool_call_id=f"{_FAULT_CALL}{wrong.tool_call_id}")
+
+
+def misread(name: str | None, intent: UserIntent, site_id: str) -> UserIntent:
+    if name is None or name not in MISREADINGS:
+        return intent
+    return MISREADINGS[name](intent, site_id)
 
 
 def made_by_a_fault(part: object) -> bool:

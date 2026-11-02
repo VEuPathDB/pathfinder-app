@@ -33,9 +33,7 @@ from pathfinder.ai.lead.lead_audit import (
     ask_about_the_audits_on_the_lead,
     lead_audit_tools,
 )
-from pathfinder.ai.lead.lead_consult import (
-    consult_user,
-)
+from pathfinder.ai.lead.lead_consult import consult_can_ask, consult_user
 from pathfinder.ai.lead.lead_memory_tools import remember, search_memory
 from pathfinder.ai.lead.lead_pins import (
     pinned_conversation,
@@ -53,7 +51,6 @@ from pathfinder.ai.lead.lead_proposal import (
 )
 from pathfinder.ai.lead.lead_reads import get_live_strategy_state, read_ledger_section
 from pathfinder.ai.lead.lead_tools import (
-    classify_user_intent,
     clear_strategy,
     delete_step,
     export_gene_set,
@@ -136,7 +133,6 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
     """The Lead's own tools, each refusal held until a call runs, each record read once."""
     base: FunctionToolset[LeadDeps] = FunctionToolset(
         tools=[
-            Tool(classify_user_intent),
             Tool(remember),
             Tool(search_memory),
             Tool(save_gene_set),
@@ -167,7 +163,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(rename_strategy),
             Tool(clear_strategy, requires_approval=True),
             Tool(delete_step, requires_approval=True),
-            Tool(consult_user, requires_approval=True),
+            Tool(consult_user, requires_approval=True, args_validator=consult_can_ask),
             Tool(
                 propose_changes,
                 requires_approval=True,

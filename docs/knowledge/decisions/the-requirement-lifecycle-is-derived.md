@@ -50,9 +50,11 @@ successor. `ThreadRequirements.record(intent, messages)`
   `follow_up_question` is all ask (`UserIntent.researcher_asks`); a compared side
   of a `follow_up_question` is never one (the `UserIntent` validator), and a
   card sentence is never recorded as the researcher's words.
-- An approved `delete_step` retires each live requirement only the deleted
-  criteria's text stated, filler words aside
-  (`retire_what_a_delete_leaves_unanswered`). A combination a term of which
+- An approved `delete_step` retires each live requirement that a deleted
+  criterion links and no remaining criterion links
+  (`retire_what_a_delete_leaves_unanswered`, see
+  [a criterion links the requirement it answers](a-criterion-links-the-requirement-it-answers.md)).
+  A combination a term of which
   names a deleted criterion, by the words of that criterion's own text
   (`combination_check.match_terms`), is withdrawn, live or already withdrawn,
   and records those terms as its `sides` (`requirement_lifecycle.retire_dropped_sides`).

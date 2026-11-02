@@ -10,7 +10,6 @@ from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import (
     NamedControls,
-    RefusedClassification,
 )
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
@@ -71,7 +70,6 @@ class TurnRecord(CamelModel):
     # The reply is the one a card call carries, and the card asks its question.
     ends_on_a_card: bool = False
     # The refusal that stands while the message holds no accepted classification.
-    refused_classification: RefusedClassification | None = None
     # The turn re-enters a call the thread parked, and answers no new message.
     resumes_parked_call: bool = False
     # The controls the accepted classification says the message names.
@@ -171,7 +169,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         facts=turn_facts(deps, refusal=markers.unbound_edit),
         frame_open_questions=_frame_open_questions(deps, ledger.frame),
         answered_a_card=markers.consulted or markers.accepted_proposal,
-        refused_classification=None if classified else deps.refused_classification,
         resumes_parked_call=deps.state.resumes_parked_call,
         named_controls=deps.intent.named_controls
         if classified and deps.intent is not None

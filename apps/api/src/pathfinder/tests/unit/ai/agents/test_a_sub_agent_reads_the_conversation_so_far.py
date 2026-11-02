@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathfinder.ai.agents._instructions import pinned_conversation_so_far
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
-from pathfinder.ai.lead.intent import UserIntent
+from pathfinder.ai.prompts.loader import load_request_guide
 from pathfinder.domain.exchanges import Exchange, exchanges_section
 from pathfinder.tests._support.run_context import lead_run_context, run_context_for
 
@@ -35,16 +35,14 @@ def test_the_sub_agent_reads_the_section_the_lead_reads() -> None:
 
 
 _RESOLVED = (
-    "A constraint that points at an earlier reply, such as the experiment you "
-    "recommended or the third gene you listed, is written as what that reply "
-    'named, read from "The conversation so far".'
+    'A requirement that points at an earlier reply ("the experiment you '
+    'recommended", "the third gene you listed") has as its value what that '
+    'reply named, read from "The conversation so far".'
 )
 
 
 def test_a_requirement_that_points_at_an_earlier_reply_names_its_referent() -> None:
-    described = UserIntent.model_fields["explicit_constraints"].description or ""
-
-    assert described.count(_RESOLVED) == 1
+    assert " ".join(load_request_guide().split()).count(_RESOLVED) == 1
 
 
 def test_frame_reads_such_a_requirement_as_what_the_reply_named() -> None:

@@ -14,7 +14,6 @@ from pathfinder.ai.tools.standalone._frame_roles import (
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    CriterionRole,
     OpenSlot,
     SavedStrategyRef,
 )
@@ -45,12 +44,7 @@ async def saved_strategy_listing(
 
 
 async def bind_saved_criterion(
-    ctx: RunContext[AgentDeps],
-    *,
-    criterion_id: str,
-    text: str,
-    role: CriterionRole,
-    reference: str,
+    ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
 ) -> SavedStrategyListing:
     """Record a criterion whose input is a saved strategy.
 
@@ -62,36 +56,34 @@ async def bind_saved_criterion(
     match = match_saved_reference(listing, reference)
     if match is None:
         ctx.deps.agent_state.frame_set_criterion(
-            Criterion(
-                id=criterion_id,
-                text=text,
-                role=role,
-                open_params=[
-                    OpenSlot(
-                        criterion_id=criterion_id,
-                        param_name=SAVED_STRATEGY_SLOT,
-                        question=_which_one(listing),
-                        options=[entry.name for entry in listing],
-                    )
-                ],
+            stated.model_copy(
+                update={
+                    "open_params": [
+                        OpenSlot(
+                            criterion_id=stated.id,
+                            param_name=SAVED_STRATEGY_SLOT,
+                            question=_which_one(listing),
+                            options=[entry.name for entry in listing],
+                        )
+                    ]
+                }
             )
         )
         raise ModelRetry(_unresolved_message(reference, listing))
     cloned = await clone_saved_strategy(ctx.deps.site_id, match.wdk_strategy_id)
     ctx.deps.agent_state.frame_set_criterion(
-        Criterion(
-            id=criterion_id,
-            text=text,
-            role=role,
-            record_class=cloned.record_type or None,
-            saved_strategy_ref=SavedStrategyRef(
-                conversation_id=match.conversation_id,
-                name=match.name,
-                wdk_strategy_id=match.wdk_strategy_id,
-                root_count=match.root_count,
-                step_count=match.step_count,
-                subtree=cloned.root,
-            ),
+        stated.model_copy(
+            update={
+                "record_class": cloned.record_type or None,
+                "saved_strategy_ref": SavedStrategyRef(
+                    conversation_id=match.conversation_id,
+                    name=match.name,
+                    wdk_strategy_id=match.wdk_strategy_id,
+                    root_count=match.root_count,
+                    step_count=match.step_count,
+                    subtree=cloned.root,
+                ),
+            }
         )
     )
     return match
@@ -102,13 +94,7 @@ async def set_saved_criterion(
 ) -> ToolReturn[SetCriterionResult]:
     refuse_a_waiting_criterion(ctx.deps.agent_state, stated.id)
     refuse_a_transform_on_a_saved_input(stated.id, stated.role, "saved strategy")
-    match = await bind_saved_criterion(
-        ctx,
-        criterion_id=stated.id,
-        text=stated.text,
-        role=stated.role,
-        reference=reference,
-    )
+    match = await bind_saved_criterion(ctx, stated, reference=reference)
     return with_summary(
         SetCriterionResult(
             criterion_id=stated.id, search_name="", saved_strategy=match

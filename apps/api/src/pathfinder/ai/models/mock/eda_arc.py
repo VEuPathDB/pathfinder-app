@@ -19,8 +19,8 @@ from pydantic import Field, TypeAdapter
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script, history_free
-from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
-from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, classified_this_turn
+from pathfinder.ai.models.mock.calls import lead_final, narrated
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE
 from pathfinder.ai.models.mock.message_words import message
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -299,8 +299,6 @@ def comparison(ending: Script, choose: GroupChooser = _groups) -> Script:
     them, then end."""
 
     def script(messages: list[ModelMessage]) -> ToolCallPart:
-        if not classified_this_turn(messages):
-            return classify("new_strategy")
         study = _study(messages)
         if study is None:
             return _next_read(messages)
@@ -315,8 +313,6 @@ eda_compare_no_step = comparison(history_free(_compared))
 
 def eda_other_site(messages: list[ModelMessage]) -> ToolCallPart:
     """Open the study another site publishes and give its refusal as the reply."""
-    if not classified_this_turn(messages):
-        return classify("new_strategy")
     studies = _studies(messages)
     if studies is None:
         return _search()

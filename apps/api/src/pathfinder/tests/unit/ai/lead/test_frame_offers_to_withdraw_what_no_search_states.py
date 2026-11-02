@@ -82,7 +82,7 @@ def _deps(monkeypatch: pytest.MonkeyPatch, *asked: SlotQuestion) -> LeadDeps:
             DroppedCriterion(
                 text="top 50th percentile in bradyzoites",
                 reason="no search ranks bradyzoite expression",
-                requirement=_CUTOFF,
+                requirements=[_CUTOFF],
             )
         )
         return FrameResult(

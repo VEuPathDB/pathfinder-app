@@ -7,13 +7,14 @@ from uuid import uuid4
 import pytest
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for, framing_goal
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
+from pathfinder.ai.lead.lead_tools import clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import budget_stop_report, lead_usage_limits
 from pathfinder.ai.lead.verification_scope import verification_scope
@@ -56,7 +57,7 @@ def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)
 
 
 @pytest.fixture(autouse=True)
@@ -86,13 +87,14 @@ async def _cleared() -> LeadDeps:
     )
     state.user_message_id = uuid4()
     deps = lead_deps(state, strategy_session=built_session())
-    await classify_user_intent(
-        run_context_for(deps, "t_classify"),
+    await hold_the_intent(
+        deps,
         UserIntent(
             classification=IntentClassification.NEW_STRATEGY,
             inferred_goal="transporters in P. berghei",
             explicit_constraints=[_NEW_ORGANISM],
         ),
+        deps.state.user_prompt,
     )
     await clear_strategy(
         run_context_for(deps, "t_clear"),

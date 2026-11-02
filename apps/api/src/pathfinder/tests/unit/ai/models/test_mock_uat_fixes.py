@@ -6,6 +6,7 @@ import pytest
 
 from pathfinder.ai.models.mock.growths import orthologs_criterion
 from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, SUCCESS_PROSE
+from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.specs import CriterionReply, criterion_call
 from pathfinder.ai.models.mock.strategy_specs import intersect_spec
@@ -15,6 +16,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.requirement_reports import requirements_block
+from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 from pathfinder.tests.unit.ai.models._mock_pins import (
     edit_order,
     framed_pins,
@@ -34,7 +36,6 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
 SITES = ("plasmodb", "vectorbase")
 _ORDER = "Frame work order: mock frame"
 _BUILD = [
-    "classify_user_intent",
     "frame_problem",
     "build_strategy",
     "verify_strategy",
@@ -42,7 +43,6 @@ _BUILD = [
     "final_result",
 ]
 _CHECK = [
-    "classify_user_intent",
     "verify_strategy",
     "get_live_strategy_state",
     "final_result",
@@ -67,7 +67,6 @@ def test_the_controls_test_on_a_built_thread_checks_the_strategy(site_id: str) -
     calls = play("lead", site_id, "Test it [[arc:controls-test]]", scene=scene)
 
     assert names(calls) == _CHECK
-    assert calls[0].args_as_dict()["intent"]["classification"] == "extend_strategy"
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -154,21 +153,24 @@ def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_the_property_no_search_states_is_classified_as_a_requirement(
+def test_the_property_no_search_states_is_read_as_a_requirement(
     site_id: str,
 ) -> None:
     text = "Find genes with a predicted GPI anchor [[arc:no-search-states-it]]"
 
-    calls = play("lead", site_id, text)
+    intent = scripted_intent(pipeline_state(site_id, user_prompt=text), text)
 
-    assert calls[0].args_as_dict()["intent"]["explicitConstraints"] == [
-        {
-            "kind": "other",
-            "label": "a predicted GPI anchor",
-            "requestedValue": "a predicted GPI anchor",
-            "source": "user_explicit",
-            "hard": True,
-        }
+    assert [
+        (c.kind, c.label, c.requested_value, c.source, c.hard)
+        for c in intent.explicit_constraints
+    ] == [
+        (
+            ConstraintKind.OTHER,
+            "a predicted GPI anchor",
+            "a predicted GPI anchor",
+            ConstraintSource.USER_EXPLICIT,
+            True,
+        )
     ]
 
 
@@ -231,7 +233,7 @@ def test_no_own_search_at_all_reads_the_other_site_and_builds_nothing(
         "read_experiment",
         "final_result",
     ]
-    assert names(lead) == ["classify_user_intent", "frame_problem", "final_result"]
+    assert names(lead) == ["frame_problem", "final_result"]
     assert (
         lead[-1].args_as_dict()["prose"] == "It runs on another site. I built nothing."
     )

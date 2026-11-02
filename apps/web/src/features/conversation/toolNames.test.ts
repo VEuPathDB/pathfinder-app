@@ -21,7 +21,6 @@ const REGISTERED = [
   "build_control_set",
   "build_phyletic_expression",
   "build_strategy",
-  "classify_user_intent",
   "clear_strategy",
   "compare_search_variants",
   "compare_variants_scored",

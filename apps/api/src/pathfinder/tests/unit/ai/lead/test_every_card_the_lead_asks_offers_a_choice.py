@@ -20,7 +20,11 @@ from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.recorded_cards import the_card_asked
 from pathfinder.domain.strategy.constraints import ConstraintKind
-from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+    Criterion,
+    RequirementLink,
+)
 from pathfinder.domain.strategy.question_options import Keep, Withdraw
 from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -199,6 +203,7 @@ def _signal_peptide() -> Criterion:
     return Criterion(
         id="c_signal_peptide",
         text="Cytauxzoon felis Winnie genes with a signal peptide",
+        answers=[RequirementLink(requirement=_GPI_OR_SIGNAL.id)],
         search_name="GenesWithSignalPeptide",
         organism_param="organism",
         resolved_params={
@@ -227,7 +232,8 @@ def _winnie_deps() -> Any:
 async def test_a_pass_that_asks_about_a_requirement_the_site_lacks_is_not_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The piroplasmadb pass: FRAME asks the question its instructions ask for."""
+    """The piroplasmadb pass: FRAME asks the question its instructions ask for,
+    about the criterion that links the requirement."""
 
     async def _needs_user(**kwargs: Any) -> FrameResult:
         draft = kwargs["agent_deps"].agent_state.operational_spec_draft
@@ -238,6 +244,7 @@ async def test_a_pass_that_asks_about_a_requirement_the_site_lacks_is_not_refuse
             open_questions=[
                 SlotQuestion(
                     question=_GPI_QUESTION,
+                    criterion_id="c_signal_peptide",
                     dimension=ConstraintKind.DATA_TYPE,
                     recommended_value="GenesWithSignalPeptide",
                     options=[

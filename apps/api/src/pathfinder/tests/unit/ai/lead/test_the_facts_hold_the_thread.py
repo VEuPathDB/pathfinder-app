@@ -21,9 +21,9 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.graph.turn_records import ReadRecord
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.lead.turn_record import turn_record
@@ -379,7 +379,7 @@ async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
             if g.gene_id in gene_ids
         ]
 
-    monkeypatch.setattr(classification_gate, "read_each_gene_id", _resolve)
+    monkeypatch.setattr(held_intent, "read_each_gene_id", _resolve)
     state = pipeline_state(
         "plasmodb",
         user_prompt="Which genes are in this image?",
@@ -397,7 +397,7 @@ async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
             "namedGeneIds": [g.gene_id for g in _IMAGE_GENES],
         }
     )
-    await classify_user_intent(run_context_for(deps, tool_call_id="c1"), intent)
+    await hold_the_intent(deps, intent, deps.state.user_prompt)
 
     facts = turn_facts(deps)
     assert [(g.record_id, g.url) for g in facts.named_genes] == [

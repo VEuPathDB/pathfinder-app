@@ -269,14 +269,13 @@ class TurnMarkers(CamelModel):
     unbound_edit: str = ""
     # The steps each delete card listed, by the card's tool call id.
     delete_cards: dict[str, list[str]] = Field(default_factory=dict)
+    # The requirements each card question asks a stand-in for, by the card's
+    # tool call id and the question's prompt.
+    card_stand_ins: dict[str, dict[str, list[str]]] = Field(default_factory=dict)
     # The questions the latest answer under this message closed.
     answered: AnsweredQuestions | None = None
     # The researcher answered a consult, or accepted a proposal, under this message.
     consulted: bool = False
-    # The consult card this message last had an answer to, and the one whose
-    # answer the latest classification read, by tool call id.
-    answered_card: str = ""
-    classified_card: str = ""
     accepted_proposal: bool = False
     # The calls refused since the last call that ran; a call that runs clears them.
     refused_calls: list[RefusedCall] = Field(default_factory=list)

@@ -79,10 +79,14 @@ def criterion_rebound(
     """The criterion on the search its step now runs, stating its whole binding.
 
     A search shares no values with the one it replaces, so nothing the
-    criterion said about the old binding survives it.
+    criterion said about the old binding survives it, and each requirement it
+    answers is linked to no parameter.
     """
     rebound = criterion.model_copy(
         update={
+            "answers": [
+                link.model_copy(update={"param": None}) for link in criterion.answers
+            ],
             "search_name": node.search_name,
             "record_class": None,
             "saved_strategy_ref": None,

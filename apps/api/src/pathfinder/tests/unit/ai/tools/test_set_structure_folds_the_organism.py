@@ -11,17 +11,22 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead.ledger_sections import unexpressed_words
+from pathfinder.ai.lead.ledger_sections import unexpressed_gaps
 from pathfinder.ai.tools.standalone.frame_structure import (
     SetStructureResult,
     set_structure,
 )
+from pathfinder.domain.caveats import WordGap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    RequirementLink,
+    StructureNode,
+)
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.organism_reads import (
@@ -36,13 +41,15 @@ PEST = "Anopheles gambiae PEST"
 ORGANISMS = [PEST, "Anopheles stephensi Indian", "Aedes aegypti LVP_AGWG"]
 # The genes of PEST, as vectorbase's organism search counts them.
 PEST_GENES = 13_845
-# The requirement the researcher stated, which the plan's text restates.
+# The requirement the researcher stated, which the dropped criterion links.
 ANNOTATED = Constraint(
     kind=ConstraintKind.OTHER,
     requested_value="gene annotation",
     label="annotated genes",
     source=ConstraintSource.USER_EXPLICIT,
 )
+ANNOTATED_GAP = WordGap(word="gene annotation", requirement=ANNOTATED.id)
+ANSWERS_ANNOTATED = [RequirementLink(requirement=ANNOTATED.id)]
 
 
 def _organism_rationale(search_name: str) -> SearchRationale:
@@ -70,6 +77,7 @@ def _pest_universe(text: str) -> Criterion:
         ),
         result_count=PEST_GENES,
         rationale=_organism_rationale("GenesByGeneModelChars"),
+        answers=ANSWERS_ANNOTATED,
     )
 
 
@@ -193,10 +201,10 @@ async def test_a_binding_that_matches_every_gene_holds_its_requirement_open(
     assert universe == [("vectorbase", "transcript", "GenesByTaxon", (PEST,))]
     draft = state.operational_spec_draft
     assert [c.id for c in draft.criteria] == ["c_signal"]
-    assert [(d.text, d.requirement) for d in draft.dropped] == [
-        ("PEST gene annotation", ANNOTATED)
+    assert [(d.text, d.requirements) for d in draft.dropped] == [
+        ("PEST gene annotation", [ANNOTATED])
     ]
-    assert unexpressed_words(draft) == ["gene annotation"]
+    assert unexpressed_gaps(draft) == [ANNOTATED_GAP]
 
 
 async def test_rebinding_the_carrier_keeps_the_requirement_open(
@@ -208,10 +216,10 @@ async def test_rebinding_the_carrier_keeps_the_requirement_open(
 
     state.frame_set_criterion(_signal())
 
-    assert unexpressed_words(state.operational_spec_draft) == ["gene annotation"]
+    assert unexpressed_gaps(state.operational_spec_draft) == [ANNOTATED_GAP]
 
 
-async def test_a_criterion_that_states_the_dropped_text_meets_it(
+async def test_a_criterion_that_links_the_dropped_requirement_meets_it(
     site: list[str], universe: list[tuple[str, str, str, tuple[str, ...]]]
 ) -> None:
     del site, universe
@@ -220,11 +228,11 @@ async def test_a_criterion_that_states_the_dropped_text_meets_it(
 
     state.frame_set_criterion(
         _signal().model_copy(
-            update={"id": "c_annotation", "text": "genes with PEST gene annotation"}
+            update={"id": "c_annotation", "answers": ANSWERS_ANNOTATED}
         )
     )
 
-    assert unexpressed_words(state.operational_spec_draft) == []
+    assert unexpressed_gaps(state.operational_spec_draft) == []
 
 
 async def test_an_organism_only_filter_that_narrows_its_organism_stays(

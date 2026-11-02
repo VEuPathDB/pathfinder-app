@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from typing import Annotated
 
@@ -14,7 +13,6 @@ from pathfinder.domain.strategy.combination_check import (
     match_terms,
 )
 from pathfinder.domain.strategy.constraints import (
-    STRATEGY_SCOPES,
     CombinationRequest,
     Constraint,
     ConstraintKind,
@@ -134,33 +132,6 @@ def successor_of(
         (c for c in stated if c.kind is requirement.kind and c.id != requirement.id),
         None,
     )
-
-
-# Words with which a question asks for something in place of a requirement.
-_ASKS_A_STAND_IN_RE = re.compile(
-    r"\b(?:replace[sd]?|instead|stand[- ]?in|substitute[sd]?|proxy|alternative)\b",
-    re.IGNORECASE,
-)
-
-
-def stood_in_for(
-    held: Sequence[Constraint], *, prompt: str, stand_in: Constraint
-) -> list[Constraint]:
-    """The held requirements an answer to this question names a stand-in for.
-
-    A question that asks for a replacement names, in its prompt, the
-    requirement it replaces. An organism or a record type scopes the whole
-    strategy, so no stand-in replaces either.
-    """
-    if not _ASKS_A_STAND_IN_RE.search(prompt):
-        return []
-    return [
-        c
-        for c in held
-        if c.id != stand_in.id
-        and c.kind not in STRATEGY_SCOPES
-        and message_states_constraint(prompt, c)
-    ]
 
 
 def retire(

@@ -1,4 +1,4 @@
-"""The tools the Lead carries itself: classification and clearing."""
+"""The tools the Lead carries itself: clears, gene sets, exports and records."""
 
 from __future__ import annotations
 
@@ -13,10 +13,8 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart, ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
-from pathfinder.ai.lead import lead_tools
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent, build_lead_toolset
-from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
+from pathfinder.ai.lead.lead_tools import clear_strategy
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -42,8 +40,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     session_with_one_step,
 )
 from pathfinder.tests.unit.ai.tools.conftest import unwrap_function_toolset
-
-_REAL_MESSAGE = "Find the gametocyte proteases."
 
 
 def _flat(text: str) -> str:
@@ -77,80 +73,6 @@ def _no_persist(monkeypatch: pytest.MonkeyPatch) -> None:
         "persist_strategy_ast_to_conversation",
         _noop,
     )
-
-
-def test_the_classifier_takes_no_message_text_from_the_model() -> None:
-    """The classified message is the turn's own, so no text is passed in."""
-    assert sorted(UserIntent.model_fields) == [
-        "asks",
-        "asks_a_change",
-        "classification",
-        "differential_sides",
-        "edit_direction",
-        "explicit_constraints",
-        "inferred_goal",
-        "is_differential",
-        "named_controls",
-        "named_gene_ids",
-        "referenced_step_ids",
-        "undo",
-        "withdrawn",
-    ]
-
-
-async def test_the_classifier_records_the_message_the_turn_answers() -> None:
-    """The recorded request is the state's prompt, whatever the model states."""
-    state = pipeline_state(user_prompt=_REAL_MESSAGE)
-    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-
-    await classify_user_intent(
-        ctx,
-        UserIntent(
-            classification=IntentClassification.NEW_STRATEGY,
-            inferred_goal="find the proteases",
-        ),
-    )
-
-    assert state.domain.original_request == _REAL_MESSAGE
-
-
-def test_the_classifier_reads_an_answer_as_a_clarification() -> None:
-    """A message that answers an open question does not start the thread over."""
-    guidance = _flat(classify_user_intent.__doc__ or "")
-
-    assert (
-        "A message that answers a question you asked is "
-        "``clarification_response``, whatever else it carries"
-    ) in guidance
-    assert "``new_strategy`` is for a message that ABANDONS that request" in guidance
-
-
-def test_the_classifier_calls_an_imperative_a_building_intent() -> None:
-    guidance = _flat(classify_user_intent.__doc__ or "")
-
-    assert (
-        "Any other imperative asks for a build, except a ``gene_model_audit`` as "
-        "the ``classification`` field defines it."
-    ) in guidance
-    assert "rerun" in guidance
-    assert "yes, do it" in guidance
-    assert "None of them is a ``follow_up_question``" in guidance
-
-
-def test_the_classifier_keeps_a_retry_on_the_request_s_own_intent() -> None:
-    guidance = _flat(classify_user_intent.__doc__ or "")
-
-    assert "A retry after a failed task is the same request again" in guidance
-
-
-def test_the_classifier_guidance_is_ascii_only() -> None:
-    assert (classify_user_intent.__doc__ or "").isascii()
-
-
-def test_the_classifier_is_told_to_capture_a_stated_share() -> None:
-    doc = classify_user_intent.__doc__ or ""
-    assert "percentile" in doc
-    assert "top 10%" in doc
 
 
 def test_the_lead_registers_the_clear_tool_behind_an_approval() -> None:
@@ -258,8 +180,7 @@ _CONTEXT_STATEMENT = (
 
 
 @pytest.mark.usefixtures("recorded_site_organisms")
-async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None:
-    """The mock script classifies without a message text and answers once."""
+async def test_a_scripted_turn_replies_with_no_classify_call() -> None:
     deps = lead_deps(pipeline_state(user_prompt=_CONTEXT_STATEMENT))
     bind_scripted_scope("plasmodb", _CONTEXT_STATEMENT)
 
@@ -275,10 +196,8 @@ async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None
         for part in message.parts
         if isinstance(part, ToolCallPart)
     ]
-    assert calls.count("classify_user_intent") == 1
+    assert "classify_user_intent" not in calls
     assert isinstance(result.output, LeadResponse)
-    assert deps.intent is not None
-    assert deps.intent.classification is IntentClassification.CONTEXT_STATEMENT
 
 
 _EXPORT_REQUEST = (
@@ -429,11 +348,3 @@ async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
     assert ctx.deps.state.turn_markers.retrieved_sources == [
         "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
     ]
-
-
-def test_the_classifier_is_told_a_question_a_search_answers_is_a_build() -> None:
-    doc = lead_tools.classify_user_intent.__doc__ or ""
-
-    assert "A question whose answer is the size or the members of a gene search" in doc
-    assert "``new_strategy``" in doc
-    assert "follow_up_question" in doc

@@ -12,7 +12,7 @@ from veupathdb.domain.parameters import (
 from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
 
 from pathfinder.ai.graph.state import VerificationDigest
-from pathfinder.domain.caveats import Caveat
+from pathfinder.domain.caveats import Caveat, WordGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
 from pathfinder.domain.strategy.constraints import (
@@ -280,24 +280,15 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
 
 
 def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:
-    """The texts the spec states that no search its pass read can state.
+    """The requirements a drop holds open that no criterion of the spec links.
 
-    Each is the researcher's own word, or the requirement a drop holds open, so
-    it stands unmet and blocks until a search states it.
+    Each stands unmet and blocks until a criterion links it.
     """
     if spec is None:
         return []
     return [
         GroundedConstraint(
-            constraint=text.requirement
-            or Constraint(
-                id=f"word:{text.word}",
-                kind=ConstraintKind.OTHER,
-                requested_value=text.word,
-                label=text.stated_in[:_UNEXPRESSED_LABEL],
-                source=ConstraintSource.USER_EXPLICIT,
-                hard=True,
-            ),
+            constraint=text.requirement,
             status=ConstraintStatus.UNGROUNDABLE,
             note=text.why,
         )
@@ -305,14 +296,19 @@ def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstr
     ]
 
 
-def unexpressed_words(spec: OperationalSpec | None) -> list[str]:
-    """Every word the spec states and no search it read can state."""
+def unexpressed_gaps(spec: OperationalSpec | None) -> list[WordGap]:
+    """Every requirement a drop holds open that no criterion of the spec links."""
     if spec is None:
         return []
-    return [text.word for text in spec.unexpressed()]
+    return [
+        WordGap(word=text.word, requirement=text.requirement.id)
+        for text in spec.unexpressed()
+    ]
 
 
-_UNEXPRESSED_LABEL = 120
+def _numbered(number: str) -> str:
+    return f"{number}: " if number else ""
+
 
 # How many requirements the pinned summary prints before it counts the rest.
 _STATED_WINDOW = 20
@@ -337,6 +333,7 @@ class ConstraintSection(CamelModel):
     # The requirements the thread captured that the user did not state. Off the
     # wire for the same reason: they are already in ``grounded``.
     composed: list[Constraint] = Field(default_factory=list, exclude=True)
+    numbers: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     def render_recommended(self) -> list[str]:
         """One line per recommendation the user has not replaced."""
@@ -366,7 +363,8 @@ class ConstraintSection(CamelModel):
         carried = {c.id for c in self.carried}
         return _windowed(
             [
-                f"- {g.constraint.label} ({g.constraint.kind}): "
+                f"- {_numbered(self.numbers.get(g.constraint.id, ''))}"
+                f"{g.constraint.label} ({g.constraint.kind}): "
                 f"{g.constraint.requested_value!r} -> {g.status}"
                 + (" (from an earlier message)" if g.constraint.id in carried else "")
                 + f"; id {g.constraint.id}"

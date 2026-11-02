@@ -1,4 +1,5 @@
-"""The shape of one arc: the script each role plays when a message names it."""
+"""The shape of one arc: how the turn's words read when a message names it, and
+the script each role plays."""
 
 from __future__ import annotations
 
@@ -8,10 +9,14 @@ from typing import Literal
 
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.intent import UserIntent
+
 Role = Literal["lead", "frame", "verification", "execution"]
 
 Script = Callable[[list[ModelMessage]], ToolCallPart]
 Sequence = Callable[[list[ModelMessage]], list[ToolCallPart]]
+Reading = Callable[[PipelineState, str], UserIntent]
 
 
 def history_free[T](build: Callable[[], T]) -> Callable[[list[ModelMessage]], T]:
@@ -25,8 +30,10 @@ def history_free[T](build: Callable[[], T]) -> Callable[[list[ModelMessage]], T]
 
 @dataclass(frozen=True)
 class Arc:
-    """One script per role. A role the arc does not use plays its default."""
+    """The intent the turn's words read as, and one script per role. A role the
+    arc does not use plays its default."""
 
+    reading: Reading
     lead: Script
     frame: Script
     verification: Script

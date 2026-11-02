@@ -56,12 +56,15 @@ def kept_exchanges(held: Sequence[Exchange], exchange: Exchange) -> list[Exchang
     return [*held, exchange][-EXCHANGE_WINDOW:]
 
 
+def exchanges_text(exchanges: Sequence[Exchange]) -> str:
+    return "\n\n".join("\n".join(exchange.lines()) for exchange in exchanges)
+
+
 def exchanges_section(exchanges: Sequence[Exchange]) -> str | None:
     """The exchanges as the Lead reads them, or None when there is none."""
     if not exchanges:
         return None
-    blocks = ["\n".join(exchange.lines()) for exchange in exchanges]
-    return "\n\n".join([f"{_HEADING}\n{_NOTE}", *blocks])
+    return f"{_HEADING}\n{_NOTE}\n\n{exchanges_text(exchanges)}"
 
 
 __all__ = [
@@ -69,5 +72,6 @@ __all__ = [
     "Exchange",
     "ExchangeKind",
     "exchanges_section",
+    "exchanges_text",
     "kept_exchanges",
 ]

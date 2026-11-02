@@ -214,7 +214,9 @@ def test_the_summary_marks_a_requirement_the_message_did_not_state() -> None:
         f"### Captured for the user, not stated by them\n- profile breadth (other): {composed!r}"
         in summary
     )
-    assert "- organism (organism): 'Plasmodium falciparum' -> provisional" in summary
+    assert (
+        "- R1: organism (organism): 'Plasmodium falciparum' -> provisional" in summary
+    )
 
 
 def test_the_summary_caps_the_requirement_list() -> None:

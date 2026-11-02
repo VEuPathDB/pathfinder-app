@@ -6,13 +6,8 @@ from __future__ import annotations
 from assistant_core.models.scripted import scripted_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
-from pathfinder.ai.models.mock.lead_flow import (
-    BUILD,
-    FACTS_BESIDE,
-    build_classification,
-    build_journey,
-)
+from pathfinder.ai.models.mock.calls import lead_final, narrated
+from pathfinder.ai.models.mock.lead_flow import BUILD, FACTS_BESIDE, build_journey
 from pathfinder.ai.models.mock.message_words import named_after, turn_controls
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -75,7 +70,6 @@ class _Edited(ToolAnswer):
 def clear(messages: list[ModelMessage]) -> list[ToolCallPart]:
     cleared = last_return(messages, "clear_strategy", _Cleared) is not None
     return [
-        classify("edit_strategy"),
         scripted_call(
             "clear_strategy",
             {
@@ -93,7 +87,6 @@ def proposal(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Offer one change on a card; a yes runs it as an edit."""
     applied = last_return(messages, "propose_changes", _Edited) is not None
     return [
-        classify("follow_up_question"),
         scripted_call("propose_changes", _proposal()),
         lead_final(_PROPOSED_PROSE, "await_user")
         if applied
@@ -105,7 +98,6 @@ def rename(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Rename the strategy to the words after "to", and answer with the tool's line."""
     answered = text_return(messages, _RENAME)
     return [
-        classify("edit_strategy"),
         scripted_call(_RENAME, {"name": named_after("to") or _RENAMED_NAME}),
         lead_final(
             _NOT_RENAMED_PROSE if answered is None else narrated(answered), "await_user"
@@ -141,19 +133,19 @@ def sweep(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Read the live strategy and tune the root it names; a thread with no
     root saves the controls, then builds, verifies and tunes one, so the build's
     answer is still whole when the reply names what it added."""
-    read = [classify(build_classification(messages)), scripted_call(_LIVE, {})]
+    read = [scripted_call(_LIVE, {})]
     root = live_root_wdk_step_id(messages)
     if root is not None:
         swept = _swept(root, messages)
         return [*read, _saved_controls(), swept, lead_final(_SWEEP_PROSE, "await_user")]
     journey = build_journey(messages)
     if journey[-2].tool_name == BUILD:
-        return [*read, *journey[1:]]
+        return [*read, *journey]
     built = built_root_wdk_step_id(messages)
     return [
         *read,
         _saved_controls(),
-        *journey[1:-2],
+        *journey[:-2],
         _swept(built, messages),
         lead_final(f"{_SWEEP_PROSE}{FACTS_BESIDE}", "await_user"),
     ]
@@ -162,7 +154,7 @@ def sweep(messages: list[ModelMessage]) -> list[ToolCallPart]:
 def delete_card(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Read the live strategy, remove its transmembrane step on the delete card,
     and name the step the card removed."""
-    head = [classify("edit_strategy"), scripted_call("get_live_strategy_state", {})]
+    head = [scripted_call("get_live_strategy_state", {})]
     step_id = live_step_id(messages, TM_DOMAINS)
     if step_id is None:
         return [*head, lead_final(_NO_STEP_PROSE, "await_user")]

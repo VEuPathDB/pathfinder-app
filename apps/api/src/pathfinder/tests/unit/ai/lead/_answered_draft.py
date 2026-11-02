@@ -8,8 +8,8 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
@@ -21,7 +21,6 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_thread import joined, leaf
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -78,9 +77,10 @@ async def classify(
     *,
     call_id: str = "t_classify",
 ) -> None:
-    await classify_user_intent(
-        run_context_for(deps, call_id),
+    await hold_the_intent(
+        deps,
         UserIntent(classification=kind, inferred_goal="use signal-peptide evidence"),
+        deps.state.user_prompt,
     )
 
 

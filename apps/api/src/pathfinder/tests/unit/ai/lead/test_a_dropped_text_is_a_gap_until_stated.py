@@ -1,5 +1,5 @@
-"""The requirement a dropped criterion restated stays open on the spec's drop
-record, and is a gap in the researcher's words until a criterion states it."""
+"""The requirement a dropped criterion linked stays open on the spec's drop
+record, and is a gap in the researcher's words until a criterion links it."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathfinder.ai.lead.ledger_render import render_frame_full
 from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     unexpressed_constraints,
-    unexpressed_words,
+    unexpressed_gaps,
 )
 from pathfinder.domain.caveats import WordGap, check_gaps
 from pathfinder.domain.strategy.constraints import (
@@ -21,7 +21,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     OpenLifecycle,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import Criterion, RequirementLink
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
@@ -73,29 +73,42 @@ def _snps(criterion_id: str, text: str, stat: str) -> Criterion:
     )
 
 
-def _after_the_drop(requirement: Constraint | None = _REQUIREMENT) -> AgentToolState:
+_GAP = WordGap(word=_ISOLATES, requirement=_REQUIREMENT.id)
+
+
+def _after_the_drop(
+    requirements: tuple[Constraint, ...] = (_REQUIREMENT,),
+) -> AgentToolState:
     state = AgentToolState()
     state.frame_set_criterion(_signal())
     state.frame_set_criterion(_snps("c_isolates", _PLAN, "density"))
-    state.frame_drop_criterion("c_isolates", _FATE, requirement=requirement)
+    state.frame_drop_criterion("c_isolates", _FATE, requirements=requirements)
     return state
 
 
 def test_rebinding_the_criterion_it_ran_beside_keeps_the_gap() -> None:
     state = _after_the_drop()
     state.frame_set_criterion(_signal("SignalP-4.1"))
-    spec = state.operational_spec_draft
 
-    assert check_gaps(
-        words=unexpressed_words(spec), requirements=unexpressed_constraints(spec)
-    ) == [WordGap(word=_ISOLATES)]
+    assert check_gaps(words=unexpressed_gaps(state.operational_spec_draft)) == [_GAP]
 
 
-def test_a_criterion_that_states_the_text_meets_it() -> None:
+def test_a_criterion_that_links_the_requirement_meets_it() -> None:
+    state = _after_the_drop()
+    state.frame_set_criterion(
+        _snps("c_diversity", "nucleotide diversity", "pi").model_copy(
+            update={"answers": [RequirementLink(requirement=_REQUIREMENT.id)]}
+        )
+    )
+
+    assert unexpressed_gaps(state.operational_spec_draft) == []
+
+
+def test_a_criterion_that_states_the_text_and_links_nothing_leaves_the_gap() -> None:
     state = _after_the_drop()
     state.frame_set_criterion(_snps("c_diversity", f"genes that {_ISOLATES}", "pi"))
 
-    assert unexpressed_words(state.operational_spec_draft) == []
+    assert unexpressed_gaps(state.operational_spec_draft) == [_GAP]
 
 
 def test_the_ledger_blocks_on_the_requirement_and_lists_the_drop() -> None:
@@ -109,24 +122,20 @@ def test_the_ledger_blocks_on_the_requirement_and_lists_the_drop() -> None:
         grounded.note,
         grounded.lifecycle,
     ) == (_REQUIREMENT, ConstraintStatus.UNGROUNDABLE, _FATE, OpenLifecycle())
-    assert unexpressed_words(spec) == [_ISOLATES]
+    assert unexpressed_gaps(spec) == [_GAP]
     assert f"- {_PLAN} - {_FATE}" in render_frame_full(FrameSection(spec=spec))
 
 
 def test_the_gap_is_the_requirement_never_the_criterion_text() -> None:
     spec = _after_the_drop().operational_spec_draft
 
-    gaps = check_gaps(
-        words=unexpressed_words(spec), requirements=unexpressed_constraints(spec)
-    )
-
-    assert gaps == [WordGap(word=_ISOLATES)]
+    assert check_gaps(words=unexpressed_gaps(spec)) == [_GAP]
 
 
 def test_a_drop_that_holds_no_requirement_open_is_no_gap() -> None:
-    spec = _after_the_drop(requirement=None).operational_spec_draft
+    spec = _after_the_drop(requirements=()).operational_spec_draft
 
-    assert (unexpressed_words(spec), unexpressed_constraints(spec)) == ([], [])
+    assert (unexpressed_gaps(spec), unexpressed_constraints(spec)) == ([], [])
 
 
 def test_the_ledger_holds_the_stated_requirement_once_and_unmet() -> None:

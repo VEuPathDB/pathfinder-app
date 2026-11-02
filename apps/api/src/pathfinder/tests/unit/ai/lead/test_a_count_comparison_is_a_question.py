@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 
 
 def _flat(text: str) -> str:
@@ -23,14 +22,6 @@ def test_the_instructions_route_a_count_comparison_to_the_read_only_comparison()
         "A comparison of counts is a question, answered by ``compare_search_variants``"
         in rules
     )
-
-
-def test_the_classifier_names_a_count_comparison_a_question() -> None:
-    doc = _flat(classify_user_intent.__doc__ or "")
-
-    assert "compare the gene counts of three organisms" not in doc
-    assert "A question that compares counts" in doc
-    assert "is a ``follow_up_question`` answered by ``compare_search_variants``" in doc
 
 
 def test_the_instructions_say_what_the_lead_does_with_each_comparison() -> None:

@@ -33,7 +33,6 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "adopt_separating_strategy": Reversibility.REVISIONED_WRITE,
     "build_control_set": Reversibility.UNREVISIONED_WRITE,
     "build_strategy": Reversibility.REVISIONED_WRITE,
-    "classify_user_intent": Reversibility.IN_STATE,
     "clear_strategy": Reversibility.GATED_DESTRUCTIVE,
     "compare_search_variants": Reversibility.READ,
     "compare_variants_scored": Reversibility.UNREVISIONED_WRITE,

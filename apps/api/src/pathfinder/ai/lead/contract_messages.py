@@ -68,16 +68,6 @@ def eda_criterion_not_built_message(waiting: Criterion) -> str:
     )
 
 
-def unclassified_turn_message(refusal: str) -> str:
-    """Why a reply on a turn that holds no accepted classification is refused."""
-    return (
-        "This turn's message holds no accepted classification: "
-        f"classify_user_intent refused it with this sentence. {refusal} Call "
-        "classify_user_intent again with what the sentence names, or ask the "
-        "researcher the question it states through consult_user."
-    )
-
-
 def unsaved_controls_message(positives: int, negatives: int) -> str:
     """Why a reply on a turn whose message names controls it never saved is refused."""
     return (

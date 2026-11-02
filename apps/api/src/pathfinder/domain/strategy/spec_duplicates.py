@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
     MIN_COMBINE_INPUTS,
     OperationalSpec,
@@ -36,8 +37,9 @@ class DuplicateDrop(CamelModel):
         return True
 
     @property
-    def requirement(self) -> None:
+    def requirements(self) -> tuple[Constraint, ...]:
         """The sibling meets the text, so the drop holds no requirement open."""
+        return ()
 
     @property
     def fate(self) -> str:

@@ -17,7 +17,7 @@ from pathfinder.ai.lead.facts_reads import (
 )
 from pathfinder.ai.lead.intent_gate import turn_is_an_audit
 from pathfinder.ai.lead.ledger import InvestigationLedger
-from pathfinder.ai.lead.ledger_sections import unexpressed_words
+from pathfinder.ai.lead.ledger_sections import unexpressed_gaps
 from pathfinder.ai.lead.parameter_facts import step_parameters
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.tally_steps import tallies_with_paths
@@ -203,19 +203,20 @@ def _retired_rows(domain: StrategyDomainState) -> list[RetiredFact]:
     return [row for r in domain.retired_requirements for row in _retired(r, words)]
 
 
-def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:
+def _gaps(deps: LeadDeps) -> list[Gap]:
     """The gaps of the verdict on the strategy, and on a turn that framed or
-    changed it, every word its spec states and every requirement the framing
-    pass found no search states, read again against every requirement so a
-    withdrawn or replaced one is no gap."""
+    changed it, every requirement a drop holds open and every requirement the
+    framing pass found no search states, less each one withdrawn or replaced."""
     markers = deps.state.turn_markers
     verdict = deps.state.turn_verdict
+    domain = deps.state.domain
     held = [] if verdict is None else verdict.gaps
-    retired = {r.constraint.id for r in deps.state.domain.retired_requirements}
+    retired = {r.constraint.id for r in domain.retired_requirements}
+    unstated = set(markers.unstated_requirements)
     words = [
-        *(gap.word for gap in held if isinstance(gap, WordGap)),
+        *(gap for gap in held if isinstance(gap, WordGap)),
         *(
-            unexpressed_words(deps.state.domain.operational_spec)
+            unexpressed_gaps(domain.operational_spec)
             if markers.framed or markers.changed_strategy
             else []
         ),
@@ -223,11 +224,8 @@ def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:
     return [
         *check_gaps(
             words=words,
-            unstated=markers.unstated_requirements,
-            requirements=[
-                *ledger.constraints.grounded,
-                *(r.grounded() for r in deps.state.domain.retired_requirements),
-            ],
+            unstated=[c for c in domain.requirements if c.id in unstated],
+            retired=retired,
         ),
         *(
             gap
@@ -318,7 +316,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         session.sync_state,
         None if verdict is None else verdict.review,
     )
-    gaps = _gaps(deps, ledger)
+    gaps = _gaps(deps)
     return TurnFacts(
         record_noun=noun,
         steps=built or _draft_steps(spec, said),

@@ -281,6 +281,16 @@ def keyed_model(model: Model | str) -> Model | str:
     return GuardedModel(built, keys=keys, provider=keyed, paid_by=PaidBy.USER)
 
 
+def keyed_provider(model_id: str) -> tuple[Provider[Any], PaidBy]:
+    keys = _current()
+    users_key = _users_key(provider_of(model_id), keys)
+    if users_key is None:
+        require_deployment_pays(model_id)
+        return _deployment_provider(provider_of(model_id), keys), PaidBy.DEPLOYMENT
+    keyed, key = users_key
+    return keys.build(keyed, key), PaidBy.USER
+
+
 def require_deployment_pays(model_id: str) -> None:
     if deployment_may_pay(model_id):
         return

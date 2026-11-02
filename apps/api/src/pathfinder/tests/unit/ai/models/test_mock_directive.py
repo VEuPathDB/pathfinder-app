@@ -160,7 +160,6 @@ def test_the_registry_holds_every_named_arc() -> None:
             "organism-universe",
             "radio-off-domain",
             "text-beside-organism",
-            "reclassified",
             "read-again",
             "count-comparison",
             "union-refused",
@@ -183,7 +182,7 @@ def test_the_registry_holds_every_named_arc() -> None:
 def test_a_resumed_run_reads_the_token_its_history_carries() -> None:
     calls = play("lead", "plasmodb", "", work_order="Clear it [[arc:clear]]")
 
-    assert names(calls) == ["classify_user_intent", "clear_strategy", "final_result"]
+    assert names(calls) == ["clear_strategy", "final_result"]
 
 
 def test_a_resumed_run_reads_the_token_of_its_newest_message() -> None:

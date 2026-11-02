@@ -2,7 +2,8 @@
 
 A role is read from the tools an agent offers. The arc is the one the turn's
 message names with an ``[[arc:<name>]]`` token; each role then plays that
-arc's script, after any wrong call a ``[[fault:<name>]]`` token inserts.
+arc's script, after any wrong call a ``[[fault:<name>]]`` token inserts. The
+turn's words are read as the arc declares, before the Lead runs.
 """
 
 from __future__ import annotations
@@ -24,12 +25,13 @@ from pathfinder.ai.audit.mock_investigation import (
     PSEUDOGENE_CALL,
     investigator_script,
 )
-from pathfinder.ai.conversation.gene_list_marker import parse_gene_list_marker
 from pathfinder.ai.models.mock.arc import Arc, Role, Script
-from pathfinder.ai.models.mock.directive import ECHO, ArcDirective, directive_of
+from pathfinder.ai.models.mock.consult_arc import CONSULT
+from pathfinder.ai.models.mock.directive import ArcDirective
 from pathfinder.ai.models.mock.faults import fault_call, without_fault_calls
-from pathfinder.ai.models.mock.lead_flow import classified_this_turn
+from pathfinder.ai.models.mock.lead_flow import is_the_leads_run
 from pathfinder.ai.models.mock.registry import arc_named
+from pathfinder.ai.models.mock.turn_arc import lead_arc_name, standing_directive
 
 # Ordered: the first role whose markers intersect the agent's tool names wins.
 # The Lead's dispatch tools appear on no sub-agent. A tool that needs approval
@@ -58,22 +60,18 @@ _ROLES: tuple[RoleMarkers, ...] = (
 def turn_directive(messages: list[ModelMessage]) -> ArcDirective:
     """The arc and fault the turn's message names. A run resumed with no
     message of its own reads the token of the newest message that has one."""
-    directive = directive_of(current_user_text.get())
-    if directive.arc != ECHO:
-        return directive
-    named = (directive_of(text) for text in reversed(user_texts(messages)))
-    return next((found for found in named if found.arc != ECHO), directive)
+    return standing_directive(current_user_text.get(), user_texts(messages))
 
 
 def _lead_arc(messages: list[ModelMessage], directive: ArcDirective) -> Arc:
     """A resolved consult resumes its build, and an attached gene list with no
     token is the attachment arc, since a file cannot carry a token."""
-    if deferred_tool_resolved(messages, "consult_user"):
-        return arc_named("consult")
-    attached = parse_gene_list_marker(joined_user_text(messages)) is not None
-    if directive.arc == ECHO and attached:
-        return arc_named("attachment")
-    return arc_named(directive.arc)
+    named = lead_arc_name(
+        directive,
+        card_answered=deferred_tool_resolved(messages, CONSULT),
+        texts=joined_user_text(messages),
+    )
+    return arc_named(named)
 
 
 def role_script(role: Role) -> Script:
@@ -94,10 +92,10 @@ def role_script(role: Role) -> Script:
 def _unmarked(messages: list[ModelMessage]) -> ToolCallPart:
     """The script for a step whose tool list names no role.
 
-    A turn the classification put out of scope is offered no tool at all, so
+    A turn the reading put out of scope offers the Lead no tool at all, so
     the role table has nothing to read and the Lead's own arc answers it.
     """
-    if classified_this_turn(messages):
+    if is_the_leads_run(messages):
         return role_script("lead")(messages)
     return terminal_call({})
 

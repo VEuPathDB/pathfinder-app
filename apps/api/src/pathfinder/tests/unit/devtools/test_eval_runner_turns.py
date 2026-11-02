@@ -578,7 +578,7 @@ async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
 ) -> None:
     installed = _install(monkeypatch, [set(), set()])
     raised = [Gate(kind="none"), _RUN_CARD]
-    refused_by_turn = [("classify_user_intent",), ("read_gene_record",)]
+    refused_by_turn = [("frame_problem",), ("read_gene_record",)]
 
     async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
         await installed.drive(args)
@@ -597,7 +597,7 @@ async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
     )
 
     assert observed.refused_tools == [
-        "classify_user_intent",
+        "frame_problem",
         "read_gene_record",
         "get_strategy",
         "get_strategy",
@@ -919,7 +919,7 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
         return ObservedOutcome(
             built_strategy=True,
             root_count=479,
-            refused_tools=["classify_user_intent", "read_gene_record"],
+            refused_tools=["frame_problem", "read_gene_record"],
             assumed=0,
         )
 
@@ -939,7 +939,7 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
             "count=479",
             "assumed=0",
             "refusals=2",
-            "(classify_user_intent,",
+            "(frame_problem,",
             "read_gene_record)",
         ],
         "-",
@@ -950,14 +950,14 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
         [
             "count 479",
             "assumed=0",
-            "refusals=2 (classify_user_intent, read_gene_record)",
+            "refusals=2 (frame_problem, read_gene_record)",
         ],
     )
     assert "errored 0, not run 0) refusals=2 assumed=0 harness=" in lines[-2]
     payload = json.loads(out.read_text())
     assert (payload["refusals"], payload["cases"][0]["refusedTools"]) == (
         2,
-        ["classify_user_intent", "read_gene_record"],
+        ["frame_problem", "read_gene_record"],
     )
     assert (payload["assumed"], payload["cases"][0]["assumed"]) == (0, 0)
 

@@ -111,3 +111,27 @@ def test_a_stated_95th_percentile_is_grounded_on_the_minimum_percentile() -> Non
         ConstraintStatus.GROUNDED,
         "min_expression_percentile",
     )
+
+
+def test_a_rewritten_percentile_is_read_from_the_researcher_s_quote() -> None:
+    [grounded] = ground_constraints(
+        [
+            Constraint(
+                kind=ConstraintKind.PERCENTILE,
+                requested_value="expression percentile 1 and above",
+                label="expression percentile 1 and above",
+                quote="minimum expression percentile 1",
+                source=ConstraintSource.USER_EXPLICIT,
+            )
+        ],
+        RealizedSpec(
+            search_names=["GenesByRNASeqPercentile"],
+            param_names=frozenset({"min_percentile", "max_percentile"}),
+            param_values={"min_percentile": "1", "max_percentile": "100"},
+        ),
+    )
+
+    assert (grounded.status, grounded.realized_param) == (
+        ConstraintStatus.GROUNDED,
+        "min_percentile",
+    )

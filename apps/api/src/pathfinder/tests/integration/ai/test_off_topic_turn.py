@@ -10,6 +10,8 @@ from uuid import uuid4
 
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 
+from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_reading import read_the_words
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -52,6 +54,13 @@ def _deps(prompt: str, *, built: bool) -> LeadDeps:
 async def _run(prompt: str, *, built: bool) -> tuple[LeadResponse, list[str], LeadDeps]:
     deps = _deps(prompt, built=built)
     bind_scripted_scope(deps.runtime.site_id, prompt)
+    await read_the_words(
+        deps.state,
+        deps,
+        new_message=True,
+        model_id="mock:lead",
+        capture=_LeadRunCapture(),
+    )
     result = await build_lead_agent().run(prompt, deps=deps, model=get_mock_model())
     assert isinstance(result.output, LeadResponse)
     called = [
@@ -64,13 +73,13 @@ async def _run(prompt: str, *, built: bool) -> tuple[LeadResponse, list[str], Le
     return result.output, called, deps
 
 
-async def test_an_off_topic_turn_classifies_then_answers_and_calls_nothing_else(
+async def test_an_off_topic_turn_answers_and_calls_nothing(
     postgres_container: object,
 ) -> None:
     del postgres_container
     output, called, deps = await _run(_OFF_TOPIC, built=False)
 
-    assert called == ["classify_user_intent", "final_result"]
+    assert called == ["final_result"]
     assert deps.intent is not None
     assert deps.intent.classification is IntentClassification.OFF_TOPIC
     assert output.prose == OFF_TOPIC_PROSE
@@ -95,7 +104,7 @@ async def test_a_biology_question_after_a_build_is_not_off_topic(
     del postgres_container
     output, called, deps = await _run(_BIOLOGY, built=True)
 
-    assert called == ["classify_user_intent", "final_result"]
+    assert called == ["final_result"]
     assert deps.intent is not None
     assert deps.intent.classification is IntentClassification.FOLLOW_UP_QUESTION
     assert output.prose == KINASE_PROSE

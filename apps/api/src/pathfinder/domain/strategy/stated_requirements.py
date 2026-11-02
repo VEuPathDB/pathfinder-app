@@ -41,6 +41,11 @@ def _added_as_an_alternative(constraint: Constraint, messages: Sequence[str]) ->
     )
 
 
+def _quoted(constraint: Constraint, messages: Sequence[str]) -> bool:
+    quote = constraint.quote.casefold()
+    return bool(quote) and any(quote in m.casefold() for m in messages)
+
+
 def attributed(
     constraints: Iterable[Constraint],
     messages: Sequence[str],
@@ -69,7 +74,8 @@ def attributed(
         )
         for constraint in constraints
         for stated in [
-            any(message_states_constraint(m, constraint) for m in messages if m)
+            _quoted(constraint, messages)
+            or any(message_states_constraint(m, constraint) for m in messages if m)
             or _added_as_an_alternative(constraint, messages)
             or constraint.requested_value.casefold() in theirs
         ]

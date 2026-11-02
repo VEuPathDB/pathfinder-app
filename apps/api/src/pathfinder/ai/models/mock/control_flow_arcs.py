@@ -1,6 +1,5 @@
-"""Lead arcs on the turn's control flow: a classification sent again, a record
-read again, a count comparison that changes no step, and a comparison whose
-UNION the structure refuses."""
+"""Lead arcs on the turn's control flow: a record read again, a count comparison
+that changes no step, and a comparison whose UNION the structure refuses."""
 
 from __future__ import annotations
 
@@ -15,21 +14,17 @@ from assistant_core.models.scripted import (
 )
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final
+from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.models.mock.arc_readings import read_as
+from pathfinder.ai.models.mock.calls import lead_final
 from pathfinder.ai.models.mock.frame_arcs import spec_frame
 from pathfinder.ai.models.mock.reads import refusal_of
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.strategy_specs import union_spec
 
-# A turn that sends one classification this many times after the first.
-REPEATED_CLASSIFICATIONS = 4
 # The records a read-again turn reads, each twice.
 READ_AGAIN_RECORDS = 3
 
-_ANSWERED = (
-    "The question is answered from the comparison beside this reply, and the "
-    "strategy is as it was."
-)
 _READ = "The genes you named are listed beside this reply, each from its record."
 _COMPARED = (
     "The comparison beside this reply counts both searches on the site, and the "
@@ -42,26 +37,8 @@ def _made(messages: list[ModelMessage], tool: str) -> int:
     return sum(p.tool_name == tool for p in called_tool_parts(current_turn(messages)))
 
 
-def reclassified(messages: list[ModelMessage]) -> ToolCallPart:
-    """The same classification sent again after the first, then the answer."""
-    sent = _made(messages, CLASSIFY)
-    if sent > REPEATED_CLASSIFICATIONS:
-        return lead_final(_ANSWERED, "complete")
-    return scripted_call(
-        CLASSIFY,
-        {
-            "intent": {
-                "classification": "follow_up_question",
-                "inferredGoal": f"[mock] the question, pass {sent + 1}",
-            }
-        },
-    )
-
-
 def read_again(messages: list[ModelMessage]) -> ToolCallPart:
     """Each of a few records read twice in turn, then the answer."""
-    if not _made(messages, CLASSIFY):
-        return classify("follow_up_question")
     genes = SiteValues.for_site(current_scope_id.get()).controls.positive_ids
     shown = list(genes[:READ_AGAIN_RECORDS])
     reads = _made(messages, "read_gene_record")
@@ -86,22 +63,19 @@ def _fields_variant(label: str, fields: list[str], organism: str) -> dict[str, A
     }
 
 
+count_comparison_reading = read_as(
+    IntentClassification.FOLLOW_UP_QUESTION,
+    inferredGoal="[mock] compare the product search with notes",
+    isDifferential=True,
+    differentialSides=["product field", "product and notes"],
+)
+
+
 def count_comparison(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """A question that compares two counts, answered by the comparison alone."""
     del messages
     organism = SiteValues.for_site(current_scope_id.get()).organism
     return [
-        scripted_call(
-            CLASSIFY,
-            {
-                "intent": {
-                    "classification": "follow_up_question",
-                    "inferredGoal": "[mock] compare the product search with notes",
-                    "isDifferential": True,
-                    "differentialSides": ["product field", "product and notes"],
-                }
-            },
-        ),
         scripted_call(
             "compare_search_variants",
             {
@@ -137,7 +111,6 @@ def comparison_after_a_refused_union(
 ) -> list[ToolCallPart]:
     """An edit whose UNION the structure refuses, answered by the comparison."""
     return [
-        classify("extend_strategy"),
         scripted_call("edit_strategy", {"reason": "[mock] compare the two counts"}),
-        *count_comparison(messages)[1:],
+        *count_comparison(messages),
     ]

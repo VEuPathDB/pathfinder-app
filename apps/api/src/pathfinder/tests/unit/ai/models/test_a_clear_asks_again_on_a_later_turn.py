@@ -33,18 +33,13 @@ def _answered(call: ToolCallPart, content: str) -> list[ModelMessage]:
 
 
 def test_a_second_clear_asks_again_after_the_first_was_denied() -> None:
-    classified = scripted_call(
-        "classify_user_intent", {"intent": {"classification": "edit_strategy"}}
-    )
     denied_turn: list[ModelMessage] = [
         ModelRequest(parts=[UserPromptPart(content=_CLEAR)]),
-        *_answered(classified, "{}"),
         *_answered(scripted_call("clear_strategy", {"confirm": True}), "denied"),
         ModelResponse(parts=[scripted_call("final_result", {"prose": "unchanged"})]),
     ]
     later_turn: list[ModelMessage] = [
         ModelRequest(parts=[UserPromptPart(content=_CLEAR)]),
-        *_answered(classified, "{}"),
     ]
 
     call = arc_named("clear").lead([*denied_turn, *later_turn])

@@ -207,9 +207,7 @@ async def run_frame(
         lacking = requirements_the_site_lacks(deps, result)
         asked = questions_for_the_card(deps, result, lacking)
         deps.state.domain.record_questions(asked)
-        deps.state.turn_markers.unstated_requirements = [
-            c.requested_value for c in lacking
-        ]
+        deps.state.turn_markers.unstated_requirements = [c.id for c in lacking]
         domain.name_reading(result.chosen_reading)
         reported = resolved_reports(result.requirement_problems, domain.requirements)
         domain.record_roles |= record_roles(result.record_types, domain.requirements)

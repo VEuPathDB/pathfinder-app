@@ -83,6 +83,8 @@ def questions_for_the_card(
         )
     ]
     kept = {requirement.id for requirement, _ in refused}
+    spec = domain.operational_spec
+    criteria = [] if spec is None else spec.criteria
     unstated = [
         c for c in requirements_no_search_states(deps, lacking) if c.id not in kept
     ]
@@ -96,6 +98,7 @@ def questions_for_the_card(
                         held_readings(domain.built_expressions),
                     ),
                     unstated,
+                    criteria=criteria,
                 ),
                 refused,
             ),

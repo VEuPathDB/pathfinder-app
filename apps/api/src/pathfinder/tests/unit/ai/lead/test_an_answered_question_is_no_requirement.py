@@ -182,14 +182,8 @@ async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> No
     assert turn_facts(deps).retired == [
         RetiredFact(requirement=_LOOK, state="replaced", replaced_by=_USE)
     ]
-    assert (
-        check_gaps(
-            words=[],
-            unstated=[_LOOK],
-            requirements=[r.grounded() for r in domain.retired_requirements],
-        )
-        == []
-    )
+    retired = [r.constraint for r in domain.retired_requirements]
+    assert check_gaps(words=[], unstated=retired, retired={c.id for c in retired}) == []
 
 
 def test_answering_questions_retires_no_requirement() -> None:
@@ -211,7 +205,7 @@ async def test_a_kept_requirement_stays_open_and_stays_a_gap() -> None:
     """Keep on the drop-or-keep card retires nothing, states nothing new, and
     the requirement no search states is still a gap."""
     fold = requirement(ConstraintKind.FOLD_CHANGE, "fold-change cutoff", "1.5-fold")
-    [question] = with_withdrawals([], [fold])
+    [question] = with_withdrawals([], [fold], criteria=[])
     deps = _deps(question)
     deps.state.domain.requirements = [fold]
     [card] = card_questions([question])

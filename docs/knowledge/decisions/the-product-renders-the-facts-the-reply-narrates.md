@@ -61,7 +61,7 @@ It holds:
   it is a leaf's; a record a step the live strategy no longer holds listed is no source; every
   id a listing or a sample of the turn returned, as a `ListedFact` under the step it listed
   (`TurnMarkers.listings`), each id linked to its record page; the other references the turn
-  read; and the genes the message names that the classification gate resolved, each with its
+  read; and the genes the message names that the reading of the message resolved, each with its
   site record link (`named_genes`);
 - the counts each completed comparison of the turn returned (`comparisons`, a
   `domain/comparison_facts.py::ComparisonFact`: each variant that ran with its genes, its result

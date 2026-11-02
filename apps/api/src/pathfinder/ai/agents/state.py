@@ -362,7 +362,11 @@ class AgentToolState:
         return "" if criterion_id in self.held_criteria else request.target
 
     def frame_drop_criterion(
-        self, criterion_id: str, reason: str, *, requirement: Constraint | None = None
+        self,
+        criterion_id: str,
+        reason: str,
+        *,
+        requirements: Sequence[Constraint] = (),
     ) -> bool:
         """Remove a criterion from the draft (keyed by id, like
         ``frame_set_criterion``) and record it in ``dropped``. Returns False if
@@ -374,7 +378,9 @@ class AgentToolState:
             return False
         spec.criteria = [c for c in spec.criteria if c.id != criterion_id]
         spec.dropped.append(
-            DroppedCriterion(text=match.text, reason=reason, requirement=requirement)
+            DroppedCriterion(
+                text=match.text, reason=reason, requirements=list(requirements)
+            )
         )
         self.open_sheets.pop(criterion_id, None)
         return True

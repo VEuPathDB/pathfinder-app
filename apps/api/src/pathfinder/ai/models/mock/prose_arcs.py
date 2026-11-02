@@ -1,12 +1,12 @@
-"""The Lead arcs that answer in prose: each classifies the turn and writes the
-reply, dispatching no sub-agent."""
+"""The Lead arcs that answer in prose: each writes the reply, dispatching no
+sub-agent."""
 
 from __future__ import annotations
 
 from assistant_core.models.scripted import last_user_text
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final, spoken
+from pathfinder.ai.models.mock.calls import lead_final, spoken
 from pathfinder.ai.models.mock.directive import without_tokens
 
 # Two sentences, no code, under the cap the off-topic validator holds.
@@ -31,24 +31,24 @@ CONTEXT_PROSE = (
 )
 
 
-def classified_prose(classification: str, prose: str) -> list[ToolCallPart]:
-    return [classify(classification), lead_final(prose, "await_user")]
+def _prose(prose: str) -> list[ToolCallPart]:
+    return [lead_final(prose, "await_user")]
 
 
 def off_topic() -> list[ToolCallPart]:
-    return classified_prose("off_topic", OFF_TOPIC_PROSE)
+    return _prose(OFF_TOPIC_PROSE)
 
 
 def kinase_question() -> list[ToolCallPart]:
-    return classified_prose("follow_up_question", KINASE_PROSE)
+    return _prose(KINASE_PROSE)
 
 
 def impact() -> list[ToolCallPart]:
-    return classified_prose("follow_up_question", IMPACT_PROSE)
+    return _prose(IMPACT_PROSE)
 
 
 def context() -> list[ToolCallPart]:
-    return classified_prose("context_statement", CONTEXT_PROSE)
+    return _prose(CONTEXT_PROSE)
 
 
 def echo(messages: list[ModelMessage]) -> list[ToolCallPart]:

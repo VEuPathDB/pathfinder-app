@@ -13,6 +13,7 @@ from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
     SpecStructure,
     StructureNode,
     structure_criteria,
@@ -38,10 +39,13 @@ def criterion_note(ctx: RunContext[LeadDeps], step_id: str) -> str:
     return f" ({stated[0]})" if stated else ""
 
 
-def _exported_criterion(node: StrategyStepNode, binding: AnalysisBinding) -> Criterion:
-    """The criterion the exported step is: its binding, in the binding's words."""
+def _exported_criterion(
+    node: StrategyStepNode, binding: AnalysisBinding, answers: list[RequirementLink]
+) -> Criterion:
+    """The criterion the exported step is: its binding, in the binding's words,
+    answering what the criterion it replaces answered."""
     return criterion_analysing(
-        Criterion(id=node.id, text=binding.words, confidence=1.0),
+        Criterion(id=node.id, text=binding.words, confidence=1.0, answers=answers),
         node.search_name,
         binding,
     )
@@ -75,7 +79,9 @@ def state_the_exported_step(
             analyses={node.id: binding},
         )
         return
-    domain.record_criterion(_exported_criterion(node, binding))
+    criteria = [] if spec is None else spec.criteria
+    held = next((c.answers for c in criteria if c.id == node.id), [])
+    domain.record_criterion(_exported_criterion(node, binding, held))
 
 
 def scope_the_exported_criterion(
@@ -162,7 +168,8 @@ def spec_after_the_replacement(
     if spec is None:
         return None
     departed = set(subtree_ids(replace_step_id, graph.steps))
-    exported = _exported_criterion(node, binding)
+    replaced = next((c.answers for c in spec.criteria if c.id == replace_step_id), [])
+    exported = _exported_criterion(node, binding, replaced)
     if replace_step_id in structure_criteria(spec.structure):
         return _restated(spec, exported, replace_step_id, departed)
     reconciled = spec_without_steps(spec, departed)

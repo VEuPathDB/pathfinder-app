@@ -8,10 +8,10 @@ from uuid import uuid4
 import pytest
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead import classification_gate
+from pathfinder.ai.lead import held_intent
 from pathfinder.ai.lead.derive import grounded_requirements
+from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -20,7 +20,6 @@ from pathfinder.domain.strategy.constraints import (
     ReplacedLifecycle,
     WithdrawnLifecycle,
 )
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -40,7 +39,7 @@ def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
+    monkeypatch.setattr(held_intent, "list_organisms", _organisms)
 
 
 async def _turn(
@@ -51,7 +50,7 @@ async def _turn(
         "toxodb", user_prompt=message, user_message_id=uuid4(), domain=domain
     )
     deps = lead_deps(state, intent=None)
-    await classify_user_intent(run_context_for(deps, "t_classify"), intent)
+    await hold_the_intent(deps, intent, deps.state.user_prompt)
     return deps
 
 

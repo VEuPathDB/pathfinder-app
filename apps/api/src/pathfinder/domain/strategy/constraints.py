@@ -79,6 +79,7 @@ class Constraint(CamelModel):
     requested_value: str = Field(min_length=1)
     label: str = Field(min_length=1)
     source: ConstraintSource = ConstraintSource.ASSUMED
+    quote: str = ""
     hard: bool = True
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""

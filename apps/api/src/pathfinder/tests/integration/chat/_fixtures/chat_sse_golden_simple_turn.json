@@ -157,7 +157,23 @@
         "spec": null,
         "structureRender": null
       },
-      "userIntent": null,
+      "userIntent": {
+        "asks": [],
+        "asksAChange": false,
+        "classification": "follow_up_question",
+        "differentialSides": [],
+        "editDirection": "other",
+        "explicitConstraints": [],
+        "inferredGoal": "[mock] follow_up_question",
+        "isDifferential": false,
+        "namedControls": null,
+        "namedGeneIds": [],
+        "reading": null,
+        "referencedStepIds": [],
+        "request": null,
+        "undo": false,
+        "withdrawn": []
+      },
       "verification": {
         "caveats": [],
         "complete": false,
