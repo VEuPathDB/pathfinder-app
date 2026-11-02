@@ -350,16 +350,6 @@ def _combination(value: str) -> Constraint:
     return _requirement(ConstraintKind.COMBINATION, "evidence combination", value)
 
 
-def test_a_new_combination_over_the_same_terms_supersedes_the_old_one() -> None:
-    combos = _recorded_combinations(
-        [_combination("mass spectrometry OR DeRisi expression")],
-        [_combination("mass spectrometry AND DeRisi expression")],
-    )
-
-    assert len(combos) == 1
-    assert combos[0].requested_value == "mass spectrometry AND DeRisi expression"
-
-
 def test_a_combination_over_different_terms_accrues() -> None:
     combos = _recorded_combinations(
         [

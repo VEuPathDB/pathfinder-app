@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Literal
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
@@ -12,6 +12,7 @@ from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
+from pathfinder.domain.strategy.operator_reads import OperatorReading
 from pathfinder.domain.strategy.readings import AcceptedReading, why_no_readings
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
@@ -248,6 +249,13 @@ def criteria_under(node: StructureNode) -> frozenset[str]:
     return own.union(*(criteria_under(child) for child in node.inputs))
 
 
+def combine_nodes(node: StructureNode) -> Iterator[StructureNode]:
+    if node.kind == "combine":
+        yield node
+    for child in node.inputs:
+        yield from combine_nodes(child)
+
+
 class SavedStrategyRef(CamelModel):
     """A saved strategy the user reuses as the input of a criterion.
 
@@ -433,6 +441,7 @@ class OperationalSpec(CamelModel):
     dropped: list[DroppedCriterion] = Field(default_factory=list)
     open_slots: list[OpenSlot] = Field(default_factory=list)
     constraints: list[Constraint] = Field(default_factory=list)
+    operator_reads: list[OperatorReading] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _one_criterion_per_id(self) -> OperationalSpec:
@@ -478,11 +487,23 @@ class OperationalSpec(CamelModel):
 
     @property
     def ready_to_build(self) -> bool:
-        """Whether a build has criteria to mint; one awaiting its analysis waits."""
+        """Whether a build has criteria to mint; one awaiting its analysis waits,
+        and so does a combine whose operator the card asks."""
         built = [c for c in self.criteria if not c.pending_analysis]
         if not built or self.structure is None or self.open_slots:
             return False
-        return all(c.bound and not c.open_params for c in built)
+        return not self.asks_an_operator and all(
+            c.bound and not c.open_params for c in built
+        )
+
+    @property
+    def asks_an_operator(self) -> bool:
+        return any(r.read == "disagrees" for r in self.held_operator_reads())
+
+    def held_operator_reads(self) -> list[OperatorReading]:
+        held = [] if self.structure is None else combine_nodes(self.structure.root)
+        combines = [(criteria_under(n), n.operator) for n in held]
+        return [r for r in self.operator_reads if any(r.reads(*c) for c in combines)]
 
 
 def pending_analyses(spec: OperationalSpec | None) -> list[Criterion]:

@@ -107,7 +107,7 @@ class TestTheFloorComesFromTheThread:
         assert limit is not None
         assert limit >= 8 * CALLS_PER_CRITERION
 
-    def test_a_combination_names_one_criterion_per_term(self) -> None:
+    def test_a_held_combination_counts_only_the_criteria_that_link_it(self) -> None:
         state = _state()
         state.domain.requirements = [
             requirement(
@@ -116,7 +116,9 @@ class TestTheFloorComesFromTheThread:
                 "domain OR ec number OR go term OR annotation",
             ),
         ]
-        assert criteria_floor(state) == 4
+        alone = criteria_floor(state)
+        state.domain.operational_spec = _spec(4)
+        assert (alone, criteria_floor(state)) == (0, 4)
 
     def test_a_restated_requirement_is_not_a_second_criterion(self) -> None:
         state = _state()

@@ -20,13 +20,11 @@ the reader's job, and the verdict checks the typed value
 ([a verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)).
 
 **No connective is read.** A combination is stated only when its own quote is
-a substring of a researcher message, like any other requirement. The message
-reader writes no combination, so in practice one comes only from a card answer,
-which the card records as the researcher's. How requirements combine is
-FRAME's tree ([the strategy answers to a spec](the-strategy-answers-to-a-spec.md)),
-and the reader that checks a combine node's operator against the researcher's
-words is step 4 of
-[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md).
+a substring of a researcher message, like any other requirement. Neither the
+message reader nor a card answer writes one, so one comes only from a thread
+recorded before them. How requirements combine is FRAME's tree, read against the
+researcher's words
+([operators come from FRAME's tree](operators-come-from-frames-tree.md)).
 The include-verb OR arm, the word location of a term (`message_reading._span`)
 and the connective rules (`read_combination`) are deleted.
 

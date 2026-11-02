@@ -3,7 +3,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
-from pathfinder.domain.strategy.operational_spec import Criterion, ValueSource
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    ValueSource,
+)
+from pathfinder.domain.strategy.operator_reading import chains
 from pathfinder.domain.strategy.readings import ReadingChooser
 
 CHOSEN_BY: dict[ReadingChooser, str] = {
@@ -46,4 +51,27 @@ def reading_choice_lines(
     ]
 
 
-__all__ = ["CHOSEN_BY", "VALUE_SET_BY", "reading_choice_lines"]
+def operator_choice_lines(spec: OperationalSpec) -> list[str]:
+    held = spec.held_operator_reads()
+    lines: list[str] = []
+    for chain in chains(spec.structure):
+        operator = chain.head.combine_operator
+        reading = next((r for r in held if r.reads(chain.criteria, operator)), None)
+        source: ValueSource = "chosen" if reading is None else reading.source
+        line = f"- {operator.value} over {', '.join(sorted(chain.criteria))}: {VALUE_SET_BY[source]}"
+        if (
+            reading is not None
+            and reading.read == "disagrees"
+            and reading.read_operator
+        ):
+            line += f"; the researcher's words read as {reading.read_operator.value}, asked on the card"
+        lines.append(line)
+    return lines
+
+
+__all__ = [
+    "CHOSEN_BY",
+    "VALUE_SET_BY",
+    "operator_choice_lines",
+    "reading_choice_lines",
+]

@@ -7,7 +7,7 @@ from pydantic import Field
 
 from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.message_reading import MessageReading, StatedRequest
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.words import words_of
 
 
@@ -109,12 +109,10 @@ class UserIntent(CamelModel):
     def asks_only_to_undo(self) -> bool:
         """Whether the message asks to undo the last change and states no value.
 
-        A combination states a shape and no value, so it is not one. An undo
-        withdraws the last change, so a withdrawn requirement keeps it an undo.
+        An undo withdraws the last change, so a withdrawn requirement keeps it
+        an undo.
         """
-        return self.undo and all(
-            c.kind is ConstraintKind.COMBINATION for c in self.explicit_constraints
-        )
+        return self.undo and not self.explicit_constraints
 
 
 def occurs_in(text: str, message: str) -> bool:

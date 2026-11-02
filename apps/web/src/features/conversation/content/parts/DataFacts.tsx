@@ -90,6 +90,15 @@ function Step({ step }: { step: StepFact }): ReactElement {
             <span className="mr-1 text-xs text-muted-foreground">{step.operator}</span>
           )}
           {step.displayName}
+          {step.operatorSource == null ? null : (
+            <span
+              data-testid="facts-step-operator-source"
+              data-source={step.operatorSource}
+              className="ml-1 text-xs text-muted-foreground"
+            >
+              ({SOURCE_LABELS[step.operatorSource]})
+            </span>
+          )}
         </span>
         <span data-testid="facts-step-count" data-count={step.count ?? ""}>
           {withBefore(step.count, step.countBefore, step.recordNoun ?? "gene")}

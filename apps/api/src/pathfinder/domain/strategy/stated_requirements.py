@@ -5,10 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from typing import NamedTuple
 
-from pathfinder.domain.strategy.combination_check import combination_terms_overlap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
-    ConstraintKind,
     ConstraintSource,
     ReplacedLifecycle,
     new_requirement_id,
@@ -79,13 +77,11 @@ class RecordedRequirements(NamedTuple):
 def _displaces(new: Constraint, held: Constraint) -> bool:
     """Whether a new requirement takes the place of a held one.
 
-    A new combination displaces one over the same criteria. A kind of one
-    value is displaced by any other value of it. A kind of many values adds.
+    A kind of one value is displaced by any other value of it, unless the new
+    one is stated beside it. A kind of many values adds.
     """
-    if new.kind is not held.kind or new.id == held.id:
+    if new.kind is not held.kind or held.id in {new.id, new.beside}:
         return False
-    if new.kind is ConstraintKind.COMBINATION:
-        return combination_terms_overlap(held.requested_value, new.requested_value)
     return new.kind not in MANY_VALUED_KINDS
 
 
@@ -102,15 +98,12 @@ def _outranked(new: Constraint, record: Sequence[Constraint]) -> bool:
 
 
 def with_requirements(
-    held: Sequence[Constraint],
-    constraints: Iterable[Constraint],
-    *,
-    adds_alternatives: bool = False,
+    held: Sequence[Constraint], constraints: Iterable[Constraint]
 ) -> RecordedRequirements:
     """The record with each new requirement added once, and each ``held`` one
-    it displaces. Values stated together displace neither, a message that
-    ``adds_alternatives`` adds beside, and an assumed value never displaces a
-    stated one: it is dropped."""
+    it displaces. Values stated together displace neither, a value stated
+    beside a held one adds, and an assumed value never displaces a stated one:
+    it is dropped."""
     record = list(held)
     displaced: list[RetiredRequirement] = []
     seen = {c.id for c in record}
@@ -118,11 +111,7 @@ def with_requirements(
         if constraint.id in seen or _outranked(constraint, record):
             continue
         replaced = [
-            kept
-            for kept in record
-            if kept in held
-            and _displaces(constraint, kept)
-            and not (adds_alternatives and kept.kind is not ConstraintKind.COMBINATION)
+            kept for kept in record if kept in held and _displaces(constraint, kept)
         ]
         record = [kept for kept in record if kept not in replaced]
         displaced += [

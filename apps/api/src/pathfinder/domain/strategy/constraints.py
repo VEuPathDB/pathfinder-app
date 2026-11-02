@@ -80,6 +80,7 @@ class Constraint(CamelModel):
     label: str = Field(min_length=1)
     source: ConstraintSource = ConstraintSource.ASSUMED
     quote: str = ""
+    beside: SkipJsonSchema[str] = ""
     hard: bool = True
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
@@ -220,13 +221,6 @@ def organism_hints_from(requirements: Sequence[Constraint]) -> list[str]:
     )
 
 
-def combination_requirements_from(
-    requirements: Sequence[Constraint],
-) -> list[Constraint]:
-    """The stated combinations, in the order stated."""
-    return [c for c in requirements if c.kind is ConstraintKind.COMBINATION]
-
-
 _Dimension = tuple[ConstraintKind, str | frozenset[str]]
 
 
@@ -322,59 +316,3 @@ class PercentileRequest(CamelModel):
 
     def share_of(self, bound: float) -> float:
         return _FULL_SCALE - bound if self.direction == "top" else bound
-
-
-CombinationOperator = Literal["OR", "AND"]
-
-_SEPARATORS: dict[CombinationOperator, str] = {"OR": " OR ", "AND": " AND "}
-# The operator each separator states. MINUS states a subtraction, which no
-# single combination operator holds.
-_STATED_BY: dict[str, CombinationOperator | None] = {
-    "OR": "OR",
-    "AND": "AND",
-    "UNION": "OR",
-    "INTERSECT": "AND",
-    "MINUS": None,
-}
-# An uppercase OR or AND, or an operator word in any case, between spaces.
-_SEPARATOR_RE = re.compile(r" (OR|AND) | ((?i:UNION|INTERSECT|MINUS)) ")
-_MIN_COMBINATION_TERMS = 2
-
-
-class CombinationRequest(CamelModel):
-    """How the user said their evidence lines combine: one operator over the
-    phrases that name the criteria.
-
-    The phrases are the anchor, not criterion ids: a build renumbers the
-    criteria on the step ids it mints, and the words survive that.
-    """
-
-    operator: CombinationOperator
-    terms: list[str] = Field(min_length=_MIN_COMBINATION_TERMS)
-
-    @classmethod
-    def parse(cls, text: str) -> CombinationRequest | None:
-        """Read one operator over two or more terms, or nothing.
-
-        The operator is an uppercase OR or AND, or UNION, INTERSECT or MINUS in
-        any case, between spaces. A string that states two operators, or a
-        subtraction, states no single combination, so it is unparseable.
-        """
-        parts = _SEPARATOR_RE.split(text)
-        words = [
-            (upper or other).upper()
-            for upper, other in zip(parts[1::3], parts[2::3], strict=True)
-        ]
-        stated: set[CombinationOperator | None] = {_STATED_BY[word] for word in words}
-        if len(stated) != 1:
-            return None
-        [operator] = stated
-        terms = [part.strip() for part in parts[::3]]
-        if operator is None or not all(terms):
-            return None
-        return cls(operator=operator, terms=terms)
-
-    @property
-    def expression(self) -> str:
-        """The combination as one line, in the user's own words."""
-        return _SEPARATORS[self.operator].join(self.terms)

@@ -35,11 +35,7 @@ from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.domain.strategy.constraints import (
-    CombinationRequest,
-    Constraint,
-    ConstraintKind,
-)
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.orthology import restate_copies
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.config import get_settings
@@ -89,20 +85,10 @@ MAX_CRITERIA_FLOOR = MAX_PHASE_TOOL_CALLS // CALLS_PER_CRITERION
 
 
 def _requirement_floor(requirements: Sequence[Constraint]) -> int:
-    """How many criteria a set of requirements names, at least.
-
-    Requirements of criterion-shaped kinds name one criterion per label, and a
-    combination names one per term. The larger count stands, because a
-    combination names criteria the other requirements also state.
-    """
-    floor = len({c.label for c in requirements if c.kind in CRITERION_SHAPED_KINDS})
-    for requirement in requirements:
-        if requirement.kind is not ConstraintKind.COMBINATION:
-            continue
-        combination = CombinationRequest.parse(requirement.requested_value)
-        if combination is not None:
-            floor = max(floor, len(combination.terms))
-    return floor
+    """How many criteria a set of requirements names, at least: one per label
+    of a criterion-shaped kind. A held combination names the criteria that
+    link it, which the spec it is read from already counts."""
+    return len({c.label for c in requirements if c.kind in CRITERION_SHAPED_KINDS})
 
 
 def criteria_floor(state: PipelineState) -> int:

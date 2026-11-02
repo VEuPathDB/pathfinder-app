@@ -32,6 +32,7 @@ from pathfinder.ai.lead.frame_requirements import (
     requirements_the_site_lacks,
 )
 from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.operator_reader import read_the_operators
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.readings import count_readings
 from pathfinder.ai.lead.recorded_cards import card_questions
@@ -49,6 +50,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
 )
 from pathfinder.domain.strategy.named_groups import merged_scopes
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operator_reading import settled
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     numbered_requirements,
@@ -189,7 +191,8 @@ async def run_frame(
 
     A refused pass raises before the record, so every question the thread holds
     is one the result the Lead is given asks. The card offers to withdraw each
-    requirement the researcher stated that no search states, and asks no
+    requirement the researcher stated that no search states, asks the operator
+    of each combine the researcher's words read as another one, and asks no
     question the researcher answered or whose only option binds a value the
     spec already holds.
     """
@@ -204,8 +207,16 @@ async def run_frame(
     if isinstance(result, FrameResult):
         domain = deps.state.domain
         await count_readings(deps, result)
+        if domain.operational_spec is not None:
+            domain.operational_spec = await read_the_operators(
+                domain.operational_spec, deps
+            )
         lacking = requirements_the_site_lacks(deps, result)
         asked = questions_for_the_card(deps, result, lacking)
+        if domain.operational_spec is not None:
+            domain.operational_spec = settled(domain.operational_spec, asked=asked)
+            if domain.operational_spec.asks_an_operator:
+                result = result.model_copy(update={"disposition": "needs_user"})
         deps.state.domain.record_questions(asked)
         deps.state.turn_markers.unstated_requirements = [c.id for c in lacking]
         domain.name_reading(result.chosen_reading)

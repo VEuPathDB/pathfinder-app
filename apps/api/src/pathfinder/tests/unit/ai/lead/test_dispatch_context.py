@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.operator_reads import OperatorReading
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -39,7 +40,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _HINT_PROMPT = "Find P. falciparum mass-spec samples."
-_COMBINATION = "mass spectrometry evidence OR DeRisi expression"
 _COMBINATION_PROMPT = "Kinases with mass spec evidence or DeRisi expression."
 _MOTIF = "[TG].{5,6}YGCACACAN[TCA]H"
 _TURN_ONE = (
@@ -113,28 +113,34 @@ def test_the_dispatch_deps_carry_the_organism_hints() -> None:
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
 
 
-def test_the_dispatch_deps_carry_the_combination_requirements() -> None:
-    intent = user_intent(
-        IntentClassification.NEW_STRATEGY,
-        inferred_goal="kinase drug targets",
-        explicit_constraints=[
-            requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
-            requirement(
-                ConstraintKind.COMBINATION,
-                "how the evidence combines",
-                _COMBINATION,
-            ),
+def test_the_dispatch_deps_carry_the_operators_the_words_read_as() -> None:
+    intent = user_intent(IntentClassification.NEW_STRATEGY)
+    state = _threaded_state(_COMBINATION_PROMPT, intent)
+    state.domain.spec_before_dispatch = OperationalSpec(
+        criteria=[Criterion(id=cid, text=cid) for cid in ("c_ms", "c_derisi")],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(kind="leaf", criterion_id="c_ms"),
+                    StructureNode(kind="leaf", criterion_id="c_derisi"),
+                ],
+            )
+        ),
+        operator_reads=[
+            OperatorReading(
+                criteria=["c_derisi", "c_ms"],
+                built=CombineOp.INTERSECT,
+                read="disagrees",
+                read_operator=CombineOp.UNION,
+            )
         ],
     )
 
-    deps = agent_deps_for(
-        lead_deps(_threaded_state(_COMBINATION_PROMPT, intent), intent=intent),
-        call_id="call_test",
-    )
+    deps = agent_deps_for(lead_deps(state, intent=intent), call_id="call_test")
 
-    assert [c.requested_value for c in deps.agent_state.combination_requirements] == [
-        _COMBINATION
-    ]
+    assert deps.agent_state.read_operators == frozenset({CombineOp.UNION})
 
 
 def _turn_one_intent() -> UserIntent:

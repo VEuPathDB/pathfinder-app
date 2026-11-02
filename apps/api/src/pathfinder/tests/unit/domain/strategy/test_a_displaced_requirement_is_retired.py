@@ -3,11 +3,6 @@ requirement that took its place, so no path removes one without a record."""
 
 from __future__ import annotations
 
-from uuid import uuid4
-
-from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.domain.caveats import check_gaps
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -33,23 +28,13 @@ _OR = _stated(
     "Use a text search for GPI anchor in the gene product descriptions as the "
     "stand-in and keep it OR with the signal peptide",
 )
-_AND = _stated(ConstraintKind.COMBINATION, "signal peptide AND GPI anchor text match")
+_GPI = _stated(ConstraintKind.OTHER, "GPI anchor")
 
 
-def test_a_new_combination_retires_the_one_it_displaces() -> None:
-    recorded = with_requirements([_ORGANISM, _OR], [_ORGANISM, _AND])
+def test_a_held_combination_is_displaced_by_no_new_requirement() -> None:
+    recorded = with_requirements([_ORGANISM, _OR], [_ORGANISM, _GPI])
 
-    assert recorded.live == [_ORGANISM, _AND]
-    assert recorded.displaced == [
-        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.id))
-    ]
-
-
-def test_a_restated_requirement_displaces_nothing() -> None:
-    recorded = with_requirements([_ORGANISM, _OR], [_ORGANISM])
-
-    assert recorded.live == [_ORGANISM, _OR]
-    assert recorded.displaced == []
+    assert recorded == ([_ORGANISM, _OR, _GPI], [])
 
 
 _PLASMODIUM = _stated(ConstraintKind.ORGANISM, "Plasmodium")
@@ -76,10 +61,20 @@ def test_two_values_stated_together_both_stand() -> None:
     assert (recorded.live, recorded.displaced) == ([_PF3D7, _PVIVAX], [])
 
 
-def test_a_value_added_as_an_alternative_stands_beside_the_held_one() -> None:
-    recorded = with_requirements([_PF3D7], [_PVIVAX], adds_alternatives=True)
+def test_a_value_stated_beside_a_held_one_stands_beside_it() -> None:
+    beside = _PVIVAX.model_copy(update={"beside": _PF3D7.id})
 
-    assert (recorded.live, recorded.displaced) == ([_PF3D7, _PVIVAX], [])
+    recorded = with_requirements([_PF3D7], [beside])
+
+    assert (recorded.live, recorded.displaced) == ([_PF3D7, beside], [])
+
+
+def test_a_value_stated_beside_another_requirement_still_replaces_its_kind() -> None:
+    beside = _PVIVAX.model_copy(update={"beside": "some_other_id"})
+
+    recorded = with_requirements([_PF3D7], [beside])
+
+    assert recorded.live == [beside]
 
 
 def test_a_new_value_of_a_many_valued_kind_adds() -> None:
@@ -87,37 +82,6 @@ def test_a_new_value_of_a_many_valued_kind_adds() -> None:
     signal = _stated(ConstraintKind.OTHER, "signal peptide")
 
     assert with_requirements([kinase], [signal]).live == [kinase, signal]
-
-
-def test_the_thread_keeps_the_displaced_combination_retired() -> None:
-    domain = StrategyDomainState(requirements=[_ORGANISM, _OR])
-    domain.turn_markers.message_id = uuid4()
-
-    domain.record_intent(
-        UserIntent(
-            classification=IntentClassification.EDIT_STRATEGY,
-            inferred_goal="make it AND instead of OR",
-            explicit_constraints=[_AND],
-        ),
-        request_text="make it AND instead of OR",
-    )
-
-    assert [c.id for c in domain.requirements] == [_ORGANISM.id, _AND.id]
-    assert domain.retired_requirements == [
-        RetiredRequirement(constraint=_OR, lifecycle=ReplacedLifecycle(by=_AND.id))
-    ]
-
-
-def test_a_displaced_combination_is_no_gap() -> None:
-    domain = StrategyDomainState(requirements=[_ORGANISM, _OR])
-    domain.record_requirements([_AND])
-    gaps = check_gaps(
-        words=[],
-        unstated=[_OR],
-        retired={r.constraint.id for r in domain.retired_requirements},
-    )
-
-    assert gaps == []
 
 
 _ASSUMED_ORGANISM = Constraint(

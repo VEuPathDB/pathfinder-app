@@ -21,6 +21,7 @@ from pathfinder.domain.read_facts import ReadFact
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
+from pathfinder.domain.strategy.operator_reads import OperatorSource
 from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.domain.value_caveats import ValueCaveat
 
@@ -78,6 +79,13 @@ class ParameterFact(CamelModel):
         )
 
 
+_OPERATOR_SET_BY: dict[OperatorSource, str] = {
+    "stated": "operator stated by the researcher",
+    "card": "operator picked by the researcher on a card",
+    "chosen": "operator chosen by the assistant",
+}
+
+
 class StepFact(CamelModel):
     """One step of the strategy, or of the draft while nothing is built.
 
@@ -89,6 +97,7 @@ class StepFact(CamelModel):
     step_id: str
     display_name: str
     operator: str | None = None
+    operator_source: OperatorSource | None = None
     count: int | None = None
     # Why the step runs its search, as its recorded reason reads.
     reason: str = ""
@@ -106,6 +115,8 @@ class StepFact(CamelModel):
             if self.operator
             else self.display_name
         )
+        if self.operator_source is not None:
+            title = f"{title} ({_OPERATOR_SET_BY[self.operator_source]})"
         return [
             f"{title}: {_with_before(self.count, self.count_before, self.record_noun)}",
             *([self.reason] if self.reason else []),

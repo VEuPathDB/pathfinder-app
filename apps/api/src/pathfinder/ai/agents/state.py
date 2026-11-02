@@ -199,9 +199,6 @@ class AgentToolState:
     # The organisms this investigation states. A capped vocabulary renders the
     # branches that match them first.
     organism_hints: list[str] = field(default_factory=list)
-    # How the user said their evidence lines combine. A proposed structure that
-    # contradicts one of them is refused.
-    combination_requirements: list[Constraint] = field(default_factory=list)
     # The combine this turn's message names by its place, and the tree the
     # dispatch found. A tree that moves another combine is refused.
     named_combine: NamedCombine | None = None
@@ -211,6 +208,9 @@ class AgentToolState:
     orthology_request: OrthologyRequest | None = None
     # The combine operators this turn's message names by an operator word.
     stated_operators: frozenset[CombineOp] = frozenset()
+    # The operators the researcher's words read as for the combines the
+    # dispatch found.
+    read_operators: frozenset[CombineOp] = frozenset()
     # The requirements the thread states. A dropped criterion holds open the one
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)

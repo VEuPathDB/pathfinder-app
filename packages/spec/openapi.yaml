@@ -16681,7 +16681,54 @@ components:
             $ref: '#/components/schemas/Constraint'
           title: Constraints
           type: array
+        operatorReads:
+          items:
+            $ref: '#/components/schemas/OperatorReading'
+          title: Operatorreads
+          type: array
       title: OperationalSpec
+      type: object
+    OperatorReading:
+      properties:
+        criteria:
+          items:
+            type: string
+          minItems: 2
+          title: Criteria
+          type: array
+        built:
+          $ref: '#/components/schemas/CombineOp'
+        read:
+          enum:
+          - agrees
+          - disagrees
+          - unsure
+          - not_stated
+          - picked
+          title: Read
+          type: string
+        readOperator:
+          anyOf:
+          - $ref: '#/components/schemas/CombineOp'
+          - type: 'null'
+        confidence:
+          default: 0.0
+          maximum: 1
+          minimum: 0
+          title: Confidence
+          type: number
+        branches:
+          items:
+            items:
+              type: string
+            type: array
+          title: Branches
+          type: array
+      required:
+      - criteria
+      - built
+      - read
+      title: OperatorReading
       type: object
     OrganismChange:
       description: The organisms the seed searched and the ones the records now belong to.
@@ -17815,6 +17862,10 @@ components:
           default: true
           title: Hard
           type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
       required:
       - quote
       - kind
@@ -17937,6 +17988,15 @@ components:
           - type: string
           - type: 'null'
           title: Operator
+        operatorSource:
+          anyOf:
+          - enum:
+            - stated
+            - chosen
+            - card
+            type: string
+          - type: 'null'
+          title: Operatorsource
         count:
           anyOf:
           - type: integer

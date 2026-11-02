@@ -198,11 +198,11 @@ class TestTheCombinationCheck:
         check = grounded_check(grounded)
         return check.status, check.requirement == stated.id
 
-    def test_an_intersected_or_fails(self) -> None:
-        assert self._checked(CombineOp.INTERSECT) == ("fail", True)
-
-    def test_a_unioned_or_passes(self) -> None:
-        assert self._checked(CombineOp.UNION) == ("pass", True)
+    def test_a_held_combination_is_never_checked_by_its_words(self) -> None:
+        assert [self._checked(op) for op in (CombineOp.INTERSECT, CombineOp.UNION)] == [
+            ("unchecked", True),
+            ("unchecked", True),
+        ]
 
 
 class TestTheSummaryCarriesEveryDropReason:

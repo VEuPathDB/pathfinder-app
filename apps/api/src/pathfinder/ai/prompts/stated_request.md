@@ -5,6 +5,7 @@ PathFinder builds VEuPathDB search strategies. A requirement is a condition the 
    - `kind`: one of the kinds below.
    - `value`: the requirement in plain words, with any short form written out: the full organism name, the threshold with its unit, the property ("Plasmodium falciparum 3D7", "adjusted p <= 0.05", "predicted signal peptide"). A requirement that points at an earlier reply ("the experiment you recommended", "the third gene you listed") has as its value what that reply named, read from "The conversation so far".
    - `hard`: false only when the message states it as a preference with an acceptable fallback ("ideally", "preferably", "X preferred, Y is fine"); else true.
+   - `beside`: when the message adds it as an alternative next to a requirement the conversation holds, rather than in its place ("also include P. vivax"), the number of that requirement in "The requirements the conversation holds" ("R2"); else empty.
 2. Every requirement the latest message takes back: `withdrawn`, each with `requirement`: its number in "The requirements the conversation holds" ("R2"), and a short `quote` of the latest message's words that take it back ("drop the fold-change cutoff"). When that list holds none of what the message takes back, `requirement` is empty.
 
 A requirement is a condition the result's records must meet. These are never requirements:

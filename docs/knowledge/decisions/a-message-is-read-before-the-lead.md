@@ -83,5 +83,7 @@ together, and took about three seconds longer than Decisions.
 overlap, and a choice question makes them exclusive.
 
 **A combination kind in the extraction.** How requirements combine is read from FRAME's
-tree against the researcher's words, not written by a model as a requirement (see the
-redesign of the operator reader).
+tree against the researcher's words, not written by a model as a requirement
+([operators come from FRAME's tree](operators-come-from-frames-tree.md)). A value the
+message adds beside a held one of the same kind names that requirement's number in
+`beside`, so it does not replace it.

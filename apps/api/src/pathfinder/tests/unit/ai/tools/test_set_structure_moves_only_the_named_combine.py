@@ -1,6 +1,7 @@
 """``set_structure`` refuses a tree that leaves the combine the message names
 by its place, or moves another combine, and takes the tree that flips it. An
-edit that names no place changes a combine's operator only to one it states."""
+edit that names no place changes a combine's operator only to one it states or
+the researcher's words read as."""
 
 from __future__ import annotations
 
@@ -10,11 +11,6 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone.frame_structure import set_structure
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
 from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operators
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -91,19 +87,12 @@ async def test_a_tree_that_flips_the_root_alone_is_set() -> None:
 
 
 _UNDO = "Undo that, keep the intersection."
-_KEPT_INTERSECTION = Constraint(
-    kind=ConstraintKind.COMBINATION,
-    label="combination",
-    requested_value="surface features AND blood-stage expression",
-    source=ConstraintSource.USER_EXPLICIT,
-)
 
 
 def _unplaced_state(message: str, *, held: bool = True) -> AgentToolState:
     state = _state()
     state.named_combine = NamedCombine.read(message)
     state.stated_operators = stated_operators(message)
-    state.combination_requirements = [_KEPT_INTERSECTION]
     state.held_structure = (
         SpecStructure(root=_tree(CombineOp.INTERSECT, CombineOp.INTERSECT))
         if held
@@ -153,7 +142,18 @@ async def test_an_edit_that_moves_a_combine_to_an_unstated_operator_is_refused()
 @pytest.mark.asyncio
 async def test_an_edit_that_states_the_new_operator_moves_the_combine() -> None:
     state = _unplaced_state("make the inner one a union")
-    state.combination_requirements = []
+
+    await set_structure(agent_run_context(agent_state=state), root=_inner_union_first())
+
+    assert state.operational_spec_draft.structure == SpecStructure(
+        root=_inner_union_first()
+    )
+
+
+@pytest.mark.asyncio
+async def test_an_edit_may_move_a_combine_to_the_operator_the_words_read_as() -> None:
+    state = _unplaced_state("restore the previous tree")
+    state.read_operators = frozenset({CombineOp.UNION})
 
     await set_structure(agent_run_context(agent_state=state), root=_inner_union_first())
 

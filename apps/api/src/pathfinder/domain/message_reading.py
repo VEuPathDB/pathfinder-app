@@ -63,6 +63,7 @@ class StatedRequirement(CamelModel):
     kind: RequirementKind
     value: str = Field(min_length=1)
     hard: bool = True
+    beside: str = ""
 
 
 class StatedWithdrawal(CamelModel):

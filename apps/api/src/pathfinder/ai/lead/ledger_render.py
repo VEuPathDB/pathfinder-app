@@ -26,7 +26,11 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.question_options import OptionBinding, SetValues
 from pathfinder.domain.strategy.questions import OpenQuestion
-from pathfinder.domain.strategy.reading_choices import CHOSEN_BY, VALUE_SET_BY
+from pathfinder.domain.strategy.reading_choices import (
+    CHOSEN_BY,
+    VALUE_SET_BY,
+    operator_choice_lines,
+)
 from pathfinder.domain.strategy.readings import ReadValues
 
 # The most values one question card offers.
@@ -73,6 +77,7 @@ def render_frame_full(section: FrameSection) -> str:
     if spec.structure is not None:
         parts.append("\n### Structure")
         parts.append(render_structure(spec.structure.root, spec))
+        parts.extend(operator_choice_lines(spec))
     if spec.open_slots:
         parts.append("\n### Open slots (user must answer)")
         parts.extend(

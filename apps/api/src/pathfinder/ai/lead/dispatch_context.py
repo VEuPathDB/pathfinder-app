@@ -29,11 +29,11 @@ from pathfinder.ai.lead.sub_agent_tools import (
     SubAgentRunUsage,
 )
 from pathfinder.domain.strategy.constraints import (
-    combination_requirements_from,
     organism_hints_from,
 )
 from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operators
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operator_reading import read_operators
 from pathfinder.domain.strategy.orthology_request import OrthologyRequest
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
@@ -130,11 +130,11 @@ def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
                 else OperationalSpec(goal=framing_goal(state))
             ),
             organism_hints=organism_hints_from(requirements),
-            combination_requirements=combination_requirements_from(requirements),
             named_combine=NamedCombine.read(state.user_prompt),
             held_structure=None if found is None else found.structure,
             orthology_request=OrthologyRequest.read(state.user_prompt),
             stated_operators=stated_operators(state.user_prompt),
+            read_operators=frozenset() if found is None else read_operators(found),
             stated_requirements=list(state.domain.requirements),
             held_record_roles=dict(state.domain.record_roles),
             held_group_scopes=dict(state.domain.group_scopes),

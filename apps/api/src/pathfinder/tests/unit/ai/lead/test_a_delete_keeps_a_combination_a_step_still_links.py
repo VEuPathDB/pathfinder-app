@@ -1,6 +1,3 @@
-"""An approved delete of one side of a withdrawn combination shows that side
-retired, and never the side a remaining step answers."""
-
 from __future__ import annotations
 
 import pytest
@@ -12,8 +9,11 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
-from pathfinder.domain.turn_facts import RetiredFact
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    RequirementLink,
+)
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
@@ -24,6 +24,7 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 )
 
 _BOTH = Constraint(
+    id="r_both",
     kind=ConstraintKind.COMBINATION,
     requested_value="protein kinase domain AND no transmembrane domain",
     label="protein kinase domain AND no transmembrane domain",
@@ -33,15 +34,23 @@ _SPEC = OperationalSpec(
     goal="kinases with no transmembrane domain",
     criteria=[
         Criterion(
-            id="step_kinase",
-            text="Giardia Assemblage B isolate GS_B genes with a protein kinase domain",
-            search_name="GenesByInterproDomain",
-        ),
-        Criterion(
-            id="step_no_tm",
-            text="Giardia Assemblage B isolate GS_B genes without a transmembrane domain",
-            search_name="GenesByTransmembraneDomains",
-        ),
+            id=cid,
+            text=text,
+            search_name=search,
+            answers=[RequirementLink(requirement=_BOTH.id)],
+        )
+        for cid, text, search in (
+            (
+                "step_kinase",
+                "Giardia Assemblage B isolate GS_B genes with a protein kinase domain",
+                "GenesByInterproDomain",
+            ),
+            (
+                "step_no_tm",
+                "Giardia Assemblage B isolate GS_B genes without a transmembrane domain",
+                "GenesByTransmembraneDomains",
+            ),
+        )
     ],
 )
 
@@ -51,7 +60,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     return install_stub_api(monkeypatch)
 
 
-async def test_the_retired_row_names_the_side_the_deleted_step_answered(
+async def test_a_delete_of_one_linked_step_keeps_the_combination_live(
     stub_api: StubAPI,
 ) -> None:
     ctx = lead_run_context(
@@ -64,12 +73,7 @@ async def test_the_retired_row_names_the_side_the_deleted_step_answered(
     domain = ctx.deps.state.domain
     domain.operational_spec = _SPEC.model_copy(deep=True)
     domain.requirements = [_BOTH]
-    domain.withdraw([_BOTH])
-    before = turn_facts(ctx.deps).retired
 
     await delete_step(ctx, step_id="step_no_tm", reply="I remove that step.")
 
-    assert (before, turn_facts(ctx.deps).retired) == (
-        [],
-        [RetiredFact(requirement="no transmembrane domain", state="withdrawn")],
-    )
+    assert (domain.requirements, turn_facts(ctx.deps).retired) == ([_BOTH], [])

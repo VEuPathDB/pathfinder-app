@@ -18,7 +18,6 @@ from pathfinder.ai.tools.standalone._frame_organisms import (
     stated_cross_organism_refusal,
 )
 from pathfinder.domain.strategy.named_combine import (
-    combination_operators,
     named_combine_breach,
     unstated_operator_move,
 )
@@ -96,12 +95,10 @@ def _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(
     state: AgentToolState, proposed: SpecStructure
 ) -> None:
     """An edit that names no combine by its place changes a held combine's
-    operator only to one the message or a stated combination states."""
+    operator only to one the message states or the researcher's words read as."""
     if state.named_combine is not None or state.held_structure is None:
         return
-    stated = state.stated_operators | combination_operators(
-        state.combination_requirements
-    )
+    stated = state.stated_operators | state.read_operators
     moved = unstated_operator_move(proposed, state.held_structure, stated)
     if moved is None:
         return
@@ -262,7 +259,8 @@ async def set_structure(
     branch on either side is representable. A tree that leaves a combine the
     message names by its place ("the last combine") or moves any other combine
     is refused. An edit that names no combine by its place changes a combine's
-    operator only to one the message or a stated combination states. An INTERSECT
+    operator only to one the message states or the researcher's words read as.
+    An INTERSECT
     input that states only the organism another input already runs on,
     matches every gene of it, or repeats another input's searches and values,
     is dropped, and ``dropped`` says what became of its text.

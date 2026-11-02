@@ -157,6 +157,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "impact",
             "assent",
             "echo",
+            "operator-card",
             "organism-universe",
             "radio-off-domain",
             "text-beside-organism",

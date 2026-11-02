@@ -11,16 +11,11 @@ from pathfinder.domain.constraint_check import agrees
 from pathfinder.domain.log2_scale import scale_of
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.combination_check import (
-    TermMatch,
-    combination_violation,
-    enough_members,
     exclusion_stands_over,
-    match_terms,
     meeting_operator,
     transform_stands_over,
 )
 from pathfinder.domain.strategy.constraints import (
-    CombinationRequest,
     Constraint,
     ConstraintKind,
     ConstraintStatus,
@@ -29,7 +24,11 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
-from pathfinder.domain.strategy.operational_spec import OperationalSpec, SpecStructure
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+)
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 
@@ -42,6 +41,7 @@ _EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
 _NUMBER_RE = re.compile(r"(?:\d+(?:\.\d+)?|\.\d+)(?:e-?\d+)?", re.IGNORECASE)
 _PERCENT_RE = re.compile(r"\d\s*%")
 _PERCENT = 100.0
+_MIN_MEMBERS = 2
 
 
 def _data_run_on(realized: RealizedSpec) -> list[str]:
@@ -225,8 +225,8 @@ def _ground_percentile(c: Constraint, realized: RealizedSpec) -> GroundedConstra
 def _abstained(c: Constraint, why: str) -> GroundedConstraint:
     """A combination this strategy gives no answer about.
 
-    An abstention never blocks: the words the user chose name no criterion of
-    the spec, so nothing here contradicts them.
+    An abstention never blocks: no criterion this check can read answers the
+    combination, so nothing here contradicts it.
     """
     return GroundedConstraint(
         constraint=c,
@@ -235,52 +235,51 @@ def _abstained(c: Constraint, why: str) -> GroundedConstraint:
     )
 
 
-def _why_it_says_nothing(matched: TermMatch, structure: SpecStructure) -> str | None:
-    """Why this tree answers nothing about the stated combination, or None.
+def _ids(criteria: Sequence[Criterion], *roles: str) -> list[str]:
+    return [c.id for c in criteria if c.role in roles]
+
+
+def _why_it_says_nothing(
+    linked: Sequence[Criterion], structure: SpecStructure
+) -> str | None:
+    """Why this tree answers nothing about the held combination, or None.
 
     A combine is read over two members or none. A transform the tree holds
     away from those members, and an exclusion it subtracts from no branch,
     describe another tree than this one.
     """
-    if not enough_members(matched):
-        return "fewer than two of its terms name criteria a combine joins"
-    members = matched.members.values()
+    members = _ids(linked, "filter", "seed")
+    if len(members) < _MIN_MEMBERS:
+        return "fewer than two criteria a combine joins link it"
     if any(
         not transform_stands_over(structure, transform_id, members)
-        for transform_id in matched.transforms.values()
+        for transform_id in _ids(linked, "transform")
     ):
-        return "a transform it names stands over none of those criteria"
+        return "a transform that links it stands over none of those criteria"
     if any(
         not exclusion_stands_over(structure, exclude_id, members)
-        for exclude_id in matched.excludes.values()
+        for exclude_id in _ids(linked, "exclude")
     ):
         return "a criterion it removes is subtracted from no branch"
     return None
 
 
 def _ground_combination(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    request = CombinationRequest.parse(c.requested_value)
-    if request is None:
-        return _abstained(c, "the requirement states no single operator")
-    matched = match_terms(request.terms, realized.criteria)
-    if matched is None:
-        return _abstained(c, "its terms name no distinct criteria of this strategy")
+    linked = [crit for crit in realized.criteria if crit.links(c.id)]
+    if not linked:
+        return _abstained(c, "no criterion links it")
     if realized.structure is None:
         return _abstained(c, "the strategy has no structure yet")
-    silent = _why_it_says_nothing(matched, realized.structure)
+    silent = _why_it_says_nothing(linked, realized.structure)
     if silent is not None:
         return _abstained(c, silent)
-    members = matched.members.values()
-    violation = combination_violation(request, members, realized.structure)
-    if violation is not None:
-        return GroundedConstraint(
-            constraint=c, status=ConstraintStatus.UNGROUNDABLE, note=violation
-        )
-    found = meeting_operator(realized.structure, members)
-    return GroundedConstraint(
-        constraint=c,
-        status=ConstraintStatus.GROUNDED,
-        realized_value=None if found is None else found.value,
+    found = meeting_operator(realized.structure, _ids(linked, "filter", "seed"))
+    if found is None:
+        return _abstained(c, "the criteria that link it meet at no combine")
+    return _abstained(
+        c,
+        f"the criteria that link it meet at {found.value}, and that combine is "
+        f"read against the researcher's words",
     )
 
 
