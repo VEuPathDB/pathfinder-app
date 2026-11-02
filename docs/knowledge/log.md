@@ -2,9 +2,11 @@
 
 ## 2026-11-02
 
-* **The backlog is numbered 1 to 28 in rank order.** Each item that a GitHub
-  issue tracks links that issue. Decisions and cards name a backlog item by its
-  title, not by its number, so a renumber changes nothing outside the index.
+* **The backlog is ranked in three tiers and numbered from 1.** Items a tester
+  would hit come first, then work after testers, then internal or blocked work.
+  Each item that a GitHub issue tracks links that issue. Decisions and cards name
+  a backlog item by its title, not by its number, so a renumber changes nothing
+  outside the index. New: the eval reads what the researcher sees.
 
 ## 2026-11-01
 
