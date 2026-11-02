@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: Requirements are typed data
-description: Every decision the thread makes about a requirement (who stated it, what it replaces, what a withdrawal or a delete retires, what an answer drops, how the verdict compares it) reads words, phrases or regexes in model-written values. Replace Constraint.requested_value with a discriminated union of typed requirements, each with a stable id, a verbatim quote and links from the criteria that answer it, and move each decision onto those fields, kind by kind, in fourteen steps.
+description: Every decision the thread makes about a requirement (who stated it, what it replaces, what a withdrawal or a delete retires, what an answer drops, how the verdict compares it) reads words, phrases or regexes in model-written values. Replace Constraint.requested_value with a discriminated union of typed requirements, each with a stable id, a verbatim quote and links from the criteria that answer it, and move each decision onto those fields, kind by kind, in thirteen steps.
 tags: [agents, lead, frame, verification, requirements, redesign]
 generated: { by: claude-code/opus-5.5, at: 2026-11-01T00:00:00Z }
 status: proposed
@@ -58,12 +58,6 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-2. Stable ids replace `kind:value` keys: `ThreadRequirements` mints them, and
-   `ReplacedLifecycle.by`, `AcceptedReading` replaces, `record_roles`,
-   `SiteCheck.requirement` and `TurnRecord.requirements_added` carry ids. The
-   stored-state migration reads an old requirement as untyped and drops a stored
-   `site_verdict` for recomputation; an integration test resumes a checkpoint the
-   current build wrote. Not R.
 3. Links (R): `Criterion.answers`. A stand-in question carries requirement
    numbers and `_ASKS_A_STAND_IN_RE` goes (`requirement_lifecycle.stood_in_for`);
    a delete retires the requirements whose only linking criteria it removed and
@@ -113,7 +107,7 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
     vocabulary convention; regenerate the shared types and update the web
     constraints section.
 
-## Open before step 2
+## Open before step 3
 
 - The typed gold set: its size and the pass threshold for typed accuracy
   (`ExpectedOutcome.requirements` on the first turn of each corpus case that

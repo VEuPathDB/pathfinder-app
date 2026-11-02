@@ -180,7 +180,7 @@ class FrameResult(CamelModel):
             q.typed(
                 by_id.get(q.criterion_id),
                 noun=noun,
-                replaces=[numbered[n].key for n in q.requirements if n in numbered],
+                replaces=[numbered[n].id for n in q.requirements if n in numbered],
                 stated=bool(stated_numbers(requirements)),
                 readings=readings,
             )

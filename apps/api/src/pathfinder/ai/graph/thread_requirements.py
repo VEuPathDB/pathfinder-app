@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from pathfinder.ai.graph.stored_requirement_keys import (
+    ids_by_stored_key,
+    markers_by_id,
+    questions_by_id,
+    retired_by_id,
+    roles_by_id,
+)
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.domain.strategy.card_answers import spec_with_reading
@@ -15,6 +22,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    StoredConstraint,
     states_the_content,
 )
 from pathfinder.domain.strategy.message_reading import (
@@ -41,6 +49,7 @@ from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.stated_requirements import (
     RecordedRequirements,
     attributed,
+    identified,
     with_requirements,
 )
 
@@ -54,7 +63,7 @@ class ThreadRequirements(BaseModel):
     turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
     # Every requirement the thread has stated, oldest first. A clarification
     # adds to this list; only a message that abandons the request clears it.
-    requirements: list[Constraint] = Field(default_factory=list)
+    requirements: list[StoredConstraint] = Field(default_factory=list)
     # The requirements a message withdrew or replaced, each with its
     # lifecycle. A check reports none as a gap.
     retired_requirements: list[RetiredRequirement] = Field(default_factory=list)
@@ -68,9 +77,19 @@ class ThreadRequirements(BaseModel):
     open_questions: list[OpenQuestion] = Field(default_factory=list)
     # The recommended values the thread's requirements leave standing. A
     # requirement on the same dimension replaces one.
-    recommendations: list[Constraint] = Field(default_factory=list)
+    recommendations: list[StoredConstraint] = Field(default_factory=list)
     named_readings: list[ChosenReading] = Field(default_factory=list)
     picked_readings: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _names_each_requirement_by_id(self) -> ThreadRequirements:
+        ids = ids_by_stored_key(self._recorded())
+        self.retired_requirements = retired_by_id(self.retired_requirements, ids)
+        self.record_roles = roles_by_id(self.record_roles, ids)
+        self.open_questions = questions_by_id(self.open_questions, ids)
+        self.answered_questions = questions_by_id(self.answered_questions, ids)
+        self.turn_markers = markers_by_id(self.turn_markers, ids)
+        return self
 
     def name_reading(self, reading: ChosenReading | None) -> None:
         if reading is not None and reading not in self.named_readings:
@@ -151,15 +170,18 @@ class ThreadRequirements(BaseModel):
         held = list(self.requirements)
         newest = messages[0] if messages else ""
         asks = [ask.text for ask in intent.researcher_asks(newest)]
-        stated = [
-            c
-            for c in attributed(intent.explicit_constraints, messages, held)
-            if not _only_asked(c, newest, asks)
-            and not any(
-                message_states_constraint(pick, c)
-                for pick in self.turn_markers.bound_picks
-            )
-        ]
+        stated = identified(
+            (
+                c
+                for c in attributed(intent.explicit_constraints, messages, held)
+                if not _only_asked(c, newest, asks)
+                and not any(
+                    message_states_constraint(pick, c)
+                    for pick in self.turn_markers.bound_picks
+                )
+            ),
+            self._recorded(),
+        )
         self._record(
             with_requirements(
                 held, stated, adds_alternatives=adds_an_alternative(newest)
@@ -177,25 +199,32 @@ class ThreadRequirements(BaseModel):
         back, self.retired_requirements = restored(
             self.retired_requirements,
             turn_id=self._turn_id(),
-            dropped=[c.key for c in added],
+            dropped=[c.id for c in added],
         )
         kept = [c for c in self.requirements if c not in added]
         self._record(with_requirements(kept, back))
         self.turn_markers.requirements_added = []
 
-    def record_requirements(self, constraints: Iterable[Constraint]) -> None:
+    def record_requirements(
+        self, constraints: Iterable[Constraint]
+    ) -> list[Constraint]:
         """Add each requirement the thread has not stated already, in place of
-        a held one of the same single-valued kind."""
-        self._record(with_requirements(self.requirements, constraints))
+        a held one of the same single-valued kind, and return each as held."""
+        held = identified(constraints, self._recorded())
+        self._record(with_requirements(self.requirements, held))
+        return held
+
+    def _recorded(self) -> list[Constraint]:
+        return [*self.requirements, *(r.constraint for r in self.retired_requirements)]
 
     def _record(self, recorded: RecordedRequirements) -> None:
         self.requirements = recorded.live
-        displaced = {r.constraint.key for r in recorded.displaced}
+        displaced = {r.constraint.id for r in recorded.displaced}
         self.retired_requirements = [
             *(
                 r
                 for r in reopened(self.retired_requirements, recorded.live)
-                if r.constraint.key not in displaced
+                if r.constraint.id not in displaced
             ),
             *recorded.displaced,
         ]
@@ -226,25 +255,30 @@ class ThreadRequirements(BaseModel):
         if question is None:
             return spec_with_reading(spec, criterion_id, accepted)
         dimension = question.dimension
-        stand_in = Constraint(
-            kind=ConstraintKind.OTHER if dimension in STRATEGY_SCOPES else dimension,
-            requested_value=accepted.reading,
-            label=question.question,
-            source=ConstraintSource.USER_EXPLICIT,
-            hard=True,
+        [stand_in] = self.record_requirements(
+            [
+                Constraint(
+                    kind=ConstraintKind.OTHER
+                    if dimension in STRATEGY_SCOPES
+                    else dimension,
+                    requested_value=accepted.reading,
+                    label=question.question,
+                    source=ConstraintSource.USER_EXPLICIT,
+                    hard=True,
+                )
+            ]
         )
-        self.record_requirements([stand_in])
         self.withdraw(
             (
                 c
                 for c in self.requirements
-                if c.key in accepted.replaces
-                and c.key != stand_in.key
+                if c.id in accepted.replaces
+                and c.id != stand_in.id
                 and c.kind not in STRATEGY_SCOPES
             ),
             stand_in=stand_in,
         )
-        held = accepted.model_copy(update={"stand_in": stand_in.key})
+        held = accepted.model_copy(update={"stand_in": stand_in.id})
         return spec_with_reading(spec, criterion_id, held)
 
     def follow_readings(
@@ -256,7 +290,7 @@ class ThreadRequirements(BaseModel):
             for cid, r in was.items()
             if r.stand_in and not r.same_reading(now.get(cid))
         }
-        self.withdraw(c for c in self.requirements if c.key in ended)
+        self.withdraw(c for c in self.requirements if c.id in ended)
         for cid, held in now.items():
             if after is not None and not held.same_reading(was.get(cid)):
                 after = self.accept_reading(after, cid, held)

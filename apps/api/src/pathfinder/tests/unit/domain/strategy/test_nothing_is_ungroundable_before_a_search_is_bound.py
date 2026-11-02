@@ -43,8 +43,8 @@ _REQUIREMENTS = [
 def test_every_requirement_is_provisional_while_no_search_is_bound() -> None:
     grounded = ground_against_spec(_REQUIREMENTS, OperationalSpec(goal=_GOAL))
 
-    assert [(g.constraint.key, g.status) for g in grounded] == [
-        (c.key, ConstraintStatus.PROVISIONAL) for c in _REQUIREMENTS
+    assert [(g.constraint.id, g.status) for g in grounded] == [
+        (c.id, ConstraintStatus.PROVISIONAL) for c in _REQUIREMENTS
     ]
     assert {g.note for g in grounded} == {"no search is bound yet"}
     assert not any(is_blocking(g) for g in grounded)

@@ -91,7 +91,7 @@ def _domain() -> StrategyDomainState:
                 accepted_reading=AcceptedReading(
                     reading=_READING,
                     params={"text_expression": "kinase"},
-                    stand_in=_STAND_IN.key,
+                    stand_in=_STAND_IN.id,
                 ),
             )
         ],

@@ -1,4 +1,4 @@
-"""An accepted reading replaces the requirements its question names by key, is
+"""An accepted reading replaces the requirements its question names by id, is
 recorded from the question that offered it, and its stand-in ends with it."""
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.questions import OpenQuestion, SlotQuestion
 from pathfinder.domain.strategy.readings import AcceptedReading, Reading
+from pathfinder.tests._support.requirement_values import without_ids
 
 EVERY, SHARE = "PLAS=61T AND TOXO=0T", "PLAS>=55T AND TOXO=0T"
 _EXPRESSION = "phyletic_expression"
@@ -90,7 +91,7 @@ def _stand_in(prompt: str) -> Constraint:
 
 
 def _retired(thread: ThreadRequirements) -> list[tuple[str, object]]:
-    return [(r.constraint.key, r.lifecycle) for r in thread.retired_requirements]
+    return [(r.constraint.id, r.lifecycle) for r in thread.retired_requirements]
 
 
 def test_a_reading_replaces_the_requirement_its_question_names_whatever_the_text() -> (
@@ -99,21 +100,20 @@ def test_a_reading_replaces_the_requirement_its_question_names_whatever_the_text
     prompt = "Present in which Plasmodium genomes?"
     thread = ThreadRequirements(
         requirements=[_PRESENT, _STAGE],
-        open_questions=[_asked("c_plas", prompt, [_PRESENT.key])],
+        open_questions=[_asked("c_plas", prompt, [_PRESENT.id])],
     )
 
     spec = thread.accept_reading(
         OperationalSpec(criteria=[_criterion("c_plas")]),
         "c_plas",
-        _accepted([_PRESENT.key]),
+        _accepted([_PRESENT.id]),
     )
 
-    assert thread.requirements == [_STAGE, _stand_in(prompt)]
-    assert _retired(thread) == [
-        (_PRESENT.key, ReplacedLifecycle(by=_stand_in(prompt).key))
-    ]
-    assert spec.criteria[0].accepted_reading == _accepted([_PRESENT.key]).model_copy(
-        update={"stand_in": _stand_in(prompt).key}
+    stand_in = thread.requirements[-1]
+    assert without_ids(thread.requirements) == without_ids([_STAGE, _stand_in(prompt)])
+    assert _retired(thread) == [(_PRESENT.id, ReplacedLifecycle(by=stand_in.id))]
+    assert spec.criteria[0].accepted_reading == _accepted([_PRESENT.id]).model_copy(
+        update={"stand_in": stand_in.id}
     )
 
 
@@ -132,10 +132,9 @@ def test_a_reading_offered_on_two_criteria_stands_in_from_its_own_question() -> 
         _accepted([]),
     )
 
-    assert thread.requirements == [
-        _PRESENT,
-        _stand_in("Present in which genomes of the second list?"),
-    ]
+    assert without_ids(thread.requirements) == without_ids(
+        [_PRESENT, _stand_in("Present in which genomes of the second list?")]
+    )
 
 
 def test_a_reading_on_an_organism_question_stands_in_as_other_and_keeps_the_scope() -> (
@@ -148,7 +147,7 @@ def test_a_reading_on_an_organism_question_stands_in_as_other_and_keeps_the_scop
             _asked(
                 "c_plas",
                 prompt,
-                [_PLASMODIUM.key, _PRESENT.key],
+                [_PLASMODIUM.id, _PRESENT.id],
                 dimension=ConstraintKind.ORGANISM,
             )
         ],
@@ -157,24 +156,26 @@ def test_a_reading_on_an_organism_question_stands_in_as_other_and_keeps_the_scop
     thread.accept_reading(
         OperationalSpec(criteria=[_criterion("c_plas")]),
         "c_plas",
-        _accepted([_PLASMODIUM.key, _PRESENT.key]),
+        _accepted([_PLASMODIUM.id, _PRESENT.id]),
     )
 
-    assert thread.requirements == [_PLASMODIUM, _stand_in(prompt)]
-    assert [key for key, _ in _retired(thread)] == [_PRESENT.key]
+    assert without_ids(thread.requirements) == without_ids(
+        [_PLASMODIUM, _stand_in(prompt)]
+    )
+    assert [held for held, _ in _retired(thread)] == [_PRESENT.id]
 
 
 def _held_thread(prompt: str) -> tuple[ThreadRequirements, OperationalSpec]:
     thread = ThreadRequirements(
         requirements=[_PRESENT],
-        open_questions=[_asked("c_plas", prompt, [_PRESENT.key])],
+        open_questions=[_asked("c_plas", prompt, [_PRESENT.id])],
     )
     spec = thread.follow_readings(
         OperationalSpec(criteria=[_criterion("c_plas")]),
         OperationalSpec(
             criteria=[
                 _criterion("c_plas").model_copy(
-                    update={"accepted_reading": _accepted([_PRESENT.key])}
+                    update={"accepted_reading": _accepted([_PRESENT.id])}
                 )
             ]
         ),
@@ -188,12 +189,13 @@ def test_a_reading_newly_held_is_accepted() -> None:
 
     thread, _ = _held_thread(prompt)
 
-    assert thread.requirements == [_stand_in(prompt)]
+    assert without_ids(thread.requirements) == without_ids([_stand_in(prompt)])
 
 
 def test_the_stand_in_ends_with_its_reading() -> None:
     prompt = "Present in which Plasmodium genomes?"
     thread, held = _held_thread(prompt)
+    [stand_in] = thread.requirements
     moved = held.model_copy(
         update={
             "criteria": [
@@ -214,8 +216,8 @@ def test_the_stand_in_ends_with_its_reading() -> None:
 
     assert thread.requirements == []
     assert _retired(thread) == [
-        (_PRESENT.key, ReplacedLifecycle(by=_stand_in(prompt).key)),
-        (_stand_in(prompt).key, WithdrawnLifecycle(turn_id="")),
+        (_PRESENT.id, ReplacedLifecycle(by=stand_in.id)),
+        (stand_in.id, WithdrawnLifecycle(turn_id="")),
     ]
 
 
@@ -224,4 +226,4 @@ def test_a_reading_still_held_changes_nothing() -> None:
     thread, held = _held_thread(prompt)
 
     assert thread.follow_readings(held, held) == held
-    assert thread.requirements == [_stand_in(prompt)]
+    assert without_ids(thread.requirements) == without_ids([_stand_in(prompt)])

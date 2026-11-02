@@ -293,16 +293,22 @@ def test_a_requirement_stated_earlier_replaces_a_recommendation() -> None:
 def test_the_summary_marks_a_requirement_carried_from_an_earlier_message() -> None:
     state = _answered(_asked_state(), _TURN_TWO, _answering_intent())
 
-    summary = derive_ledger(state, _answering_intent()).render_summary()
+    ledger = derive_ledger(state, _answering_intent())
+    summary = ledger.render_summary()
 
+    [second] = [
+        g.constraint.id
+        for g in ledger.constraints.grounded
+        if g.constraint.requested_value == "the second one"
+    ]
     assert (
         f"- protease evidence combination (combination): {_COMBINATION!r} -> "
         "provisional (from an earlier message)"
     ) in summary
-    assert (
-        "- RNA-seq study (data_type): 'the second one' -> provisional; "
-        "key data_type:the second one\n"
-    ) in summary
+    [line] = [row for row in summary.splitlines() if row.startswith("- RNA-seq study")]
+    assert line == (
+        f"- RNA-seq study (data_type): 'the second one' -> provisional; id {second}"
+    )
 
 
 def _frame_questions() -> list[OpenQuestion]:

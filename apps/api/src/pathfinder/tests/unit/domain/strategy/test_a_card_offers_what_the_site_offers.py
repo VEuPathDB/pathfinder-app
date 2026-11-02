@@ -73,6 +73,6 @@ def test_a_question_about_an_unstated_requirement_offers_drop_and_keep() -> None
 
     assert asked.question == frames.question
     assert [o.binding for o in asked.options] == [
-        Withdraw(constraint_id=_GPI.key),
-        Keep(constraint_id=_GPI.key),
+        Withdraw(constraint_id=_GPI.id),
+        Keep(constraint_id=_GPI.id),
     ]

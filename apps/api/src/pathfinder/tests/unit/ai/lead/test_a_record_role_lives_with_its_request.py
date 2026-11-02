@@ -75,14 +75,14 @@ async def test_a_later_pass_keeps_the_roles_an_earlier_pass_stated(
         await _frame(deps)
 
     assert deps.state.domain.record_roles == {
-        _PROTEINS.key: "through",
-        _GROUPS.key: "answer",
+        _PROTEINS.id: "through",
+        _GROUPS.id: "answer",
     }
 
 
 def test_a_new_request_over_an_empty_strategy_forgets_the_roles() -> None:
     deps = _deps()
-    deps.state.domain.record_roles = {_PROTEINS.key: "through"}
+    deps.state.domain.record_roles = {_PROTEINS.id: "through"}
 
     deps.state.domain.take_a_new_request(strategy_has_steps=False)
 
@@ -95,13 +95,13 @@ def test_a_role_named_for_a_requirement_that_is_no_record_type_is_ignored() -> N
         RecordTypeRole(requirement="R2", role="answer"),
     ]
 
-    assert record_roles(stated, [_ORGANISM, _GROUPS]) == {_GROUPS.key: "answer"}
+    assert record_roles(stated, [_ORGANISM, _GROUPS]) == {_GROUPS.id: "answer"}
 
 
 def test_a_pass_starts_from_the_roles_the_thread_holds() -> None:
     deps = _deps()
-    deps.state.domain.record_roles = {_PROTEINS.key: "through"}
+    deps.state.domain.record_roles = {_PROTEINS.id: "through"}
 
     held = agent_deps_for(deps, call_id="call_test").agent_state.held_record_roles
 
-    assert held == {_PROTEINS.key: "through"}
+    assert held == {_PROTEINS.id: "through"}

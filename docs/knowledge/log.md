@@ -2,6 +2,23 @@
 
 ## 2026-11-01
 
+* **A requirement is named by an id, not by its kind and value.** Every
+  requirement carries an id the thread keeps (`Constraint.id`, absent from the
+  classifier's schema). A replacement names its successor by id, and so do a
+  record role, a card's withdraw and keep options, a reading's replaced
+  requirements and stand-in, and a site check. The `kind:value` key is gone. A
+  restated requirement keeps the id the thread holds, matched by its kind and
+  value at intake (`stated_requirements.identified`) until links replace that
+  match. A thread stored before this change is read with an id for each
+  requirement, the first 12 hex digits of the SHA-256 of its stored
+  `kind:value` (`constraints.StoredConstraint`), so every copy of it gets the
+  same id on every read, and every stored key is rewritten to that id
+  (`ai/graph/stored_requirement_keys.py`), proven by a checkpoint the earlier
+  build wrote. A stored verdict whose check still names a key no recorded
+  requirement holds is dropped, and the next check records a new one. A new
+  requirement gets a random id. The Lead's ledger shows each stated requirement's id where it
+  showed the key.
+
 * **Requirements become typed data, measured first.** An offline replay ran the
   current requirement decisions (attribution, combination displacement,
   withdrawal and its source, stand-ins, delete retirement, the pick, ask and side

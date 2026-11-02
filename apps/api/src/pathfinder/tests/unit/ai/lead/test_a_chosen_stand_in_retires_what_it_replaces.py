@@ -33,6 +33,11 @@ _COMBINATION = requirement(
 )
 
 
+def _held(state: PipelineState, value: str) -> str:
+    [held] = [c.id for c in state.domain.requirements if c.requested_value == value]
+    return held
+
+
 def _answered(prompt: str, note: str) -> PipelineState:
     state = pipeline_state(
         "piroplasmadb",
@@ -51,8 +56,8 @@ def _answered(prompt: str, note: str) -> PipelineState:
 def test_the_requirement_the_question_replaces_is_replaced_by_the_stand_in() -> None:
     state = _answered(_REPLACE, _STAND_IN)
 
-    retired = {r.constraint.key: r.lifecycle for r in state.domain.retired_requirements}
-    assert retired == {_GPI.key: ReplacedLifecycle(by=f"other:{_STAND_IN}")}
+    retired = {r.constraint.id: r.lifecycle for r in state.domain.retired_requirements}
+    assert retired == {_GPI.id: ReplacedLifecycle(by=_held(state, _STAND_IN))}
     assert [c.requested_value for c in state.domain.requirements] == [
         "Cytauxzoon felis Winnie",
         "signal peptide",
@@ -83,7 +88,7 @@ def test_a_stand_in_that_states_how_it_combines_replaces_both() -> None:
 
     apply_option_bindings(state, [answer], [card], sheets={})
 
-    retired = {r.constraint.key: r.lifecycle for r in state.domain.retired_requirements}
-    stand_in = ReplacedLifecycle(by=f"combination:{note}")
-    assert retired == {_GPI.key: stand_in, _COMBINATION.key: stand_in}
+    retired = {r.constraint.id: r.lifecycle for r in state.domain.retired_requirements}
+    stand_in = ReplacedLifecycle(by=_held(state, note))
+    assert retired == {_GPI.id: stand_in, _COMBINATION.id: stand_in}
     assert _SIGNAL in state.domain.requirements

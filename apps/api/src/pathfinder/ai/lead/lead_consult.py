@@ -108,8 +108,8 @@ def _apply(
                 read.criterion_id,
                 read.accepted(ReadingChooser.RESEARCHER_ON_A_CARD),
             )
-        case Withdraw(constraint_id=key):
-            domain.withdraw(c for c in domain.requirements if c.key == key)
+        case Withdraw(constraint_id=withdrawn):
+            domain.withdraw(c for c in domain.requirements if c.id == withdrawn)
         case SaveComputedGroups(handle=handle, save=True):
             state.turn_markers.saves_asked.append(handle)
         case SetValues() | ReadValues() | Keep() | SaveComputedGroups():
@@ -159,12 +159,10 @@ def apply_option_bindings(
         )
         stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
         if stated is not None:
-            domain.record_requirements([stated])
+            [held] = domain.record_requirements([stated])
             domain.withdraw(
-                stood_in_for(
-                    domain.requirements, prompt=answer.prompt, stand_in=stated
-                ),
-                stand_in=stated,
+                stood_in_for(domain.requirements, prompt=answer.prompt, stand_in=held),
+                stand_in=held,
             )
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 

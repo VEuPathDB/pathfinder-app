@@ -257,14 +257,14 @@ async def _organism_checks(
         )
         carried = carried or names
         checks.append(
-            organism_check(c.requested_value, c.key, selected, counted)
+            organism_check(c.requested_value, c.id, selected, counted)
             if names
             else SiteCheck(
                 kind=ConstraintKind.ORGANISM,
                 subject=c.requested_value,
                 status="unchecked",
                 evidence="no organism the strategy selects for its result is named so",
-                requirement=c.key,
+                requirement=c.id,
                 why_unchecked="no_check",
             )
         )
@@ -283,7 +283,7 @@ async def _requirement_checks(
     return [
         record_type_check(
             held.constraint,
-            roles.get(held.constraint.key, "answer"),
+            roles.get(held.constraint.id, "answer"),
             classes_named(held.constraint.requested_value, names),
             None if root is None else root.record_class,
             classes,

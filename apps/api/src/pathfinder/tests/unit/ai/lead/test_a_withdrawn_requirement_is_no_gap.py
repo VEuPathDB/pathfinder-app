@@ -109,7 +109,7 @@ async def test_a_new_value_of_the_kind_replaces_the_held_one() -> None:
 
     assert deps.state.domain.requirements == [_QUARTILE]
     assert [r.lifecycle for r in deps.state.domain.retired_requirements] == [
-        ReplacedLifecycle(by=_QUARTILE.key)
+        ReplacedLifecycle(by=_QUARTILE.id)
     ]
 
 

@@ -122,8 +122,8 @@ async def test_the_ledger_lists_the_dropped_requirement_as_ungroundable(
 
     rows = derive_ledger(deps.state, deps.intent).constraints.grounded
     assert [
-        g.constraint.key for g in rows if g.status is ConstraintStatus.UNGROUNDABLE
-    ] == ["percentile:top 50th percentile in bradyzoites"]
+        g.constraint.id for g in rows if g.status is ConstraintStatus.UNGROUNDABLE
+    ] == [_CUTOFF.id]
 
 
 @pytest.mark.asyncio
@@ -142,11 +142,11 @@ async def test_a_requirement_no_question_asks_gets_a_question_of_its_own(
     assert [(o.label, o.binding) for o in asked.options] == [
         (
             "Drop top 50th percentile in bradyzoites",
-            Withdraw(constraint_id="percentile:top 50th percentile in bradyzoites"),
+            Withdraw(constraint_id=_CUTOFF.id),
         ),
         (
             "Keep top 50th percentile in bradyzoites",
-            Keep(constraint_id="percentile:top 50th percentile in bradyzoites"),
+            Keep(constraint_id=_CUTOFF.id),
         ),
     ]
     assert [o.label for q in result.card_questions for o in q.options] == [
@@ -175,7 +175,7 @@ async def test_the_withdrawal_joins_the_nearest_searchs_question(
         ),
         (
             "Drop top 50th percentile in bradyzoites",
-            Withdraw(constraint_id="percentile:top 50th percentile in bradyzoites"),
+            Withdraw(constraint_id=_CUTOFF.id),
         ),
     ]
 
@@ -206,5 +206,5 @@ async def test_a_withdrawal_on_the_card_leaves_no_ungroundable_row(
 
     rows = derive_ledger(deps.state, deps.intent).constraints.grounded
     assert deps.state.domain.requirements == []
-    assert [g.constraint.key for g in rows if not g.retired] == []
+    assert [g.constraint.id for g in rows if not g.retired] == []
     assert not derive_ledger(deps.state, deps.intent).constraints.blocking

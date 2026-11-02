@@ -24,7 +24,7 @@ def _judged(c: Constraint, status: CheckStatus, evidence: str) -> SiteCheck:
         subject=c.requested_value,
         status=status,
         evidence=evidence,
-        requirement=c.key,
+        requirement=c.id,
         why_unchecked="no_check" if status == "unchecked" else None,
     )
 

@@ -18,7 +18,7 @@ successor. `ThreadRequirements.record(intent, messages)`
 
 - A stated value of a dimension that holds one value (organism, record type,
   threshold, fold change, percentile, data type, comparator) replaces the value
-  the thread held for it, which retires as `replaced(by=<new key>)`
+  the thread held for it, which retires as `replaced(by=<new id>)`
   (`stated_requirements.with_requirements`). Two values stated in one message
   both stand, and a message that adds an alternative with an include verb
   (`message_reading.adds_an_alternative`) adds the value beside the held one.

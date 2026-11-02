@@ -48,6 +48,7 @@ from pathfinder.domain.strategy.readings import (
     ReadingChooser,
 )
 from pathfinder.services.strategies import reading_check
+from pathfinder.tests._support.requirement_values import without_ids
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -152,7 +153,7 @@ def _slot_question() -> SlotQuestion:
 
 
 def _question() -> OpenQuestion:
-    return _slot_question().typed(_plasmodium(), noun="group", replaces=[_PRESENT.key])
+    return _slot_question().typed(_plasmodium(), noun="group", replaces=[_PRESENT.id])
 
 
 def _deps(spec: OperationalSpec, *questions: OpenQuestion) -> LeadDeps:
@@ -191,15 +192,25 @@ async def _picked(label: str) -> LeadDeps:
     return deps
 
 
-def _held() -> AcceptedReading:
+def _held(stand_in: str = "") -> AcceptedReading:
     return AcceptedReading(
         reading=_SHARE_LABEL,
         caveat=_SHARE_CAVEAT,
         params={_EXPRESSION: SHARE},
-        replaces=[_PRESENT.key],
-        stand_in=_STAND_IN.key,
+        replaces=[_PRESENT.id],
+        stand_in=stand_in,
         chosen_by=ReadingChooser.RESEARCHER_ON_A_CARD,
     )
+
+
+def _stand_in(deps: LeadDeps, value: str = _SHARE_LABEL) -> str:
+    domain = deps.state.domain
+    recorded = [
+        *domain.requirements,
+        *(r.constraint for r in domain.retired_requirements),
+    ]
+    [held] = [c.id for c in recorded if c.requested_value == value]
+    return held
 
 
 def _criterion(deps: LeadDeps) -> Criterion:
@@ -215,7 +226,7 @@ async def test_a_picked_reading_binds_its_value_as_the_cards() -> None:
     criterion = _criterion(deps)
     assert criterion.resolved_params[_EXPRESSION].value == StringValue(value=SHARE)
     assert criterion.resolved_params[_EXPRESSION].source == "card"
-    assert criterion.held_reading == _held()
+    assert criterion.held_reading == _held(_stand_in(deps))
 
 
 async def test_a_picked_reading_stands_in_for_the_requirement_its_question_names() -> (
@@ -224,9 +235,9 @@ async def test_a_picked_reading_stands_in_for_the_requirement_its_question_names
     deps = await _picked(f"{_SHARE_LABEL}: 1088 groups")
 
     domain = deps.state.domain
-    assert domain.requirements == [_STAGE, _STAND_IN]
+    assert without_ids(domain.requirements) == without_ids([_STAGE, _STAND_IN])
     assert [(r.constraint, r.lifecycle) for r in domain.retired_requirements] == [
-        (_PRESENT, ReplacedLifecycle(by=_STAND_IN.key))
+        (_PRESENT, ReplacedLifecycle(by=_stand_in(deps)))
     ]
 
 
@@ -245,8 +256,8 @@ async def test_a_picked_reading_without_a_caveat_adds_no_caveat() -> None:
     assert criterion.held_reading == AcceptedReading(
         reading=_EVERY_LABEL,
         params={_EXPRESSION: EVERY},
-        replaces=[_PRESENT.key],
-        stand_in=f"other:{_EVERY_LABEL}",
+        replaces=[_PRESENT.id],
+        stand_in=_stand_in(deps, _EVERY_LABEL),
         chosen_by=ReadingChooser.RESEARCHER_ON_A_CARD,
     )
     assert caveats_for(deps.state.domain.operational_spec, []) == []
@@ -270,6 +281,7 @@ async def test_a_card_that_rebinds_the_value_ends_the_reading_and_its_stand_in()
     None
 ):
     deps = await _picked(f"{_SHARE_LABEL}: 1088 groups")
+    first = _stand_in(deps)
     question = _question()
     deps.state.domain.open_questions = [question]
     _ask(deps, f"{_EVERY_LABEL}: 395 groups")
@@ -281,12 +293,12 @@ async def test_a_card_that_rebinds_the_value_ends_the_reading_and_its_stand_in()
     )
 
     retired = {
-        r.constraint.key: r.lifecycle for r in deps.state.domain.retired_requirements
+        r.constraint.id: r.lifecycle for r in deps.state.domain.retired_requirements
     }
-    assert retired[_STAND_IN.key] == WithdrawnLifecycle(turn_id="")
-    assert [c.key for c in deps.state.domain.requirements] == [
-        _STAGE.key,
-        f"other:{_EVERY_LABEL}",
+    assert retired[first] == WithdrawnLifecycle(turn_id="")
+    assert [c.requested_value for c in deps.state.domain.requirements] == [
+        _STAGE.requested_value,
+        _EVERY_LABEL,
     ]
 
 
@@ -298,11 +310,7 @@ def _stub_stream(
         draft = agent_deps.agent_state.operational_spec_draft
         draft.criteria = [
             _plasmodium(measurements=[], value=bind).model_copy(
-                update={
-                    "accepted_reading": None
-                    if bind == EVERY
-                    else _held().model_copy(update={"stand_in": ""})
-                }
+                update={"accepted_reading": None if bind == EVERY else _held()}
             )
         ]
         return result
@@ -321,8 +329,10 @@ async def test_a_reading_frame_bound_from_an_answer_in_words_stands_in(
 
     await run_frame(deps=deps, parent_tool_call_id="call_frame", work_order="frame")
 
-    assert deps.state.domain.requirements == [_STAGE, _STAND_IN]
-    assert _criterion(deps).held_reading == _held()
+    assert without_ids(deps.state.domain.requirements) == without_ids(
+        [_STAGE, _STAND_IN]
+    )
+    assert _criterion(deps).held_reading == _held(_stand_in(deps))
 
 
 async def test_each_offered_reading_is_counted_into_its_label_when_it_arrives(

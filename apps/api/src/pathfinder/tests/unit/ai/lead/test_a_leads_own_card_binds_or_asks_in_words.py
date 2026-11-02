@@ -129,8 +129,8 @@ async def test_the_drop_option_of_the_leads_card_retires_the_requirement() -> No
     await consult_user(run_context_for(deps, "call_card"), [card], reply=_REPLY)
 
     domain = deps.state.domain
-    assert [c.key for c in domain.requirements] == [_UKMEL1.key]
-    assert [r.constraint.key for r in domain.retired_requirements] == [_SPORES.key]
+    assert [c.id for c in domain.requirements] == [_UKMEL1.id]
+    assert [r.constraint.id for r in domain.retired_requirements] == [_SPORES.id]
 
 
 def _obp_domain() -> Criterion:

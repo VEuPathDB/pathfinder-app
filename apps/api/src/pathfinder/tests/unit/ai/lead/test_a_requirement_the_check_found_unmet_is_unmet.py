@@ -52,9 +52,9 @@ def _failed(subject: str, requirement: str) -> SiteCheckGap:
     )
 
 
-UNMET = _failed("Plasmodium species", ORGANISM.key)
+UNMET = _failed("Plasmodium species", ORGANISM.id)
 UNNAMED = _failed("the organisms of the result", "")
-RENAMED = _failed("species of Plasmodium", ORGANISM.key)
+RENAMED = _failed("species of Plasmodium", ORGANISM.id)
 SPEC = OperationalSpec(
     goal="Which Plasmodium species has the most singleton genes?",
     constraints=[ORGANISM],

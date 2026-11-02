@@ -225,4 +225,4 @@ async def test_a_kept_requirement_stays_open_and_stays_a_gap() -> None:
     check = grounded_check(
         GroundedConstraint(constraint=fold, status=ConstraintStatus.UNGROUNDABLE)
     )
-    assert (check.status, check.requirement) == ("fail", "fold_change:1.5-fold")
+    assert (check.status, check.requirement) == ("fail", fold.id)

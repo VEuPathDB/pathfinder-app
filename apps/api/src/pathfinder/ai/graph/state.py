@@ -9,10 +9,23 @@ from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import StoredMemory
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BeforeValidator, ConfigDict, Field, ValidationError
+from pydantic import (
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
+from pathfinder.ai.graph.stored_requirement_keys import (
+    check_by_id,
+    gaps_by_id,
+    ids_by_stored_key,
+    names_an_unrecorded_key,
+    spec_by_id,
+)
 from pathfinder.ai.graph.stored_verdicts import Stored
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers, ZeroResultStep
@@ -41,7 +54,7 @@ from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSp
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.spec_tree import renumber_criteria
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.domain.unmet_requirements import unmet_requirement_keys
+from pathfinder.domain.unmet_requirements import unmet_requirement_ids
 
 PhaseName = Literal[
     "frame",
@@ -137,7 +150,7 @@ class VerificationDigest(CamelModel):
         """True when the check failed on the strategy's own structure, or found a
         requirement no step of the strategy answers."""
         tree = self.failure_cause is FailureCause.STRUCTURE_VIOLATION
-        return not self.success and (tree or bool(unmet_requirement_keys(self.gaps)))
+        return not self.success and (tree or bool(unmet_requirement_ids(self.gaps)))
 
     @property
     def unanswered(self) -> list[str]:
@@ -227,6 +240,31 @@ class StrategyDomainState(ThreadRequirements):
     # What the site says each criterion runs on, read when a step binds, when
     # the turn opens and when a check runs.
     data_marks: DataMarks = Field(default_factory=DataMarks)
+
+    @model_validator(mode="after")
+    def _names_the_checked_requirements_by_id(self) -> StrategyDomainState:
+        ids = ids_by_stored_key(self._recorded())
+        self.operational_spec = spec_by_id(self.operational_spec, ids)
+        self.answered_spec = spec_by_id(self.answered_spec, ids)
+        self.spec_before_turn = spec_by_id(self.spec_before_turn, ids)
+        self.spec_before_dispatch = spec_by_id(self.spec_before_dispatch, ids)
+        verdict = self.site_verdict
+        if verdict is None:
+            return self
+        if names_an_unrecorded_key(verdict.review.checks, verdict.gaps, ids):
+            self.site_verdict = None
+            self.verified_revision = ""
+            return self
+        checks = [check_by_id(c, ids) for c in verdict.review.checks]
+        gaps = gaps_by_id(verdict.gaps, ids)
+        if checks != verdict.review.checks or gaps != verdict.gaps:
+            self.site_verdict = verdict.model_copy(
+                update={
+                    "review": verdict.review.model_copy(update={"checks": checks}),
+                    "gaps": gaps,
+                }
+            )
+        return self
 
     def attach_control_set(self, attached: NamedControlSet) -> None:
         """Attach a saved control set; a set attached before is held once."""

@@ -111,7 +111,7 @@ async def test_a_record_type_left_without_a_role_is_sent_back_once() -> None:
 
 async def test_a_role_an_earlier_pass_stated_needs_no_restating() -> None:
     output, told, _ = await _run(
-        [_result(("R3", "answer"))], held={_PROTEINS.key: "through"}
+        [_result(("R3", "answer"))], held={_PROTEINS.id: "through"}
     )
 
     assert (told, output.gaps) == ([], [])

@@ -100,7 +100,7 @@ _STATED = [
         },
     )
 ]
-_EXPANDED = _STATED[3].key
+_EXPANDED = _STATED[3].id
 
 
 def _thread_holding_the_frame_question() -> LeadDeps:

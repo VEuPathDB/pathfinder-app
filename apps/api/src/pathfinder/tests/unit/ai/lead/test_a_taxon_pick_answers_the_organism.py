@@ -53,7 +53,7 @@ def test_the_taxonomy_names_the_pick_by_its_genus() -> None:
 def test_the_organism_stays_grounded_on_the_pick() -> None:
     grounded = derive_ledger(_checked_deps(PLASMODIUM).state, None).constraints
 
-    organism = next(g for g in grounded.grounded if g.constraint.key == ORGANISM.key)
+    organism = next(g for g in grounded.grounded if g.constraint.id == ORGANISM.id)
     assert (organism.status, organism.realized_param, organism.realized_value) == (
         ConstraintStatus.GROUNDED,
         "taxon_type_ahead",

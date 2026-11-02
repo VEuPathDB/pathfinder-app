@@ -62,7 +62,7 @@ def test_a_narrower_organism_replaces_the_genus_the_thread_held(site_id: str) ->
         [r.lifecycle for r in thread.retired_requirements],
     ) == (
         [(ConstraintKind.ORGANISM, organism)],
-        [ReplacedLifecycle(by=f"organism:{organism}")],
+        [ReplacedLifecycle(by=thread.requirements[0].id)],
     )
 
 

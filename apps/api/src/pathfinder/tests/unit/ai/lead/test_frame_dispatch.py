@@ -478,4 +478,4 @@ async def test_the_role_frame_states_for_a_record_type_is_recorded(
         work_order=frame_work_order("frame it", deps),
     )
 
-    assert deps.state.domain.record_roles == {proteins.key: "through"}
+    assert deps.state.domain.record_roles == {proteins.id: "through"}

@@ -25371,7 +25371,7 @@
         "type": "object"
       },
       "ReplacedLifecycle": {
-        "description": "A requirement another requirement took the place of.\n\n``by`` is the key of the requirement that replaced it.",
+        "description": "A requirement another requirement took the place of.\n\n``by`` is the id of the requirement that replaced it.",
         "properties": {
           "state": {
             "const": "replaced",

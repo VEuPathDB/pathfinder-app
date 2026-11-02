@@ -24,7 +24,7 @@ from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
-from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.constraints import StoredConstraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.domain.tally_facts import TallyFact
@@ -259,7 +259,7 @@ class TurnMarkers(CamelModel):
     # The searches the steps this turn added run. The reply names each one.
     added_searches: list[AddedSearch] = Field(default_factory=list)
     # The requirements this message added to the thread's record.
-    requirements_added: list[Constraint] = Field(default_factory=list)
+    requirements_added: list[StoredConstraint] = Field(default_factory=list)
     # The requirements a framing pass of this message found no search states.
     unstated_requirements: list[str] = Field(default_factory=list)
     # The steps this turn deleted, as they stood before the delete.

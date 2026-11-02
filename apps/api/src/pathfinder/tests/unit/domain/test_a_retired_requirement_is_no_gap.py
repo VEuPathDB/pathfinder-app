@@ -63,12 +63,6 @@ def test_a_requirement_no_search_states_is_one_gap_beside_its_word() -> None:
     assert gaps == [WordGap(word="exported"), RequirementGap(text="secreted")]
 
 
-def test_a_requirement_is_keyed_by_its_dimension_and_value() -> None:
-    held = _requirement("exported", OpenLifecycle()).constraint
-
-    assert held.key == "other:exported"
-
-
 def test_a_lifecycle_defaults_to_open() -> None:
     grounded = GroundedConstraint(
         constraint=Constraint(

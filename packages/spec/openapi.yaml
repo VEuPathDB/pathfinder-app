@@ -16974,7 +16974,7 @@ components:
       description: 'A requirement another requirement took the place of.
 
 
-        ``by`` is the key of the requirement that replaced it.'
+        ``by`` is the id of the requirement that replaced it.'
       properties:
         state:
           const: replaced

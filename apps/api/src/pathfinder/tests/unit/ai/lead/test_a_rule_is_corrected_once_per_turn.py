@@ -73,7 +73,7 @@ def _unmet_and_unfollowed() -> LeadDeps:
                         subject="Plasmodium species",
                         status="fail",
                         evidence="no step restricts the groups to Plasmodium",
-                        requirement=ORGANISM.key,
+                        requirement=ORGANISM.id,
                     )
                 )
             ],

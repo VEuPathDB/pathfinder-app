@@ -1,0 +1,278 @@
+{
+ "answered_graph": null,
+ "answered_questions": [],
+ "answered_spec": null,
+ "attached_controls": null,
+ "built_expressions": {},
+ "computed_comparisons": {},
+ "control_sets": [],
+ "created_gene_sets": [],
+ "data_marks": {
+  "searches": {},
+  "studies": {},
+  "uploads": {}
+ },
+ "declined_proposal": null,
+ "discovered_searches": {},
+ "eda_analysis": null,
+ "exchanges": [],
+ "group_scopes": {},
+ "last_build_outcome": null,
+ "last_evidence_card": null,
+ "lead_next_state": null,
+ "memory_index": {},
+ "named_readings": [],
+ "open_eda_analysis": null,
+ "open_eda_sheet": null,
+ "open_questions": [
+  {
+   "dimension": "other",
+   "options": [
+    {
+     "binding": {
+      "constraint_id": "other:signal peptide",
+      "kind": "withdraw"
+     },
+     "id": "drop",
+     "label": "Drop signal peptide"
+    },
+    {
+     "binding": {
+      "constraint_id": "other:signal peptide",
+      "kind": "keep"
+     },
+     "id": "keep",
+     "label": "Keep signal peptide"
+    },
+    {
+     "binding": {
+      "caveat": "",
+      "criterion_id": "c1",
+      "kind": "read_values",
+      "names_no_requirement": false,
+      "params": {
+       "p": "SignalP"
+      },
+      "reading": "SignalP",
+      "replaces": [
+       "other:signal peptide"
+      ]
+     },
+     "id": "read",
+     "label": "SignalP"
+    }
+   ],
+   "question": "Keep the signal peptide?",
+   "recommended_value": ""
+  }
+ ],
+ "operational_spec": {
+  "constraints": [],
+  "criteria": [
+   {
+    "accepted_reading": {
+     "caveat": "",
+     "chosen_by": "assistant",
+     "names_no_requirement": false,
+     "params": {
+      "p": "SignalP"
+     },
+     "reading": "SignalP",
+     "replaces": [
+      "other:signal peptide"
+     ],
+     "stand_in": "other:signal peptide"
+    },
+    "alternatives": [],
+    "analysis": null,
+    "confidence": 0.0,
+    "dataset_organisms": [],
+    "id": "c1",
+    "measurements": [],
+    "needs_analysis_on": null,
+    "open_params": [],
+    "organism_param": null,
+    "param_display_names": {},
+    "rationale": null,
+    "record_class": null,
+    "resolved_params": {},
+    "result_count": null,
+    "role": "filter",
+    "saved_strategy_ref": null,
+    "search_display_name": null,
+    "search_name": "",
+    "text": "signal peptide"
+   }
+  ],
+  "dropped": [],
+  "goal": "g",
+  "interpreted_goal": "",
+  "open_slots": [],
+  "organism_scope": null,
+  "structure": null,
+  "title": ""
+ },
+ "original_request": "",
+ "picked_readings": [],
+ "recommendations": [],
+ "record_roles": {
+  "record_type:proteins": "through"
+ },
+ "request_messages": [],
+ "requirements": [
+  {
+   "hard": true,
+   "kind": "other",
+   "label": "signal peptide",
+   "requested_value": "signal peptide",
+   "source": "user_explicit"
+  },
+  {
+   "hard": true,
+   "kind": "record_type",
+   "label": "proteins",
+   "requested_value": "proteins",
+   "source": "user_explicit"
+  },
+  {
+   "hard": true,
+   "kind": "organism",
+   "label": "Plasmodium falciparum 3D7",
+   "requested_value": "Plasmodium falciparum 3D7",
+   "source": "user_explicit"
+  }
+ ],
+ "retired_requirements": [
+  {
+   "constraint": {
+    "hard": true,
+    "kind": "organism",
+    "label": "Plasmodium",
+    "requested_value": "Plasmodium",
+    "source": "user_explicit"
+   },
+   "lifecycle": {
+    "by": "organism:Plasmodium falciparum 3D7",
+    "state": "replaced"
+   },
+   "sides": []
+  }
+ ],
+ "separation_offers": {},
+ "shown_memories": [],
+ "shown_records": [],
+ "site_verdict": {
+  "caveats": [],
+  "disposition": "done",
+  "failure_cause": null,
+  "gaps": [
+   {
+    "check": {
+     "evidence": "the strategy states Plasmodium vivax",
+     "kind": "organism",
+     "requirement": "organism:Plasmodium falciparum 3D7",
+     "status": "fail",
+     "subject": "Plasmodium falciparum 3D7",
+     "why_unchecked": null
+    },
+    "kind": "site_check",
+    "sentence": "'Plasmodium falciparum 3D7': the strategy states Plasmodium vivax"
+   }
+  ],
+  "handoff_to": null,
+  "key_findings": [],
+  "note_refs": [],
+  "pending_checks": [],
+  "prose": "p",
+  "reason": "",
+  "remember": [],
+  "review": {
+   "checks": [
+    {
+     "evidence": "the strategy states Plasmodium vivax",
+     "kind": "organism",
+     "requirement": "organism:Plasmodium falciparum 3D7",
+     "status": "fail",
+     "subject": "Plasmodium falciparum 3D7",
+     "why_unchecked": null
+    }
+   ],
+   "column_fits": [],
+   "sampled_genes": [],
+   "sources": [],
+   "withheld": []
+  },
+  "success": false
+ },
+ "spec_before_dispatch": null,
+ "spec_before_turn": null,
+ "stale_build": null,
+ "statistics": [],
+ "turn_briefing": "",
+ "turn_markers": {
+  "accepted_proposal": false,
+  "added_searches": [],
+  "answered": null,
+  "answered_card": "",
+  "at_arrival": null,
+  "audit_facts": [],
+  "audit_runs": [],
+  "audit_runs_held": false,
+  "bound_picks": [],
+  "built": false,
+  "change_at_arrival": null,
+  "classified_card": "",
+  "column_fits": [],
+  "column_reaches": [],
+  "comparisons": [],
+  "consulted": false,
+  "contract_refused": false,
+  "control_tests": [],
+  "control_tests_asked_again": [],
+  "created_control_sets": [],
+  "created_gene_sets": [],
+  "delete_cards": {},
+  "deleted_steps": [],
+  "eda_datasets_opened": [],
+  "eda_export": null,
+  "edited": false,
+  "expression_fits": [],
+  "framed": false,
+  "intent_classified": false,
+  "listings": {},
+  "memberships": [],
+  "message_id": "00000000-0000-0000-0000-000000000002",
+  "output_refusals": 0,
+  "questions_at_arrival": [],
+  "records_read": {},
+  "records_retrieved": [],
+  "refused_calls": [],
+  "refused_digests": [],
+  "refused_plan": null,
+  "refused_rules": [],
+  "requirements_added": [
+   {
+    "hard": true,
+    "kind": "organism",
+    "label": "Plasmodium falciparum 3D7",
+    "requested_value": "Plasmodium falciparum 3D7",
+    "source": "user_explicit"
+   }
+  ],
+  "resolved_genes": [],
+  "retrieved_sources": [],
+  "sampled_gene_ids": [],
+  "saves_asked": [],
+  "tallies": [],
+  "too_few_controls": null,
+  "unbound_edit": "",
+  "unchecked_reply": false,
+  "unstated_requirements": [],
+  "verification_dispatched": false,
+  "verification_stopped": false,
+  "verified": false
+ },
+ "user_intent": null,
+ "verified_revision": "",
+ "zero_result_history": []
+}
