@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A message that commands a change is an edit when it also asks a question
-description: A message that commands a change and asks what it does can be classified a follow-up question that withdraws nothing, so the turn answers read-only and the change is never made.
+description: A message that commands a change and asks what it does was answered read-only; the classifier now flags a question that asks a change and the gate sends it to framing, and one live replay of uat-dry3-d-hostdb remains.
 tags: [lead, classification, edit]
 generated: { by: claude-code/opus-5.5, at: 2026-10-05T00:00:00Z }
 status: proposed
@@ -9,27 +9,22 @@ status: proposed
 
 # A message that commands a change is an edit when it also asks a question
 
-**What I did.** On hostdb, corpus case `uat-dry3-d-hostdb`: built Mus musculus
-C57BL/6J chromosome 17 genes with GO term 'MHC class I protein complex' (2,268
-location genes, 9 in the intersection), then sent "Change the chromosome to 19.
-How does the count change?"
+## What happened
 
-**What I got.** The classification was a follow-up question with
-`asks=["How does the count change?"]` and nothing withdrawn. The turn ran
-`compare_search_variants` and answered with the chromosome 19 count (1,372); the
-facts still show chromosome 17 and a root of 9.
+On hostdb (corpus case `uat-dry3-d-hostdb`), after a strategy of Mus musculus C57BL/6J
+chromosome 17 genes with GO term 'MHC class I protein complex' (9 genes), the message
+"Change the chromosome to 19. How does the count change?" was classified a follow-up
+question that withdrew nothing. The turn answered with the chromosome 19 count (1,372)
+and the strategy still held chromosome 17.
 
-**Why that's wrong.** The researcher asked for the strategy to move to
-chromosome 19 and reads a count for a change the strategy does not hold.
+## Where it stands
 
-**Why it happens.** `classification_gate.classification_refusal` refuses a
-question that withdraws a requirement (`question_withdraws_message`); a question
-that withdraws nothing passes, though words outside its asks command the change.
+The classifier sets the typed `UserIntent.asks_a_change` (`ai/lead/intent.py`), and
+`classification_gate.classification_refusal` refuses a follow-up question that sets it,
+so the turn goes to framing (`tests/unit/ai/lead/test_a_question_that_asks_a_change_reaches_framing.py`).
+No recorded run of the case has followed the change.
 
-**Fix.** Refuse a follow-up question whose message commands a change outside its
-asks. The reading has to tell a command ("change the chromosome to 19") from a
-remark beside a question ("thanks", "that seems high"), so it is designed against
-the corpus cases that hold a remark before a question.
+## Done when
 
-**What you'd get.** The turn edits the location step to chromosome 19 and the
-facts show "0 genes, 9 genes before this turn's edit".
+A live replay of `uat-dry3-d-hostdb` on QA edits the location step to chromosome 19 and
+the facts show "0 genes, 9 genes before this turn's edit".

@@ -63,6 +63,14 @@ limit: a four-band expression over the 61 Plasmodium and 15 Toxoplasma gondii co
 clade code names Plasmodium or Toxoplasma alone (`HAEM` holds 63 genomes, two of them
 outside Plasmodium), so each clade is written as its list of genome codes.
 
+## Where it stands
+
+The builder is shipped and the corpus case
+`orthomcl-expanded-in-toxoplasma-over-plasmodium-in-bands` holds the two-turn exchange
+(root 51); no passing run of it is recorded. Change 3 no longer applies: the verdict is
+computed from the site, not written by VERIFY. No code states the clade-average caveat
+(change 1), and change 4 waits on the requirement redesign.
+
 ## Done when
 
 The example question builds a banded expression after one clarifying exchange, the answer

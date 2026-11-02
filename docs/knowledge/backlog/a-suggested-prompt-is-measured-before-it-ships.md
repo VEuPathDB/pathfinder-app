@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A suggested prompt is measured before it ships
-description: Suggested questions come from biologists and ship only after a measured run; the OrthoMCL suggestion "List single-copy ortholog groups across the apicomplexans." binds Single Copy Orthogroups with the site's default taxon ranges and returns 8,699 groups from any taxa; each suggested prompt is run once on its site before it is offered.
+description: Suggested questions come from biologists and ship only after a measured run; the OrthoMCL single-copy suggestion builds the 2-group phyletic strategy on QA, but no suggestion has a recorded pass and nothing withholds one that fails.
 tags: [suggested-prompts, orthomcl, first-run]
 generated: { by: claude-code/opus-5, at: 2026-10-20T00:00:00Z }
 status: proposed
@@ -36,6 +36,14 @@ Single Copy Orthogroups says it cannot name a clade.
    becomes an eval case (`evals/corpus/`) and is offered only after its recorded run
    meets the stated expectation; a candidate that fails stays in the file with its
    measured outcome, so the proposer sees why.
+
+## Where it stands
+
+The two `veupathdb-mcp` changes shipped in 0.2.0b35. Replayed on QA OrthoMCL with Luna
+(corpus case `orthomcl-single-copy-across-the-apicomplexans`), the unchanged suggestion
+builds `GroupsByPhyleticPattern` `APIC=139T AND APIC=139` and returns 2 groups. Every
+suggestion was run once on 2026-10-31, but no pass or fail is recorded per suggestion and
+nothing withholds one that fails. Steps 1, 2 and 3 remain.
 
 ## Done when
 

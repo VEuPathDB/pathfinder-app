@@ -25,9 +25,8 @@ site can approximate the request
    each one line: what it means biologically, what the strategy does, roughly what it
    returns or what it misses; the user picks one or answers freely.
 2. The readings come from what the catalog can express (the phyletic grammar, transforms,
-   counts, the per-step count of
-   [a member count reaches framing on the first message](a-built-step-is-counted-by-a-column.md)), so a reading offered is a reading the turn
-   can build.
+   counts, the per-step count `count_step_by_column`), so a reading offered is a reading
+   the turn can build.
 3. An answer in the user's terms (for example "2-5 copies, at least 2x more") is mapped to
    the closest buildable reading, stated back in one sentence, and built; the turn does
    not ask again for the same thing in parameter terms.
@@ -40,6 +39,16 @@ site can approximate the request
 An "all" over many genomes that is asked about, and
 [a copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md),
 are two cases of this rule.
+
+## Where it stands
+
+Changes 1 to 3 are in: an open slot is asked with readings
+(`domain/strategy/question_options.py`, `ai/lead/recorded_cards.py`), pinned by
+`test_a_question_about_a_value_offers_readings.py`, and the corpus case
+`orthomcl-expanded-families-question-offers-readings` ends on a consult with two or more
+options. Change 4 has no code. Change 5 is open: `recorded_cards.the_card_asked` drops a
+Lead question only when its prompt or requirement id matches, and a test pins the
+duplicate. None of the replays below is recorded.
 
 ## Done when
 

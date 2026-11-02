@@ -7,6 +7,16 @@
   Each item that a GitHub issue tracks links that issue. Decisions and cards name
   a backlog item by its title, not by its number, so a renumber changes nothing
   outside the index. New: the eval reads what the researcher sees.
+* **Two backlog items left; nine were brought up to date.** A phyletic set is described
+  once: veupathdb-py 0.1.0b27 holds the fix, veupathdb-mcp 0.2.0-b60 pins it, and this
+  repository pins both. A member count reaches framing on the first message: on QA with
+  Luna on 2026-10-31 the first message of `orthomcl-singletons-counted-by-organism`
+  framed and built the 523,795-sequence step and ranked it with `count_step_by_column`.
+  The same day the verifying corpus cases passed on QA (S2 on five sites, N13 and the
+  singleton ranking). The items on suggested prompts, the pushed round, a command beside
+  a question, the computed verdict, the clade bands, the clarifying question, the audit
+  phases, the QA pass, the analysis below the root and the decision model now state only
+  what remains.
 
 ## 2026-11-01
 
