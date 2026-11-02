@@ -1,11 +1,37 @@
 "use client";
 
+import { useAuiState } from "@assistant-ui/react";
 import { HelpCircle } from "lucide-react";
 
 import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
 import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
 
-import type { ConsultRecap } from "./consultData";
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { isOpenCard } from "./cardAnswers";
+import {
+  type ConsultRecap,
+  findConsultRecap,
+  findPendingConsult,
+  isConsultCall,
+} from "./consultData";
+
+export function ConsultRecord({ toolCallId }: { toolCallId: string }) {
+  const currentId = useAuiState((s) => s.message.id);
+  const chat = useChatHelpers();
+  const message = chat.messages.find((m) => m.id === currentId);
+  if (message?.role !== "assistant") return null;
+  if (message.parts.find(isConsultCall)?.toolCallId !== toolCallId) return null;
+  if (isOpenCard(chat.messages, toolCallId)) return null;
+  const setAside = findPendingConsult(message);
+  if (setAside !== null && setAside.questions.length > 0) {
+    return <ConsultSetAsideView questions={setAside.questions} />;
+  }
+  const recap = findConsultRecap(message);
+  if (recap !== null && recap.questions.length > 0) {
+    return <ConsultRecapView recap={recap} />;
+  }
+  return null;
+}
 
 function answerText(answer: UserQuestionAnswer | undefined): string {
   if (answer === undefined) return "-";

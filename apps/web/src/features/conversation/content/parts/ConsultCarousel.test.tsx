@@ -4,6 +4,7 @@
 import type { UIMessage } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
@@ -12,7 +13,9 @@ import {
   ChatHelpersProvider,
   type ChatHelpers,
 } from "../../runtime/chatHelpersContext";
-import { ConsultCarousel, ConsultCarouselView } from "./ConsultCarousel";
+import { ConsultCarousel } from "./ConsultCarousel";
+import { ConsultRecord } from "./ConsultRecap";
+import { EMPTY_DRAFT } from "./consultDraft";
 import { findPendingConsult, type PendingConsult } from "./consultData";
 
 vi.mock("@assistant-ui/react", () => ({
@@ -79,10 +82,20 @@ function chatStub(): ChatHelpers {
   };
 }
 
-function renderCarousel(): void {
-  render(
-    <ConsultCarouselView pending={pendingOf(pendingMessage())} chat={chatStub()} />,
+function Carousel({ chat }: { chat: ChatHelpers }) {
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
+  return (
+    <ConsultCarousel
+      pending={pendingOf(pendingMessage())}
+      chat={chat}
+      draft={draft}
+      onDraft={setDraft}
+    />
   );
+}
+
+function renderCarousel(chat: ChatHelpers = chatStub()): void {
+  render(<Carousel chat={chat} />);
 }
 
 describe("a consult the researcher answered by typing", () => {
@@ -96,7 +109,7 @@ describe("a consult the researcher answered by typing", () => {
       <ChatHelpersProvider
         value={{ ...chatStub(), messages: [pendingMessage(), typed] }}
       >
-        <ConsultCarousel />
+        <ConsultRecord toolCallId="call_kQ8zvR2mTf" />
       </ChatHelpersProvider>,
     );
 
@@ -108,7 +121,24 @@ describe("a consult the researcher answered by typing", () => {
   });
 });
 
+describe("an open consult in the thread", () => {
+  it("draws nothing there, because the composer docks it", () => {
+    const { container } = render(
+      <ChatHelpersProvider value={{ ...chatStub(), messages: [pendingMessage()] }}>
+        <ConsultRecord toolCallId="call_kQ8zvR2mTf" />
+      </ChatHelpersProvider>,
+    );
+
+    expect(container.innerHTML).toBe("");
+  });
+});
+
 describe("the consult card names its own controls", () => {
+  it("names its place among the questions", () => {
+    renderCarousel();
+    expect(screen.getByTestId("consult-place")).toHaveTextContent("1 of 2");
+  });
+
   it("names each option button by its label alone", () => {
     renderCarousel();
     expect(screen.getByRole("button", { name: "Union" })).toBeInTheDocument();
@@ -172,9 +202,7 @@ describe("the answers the carousel collects reach the turn", () => {
   });
 
   it("carries every answer on the request body built in the submit's own tick", async () => {
-    render(
-      <ConsultCarouselView pending={pendingOf(pendingMessage())} chat={chatStub()} />,
-    );
+    renderCarousel();
     fireEvent.click(screen.getByRole("button", { name: "Union" }));
     fireEvent.click(screen.getByTestId("consult-next"));
     fireEvent.change(await screen.findByRole("textbox", { name: "Your answer" }), {
@@ -220,12 +248,7 @@ describe("the consult card can be skipped", () => {
 
   it("declines the questions with no answers from any slide", () => {
     const addToolApprovalResponse = vi.fn();
-    render(
-      <ConsultCarouselView
-        pending={pendingOf(pendingMessage())}
-        chat={{ ...chatStub(), addToolApprovalResponse }}
-      />,
-    );
+    renderCarousel({ ...chatStub(), addToolApprovalResponse });
 
     fireEvent.click(screen.getByRole("button", { name: "Skip these questions" }));
 

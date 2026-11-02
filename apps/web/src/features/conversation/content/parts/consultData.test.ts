@@ -1,7 +1,12 @@
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import { findConsultRecap, findPendingConsult, findProposal } from "./consultData";
+import {
+  findConsultRecap,
+  findPendingConsult,
+  findProposal,
+  pendingConsultOf,
+} from "./consultData";
 
 function assistant(parts: UIMessage["parts"]): UIMessage {
   return { id: "m1", role: "assistant", parts };
@@ -59,6 +64,31 @@ describe("findPendingConsult", () => {
         allowNotes: true,
       },
     ]);
+  });
+});
+
+describe("pendingConsultOf", () => {
+  it("reads the questions an open card asks under its own approval", () => {
+    expect(
+      pendingConsultOf({
+        messageId: "m1",
+        toolCallId: "call-1",
+        toolName: "consult_user",
+        approvalId: "appr-9",
+        input: { questions: [{ id: "q1" }, { id: "q2", prompt: "Threshold?" }] },
+      }),
+    ).toEqual({
+      approvalId: "appr-9",
+      questions: [
+        {
+          id: "q2",
+          prompt: "Threshold?",
+          kind: "single_choice",
+          context: "",
+          allowNotes: true,
+        },
+      ],
+    });
   });
 });
 

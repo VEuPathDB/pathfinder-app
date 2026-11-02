@@ -2,6 +2,11 @@
 
 ## 2026-11-02
 
+* **An open card docks on the composer.** A card that waits on the researcher
+  draws above the input, one at a time, with the thread keeping only the record
+  of an answered card. Typed words answer a docked consult's current question;
+  under any other card they are sent as the next message, which the Lead reads
+  as the answer. See [an open card docks on the composer](decisions/an-open-card-docks-on-the-composer.md).
 * **The organism check of a large result reads `organism_full`.** A root over 2,000
   records was counted by the step column reporter on `organism`, which QA answers
   with HTTP 500 although the record type lists `byValue` for it. Every such check

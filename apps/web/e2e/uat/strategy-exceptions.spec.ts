@@ -184,7 +184,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       ),
     );
 
-    const carousel = page.getByTestId("consult-carousel");
+    const carousel = chatPage.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel).toContainText("A few questions before I build the plan");
     await expect(carousel).toContainText("1 / 1");
@@ -375,7 +375,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
         "Delete the intersection step but keep both searches exactly as they are.",
       ),
     );
-    const approval = page.getByTestId("approval-card");
+    const approval = chatPage.dockedCard.getByTestId("approval-card");
     const title = approval.getByTestId("approval-card-title");
     await expect(title).toHaveText(/^Delete step '.+' \(.+\)\?$/, { timeout: 60_000 });
     // The card names the step and each step that goes with it, all of the tree.
@@ -459,8 +459,11 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
         "Offer me one change that would make this strategy more specific, as a proposal I can accept or decline. Do not change anything yet.",
       ),
     );
+    await expect(chatPage.dockedCard.getByTestId("proposal-card")).toBeVisible({
+      timeout: 60_000,
+    });
     const card = page.getByTestId("proposal-card");
-    await expect(card).toHaveCount(1, { timeout: 60_000 });
+    await expect(card).toHaveCount(1);
     await expect(card.getByTestId("proposal-question")).not.toHaveText("");
     await expect(
       card.getByRole("list", { name: "Proposed changes" }).getByRole("listitem"),

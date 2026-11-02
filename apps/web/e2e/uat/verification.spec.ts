@@ -148,7 +148,7 @@ async function runSeparation(chatPage: ChatPage, page: Page, siteId: string) {
       `Find me a strategy that separates these controls, in exact mode.\n${controlLines(siteId)}`,
     ),
   );
-  const approval = page.getByTestId("approval-card");
+  const approval = chatPage.dockedCard.getByTestId("approval-card");
   await expect(approval.getByTestId("approval-card-title")).toHaveText(
     "Run the separation? It measures candidate searches against your controls on the site and takes about five minutes.",
     { timeout: 60_000 },
@@ -167,7 +167,11 @@ async function runSeparation(chatPage: ChatPage, page: Page, siteId: string) {
   const result = page.getByTestId("data-separation-result");
   await expect(result).toBeVisible({ timeout: TASK_BUDGET_MS });
   const card = page.getByTestId("separation-card");
-  await expect(card.getByTestId("separation-question")).toHaveText(
+  await expect(
+    chatPage.dockedCard
+      .getByTestId("separation-card")
+      .getByTestId("separation-question"),
+  ).toHaveText(
     /^Build the (separating strategy|closest strategy found): .+ in [\d,]+ genes\?$/,
     { timeout: 240_000 },
   );
@@ -362,7 +366,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
         `Optimize the SignalP version of the signal peptide search to recover as many of my positive controls as possible while returning as few of my negative controls as possible.\n${controlLines(siteId)}`,
       ),
     );
-    const approval = page.getByTestId("approval-card");
+    const approval = chatPage.dockedCard.getByTestId("approval-card");
     await expect(approval.getByTestId("approval-card-title")).toHaveText(
       "Optimize parameters needs your approval before it runs.",
       { timeout: 60_000 },

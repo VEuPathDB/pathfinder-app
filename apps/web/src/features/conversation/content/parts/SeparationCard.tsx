@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { handleAdoptionAnswer } from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { isOpenCard } from "./cardAnswers";
 import { findAdoption } from "./separationCardData";
 
 const DECISION_TEXT = {
@@ -22,8 +23,20 @@ const DECISION_TEXT = {
 export function SeparationCard({ toolCallId }: { toolCallId: string }) {
   const currentId = useAuiState((s) => s.message.id);
   const chat = useChatHelpers();
+  if (isOpenCard(chat.messages, toolCallId)) return null;
+  return <SeparationCardView messageId={currentId} toolCallId={toolCallId} />;
+}
+
+export function SeparationCardView({
+  messageId,
+  toolCallId,
+}: {
+  messageId: string;
+  toolCallId: string;
+}) {
+  const chat = useChatHelpers();
   const [note, setNote] = useState("");
-  const card = findAdoption(chat.messages, currentId, toolCallId);
+  const card = findAdoption(chat.messages, messageId, toolCallId);
   if (card === null) return null;
   return (
     <div

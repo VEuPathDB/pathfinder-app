@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import type { ReactNode } from "react";
@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
+import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import {
   ChatHelpersProvider,
@@ -63,7 +64,10 @@ function HangingRuntimeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function makeChat(messages: UIMessage[]): ChatHelpers {
+function makeChat(
+  messages: UIMessage[],
+  addToolApprovalResponse: ChatHelpers["addToolApprovalResponse"] = () => {},
+): ChatHelpers {
   return {
     id: "test-conversation",
     messages,
@@ -75,7 +79,7 @@ function makeChat(messages: UIMessage[]): ChatHelpers {
     stop: async () => {},
     addToolResult: async () => {},
     addToolOutput: async () => {},
-    addToolApprovalResponse: () => {},
+    addToolApprovalResponse,
     clearError: () => {},
   };
 }
@@ -86,6 +90,7 @@ function renderComposer(
     hangingRuntime?: boolean;
     countingRuntime?: boolean;
     messages?: UIMessage[];
+    respond?: ChatHelpers["addToolApprovalResponse"];
   },
 ) {
   const { queryClient, Wrapper } = createTestWrapper();
@@ -101,7 +106,7 @@ function renderComposer(
         : StubRuntimeProvider;
   return render(
     <Runtime>
-      <ChatHelpersProvider value={makeChat(options?.messages ?? [])}>
+      <ChatHelpersProvider value={makeChat(options?.messages ?? [], options?.respond)}>
         <Composer conversationId="test-conversation" assistantId="pathfinder" />
       </ChatHelpersProvider>
     </Runtime>,
@@ -395,5 +400,169 @@ describe("a slash command takes the Enter key alone", () => {
     fireEvent.change(input, { target: { value: "/ren" } });
     fireEvent.keyDown(input, { key: "Escape" });
     expect(input).toHaveValue("");
+  });
+});
+
+const COMBINE_PROMPT = "How should I combine the two gene sets?";
+const ELSE_PROMPT = "Anything else I should know?";
+
+const CONSULT_ASKS: UIMessage = {
+  id: "m1",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-consult_user",
+      toolCallId: "call_consult",
+      state: "approval-requested",
+      approval: { id: "approval-consult" },
+      input: {
+        questions: [
+          {
+            id: "combine_mode",
+            kind: "single_choice",
+            prompt: COMBINE_PROMPT,
+            options: [{ label: "Union" }, { label: "Intersect" }],
+            allowNotes: true,
+          },
+          {
+            id: "anything_else",
+            kind: "free_text",
+            prompt: ELSE_PROMPT,
+            options: [],
+            allowNotes: true,
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const DELETE_ASKS: UIMessage = {
+  id: "m1",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-delete_step",
+      toolCallId: "call_delete",
+      state: "approval-requested",
+      input: { step_id: "s2" },
+      approval: { id: "approval-delete" },
+    },
+  ],
+};
+
+function typeAndSend(value: string): void {
+  fireEvent.change(screen.getByTestId("message-input"), { target: { value } });
+  fireEvent.click(screen.getByTestId("send-button"));
+}
+
+describe("a card waiting on the researcher docks on the composer", () => {
+  beforeEach(() => {
+    useConsultAnswersStore.setState({ byApprovalId: {} });
+  });
+
+  it("shows the open card above an input that asks for the researcher's own answer", () => {
+    renderComposer(true, { messages: [DELETE_ASKS] });
+    const dock = screen.getByTestId("docked-card");
+    expect(screen.getByTestId("message-composer")).toContainElement(dock);
+    expect(within(dock).getByTestId("approval-card-title")).toHaveTextContent(
+      "Delete step needs your approval before it runs.",
+    );
+    const input = screen.getByTestId("message-input");
+    expect(input).toBeEnabled();
+    expect(input).toHaveAttribute("placeholder", "Or type your own answer");
+  });
+
+  it("docks nothing once the card is answered", () => {
+    renderComposer(true, {
+      messages: [
+        DELETE_ASKS,
+        { id: "u2", role: "user", parts: [{ type: "text", text: "Keep it." }] },
+      ],
+    });
+    expect(screen.queryByTestId("docked-card")).toBeNull();
+    expect(screen.getByTestId("message-input")).toHaveAttribute(
+      "placeholder",
+      "Ask about strategies, genes, or data... (try /help)",
+    );
+  });
+
+  it("shows a consult one question at a time and names its place", () => {
+    renderComposer(true, { messages: [CONSULT_ASKS] });
+    const dock = screen.getByTestId("docked-card");
+    expect(within(dock).getByTestId("consult-slide")).toHaveTextContent(COMBINE_PROMPT);
+    expect(within(dock).getByTestId("consult-place")).toHaveTextContent("1 of 2");
+    expect(within(dock).queryByText(ELSE_PROMPT)).toBeNull();
+  });
+
+  it("answers the current consult question with the typed words and sends no message", async () => {
+    runCalls = 0;
+    const respond = vi.fn();
+    renderComposer(true, { messages: [CONSULT_ASKS], respond, countingRuntime: true });
+
+    typeAndSend("Intersect, syntenic orthologs only");
+
+    const dock = screen.getByTestId("docked-card");
+    expect(await within(dock).findByTestId("consult-place")).toHaveTextContent(
+      "2 of 2",
+    );
+    expect(screen.getByTestId("message-input")).toHaveValue("");
+    expect(respond).not.toHaveBeenCalled();
+
+    typeAndSend("nothing else");
+
+    expect(respond.mock.calls).toEqual([[{ id: "approval-consult", approved: true }]]);
+    expect(useConsultAnswersStore.getState().answersFor("approval-consult")).toEqual([
+      {
+        questionId: "combine_mode",
+        prompt: COMBINE_PROMPT,
+        chosenLabels: [],
+        note: "Intersect, syntenic orthologs only",
+      },
+      {
+        questionId: "anything_else",
+        prompt: ELSE_PROMPT,
+        chosenLabels: [],
+        note: "nothing else",
+      },
+    ]);
+    expect(runCalls).toBe(0);
+  });
+
+  it("answers the consult on Enter the same way", async () => {
+    runCalls = 0;
+    renderComposer(true, { messages: [CONSULT_ASKS], countingRuntime: true });
+    const input = screen.getByTestId("message-input");
+    fireEvent.change(input, { target: { value: "Union" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(
+      await within(screen.getByTestId("docked-card")).findByTestId("consult-place"),
+    ).toHaveTextContent("2 of 2");
+    expect(runCalls).toBe(0);
+  });
+
+  it("leaves a slash command to the commands instead of answering the consult", () => {
+    const respond = vi.fn();
+    renderComposer(true, { messages: [CONSULT_ASKS], respond });
+
+    typeAndSend("/clear");
+
+    expect(
+      within(screen.getByTestId("docked-card")).getByTestId("consult-place"),
+    ).toHaveTextContent("1 of 2");
+    expect(useConsultAnswersStore.getState().byApprovalId).toEqual({});
+    expect(respond).not.toHaveBeenCalled();
+  });
+
+  it("sends typed words under any other card as the researcher's next message", async () => {
+    runCalls = 0;
+    const respond = vi.fn();
+    renderComposer(true, { messages: [DELETE_ASKS], respond, countingRuntime: true });
+
+    typeAndSend("Keep that step and add the signal peptide search.");
+
+    await waitFor(() => expect(runCalls).toBe(1));
+    expect(respond).not.toHaveBeenCalled();
   });
 });

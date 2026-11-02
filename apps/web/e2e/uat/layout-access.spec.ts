@@ -245,8 +245,10 @@ test.describe("Layout and access", () => {
       await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
 
       await chatPage.sendAndSettle(prompt("proposal", PROPOSAL_TEXT));
+      await expect(chatPage.dockedCard.getByTestId("proposal-card")).toBeVisible({
+        timeout: 60_000,
+      });
       const proposal = page.getByTestId("proposal-card");
-      await expect(proposal).toBeVisible({ timeout: 60_000 });
       await chatPage.messageInput.focus();
       await keyTo(page, proposal.getByTestId("proposal-note"), "Shift+Tab");
       await keyboard.type("Not now: too narrow for what I need.");
@@ -275,7 +277,7 @@ test.describe("Layout and access", () => {
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
       await keyboard.type("/clear");
       await keyboard.press("Enter");
-      const approval = page.getByTestId("approval-card");
+      const approval = chatPage.dockedCard.getByTestId("approval-card");
       const approve = approval.getByTestId("tool-approval-approve");
       await expect(approve).toBeVisible({ timeout: 240_000 });
       await chatPage.messageInput.focus();

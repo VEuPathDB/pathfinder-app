@@ -293,12 +293,10 @@ describe("TraceAnchor", () => {
     expect(view.queryAllByTestId("trace-group-usage")).toHaveLength(0);
   });
 
-  it("carries the approval the run is waiting on", () => {
+  it("leaves the approval the run is waiting on to the composer dock", () => {
     const view = anchorFor("call_1", "search_eda_studies");
-    expect(view.getAllByTestId("approval-card")).toHaveLength(1);
-    expect(view.getByTestId("approval-card-title")).toHaveTextContent(
-      "Optimize parameters needs your approval before it runs.",
-    );
+    expect(view.getByTestId("turn-trace-summary")).toBeInTheDocument();
+    expect(view.queryByTestId("approval-card")).toBeNull();
   });
 
   it("prints the turn's model with the whole turn's tokens and cost", () => {

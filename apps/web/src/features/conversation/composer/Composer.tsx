@@ -21,7 +21,9 @@ import {
   ComposerAttachmentList,
   useAttachmentRefusal,
 } from "./ComposerAttachments";
+import { DockedCardView } from "./DockedCardView";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
+import { useDockedCard } from "./useDockedCard";
 import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
 import {
   formatTokens,
@@ -43,6 +45,9 @@ const SEND_TO_STOP_GUARD_MS = 500;
 export function stopClickBlocked(lastSendAt: number, now: number): boolean {
   return lastSendAt > 0 && now - lastSendAt < SEND_TO_STOP_GUARD_MS;
 }
+
+const DEFAULT_PLACEHOLDER = "Ask about strategies, genes, or data... (try /help)";
+const ANSWER_PLACEHOLDER = "Or type your own answer";
 
 const AI_NOTICE =
   "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
@@ -122,6 +127,7 @@ export function Composer({
   const blocked = payment.blocked || !signedIn;
   const attachmentRefusal = useAttachmentRefusal();
   const isRunning = useAuiState((s) => s.thread.isRunning);
+  const docked = useDockedCard();
   const lastSendAt = useRef(0);
   const requestServerCancel = (): void => {
     stopTurn(conversationId);
@@ -145,6 +151,9 @@ export function Composer({
   return (
     <ComposerPrimitive.Root
       data-testid="message-composer"
+      onSubmit={(event) => {
+        if (docked.answerTyped()) event.preventDefault();
+      }}
       className="relative mx-auto flex w-full max-w-3xl flex-col gap-1 border-t bg-card px-4 pb-2 pt-3"
     >
       <SlashPopover
@@ -167,6 +176,7 @@ export function Composer({
         onCancel={slash.cancel}
       />
       <PaymentBanners conversationId={conversationId} />
+      <DockedCardView docked={docked} />
       <div
         className="focus-within:shadow-[var(--shadow-composer-focus)] flex flex-col gap-2 rounded-lg border bg-background shadow-[var(--shadow-composer)] transition-shadow aria-disabled:opacity-60"
         aria-disabled={blocked}
@@ -177,7 +187,7 @@ export function Composer({
             !signedIn
               ? SIGN_IN_TO_BUILD
               : (payment.placeholder ??
-                "Ask about strategies, genes, or data... (try /help)")
+                (docked.card === null ? DEFAULT_PLACEHOLDER : ANSWER_PLACEHOLDER))
           }
           className="max-h-36 w-full resize-none overflow-y-auto bg-transparent p-3 text-sm outline-none disabled:cursor-not-allowed"
           autoFocus
@@ -217,7 +227,7 @@ export function Composer({
               aria-label="Send"
               disabled={blocked || attachmentRefusal !== null}
               onClick={(event) => {
-                if (slash.refuseUnknown()) {
+                if (slash.refuseUnknown() || docked.answerTyped()) {
                   event.preventDefault();
                   return;
                 }

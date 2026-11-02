@@ -33,7 +33,7 @@ test.describe("Requirement withdrawal", { tag: "@turn" }, () => {
       ),
     );
 
-    const carousel = page.getByTestId("consult-carousel");
+    const carousel = chatPage.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     const slide = carousel.getByTestId("consult-slide");
     await expect(slide).toContainText(DROP_QUESTION);
