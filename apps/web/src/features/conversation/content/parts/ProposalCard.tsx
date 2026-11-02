@@ -9,14 +9,27 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { handleProposalAnswer } from "../../rail/consultActions";
 import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
+import { isOpenCard } from "./cardAnswers";
 import { findProposal, type ProposalCardData } from "./consultData";
 
 export function ProposalCard({ toolCallId }: { toolCallId: string }) {
   const currentId = useAuiState((s) => s.message.id);
   const chat = useChatHelpers();
-  const card = findProposal(chat.messages, currentId, toolCallId);
+  if (isOpenCard(chat.messages, toolCallId)) return null;
+  return <ProposalCardView messageId={currentId} toolCallId={toolCallId} />;
+}
+
+export function ProposalCardView({
+  messageId,
+  toolCallId,
+}: {
+  messageId: string;
+  toolCallId: string;
+}) {
+  const chat = useChatHelpers();
+  const card = findProposal(chat.messages, messageId, toolCallId);
   if (card === null) return null;
-  return <ProposalCardView card={card} chat={chat} />;
+  return <ProposalCardBody card={card} chat={chat} />;
 }
 
 const DECISION_TEXT = {
@@ -25,7 +38,7 @@ const DECISION_TEXT = {
   answered: "You answered in your next message.",
 } as const;
 
-function ProposalCardView({
+function ProposalCardBody({
   card,
   chat,
 }: {

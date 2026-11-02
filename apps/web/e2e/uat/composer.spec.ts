@@ -483,7 +483,9 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
       timeout: 30_000,
     });
     await expect(
-      page.getByTestId("approval-card").getByTestId("approval-card-title"),
+      chatPage.dockedCard
+        .getByTestId("approval-card")
+        .getByTestId("approval-card-title"),
     ).toHaveText(CLEAR_CARD, { timeout: 120_000 });
     expect(layoutOf(await readNodes(apiClient, id))).toEqual(LAYOUTS.intersect);
   });

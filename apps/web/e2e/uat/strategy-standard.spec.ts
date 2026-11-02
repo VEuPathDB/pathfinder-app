@@ -442,7 +442,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     await chatPage.send(
       prompt("delete-step-card", "Remove the transmembrane-domain step."),
     );
-    const approval = page.getByTestId("approval-card");
+    const approval = chatPage.dockedCard.getByTestId("approval-card");
     await expect(approval.getByTestId("approval-card-title")).toHaveText(
       new RegExp(`^Delete step '.+' \\(${TRANSMEMBRANE}, .+\\)\\?$`),
       { timeout: 240_000 },
@@ -524,7 +524,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     await expect(chatPage.userMessage(clearMessage)).toHaveCount(1, {
       timeout: 30_000,
     });
-    const approval = page.getByTestId("approval-card");
+    const approval = chatPage.dockedCard.getByTestId("approval-card");
     await expect(approval.getByTestId("approval-card-title")).toHaveText(
       "Clear the strategy? This removes every step from this conversation and from VEuPathDB.",
       { timeout: 120_000 },

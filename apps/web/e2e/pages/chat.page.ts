@@ -15,6 +15,7 @@ const TURN_BUDGET_MS = 240_000;
 
 export class ChatPage {
   readonly composer: Locator;
+  readonly dockedCard: Locator;
   readonly messageInput: Locator;
   readonly sendButton: Locator;
   readonly stopButton: Locator;
@@ -24,6 +25,7 @@ export class ChatPage {
 
   constructor(private page: Page) {
     this.composer = page.getByTestId("message-composer");
+    this.dockedCard = this.composer.getByTestId("docked-card");
     this.messageInput = page.getByTestId("message-input");
     this.sendButton = page.getByTestId("send-button");
     this.stopButton = page.getByTestId("stop-button");
@@ -128,7 +130,7 @@ export class ChatPage {
 
   /** Approve the card that is waiting, and wait out the turn it resumes. */
   async approveCard() {
-    const waiting = this.page
+    const waiting = this.dockedCard
       .getByTestId("approval-card")
       .filter({ has: this.page.getByRole("button", { name: "Approve", exact: true }) });
     const answered = this.page.waitForResponse(
@@ -380,7 +382,7 @@ export class ChatPage {
   /** Answer every consult-carousel slide by picking its opening option,
    *  advancing with Next, and submitting on the last slide. */
   async answerConsultCarousel() {
-    const carousel = this.page.getByTestId("consult-carousel");
+    const carousel = this.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 60_000 });
     const slide = carousel.getByTestId("consult-slide");
     const submit = carousel.getByTestId("consult-submit");

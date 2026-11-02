@@ -26,7 +26,7 @@ vi.mock("@assistant-ui/react", () => ({
     select({ message: { id: "m1" } }),
 }));
 
-import { ProposalCard } from "./ProposalCard";
+import { ProposalCard, ProposalCardView } from "./ProposalCard";
 
 const CALL_ID = "call_propose_changes";
 const QUESTION =
@@ -91,7 +91,7 @@ function chatStub(part: Part, responses: Response[]): ChatHelpers {
 function renderCard(part: Part, responses: Response[] = []): void {
   render(
     <ChatHelpersProvider value={chatStub(part, responses)}>
-      <ProposalCard toolCallId={CALL_ID} />
+      <ProposalCardView messageId="m1" toolCallId={CALL_ID} />
     </ChatHelpersProvider>,
   );
 }
@@ -113,7 +113,7 @@ function LiveThread({
   });
   return (
     <ChatHelpersProvider value={chat}>
-      <ProposalCard toolCallId={CALL_ID} />
+      <ProposalCardView messageId="m1" toolCallId={CALL_ID} />
     </ChatHelpersProvider>
   );
 }
@@ -196,6 +196,24 @@ describe("the proposal card shows the offer", () => {
       "You answered in your next message.",
     );
     expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
+  });
+
+  it("leaves an open card to the composer dock and draws nothing in the thread", () => {
+    const { container } = render(
+      <ChatHelpersProvider value={chatStub(PENDING, [])}>
+        <ProposalCard toolCallId={CALL_ID} />
+      </ChatHelpersProvider>,
+    );
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("keeps the answered card in the thread", () => {
+    render(
+      <ChatHelpersProvider value={chatStub(responded(false), [])}>
+        <ProposalCard toolCallId={CALL_ID} />
+      </ChatHelpersProvider>,
+    );
+    expect(screen.getByTestId("proposal-decision")).toHaveTextContent("You said no.");
   });
 
   it("reads no card off a call of another tool", () => {

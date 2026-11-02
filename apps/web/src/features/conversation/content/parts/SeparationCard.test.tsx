@@ -19,7 +19,7 @@ vi.mock("@assistant-ui/react", () => ({
     select({ message: { id: "m1" } }),
 }));
 
-import { SeparationCard } from "./SeparationCard";
+import { SeparationCard, SeparationCardView } from "./SeparationCard";
 
 const recorded = qaRecording(
   import.meta.url,
@@ -62,7 +62,7 @@ function renderCard(card: ThreadPart, responses: Response[] = []): void {
         },
       }}
     >
-      <SeparationCard toolCallId={CALL_ID} />
+      <SeparationCardView messageId="m1" toolCallId={CALL_ID} />
     </ChatHelpersProvider>,
   );
 }
@@ -130,6 +130,16 @@ describe.skipIf(recorded === null)("the separation card", () => {
       "You answered in your next message.",
     );
     expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
+  });
+
+  it("leaves an open card to the composer dock and draws nothing in the thread", () => {
+    const { container } = render(
+      <ChatHelpersProvider value={chatHelpersFor(messages(PENDING))}>
+        <SeparationCard toolCallId={CALL_ID} />
+      </ChatHelpersProvider>,
+    );
+
+    expect(container.innerHTML).toBe("");
   });
 
   it("reads no card when no result carries the task", () => {

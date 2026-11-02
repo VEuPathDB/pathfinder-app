@@ -30,7 +30,7 @@ import {
 } from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
-import { answeredInALaterMessage } from "./cardAnswers";
+import { answeredInALaterMessage, isOpenCard } from "./cardAnswers";
 
 /** The tools whose approval their own card answers. */
 const CARD_TOOLS: ReadonlySet<string> = new Set([
@@ -144,6 +144,16 @@ export function findToolApproval(
 }
 
 export function ToolApprovalControls({
+  toolCallId,
+}: {
+  toolCallId: string;
+}): ReactElement | null {
+  const chat = useChatHelpers();
+  if (isOpenCard(chat.messages, toolCallId)) return null;
+  return <ToolApprovalCard toolCallId={toolCallId} />;
+}
+
+export function ToolApprovalCard({
   toolCallId,
 }: {
   toolCallId: string;

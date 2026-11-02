@@ -12,7 +12,11 @@ import {
   ChatHelpersProvider,
   type ChatHelpers,
 } from "../../runtime/chatHelpersContext";
-import { ToolApprovalControls, findToolApproval } from "./ToolApprovalControls";
+import {
+  ToolApprovalCard,
+  ToolApprovalControls,
+  findToolApproval,
+} from "./ToolApprovalControls";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
@@ -67,9 +71,28 @@ function renderControls(
   const chat = makeChat([assistantMessage(parts)], respond);
   return render(
     <ChatHelpersProvider value={chat}>
+      <ToolApprovalCard toolCallId="call-1" />
+    </ChatHelpersProvider>,
+  );
+}
+
+function renderInThread(parts: UIMessage["parts"]) {
+  const chat = makeChat([assistantMessage(parts)], () => {});
+  return render(
+    <ChatHelpersProvider value={chat}>
       <ToolApprovalControls toolCallId="call-1" />
     </ChatHelpersProvider>,
   );
+}
+
+function respondedPart(toolType: `tool-${string}`): UIMessage["parts"][number] {
+  return {
+    type: toolType,
+    toolCallId: "call-1",
+    state: "approval-responded",
+    input: {},
+    approval: { id: "appr-1", approved: false },
+  };
 }
 
 describe("findToolApproval", () => {
@@ -344,41 +367,38 @@ describe("ToolApprovalControls", () => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith("Approval could not be sent");
     });
   });
+});
 
-  it("renders nothing for consult_user, which the consult carousel owns", () => {
-    renderControls([pendingPart("tool-consult_user")]);
-    expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
+describe("ToolApprovalControls in the thread", () => {
+  it("leaves an open card to the composer dock", () => {
+    renderInThread([pendingPart("tool-delete_step")]);
+    expect(screen.queryByTestId("approval-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
   });
 
-  it("renders nothing for propose_changes, which the proposal card owns", () => {
-    renderControls([pendingPart("tool-propose_changes")]);
-    expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
+  it("renders nothing for consult_user, whose record the consult card draws", () => {
+    renderInThread([respondedPart("tool-consult_user")]);
     expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
   });
 
-  it("renders nothing for adopt_separating_strategy, which the separation card owns", () => {
-    renderControls([pendingPart("tool-adopt_separating_strategy")]);
-    expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
+  it("renders nothing for propose_changes, whose record the proposal card draws", () => {
+    renderInThread([respondedPart("tool-propose_changes")]);
     expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
   });
 
-  it("replaces the buttons with the recorded decision once answered", () => {
-    renderControls([
-      {
-        type: "tool-delete_step",
-        toolCallId: "call-1",
-        state: "approval-responded",
-        input: {},
-        approval: { id: "appr-1", approved: false },
-      },
-    ]);
+  it("renders nothing for adopt_separating_strategy, whose record the separation card draws", () => {
+    renderInThread([respondedPart("tool-adopt_separating_strategy")]);
+    expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
+  });
+
+  it("keeps the recorded decision once answered", () => {
+    renderInThread([respondedPart("tool-delete_step")]);
     expect(screen.queryByTestId("tool-approval-approve")).not.toBeInTheDocument();
     expect(screen.getByTestId("tool-approval-decision")).toHaveTextContent("Denied");
   });
 
   it("renders nothing when the tool call carries no approval", () => {
-    renderControls([
+    renderInThread([
       {
         type: "tool-get_strategy",
         toolCallId: "call-1",

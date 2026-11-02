@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button";
 import { AssistantThinkingPlaceholder } from "./AssistantThinkingPlaceholder";
 import { FailureNotice } from "./FailureNotice";
 import { SupersededBadge } from "./SupersededBadge";
-import { ConsultCarousel } from "./parts/ConsultCarousel";
+import { ConsultRecord } from "./parts/ConsultRecap";
 import { ProposalCard } from "./parts/ProposalCard";
 import { SeparationCard } from "./parts/SeparationCard";
 import { UserAttachments } from "./parts/UserAttachments";
@@ -91,13 +91,13 @@ const UnknownDataPartError: DataMessagePartComponent<unknown> = ({ name }) => {
   return null;
 };
 
-// The consult card renders where its tool part sits in the flow; TraceAnchor
-// still draws the run's trace when this part is the run's first anchor.
+// An answered card renders its record where its tool part sits; an open card
+// docks on the composer. TraceAnchor draws the run's trace at its first anchor.
 function ConsultUserToolPart(props: TraceAnchorProps) {
   return (
     <>
       <TraceAnchor {...props} />
-      <ConsultCarousel toolCallId={props.toolCallId} />
+      <ConsultRecord toolCallId={props.toolCallId} />
     </>
   );
 }

@@ -283,7 +283,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
         `Optimize the SignalP version of the signal peptide search to recover as many of my positive controls as possible while returning as few of my negative controls as possible.\n${controlLines(siteId)}`,
       ),
     );
-    const approval = page.getByTestId("approval-card");
+    const approval = chatPage.dockedCard.getByTestId("approval-card");
     await expect(approval.getByTestId("approval-card-title")).toHaveText(
       "Optimize parameters needs your approval before it runs.",
       { timeout: 240_000 },
@@ -320,7 +320,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       ),
     );
 
-    const carousel = page.getByTestId("consult-carousel");
+    const carousel = chatPage.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel).toHaveCount(1);
     await openTraces(chatPage);
@@ -462,7 +462,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       ),
     );
 
-    const carousel = page.getByTestId("consult-carousel");
+    const carousel = chatPage.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel.getByTestId("consult-slide")).toContainText(OPEN_QUESTION);
     await openTraces(chatPage);

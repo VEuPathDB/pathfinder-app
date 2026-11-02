@@ -1,75 +1,43 @@
 "use client";
 
-import { useAuiState } from "@assistant-ui/react";
 import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronLeft, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
-import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
-import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
+import type { ChatHelpers } from "../../runtime/chatHelpersContext";
 import { handleConsultSkip, handleConsultSubmit } from "../../rail/consultActions";
-import { answeredInALaterMessage } from "./cardAnswers";
-import { ConsultRecapView, ConsultSetAsideView } from "./ConsultRecap";
 import {
-  type PendingConsult,
-  findConsultRecap,
-  findPendingConsult,
-  isConsultCall,
-} from "./consultData";
-
-interface AnswerState {
-  labels: string[];
-  note: string;
-}
+  type AnswerState,
+  type ConsultDraft,
+  allAnswered,
+  answersOf,
+  isAnswered,
+  movedTo,
+  toggled,
+  withNote,
+} from "./consultDraft";
+import type { PendingConsult } from "./consultData";
 
 const SLIDE_TRANSITION = { duration: 0.22, ease: [0.4, 0, 0.2, 1] } as const;
 
-export function ConsultCarousel({ toolCallId }: { toolCallId?: string }) {
-  const currentId = useAuiState((s) => s.message.id);
-  const chat = useChatHelpers();
-  const message = chat.messages.find((m) => m.id === currentId);
-  if (message?.role !== "assistant") return null;
-  if (toolCallId !== undefined) {
-    const first = message.parts.find(isConsultCall);
-    if (first?.toolCallId !== toolCallId) return null;
-  }
-  const pending = findPendingConsult(message);
-  if (pending !== null && pending.questions.length > 0) {
-    if (answeredInALaterMessage(chat.messages, message.id)) {
-      return <ConsultSetAsideView questions={pending.questions} />;
-    }
-    return <ConsultCarouselView pending={pending} chat={chat} />;
-  }
-  const recap = findConsultRecap(message);
-  if (recap !== null && recap.questions.length > 0) {
-    return <ConsultRecapView recap={recap} />;
-  }
-  return null;
-}
-
-function isAnswered(q: ConsultQuestion, a: AnswerState | undefined): boolean {
-  if (a === undefined) return false;
-  if (q.kind === "free_text") return a.note.trim() !== "";
-  return a.labels.length > 0;
-}
-
-export function ConsultCarouselView({
+export function ConsultCarousel({
   pending,
   chat,
+  draft,
+  onDraft,
 }: {
   pending: PendingConsult;
   chat: ChatHelpers;
+  draft: ConsultDraft;
+  onDraft: (draft: ConsultDraft) => void;
 }) {
   const questions = pending.questions;
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
+  const { index, direction } = draft;
   const entrance = useEntrance({
     initial: { opacity: 0, x: direction * 24 },
     exit: { opacity: 0, x: direction * -24 },
@@ -77,48 +45,11 @@ export function ConsultCarouselView({
   });
 
   const q = questions[index];
-  const current = q ? answers[q.id] : undefined;
+  const current = q ? draft.answers[q.id] : undefined;
   const currentAnswered = q ? isAnswered(q, current) : true;
-  const allAnswered = questions.every((qq) => isAnswered(qq, answers[qq.id]));
   const isLast = index >= questions.length - 1;
 
-  const go = (next: number) => {
-    setDirection(next > index ? 1 : -1);
-    setIndex(Math.max(0, Math.min(next, questions.length - 1)));
-  };
-
-  const toggle = (question: ConsultQuestion, label: string) => {
-    setAnswers((prev) => {
-      const a = prev[question.id] ?? { labels: [], note: "" };
-      if (question.kind === "multi_choice") {
-        const labels = a.labels.includes(label)
-          ? a.labels.filter((l) => l !== label)
-          : [...a.labels, label];
-        return { ...prev, [question.id]: { ...a, labels } };
-      }
-      return { ...prev, [question.id]: { ...a, labels: [label] } };
-    });
-  };
-
-  const setNote = (question: ConsultQuestion, note: string) => {
-    setAnswers((prev) => {
-      const a = prev[question.id] ?? { labels: [], note: "" };
-      return { ...prev, [question.id]: { ...a, note } };
-    });
-  };
-
-  const submit = () => {
-    const entries: UserQuestionAnswer[] = questions.map((qq) => {
-      const a = answers[qq.id] ?? { labels: [], note: "" };
-      return {
-        questionId: qq.id,
-        prompt: qq.prompt,
-        chosenLabels: a.labels,
-        note: a.note,
-      };
-    });
-    handleConsultSubmit(chat, pending, entries);
-  };
+  const go = (next: number) => onDraft(movedTo(draft, questions, next));
 
   return (
     <div
@@ -128,8 +59,11 @@ export function ConsultCarouselView({
       <div className="flex items-center gap-2 px-1 text-sm font-medium">
         <HelpCircle className="size-4 text-muted-foreground" aria-hidden />A few
         questions before I build the plan
-        <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
-          {index + 1} / {questions.length}
+        <span
+          data-testid="consult-place"
+          className="ml-auto text-[10px] text-muted-foreground tabular-nums"
+        >
+          {index + 1} of {questions.length}
         </span>
       </div>
 
@@ -158,8 +92,8 @@ export function ConsultCarouselView({
                 <ConsultSlide
                   question={q}
                   answer={current}
-                  onToggle={(label) => toggle(q, label)}
-                  onNote={(note) => setNote(q, note)}
+                  onToggle={(label) => onDraft(toggled(draft, q, label))}
+                  onNote={(note) => onDraft(withNote(draft, q, note))}
                 />
               ) : null}
             </motion.div>
@@ -191,8 +125,10 @@ export function ConsultCarouselView({
             <Button
               type="button"
               size="sm"
-              disabled={!allAnswered}
-              onClick={submit}
+              disabled={!allAnswered(questions, draft)}
+              onClick={() =>
+                handleConsultSubmit(chat, pending, answersOf(questions, draft))
+              }
               data-testid="consult-submit"
             >
               <Check className="mr-1 size-4" aria-hidden /> Submit

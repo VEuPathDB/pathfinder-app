@@ -14,7 +14,7 @@ import {
 import { z } from "zod";
 
 import { CONSULT_TOOL_NAME, PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
-import { answeredInALaterMessage } from "./cardAnswers";
+import { answeredInALaterMessage, type OpenCard } from "./cardAnswers";
 
 export interface PendingConsult {
   approvalId: string;
@@ -64,6 +64,10 @@ export function findPendingConsult(message: UIMessage): PendingConsult | null {
     }
   }
   return null;
+}
+
+export function pendingConsultOf(card: OpenCard): PendingConsult {
+  return { approvalId: card.approvalId, questions: questionsOf(card.input) };
 }
 
 export type ProposalCardData = { proposal: Proposal } & (
