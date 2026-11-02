@@ -1,0 +1,28 @@
+{
+  "provenance": {
+    "site": "toxodb",
+    "method": "POST",
+    "url": "https://qa.toxodb.org/toxo.qa/service/users/current/steps/227320420/columns/organism_full/reports/byValue",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-11-02",
+    "reads": "organism check"
+  },
+  "body": {
+    "statistics": {
+      "subsetSize": 8778,
+      "numVarValues": 8778,
+      "numDistinctValues": 1,
+      "numDistinctEntityRecords": 8778,
+      "numMissingCases": 0
+    },
+    "histogram": [
+      {
+        "value": 8778,
+        "binStart": "Toxoplasma gondii ME49",
+        "binEnd": "Toxoplasma gondii ME49",
+        "binLabel": "Toxoplasma gondii ME49"
+      }
+    ]
+  }
+}

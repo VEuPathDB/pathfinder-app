@@ -31,7 +31,7 @@ located by its index. An include-verb OR arm is checked the same way.
 
 The code keeps the word test (`message_reading.message_states_constraint`,
 `stated_requirements.attributed`) until step 6 of
-[backlog item 77](../backlog/requirements-are-typed-data.md) lands.
+[the typed-requirements backlog item](../backlog/requirements-are-typed-data.md) lands.
 
 # The measurement
 

@@ -52,7 +52,7 @@ question and the caveat below.
    remaining gap (average versus every genome) as a caveat, not a failure.
 4. Approximation recipes for questions over higher taxonomic groups (a species
    with many strains, a genus, a phylum) are collected with the suggested-prompt
-   candidates (card 43) and become guidance once a measured run passes.
+   candidates ([a suggested prompt is measured before it ships](a-suggested-prompt-is-measured-before-it-ships.md)) and become guidance once a measured run passes.
 
 ## Measured on QA OrthoMCL (build 8.2)
 
@@ -62,6 +62,20 @@ limit: a four-band expression over the 61 Plasmodium and 15 Toxoplasma gondii co
 (2,842 characters) returns 51 groups, and a 4,264-character expression also runs. No
 clade code names Plasmodium or Toxoplasma alone (`HAEM` holds 63 genomes, two of them
 outside Plasmodium), so each clade is written as its list of genome codes.
+
+## Where it stands
+
+The builder is shipped and the corpus case
+`orthomcl-expanded-in-toxoplasma-over-plasmodium-in-bands` holds the two-turn exchange
+(root 51); no passing run of it is recorded. Change 3 no longer applies: the verdict is
+computed from the site, not written by VERIFY. No code states the clade-average caveat
+(change 1), and change 4 waits on the requirement redesign.
+
+## Live 2026-11-02
+
+Replayed on QA OrthoMCL with Luna, the bands case built no strategy. Turn 1 asked a card
+about keeping the computed comparison as a step; turn 2 replied that "the Toxoplasma
+expansion criterion was not bound into the plan".
 
 ## Done when
 

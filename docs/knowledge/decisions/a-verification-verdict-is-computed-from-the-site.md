@@ -49,17 +49,17 @@ did not answer, no memory is written, and the card and every summary say the
 site did not answer instead of a pass or an objection.
 
 `site_refused` is a site that answered the turn's other reads and refused one
-reporter it advertises with an HTTP status. On QA PlasmoDB the step column
-reporter `byValue` answers 500 on `organism` and on `primary_key` although the
-record type lists it for both, so the organism count is refused while the
-strategy read answers. A refused check never blocks the verdict, and its card
+reporter it advertises with an HTTP status. The organism count reads
+`organism_full`, the column the site's own organism filter counts; the step
+column reporter `byValue` answers 500 on `organism` and on `primary_key`
+although the record type lists it for both. A refused check never blocks the verdict, and its card
 row says the site refused the count. Only a transport failure, a timeout or a
 lost strategy read is `site_unanswered`. A root of at most `PAGED_RECORDS`
 (2,000) records is counted from one page of its standard report by
 `organism_full`, the genome name in full, under the view filters the step's
 own count uses (`representativeTranscriptOnly` on a transcript step), so the
 total is the root's count (`services/experiment/paged_tally.py`); the column
-reporter is not sent. A larger root is counted by the column reporter. A
+reporter is not sent. A larger root is counted by the column reporter on `organism_full`. A
 server error from a reporter is held per site and reporter for
 `REFUSAL_LIFETIME_SECONDS` (one hour) in the process
 (`services/experiment/reporter_refusals.py`), and while it is held no turn

@@ -16,7 +16,8 @@ abstract ("What fixed copy-number thresholds should define an expanded orthogrou
 example at least how many Toxoplasma genes per orthogroup and fewer than how many
 Plasmodium genes?"). An answer in biology terms is followed by the same refusal ("the exact
 comparison remains unavailable"), and the exchange ends without a strategy, although the
-site can approximate the request (card 50).
+site can approximate the request
+([a copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md)).
 
 ## Change
 
@@ -24,8 +25,8 @@ site can approximate the request (card 50).
    each one line: what it means biologically, what the strategy does, roughly what it
    returns or what it misses; the user picks one or answers freely.
 2. The readings come from what the catalog can express (the phyletic grammar, transforms,
-   counts, the per-step count of card 47), so a reading offered is a reading the turn
-   can build.
+   counts, the per-step count `count_step_by_column`), so a reading offered is a reading
+   the turn can build.
 3. An answer in the user's terms (for example "2-5 copies, at least 2x more") is mapped to
    the closest buildable reading, stated back in one sentence, and built; the turn does
    not ask again for the same thing in parameter terms.
@@ -35,8 +36,31 @@ site can approximate the request (card 50).
 
 ## Related
 
-Card 45 (an "all" over many genomes is asked about) and card 50 (a copy-number
-comparison between clades is built in bands) are two cases of this rule.
+An "all" over many genomes that is asked about, and
+[a copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md),
+are two cases of this rule.
+
+## Where it stands
+
+Changes 1 to 3 are in: an open slot is asked with readings
+(`domain/strategy/question_options.py`, `ai/lead/recorded_cards.py`), pinned by
+`test_a_question_about_a_value_offers_readings.py`, and the corpus case
+`orthomcl-expanded-families-question-offers-readings` ends on a consult with two or more
+options. Change 4 has no code. Change 5 is open: `recorded_cards.the_card_asked` drops a
+Lead question only when its prompt or requirement id matches, and a test pins the
+duplicate. None of the replays below is recorded.
+
+## Live 2026-11-02
+
+Replayed on QA OrthoMCL with Luna, one case at a time:
+- `orthomcl-expanded-families-question-offers-readings` built `GroupsByNameList`
+  (7,364 groups) with no card.
+- `orthomcl-all-plasmodium-asks-which-all` built `GroupsByPhyleticPattern` (797 groups)
+  with no card.
+- `orthomcl-all-plasmodium-every-species-reading` built one sum over every Plasmodium
+  genome (`padl+pber+...>=1T`, 395 groups) where the reading is one term per species.
+- `orthomcl-more-proteins-in-one-genome-than-another` built 3,896 groups and was not
+  verified.
 
 ## Done when
 
