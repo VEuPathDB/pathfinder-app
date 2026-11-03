@@ -125,18 +125,50 @@ def with_open_ends_bound(
     return bound, corrections
 
 
+def _scalar_number(bound: BoundValue) -> float | None:
+    if not bound.number or bound.value.type not in ("number", "string"):
+        return None
+    try:
+        return float(bound.value.to_wire())
+    except ValueError:
+        return None
+
+
 def _a_number_at_the_site_default(bound: BoundValue) -> bool:
     if not bound.visible or bound.source != "default" or bound.placeholder:
         return False
-    if bound.value.type == _RANGE:
-        return True
-    if not bound.number or bound.value.type not in ("number", "string"):
-        return False
-    try:
-        float(bound.value.to_wire())
-    except ValueError:
-        return False
-    return True
+    return bound.value.type == _RANGE or _scalar_number(bound) is not None
+
+
+class _Held(NamedTuple):
+    named: str
+    number: float | None
+
+
+def _held(criterion: Criterion, name: str, bound: BoundValue) -> _Held:
+    shown = bound.rounded() or plain_value(bound.value)
+    return _Held(f"{criterion.display_name_of(name)} {shown}", _scalar_number(bound))
+
+
+def _crossed(low: _Held, high: _Held) -> list[str]:
+    if low.number is None or high.number is None or low.number <= high.number:
+        return []
+    return [
+        (
+            f"{low.named} is above {high.named}. If these two bound one range, it "
+            f"holds no value as bound, since the low end is above the high end"
+        )
+    ]
+
+
+def _crossings(s: _Sided, linked: _Held, defaults: Sequence[_Held]) -> list[str]:
+    return [
+        sentence
+        for held in defaults
+        for sentence in (
+            _crossed(held, linked) if s.side == "upper" else _crossed(linked, held)
+        )
+    ]
 
 
 def _range_end_clause(bound: BoundValue, end: RangeSide) -> str:
@@ -164,7 +196,7 @@ def one_sided_notes(
     linked = {link.param for link in criterion.answers}
     values = criterion.resolved_params
     defaults = [
-        f"{criterion.display_name_of(name)} {bound.rounded() or plain_value(bound.value)}"
+        _held(criterion, name, bound)
         for name, bound in values.items()
         if name not in linked and _a_number_at_the_site_default(bound)
     ]
@@ -175,8 +207,11 @@ def one_sided_notes(
             notes.setdefault(s.param, []).append(f"{_states(s)} {clause}")
     if not defaults:
         return notes
-    held = f"Site defaults this step holds: {', '.join(defaults)}"
+    listed = ", ".join(held.named for held in defaults)
+    held = f"Site defaults this step holds: {listed}"
     for s in _open_on_the_step(sided):
         if s.param in values and values[s.param].value.type != _RANGE:
-            notes.setdefault(s.param, []).append(f"{_states(s)} {held}")
+            at = _held(criterion, s.param, values[s.param])
+            told = ". ".join([held, *_crossings(s, at, defaults)])
+            notes.setdefault(s.param, []).append(f"{_states(s)} {told}")
     return notes

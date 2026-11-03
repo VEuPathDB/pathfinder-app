@@ -31,8 +31,9 @@
   `number-range` parameter binds the end left open at its published limit, else at its
   default; `GenesByIntronJunctions.percent_max` on QA publishes 1 to 100 under a default
   of 20 to 100. No typed data pairs two number parameters, so such a step keeps the site
-  defaults and states them under the linked parameter. A count on a range is compared at
-  the end of its side. See
+  defaults and states them under the linked parameter, and says when a default is past
+  the linked value. A linked number a power of ten from the stated number is not verified,
+  since `CountValue` holds no unit. See
   [a one-sided request uses a published limit or states the default](decisions/a-one-sided-request-uses-a-published-limit-or-states-the-default.md).
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`

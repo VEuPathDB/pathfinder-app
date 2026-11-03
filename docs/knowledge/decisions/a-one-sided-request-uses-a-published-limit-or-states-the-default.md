@@ -35,6 +35,27 @@ The sentence claims nothing about which default is the other end of what. A step
 where a linked requirement states the other side adds nothing, and so does a step with
 no requirement linked to a side.
 
+**Ends that cross.** The bound and the default are compared as numbers. When a listed
+default is past the linked value, the note says so, and it stays conditional because
+nothing pairs the two:
+
+```
+Minimum expression percentile 80 is above Maximum expression percentile 10. If these two bound one range, it holds no value as bound, since the low end is above the high end
+```
+
+No bound moves: the site's default stays, as this decision holds. WDK does not refuse
+this request. `StringParam.validateValue` checks that a number parses and reads no
+other parameter, so both values reach the search's query, and what the query returns
+is not measured here. A `number-range` cannot reach this state: `NumberRangeValue`
+refuses a minimum above its maximum, `NumberRangeParam.validateValue` refuses it on the
+site, and an open end that would cross the stated bound leaves the proposal as it is.
+
+**The verdict.** `CountValue` holds a number and no unit, so "under 30 kDa" holds 30
+while its parameter holds 30000. A count is not compared with the end of a range, and
+a linked parameter whose number is a power of ten from the stated number is not
+verified, with that reason. Any other difference stays a miss. A real miss by exactly
+a power of ten reads as not verified, not as a failure.
+
 # The measurement
 
 `NumberParam` and `NumberRangeParam` carry optional `min` and `max` in the WDK Java and

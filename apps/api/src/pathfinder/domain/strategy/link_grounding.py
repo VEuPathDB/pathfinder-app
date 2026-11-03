@@ -30,6 +30,9 @@ from pathfinder.domain.strategy.words import words_of
 _SYNTENIC = "isSyntenic"
 _NO_STEP = "no step of the strategy states it"
 _NO_NUMBER = "no linked parameter or step count holds a number to compare"
+_UNITS_UNSTATED = (
+    "the two numbers differ by a power of ten and nothing typed states their units"
+)
 
 
 def _bounds_alike(asked: CountValue, number: float) -> bool:
@@ -42,6 +45,13 @@ def _bounds_alike(asked: CountValue, number: float) -> bool:
             beside = asked.value
     whole = asked.value.is_integer()
     return math.isclose(number, asked.value) or (whole and math.isclose(number, beside))
+
+
+def _another_scale(asked: CountValue, number: float) -> bool:
+    if asked.value <= 0 or number <= 0:
+        return False
+    exponent = math.log10(number / asked.value)
+    return math.isclose(exponent, round(exponent))
 
 
 def _met(c: Constraint, param: str, value: str) -> GroundedConstraint:
@@ -68,6 +78,7 @@ class _CountReading(NamedTuple):
     shown: str
     met: bool
     said: str
+    number: float
 
 
 def _count_readings(
@@ -75,13 +86,13 @@ def _count_readings(
 ) -> list[_CountReading]:
     params = [
         _CountReading(
-            p.name, p.wire, _bounds_alike(asked, n), f"{p.name} holds {p.wire}"
+            p.name, p.wire, _bounds_alike(asked, n), f"{p.name} holds {p.wire}", n
         )
         for p in linked_params(c, realized.criteria)
-        if (n := p.number_at(asked.side)) is not None
+        if (n := p.number) is not None
     ]
     counts = [
-        _CountReading("", str(n), asked.holds(n), f"the step returns {n}")
+        _CountReading("", str(n), asked.holds(n), f"the step returns {n}", n)
         for k in realized.criteria
         for link in k.answers
         if link.requirement == c.id and link.result_size
@@ -100,6 +111,9 @@ def ground_count(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     if not readings:
         return not_verified(c, "no_value_to_compare", _NO_NUMBER)
     off = next((r for r in readings if not r.met), None)
+    if off is not None and off.param and _another_scale(asked, off.number):
+        note = f"asked {asked.shown}, {off.said}: {_UNITS_UNSTATED}"
+        return not_verified(c, "no_value_to_compare", note)
     if off is not None:
         return _missed(c, off.param, off.shown, f"asked {asked.shown}, {off.said}")
     return _met(c, readings[0].param, readings[0].shown)

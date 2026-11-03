@@ -8,6 +8,7 @@ from pathfinder.tests.unit.ai.lead._one_sided_rows import (
     bound_value,
     count_of,
     percentile_of,
+    range_of,
     step_lines,
     text_value,
 )
@@ -101,7 +102,10 @@ def test_a_bottom_percentile_reads_the_default_of_eighty_as_the_site_s() -> None
 
     assert lines[-1] == (
         "The request states 'below the 10th percentile' and no lower bound. "
-        "Site defaults this step holds: Minimum expression percentile 80"
+        "Site defaults this step holds: Minimum expression percentile 80. "
+        "Minimum expression percentile 80 is above Maximum expression percentile 10. "
+        "If these two bound one range, it holds no value as bound, since the low end "
+        "is above the high end"
     )
 
 
@@ -252,4 +256,89 @@ def test_a_linked_value_at_the_default_is_not_listed_among_the_defaults() -> Non
     assert lines[-1] == (
         "The request states 'x at most 5' and no lower bound. "
         "Site defaults this step holds: Min X 1"
+    )
+
+
+_CROSSED = (
+    "If these two bound one range, it holds no value as bound, since the low end "
+    "is above the high end"
+)
+
+
+def test_a_stated_low_end_above_a_default_high_end_says_so() -> None:
+    lines = step_lines(
+        {
+            "min_weight": bound_value(text_value("60000"), "stated", "Min Weight"),
+            "max_weight": bound_value(text_value("50000"), "default", "Max Weight"),
+        },
+        {"min_weight": count_of("weight", ">", 60000, "over 60000")},
+    )
+
+    assert lines[1] == (
+        "The request states 'over 60000' and no upper bound. "
+        "Site defaults this step holds: Max Weight 50000. "
+        f"Min Weight 60000 is above Max Weight 50000. {_CROSSED}"
+    )
+
+
+def test_each_default_past_the_stated_end_is_named() -> None:
+    lines = step_lines(
+        {
+            "a": bound_value(text_value("20"), "default", "A"),
+            "b": bound_value(text_value("30"), "default", "B"),
+            "c": bound_value(text_value("2"), "default", "C"),
+            "max_x": bound_value(text_value("10"), "stated", "Max X"),
+        },
+        {"max_x": count_of("x", "<=", 10, "x at most 10")},
+    )
+
+    assert lines[-1] == (
+        "The request states 'x at most 10' and no lower bound. "
+        "Site defaults this step holds: A 20, B 30, C 2. "
+        f"A 20 is above Max X 10. {_CROSSED}. B 30 is above Max X 10. {_CROSSED}"
+    )
+
+
+def test_ends_that_meet_do_not_cross() -> None:
+    lines = step_lines(
+        {
+            "min_x": bound_value(text_value("10"), "default", "Min X"),
+            "max_x": bound_value(text_value("10"), "stated", "Max X"),
+        },
+        {"max_x": count_of("x", "<=", 10, "x at most 10")},
+    )
+
+    assert lines[-1] == (
+        "The request states 'x at most 10' and no lower bound. "
+        "Site defaults this step holds: Min X 10"
+    )
+
+
+def test_a_linked_value_with_no_number_has_no_end_to_cross() -> None:
+    lines = step_lines(
+        {
+            "min_x": bound_value(text_value("10"), "default", "Min X"),
+            "max_x": bound_value(text_value("many"), "stated", "Max X"),
+        },
+        {"max_x": count_of("x", "<=", 5, "x at most 5")},
+    )
+
+    assert lines[-1] == (
+        "The request states 'x at most 5' and no lower bound. "
+        "Site defaults this step holds: Min X 10"
+    )
+
+
+def test_a_default_range_is_not_read_as_a_crossing_end() -> None:
+    lines = step_lines(
+        {
+            "percent_max": bound_value(range_of(20, 100), "default", "Percent"),
+            "max_x": bound_value(text_value("5"), "stated", "Max X"),
+        },
+        {"max_x": count_of("x", "<=", 5, "x at most 5")},
+    )
+
+    assert lines[-1] == (
+        "The request states 'x at most 5' and no lower bound. "
+        "Site defaults this step holds: Percent 20 to 100"
     )

@@ -293,6 +293,30 @@ async def test_a_range_the_kind_cannot_read_is_left_for_its_refusal(
 
 
 @pytest.mark.asyncio
+async def test_a_default_low_end_above_the_stated_high_end_is_not_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bound, result = await _bound(
+        monkeypatch, _no_limit_sheet(), '{"max": 10}', [_count("<=", 10)]
+    )
+
+    assert bound.value == param_value_from_raw({"max": 10}, "number-range")
+    assert result.corrections == []
+
+
+@pytest.mark.asyncio
+async def test_a_range_proposed_with_crossed_ends_is_refused_by_its_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ModelRetry) as retry:
+        await _bound(
+            monkeypatch, _no_limit_sheet(), '{"min": 20, "max": 10}', [_count("<=", 10)]
+        )
+
+    assert _PARAM in str(retry.value)
+
+
+@pytest.mark.asyncio
 async def test_a_scalar_parameter_is_never_rewritten(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

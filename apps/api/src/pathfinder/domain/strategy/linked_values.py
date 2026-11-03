@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import NamedTuple
 
-from pydantic import ValidationError
 from veupathdb.domain.parameters import to_wire
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
@@ -12,7 +11,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintStatus,
     GroundedConstraint,
-    RangeSide,
     Unverified,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
@@ -21,7 +19,6 @@ from pathfinder.domain.strategy.realized_spec import (
     RealizedSpec,
     awaiting_analysis,
 )
-from pathfinder.domain.strategy.value_text import NumberEnds
 
 COMPARED_THROUGH_A_LINK = frozenset(
     {
@@ -46,15 +43,6 @@ class LinkedParam(NamedTuple):
             return float(self.wire)
         except ValueError:
             return None
-
-    def number_at(self, side: RangeSide | None) -> float | None:
-        if self.number is not None or side is None:
-            return self.number
-        try:
-            ends = NumberEnds.model_validate_json(self.wire)
-        except ValidationError:
-            return None
-        return ends.min if side == "lower" else ends.max
 
 
 def linking(c: Constraint, criteria: Sequence[Criterion]) -> list[Criterion]:
