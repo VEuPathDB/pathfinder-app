@@ -50,11 +50,20 @@ def structure_signature(ast: StrategyAst) -> str:
 _ORDER_FREE = frozenset({"INTERSECT", "UNION"})
 
 
+def _operands(node: ComparisonNode, operator: str) -> list[str]:
+    if node.is_combine and node.operator == operator:
+        return [part for child in node.children for part in _operands(child, operator)]
+    return [_canonical(node)]
+
+
 def _canonical(node: ComparisonNode) -> str:
+    if node.is_combine and node.operator in _ORDER_FREE:
+        first, *rest = sorted(_operands(node, node.operator))
+        for operand in rest:
+            first = f"({first} {node.operator} {operand})"
+        return first
     inputs = [_canonical(child) for child in node.children]
     if node.is_combine:
-        if node.operator in _ORDER_FREE:
-            inputs.sort()
         return f"({inputs[0]} {node.operator} {inputs[1]})"
     if inputs:
         return f"{node.search_name}({inputs[0]})"
@@ -62,8 +71,9 @@ def _canonical(node: ComparisonNode) -> str:
 
 
 def canonical_structure(signature: str) -> str:
-    """The signature with the two inputs of each INTERSECT and UNION in a fixed
-    order, so two builds that differ only in that order compare equal."""
+    """The signature with each chain of one INTERSECT or UNION operator read as
+    a set of operands, so two builds that differ only in their order or nesting
+    compare equal."""
     if signature == NO_STRATEGY:
         return signature
     return _canonical(tree_from_signature(signature))
