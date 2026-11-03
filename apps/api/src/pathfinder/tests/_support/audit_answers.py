@@ -183,7 +183,7 @@ CONSTRUCTED_REFERENCE = "constructed_reference_gene"
 
 
 def strain_frameshift(
-    shift: FrameChange, verdict: str = "FRAMESHIFT"
+    shift: FrameChange, verdict: str = "FRAMESHIFT", side: str = "STRAIN_SHORT"
 ) -> StrainModelAudit:
     return StrainModelAudit.model_validate(
         {
@@ -205,7 +205,7 @@ def strain_frameshift(
             },
             "not_read": None,
             "nearby_paralogs": [],
-            "side": "NOT_JUDGED",
+            "side": side,
             "relatives": {
                 "tier": "SAME_GENUS",
                 "members": [

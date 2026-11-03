@@ -161,23 +161,44 @@ def test_a_strain_answer_names_its_error_by_its_side(
     assert confirmation.verdict == side
 
 
-def test_a_strain_frameshift_names_the_sequence_of_the_strain() -> None:
-    confirmation = StrainConfirmation(result=strain_frameshift(FRAMESHIFT))
+_FRAME_ANSWERS = [
+    (
+        "FRAMESHIFT",
+        "STRAIN_SHORT",
+        Classification(
+            error_type="sequence_frameshift", certainty="medium", model_role="strain"
+        ),
+    ),
+    (
+        "FRAMESHIFT",
+        "UNCLEAR",
+        Classification(
+            error_type="sequence_frameshift", certainty="medium", model_role="strain"
+        ),
+    ),
+    (
+        "OTHER_FRAME",
+        "STRAIN_SHORT",
+        Classification(
+            error_type="part_in_other_frame", certainty="medium", model_role="strain"
+        ),
+    ),
+    ("OTHER_FRAME", "UNCLEAR", NO_ERROR),
+    ("OTHER_FRAME", "REFERENCE_LONG", _SIDES["REFERENCE_LONG"]),
+    ("FRAMESHIFT", "REFERENCE_LONG", _SIDES["REFERENCE_LONG"]),
+]
 
-    assert classify_confirmation(confirmation) == Classification(
-        error_type="sequence_frameshift", certainty="medium", model_role="strain"
-    )
-    assert confirmation.verdict == "NOT_JUDGED"
 
-
-def test_a_strain_part_in_another_frame_names_that_and_no_truncation() -> None:
+@pytest.mark.parametrize(("verdict", "side", "expected"), _FRAME_ANSWERS)
+def test_a_part_in_another_frame_keeps_the_side_the_relatives_give(
+    verdict: str, side: str, expected: Classification
+) -> None:
     confirmation = StrainConfirmation(
-        result=strain_frameshift(FRAMESHIFT, "OTHER_FRAME")
+        result=strain_frameshift(FRAMESHIFT, verdict, side)
     )
 
-    assert classify_confirmation(confirmation) == Classification(
-        error_type="part_in_other_frame", certainty="medium", model_role="strain"
-    )
+    assert classify_confirmation(confirmation) == expected
+    assert confirmation.verdict == side
 
 
 @pytest.mark.parametrize(

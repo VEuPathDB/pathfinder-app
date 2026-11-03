@@ -110,6 +110,12 @@ async def _confirm(site_id: str, target: GeneTarget) -> Confirmation:
             )
 
 
+def is_unchained(error: BaseException) -> bool:
+    return error.__cause__ is None and (
+        error.__context__ is None or error.__suppress_context__
+    )
+
+
 async def confirm_target(
     site_id: str, target: GeneTarget
 ) -> Confirmation | UnitFailure | DeclinedCheck:
@@ -117,7 +123,7 @@ async def confirm_target(
         return await _confirm(site_id, target)
     except UNIT_FAILURES as exc:
         match exc:
-            case ToolError(__cause__=None):
+            case ToolError() if is_unchained(exc):
                 return DeclinedCheck(message=str(exc))
             case _:
                 return UnitFailure(status=failure_status(exc), message=str(exc))

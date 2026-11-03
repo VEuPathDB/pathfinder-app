@@ -9,10 +9,15 @@ status: stable
 # The choice
 
 `domain/audit/findings.py` maps a `SHORT` gene with the verdict `FRAMESHIFT` to
-`sequence_frameshift`, and `OTHER_FRAME` to `part_in_other_frame`, both at medium certainty. A
-strain check whose genome answers either judges no side and names the same error, with the
-model role `strain`. Only `GENOME_ENCODES`, the missing part in the model's open frame, stays
-`truncated_model`.
+`sequence_frameshift`, and `OTHER_FRAME` to `part_in_other_frame`, both at medium certainty.
+Only `GENOME_ENCODES`, the missing part in the model's open frame, stays `truncated_model`.
+
+A strain's side is judged from its relatives whatever frame the part is in. `REFERENCE_LONG` still
+names the reference. A `FRAMESHIFT` names `sequence_frameshift`. `STRAIN_SHORT` with `OTHER_FRAME`
+names `part_in_other_frame` and not `truncated_model`, because of what a curator does next:
+`truncated_model` says extend the model through open DNA, and a part in another frame cannot be
+reached that way. It needs the exon structure or the assembly read first, and the facts name the
+splice pair for that.
 
 The certainty is medium because the DNA shows where the frame changes and not why: an assembly
 error, a real mutation and a missed exon can read alike in one genome.

@@ -7424,7 +7424,7 @@ components:
           items:
             $ref: '#/components/schemas/FrameChange'
           type: array
-          maxItems: 2
+          maxItems: 3
           title: Framechanges
         code:
           anyOf:
@@ -8447,7 +8447,7 @@ components:
           items:
             $ref: '#/components/schemas/FrameChange'
           type: array
-          maxItems: 2
+          maxItems: 3
           title: Framechanges
       type: object
       required:

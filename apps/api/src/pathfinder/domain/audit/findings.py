@@ -246,39 +246,35 @@ def _unread_strain(result: StrainModelAudit) -> str:
     return f"{why}, so the check reads no genome and judges no side"
 
 
-def _strain_not_judged(result: StrainModelAudit) -> Classification:
-    match result.dna.verdict:
-        case "FRAMESHIFT":
-            error_type: ErrorType = "sequence_frameshift"
-        case "OTHER_FRAME":
-            error_type = "part_in_other_frame"
-        case _:
-            return _unjudged("NOT_JUDGED", _unread_strain(result))
+def _strain_model(error_type: ErrorType, certainty: Certainty) -> Classification:
     return Classification(
-        error_type=error_type, certainty="medium", model_role="strain"
+        error_type=error_type, certainty=certainty, model_role="strain"
     )
 
 
 def _strain(result: StrainModelAudit) -> Classification:
-    match result.side:
-        case "STRAIN_SHORT":
-            return Classification(
-                error_type="truncated_model",
-                certainty="high",
-                model_role="strain",
-            )
-        case "REFERENCE_LONG":
+    match (result.side, result.dna.verdict):
+        case ("REFERENCE_LONG", _):
             return REFERENCE_LONG
-        case "UNCLEAR":
+        case (_, "FRAMESHIFT"):
+            return _strain_model("sequence_frameshift", "medium")
+        case ("STRAIN_SHORT", verdict):
+            other_frame = verdict == "OTHER_FRAME"
+            return (
+                _strain_model("part_in_other_frame", "medium")
+                if other_frame
+                else _strain_model("truncated_model", "high")
+            )
+        case ("UNCLEAR", _):
             return NO_ERROR
-        case "NO_RELATIVES":
+        case ("NO_RELATIVES", _):
             return _unjudged(
                 "NO_RELATIVES",
                 f"the ortholog group has no independent relatives "
                 f"({result.relatives.missing}) to judge which side is wrong",
             )
-        case "NOT_JUDGED":
-            return _strain_not_judged(result)
+        case _:
+            return _unjudged("NOT_JUDGED", _unread_strain(result))
 
 
 def remodeled_by_side(

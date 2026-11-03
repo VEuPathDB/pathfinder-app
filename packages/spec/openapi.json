@@ -11409,7 +11409,7 @@
               "$ref": "#/components/schemas/FrameChange"
             },
             "type": "array",
-            "maxItems": 2,
+            "maxItems": 3,
             "title": "Framechanges"
           },
           "code": {
@@ -12923,7 +12923,7 @@
               "$ref": "#/components/schemas/FrameChange"
             },
             "type": "array",
-            "maxItems": 2,
+            "maxItems": 3,
             "title": "Framechanges"
           }
         },
