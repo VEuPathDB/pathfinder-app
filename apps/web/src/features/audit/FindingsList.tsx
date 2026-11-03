@@ -15,7 +15,7 @@ import {
   type FindingFilterState,
   findingQuery,
   type Origin,
-} from "./findingFilters";
+} from "./findingQuery";
 import { impactText, joinWords } from "./format";
 import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";
 

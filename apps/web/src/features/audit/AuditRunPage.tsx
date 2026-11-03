@@ -10,12 +10,12 @@ import { auditRunUrl, auditsUrl } from "@/lib/routes";
 
 import { auditRunOptions } from "./api";
 import { DownloadFindings } from "./DownloadFindings";
-import { FindingFilters } from "./FindingFiltersForm";
+import { FindingFilters } from "./FindingFilters";
 import {
   type FindingFilterState,
   filtersFromSearch,
   searchFromFilters,
-} from "./findingFilters";
+} from "./findingQuery";
 import { FindingsList } from "./FindingsList";
 import { RateChart } from "./RateChart";
 import { RateHeatMap } from "./RateHeatMap";

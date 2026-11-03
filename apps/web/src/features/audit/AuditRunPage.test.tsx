@@ -32,7 +32,7 @@ import {
 } from "./__fixtures__/sampleRun";
 import { auditRunOptions } from "./api";
 import { AuditRunPage } from "./AuditRunPage";
-import { filtersFromSearch, findingQuery } from "./findingFilters";
+import { filtersFromSearch, findingQuery } from "./findingQuery";
 
 function renderPage(findings: FindingPage) {
   const { queryClient, Wrapper } = createTestWrapper();

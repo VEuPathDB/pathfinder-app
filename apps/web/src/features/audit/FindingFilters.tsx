@@ -9,7 +9,7 @@ import {
   findingViewErrorTypeEnum,
 } from "@pathfinder/shared/generated/types/FindingView";
 
-import { type FindingFilterState, ORIGINS, oneOf } from "./findingFilters";
+import { type FindingFilterState, ORIGINS, oneOf } from "./findingQuery";
 import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";
 
 interface Choice {

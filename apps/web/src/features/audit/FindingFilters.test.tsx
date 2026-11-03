@@ -6,8 +6,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { SAMPLE_RUN, SAMPLE_WORDS } from "./__fixtures__/sampleRun";
-import { filtersFromSearch } from "./findingFilters";
-import { FindingFilters } from "./FindingFiltersForm";
+import { filtersFromSearch } from "./findingQuery";
+import { FindingFilters } from "./FindingFilters";
 
 function optionsOf(label: string): (string | null)[] {
   return within(screen.getByLabelText(label))

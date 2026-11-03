@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filtersFromSearch, findingQuery, searchFromFilters } from "./findingFilters";
+import { filtersFromSearch, findingQuery, searchFromFilters } from "./findingQuery";
 
 describe("finding filters", () => {
   it("reads the filters from the address and drops what it does not know", () => {

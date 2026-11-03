@@ -23,7 +23,7 @@ import {
 } from "./__fixtures__/sampleRun";
 import { auditRunOptions } from "./api";
 import { AuditErrorTypePage } from "./AuditErrorTypePage";
-import { filtersFromSearch, findingQuery } from "./findingFilters";
+import { filtersFromSearch, findingQuery } from "./findingQuery";
 
 function renderErrorType(type: string) {
   const { queryClient, Wrapper } = createTestWrapper();

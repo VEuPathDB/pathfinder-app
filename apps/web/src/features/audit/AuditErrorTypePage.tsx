@@ -12,12 +12,12 @@ import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { auditErrorTypeUrl, auditRunUrl } from "@/lib/routes";
 
 import { auditRunOptions } from "./api";
-import { FindingFilters } from "./FindingFiltersForm";
+import { FindingFilters } from "./FindingFilters";
 import {
   type FindingFilterState,
   filtersFromSearch,
   searchFromFilters,
-} from "./findingFilters";
+} from "./findingQuery";
 import { FindingsList } from "./FindingsList";
 import { joinWords } from "./format";
 

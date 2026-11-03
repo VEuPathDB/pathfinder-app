@@ -11,7 +11,7 @@ import type { FindingView } from "@pathfinder/shared/generated/types/FindingView
 import { createTestWrapper } from "@/lib/query/testing";
 
 import { SAMPLE_FINDINGS, SAMPLE_RUN_ID, SAMPLE_WORDS } from "./__fixtures__/sampleRun";
-import { filtersFromSearch, findingQuery } from "./findingFilters";
+import { filtersFromSearch, findingQuery } from "./findingQuery";
 import { FindingsList, findingOutcome, genomeText } from "./FindingsList";
 
 const [FIRST] = SAMPLE_FINDINGS.findings;
