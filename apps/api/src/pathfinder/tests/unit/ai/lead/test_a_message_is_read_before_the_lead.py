@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from typing import get_args
 
 import pytest
+from assistant_core.errors import ModelDeclinedError
+from pydantic_ai.exceptions import ContentFilterError
 from pydantic_ai.messages import (
     BinaryContent,
     ModelMessage,
@@ -21,6 +23,7 @@ from pathfinder.domain.message_reading import Effect, StatedRequest, Want
 from pathfinder.domain.strategy.constraints import RecordTypeValue, UntypedValue
 
 MESSAGE = "Move it to chromosome 12 and tell me the new count."
+_FILTERED = "the provider filtered the request"
 READ = ReaderInput(
     conversation="Researcher: Mouse genes on chromosome 17 with MHC class I.\nYou replied: 9 genes.",
     strategy="Genomic Location INTERSECT GO Term = 9 genes",
@@ -445,3 +448,18 @@ async def test_a_record_class_the_site_does_not_list_is_untyped() -> None:
         ),
         ("untyped", "pathways", UntypedValue(text="pathways")),
     ]
+
+
+async def test_a_reading_the_provider_filters_is_declined() -> None:
+    def _filtered(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        raise ContentFilterError(_FILTERED)
+
+    with pytest.raises(ModelDeclinedError):
+        await read_message(
+            READ,
+            model=FunctionModel(_filtered),
+            model_id="openai:gpt-5.6-luna",
+            meter=SpendMeter(),
+            ask=_Decisions(None, None),
+        )

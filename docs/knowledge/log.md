@@ -2,6 +2,14 @@
 
 ## 2026-11-03
 
+* **A request the provider flags is declined, not failed.** OpenAI answers some
+  ordinary research messages with a 400 `invalid_request_error` whose message says
+  the content was flagged (seen on a Cryptosporidium ortholog request, once in two
+  runs). The keyed model now raises the decline the content filter already raises,
+  so the Lead, a sub-agent and the message reading all end the turn on the plain
+  "the model declined this request" reply; the reading runs inside the Lead's
+  stream, so its decline withdraws the turn the same way. Any other 400 stays a
+  failure.
 * **A data type and a record type carry typed values.** `DataTypeValue` (`data`:
   `rna_seq` or `microarray`) is compared with what the site marks each criterion
   that links it runs on: grounded, substituted by the other assay, ungroundable

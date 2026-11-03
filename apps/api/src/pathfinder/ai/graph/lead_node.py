@@ -269,13 +269,6 @@ async def _drive_lead_stream(
     agent_model = lead_model.model_id
     capture.lead_model = agent_model
     capture.lead_reasoning_effort = lead_model.reasoning_effort
-    await read_the_words(
-        state,
-        deps,
-        new_message=resume_prompt is not None,
-        model_id=agent_model,
-        capture=capture,
-    )
     sub_agent_tool_calls: dict[str, str] = {}
     emit_chunk(
         writer,
@@ -290,6 +283,13 @@ async def _drive_lead_stream(
         # The budget stop is absorbed here, not around the emitter: the emitter
         # answers an exception of the run with an error chunk of its own. A
         # stream that ends instead leaves the turn its own reply.
+        await read_the_words(
+            state,
+            deps,
+            new_message=resume_prompt is not None,
+            model_id=agent_model,
+            capture=capture,
+        )
         try:
             async with agent.run_stream_events(
                 resume_prompt,

@@ -9,6 +9,7 @@ from typing import get_args
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 from pydantic_ai import Agent
+from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import UserContent
 from pydantic_ai.models import Model
 from veupathdb_mcp.catalog import (
@@ -30,6 +31,7 @@ from pathfinder.domain.message_reading import (
     StatedRequest,
     Want,
 )
+from pathfinder.platform.declined import DeclinedRequests
 
 READING_CONFIDENCE = 0.6
 FLAG_PROBABILITY = 0.5
@@ -243,6 +245,10 @@ def _prompt(
     return [_context(read, latest_first=False, held=held), *files]
 
 
+def _capabilities(meter: SpendMeter, model_id: str) -> list[AbstractCapability[None]]:
+    return [meter.on(model_id), DeclinedRequests[None]()]
+
+
 async def _model_reading(
     read: ReaderInput,
     files: Sequence[UserContent],
@@ -252,9 +258,10 @@ async def _model_reading(
 ) -> MessageReading:
     agent: Agent[None, _ModelReading] = Agent(
         model,
+        deps_type=type(None),
         output_type=_ModelReading,
         instructions=load_reading_guide(),
-        capabilities=[meter.on(model_id)],
+        capabilities=_capabilities(meter, model_id),
     )
     out = (await agent.run(_prompt(read, files))).output
     return MessageReading(
@@ -278,9 +285,10 @@ async def _stated_request(
 ) -> StatedRequest:
     agent: Agent[None, StatedRequest] = Agent(
         model,
+        deps_type=type(None),
         output_type=StatedRequest,
         instructions=load_request_guide(),
-        capabilities=[meter.on(model_id)],
+        capabilities=_capabilities(meter, model_id),
     )
     prompt = _prompt(read, files, held=True)
     stated = (await agent.run(prompt)).output
