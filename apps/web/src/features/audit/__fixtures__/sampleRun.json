@@ -1539,7 +1539,6 @@
                 "organisms": 10,
                 "referenceGene": "PF3D7_1472100",
                 "verdict": "GENOME_ENCODES",
-                "partOpen": true,
                 "windows": 19,
                 "counts": {
                   "model": 12,
@@ -1548,6 +1547,11 @@
                 "track": "MMMMMMGGGGGGGMMMMMM",
                 "nsInWindow": 0,
                 "atContigEdge": false,
+                "frameChanges": [],
+                "unlistedChanges": [],
+                "partOpen": true,
+                "partStop": null,
+                "nsInPart": 0,
                 "code": "standard",
                 "codeInferred": true
               }
@@ -1715,6 +1719,11 @@
                 "track": "MMMMMMGGGGGGGMMMMMM",
                 "nsInWindow": 0,
                 "atContigEdge": false,
+                "frameChanges": [],
+                "unlistedChanges": [],
+                "partOpen": false,
+                "partStop": null,
+                "nsInPart": 0,
                 "code": "standard",
                 "codeInferred": true
               }
@@ -1749,10 +1758,6 @@
             {
               "label": "Parts of the reference protein",
               "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
-            },
-            {
-              "label": "Model's frame across the part",
-              "value": "Open across every placed window"
             },
             {
               "label": "Unknown bases in the region read",
@@ -1850,6 +1855,11 @@
                 "track": "MMMMMMGGGGGGGMMMMMM",
                 "nsInWindow": 0,
                 "atContigEdge": false,
+                "frameChanges": [],
+                "unlistedChanges": [],
+                "partOpen": false,
+                "partStop": null,
+                "nsInPart": 0,
                 "code": "standard",
                 "codeInferred": true
               }
@@ -1884,10 +1894,6 @@
             {
               "label": "Parts of the reference protein",
               "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
-            },
-            {
-              "label": "Model's frame across the part",
-              "value": "Open across every placed window"
             },
             {
               "label": "Unknown bases in the region read",
@@ -2179,7 +2185,6 @@
                 "extra": [],
                 "dna": {
                   "verdict": "GENOME_ENCODES",
-                  "partOpen": true,
                   "windows": 33,
                   "counts": {
                     "weak": 1,
@@ -2188,7 +2193,12 @@
                   },
                   "track": "MMMMGGGGGwMMMMMMMMMMMMMMMMMMMMMMM",
                   "nsInWindow": 0,
-                  "atContigEdge": false
+                  "atContigEdge": false,
+                  "frameChanges": [],
+                  "unlistedChanges": [],
+                  "partOpen": true,
+                  "partStop": null,
+                  "nsInPart": 0
                 },
                 "notRead": null,
                 "nearbyParalogs": [],
