@@ -10,6 +10,7 @@ import type { RelativesEvidence } from "@pathfinder/shared/generated/types/Relat
 import {
   RELATIVES_NO_REFERENCE_ROW,
   RELATIVES_ONE_IN_EACH_TIER,
+  RELATIVES_OWN_SPECIES_ONLY,
   RELATIVES_REFERENCE_NO_LENGTH,
 } from "./__fixtures__/derivedAudits";
 import { sampleDetail } from "./__fixtures__/sampleRun";
@@ -47,7 +48,7 @@ function lengthDetailWith(relativeLengths: Record<string, number>): FindingDetai
 }
 
 const TOO_FEW =
-  "Fewer than two related genomes of one tier (same genus, or other genera) hold the gene.";
+  "Fewer than two genomes of other species in this genus, and fewer than two in other genera, have a length for the gene.";
 
 function storedRow(payload: RelativesEvidence): EvidenceView {
   return {
@@ -114,6 +115,13 @@ describe("relativesOutcome", () => {
       kind: "looked",
       reason: TOO_FEW,
     });
+  });
+
+  it("reads a gene held only by the reference's own species as too few", () => {
+    expect(RELATIVES_OWN_SPECIES_ONLY.relativeLengths).toEqual({});
+    expect(
+      relativesOutcome(detailWithRow(storedRow(RELATIVES_OWN_SPECIES_ONLY))),
+    ).toEqual({ kind: "looked", reason: TOO_FEW });
   });
 
   it("blames the reference only when its row is absent", () => {

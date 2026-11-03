@@ -79,5 +79,16 @@
     "relativesTier": null,
     "side": null,
     "referenceOrganism": null
+  },
+  "relativesOwnSpeciesOnly": {
+    "kind": "relatives",
+    "referenceGene": "ME49",
+    "referenceLength": 319,
+    "modelLength": 110,
+    "relativesMedian": null,
+    "relativeLengths": {},
+    "relativesTier": null,
+    "side": "NO_RELATIVES",
+    "referenceOrganism": "Toxoplasma gondii ME49"
   }
 }

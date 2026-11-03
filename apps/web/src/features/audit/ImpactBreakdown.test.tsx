@@ -85,7 +85,7 @@ describe("citations the site did not serve", () => {
       />,
     );
     expect(screen.getAllByRole("listitem")[1]).toHaveTextContent(
-      "because the gene records' citations and comments were not read, so the lower value is used",
+      "because not all of the gene records' citations and comments were read, so the lower value is used",
     );
     expect(screen.queryByText(/no gene record cites/)).toBe(null);
   });

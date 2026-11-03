@@ -10,6 +10,9 @@ export const RELATIVES_ONE_IN_EACH_TIER = relativesEvidenceSchema.parse(
 export const RELATIVES_REFERENCE_NO_LENGTH = relativesEvidenceSchema.parse(
   derived.relativesReferenceNoLength,
 );
+export const RELATIVES_OWN_SPECIES_ONLY = relativesEvidenceSchema.parse(
+  derived.relativesOwnSpeciesOnly,
+);
 export const RELATIVES_NO_REFERENCE_ROW = relativesEvidenceSchema.parse(
   derived.relativesNoReferenceRow,
 );

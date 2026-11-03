@@ -47,8 +47,8 @@ _NO_RELATIVES: dict[NoRelatives, str] = {
     "RESIDUAL_GROUP": "the ortholog group is a residual group",
     "PARALOGS": "the related genomes do not hold one copy each",
     "FEWER_THAN_TWO": (
-        "fewer than two related genomes of one tier (same genus, or other genera) "
-        "hold the gene"
+        "fewer than two genomes of other species in this genus, and fewer than two "
+        "in other genera, have a length for the gene"
     ),
 }
 _NOT_READ: dict[NotRead, str] = {

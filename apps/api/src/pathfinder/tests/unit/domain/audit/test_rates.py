@@ -286,6 +286,14 @@ def test_each_certainty_has_its_fixed_weight(
             "uncited",
             0.5,
         ),
+        (
+            (
+                UNCITED_EVIDENCE.model_copy(update={"unserved": ["PubMed"]}),
+                UNCITED_EVIDENCE,
+            ),
+            "not_read",
+            0.5,
+        ),
         (None, "not_read", 0.5),
     ],
 )

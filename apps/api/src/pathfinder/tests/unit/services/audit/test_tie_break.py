@@ -52,8 +52,31 @@ def test_one_relative_in_each_tier_is_too_few() -> None:
     )
     assert found.missing == "FEWER_THAN_TWO"
     assert _NO_RELATIVES[found.missing] == (
-        "fewer than two related genomes of one tier (same genus, or other genera) "
-        "hold the gene"
+        "fewer than two genomes of other species in this genus, and fewer than two "
+        "in other genera, have a length for the gene"
+    )
+
+
+def test_a_gene_held_only_by_the_reference_species_is_too_few() -> None:
+    rows = [
+        gene_row("ME49", "Toxoplasma gondii ME49", 319),
+        gene_row("GT1", "Toxoplasma gondii GT1", 110),
+        gene_row("VEG", "Toxoplasma gondii VEG", 300),
+        gene_row("RH", "Toxoplasma gondii RH", 302),
+        gene_row("P89", "Toxoplasma gondii P89", 298),
+    ]
+    weighed = _weighed("ME49", ["GT1"], rows)
+    assert isinstance(weighed, RelativesEvidence)
+    assert weighed.relative_lengths == {}
+    assert weighed.reference_organism == "Toxoplasma gondii ME49"
+    found = strain_relatives(
+        rows[0], rows[1], [GroupMember.of_row(row) for row in rows]
+    )
+    assert found.missing == "FEWER_THAN_TWO"
+    assert found.members == []
+    assert _NO_RELATIVES[found.missing] == (
+        "fewer than two genomes of other species in this genus, and fewer than two "
+        "in other genera, have a length for the gene"
     )
 
 

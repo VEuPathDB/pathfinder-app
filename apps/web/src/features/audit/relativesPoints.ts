@@ -19,7 +19,7 @@ export type RelativesOutcome =
   | { kind: "plotted"; points: RelativesPoints };
 
 const TOO_FEW =
-  "Fewer than two related genomes of one tier (same genus, or other genera) hold the gene.";
+  "Fewer than two genomes of other species in this genus, and fewer than two in other genera, have a length for the gene.";
 
 const NO_RELATIVES_WORDS: Record<NoRelatives, string> = {
   RESIDUAL_GROUP: "The ortholog group is a residual group.",

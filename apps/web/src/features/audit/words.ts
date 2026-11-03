@@ -49,7 +49,7 @@ export const IMPORTANCE_WORDS: Record<ImportanceSourceEnumKey, string> = {
   cited: "a gene record cites a paper or holds a comment",
   uncited: "no gene record cites a paper or holds a comment",
   not_read:
-    "the gene records' citations and comments were not read, so the lower value is used",
+    "not all of the gene records' citations and comments were read, so the lower value is used",
 };
 
 export const USE_WORDS: Record<GenomeUseSourceEnumKey, string> = {
