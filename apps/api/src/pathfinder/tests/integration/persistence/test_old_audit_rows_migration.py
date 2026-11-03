@@ -35,6 +35,9 @@ _WIRE = "WDKError: POST /record-types/gene/records -> HTTP 404: <html>body</html
 _REFUSED_WORDS = "VEuPathDB service error: the organism is unknown"
 _VERDICT = "GAP: the absent genome holds an assembly gap there"
 _DECLINED = "PF3D7_X names no gene of plasmodb"
+_WRITTEN_GONE = "BUSCO scores failed: gone; genome provenance failed: gone"
+_UNREAD_TEXT = f"the junction reads failed: HTTPStatusError Client error for url {_RAW}"
+_KEPT_UNREAD = "the junction reads failed: the site answered 503"
 
 
 def _stages(**fields: str | None) -> str:
@@ -89,6 +92,13 @@ class _Seed:
         assert isinstance(finding_id, int)
         return finding_id
 
+    def payload(self, finding_id: int, payload: dict[str, object]) -> None:
+        self.connection.execute(
+            "INSERT INTO audit_evidence (finding_id, kind, status, payload) "
+            "VALUES (%s, 'confirmation', 'stored', %s)",
+            (finding_id, json.dumps(payload)),
+        )
+
     def evidence(self, finding_id: int, kind: str, status: str, message: str) -> None:
         self.connection.execute(
             "INSERT INTO audit_evidence (finding_id, kind, status, message) "
@@ -128,6 +138,30 @@ def _seeded(url: str) -> dict[str, str]:
         unread_raw = seed.finding(raw, "unread", _RAW)
         wire = seed.finding(raw, "failed", _WIRE)
         said = seed.finding(raw, "failed", _REFUSED_WORDS)
+        parsing = seed.finding(raw, "failed", "Data parsing failed: Unexpected row")
+        written_gone = seed.finding(raw, "failed", _WRITTEN_GONE)
+        busco = seed.finding(
+            raw,
+            "failed",
+            f"BUSCO scores failed: {_RAW}; genome provenance failed: gone",
+        )
+        stopped_raw = seed.finding(raw, "failed", f"{STOPPED_MESSAGE}; {_RAW}")
+        trailing = seed.finding(raw, "failed", f"{_RAW}; body continues")
+        seed.payload(
+            failed,
+            {
+                "kind": "confirmation",
+                "confirmation": {
+                    "check": "intron_support",
+                    "result": {
+                        "evidenceUnread": [_UNREAD_TEXT, _KEPT_UNREAD],
+                        "correctionReason": _WIRE,
+                        "orthologs": {"reason": _REFUSED_WORDS},
+                        "gene": "KEPT_GENE",
+                    },
+                },
+            },
+        )
         confirmed_raw = seed.finding(raw, "confirmed", _RAW)
         declined_raw = seed.finding(raw, "declined", _WIRE)
         screened_raw = seed.finding(raw, "screened", _RAW)
@@ -153,6 +187,12 @@ def _seeded(url: str) -> dict[str, str]:
             "unread_raw": str(unread_raw),
             "wire": str(wire),
             "said": str(said),
+            "parsing": str(parsing),
+            "written_gone": str(written_gone),
+            "busco": str(busco),
+            "stopped_raw": str(stopped_raw),
+            "trailing": str(trailing),
+            "payload_finding": str(failed),
             "confirmed_raw": str(confirmed_raw),
             "declined_raw": str(declined_raw),
             "screened_raw": str(screened_raw),
@@ -248,7 +288,7 @@ def test_a_stage_note_holding_an_address_is_cleaned_and_a_written_one_is_kept(
         "WHERE id = %s",
         (ids["raw"],),
     )
-    assert notes == [_GENERIC, _WRITTEN_NOTE]
+    assert notes == [f"NF54: failed ({_GENERIC})", _WRITTEN_NOTE]
     ((names,),) = rows(
         database,
         "SELECT jsonb_agg(stage->>'name') "
@@ -270,10 +310,43 @@ def test_a_row_of_any_status_holding_an_address_or_a_wire_line_is_cleaned(
         database,
         "SELECT message FROM audit_genomes WHERE status IN ('collected', 'unread') "
         "ORDER BY status",
-    ) == [(_GENERIC,), (_GENERIC,)]
+    ) == [(f"BUSCO scores failed: {_GENERIC}",), (_GENERIC,)]
     assert rows(
         database, "SELECT message FROM audit_evidence WHERE status = 'unread'"
     ) == [(_GENERIC,)]
+
+
+def test_text_the_code_treats_as_raw_is_cleaned_and_written_parts_kept(
+    database: str,
+) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    assert _finding_message(database, ids["said"]) == _GENERIC
+    assert _finding_message(database, ids["parsing"]) == _GENERIC
+    assert _finding_message(database, ids["busco"]) == (
+        f"BUSCO scores failed: {_GENERIC}; genome provenance failed: gone"
+    )
+    assert _finding_message(database, ids["stopped_raw"]) == (
+        f"{STOPPED_MESSAGE}; {_GENERIC}"
+    )
+    assert _finding_message(database, ids["trailing"]) == _GENERIC
+
+
+def test_the_text_a_stored_payload_carries_is_cleaned(database: str) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    ((result,),) = rows(
+        database,
+        "SELECT payload->'confirmation'->'result' FROM audit_evidence "
+        "WHERE finding_id = %s AND kind = 'confirmation'",
+        (ids["payload_finding"],),
+    )
+    assert result == {
+        "evidenceUnread": [_GENERIC, _KEPT_UNREAD],
+        "correctionReason": _GENERIC,
+        "orthologs": {"reason": _GENERIC},
+        "gene": "KEPT_GENE",
+    }
 
 
 def test_a_sentence_we_wrote_is_left_alone_in_any_status(
@@ -283,7 +356,7 @@ def test_a_sentence_we_wrote_is_left_alone_in_any_status(
     command.upgrade(alembic_config(database), REVISION)
     assert _finding_message(database, ids["written"]) == _WRITTEN
     assert _finding_message(database, ids["unread"]) == NOT_READ
-    assert _finding_message(database, ids["said"]) == _REFUSED_WORDS
+    assert _finding_message(database, ids["written_gone"]) == _WRITTEN_GONE
     assert _finding_message(database, ids["confirmed_said"]) == _VERDICT
     assert _finding_message(database, ids["declined_said"]) == _DECLINED
 

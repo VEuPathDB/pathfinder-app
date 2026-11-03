@@ -31,6 +31,7 @@ from pathfinder.domain.audit.verdicts import FindingReview
 from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_TITLES,
+    rejected_sentence,
     verdict_sentence,
 )
 from pathfinder.domain.statistic_facts import Identifier, Sentence
@@ -116,10 +117,38 @@ class FindingView(CamelModel):
     def error_title(self) -> str | None:
         return None if self.error_type is None else ERROR_TYPE_TITLES[self.error_type]
 
+    @property
+    def _rejected(self) -> bool:
+        return (
+            self.review_line is not None
+            and self.review_line.verdict == "no_error"
+            and self.error_type is not None
+        )
+
+    @computed
+    def effective_error_type(self) -> ErrorType | None:
+        if self._rejected:
+            return None
+        reviewed = None if self.review_line is None else self.review_line.error_type
+        return reviewed or self.error_type
+
     @computed
     def effective_error_title(self) -> str | None:
-        reviewed = None if self.review_line is None else self.review_line.error_title
-        return reviewed or self.error_title
+        kind = self.effective_error_type
+        return None if kind is None else ERROR_TYPE_TITLES[kind]
+
+    @computed
+    def effective_certainty(self) -> Certainty | None:
+        if self._rejected:
+            return None
+        reviewed = None if self.review_line is None else self.review_line.certainty
+        return reviewed or self.certainty
+
+    @computed
+    def rejected_text(self) -> Sentence | None:
+        if not self._rejected or self.error_title is None:
+            return None
+        return rejected_sentence(self.error_title)
 
 
 class FindingPage(CamelModel):
@@ -268,9 +297,7 @@ async def stored_findings(
 ) -> list[StoredFinding]:
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
-        found = await repo.findings(
-            run.id, FindingFilter(), offset=offset, limit=limit, by_impact=True
-        )
+        found = await repo.findings(run.id, FindingFilter(), offset=offset, limit=limit)
         evidence = await repo.evidence(run.id, [record.id for record in found])
     held: defaultdict[int, list[AuditEvidenceRecord]] = defaultdict(list)
     for record in evidence:

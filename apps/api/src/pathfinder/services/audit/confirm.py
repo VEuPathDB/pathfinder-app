@@ -19,22 +19,20 @@ from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     SettledFinding,
 )
-from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.platform.metrics import RequestTally
 from pathfinder.services.audit.checks import (
     DeclinedCheck,
-    UnitFailure,
     confirm_target,
 )
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
 from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
+    UnitFailure,
     Waits,
-    failure_message,
-    failure_status,
     in_passes,
     tallied,
+    unit_failure,
 )
 
 type _Checked = Confirmation | UnitFailure | DeclinedCheck
@@ -56,9 +54,7 @@ async def _organisms(
     try:
         rows = await record_rows(site_id, list(genes))
     except UNIT_FAILURES as exc:
-        return UnitFailure(
-            status=failure_status(exc), message=failure_message(exc, site_id)
-        )
+        return unit_failure(exc, site_id)
     organisms = {row.gene: row.organism for row in rows}
     missing = [name for name in genes if name not in organisms]
     if missing:
@@ -121,8 +117,9 @@ def _settled(
         placed.paired,
     )
     match reached:
-        case UnitFailure(status=status, message=message):
+        case UnitFailure(status=status, message=message, refused=refused):
             failed = SettledFinding(
+                refused=refused,
                 status=status,
                 genome=genome,
                 screened_genome=screened,
@@ -223,11 +220,4 @@ async def run_confirm_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) 
             done=done, total=total, message=not_read(len(left), "finding")
         )
 
-    await in_passes(
-        pending,
-        attempt,
-        waits,
-        unread=unread,
-        on_pause=pausing,
-        refused_as=lambda finding: RefusedUnits(findings=(finding.id,)),
-    )
+    await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)

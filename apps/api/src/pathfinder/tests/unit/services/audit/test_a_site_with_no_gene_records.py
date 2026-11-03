@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.services.audit import confirm
-from pathfinder.services.audit.checks import UnitFailure
+from pathfinder.services.audit.units import UnitFailure
 from pathfinder.tests._support.orthomcl_gene_class import (
     NO_GENE_RECORDS,
     ORTHOMCL,

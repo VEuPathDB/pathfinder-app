@@ -56,6 +56,7 @@ class ReviewLine(CamelModel):
     literature: LiteratureStatus
     literature_text: Sentence
     error_type: ErrorType | None = None
+    certainty: Certainty | None = None
 
     @computed
     def error_title(self) -> str | None:
@@ -126,6 +127,7 @@ def review_line(review: FindingReview) -> ReviewLine:
         verdict=verdict,
         verdict_text=VERDICT_KIND_SENTENCES[verdict],
         error_type=review.verdict.error_type,
+        certainty=review.verdict.certainty,
         second_verdict=review.second_verdict,
         impact=review.impact,
         impact_reason=review.impact_reason,

@@ -29,7 +29,6 @@ from pathfinder.persistence.repositories.audit_findings import (
     NewFinding,
     SettledFinding,
 )
-from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.services.audit import confirm, tie_break
 from pathfinder.services.audit.runs import create_run, owned_run
 from pathfinder.services.audit.views import run_view
@@ -315,10 +314,7 @@ async def test_a_halt_reopened_tie_break_that_moves_the_error_reads_the_moved_ge
         assert (refused.status, tools.evidence_reads) == ("failed", ["NF54_SHORT"])
         assert refused.message is not None
         async with async_session_factory() as session:
-            reopened = await AuditRepository(session).reopen_refused(
-                run.id,
-                RefusedUnits(evidence=((refused.finding_id, refused.kind),)),
-            )
+            reopened = await AuditRepository(session).reopen_refused(run.id)
             await session.commit()
         assert reopened == "tie_break"
         tools.ortholog_rows = REFERENCE_LONG_ROWS

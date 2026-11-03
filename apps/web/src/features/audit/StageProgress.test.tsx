@@ -150,4 +150,14 @@ describe("StageProgress", () => {
     const bar = screen.getByRole("progressbar", { name: "Find candidates" });
     expect([bar.getAttribute("value"), bar.getAttribute("max")]).toEqual(["1", "1"]);
   });
+
+  it("states the units the site refused for the sign-in", () => {
+    show({
+      ...SAMPLE_RUN,
+      left: { ...SAMPLE_RUN.left, refused: 2 },
+    });
+    expect(
+      screen.getByText("Refused for your sign-in, and read again on a retry: 2 units"),
+    ).toBeInTheDocument();
+  });
 });

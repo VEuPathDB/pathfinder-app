@@ -5,8 +5,8 @@ from __future__ import annotations
 from veupathdb_mcp.audit import GeneRow, GroupMember, tie_break
 
 from pathfinder.domain.audit.findings import RelativesEvidence
-from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.tie_break import relatives_evidence
+from pathfinder.services.audit.units import UnitFailure
 from pathfinder.tests._support.audit import gene_row
 
 

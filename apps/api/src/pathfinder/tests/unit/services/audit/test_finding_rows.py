@@ -203,6 +203,12 @@ def test_a_cell_a_spreadsheet_would_read_as_a_formula_is_quoted(text: str) -> No
         ("x\r@A1", "x\r'@A1"),
         ("x\x0b=A1", "x\x0b'=A1"),
         ("x\x0c-A1", "x\x0c'-A1"),
+        ("x\x1c=A1", "x\x1c'=A1"),
+        ("x\x1d=A1", "x\x1d'=A1"),
+        ("x\x1e=A1", "x\x1e'=A1"),
+        ("x\x85=A1", "x\x85'=A1"),
+        ("x\u2028=A1", "x\u2028'=A1"),
+        ("x\u2029=A1", "x\u2029'=A1"),
         ("x; -A1", "x; '-A1"),
         ("x;\u00a0\uff1dA1", "x;\u00a0'\uff1dA1"),
         ("x;\u200b=A1", "x;\u200b'=A1"),
@@ -324,4 +330,19 @@ def test_a_retyped_finding_exports_the_error_the_review_named() -> None:
     row = finding_row(_view(review), [], review)
     assert dict(zip(HEADER, row, strict=True))["Error"] == (
         "One gene split into two models"
+    )
+
+
+def test_a_rejected_finding_says_so_and_names_what_the_check_said() -> None:
+    review = _review()
+    review = review.model_copy(
+        update={
+            "verdict": review.verdict.model_copy(
+                update={"verdict": "no_error", "error_type": None, "certainty": None}
+            )
+        }
+    )
+    row = finding_row(_view(review), [], review)
+    assert dict(zip(HEADER, row, strict=True))["Error"] == (
+        "The review rejected this; the check said: Intact gene called a pseudogene"
     )

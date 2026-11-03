@@ -11,12 +11,17 @@
   on `;` finds no field that starts one; every field is quoted. A halted run and a
   failed unit store a fixed sentence from the error's type and status
   (`units.stored_failure`); a tool refusal keeps its words only with nothing chained
-  under it, and the log holds the full error. A halt reopens the units it refused by
-  id. The error-type sections and the error filter read one effective type: the
-  review's when it named one, and a rejected finding is in neither. Migration
-  `2026_11_03_0002` cleans what old rows let it identify: the fixed prefix of a
-  halted run or a unit, `targetFailure` with the findings that repeat it, and
-  units of any status and stage notes that hold an address or a wire line.
+  under it, and the log holds the full error. A unit the site refused for the sign-in
+  carries `refused_by_sign_in`, which a halt and a retry reopen, and the count of
+  refusals in a row is `RunStages.refusal_streak`, so it survives a job slice. The
+  error-type sections, the filters and each row read one effective type and
+  certainty: the review's when it named one, and a rejected finding has neither and
+  says what the check said. Migration `2026_11_03_0002` cleans what old rows let it
+  identify and keeps the written parts of a composite message: a halted run or unit
+  by its fixed prefix, `targetFailure` with the findings that repeat it, units of any
+  status, stage notes and three payload fields that hold an address, a wire line or a
+  raw parsing or service message. The CSV reads in id order, so a live run repeats no
+  row.
   The words of an evidence kind and status are served by `/api/v1/audits/words`.
 
 * **The last live check of the refused call and the singleton count is closed.** The

@@ -15,6 +15,7 @@ from veupathdb.errors import (
     WDKError,
 )
 from veupathdb.jbrowse import JBrowseError
+from veupathdb.jbrowse.region import genome_region
 from veupathdb.wdk import wdk_failure
 from veupathdb_mcp.audit import GeneRow
 
@@ -22,8 +23,7 @@ from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.domain.audit.stages import RunStages
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.services.audit import confirm, screen
-from pathfinder.services.audit.checks import UnitFailure
-from pathfinder.services.audit.units import failure_message
+from pathfinder.services.audit.units import UnitFailure, failure_message
 
 _SITE = "plasmodb"
 _SECRET = "api_key=held-in-the-query"
@@ -254,4 +254,22 @@ async def test_a_gene_list_read_that_fails_holds_only_its_type(
     )
     assert await screen._target_rows(run, ["PF3D7_X"]) == UnitFailure(
         status="failed", message=f"HTTPStatusError: {_GENERIC}"
+    )
+
+
+def test_our_validation_error_over_a_pydantic_error_quotes_no_input() -> None:
+    with pytest.raises(ValidationError) as raised:
+        genome_region("chr1", 5, 3)
+    assert "input_value" in str(raised.value)
+    assert failure_message(raised.value, _SITE) == (
+        "ValidationError: the site's values could not be read"
+    )
+
+
+def test_a_pydantic_error_is_not_read_as_our_validation_error() -> None:
+    error = _validation_error()
+    assert failure_message(error, _SITE) == f"ValidationError: {_GENERIC}"
+    ours = ValidationError(title="Search refused", detail="the organism is unknown")
+    assert failure_message(ours, _SITE) == (
+        "ValidationError: Search refused: the organism is unknown"
     )

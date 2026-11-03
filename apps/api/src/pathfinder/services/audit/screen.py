@@ -24,16 +24,15 @@ from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     NewFinding,
 )
-from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.progress import StageLane, not_read, plural
 from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
+    UnitFailure,
     Waits,
-    failure_message,
-    failure_status,
     in_passes,
     tallied,
+    unit_failure,
 )
 
 _ORTHOLOG_CHECKS = frozenset({"gene_length", "gene_split"})
@@ -111,9 +110,7 @@ async def _target_rows(
     try:
         return await read_gene_list(run.site_id, genes)
     except UNIT_FAILURES as exc:
-        return UnitFailure(
-            status=failure_status(exc), message=failure_message(exc, run.site_id)
-        )
+        return unit_failure(exc, run.site_id)
 
 
 async def _counted(run_id: UUID, requests: int) -> None:

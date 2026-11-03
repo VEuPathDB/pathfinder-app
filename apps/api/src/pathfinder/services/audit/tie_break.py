@@ -36,19 +36,17 @@ from pathfinder.persistence.repositories.audit_finding_filter import FindingFilt
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
 )
-from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.persistence.repositories.audit_weighings import AuditWeighingRepository
-from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
 from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
     ContinueLaterError,
+    UnitFailure,
     Waits,
-    failure_message,
-    failure_status,
     in_passes,
     tallied,
+    unit_failure,
 )
 from pathfinder.services.audit.weighing import References, Subject, read_genes
 
@@ -222,9 +220,7 @@ async def _read_relatives(
                 group = await orthologs_of(site_id, genes[0])
                 rows = await record_rows(site_id, named)
             except UNIT_FAILURES as exc:
-                return UnitFailure(
-                    status=failure_status(exc), message=failure_message(exc, site_id)
-                )
+                return unit_failure(exc, site_id)
             return relatives_evidence(reference_gene, genes, rows, group.members)
 
 
@@ -267,13 +263,14 @@ async def _store(run: AuditRunRecord, unit: _Unit, read: _Read, requests: int) -
     async with async_session_factory() as session:
         repo = AuditFindingRepository(session)
         match read:
-            case UnitFailure(status=status, message=message):
+            case UnitFailure(status=status, message=message, refused=refused):
                 await repo.fail_evidence(
                     finding_id,
                     _kind(unit),
                     status=status,
                     message=message,
                     requests=requests,
+                    refused=refused,
                 )
             case _:
                 await repo.save_evidence(finding_id, read, requests=requests)
@@ -347,16 +344,7 @@ async def run_tie_break_stage(
             done=done, total=total, message=not_read(len(left), "finding")
         )
 
-    left = await in_passes(
-        pending,
-        attempt,
-        waits,
-        unread=unread,
-        on_pause=pausing,
-        refused_as=lambda unit: RefusedUnits(
-            evidence=((unit.finding.id, _kind(unit)),)
-        ),
-    )
+    left = await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)
     held = [unit.finding.id for unit in left if _kind(unit) == "gene_evidence"]
     async with async_session_factory() as session:
         reset = await AuditWeighingRepository(session).reset_readings(run.id)

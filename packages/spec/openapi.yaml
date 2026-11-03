@@ -7090,11 +7090,47 @@ components:
           - type: 'null'
           title: Errortitle
           readOnly: true
+        effectiveErrorType:
+          anyOf:
+          - type: string
+            enum:
+            - intact_gene_called_pseudogene
+            - sec_read_as_stop
+            - truncated_model
+            - split_model
+            - over_extended_model
+            - fused_model
+            - missing_gene
+            - organelle_split_at_join
+            - missing_exon
+            - shifted_splice_site
+            - spurious_intron
+            - unsupported_intron
+          - type: 'null'
+          title: Effectiveerrortype
+          readOnly: true
         effectiveErrorTitle:
           anyOf:
           - type: string
           - type: 'null'
           title: Effectiveerrortitle
+          readOnly: true
+        effectiveCertainty:
+          anyOf:
+          - type: string
+            enum:
+            - high
+            - medium
+            - low
+          - type: 'null'
+          title: Effectivecertainty
+          readOnly: true
+        rejectedText:
+          anyOf:
+          - type: string
+            format: sentence
+          - type: 'null'
+          title: Rejectedtext
           readOnly: true
       type: object
       required:
@@ -7123,7 +7159,10 @@ components:
       - verdictText
       - checkTitle
       - errorTitle
+      - effectiveErrorType
       - effectiveErrorTitle
+      - effectiveCertainty
+      - rejectedText
       title: FindingView
     ForkConversationRequest:
       properties:
@@ -8574,6 +8613,11 @@ components:
           type: integer
           minimum: 0.0
           title: Evidence
+        refused:
+          type: integer
+          minimum: 0.0
+          title: Refused
+          default: 0
         total:
           type: integer
           title: Total
@@ -10794,6 +10838,15 @@ components:
             - unsupported_intron
           - type: 'null'
           title: Errortype
+        certainty:
+          anyOf:
+          - type: string
+            enum:
+            - high
+            - medium
+            - low
+          - type: 'null'
+          title: Certainty
         errorTitle:
           anyOf:
           - type: string
@@ -10964,6 +11017,11 @@ components:
             format: sentence
           - type: 'null'
           title: Targetfailure
+        refusalStreak:
+          type: integer
+          minimum: 0.0
+          title: Refusalstreak
+          default: 0
       type: object
       title: RunStages
     SaveSubstrategyRequest:

@@ -20,6 +20,7 @@ import { impactText, joinWords } from "./format";
 import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";
 
 export function findingOutcome(finding: FindingView, words: AuditWords): string {
+  if (finding.rejectedText !== null) return finding.rejectedText;
   if (finding.effectiveErrorTitle !== null) return finding.effectiveErrorTitle;
   if (finding.status !== "confirmed") return words.findingStatuses[finding.status];
   return finding.judged ? "No error found" : "Not judged";
@@ -66,7 +67,9 @@ function FindingRow({
       <td className="py-1 pr-4">{genes.join(", ")}</td>
       <td className="py-1 pr-4">{genomeText(finding)}</td>
       <td className="py-1 pr-4">
-        {finding.certainty === null ? "" : CERTAINTY_WORDS[finding.certainty]}
+        {finding.effectiveCertainty === null
+          ? ""
+          : CERTAINTY_WORDS[finding.effectiveCertainty]}
       </td>
       <td className="py-1 pr-4">{ORIGIN_WORDS[findingOrigin(finding)]}</td>
       <td className="py-1 pr-4">{finding.reviewLine?.verdictText ?? "Not reviewed"}</td>

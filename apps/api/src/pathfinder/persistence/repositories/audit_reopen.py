@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy import ColumnElement, false, select, tuple_, update
+from sqlalchemy import ColumnElement, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.audit.findings import EvidenceKind
 from pathfinder.domain.audit.stages import RunStages, StageName
 from pathfinder.persistence.models import (
     AuditEvidence,
@@ -19,19 +17,10 @@ from pathfinder.persistence.rows import rows_changed
 _RETRIED = ("unreached", "unread")
 
 
-class RefusedUnits(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    genomes: tuple[str, ...] = ()
-    findings: tuple[int, ...] = ()
-    evidence: tuple[tuple[int, EvidenceKind], ...] = ()
-
-    def and_(self, other: RefusedUnits) -> RefusedUnits:
-        return RefusedUnits(
-            genomes=(*self.genomes, *other.genomes),
-            findings=(*self.findings, *other.findings),
-            evidence=(*self.evidence, *other.evidence),
-        )
+def _flagged(
+    unit: type[AuditGenome | AuditFinding | AuditEvidence],
+) -> ColumnElement[bool]:
+    return (unit.status == "failed") & unit.refused_by_sign_in.is_(True)
 
 
 class AuditReopening:
@@ -65,7 +54,9 @@ class AuditReopening:
                     await self.session.execute(
                         update(AuditGenome)
                         .where(AuditGenome.run_id == run_id, genomes)
-                        .values(status="pending", message=None)
+                        .values(
+                            status="pending", message=None, refused_by_sign_in=False
+                        )
                     )
                 ),
             ),
@@ -75,7 +66,9 @@ class AuditReopening:
                     await self.session.execute(
                         update(AuditFinding)
                         .where(AuditFinding.run_id == run_id, findings)
-                        .values(status="screened", message=None)
+                        .values(
+                            status="screened", message=None, refused_by_sign_in=False
+                        )
                     )
                 ),
             ),
@@ -85,7 +78,9 @@ class AuditReopening:
                     await self.session.execute(
                         update(AuditEvidence)
                         .where(AuditEvidence.finding_id.in_(in_run), evidence)
-                        .values(status="pending", message=None)
+                        .values(
+                            status="pending", message=None, refused_by_sign_in=False
+                        )
                     )
                 ),
             ),
@@ -105,26 +100,39 @@ class AuditReopening:
             await self.session.flush()
         return first
 
-    async def reopen_refused(
-        self, run_id: UUID, refused: RefusedUnits
-    ) -> StageName | None:
-        evidence = (
-            tuple_(AuditEvidence.finding_id, AuditEvidence.kind).in_(refused.evidence)
-            if refused.evidence
-            else false()
-        )
+    async def reopen_refused(self, run_id: UUID) -> StageName | None:
         return await self._reopen(
             run_id,
-            (AuditGenome.status == "failed")
-            & AuditGenome.organism.in_(refused.genomes),
-            (AuditFinding.status == "failed") & AuditFinding.id.in_(refused.findings),
-            (AuditEvidence.status == "failed") & evidence,
+            _flagged(AuditGenome),
+            _flagged(AuditFinding),
+            _flagged(AuditEvidence),
         )
 
     async def reopen_unreached(self, run_id: UUID) -> StageName | None:
         return await self._reopen(
             run_id,
-            AuditGenome.status.in_(_RETRIED),
-            AuditFinding.status.in_(_RETRIED),
-            AuditEvidence.status.in_(_RETRIED),
+            AuditGenome.status.in_(_RETRIED) | _flagged(AuditGenome),
+            AuditFinding.status.in_(_RETRIED) | _flagged(AuditFinding),
+            AuditEvidence.status.in_(_RETRIED) | _flagged(AuditEvidence),
         )
+
+    async def refused_count(self, run_id: UUID) -> int:
+        in_run = select(AuditFinding.id).where(AuditFinding.run_id == run_id)
+        counted = (
+            await self.session.scalar(
+                select(func.count())
+                .select_from(AuditGenome)
+                .where(AuditGenome.run_id == run_id, _flagged(AuditGenome))
+            ),
+            await self.session.scalar(
+                select(func.count())
+                .select_from(AuditFinding)
+                .where(AuditFinding.run_id == run_id, _flagged(AuditFinding))
+            ),
+            await self.session.scalar(
+                select(func.count())
+                .select_from(AuditEvidence)
+                .where(AuditEvidence.finding_id.in_(in_run), _flagged(AuditEvidence))
+            ),
+        )
+        return sum(count or 0 for count in counted)

@@ -169,7 +169,34 @@ async def test_a_retyped_finding_reads_as_the_review_named_it(app: FastAPI) -> N
         ).json()
     assert detail["finding"]["errorType"] == "sec_read_as_stop"
     assert detail["finding"]["effectiveErrorTitle"] == "One gene split into two models"
-    assert rejected["finding"]["effectiveErrorTitle"] == "Model too short"
+    assert detail["finding"]["effectiveCertainty"] == "medium"
+    assert detail["finding"]["rejectedText"] is None
+    assert rejected["finding"]["effectiveErrorTitle"] is None
+    assert rejected["finding"]["effectiveCertainty"] is None
+    assert rejected["finding"]["rejectedText"] == (
+        "The review rejected this; the check said: Model too short"
+    )
+
+
+async def test_the_certainty_filter_reads_the_effective_certainty(app: FastAPI) -> None:
+    owner, run_id, ids = await _reviewed_run()
+    async with client_for(app, owner.user_id) as client:
+        reviewed = await client.get(
+            f"/api/v1/audits/{run_id}/findings",
+            params={"errorType": "split_model", "certainty": "medium"},
+        )
+        stored = await client.get(
+            f"/api/v1/audits/{run_id}/findings",
+            params={"errorType": "split_model", "certainty": "high"},
+        )
+        high = await client.get(
+            f"/api/v1/audits/{run_id}/findings", params={"certainty": "high"}
+        )
+    assert [f["id"] for f in reviewed.json()["findings"]] == [ids["kinase"]]
+    assert stored.json()["total"] == 0
+    assert sorted(f["id"] for f in high.json()["findings"]) == sorted(
+        [ids["kept"], ids["moved"]]
+    )
 
 
 async def test_the_sample_counts_read_by_the_screened_genome_without_targets(

@@ -23,7 +23,7 @@ const HINTS: Record<Action, string> = {
   resume:
     "The audit goes on from the last unit it finished, with your VEuPathDB sign-in.",
   retry:
-    "The audit reads again only the genomes, findings and evidence the site did not answer or the deadline left unread.",
+    "The audit reads again only the genomes, findings and evidence the site did not answer, refused for your sign-in, or the deadline left unread.",
 };
 
 export function RunAction({ view }: { view: AuditRunView }) {

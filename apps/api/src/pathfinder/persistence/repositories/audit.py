@@ -88,6 +88,7 @@ class CollectedGenome(BaseModel):
     message: str | None = None
     priority: GenomePriority | None = None
     reference_strain: bool | None = None
+    refused: bool = False
 
 
 class AuditRepository(AuditReopening):
@@ -325,6 +326,7 @@ class AuditRepository(AuditReopening):
                 genes=_GENES.dump_python(genome.genes, mode="json"),
                 requests=AuditGenome.requests + genome.requests,
                 message=genome.message,
+                refused_by_sign_in=genome.refused,
                 **_read_once(genome),
             )
             .returning(AuditGenome.id)

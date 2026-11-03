@@ -45,6 +45,7 @@ class RunStages(CamelModel):
     stages: tuple[StageRecord, ...] = Field(default_factory=_fresh)
     halted: Sentence | None = None
     target_failure: Sentence | None = None
+    refusal_streak: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
@@ -113,14 +114,18 @@ class RunStages(CamelModel):
     def reopen(self, name: StageName) -> RunStages:
         first = STAGES.index(name)
         return self._with(
+            refusal_streak=0,
             stages=tuple(
                 s.model_copy(update={"finished": s.finished and k < first})
                 for k, s in enumerate(self.stages)
-            )
+            ),
         )
 
     def halt(self, reason: str | None) -> RunStages:
-        return self._with(halted=reason)
+        return self._with(halted=reason, refusal_streak=0)
+
+    def note_refusal_streak(self, count: int) -> RunStages:
+        return self._with(refusal_streak=count)
 
     def note_target_failure(self, message: str) -> RunStages:
         return self._with(target_failure=message)

@@ -341,6 +341,7 @@ async def test_the_headline_and_sections_carry_whole_finding_lines(
         "literature": "not_searched",
         "literatureText": "The literature was not searched",
         "errorType": "intact_gene_called_pseudogene",
+        "certainty": "high",
         "errorTitle": "Intact gene called a pseudogene",
     }
 

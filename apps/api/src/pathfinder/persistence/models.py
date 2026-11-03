@@ -750,6 +750,9 @@ class AuditGenome(Base):
     requests: Mapped[int] = _counter()
     attempts: Mapped[int] = _counter()
     stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = _touched()
 
@@ -830,6 +833,9 @@ class AuditFinding(Base):
     requests: Mapped[int] = _counter()
     attempts: Mapped[int] = _counter()
     stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = _stamp()
     updated_at: Mapped[datetime] = _touched()
@@ -862,6 +868,9 @@ class AuditEvidence(Base):
     requests: Mapped[int] = _counter()
     attempts: Mapped[int] = _counter()
     stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = _stamp()
     updated_at: Mapped[datetime] = _touched()

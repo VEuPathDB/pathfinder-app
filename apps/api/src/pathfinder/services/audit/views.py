@@ -192,10 +192,13 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
             run_id, FindingFilter(keys=keys)
         )
         evidence = await tallies.evidence_tally(run_id)
+        refused = await AuditRepository(session).refused_count(run_id)
         reviewed = await AuditReviewRepository(session).reviewed_count(run_id)
         report = await review_report(session, run_id, run.synthesis)
     summary = _summary(run)
-    left = left_units((genome.status for genome in genomes), tally, evidence)
+    left = left_units(
+        (genome.status for genome in genomes), tally, evidence, refused=refused
+    )
     running = reviews_running(summary.phase, run.review)
     return AuditRunView(
         run=summary,

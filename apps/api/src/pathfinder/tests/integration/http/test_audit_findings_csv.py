@@ -4,11 +4,15 @@ import csv
 import io
 
 import pytest
+from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
+from sqlalchemy import func, update
 
 from pathfinder.domain.audit.words import UNCHECKED_SENTENCES
+from pathfinder.persistence.models import AuditFinding
 from pathfinder.services.audit import export
 from pathfinder.services.audit.export import HEADER
+from pathfinder.services.audit.runs import readable_run
 from pathfinder.services.audit.sample_run import store_sample_run
 from pathfinder.tests._support.audit import seed_thread
 from pathfinder.tests.integration.http.conftest import client_for
@@ -35,18 +39,19 @@ async def test_the_sample_run_downloads_as_one_row_per_finding(app: FastAPI) -> 
     )
     assert rows[0] == HEADER
     assert len(rows) == 1 + len(page["findings"]) == 11
+    by_id = sorted(page["findings"], key=lambda f: f["id"])
     assert [row[4] for row in rows[1:]] == [
-        f["verdictText"] or UNCHECKED_SENTENCES[f["status"]] for f in page["findings"]
+        f["verdictText"] or UNCHECKED_SENTENCES[f["status"]] for f in by_id
     ]
     assert [row[6] for row in rows[1:]] == [
         "Not reviewed" if f["reviewLine"] is None else f["reviewLine"]["verdictText"]
-        for f in page["findings"]
+        for f in by_id
     ]
     assert [row[10] for row in rows[1:]] == [
         ""
         if f["reviewLine"] is None or f["reviewLine"]["impact"] is None
         else str(f["reviewLine"]["impact"])
-        for f in page["findings"]
+        for f in by_id
     ]
     assert rows[1][5] == "0.5"
     assert rows[1][11].startswith("Sample fix: annotate PfNF54_100037200")
@@ -76,3 +81,28 @@ async def test_another_persons_run_does_not_download(app: FastAPI) -> None:
     async with client_for(app, stranger) as client:
         response = await client.get(f"/api/v1/audits/{stored.run_id}/findings.csv")
     assert response.status_code == 404
+
+
+async def test_a_live_change_of_impact_repeats_no_row(
+    app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del app
+    monkeypatch.setattr(export, "EXPORT_PAGE", 3)
+    user = (await seed_thread()).user_id
+    stored = await store_sample_run(user)
+    run = await readable_run(stored.run_id, user)
+    lines = export.finding_lines(run)
+    held = [await anext(lines) for _ in range(4)]
+    async with async_session_factory() as session:
+        await session.execute(
+            update(AuditFinding)
+            .where(
+                AuditFinding.run_id == stored.run_id, AuditFinding.impact.is_not(None)
+            )
+            .values(impact=func.random())
+        )
+        await session.commit()
+    held.extend([line async for line in lines])
+    rows = list(csv.reader(io.StringIO("".join(held))))
+    assert len(rows) == 11
+    assert len({row[1] for row in rows[1:]}) == 10

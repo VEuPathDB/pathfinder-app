@@ -28,8 +28,8 @@ from pathfinder.domain.audit.scope import (
     SingleGeneTarget,
 )
 from pathfinder.services.audit import checks
-from pathfinder.services.audit.checks import DeclinedCheck, UnitFailure, confirm_target
-from pathfinder.services.audit.units import SignInNeededError
+from pathfinder.services.audit.checks import DeclinedCheck, confirm_target
+from pathfinder.services.audit.units import SignInNeededError, UnitFailure
 from pathfinder.tests._support.audit import (
     GT1_SELK,
     ME49_SELK,

@@ -365,6 +365,10 @@ def agreement_sentence(agreement: ReviewAgreement) -> str:
     )
 
 
+def rejected_sentence(title: str) -> str:
+    return f"The review rejected this; the check said: {title}"
+
+
 def paper_sentence(*, depends: bool | None) -> str:
     match depends:
         case True:

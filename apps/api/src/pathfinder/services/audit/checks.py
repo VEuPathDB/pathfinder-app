@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from assistant_core.platform.pydantic_base import CamelModel
 from fastmcp.exceptions import ToolError
 from pydantic import ConfigDict
@@ -39,16 +37,9 @@ from pathfinder.domain.audit.scope import (
 )
 from pathfinder.services.audit.units import (
     UNIT_FAILURES,
-    failure_message,
-    failure_status,
+    UnitFailure,
+    unit_failure,
 )
-
-
-class UnitFailure(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    status: Literal["failed", "unreached"]
-    message: str
 
 
 class DeclinedCheck(CamelModel):
@@ -130,6 +121,4 @@ async def confirm_target(
             case ToolError() if is_unchained(exc):
                 return DeclinedCheck(message=str(exc))
             case _:
-                return UnitFailure(
-                    status=failure_status(exc), message=failure_message(exc, site_id)
-                )
+                return unit_failure(exc, site_id)

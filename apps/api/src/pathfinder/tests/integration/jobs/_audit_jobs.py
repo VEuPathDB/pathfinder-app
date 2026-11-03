@@ -94,6 +94,7 @@ class Checks:
         self.asked: list[str] = []
         self.pseudogene_crashes = 0
         self.split_failures: list[BaseException] = []
+        self.pseudogene_failures: list[BaseException] = []
         self.forbidden = 0
         self.answered_first = 0
         self.evidence_reads: list[str] = []
@@ -128,6 +129,8 @@ class Checks:
         del site_id, reference_gene
         self.asked.append(strain_gene)
         self._refused()
+        if self.pseudogene_failures:
+            raise self.pseudogene_failures.pop(0)
         if self.pseudogene_crashes:
             self.pseudogene_crashes -= 1
             msg = "a library bug"

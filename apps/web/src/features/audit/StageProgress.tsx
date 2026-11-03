@@ -86,6 +86,11 @@ export function StageProgress({
       {view.reviewState === null ? null : (
         <p className="mt-2">{reviewLine(view.reviewState)}</p>
       )}
+      {(view.left.refused ?? 0) > 0 ? (
+        <p className="mt-2">
+          {`Refused for your sign-in, and read again on a retry: ${plural(view.left.refused ?? 0, "unit")}`}
+        </p>
+      ) : null}
       {leftLines(view).map((line) => (
         <p key={line.status} className="mt-2">
           {leftLineText(line, words)}

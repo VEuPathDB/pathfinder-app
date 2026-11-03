@@ -41,7 +41,7 @@ EXPORT_PAGE = MAX_PAGE
 _NUMBER_COLUMNS = frozenset({"Impact", "Impact after review"})
 _FORMULA = frozenset("=+-@")
 _BLANK_CATEGORIES = ("C", "Z")
-_SEPARATORS = frozenset(";\t\r\n\x0b\x0c")
+_FIELD_SEPARATORS = frozenset(";\t")
 _QUOTE = '"'
 
 
@@ -53,6 +53,10 @@ def _is_blank(char: str) -> bool:
     return unicodedata.category(_mark(char)).startswith(_BLANK_CATEGORIES)
 
 
+def _separates(char: str) -> bool:
+    return char in _FIELD_SEPARATORS or len(f"a{char}b".splitlines()) > 1
+
+
 def _neutralized_inside(text: str) -> str:
     written: list[str] = []
     armed = False
@@ -61,7 +65,7 @@ def _neutralized_inside(text: str) -> str:
             if _mark(char) in _FORMULA:
                 written.append("'")
             armed = False
-        armed = armed or char in _SEPARATORS
+        armed = armed or _separates(char)
         written.append(char)
     return "".join(written)
 
@@ -113,7 +117,7 @@ def finding_row(
         finding.genome,
         "; ".join(link.gene for link in finding.genes),
         finding.check_title,
-        finding.effective_error_title or "",
+        finding.rejected_text or finding.effective_error_title or "",
         finding.verdict_text or UNCHECKED_SENTENCES[finding.status],
         _number(finding.impact),
         *_review_cells(review),

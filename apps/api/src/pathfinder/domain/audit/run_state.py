@@ -41,21 +41,25 @@ class LeftUnits(CamelModel):
     genomes: int = Field(ge=0)
     findings: int = Field(ge=0)
     evidence: int = Field(ge=0)
+    refused: int = Field(default=0, ge=0)
 
     @computed
     def total(self) -> int:
-        return self.genomes + self.findings + self.evidence
+        return self.genomes + self.findings + self.evidence + self.refused
 
 
 def left_units(
     genomes: Iterable[GenomeStatus],
     findings: Iterable[FindingTally],
     evidence: Iterable[EvidenceTally],
+    *,
+    refused: int = 0,
 ) -> LeftUnits:
     return LeftUnits(
         genomes=sum(status in _LEFT for status in genomes),
         findings=sum(row.count for row in findings if row.status in _LEFT),
         evidence=sum(row.count for row in evidence if row.status in _LEFT),
+        refused=refused,
     )
 
 

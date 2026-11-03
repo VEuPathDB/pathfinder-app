@@ -75,7 +75,9 @@ def _by_kind(query: _Query, where: FindingFilter) -> _Query:
             effective_error_type().in_(where.error_types), ~rejected_by_review()
         )
     if where.certainties:
-        query = query.where(AuditFinding.certainty.in_(where.certainties))
+        query = query.where(
+            effective_certainty().in_(where.certainties), ~rejected_by_review()
+        )
     if where.named is not None:
         named = AuditFinding.error_type.is_not(None)
         query = query.where(named if where.named else ~named)

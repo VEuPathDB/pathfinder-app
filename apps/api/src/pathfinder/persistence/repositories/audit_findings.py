@@ -92,6 +92,7 @@ class SettledFinding(BaseModel):
     judged: bool = True
     requests: int = Field(default=0, ge=0)
     message: str | None = None
+    refused: bool = False
 
     @model_validator(mode="after")
     def _named_error(self) -> Self:
@@ -220,6 +221,7 @@ class AuditFindingRepository:
                 certainty=settled.certainty,
                 judged=settled.judged,
                 message=settled.message,
+                refused_by_sign_in=settled.refused,
                 requests=AuditFinding.requests + settled.requests,
             )
             .returning(AuditFinding.id)
@@ -318,6 +320,7 @@ class AuditFindingRepository:
                     "status": "stored",
                     "payload": statement.excluded.payload,
                     "message": None,
+                    "refused_by_sign_in": False,
                     "requests": AuditEvidence.requests + requests,
                     "updated_at": func.now(),
                 },
@@ -334,6 +337,7 @@ class AuditFindingRepository:
         status: Literal["failed", "unreached"],
         message: str,
         requests: int,
+        refused: bool = False,
     ) -> None:
         statement = insert(AuditEvidence).values(
             finding_id=finding_id,
@@ -341,6 +345,7 @@ class AuditFindingRepository:
             status=status,
             message=message,
             requests=requests,
+            refused_by_sign_in=refused,
         )
         await self._settle_evidence(
             statement.on_conflict_do_update(
@@ -349,6 +354,7 @@ class AuditFindingRepository:
                     "status": status,
                     "payload": None,
                     "message": message,
+                    "refused_by_sign_in": refused,
                     "requests": AuditEvidence.requests + requests,
                     "updated_at": func.now(),
                 },

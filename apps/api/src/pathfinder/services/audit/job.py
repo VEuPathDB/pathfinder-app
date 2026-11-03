@@ -24,7 +24,6 @@ from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
-from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
@@ -197,13 +196,11 @@ async def _finish_stage(run_id: UUID, stage: StageName) -> None:
         await session.commit()
 
 
-async def _halt(
-    run_id: UUID, lanes: RunLanes, stage: StageName, forbidden: RefusedUnits
-) -> None:
+async def _halt(run_id: UUID, lanes: RunLanes, stage: StageName) -> None:
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         await repo.release_trying(run_id)
-        await repo.reopen_refused(run_id, forbidden)
+        await repo.reopen_refused(run_id)
         await repo.set_halted(run_id, SIGN_IN_NEEDED)
         await repo.set_token(run_id, None)
         await session.commit()
@@ -231,8 +228,8 @@ async def _carry(run: AuditRunRecord, lanes: RunLanes, waits: Waits) -> None:
     while (stage := run.stages.next_stage) is not None:
         try:
             await _BODIES[stage](run, lanes.lane(stage), waits)
-        except SignInNeededError as refused:
-            await _halt(run.id, lanes, stage, refused.forbidden)
+        except SignInNeededError:
+            await _halt(run.id, lanes, stage)
             return
         await _finish_stage(run.id, stage)
         found = await _stored(run.id)
@@ -280,7 +277,7 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
         return
     match await _sign_in_check():
         case "refused":
-            await _halt(run.id, lanes, stage, RefusedUnits())
+            await _halt(run.id, lanes, stage)
             return
         case "unanswered" if await _waited_for_sign_in(run, lanes, stage, job):
             return
@@ -288,7 +285,10 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
             pass
     await _set_status(run.id, "running")
     waits = units.waits_until(job.deadline, first_seconds=job.pause)
-    with told_while_waiting(lanes), units.watching_refusals():
+    with (
+        told_while_waiting(lanes),
+        units.watching_refusals(run.id, run.stages.refusal_streak),
+    ):
         try:
             await _carry(run, lanes, waits)
         except ContinueLaterError as later:

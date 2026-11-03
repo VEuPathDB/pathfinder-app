@@ -26,11 +26,10 @@ from pathfinder.domain.audit.rates import (
 )
 from pathfinder.domain.audit.scope import GenePairTarget
 from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
-from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.units import (
     UNIT_FAILURES,
-    failure_message,
-    failure_status,
+    UnitFailure,
+    unit_failure,
 )
 
 type References = Mapping[str, bool | None]
@@ -113,7 +112,5 @@ async def read_genes(
         try:
             read.append(await audit_gene_evidence(site_id, gene))
         except UNIT_FAILURES as exc:
-            return UnitFailure(
-                status=failure_status(exc), message=failure_message(exc, site_id)
-            )
+            return unit_failure(exc, site_id)
     return GeneEvidencePayload(genes=tuple(genes), evidence=tuple(read))

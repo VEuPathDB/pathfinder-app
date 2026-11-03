@@ -106,6 +106,21 @@ describe("FindingsList", () => {
   });
 });
 
+describe("the certainty of a row", () => {
+  it("states the effective certainty and none for a rejected finding", () => {
+    const page = {
+      ...SAMPLE_FINDINGS,
+      findings: [
+        { ...FIRST, effectiveCertainty: "medium" as const },
+        { ...FIRST, id: 2, effectiveCertainty: null },
+      ],
+    };
+    renderList(page, "");
+    expect(cells(1)[4]).toBe("Medium certainty");
+    expect(cells(2)[4]).toBe("");
+  });
+});
+
 describe("the words of a finding", () => {
   const with_ = (changes: Partial<FindingView>): FindingView => ({
     ...FIRST,
@@ -135,6 +150,17 @@ describe("the words of a finding", () => {
     const retyped = with_({ effectiveErrorTitle: "One gene split into two models" });
     expect(findingOutcome(retyped, SAMPLE_WORDS)).toBe(
       "One gene split into two models",
+    );
+  });
+
+  it("says a rejected finding was rejected, naming what the check said", () => {
+    const rejected = with_({
+      effectiveErrorType: null,
+      effectiveErrorTitle: null,
+      rejectedText: "The review rejected this; the check said: Model too short",
+    });
+    expect(findingOutcome(rejected, SAMPLE_WORDS)).toBe(
+      "The review rejected this; the check said: Model too short",
     );
   });
 });

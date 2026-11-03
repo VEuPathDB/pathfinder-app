@@ -25,19 +25,18 @@ from pathfinder.persistence.repositories.audit import (
     AuditRepository,
     CollectedGenome,
 )
-from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.platform.metrics import counting_wdk_requests
-from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
 from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
+    UnitFailure,
     Waits,
     failure_message,
-    failure_status,
     halt_when_signed_out,
     in_passes,
     tallied,
+    unit_failure,
 )
 from pathfinder.services.wdk_build import site_build
 
@@ -71,9 +70,7 @@ class _Scores:
         try:
             return await genome_priorities(self.site_id)
         except UNIT_FAILURES as exc:
-            return UnitFailure(
-                status=failure_status(exc), message=failure_message(exc, self.site_id)
-            )
+            return unit_failure(exc, self.site_id)
 
     async def of(self, state: AuditGenomeState) -> GenomePriority | UnitFailure | None:
         if state.role != "audited" or state.priority is not None:
@@ -96,9 +93,7 @@ class _Provenances:
         try:
             return await organism_report(self.site_id, GENOME_ATTRIBUTES)
         except UNIT_FAILURES as exc:
-            return UnitFailure(
-                status=failure_status(exc), message=failure_message(exc, self.site_id)
-            )
+            return unit_failure(exc, self.site_id)
 
     def _served(self, answer: WDKAnswer, organism: str) -> bool | UnitFailure:
         try:
@@ -148,6 +143,7 @@ class _Served:
         status: Literal["collected", "failed", "unreached"],
         message: str | None = None,
         genes: Sequence[GeneRow] = (),
+        refused: bool = False,
     ) -> CollectedGenome:
         return CollectedGenome(
             organism=organism,
@@ -157,6 +153,7 @@ class _Served:
             message=message or "; ".join(self.notes) or None,
             priority=self.priority,
             reference_strain=self.reference_strain,
+            refused=refused,
         )
 
 
@@ -195,11 +192,13 @@ async def _read_genome(
         try:
             rows = await genes_of_genome(run.site_id, organism)
         except UNIT_FAILURES as exc:
+            failure = unit_failure(exc, run.site_id)
             return served.genome(
                 organism,
                 tally.count,
-                status=failure_status(exc),
-                message=failure_message(exc, run.site_id),
+                status=failure.status,
+                message=failure.message,
+                refused=failure.refused,
             )
     return served.genome(organism, tally.count, status="collected", genes=rows)
 
@@ -265,14 +264,7 @@ async def run_collect_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) 
             await session.commit()
         await lane.update(done=done, total=total, message=not_read(len(left), "genome"))
 
-    await in_passes(
-        pending,
-        attempt,
-        waits,
-        unread=unread,
-        on_pause=pausing,
-        refused_as=lambda state: RefusedUnits(genomes=(state.organism,)),
-    )
+    await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)
     if not known and waits.clock.now() < waits.deadline:
         unknown = await _read_release(run)
     if unknown is not None:

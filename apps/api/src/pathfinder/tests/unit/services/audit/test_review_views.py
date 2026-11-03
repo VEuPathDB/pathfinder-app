@@ -106,6 +106,7 @@ def test_a_review_line_states_its_verdict(verdict: VerdictKind, text: str) -> No
         literature="not_searched",
         literature_text="The literature was not searched",
         error_type="truncated_model" if verdict == "error" else None,
+        certainty="high" if verdict == "error" else None,
     )
 
 
