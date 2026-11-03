@@ -269,9 +269,20 @@ def test_absence_and_presence_of_whole_groups_read_by_their_names() -> None:
     )
 
 
+_SHARES_BY_SPECIES = (
+    "padl>=1T AND pber>=1T AND pbil>=1T AND pblg>=1T AND pbbi>=1T AND "
+    "pcha+pccb>=1T AND pcoa>=1T AND pcyn+pcym>=1T AND "
+    "pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg>=10T "
+    "AND pfra>=1T AND pgab+pgas>=1T AND pgal>=1T AND pinu>=1T AND "
+    "pkah+pkno+pknp>=2T AND pmal>=1T AND pova+powp>=1T AND ppra>=1T AND "
+    "prei+preg>=1T AND prel>=1T AND pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin>=4T AND "
+    "pvlk>=1T AND pvip+pvpv+pvpw+pviv>=2T AND pyoe+pyxn+pyyx+pyoy>=2T AND "
+    "tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve=0T"
+)
+
+
 def test_a_species_reading_with_shares_keeps_each_species_own_share() -> None:
-    [text] = _corpus_writings("orthomcl-all-plasmodium-every-species-reading")
-    reading = _read(text)
+    reading = _read(_SHARES_BY_SPECIES)
 
     assert reading.startswith(
         "at least 1 genome in each of 18 species (23 genomes: Plasmodium adleri, "
@@ -281,6 +292,15 @@ def test_a_species_reading_with_shares_keeps_each_species_own_share() -> None:
         "falciparum and at least 2 genomes in each of 3 species (11 genomes: Plasmodium "
         "knowlesi, Plasmodium vivax, Plasmodium yoelii) and at least 4 of the 7 genomes "
         "of Plasmodium vinckei and none of the 15 genomes of Toxoplasma gondii"
+    )
+
+
+def test_one_genome_per_species_reads_as_one_genome_per_species() -> None:
+    [text] = _corpus_writings("orthomcl-all-plasmodium-every-species-reading")
+
+    assert _read(text) == (
+        "at least 1 genome in each of the 23 species of Plasmodium (61 genomes) "
+        "and none of the 15 genomes of Toxoplasma gondii"
     )
 
 
