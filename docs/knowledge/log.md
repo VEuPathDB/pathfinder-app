@@ -54,6 +54,8 @@
   [the decision](decisions/a-frameshift-finding-names-the-sequence-and-not-the-cause.md). It
   takes the next veupathdb-mcp release; the card keeps the release, the pin and the NF54
   rerun.
+  A jump at a splice pair lowers `truncated_model` to medium in frame or not, and a jump that keeps
+  the frame with no pair is stated and lowers nothing.
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY
   of the mock model reads a record's organism by its own word test. An
