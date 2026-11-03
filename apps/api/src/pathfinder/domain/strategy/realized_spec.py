@@ -22,13 +22,10 @@ type AnalysisCut = Callable[[AnalysisBinding], float | None]
 
 class RealizedSpec(CamelModel):
     """The bound facts a constraint is grounded against: the criteria's WDK
-    search names, the union of their parameter names, the values bound to them,
-    the tree the criteria are combined in, and what the site says each
-    criterion runs on."""
+    search names, the tree the criteria are combined in, the criteria with
+    what each binds, and what the site says each criterion runs on."""
 
     search_names: list[str] = Field(default_factory=list)
-    param_names: frozenset[str] = Field(default_factory=frozenset)
-    param_values: dict[str, str] = Field(default_factory=dict)
     structure: SpecStructure | None = None
     criteria: list[Criterion] = Field(default_factory=list)
     marks: DataMarks = Field(default_factory=DataMarks)
@@ -44,20 +41,6 @@ class RealizedSpec(CamelModel):
     def analysis_pending(self) -> bool:
         """Whether a criterion waits for the analysis workflow to realize it."""
         return any(c.pending_analysis for c in self.criteria)
-
-    def uncut(self, cut: AnalysisCut) -> bool:
-        """Whether a compute the spec holds has no value for this cut."""
-        return any(
-            c.analysis is not None
-            and c.analysis.method is not None
-            and cut(c.analysis) is None
-            for c in self.criteria
-        )
-
-    def awaits_analysis(self, cut: AnalysisCut) -> bool:
-        """Whether an analysis that can state this cut has not run, or ran and
-        holds no value for it."""
-        return self.analysis_pending or self.uncut(cut)
 
 
 def awaiting_analysis(c: Constraint) -> GroundedConstraint:

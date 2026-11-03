@@ -28,10 +28,12 @@ never a pass and never a failure, so it does not block the verdict, the same
 rule `no_check` already follows for `comparator` and `other`. The researcher
 sees which requirements nothing compared.
 
-The code still grounds a value requirement by reading its words with patterns
-(`constraint_grounding`, `fold_grounding`, `PercentileRequest.parse`), and a hard
-stated requirement those patterns cannot ground blocks
-(`constraints.is_blocking`), until steps 7 to 13 of that item land.
+Percentile, fold change and significance follow this rule
+([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)),
+with the reason as the grounding's note and `why_unchecked: no_check`. The code
+still grounds a data type and an organism by reading its words, and a hard
+stated requirement those readings cannot ground blocks
+(`constraints.is_blocking`), until steps 10 to 13 of that item land.
 
 # What was rejected
 

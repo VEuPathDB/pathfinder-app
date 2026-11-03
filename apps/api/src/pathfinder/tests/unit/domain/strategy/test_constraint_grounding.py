@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -12,6 +11,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
     GroundedConstraint,
+    SignificanceValue,
     is_blocking,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
@@ -46,8 +46,6 @@ def _ground_on_microarray(constraint: Constraint) -> GroundedConstraint:
         [constraint],
         RealizedSpec(
             search_names=[_MICROARRAY_SEARCH],
-            param_names=frozenset({"fold_change"}),
-            param_values={"fold_change": "2"},
             criteria=[
                 Criterion(id="c1", text="fold change", search_name=_MICROARRAY_SEARCH)
             ],
@@ -66,84 +64,20 @@ class TestGroundingAgainstTheBuiltSearch:
         assert grounded.status is ConstraintStatus.SUBSTITUTED
         assert grounded.realized_value == "microarray"
 
-    def test_pvalue_threshold_with_no_significance_param_is_ungroundable(self) -> None:
+    def test_a_threshold_the_search_does_not_link_is_not_verified(self) -> None:
         grounded = _ground_on_microarray(
             _explicit(
                 ConstraintKind.STATISTICAL_THRESHOLD,
                 "adjusted p <= 0.05",
                 "significance",
-            )
+            ).model_copy(update={"value": SignificanceValue(at_most=0.05)})
         )
 
-        assert grounded.status is ConstraintStatus.UNGROUNDABLE
-        assert grounded.realized_value is None
-
-    def test_fold_change_present_is_grounded(self) -> None:
-        grounded = _ground_on_microarray(
-            Constraint(
-                kind=ConstraintKind.FOLD_CHANGE,
-                requested_value="2",
-                label="fold change",
-            )
+        assert (grounded.status, grounded.realized_value, is_blocking(grounded)) == (
+            ConstraintStatus.GROUNDED,
+            None,
+            False,
         )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-
-
-def _percentile(requested: str) -> Constraint:
-    return _explicit(ConstraintKind.PERCENTILE, requested, "expression percentile")
-
-
-def _ground_percentile(
-    requested: str, param_name: str, bound: str
-) -> GroundedConstraint:
-    [grounded] = ground_constraints(
-        [_percentile(requested)],
-        RealizedSpec(
-            search_names=[_MICROARRAY_SEARCH],
-            param_names=frozenset({param_name}),
-            param_values={param_name: bound},
-        ),
-    )
-    return grounded
-
-
-class TestThePercentileBound:
-    def test_a_percentile_bound_that_means_the_stated_share_is_grounded(self) -> None:
-        grounded = _ground_percentile("top 10%", "min_expression_percentile", "90")
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-        assert grounded.realized_value == "90"
-
-    def test_a_percentile_bound_that_means_another_share_is_substituted(self) -> None:
-        """A min percentile of 80 is the top 20 percent, not the top 10."""
-        grounded = _ground_percentile("top 10%", "min_expression_percentile", "80")
-
-        assert grounded.status is ConstraintStatus.SUBSTITUTED
-        assert grounded.realized_value == "80"
-        assert grounded.note == "bound 80 means top 20%"
-        assert is_blocking(grounded) is True
-
-    def test_a_bottom_share_reads_the_max_percentile_bound(self) -> None:
-        grounded = _ground_percentile(
-            "bottom 25 percent", "max_expression_percentile", "25"
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-
-    def test_a_percentile_constraint_without_a_percentile_param_is_ungroundable(
-        self,
-    ) -> None:
-        grounded = _ground_percentile("top 10%", "fold_change", "2")
-
-        assert grounded.status is ConstraintStatus.UNGROUNDABLE
-        assert grounded.note == "no percentile parameter in the strategy"
-
-    def test_a_percentile_request_without_a_direction_is_ungroundable(self) -> None:
-        grounded = _ground_percentile("10%", "min_expression_percentile", "90")
-
-        assert grounded.status is ConstraintStatus.UNGROUNDABLE
-        assert grounded.note == "the requested share and direction could not be read"
 
 
 _HELD_COMBINATION = Constraint(
@@ -187,7 +121,6 @@ def _ground_held(
         [_HELD_COMBINATION],
         RealizedSpec(
             search_names=[c.search_name for c in criteria],
-            param_values={},
             structure=structure,
             criteria=list(criteria),
         ),
@@ -300,58 +233,3 @@ class TestGroundingAHeldCombination:
         )
 
         assert "fewer than two" in grounded.note
-
-
-def _toxodb_export() -> Criterion:
-    """The toxodb step an exported EDA analysis selects, at log2 0.585."""
-    return Criterion(
-        id="step_818600c8",
-        text="up in bradyzoites over tachyzoites",
-        analysis=AnalysisBinding(
-            dataset_id="DS_toxo_bradyzoite",
-            effect_direction="upOnly",
-            effect_size_threshold=0.585,
-            significance_threshold=0.05,
-            words="bradyzoite over tachyzoite, log2 fold change 0.585, p 0.05",
-        ),
-    )
-
-
-class TestAnAnalysisStatesItsCuts:
-    def test_a_fold_change_an_exported_analysis_cuts_at_is_grounded(self) -> None:
-        [grounded] = ground_constraints(
-            [_explicit(ConstraintKind.FOLD_CHANGE, "1.5-fold", "fold change")],
-            RealizedSpec(
-                search_names=[],
-                param_values={},
-                criteria=[_toxodb_export()],
-            ),
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-
-    def test_a_significance_an_exported_analysis_cuts_at_is_grounded(self) -> None:
-        [grounded] = ground_constraints(
-            [_explicit(ConstraintKind.STATISTICAL_THRESHOLD, "p 0.05", "p value")],
-            RealizedSpec(
-                search_names=[],
-                param_values={},
-                criteria=[_toxodb_export()],
-            ),
-        )
-
-        assert grounded.status is ConstraintStatus.GROUNDED
-
-    def test_a_fold_change_no_search_and_no_analysis_states_is_ungroundable(
-        self,
-    ) -> None:
-        [grounded] = ground_constraints(
-            [_explicit(ConstraintKind.FOLD_CHANGE, "1.5-fold", "fold change")],
-            RealizedSpec(
-                search_names=["GenesWithSignalPeptide"],
-                param_names=frozenset({"organism"}),
-                param_values={},
-            ),
-        )
-
-        assert grounded.status is ConstraintStatus.UNGROUNDABLE

@@ -10,7 +10,14 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.models.mock.arc import Reading
 
 
-def stated(kind: str, label: str, value: str, *, hard: bool = True) -> dict[str, Any]:
+def stated(
+    kind: str,
+    label: str,
+    value: str,
+    *,
+    hard: bool = True,
+    typed: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "kind": kind,
         "label": label,
@@ -18,6 +25,7 @@ def stated(kind: str, label: str, value: str, *, hard: bool = True) -> dict[str,
         "quote": value,
         "source": "user_explicit",
         "hard": hard,
+        "value": typed,
     }
 
 

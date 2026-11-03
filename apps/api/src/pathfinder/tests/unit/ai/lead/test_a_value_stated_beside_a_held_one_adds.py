@@ -9,8 +9,8 @@ from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.message_intent import intent_of
 from pathfinder.domain.message_reading import (
     MessageReading,
+    StatedOther,
     StatedRequest,
-    StatedRequirement,
 )
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -32,7 +32,7 @@ _MESSAGE = "Also include Plasmodium vivax P01."
 def _reading(beside: str) -> StatedRequest:
     return StatedRequest(
         requirements=[
-            StatedRequirement(
+            StatedOther(
                 quote="Plasmodium vivax P01",
                 kind="organism",
                 value="Plasmodium vivax P01",

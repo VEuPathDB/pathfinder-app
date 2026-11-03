@@ -340,7 +340,13 @@ WITHDRAWN = "2-fold"
 
 
 withdraw_reading = read_as(
-    IntentClassification.NEW_STRATEGY, stated("fold_change", "fold change", WITHDRAWN)
+    IntentClassification.NEW_STRATEGY,
+    stated(
+        "fold_change",
+        "fold change",
+        WITHDRAWN,
+        typed={"kind": "fold_change", "cut": 2, "direction": "up"},
+    ),
 )
 
 

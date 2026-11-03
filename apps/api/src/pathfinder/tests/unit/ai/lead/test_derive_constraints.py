@@ -16,11 +16,13 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    PercentileValue,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
 )
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
@@ -172,18 +174,20 @@ def test_operational_spec_carries_typed_constraints() -> None:
     assert round_trip.constraints[0].source is ConstraintSource.USER_EXPLICIT
 
 
+_TOP_10 = Constraint(
+    kind=ConstraintKind.PERCENTILE,
+    requested_value="top 10%",
+    label="expression percentile",
+    source=ConstraintSource.USER_EXPLICIT,
+    value=PercentileValue(end="top", share=10),
+)
+
+
 def _percentile_state(percentile: float) -> PipelineState:
     spec = OperationalSpec(
         goal="top 10 percent of trophozoite expression",
         interpreted_goal="top 10 percent of trophozoite expression",
-        constraints=[
-            Constraint(
-                kind=ConstraintKind.PERCENTILE,
-                requested_value="top 10%",
-                label="expression percentile",
-                source=ConstraintSource.USER_EXPLICIT,
-            )
-        ],
+        constraints=[_TOP_10],
         criteria=[
             Criterion(
                 id="c1",
@@ -192,6 +196,11 @@ def _percentile_state(percentile: float) -> PipelineState:
                 resolved_params=bound(
                     {"min_expression_percentile": NumberValue(value=percentile)}
                 ),
+                answers=[
+                    RequirementLink(
+                        requirement=_TOP_10.id, param="min_expression_percentile"
+                    )
+                ],
             )
         ],
     )

@@ -1,5 +1,5 @@
-"""A threshold, fold or data-type requirement is provisional while the analysis
-that states it has not run, and is grounded against the cuts the analysis holds."""
+"""A threshold or fold requirement is provisional while the analysis that links
+it has not run, and is grounded against the cuts the analysis holds."""
 
 from __future__ import annotations
 
@@ -11,29 +11,43 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    FoldChangeValue,
+    RequirementValue,
+    SignificanceValue,
     is_blocking,
 )
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     OperationalSpec,
+    RequirementLink,
 )
 from pathfinder.tests.unit.domain.strategy._analysis import analysed, binding, pending
 
 
-def _stated(kind: ConstraintKind, value: str) -> Constraint:
+def _stated(kind: ConstraintKind, words: str, value: RequirementValue) -> Constraint:
     return Constraint(
         kind=kind,
-        requested_value=value,
+        requested_value=words,
         label=kind.value,
         source=ConstraintSource.USER_EXPLICIT,
+        value=value,
     )
 
 
-_P = _stated(ConstraintKind.STATISTICAL_THRESHOLD, "p 0.001")
-_NO_FOLD = _stated(ConstraintKind.FOLD_CHANGE, "no fold change cutoff")
-_TWO_FOLD = _stated(ConstraintKind.FOLD_CHANGE, "2-fold")
-_RNA_SEQ = _stated(ConstraintKind.DATA_TYPE, "RNA-Seq")
+_P = _stated(
+    ConstraintKind.STATISTICAL_THRESHOLD, "p 0.001", SignificanceValue(at_most=0.001)
+)
+_NO_FOLD = _stated(
+    ConstraintKind.FOLD_CHANGE, "no fold change cutoff", FoldChangeValue(cut=1)
+)
+_TWO_FOLD = _stated(ConstraintKind.FOLD_CHANGE, "2-fold", FoldChangeValue(cut=2))
+_RNA_SEQ = Constraint(
+    kind=ConstraintKind.DATA_TYPE,
+    requested_value="RNA-Seq",
+    label="data type",
+    source=ConstraintSource.USER_EXPLICIT,
+)
 
 _ORTHOLOGS = Criterion(
     id="c_orthologs",
@@ -45,6 +59,12 @@ _ORTHOLOGS = Criterion(
 )
 
 
+def _linking(criterion: Criterion, *held: Constraint) -> Criterion:
+    return criterion.model_copy(
+        update={"answers": [RequirementLink(requirement=c.id) for c in held]}
+    )
+
+
 def _spec(*criteria: Criterion) -> OperationalSpec:
     return OperationalSpec(goal="DESeq genes at p 0.001", criteria=list(criteria))
 
@@ -54,8 +74,10 @@ def _statuses(spec: OperationalSpec, *stated: Constraint) -> list[ConstraintStat
 
 
 def test_each_analysis_requirement_is_provisional_while_the_analysis_waits() -> None:
+    waiting = _linking(pending(), _P, _NO_FOLD, _TWO_FOLD)
+
     grounded = ground_against_spec(
-        [_P, _NO_FOLD, _TWO_FOLD, _RNA_SEQ], _spec(pending(), _ORTHOLOGS)
+        [_P, _NO_FOLD, _TWO_FOLD, _RNA_SEQ], _spec(waiting, _ORTHOLOGS)
     )
 
     assert [g.status for g in grounded] == [ConstraintStatus.PROVISIONAL] * 4
@@ -67,39 +89,26 @@ def test_an_analysis_holding_the_cuts_grounds_both_requirements() -> None:
         update={"effect_size_threshold": None}
     )
 
-    assert _statuses(_spec(analysed(bound=held)), _P, _NO_FOLD) == [
+    assert _statuses(
+        _spec(_linking(analysed(bound=held), _P, _NO_FOLD)), _P, _NO_FOLD
+    ) == [
         ConstraintStatus.GROUNDED,
         ConstraintStatus.GROUNDED,
     ]
-
-
-def test_an_analysis_cut_at_log2_zero_grounds_no_fold_cutoff() -> None:
-    held = binding().model_copy(update={"effect_size_threshold": 0.0})
-
-    [fold] = ground_against_spec([_NO_FOLD], _spec(analysed(bound=held)))
-
-    assert (fold.status, fold.realized_value) == (ConstraintStatus.GROUNDED, "0")
-
-
-def test_an_analysis_with_a_fold_cut_substitutes_no_fold_cutoff() -> None:
-    [fold] = ground_against_spec([_NO_FOLD], _spec(analysed()))
-
-    assert (fold.status, fold.note) == (
-        ConstraintStatus.SUBSTITUTED,
-        "built 2-fold (log2 1) where no fold change cutoff was asked",
-    )
 
 
 def test_a_compute_with_no_significance_read_is_provisional() -> None:
     held = binding().model_copy(update={"significance_threshold": None})
 
-    assert _statuses(_spec(analysed(bound=held), _ORTHOLOGS), _P) == [
+    assert _statuses(_spec(_linking(analysed(bound=held), _P), _ORTHOLOGS), _P) == [
         ConstraintStatus.PROVISIONAL
     ]
 
 
-def test_a_bound_search_and_no_analysis_leaves_the_threshold_ungroundable() -> None:
-    assert _statuses(_spec(_ORTHOLOGS), _P, _NO_FOLD) == [
-        ConstraintStatus.UNGROUNDABLE,
-        ConstraintStatus.UNGROUNDABLE,
-    ]
+def test_a_bound_search_and_no_link_leaves_the_threshold_not_verified() -> None:
+    grounded = ground_against_spec([_P, _NO_FOLD], _spec(_ORTHOLOGS))
+
+    assert [(g.status, g.note) for g in grounded] == [
+        (ConstraintStatus.GROUNDED, "no criterion links it to a parameter")
+    ] * 2
+    assert not any(is_blocking(g) for g in grounded)

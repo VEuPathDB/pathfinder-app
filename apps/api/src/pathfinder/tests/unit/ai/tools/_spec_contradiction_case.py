@@ -19,9 +19,11 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    PercentileValue,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
+    RequirementLink,
     SpecStructure,
     StructureNode,
 )
@@ -183,25 +185,26 @@ def grounded_deps(mic2_params: dict[str, ParamValue]) -> AgentDeps:
     grounds onto at 90, and the step holding ``mic2_params``."""
     deps = measured_deps(mic2_params=mic2_params)
     draft = deps.agent_state.operational_spec_draft
+    top_10 = Constraint(
+        kind=ConstraintKind.PERCENTILE,
+        requested_value="top 10%",
+        label="expression percentile",
+        source=ConstraintSource.USER_EXPLICIT,
+        value=PercentileValue(end="top", share=10),
+    )
     draft.criteria = [
         c.model_copy(
             update={
                 "search_name": "GenesByRNASeqEvidence",
                 "resolved_params": bound(dict(STATED_PERCENTILE)),
+                "answers": [RequirementLink(requirement=top_10.id, param=PERCENTILE)],
             }
         )
         if c.id == MIC2
         else c
         for c in draft.criteria
     ]
-    draft.constraints = [
-        Constraint(
-            kind=ConstraintKind.PERCENTILE,
-            requested_value="top 10%",
-            label="expression percentile",
-            source=ConstraintSource.USER_EXPLICIT,
-        )
-    ]
+    draft.constraints = [top_10]
     return deps
 
 

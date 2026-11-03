@@ -11,6 +11,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    FoldChangeValue,
     is_blocking,
 )
 from pathfinder.domain.strategy.operational_spec import (
@@ -61,7 +62,7 @@ def test_a_criterion_with_no_search_binds_nothing() -> None:
     assert {g.status for g in grounded} == {ConstraintStatus.PROVISIONAL}
 
 
-def test_a_bound_search_with_no_fold_parameter_leaves_the_fold_ungroundable() -> None:
+def test_a_bound_search_no_fold_links_leaves_the_fold_not_verified() -> None:
     spec = OperationalSpec(
         goal=_GOAL,
         criteria=[
@@ -79,7 +80,14 @@ def test_a_bound_search_with_no_fold_parameter_leaves_the_fold_ungroundable() ->
         ],
     )
 
-    [fold] = ground_against_spec([_stated(ConstraintKind.FOLD_CHANGE, "2-fold")], spec)
+    two_fold = _stated(ConstraintKind.FOLD_CHANGE, "2-fold").model_copy(
+        update={"value": FoldChangeValue(cut=2)}
+    )
 
-    assert fold.status is ConstraintStatus.UNGROUNDABLE
-    assert is_blocking(fold)
+    [fold] = ground_against_spec([two_fold], spec)
+
+    assert (fold.status, fold.realized_value, is_blocking(fold)) == (
+        ConstraintStatus.GROUNDED,
+        None,
+        False,
+    )

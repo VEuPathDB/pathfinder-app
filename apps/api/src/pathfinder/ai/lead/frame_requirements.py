@@ -18,6 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from pathfinder.domain.strategy.expression_handles import held_readings
+from pathfinder.domain.strategy.linked_values import linked_by_none
 from pathfinder.domain.strategy.operator_questions import operator_questions
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
@@ -48,10 +49,13 @@ def requirements_no_search_states(
     deps: LeadDeps, lacking: Sequence[Constraint]
 ) -> list[Constraint]:
     """The held requirements the researcher stated that no search of the spec
-    states: each one the ledger lists as ungroundable, and each one the pass
-    reports the site lacks that is no scope every search runs in."""
+    states: each one the ledger lists as ungroundable, each value no criterion
+    links once a search is bound, and each one the pass reports the site lacks
+    that is no scope every search runs in."""
     held = {c.id for c in deps.state.domain.requirements}
     reported = {c.id for c in lacking}
+    spec = deps.state.domain.operational_spec
+    criteria = [] if spec is None else spec.criteria
     return [
         g.constraint
         for g in derive_ledger(deps.state, deps.intent).constraints.grounded
@@ -59,6 +63,10 @@ def requirements_no_search_states(
         and g.constraint.id in held
         and (
             g.status is ConstraintStatus.UNGROUNDABLE
+            or (
+                g.status is not ConstraintStatus.PROVISIONAL
+                and linked_by_none(g.constraint, criteria)
+            )
             or (
                 g.constraint.kind not in STRATEGY_SCOPES and g.constraint.id in reported
             )

@@ -12,7 +12,7 @@ from pathfinder.ai.models.mock.consult_arc import WITHDRAWN
 from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.exchanges import Exchange
-from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.constraints import ConstraintKind, FoldChangeValue
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests._support.site_organisms import serve_recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -166,6 +166,9 @@ def test_the_withdraw_arc_states_the_fold_change_no_search_states() -> None:
         NEW,
         [(ConstraintKind.FOLD_CHANGE, WITHDRAWN)],
     )
+    assert [c.value for c in intent.explicit_constraints] == [
+        FoldChangeValue(cut=2, direction="up")
+    ]
 
 
 def test_the_consult_arc_asks_on_a_new_request() -> None:

@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from collections.abc import Collection
-from typing import Literal
+from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Discriminator, Field
 
 from pathfinder.domain.caveats import EditDirection
+from pathfinder.domain.log2_scale import Scale
+from pathfinder.domain.strategy.constraints import (
+    Bound,
+    FoldChangeValue,
+    FoldDirection,
+    PercentileEnd,
+    PercentileValue,
+    RequirementValue,
+    Share,
+    SignificanceValue,
+    Statistic,
+    UntypedValue,
+)
 
 type Effect = Literal["none", "new", "add", "change", "remove", "undo"]
 type Want = Literal[
@@ -56,14 +69,67 @@ class MessageReading(CamelModel):
     wants_confidence: float = Field(default=1.0, ge=0, le=1)
 
 
-class StatedRequirement(CamelModel):
+class _Stated(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     quote: str = Field(min_length=1)
-    kind: RequirementKind
     value: str = Field(min_length=1)
     hard: bool = True
     beside: str = ""
+
+
+class StatedPercentile(_Stated):
+    kind: Literal["percentile"]
+    end: PercentileEnd
+    share: Share
+
+    def typed(self) -> RequirementValue:
+        return PercentileValue(end=self.end, share=self.share)
+
+
+class StatedFoldChange(_Stated):
+    kind: Literal["fold_change"]
+    cut: float | None = None
+    scale: Scale = "fold"
+    direction: FoldDirection = "either"
+
+    def typed(self) -> RequirementValue:
+        return FoldChangeValue(cut=self.cut, scale=self.scale, direction=self.direction)
+
+
+class StatedSignificance(_Stated):
+    kind: Literal["significance"]
+    statistic: Statistic = "unspecified"
+    at_most: Bound
+
+    def typed(self) -> RequirementValue:
+        return SignificanceValue(statistic=self.statistic, at_most=self.at_most)
+
+
+class StatedUntyped(_Stated):
+    kind: Literal["untyped"]
+
+    def typed(self) -> RequirementValue:
+        return UntypedValue(text=self.value)
+
+
+class StatedOther(_Stated):
+    kind: Literal[
+        "organism", "record_type", "data_type", "count", "ortholog", "text", "property"
+    ]
+
+    def typed(self) -> RequirementValue | None:
+        return None
+
+
+StatedRequirement = Annotated[
+    StatedPercentile
+    | StatedFoldChange
+    | StatedSignificance
+    | StatedUntyped
+    | StatedOther,
+    Discriminator("kind"),
+]
 
 
 class StatedWithdrawal(CamelModel):
@@ -110,8 +176,13 @@ __all__ = [
     "MessageReading",
     "ReadBy",
     "RequirementKind",
+    "StatedFoldChange",
+    "StatedOther",
+    "StatedPercentile",
     "StatedRequest",
     "StatedRequirement",
+    "StatedSignificance",
+    "StatedUntyped",
     "StatedWithdrawal",
     "Want",
 ]

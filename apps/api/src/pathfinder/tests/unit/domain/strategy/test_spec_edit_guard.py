@@ -9,10 +9,12 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    PercentileValue,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
+    RequirementLink,
     SpecStructure,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -204,22 +206,27 @@ def _values_refusal(graph: StrategyGraph, spec: OperationalSpec) -> str | None:
 
 def _with_percentile_criterion(spec: OperationalSpec, **params: ParamValue) -> None:
     """The user asked for a share of a ranked population; the bound realizes it."""
+    top_10 = Constraint(
+        kind=ConstraintKind.PERCENTILE,
+        requested_value="top 10%",
+        label="expression percentile",
+        source=ConstraintSource.USER_EXPLICIT,
+        value=PercentileValue(end="top", share=10),
+    )
     spec.criteria.append(
         Criterion(
             id=_EXPR,
             text="Expressed in the schizont stage",
             search_name="GenesByRNASeqEvidence",
             resolved_params=bound(dict(params)),
+            answers=[
+                RequirementLink(
+                    requirement=top_10.id, param="min_expression_percentile"
+                )
+            ],
         ),
     )
-    spec.constraints = [
-        Constraint(
-            kind=ConstraintKind.PERCENTILE,
-            requested_value="top 10%",
-            label="expression percentile",
-            source=ConstraintSource.USER_EXPLICIT,
-        ),
-    ]
+    spec.constraints = [top_10]
 
 
 def _graph_with_expr() -> StrategyGraph:

@@ -7,12 +7,23 @@ from pathfinder.ai.lead.message_intent import intent_of
 from pathfinder.domain.message_reading import (
     Effect,
     MessageReading,
+    StatedFoldChange,
+    StatedOther,
+    StatedPercentile,
     StatedRequest,
-    StatedRequirement,
+    StatedSignificance,
+    StatedUntyped,
     StatedWithdrawal,
     Want,
 )
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.domain.strategy.constraints import (
+    ConstraintKind,
+    ConstraintSource,
+    FoldChangeValue,
+    PercentileValue,
+    SignificanceValue,
+    UntypedValue,
+)
 
 
 def _reading(
@@ -107,17 +118,19 @@ def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
     request = StatedRequest(
         goal="3D7 genes with a signal peptide at adjusted p 0.05",
         requirements=[
-            StatedRequirement(
+            StatedOther(
                 quote="P. falciparum 3D7",
                 kind="organism",
                 value="Plasmodium falciparum 3D7",
             ),
-            StatedRequirement(
+            StatedSignificance(
                 quote="adjusted p <= 0.05",
                 kind="significance",
                 value="adjusted p <= 0.05",
+                statistic="adjusted_p",
+                at_most=0.05,
             ),
-            StatedRequirement(
+            StatedOther(
                 quote="a predicted signal peptide",
                 kind="property",
                 value="predicted signal peptide",
@@ -155,6 +168,71 @@ def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
         ),
     ]
     assert intent.inferred_goal == "3D7 genes with a signal peptide at adjusted p 0.05"
+
+
+def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
+    request = StatedRequest(
+        requirements=[
+            StatedPercentile(
+                quote="top 5 percent",
+                kind="percentile",
+                value="top 5%",
+                end="top",
+                share=5,
+            ),
+            StatedFoldChange(
+                quote="log2 fold change > 5",
+                kind="fold_change",
+                value="log2 fold change > 5",
+                cut=5,
+                scale="log2",
+                direction="up",
+            ),
+            StatedSignificance(
+                quote="p-value < 1e-10",
+                kind="significance",
+                value="p < 1e-10",
+                statistic="p_value",
+                at_most=1e-10,
+            ),
+            StatedUntyped(
+                quote="from the 2019 study", kind="untyped", value="2019 study"
+            ),
+            StatedOther(quote="secreted", kind="property", value="secreted"),
+        ]
+    )
+
+    intent = intent_of(_reading("new"), request)
+
+    assert [c.value for c in intent.explicit_constraints] == [
+        PercentileValue(end="top", share=5),
+        FoldChangeValue(cut=5, scale="log2", direction="up"),
+        SignificanceValue(statistic="p_value", at_most=1e-10),
+        UntypedValue(text="2019 study"),
+        None,
+    ]
+
+
+def test_a_stated_percentile_reads_from_the_extraction_s_json() -> None:
+    request = StatedRequest.model_validate(
+        {
+            "requirements": [
+                {
+                    "quote": "top 5 percent",
+                    "kind": "percentile",
+                    "value": "top 5%",
+                    "end": "top",
+                    "share": 5,
+                },
+                {"quote": "secreted", "kind": "property", "value": "secreted"},
+            ]
+        }
+    )
+
+    assert [r.typed() for r in request.requirements] == [
+        PercentileValue(end="top", share=5),
+        None,
+    ]
 
 
 def test_the_named_ids_and_controls_carry_over() -> None:

@@ -9,8 +9,7 @@ them.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters import to_wire
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
+from veupathdb.domain.strategy import StrategyAst, walk
 
 from pathfinder.domain.strategy.ast_diff import StepChange
 from pathfinder.domain.strategy.constraint_grounding import ground_constraints
@@ -216,7 +215,6 @@ def _statuses(
     nodes = list(walk(ast.root))
     for detached in ast.detached_roots:
         nodes.extend(walk(detached))
-    values = _param_values(nodes)
     spec = spec_from_ast(ast, goal="", listed={})
     return [
         grounded.status
@@ -224,19 +222,9 @@ def _statuses(
             requirements,
             RealizedSpec(
                 search_names=[node.search_name for node in nodes],
-                param_names=frozenset(values),
-                param_values=values,
                 structure=spec.structure,
                 criteria=spec.criteria,
                 marks=marks,
             ),
         )
     ]
-
-
-def _param_values(nodes: list[StrategyStepNode]) -> dict[str, str]:
-    return {
-        name: to_wire(value)
-        for node in nodes
-        for name, value in node.parameters.items()
-    }
