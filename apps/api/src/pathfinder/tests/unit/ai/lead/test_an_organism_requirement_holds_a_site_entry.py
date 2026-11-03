@@ -39,6 +39,7 @@ PEST = (
 NEOSPORA = "Carry these to their orthologs in Neospora caninum Liverpool."
 STRAIN_ALONE = "How many protein-coding genes does 3D7 have?"
 SPECIES = "I'm investigating stage-specific expression in Plasmodium falciparum."
+MISSPELLED = "Plasmodium falciparium 3D7 genes with a kinase annotation."
 PF = "Plasmodium falciparum 3D7"
 
 
@@ -133,7 +134,35 @@ async def test_a_choice_the_service_settles_holds_its_entry() -> None:
     await hold_the_intent(deps, _intent(_organism("3D7", PF)), STRAIN_ALONE)
 
     assert _held(deps) == [(PF, PF)]
-    assert (len(service.asked), deps.state.domain.organism_picks) == (2, [])
+    assert (len(service.asked), deps.state.domain.organism_picks) == (1, [])
+
+
+@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
+async def test_a_misspelled_organism_the_choice_settles_holds_its_entry() -> None:
+    use_decisions_transport(_Service(_recorded("organism_misspelled_settles")))
+    deps = _deps("plasmodb", MISSPELLED)
+    words = "Plasmodium falciparium 3D7"
+
+    await hold_the_intent(deps, _intent(_organism(words, words)), MISSPELLED)
+
+    assert _held(deps) == [(PF, PF)]
+    assert deps.state.domain.organism_picks == []
+
+
+@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
+async def test_a_choice_below_the_floor_is_asked_with_its_pick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "decisions_vocab_min_confidence", 0.96)
+    use_decisions_transport(_Service(_recorded("organism_misspelled_settles")))
+    deps = _deps("plasmodb", MISSPELLED)
+    words = "Plasmodium falciparium 3D7"
+
+    await hold_the_intent(deps, _intent(_organism(words, words)), MISSPELLED)
+
+    assert _held(deps) == [(words, None)]
+    [pick] = deps.state.domain.organism_picks
+    assert (pick.picked, pick.confidence, pick.offered[0]) == (PF, 0.95, PF)
 
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")

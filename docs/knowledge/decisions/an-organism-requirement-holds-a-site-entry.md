@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An organism requirement holds a site entry
-description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole, else the one a Decisions choice over the site's entries and a fit predicate settle; otherwise the requirement holds no entry and the card asks which entry the researcher means. Binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
+description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole, else the one a Decisions choice over the site's entries settles; otherwise the requirement holds no entry and the card asks which entry the researcher means. Binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
 tags: [requirements, verification, frame, decisions, organisms]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
@@ -22,9 +22,9 @@ requirement (`ai/lead/organism_reader.py::named_organisms`):
    never bind: an entry the message does not state goes to step 2.
 2. Else one Decisions choice over the site's entries (the 254 nearest the words
    on a site that lists more) and `none_fits` reads the researcher's message and
-   the requirement's quote. A picked entry is asked to a fit predicate, and it
-   binds when the lower of the two reaches `DECISIONS_VOCAB_MIN_CONFIDENCE`. The
-   calls go through the installed Decisions transport, which meters them.
+   the requirement's quote. A picked entry binds when the choice reaches
+   `DECISIONS_VOCAB_MIN_CONFIDENCE`. The call goes through the installed Decisions
+   transport, which meters it.
 3. Else the requirement holds no value and the thread holds the pick
    (`ThreadRequirements.organism_picks`, an `OrganismPick` with the picked entry
    and the nearest entries). The next framing pass's card asks "Which organism of
@@ -68,7 +68,18 @@ turns needed the Decisions step; 4 and 3 of them settled an entry the words
 did not complete to, one over a reading that wrote another genus ("E. bieneusi
 H348" read as Encephalitozoon, settled as Enterocytozoon bieneusi H348).
 
+The choice alone settled all 51 of those requirements to the hand label. Over 14
+misspelled names on nine sites it picked the right entry every time, and over 32
+names that state no single entry it answered `none_fits` for 31; the other,
+"Trypanosoma cruzi CL Brener", bound the site's entry for that strain.
+
 # What was rejected
+
+**A fit predicate after the choice, the lower of the two reaching the floor.**
+Over the same names it refused no wrong entry, and it refused 7 of the 14 misspelled
+names the choice had right (fit 0.09 to 0.42 with choice 0.79 to 1.0). Saying in its
+text that spelling does not matter, over 11 of those names, raised 2 and left 5 below
+the floor.
 
 **Binding the reading's words when they are an entry.** The words are a model's
 reading of the message, and an entry the message does not state, such as a
@@ -86,9 +97,9 @@ be the site's own, so the table is the list the name is compared with.
 # What would prove this wrong
 
 `tests/unit/ai/lead/test_an_organism_requirement_holds_a_site_entry.py` replays
-the two recorded Decisions exchanges (`tests/fixtures/decisions/organism_*.json`:
-"3D7" settled at choice 0.99 and fit 1.0; "Plasmodium falciparum" answered
-`none_fits` at 0.96) over the recorded PlasmoDB list, and holds the completion,
+the recorded Decisions exchanges (`tests/fixtures/decisions/organism_*.json`:
+"3D7" settled at 0.99; "Plasmodium falciparium 3D7" settled at 0.95; "Plasmodium
+falciparum" answered `none_fits` at 0.96) over the recorded PlasmoDB list, and holds the completion,
 the settled entry, the card question, its answer, the unanswered service, the
 mock deployment and the build hold.
 `tests/unit/domain/strategy/test_an_organism_completes_to_an_entry_the_message_states.py`,

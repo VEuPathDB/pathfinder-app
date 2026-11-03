@@ -1,0 +1,560 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "recorded": "2026-11-03, the OpenAI Decisions API on gpt-6-luna, the request the organism reader sends"
+  },
+  "exchanges": [
+    {
+      "request": {
+        "model": "gpt-6-luna",
+        "input": "VEuPathDB site: plasmodb.\nThe researcher's message: Plasmodium falciparium 3D7 genes with a kinase annotation.\nThe words of the message that name the organism: \"Plasmodium falciparium 3D7\"",
+        "questions": [
+          {
+            "type": "choice",
+            "name": "organism",
+            "instructions": "Which organism of the site do the researcher's words name? Choose none_fits when they name a group of organisms, a species the site holds several strains of without naming one, or an organism the site lacks.",
+            "choices": [
+              {
+                "value": "e0",
+                "description": "Haemoproteus tartakovskyi strain SISKIN1"
+              },
+              {
+                "value": "e1",
+                "description": "Hepatocystis sp. ex Piliocolobus tephrosceles 2019"
+              },
+              {
+                "value": "e2",
+                "description": "Plasmodium adleri G01"
+              },
+              {
+                "value": "e3",
+                "description": "Plasmodium berghei ANKA"
+              },
+              {
+                "value": "e4",
+                "description": "Plasmodium billcollinsi G01"
+              },
+              {
+                "value": "e5",
+                "description": "Plasmodium blacklocki G01"
+              },
+              {
+                "value": "e6",
+                "description": "Plasmodium brasilianum strain Bolivian I"
+              },
+              {
+                "value": "e7",
+                "description": "Plasmodium chabaudi chabaudi"
+              },
+              {
+                "value": "e8",
+                "description": "Plasmodium chabaudi chabaudi CB"
+              },
+              {
+                "value": "e9",
+                "description": "Plasmodium coatneyi Hackeri"
+              },
+              {
+                "value": "e10",
+                "description": "Plasmodium cynomolgi strain B"
+              },
+              {
+                "value": "e11",
+                "description": "Plasmodium cynomolgi strain M"
+              },
+              {
+                "value": "e12",
+                "description": "Plasmodium falciparum 3D7"
+              },
+              {
+                "value": "e13",
+                "description": "Plasmodium falciparum 7G8"
+              },
+              {
+                "value": "e14",
+                "description": "Plasmodium falciparum 7G8 2019"
+              },
+              {
+                "value": "e15",
+                "description": "Plasmodium falciparum CD01"
+              },
+              {
+                "value": "e16",
+                "description": "Plasmodium falciparum Dd2"
+              },
+              {
+                "value": "e17",
+                "description": "Plasmodium falciparum GA01"
+              },
+              {
+                "value": "e18",
+                "description": "Plasmodium falciparum GB4"
+              },
+              {
+                "value": "e19",
+                "description": "Plasmodium falciparum GN01"
+              },
+              {
+                "value": "e20",
+                "description": "Plasmodium falciparum HB3"
+              },
+              {
+                "value": "e21",
+                "description": "Plasmodium falciparum IT"
+              },
+              {
+                "value": "e22",
+                "description": "Plasmodium falciparum KE01"
+              },
+              {
+                "value": "e23",
+                "description": "Plasmodium falciparum KH01"
+              },
+              {
+                "value": "e24",
+                "description": "Plasmodium falciparum KH02"
+              },
+              {
+                "value": "e25",
+                "description": "Plasmodium falciparum ML01"
+              },
+              {
+                "value": "e26",
+                "description": "Plasmodium falciparum NF135.C10"
+              },
+              {
+                "value": "e27",
+                "description": "Plasmodium falciparum NF166"
+              },
+              {
+                "value": "e28",
+                "description": "Plasmodium falciparum NF54"
+              },
+              {
+                "value": "e29",
+                "description": "Plasmodium falciparum SD01"
+              },
+              {
+                "value": "e30",
+                "description": "Plasmodium falciparum SN01"
+              },
+              {
+                "value": "e31",
+                "description": "Plasmodium falciparum TG01"
+              },
+              {
+                "value": "e32",
+                "description": "Plasmodium fragile strain nilgiri"
+              },
+              {
+                "value": "e33",
+                "description": "Plasmodium gaboni strain G01"
+              },
+              {
+                "value": "e34",
+                "description": "Plasmodium gaboni strain SY75"
+              },
+              {
+                "value": "e35",
+                "description": "Plasmodium gallinaceum 8A"
+              },
+              {
+                "value": "e36",
+                "description": "Plasmodium inui San Antonio 1"
+              },
+              {
+                "value": "e37",
+                "description": "Plasmodium knowlesi strain A1H1"
+              },
+              {
+                "value": "e38",
+                "description": "Plasmodium knowlesi strain H"
+              },
+              {
+                "value": "e39",
+                "description": "Plasmodium knowlesi strain Malayan Strain Pk1 A"
+              },
+              {
+                "value": "e40",
+                "description": "Plasmodium malariae UG01"
+              },
+              {
+                "value": "e41",
+                "description": "Plasmodium ovale curtisi GH01"
+              },
+              {
+                "value": "e42",
+                "description": "Plasmodium ovale wallikeri PowCR01"
+              },
+              {
+                "value": "e43",
+                "description": "Plasmodium praefalciparum strain G01"
+              },
+              {
+                "value": "e44",
+                "description": "Plasmodium reichenowi CDC"
+              },
+              {
+                "value": "e45",
+                "description": "Plasmodium reichenowi G01"
+              },
+              {
+                "value": "e46",
+                "description": "Plasmodium relictum SGS1-like"
+              },
+              {
+                "value": "e47",
+                "description": "Plasmodium vinckei Cameroon EL"
+              },
+              {
+                "value": "e48",
+                "description": "Plasmodium vinckei brucechwatti DA"
+              },
+              {
+                "value": "e49",
+                "description": "Plasmodium vinckei lentum DE"
+              },
+              {
+                "value": "e50",
+                "description": "Plasmodium vinckei petteri CR 2020"
+              },
+              {
+                "value": "e51",
+                "description": "Plasmodium vinckei petteri strain CR"
+              },
+              {
+                "value": "e52",
+                "description": "Plasmodium vinckei vinckei CY"
+              },
+              {
+                "value": "e53",
+                "description": "Plasmodium vinckei vinckei strain vinckei"
+              },
+              {
+                "value": "e54",
+                "description": "Plasmodium vivax P01"
+              },
+              {
+                "value": "e55",
+                "description": "Plasmodium vivax PAM"
+              },
+              {
+                "value": "e56",
+                "description": "Plasmodium vivax PvSY56"
+              },
+              {
+                "value": "e57",
+                "description": "Plasmodium vivax PvW1"
+              },
+              {
+                "value": "e58",
+                "description": "Plasmodium vivax Sal-1"
+              },
+              {
+                "value": "e59",
+                "description": "Plasmodium vivax-like Pvl01"
+              },
+              {
+                "value": "e60",
+                "description": "Plasmodium yoelii yoelii 17X"
+              },
+              {
+                "value": "e61",
+                "description": "Plasmodium yoelii yoelii 17XNL"
+              },
+              {
+                "value": "e62",
+                "description": "Plasmodium yoelii yoelii 17XNL 2023"
+              },
+              {
+                "value": "e63",
+                "description": "Plasmodium yoelii yoelii YM"
+              },
+              {
+                "value": "none_fits",
+                "description": "The words name no one of these organisms: a genus or a group, a species of several strains with none named, or an organism the site does not hold."
+              }
+            ]
+          }
+        ]
+      },
+      "response": {
+        "answers": [
+          {
+            "type": "choice",
+            "name": "organism",
+            "choice": "e12",
+            "probabilities": [
+              {
+                "value": "e0",
+                "probability": 0.01
+              },
+              {
+                "value": "e1",
+                "probability": 0.0
+              },
+              {
+                "value": "e2",
+                "probability": 0.0
+              },
+              {
+                "value": "e3",
+                "probability": 0.0
+              },
+              {
+                "value": "e4",
+                "probability": 0.0
+              },
+              {
+                "value": "e5",
+                "probability": 0.0
+              },
+              {
+                "value": "e6",
+                "probability": 0.0
+              },
+              {
+                "value": "e7",
+                "probability": 0.0
+              },
+              {
+                "value": "e8",
+                "probability": 0.0
+              },
+              {
+                "value": "e9",
+                "probability": 0.0
+              },
+              {
+                "value": "e10",
+                "probability": 0.0
+              },
+              {
+                "value": "e11",
+                "probability": 0.0
+              },
+              {
+                "value": "e12",
+                "probability": 0.95
+              },
+              {
+                "value": "e13",
+                "probability": 0.01
+              },
+              {
+                "value": "e14",
+                "probability": 0.0
+              },
+              {
+                "value": "e15",
+                "probability": 0.0
+              },
+              {
+                "value": "e16",
+                "probability": 0.0
+              },
+              {
+                "value": "e17",
+                "probability": 0.0
+              },
+              {
+                "value": "e18",
+                "probability": 0.0
+              },
+              {
+                "value": "e19",
+                "probability": 0.0
+              },
+              {
+                "value": "e20",
+                "probability": 0.0
+              },
+              {
+                "value": "e21",
+                "probability": 0.0
+              },
+              {
+                "value": "e22",
+                "probability": 0.0
+              },
+              {
+                "value": "e23",
+                "probability": 0.0
+              },
+              {
+                "value": "e24",
+                "probability": 0.0
+              },
+              {
+                "value": "e25",
+                "probability": 0.0
+              },
+              {
+                "value": "e26",
+                "probability": 0.0
+              },
+              {
+                "value": "e27",
+                "probability": 0.0
+              },
+              {
+                "value": "e28",
+                "probability": 0.0
+              },
+              {
+                "value": "e29",
+                "probability": 0.0
+              },
+              {
+                "value": "e30",
+                "probability": 0.0
+              },
+              {
+                "value": "e31",
+                "probability": 0.0
+              },
+              {
+                "value": "e32",
+                "probability": 0.0
+              },
+              {
+                "value": "e33",
+                "probability": 0.0
+              },
+              {
+                "value": "e34",
+                "probability": 0.0
+              },
+              {
+                "value": "e35",
+                "probability": 0.0
+              },
+              {
+                "value": "e36",
+                "probability": 0.0
+              },
+              {
+                "value": "e37",
+                "probability": 0.0
+              },
+              {
+                "value": "e38",
+                "probability": 0.0
+              },
+              {
+                "value": "e39",
+                "probability": 0.0
+              },
+              {
+                "value": "e40",
+                "probability": 0.0
+              },
+              {
+                "value": "e41",
+                "probability": 0.0
+              },
+              {
+                "value": "e42",
+                "probability": 0.0
+              },
+              {
+                "value": "e43",
+                "probability": 0.0
+              },
+              {
+                "value": "e44",
+                "probability": 0.0
+              },
+              {
+                "value": "e45",
+                "probability": 0.0
+              },
+              {
+                "value": "e46",
+                "probability": 0.0
+              },
+              {
+                "value": "e47",
+                "probability": 0.0
+              },
+              {
+                "value": "e48",
+                "probability": 0.0
+              },
+              {
+                "value": "e49",
+                "probability": 0.0
+              },
+              {
+                "value": "e50",
+                "probability": 0.0
+              },
+              {
+                "value": "e51",
+                "probability": 0.0
+              },
+              {
+                "value": "e52",
+                "probability": 0.0
+              },
+              {
+                "value": "e53",
+                "probability": 0.0
+              },
+              {
+                "value": "e54",
+                "probability": 0.0
+              },
+              {
+                "value": "e55",
+                "probability": 0.0
+              },
+              {
+                "value": "e56",
+                "probability": 0.0
+              },
+              {
+                "value": "e57",
+                "probability": 0.0
+              },
+              {
+                "value": "e58",
+                "probability": 0.0
+              },
+              {
+                "value": "e59",
+                "probability": 0.0
+              },
+              {
+                "value": "e60",
+                "probability": 0.0
+              },
+              {
+                "value": "e61",
+                "probability": 0.0
+              },
+              {
+                "value": "e62",
+                "probability": 0.0
+              },
+              {
+                "value": "e63",
+                "probability": 0.0
+              },
+              {
+                "value": "none_fits",
+                "probability": 0.03
+              }
+            ],
+            "confidence": 0.95
+          }
+        ],
+        "usage": {
+          "input_tokens": 1272,
+          "cached_tokens": 0,
+          "cache_write_tokens": 0
+        }
+      }
+    }
+  ]
+}

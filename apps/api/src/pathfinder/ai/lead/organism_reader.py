@@ -10,7 +10,6 @@ from veupathdb_mcp.catalog import (
     DecisionRequest,
     DecisionResponse,
     DecisionsTransport,
-    PredicateQuestion,
     decide,
 )
 
@@ -27,7 +26,6 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_keys import is_mock_deployment
 
 ORGANISM_QUESTION = "organism"
-FIT_QUESTION = "fits"
 NONE_FITS = "none_fits"
 _PURPOSE = "organism entry"
 _MAX_ENTRIES = 254
@@ -40,10 +38,6 @@ _CHOICE_TEXT = (
 _NONE_FITS_TEXT = (
     "The words name no one of these organisms: a genus or a group, a species "
     "of several strains with none named, or an organism the site does not hold."
-)
-_FIT_TEXT = (
-    "The researcher's words name exactly the proposed organism: not a broader "
-    "group, not a species whose strain they leave open, and not another organism."
 )
 
 
@@ -89,13 +83,6 @@ def organism_request(
     )
 
 
-def fit_request(site_id: str, message: str, quote: str, entry: str) -> DecisionRequest:
-    return DecisionRequest(
-        input=f"{_state(site_id, message, quote)}\nProposed organism: {entry}",
-        questions=[PredicateQuestion(name=FIT_QUESTION, instructions=_FIT_TEXT)],
-    )
-
-
 def _entry_of(choice: str, entries: Sequence[str]) -> str | None:
     if choice == NONE_FITS:
         return None
@@ -129,14 +116,10 @@ class _Reading:
         picked = None if answer is None else _entry_of(answer.choice, entries)
         if answer is None or picked is None:
             return OrganismPick(quote=quote, offered=self.offered(None, words))
-        fit = await self.ask(fit_request(self.site_id, self.message, quote, picked))
-        judged = None if fit is None else fit.predicate(FIT_QUESTION)
         return OrganismPick(
             quote=quote,
             picked=picked,
-            confidence=0.0
-            if judged is None
-            else min(answer.confidence, judged.probability),
+            confidence=answer.confidence,
             offered=self.offered(picked, words),
         )
 
@@ -203,11 +186,9 @@ async def named_organisms(
 
 
 __all__ = [
-    "FIT_QUESTION",
     "NONE_FITS",
     "ORGANISM_QUESTION",
     "NamedOrganisms",
-    "fit_request",
     "named_organisms",
     "organism_request",
 ]
