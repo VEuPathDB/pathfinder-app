@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import unicodedata
 from collections.abc import AsyncIterator, Sequence
 
 from pathfinder.domain.audit.verdicts import FindingReview
@@ -39,11 +40,23 @@ HEADER = [
     "Gene pages",
 ]
 EXPORT_PAGE = MAX_PAGE
-_FORMULA = ("=", "+", "-", "@", "\t", "\r")
+_NUMBER_COLUMNS = frozenset({"Impact", "Impact after review"})
+_FORMULA = frozenset("=+-@")
+_BLANK_CATEGORIES = ("C", "Z")
+
+
+def _first_mark(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", text)
+    marks = (
+        c
+        for c in normalized
+        if not unicodedata.category(c).startswith(_BLANK_CATEGORIES)
+    )
+    return next(marks, "")
 
 
 def safe_cell(text: str) -> str:
-    return f"'{text}" if text.startswith(_FORMULA) else text
+    return f"'{text}" if _first_mark(text) in _FORMULA else text
 
 
 def _evidence_text(evidence: Sequence[AuditEvidenceRecord]) -> str:
@@ -94,22 +107,25 @@ def finding_row(
         _evidence_text(evidence),
         "; ".join(link.url for link in finding.genes),
     ]
-    return [safe_cell(cell) for cell in cells]
+    return [
+        cell if column in _NUMBER_COLUMNS else safe_cell(cell)
+        for column, cell in zip(HEADER, cells, strict=True)
+    ]
 
 
-def _line(cells: list[str]) -> str:
+def csv_line(cells: list[str]) -> str:
     out = io.StringIO()
-    csv.writer(out).writerow(cells)
+    csv.writer(out, quoting=csv.QUOTE_ALL).writerow(cells)
     return out.getvalue()
 
 
 async def finding_lines(run: AuditRunRecord) -> AsyncIterator[str]:
-    yield _line(HEADER)
+    yield csv_line(HEADER)
     offset = 0
     while True:
         stored = await stored_findings(run, offset=offset, limit=EXPORT_PAGE)
         for row in stored:
-            yield _line(finding_row(row.finding, row.evidence, row.review))
+            yield csv_line(finding_row(row.finding, row.evidence, row.review))
         if len(stored) < EXPORT_PAGE:
             return
         offset += len(stored)
