@@ -1,0 +1,624 @@
+{
+  "provenance": {
+    "recordedAt": "2026-11-03",
+    "requests": [
+      "GET {deployment}/studies/{studyId}",
+      "POST {deployment}/studies/{studyId}/entities/{sampleEntity}/count",
+      "GET {deployment}/jobs/{jobId}"
+    ],
+    "countBody": "{filters: subset + one stringSet filter of the group's labels on the comparator}",
+    "trim": "Each study keeps the comparator, subset, value and gene variables; the gene vocabulary keeps its first 3 values."
+  },
+  "cases": [
+    {
+      "name": "tritrypdb_procyclic_bloodstream",
+      "site": "tritrypdb",
+      "deployment": "https://qa.tritrypdb.org/eda",
+      "studyId": "STUDY_da32747f09",
+      "sampleEntity": "ENT_8151325d",
+      "valueEntity": "ENT_b2715304",
+      "valueVariable": "SEQUENCE_READ_COUNT_SENSE",
+      "comparatorVariable": "VAR_ca7fe9da",
+      "subset": [
+        {
+          "entityId": "ENT_8151325d",
+          "variableId": "VAR_b7e3556c",
+          "type": "stringSet",
+          "stringSet": [
+            "mRNA transcriptome"
+          ]
+        }
+      ],
+      "groupA": [
+        "procyclic form"
+      ],
+      "groupB": [
+        "bloodstream form"
+      ],
+      "counts": {
+        "groupA": 1,
+        "groupB": 1
+      },
+      "study": {
+        "id": "STUDY_da32747f09",
+        "isUserStudy": false,
+        "hasMap": false,
+        "rootEntity": {
+          "id": "ENT_8151325d",
+          "idColumnName": "sample_stable_id",
+          "displayName": "Sample",
+          "displayNamePlural": "Samples",
+          "description": "No Entity Description available",
+          "isManyToOneWithParent": false,
+          "variables": [
+            {
+              "id": "VAR_b7e3556c",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"assay type\"]",
+              "displayName": "assay type",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 3,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "mRNA transcriptome",
+                "ribosome profiling"
+              ],
+              "distinctValuesCount": 2,
+              "isTemporal": false,
+              "isFeatured": false,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            },
+            {
+              "id": "VAR_ca7fe9da",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"parasite form\"]",
+              "displayName": "parasite form",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 4,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "bloodstream form",
+                "procyclic form"
+              ],
+              "distinctValuesCount": 2,
+              "isTemporal": false,
+              "isFeatured": false,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            }
+          ],
+          "children": [
+            {
+              "id": "ENT_b2715304",
+              "idColumnName": "tTREU92hc_stable_id",
+              "displayName": "tbruTREU927 htseq counts",
+              "displayNamePlural": "tbruTREU927 htseq counts",
+              "description": "No Entity Description available",
+              "isManyToOneWithParent": true,
+              "variables": [
+                {
+                  "id": "SEQUENCE_READ_COUNT_SENSE",
+                  "parentId": "ENT_b2715304",
+                  "providerLabel": "[\"Sense.Count\"]",
+                  "displayName": "Sense Count",
+                  "definition": "",
+                  "displayType": "default",
+                  "displayOrder": 1,
+                  "type": "integer",
+                  "hideFrom": [],
+                  "dataShape": "continuous",
+                  "distinctValuesCount": 3435,
+                  "isTemporal": false,
+                  "isFeatured": true,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false,
+                  "distributionDefaults": {
+                    "rangeMin": 0,
+                    "rangeMax": 156399,
+                    "binWidth": 5046
+                  },
+                  "units": ""
+                },
+                {
+                  "id": "VEUPATHDB_GENE_ID",
+                  "parentId": "ENT_b2715304",
+                  "providerLabel": "[\"Gene\"]",
+                  "displayName": "Gene",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "string",
+                  "hideFrom": [],
+                  "dataShape": "categorical",
+                  "vocabulary": [
+                    "Tb04.24M18.150",
+                    "Tb04.3I12.100",
+                    "Tb05.30F7.410"
+                  ],
+                  "distinctValuesCount": 13228,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsporidiadb_8_64_hour",
+      "site": "microsporidiadb",
+      "deployment": "https://qa.microsporidiadb.org/eda",
+      "studyId": "STUDY_ebe5b9c18d",
+      "sampleEntity": "ENT_8151325d",
+      "valueEntity": "ENT_7f38e6da",
+      "valueVariable": "SEQUENCE_READ_COUNT_SENSE",
+      "comparatorVariable": "VAR_64c65374",
+      "subset": [],
+      "groupA": [
+        "8 hour"
+      ],
+      "groupB": [
+        "64 hour"
+      ],
+      "counts": {
+        "groupA": 1,
+        "groupB": 1
+      },
+      "study": {
+        "id": "STUDY_ebe5b9c18d",
+        "isUserStudy": false,
+        "hasMap": false,
+        "rootEntity": {
+          "id": "ENT_8151325d",
+          "idColumnName": "sample_stable_id",
+          "displayName": "Sample",
+          "displayNamePlural": "Samples",
+          "description": "No Entity Description available",
+          "isManyToOneWithParent": false,
+          "variables": [
+            {
+              "id": "VAR_64c65374",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"label\"]",
+              "displayName": "label",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 1,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "16 hour",
+                "30 hour",
+                "40 hour",
+                "64 hour",
+                "8 hour",
+                "Spores"
+              ],
+              "distinctValuesCount": 6,
+              "isTemporal": false,
+              "isFeatured": true,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            }
+          ],
+          "children": [
+            {
+              "id": "ENT_7f38e6da",
+              "idColumnName": "nprERT1hc_stable_id",
+              "displayName": "nparERTm1 htseq counts",
+              "displayNamePlural": "nparERTm1 htseq counts",
+              "description": "No Entity Description available",
+              "isManyToOneWithParent": true,
+              "variables": [
+                {
+                  "id": "SEQUENCE_READ_COUNT_SENSE",
+                  "parentId": "ENT_7f38e6da",
+                  "providerLabel": "[\"Sense.Count\"]",
+                  "displayName": "Sense Count",
+                  "definition": "",
+                  "displayType": "default",
+                  "displayOrder": 1,
+                  "type": "integer",
+                  "hideFrom": [],
+                  "dataShape": "continuous",
+                  "distinctValuesCount": 1164,
+                  "isTemporal": false,
+                  "isFeatured": true,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false,
+                  "distributionDefaults": {
+                    "rangeMin": 0,
+                    "rangeMax": 73273362,
+                    "binWidth": 2616906
+                  },
+                  "units": ""
+                },
+                {
+                  "id": "VEUPATHDB_GENE_ID",
+                  "parentId": "ENT_7f38e6da",
+                  "providerLabel": "[\"Gene\"]",
+                  "displayName": "Gene",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "string",
+                  "hideFrom": [],
+                  "dataShape": "categorical",
+                  "vocabulary": [
+                    "NEPG_00001",
+                    "NEPG_00002",
+                    "NEPG_00003"
+                  ],
+                  "distinctValuesCount": 2724,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fungidb_normoxia_hypoxia_t12",
+      "site": "fungidb",
+      "deployment": "https://qa.fungidb.org/eda",
+      "studyId": "STUDY_93c159b846",
+      "sampleEntity": "ENT_8151325d",
+      "valueEntity": "ENT_7e1996f7",
+      "valueVariable": "SEQUENCE_READ_COUNT",
+      "comparatorVariable": "VAR_165bd364",
+      "subset": [
+        {
+          "entityId": "ENT_8151325d",
+          "variableId": "VAR_5a3fb09e",
+          "type": "stringSet",
+          "stringSet": [
+            "mycelia"
+          ]
+        },
+        {
+          "entityId": "ENT_8151325d",
+          "variableId": "VAR_64c65374",
+          "type": "stringSet",
+          "stringSet": [
+            "Mycelia_T12"
+          ]
+        }
+      ],
+      "groupA": [
+        "normoxia"
+      ],
+      "groupB": [
+        "hypoxia"
+      ],
+      "counts": {
+        "groupA": 0,
+        "groupB": 1
+      },
+      "study": {
+        "id": "STUDY_93c159b846",
+        "isUserStudy": false,
+        "hasMap": false,
+        "rootEntity": {
+          "id": "ENT_8151325d",
+          "idColumnName": "sample_stable_id",
+          "displayName": "Sample",
+          "displayNamePlural": "Samples",
+          "description": "No Entity Description available",
+          "isManyToOneWithParent": false,
+          "variables": [
+            {
+              "id": "VAR_165bd364",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"stress\"]",
+              "displayName": "stress",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 4,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "hypoxia",
+                "normoxia"
+              ],
+              "distinctValuesCount": 2,
+              "isTemporal": false,
+              "isFeatured": false,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            },
+            {
+              "id": "VAR_5a3fb09e",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"fungal stage\"]",
+              "displayName": "fungal stage",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 3,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "mycelia"
+              ],
+              "distinctValuesCount": 1,
+              "isTemporal": false,
+              "isFeatured": false,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            },
+            {
+              "id": "VAR_64c65374",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"label\"]",
+              "displayName": "label",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 1,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "Mycelia_T0",
+                "Mycelia_T12",
+                "Mycelia_T24",
+                "Mycelia_T36"
+              ],
+              "distinctValuesCount": 4,
+              "isTemporal": false,
+              "isFeatured": true,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            }
+          ],
+          "children": [
+            {
+              "id": "ENT_7e1996f7",
+              "idColumnName": "afmA293hc_stable_id",
+              "displayName": "afumAf293 htseq counts",
+              "displayNamePlural": "afumAf293 htseq counts",
+              "description": "No Entity Description available",
+              "isManyToOneWithParent": true,
+              "variables": [
+                {
+                  "id": "SEQUENCE_READ_COUNT",
+                  "parentId": "ENT_7e1996f7",
+                  "providerLabel": "[\"Count\"]",
+                  "displayName": "Count",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "integer",
+                  "hideFrom": [],
+                  "dataShape": "continuous",
+                  "distinctValuesCount": 4994,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false,
+                  "distributionDefaults": {
+                    "rangeMin": 0,
+                    "rangeMax": 3595695,
+                    "binWidth": 115991
+                  },
+                  "units": ""
+                },
+                {
+                  "id": "VEUPATHDB_GENE_ID",
+                  "parentId": "ENT_7e1996f7",
+                  "providerLabel": "[\"Gene\"]",
+                  "displayName": "Gene",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "string",
+                  "hideFrom": [],
+                  "dataShape": "categorical",
+                  "vocabulary": [
+                    "Afu1g00100",
+                    "Afu1g00110",
+                    "Afu1g00120"
+                  ],
+                  "distinctValuesCount": 10130,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hostdb_sporozoite_timepoints",
+      "site": "hostdb",
+      "deployment": "https://qa.hostdb.org/eda",
+      "studyId": "STUDY_833d16a0c8",
+      "sampleEntity": "ENT_8151325d",
+      "valueEntity": "ENT_d282b742",
+      "valueVariable": "SEQUENCE_READ_COUNT",
+      "comparatorVariable": "VAR_64c65374",
+      "subset": [],
+      "groupA": [
+        "sporozoite"
+      ],
+      "groupB": [
+        "12 hpi HuH7",
+        "18 hpi HepG2",
+        "18 hpi HuH7",
+        "2 hpi HepG2",
+        "2 hpi HuH7",
+        "24 hpi HepG2",
+        "24 hpi HuH7",
+        "36 hpi HepG2",
+        "36 hpi HuH7",
+        "4 hpi HepG2",
+        "4 hpi HuH7",
+        "48 hpi HepG2",
+        "48 hpi HuH7"
+      ],
+      "counts": {
+        "groupA": 4,
+        "groupB": 31
+      },
+      "study": {
+        "id": "STUDY_833d16a0c8",
+        "isUserStudy": false,
+        "hasMap": false,
+        "rootEntity": {
+          "id": "ENT_8151325d",
+          "idColumnName": "sample_stable_id",
+          "displayName": "Sample",
+          "displayNamePlural": "Samples",
+          "description": "No Entity Description available",
+          "isManyToOneWithParent": false,
+          "variables": [
+            {
+              "id": "VAR_64c65374",
+              "parentId": "ENT_8151325d",
+              "providerLabel": "[\"label\"]",
+              "displayName": "label",
+              "definition": "",
+              "displayType": "default",
+              "displayOrder": 1,
+              "type": "string",
+              "hideFrom": [],
+              "dataShape": "categorical",
+              "vocabulary": [
+                "12 hpi HuH7",
+                "18 hpi HepG2",
+                "18 hpi HuH7",
+                "2 hpi HepG2",
+                "2 hpi HuH7",
+                "24 hpi HepG2",
+                "24 hpi HuH7",
+                "36 hpi HepG2",
+                "36 hpi HuH7",
+                "4 hpi HepG2",
+                "4 hpi HuH7",
+                "48 hpi HepG2",
+                "48 hpi HuH7",
+                "sporozoite"
+              ],
+              "distinctValuesCount": 14,
+              "isTemporal": false,
+              "isFeatured": true,
+              "isMergeKey": false,
+              "isMultiValued": false,
+              "imputeZero": false,
+              "hasStudyDependentVocabulary": false
+            }
+          ],
+          "children": [
+            {
+              "id": "ENT_d282b742",
+              "idColumnName": "hspREFhtc_stable_id",
+              "displayName": "hsapREF htseq counts",
+              "displayNamePlural": "hsapREF htseq counts",
+              "description": "No Entity Description available",
+              "isManyToOneWithParent": true,
+              "variables": [
+                {
+                  "id": "SEQUENCE_READ_COUNT",
+                  "parentId": "ENT_d282b742",
+                  "providerLabel": "[\"Count\"]",
+                  "displayName": "Count",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "integer",
+                  "hideFrom": [],
+                  "dataShape": "continuous",
+                  "distinctValuesCount": 20395,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false,
+                  "distributionDefaults": {
+                    "rangeMin": 0,
+                    "rangeMax": 2546207,
+                    "binWidth": 65288
+                  },
+                  "units": ""
+                },
+                {
+                  "id": "VEUPATHDB_GENE_ID",
+                  "parentId": "ENT_d282b742",
+                  "providerLabel": "[\"Gene\"]",
+                  "displayName": "Gene",
+                  "definition": "",
+                  "displayType": "default",
+                  "type": "string",
+                  "hideFrom": [],
+                  "dataShape": "categorical",
+                  "vocabulary": [
+                    "ENSG00000000003",
+                    "ENSG00000000005",
+                    "ENSG00000000419"
+                  ],
+                  "distinctValuesCount": 60675,
+                  "isTemporal": false,
+                  "isFeatured": false,
+                  "isMergeKey": false,
+                  "isMultiValued": false,
+                  "imputeZero": false,
+                  "hasStudyDependentVocabulary": false
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "failedJob": {
+    "site": "hostdb",
+    "url": "https://qa.hostdb.org/eda/jobs/6e87a7a9b077846fe8741298acfef8dd",
+    "body": {
+      "jobID": "6e87a7a9b077846fe8741298acfef8dd",
+      "status": "failed"
+    }
+  }
+}

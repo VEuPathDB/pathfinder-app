@@ -7,7 +7,7 @@ document, plus the thread binding the worker impl reads the analysis through.
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from itertools import count
 from typing import Any
@@ -120,6 +120,7 @@ def permissions() -> dict[str, Any]:
 class Call:
     path: str
     body: Any
+    autostart: bool = False
 
 
 def _recorded(path: str) -> httpx.Response | None:
@@ -149,16 +150,27 @@ def _recorded(path: str) -> httpx.Response | None:
 
 
 def handler(
-    statuses: Sequence[str], calls: list[Call], store: AnalysisStore
+    statuses: Sequence[str],
+    calls: list[Call],
+    store: AnalysisStore,
+    sample_count: Callable[[httpx.Request], httpx.Response] | None = None,
 ) -> httpx.MockTransport:
     remaining = list(statuses)
 
     def handle(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         content = request.content
-        calls.append(Call(path=path, body=json.loads(content) if content else None))
+        calls.append(
+            Call(
+                path=path,
+                body=json.loads(content) if content else None,
+                autostart=request.url.params.get("autostart") == "true",
+            )
+        )
         if "/analyses/" in path:
             return store.respond(request)
+        if sample_count is not None and path.endswith("/count"):
+            return sample_count(request)
         recorded = _recorded(path)
         if recorded is not None:
             return recorded
@@ -187,6 +199,7 @@ def install(
     monkeypatch: pytest.MonkeyPatch,
     *statuses: str,
     real_binding: bool = False,
+    sample_count: Callable[[httpx.Request], httpx.Response] | None = None,
 ) -> Wire:
     """Serve the EDA wire from a recorded transport, for both service modules.
 
@@ -197,7 +210,7 @@ def install(
     store = AnalysisStore(detail=detail(SUBSET))
     client = EdaClient(
         base_url="https://qa.plasmodb.org/eda",
-        transport=handler(statuses, calls, store),
+        transport=handler(statuses, calls, store, sample_count),
     )
 
     async def user_id(_site: str) -> str:

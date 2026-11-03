@@ -42,12 +42,14 @@ from pathfinder.services.eda.compute import (
     DEFAULT_VOLCANO_CUT,
     RetainedSummary,
     comparison_of,
+    lookup_job,
     read_statistics,
     retained_summary,
     volcano_view,
 )
 from pathfinder.services.eda.compute_jobs import refusal_of, settled_job
 from pathfinder.services.eda.direction import sign_sentence
+from pathfinder.services.eda.group_samples import group_samples, too_few_samples
 
 _COMPUTE_NAME = "differentialexpression"
 
@@ -231,6 +233,21 @@ async def run_eda_compute_impl(
     if errors:
         raise ValueError(" ".join(errors))
 
+    samples = await group_samples(
+        binding.site_id, study=bound.study, config=config, filters=bound.filters
+    )
+    refusal = too_few_samples(samples, method=method)
+    if refusal is not None:
+        held = await lookup_job(
+            binding.site_id,
+            compute_name=_COMPUTE_NAME,
+            study_id=bound.entry.study_id,
+            config=config,
+            filters=bound.filters,
+        )
+        if held.status != "complete":
+            raise refusal
+
     job = await settled_job(
         binding.site_id,
         compute_name=_COMPUTE_NAME,
@@ -240,7 +257,11 @@ async def run_eda_compute_impl(
         progress=progress,
     )
     if job.status != "complete":
-        raise refusal_of(job, job_name="differential-expression")
+        raise refusal_of(
+            job,
+            job_name="differential-expression",
+            stated=None if samples is None else samples.stated,
+        )
 
     await progress.update(percent=0.9, message="Reading the statistics")
     statistics = await read_statistics(

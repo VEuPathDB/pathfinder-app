@@ -364,7 +364,8 @@ async def test_a_failed_job_is_refused_with_its_status(
     assert str(refused.value) == (
         f"The dimensionality-reduction job {_JOB} is failed. The site's "
         f"compute service publishes no reason for a failed job, so the cause is "
-        f"not known."
+        f"not known. A job id is a hash of the request and the service does not "
+        f"run a failed job again, so the same arguments return this same job."
     )
     assert thread.chunks == []
 

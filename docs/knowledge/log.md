@@ -16,6 +16,16 @@
   reads the strategy again. See
   [the decision](decisions/a-canvas-edit-is-refused-while-a-writer-holds-a-tree.md). The
   backlog item is done and removed. `PATCH /conversations/{id}` no longer takes `strategyAst`.
+* **A DESeq comparison with no sample or no replicate is refused.** `run_eda_compute_impl`
+  counts each group's samples on the sample entity before a job starts, two requests,
+  and refuses a DESeq job with both counts when a group has no sample or neither group
+  has a replicate, unless the service already holds it complete. One sample against a
+  group with replicates runs. Limma is not refused. A count that cannot be read refuses
+  nothing. A failed job keeps "the cause is not known", states the counts and says the
+  same arguments return the same job. `refusal_of` no longer says the service lists no
+  file: a failed job lists three, and its `exception.log` names no cause. See
+  [the decision](decisions/a-deseq-comparison-with-no-sample-or-no-replicate-is-refused.md).
+  New: why a DESeq job with replicates failed.
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`
   gives equal forms; a regrouping, a changed count and a changed code stay a
@@ -348,7 +358,7 @@
   ortholog question, because a genus was bound as every genome of the genus
   ([backlog](backlog/an-ortholog-in-a-genus-means-any-of-its-genomes.md)). Four
   differential-expression jobs failed with no reason
-  ([backlog](backlog/a-failed-differential-expression-job-says-why.md)), and "under
+  ([decision](decisions/a-deseq-comparison-with-no-sample-or-no-replicate-is-refused.md)), and "under
   30 kDa" kept a 10 kDa minimum
   ([backlog](backlog/an-upper-bound-alone-keeps-no-default-lower-bound.md)). QA
   answered 500 to POST `.../columns/organism/reports/byValue` in 8 turns, so those

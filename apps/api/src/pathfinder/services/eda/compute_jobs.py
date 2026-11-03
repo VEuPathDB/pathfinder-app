@@ -82,17 +82,22 @@ async def settled_job(
     return job
 
 
-def refusal_of(job: EdaComputeJob, *, job_name: str) -> RuntimeError:
+def refusal_of(
+    job: EdaComputeJob, *, job_name: str, stated: str | None = None
+) -> RuntimeError:
     """Why a job that did not complete yields no result.
 
-    The service lists no file for a failed job, so its cause is not known.
+    The log of a failed job names no cause. ``stated`` is what else is known of the job.
     """
     match job.status:
         case "failed":
+            known = f" {stated}" if stated else ""
             return RuntimeError(
                 f"The {job_name} job {job.job_id} is failed. The site's compute "
                 f"service publishes no reason for a failed job, so the cause is "
-                f"not known."
+                f"not known.{known} A job id is a hash of the request and the "
+                f"service does not run a failed job again, so the same arguments "
+                f"return this same job."
             )
         case "expired":
             meaning = "the result is gone and the job needs a resubmit"

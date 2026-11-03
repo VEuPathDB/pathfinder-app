@@ -29,6 +29,7 @@ from pathfinder.services.eda import (
     catalog,
     compute,
     gene_subset,
+    group_samples,
     reduction,
     statistics,
 )
@@ -225,7 +226,15 @@ def wire_eda_client(monkeypatch: pytest.MonkeyPatch, client: EdaClient) -> None:
     def analyses(site_id: str) -> EdaAnalysesClient:
         return EdaAnalysesClient(client=client, project_id=get_site(site_id).project_id)
 
-    for module in (catalog, authoring, compute, gene_subset, reduction, statistics):
+    for module in (
+        catalog,
+        authoring,
+        compute,
+        gene_subset,
+        group_samples,
+        reduction,
+        statistics,
+    ):
         monkeypatch.setattr(module, "get_eda_client", lambda _site: client)
     for module in (authoring, binding):
         monkeypatch.setattr(module, "get_eda_analyses_client", analyses)

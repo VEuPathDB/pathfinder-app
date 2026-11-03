@@ -17,8 +17,26 @@ def _message(status: str) -> str:
 def test_a_failed_job_says_the_site_gives_no_reason() -> None:
     assert _message("failed") == (
         f"The differential-expression job {JOB_ID} is failed. The site's compute "
-        f"service publishes no reason for a failed job, so the cause is not known."
+        f"service publishes no reason for a failed job, so the cause is not known. "
+        f"A job id is a hash of the request and the service does not run a failed "
+        f"job again, so the same arguments return this same job."
     )
+
+
+def test_a_failed_job_carries_what_else_is_known_of_it() -> None:
+    job = EdaComputeJob.model_validate({"jobID": JOB_ID, "status": "failed"})
+
+    message = str(refusal_of(job, job_name="a", stated="Group A holds 4 samples."))
+
+    assert "not known. Group A holds 4 samples. A job id" in message
+
+
+def test_only_a_failed_job_carries_what_else_is_known() -> None:
+    job = EdaComputeJob.model_validate({"jobID": JOB_ID, "status": "expired"})
+
+    message = str(refusal_of(job, job_name="a", stated="Group A holds 4 samples."))
+
+    assert "4 samples" not in message
 
 
 def test_an_expired_job_names_the_resubmit() -> None:
