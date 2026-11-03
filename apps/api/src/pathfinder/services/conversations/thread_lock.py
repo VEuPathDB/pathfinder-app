@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import ThreadBusyError
+from pathfinder.platform.thread_refusals import ThreadBusyError
 
 __all__ = [
     "HOLD_IDLE_SECONDS",

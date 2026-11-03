@@ -24,7 +24,7 @@ from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.persistence.rows import rows_changed
-from pathfinder.platform.errors import RevertRefusedError
+from pathfinder.platform.thread_refusals import RevertRefusedError
 from pathfinder.services.conversations.surgery_commit import SurgeryMade
 from pathfinder.services.conversations.thread_busy import (
     ThreadBusy,

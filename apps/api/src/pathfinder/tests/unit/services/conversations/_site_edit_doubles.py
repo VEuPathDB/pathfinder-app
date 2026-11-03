@@ -236,6 +236,9 @@ def install_the_site(monkeypatch: pytest.MonkeyPatch, site: dict[str, Any]) -> R
     async def _lock(*_args: Any, **_kwargs: Any) -> AsyncIterator[None]:
         yield None
 
+    async def _settled(*_args: Any, **_kwargs: Any) -> None:
+        return None
+
     async def _persist(
         *, deps: StrategyMutationContext, graph: StrategyGraph, sync_result: Any
     ) -> None:
@@ -256,6 +259,7 @@ def install_the_site(monkeypatch: pytest.MonkeyPatch, site: dict[str, Any]) -> R
 
     monkeypatch.setattr(strategy_ops, "get_owned_thread", _owned)
     monkeypatch.setattr(strategy_ops, "strategy_write_lock", _lock)
+    monkeypatch.setattr(strategy_ops, "refuse_an_edit_on_a_busy_thread", _settled)
     monkeypatch.setattr(strategy_ops, "ConversationRepository", lambda _s: repo)
     monkeypatch.setattr(strategy_ops, "persist_strategy_ast_to_conversation", _persist)
     monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _persist)

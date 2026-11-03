@@ -40,6 +40,9 @@ from pathfinder.services.conversations.responses import (
     build_conversation_response,
     build_conversation_summary,
 )
+from pathfinder.services.conversations.thread_busy import (
+    refuse_an_edit_on_a_busy_thread,
+)
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.dataset_sources import save_dataset_sources
@@ -183,8 +186,9 @@ async def apply_operation(
     # A thread the caller does not own takes no lock. The state is read again
     # inside the lock, because another writer may have moved it since.
     await get_owned_thread(repo, conversation_id, user_id)
-    op = await save_dataset_sources(site_id, op)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
+        await refuse_an_edit_on_a_busy_thread(locked, conversation_id)
+        op = await save_dataset_sources(site_id, op)
         locked_repo = ConversationRepository(locked)
         conversation, strategy = await get_owned_thread(
             locked_repo, conversation_id, user_id
@@ -356,6 +360,7 @@ async def insert_saved(
     # and writes the whole tree back, so it holds the lock across all three.
     await get_owned_thread(repo, conversation_id, user_id)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
+        await refuse_an_edit_on_a_busy_thread(locked, conversation_id)
         conversation, strategy = await get_owned_thread(
             ConversationRepository(locked), conversation_id, user_id
         )

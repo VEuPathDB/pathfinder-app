@@ -20970,6 +20970,7 @@
           "CONVERSATION_FROM_EARLIER_BUILD",
           "FORK_REFUSED",
           "REVERT_REFUSED",
+          "EDIT_REFUSED",
           "ASSISTANT_NOT_FOUND",
           "ASSISTANT_MISMATCH",
           "EDA_NO_OPEN_ANALYSIS",

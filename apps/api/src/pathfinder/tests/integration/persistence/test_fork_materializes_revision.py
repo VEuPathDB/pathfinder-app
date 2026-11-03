@@ -22,7 +22,8 @@ from pathfinder.persistence.models import (
 )
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import ErrorCode, ForkRefusedError
+from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.thread_refusals import ForkRefusedError
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 from pathfinder.tests._support.second_assistant import HELPER

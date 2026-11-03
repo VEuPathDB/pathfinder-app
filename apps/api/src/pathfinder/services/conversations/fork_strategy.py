@@ -15,7 +15,7 @@ from pathfinder.persistence.repositories.conversation_strategy import (
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
-from pathfinder.platform.errors import ForkRefusedError
+from pathfinder.platform.thread_refusals import ForkRefusedError
 from pathfinder.services.strategies.abandoned_mint import (
     ReleasableMint,
     delete_released_mint,

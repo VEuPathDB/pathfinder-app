@@ -32,12 +32,19 @@ export const createHistorySlice: StateCreator<
   redoStack: [],
 
   pushSnapshot: (prev, current) => {
-    if (prev.strategy === null) return;
+    if (prev.strategy === null) return null;
     const inverse = inversePatchesBetween(prev, { strategy: current });
-    if (inverse.length === 0) return;
+    if (inverse.length === 0) return null;
     set((state) => ({
       undoStack: trimStack([...state.undoStack, inverse]),
       redoStack: [],
+    }));
+    return inverse;
+  },
+
+  dropSnapshot: (inverse) => {
+    set((state) => ({
+      undoStack: state.undoStack.filter((entry) => entry !== inverse),
     }));
   },
 

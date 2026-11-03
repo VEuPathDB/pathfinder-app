@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.repositories.checkpoint_rows import parked_approval
 from pathfinder.persistence.repositories.thread_job import job_holds_thread
+from pathfinder.platform.thread_refusals import EditRefusedError
 from pathfinder.services.conversations.thread_lock import try_lock_thread
 
-__all__ = ["ThreadBusy", "claim_settled_thread"]
+__all__ = ["ThreadBusy", "claim_settled_thread", "refuse_an_edit_on_a_busy_thread"]
 
 
 class ThreadBusy(StrEnum):
@@ -23,6 +24,18 @@ class ThreadBusy(StrEnum):
     TURN = "turn"
     APPROVAL = "approval"
     TASK = "task"
+
+
+_EDIT_REFUSALS = {
+    ThreadBusy.LOCKED: "This chat is changing right now. Try the edit again in a moment.",
+    ThreadBusy.TURN: (
+        "This chat is still answering. Make this edit once the reply has finished."
+    ),
+    ThreadBusy.TASK: (
+        "This chat is running a background task. "
+        "Make this edit once the task has finished."
+    ),
+}
 
 
 async def _task_is_active(session: AsyncSession, conversation_id: UUID) -> bool:
@@ -49,8 +62,18 @@ async def claim_settled_thread(
         task=CHAT_TURN_TASK,
     ):
         return ThreadBusy.TURN
-    if await parked_approval(session, thread_id=str(conversation_id)) is not None:
-        return ThreadBusy.APPROVAL
     if await _task_is_active(session, conversation_id):
         return ThreadBusy.TASK
+    if await parked_approval(session, thread_id=str(conversation_id)) is not None:
+        return ThreadBusy.APPROVAL
     return None
+
+
+async def refuse_an_edit_on_a_busy_thread(
+    session: AsyncSession,
+    conversation_id: UUID,
+) -> None:
+    busy = await claim_settled_thread(session, conversation_id)
+    if busy is None or busy is ThreadBusy.APPROVAL:
+        return
+    raise EditRefusedError(_EDIT_REFUSALS[busy])

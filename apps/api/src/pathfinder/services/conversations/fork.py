@@ -13,7 +13,7 @@ from pathfinder.persistence.repositories.checkpoint_rows import copy_checkpoints
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
-from pathfinder.platform.errors import ForkRefusedError
+from pathfinder.platform.thread_refusals import ForkRefusedError
 from pathfinder.services.conversations.fork_copy import copy_conversation_events
 from pathfinder.services.conversations.fork_ids import IdMint
 from pathfinder.services.conversations.fork_strategy import (

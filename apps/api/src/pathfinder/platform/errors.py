@@ -49,6 +49,7 @@ class ErrorCode(StrEnum):
     CONVERSATION_FROM_EARLIER_BUILD = "CONVERSATION_FROM_EARLIER_BUILD"
     FORK_REFUSED = "FORK_REFUSED"
     REVERT_REFUSED = "REVERT_REFUSED"
+    EDIT_REFUSED = "EDIT_REFUSED"
     ASSISTANT_NOT_FOUND = "ASSISTANT_NOT_FOUND"
     ASSISTANT_MISMATCH = "ASSISTANT_MISMATCH"
 
@@ -291,40 +292,6 @@ class AssistantMismatchError(AppError):
             detail=(
                 f"This conversation is answered by {existing!r}; "
                 f"the request names {requested!r}."
-            ),
-        )
-
-
-class ForkRefusedError(AppError):
-    """A branch point the new thread cannot be given."""
-
-    def __init__(self, reason: str) -> None:
-        super().__init__(
-            code=ErrorCode.FORK_REFUSED,
-            title="Cannot branch this chat",
-            status=409,
-            detail=reason,
-        )
-
-
-class RevertRefusedError(AppError):
-    def __init__(self, reason: str) -> None:
-        super().__init__(
-            code=ErrorCode.REVERT_REFUSED,
-            title="Cannot undo to this message",
-            status=409,
-            detail=reason,
-        )
-
-
-class ThreadBusyError(AppError):
-    def __init__(self) -> None:
-        super().__init__(
-            code=ErrorCode.SESSION_CONFLICT,
-            title="This chat is busy",
-            status=409,
-            detail=(
-                "This chat is changing right now. Send the message again in a moment."
             ),
         )
 

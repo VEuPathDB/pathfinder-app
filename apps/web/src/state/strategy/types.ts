@@ -44,7 +44,8 @@ export interface HistorySlice {
   undoStack: Patch[][];
   redoStack: Patch[][];
 
-  pushSnapshot: (prev: HistorySnapshot, current: Strategy | null) => void;
+  pushSnapshot: (prev: HistorySnapshot, current: Strategy | null) => Patch[] | null;
+  dropSnapshot: (inverse: Patch[]) => void;
   /** Apply the most recent inverse patch to *current* and return the resulting
    *  strategy. Returns null if the undo stack is empty. */
   undo: (current: Strategy | null) => Strategy | null;

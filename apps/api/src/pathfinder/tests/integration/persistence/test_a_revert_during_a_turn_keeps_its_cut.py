@@ -11,7 +11,7 @@ from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform import db
 from sqlalchemy import select, text
 
-from pathfinder.platform.errors import RevertRefusedError
+from pathfinder.platform.thread_refusals import RevertRefusedError
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 from pathfinder.tests.integration.persistence._busy_thread import (
     queue_turn,

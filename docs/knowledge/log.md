@@ -8,6 +8,14 @@
   wraps every Lead tool, including `build_strategy`, and its refusal was seen live on other
   tools.
 
+* **A canvas edit is refused while a writer holds a tree.** `/operations` and `/insert-saved`
+  answer 409 `EDIT_REFUSED` while `claim_settled_thread` names the thread locked, a turn or
+  an active task, on the session that holds the strategy write lock, so two edits wait for each
+  other and a refused edit leaves nothing claimed. A parked approval holds no tree, so an edit
+  applies under it. The canvas shows the refusal's detail, takes the edit's undo entry back and
+  reads the strategy again. See
+  [the decision](decisions/a-canvas-edit-is-refused-while-a-writer-holds-a-tree.md). The
+  backlog item is done and removed.
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`
   gives equal forms; a regrouping, a changed count and a changed code stay a

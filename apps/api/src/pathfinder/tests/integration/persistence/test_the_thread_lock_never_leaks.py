@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import (
 from structlog.testing import capture_logs
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import ErrorCode, ThreadBusyError
+from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.thread_refusals import ThreadBusyError
 from pathfinder.services.conversations import thread_lock
 from pathfinder.services.conversations.begin import refuse_a_thread_of_another_caller
 from pathfinder.services.conversations.fork import ForkError, fork_conversation

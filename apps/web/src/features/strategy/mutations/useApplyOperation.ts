@@ -2,9 +2,15 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Patch } from "immer";
 import type { ConversationResponse, Strategy } from "@pathfinder/shared";
 import { applyOperationEndpoint } from "@pathfinder/shared/generated/hooks/useApplyOperationEndpoint";
-import { strategyQueryKey, toStrategy, writeStrategy } from "@/lib/api/strategy";
+import {
+  refetchStrategy,
+  strategyQueryKey,
+  toStrategy,
+  writeStrategy,
+} from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { applyOperation, type GraphOperation } from "@/features/strategy/operations";
 import { toWireOperation } from "@/features/strategy/operations/toWire";
@@ -16,6 +22,7 @@ export interface ApplyOperationVars {
 
 interface ApplyContext {
   snapshot: Strategy | null;
+  pushed: Patch[] | null;
   siteId: string;
   key: ReturnType<typeof strategyQueryKey>;
 }
@@ -45,14 +52,17 @@ export function useApplyOperation(conversationId: string) {
       const key = strategyQueryKey(conversationId);
       const snapshot = queryClient.getQueryData<Strategy>(key) ?? null;
       const siteId = snapshot?.siteId ?? "";
+      let pushed: Patch[] | null = null;
       if (snapshot !== null) {
         const result = applyOperation(snapshot, op);
         if (result.kind === "applied") {
-          useStrategyStore.getState().pushSnapshot({ strategy: snapshot }, result.next);
+          pushed = useStrategyStore
+            .getState()
+            .pushSnapshot({ strategy: snapshot }, result.next);
           queryClient.setQueryData<Strategy>(key, result.next);
         }
       }
-      return { snapshot, siteId, key };
+      return { snapshot, pushed, siteId, key };
     },
     mutationFn: async ({ op }) => {
       const key = strategyQueryKey(conversationId);
@@ -71,7 +81,11 @@ export function useApplyOperation(conversationId: string) {
     onError: (err, vars, context) => {
       if (context !== undefined) {
         queryClient.setQueryData<Strategy | null>(context.key, context.snapshot);
+        if (context.pushed !== null) {
+          useStrategyStore.getState().dropSnapshot(context.pushed);
+        }
       }
+      void refetchStrategy(queryClient, conversationId);
       useStrategyStore.getState().setLastFailedOperation({ op: vars.op });
       toast.error(toUserMessage(err, failureLead(vars.op)));
     },

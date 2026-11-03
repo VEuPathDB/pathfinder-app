@@ -10,7 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import ThreadBusyError
+from pathfinder.platform.thread_refusals import ThreadBusyError
 from pathfinder.services.conversations import thread_lock
 from pathfinder.services.conversations.thread_lock import hold_thread
 

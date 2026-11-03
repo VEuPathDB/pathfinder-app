@@ -11,11 +11,8 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy import text
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import (
-    ErrorCode,
-    ForkRefusedError,
-    RevertRefusedError,
-)
+from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.thread_refusals import ForkRefusedError, RevertRefusedError
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 from pathfinder.services.conversations.thread_lock import (

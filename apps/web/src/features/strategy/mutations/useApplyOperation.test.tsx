@@ -4,11 +4,16 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { useQuery } from "@tanstack/react-query";
 import type { Step, Strategy } from "@pathfinder/shared";
 
 const applyOperationEndpointMock = vi.hoisted(() => vi.fn());
 vi.mock("@pathfinder/shared/generated/hooks/useApplyOperationEndpoint", () => ({
   applyOperationEndpoint: applyOperationEndpointMock,
+}));
+const getStrategyMock = vi.hoisted(() => vi.fn());
+vi.mock("@pathfinder/shared/generated/hooks/useGetStrategy", () => ({
+  getStrategy: getStrategyMock,
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
@@ -18,6 +23,7 @@ import { toast } from "sonner";
 import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
 import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { APIError } from "@/lib/api/http";
+import { strategyQueryOptions } from "@/lib/api/strategy";
 import { useStrategyStore } from "@/state/strategy/store";
 import { useApplyOperation } from "./useApplyOperation";
 import { makeQueryHarness } from "./__tests__/strategyTestUtils";
@@ -43,10 +49,33 @@ function makeStrategy(steps: Step[]): Strategy {
   };
 }
 
+const REFUSAL =
+  "This chat is still answering. Make this edit once the reply has finished.";
+
+function refusedEdit(): APIError {
+  return new APIError("HTTP 409 Conflict", {
+    status: 409,
+    statusText: "Conflict",
+    url: "/api/v1/conversations/strategy-1/operations",
+    data: {
+      title: "Cannot edit this strategy now",
+      status: 409,
+      code: "EDIT_REFUSED",
+      detail: REFUSAL,
+    },
+  });
+}
+
+function rename(displayName: string) {
+  return { op: { kind: "updateStepMeta" as const, stepId: "a", displayName } };
+}
+
 beforeEach(() => {
   useStrategyStore.getState().clear();
   useStrategyStore.setState({ graphValidationStatus: {} });
   applyOperationEndpointMock.mockReset();
+  getStrategyMock.mockReset();
+  vi.mocked(toast.error).mockClear();
 });
 
 describe("useApplyOperation", () => {
@@ -257,5 +286,88 @@ describe("useApplyOperation", () => {
     });
 
     expect(harness.client.getQueryState(pageKey)?.isInvalidated).toBe(true);
+  });
+
+  it("says why a busy thread refused the edit and takes the edit back", async () => {
+    const initial = makeStrategy([step({ id: "a", displayName: "A" })]);
+    const harness = makeQueryHarness(initial);
+    applyOperationEndpointMock.mockRejectedValueOnce(refusedEdit());
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(rename("Renamed"))).rejects.toThrow();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(REFUSAL);
+    expect(harness.getStrategy("strategy-1")).toEqual(initial);
+    expect(useStrategyStore.getState().undoStack).toEqual([]);
+  });
+
+  it("shows what the server holds after every queued edit is refused", async () => {
+    const initial = makeStrategy([step({ id: "a", displayName: "A" })]);
+    const harness = makeQueryHarness(initial);
+    applyOperationEndpointMock
+      .mockRejectedValueOnce(refusedEdit())
+      .mockRejectedValueOnce(refusedEdit());
+    getStrategyMock.mockResolvedValue(
+      makeStrategy([step({ id: "a", displayName: "Written by the turn" })]),
+    );
+    const { result } = renderHook(
+      () => {
+        useQuery(strategyQueryOptions("strategy-1"));
+        return useApplyOperation("strategy-1");
+      },
+      { wrapper: harness.wrapper },
+    );
+
+    await act(async () => {
+      await Promise.allSettled([
+        result.current.mutateAsync(rename("First")),
+        result.current.mutateAsync(rename("Second")),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(harness.getStrategy("strategy-1")?.steps[0]?.displayName).toBe(
+        "Written by the turn",
+      );
+    });
+    expect(useStrategyStore.getState().undoStack).toEqual([]);
+  });
+
+  it("keeps the undo entry of an edit that follows a refused one", async () => {
+    const initial = makeStrategy([step({ id: "a", displayName: "A" })]);
+    const harness = makeQueryHarness(initial);
+    let refuseFirst: (reason: Error) => void = () => undefined;
+    applyOperationEndpointMock
+      .mockReturnValueOnce(
+        new Promise<Strategy>((_resolve, reject) => {
+          refuseFirst = reject;
+        }),
+      )
+      .mockResolvedValueOnce(makeStrategy([step({ id: "a", displayName: "Second" })]));
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+
+    let both = Promise.resolve<unknown>(null);
+    await act(async () => {
+      both = Promise.allSettled([
+        result.current.mutateAsync(rename("First")),
+        result.current.mutateAsync(rename("Second")),
+      ]);
+      await Promise.resolve();
+    });
+    const [, kept] = useStrategyStore.getState().undoStack;
+    expect(kept).toBeDefined();
+
+    await act(async () => {
+      refuseFirst(refusedEdit());
+      await both;
+    });
+
+    expect(useStrategyStore.getState().undoStack).toEqual([kept]);
   });
 });
