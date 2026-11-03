@@ -13174,6 +13174,7 @@ components:
       type: string
       enum:
       - ALTERNATE_AT_INDEL_SITE
+      - IN_FRAME_INDEL_CALLED
       - NO_INDEL_CALLED
       - NO_VARIANT_CALLED
       - NOT_COVERED
@@ -13231,6 +13232,13 @@ components:
             $ref: '#/components/schemas/VariantAnswer'
           type: object
           title: Sampleanswers
+        frameEffects:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: 'null'
+          type: object
+          title: Frameeffects
         homopolymerBases:
           anyOf:
           - type: integer
@@ -13252,6 +13260,7 @@ components:
       - calls
       - answer
       - sampleAnswers
+      - frameEffects
       - homopolymerBases
       - determinable
       title: VariantCalls

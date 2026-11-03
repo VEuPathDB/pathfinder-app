@@ -56,9 +56,12 @@ _NOT_READ: dict[NotRead, str] = {
 
 _VARIANT_ANSWERS: dict[VariantAnswer, str] = {
     "ALTERNATE_AT_INDEL_SITE": (
-        "The strain's reads differ from the reference at a site the calls mark as an "
-        "indel. The table does not give the indel's length, so this does not show it is "
-        "this change"
+        "The strain's reads differ from the reference at an indel the site does not call "
+        "in frame. It is not established that this is the change"
+    ),
+    "IN_FRAME_INDEL_CALLED": (
+        "The strain's reads carry an indel here that the site calls in frame, which "
+        "cannot be the change that shifted the frame"
     ),
     "NO_INDEL_CALLED": "The strain's reads are called as the reference at this place",
     "NO_VARIANT_CALLED": (
@@ -153,7 +156,8 @@ def _reference_run(shift: Frameshift) -> str:
 def _said_of_the_calls(shift: Frameshift, calls: VariantCalls) -> str:
     said = (
         _UNDETERMINED
-        if calls.answer == "NO_INDEL_CALLED" and not calls.determinable
+        if calls.answer in {"NO_INDEL_CALLED", "IN_FRAME_INDEL_CALLED"}
+        and not calls.determinable
         else _VARIANT_ANSWERS[calls.answer]
     )
     if shift.reads_show_miscount:
@@ -161,6 +165,14 @@ def _said_of_the_calls(shift: Frameshift, calls: VariantCalls) -> str:
     if shift.run_counts_equal:
         return f"{said}. {_EQUAL_COUNTS}"
     return said
+
+
+def _frame_effects(calls: VariantCalls) -> str:
+    effects = "; ".join(
+        f"{variant}: {'not served' if effect is None else effect}"
+        for variant, effect in calls.frame_effects.items()
+    )
+    return f", indel_frame_effect {effects}" if effects else ""
 
 
 def _strain_reads(shift: Frameshift) -> str:
@@ -173,7 +185,7 @@ def _strain_reads(shift: Frameshift) -> str:
         f"{_said_of_the_calls(shift, calls)}. {calls.site} {calls.record_type} search "
         f"{calls.search} for {calls.organism} over {calls.seqid} {calls.start:,} to "
         f"{calls.end:,}, table {calls.table}, samples {listed(calls.samples)}, variants "
-        f"{listed(calls.variants)}"
+        f"{listed(calls.variants)}{_frame_effects(calls)}"
     )
 
 

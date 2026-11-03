@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A frameshift finding names the sequence and not the cause
-description: The library's FRAMESHIFT verdict maps to its own error type, sequence_frameshift, at medium certainty, true whichever way the reads fall; a cause is stated only from evidence, and the site's variant table does not give an indel's length, so no finding says the strain's reads carry this change.
+description: The library's FRAMESHIFT verdict maps to its own error type, sequence_frameshift, at medium certainty, true whichever way the reads fall; a cause is stated only from evidence, the site's indel_frame_effect alone says an indel is in frame, and no finding says the strain's reads carry this change.
 tags: [audit, findings, frameshift]
 status: stable
 ---
@@ -28,8 +28,9 @@ where the calls hold almost no indel, that is not taken as evidence. Equal count
 evidence against a miscount.
 
 No finding says the change is in the strain. The `VariantStrains` table serves one base as the
-allele even at an indel site, so a call cannot be compared with the shift; a non-reference call
-at an indel site is stated as that and no more.
+allele even at an indel site, so no length is taken from it. The site's `indel_frame_effect` is
+named in the fact: an indel it calls in frame cannot have shifted the frame, and any other value
+leaves that not established, which the fact says.
 
 The library's half is `veupathdb-mcp: docs/knowledge/decisions/a-short-model-names-the-frameshift-that-cut-it.md`.
 

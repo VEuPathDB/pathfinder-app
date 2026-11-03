@@ -27,7 +27,12 @@ _REFERENCE = ReferenceRun(
 )
 
 
-def _calls(answer: VariantAnswer, bases: int | None = 28) -> VariantCalls:
+def _calls(
+    answer: VariantAnswer,
+    bases: int | None = 28,
+    effects: dict[str, str | None] | None = None,
+) -> VariantCalls:
+    effects = {_VARIANT: None} if effects is None else effects
     return VariantCalls(
         site="constructed_site",
         organism="constructed organism",
@@ -48,6 +53,7 @@ def _calls(answer: VariantAnswer, bases: int | None = 28) -> VariantCalls:
         ],
         answer=answer,
         sample_answers={"CONSTRUCTED_SAMPLE": answer},
+        frame_effects=effects,
         homopolymer_bases=bases,
     )
 
@@ -128,13 +134,66 @@ def test_the_strains_calls_name_the_search_the_range_and_the_variants() -> None:
     value = _value(_facts(shift), "Strain's reads at the run")
 
     assert value == (
-        "The strain's reads differ from the reference at a site the calls mark as an "
-        "indel. The table does not give the indel's length, so this does not show it is "
-        "this change. constructed_site variation search VariantsByLocation for "
-        "constructed organism over constructed_ref_seq 358,999 to 359,028, table "
-        f"VariantStrains, samples CONSTRUCTED_SAMPLE, variants {_VARIANT}"
+        "The strain's reads differ from the reference at an indel the site does not "
+        "call in frame. It is not established that this is the change. "
+        "constructed_site variation search VariantsByLocation for constructed organism "
+        "over constructed_ref_seq 358,999 to 359,028, table VariantStrains, samples "
+        f"CONSTRUCTED_SAMPLE, variants {_VARIANT}, indel_frame_effect {_VARIANT}: not "
+        "served"
     )
     assert "change is in the strain" not in value
+
+
+def test_an_in_frame_indel_names_the_attribute_that_says_so() -> None:
+    shift = FRAMESHIFT.model_copy(
+        update={
+            "variant_calls": _calls(
+                "IN_FRAME_INDEL_CALLED",
+                bases=None,
+                effects={_VARIANT: "inframe_deletion"},
+            )
+        }
+    )
+
+    value = _value(_facts(shift), "Strain's reads at the run")
+
+    assert value.startswith(
+        "The strain's reads carry an indel here that the site calls in frame, which "
+        "cannot be the change that shifted the frame."
+    )
+    assert value.endswith(f"indel_frame_effect {_VARIANT}: inframe_deletion")
+
+
+def test_another_frame_effect_value_is_stated_as_served() -> None:
+    shift = FRAMESHIFT.model_copy(
+        update={
+            "variant_calls": _calls(
+                "ALTERNATE_AT_INDEL_SITE",
+                bases=None,
+                effects={_VARIANT: "constructed_effect"},
+            )
+        }
+    )
+
+    value = _value(_facts(shift), "Strain's reads at the run")
+
+    assert "It is not established" in value
+    assert value.endswith(f"indel_frame_effect {_VARIANT}: constructed_effect")
+
+
+def test_an_in_frame_indel_supports_the_miscount_as_no_indel_does() -> None:
+    shift = FRAMESHIFT.model_copy(
+        update={
+            "reference_run": _REFERENCE,
+            "variant_calls": _calls(
+                "IN_FRAME_INDEL_CALLED",
+                bases=None,
+                effects={_VARIANT: "inframe_deletion"},
+            ),
+        }
+    )
+
+    assert "The assembly likely miscounts the run." in _reads(shift)
 
 
 def _reads(shift: Frameshift) -> str:
@@ -222,4 +281,4 @@ def test_a_strain_frameshift_states_the_same_facts() -> None:
         "in another reading frame"
     )
     assert _value(facts, "Run at the change").startswith("29 bases of A")
-    assert _value(facts, "Reference protein").startswith("PCYB_074210")
+    assert _value(facts, "Reference protein").startswith("constructed_reference_gene")

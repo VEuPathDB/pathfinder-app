@@ -51,8 +51,8 @@
   `FRAMESHIFT` names the same error, and the finding states the frame change, the run, the
   same run in the reference strain and the site's variant calls with their sources. See
   [the decision](decisions/a-frameshift-finding-names-the-sequence-and-not-the-cause.md). It
-  takes the next veupathdb-mcp release; the card keeps the release, the pin, one recording
-  and the NF54 rerun.
+  takes the next veupathdb-mcp release; the card keeps the release, the pin and the NF54
+  rerun.
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY
   of the mock model reads a record's organism by its own word test. An

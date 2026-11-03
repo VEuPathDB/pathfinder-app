@@ -178,11 +178,20 @@ def strain(
     )
 
 
+CONSTRUCTED_STRAIN = "constructed_strain_gene"
+CONSTRUCTED_REFERENCE = "constructed_reference_gene"
+
+
 def strain_frameshift(shift: Frameshift) -> StrainModelAudit:
     return StrainModelAudit.model_validate(
         {
-            **_PKAC_PAIR,
-            "models": PKAC_STRAIN_MODELS,
+            "extra": [],
+            "gene_ids": resolved_ids(CONSTRUCTED_STRAIN, CONSTRUCTED_REFERENCE),
+            "strain_gene": CONSTRUCTED_STRAIN,
+            "reference_gene": CONSTRUCTED_REFERENCE,
+            "strain_length": 280,
+            "reference_length": 341,
+            "models": [],
             "lost": [(41, 100)],
             "dna": {
                 **_ENCODED,
@@ -195,7 +204,15 @@ def strain_frameshift(shift: Frameshift) -> StrainModelAudit:
             "not_read": None,
             "nearby_paralogs": [],
             "side": "NOT_JUDGED",
-            "relatives": _strain_relatives("NOT_JUDGED"),
+            "relatives": {
+                "tier": "SAME_GENUS",
+                "members": [
+                    {"organism": "constructed relative one", "length": 341},
+                    {"organism": "constructed relative two", "length": 341},
+                ],
+                "missing": None,
+                "copies_per_organism": 1.0,
+            },
             "code": GeneticCode.STANDARD,
             "code_inferred": True,
         }

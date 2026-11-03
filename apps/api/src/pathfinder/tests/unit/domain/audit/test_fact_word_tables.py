@@ -49,7 +49,8 @@ def test_the_parts_table_reads_its_exact_words() -> None:
 
 def test_the_variant_answers_table_reads_its_exact_words() -> None:
     assert _VARIANT_ANSWERS == {
-        "ALTERNATE_AT_INDEL_SITE": "The strain's reads differ from the reference at a site the calls mark as an indel. The table does not give the indel's length, so this does not show it is this change",
+        "ALTERNATE_AT_INDEL_SITE": "The strain's reads differ from the reference at an indel the site does not call in frame. It is not established that this is the change",
+        "IN_FRAME_INDEL_CALLED": "The strain's reads carry an indel here that the site calls in frame, which cannot be the change that shifted the frame",
         "NO_INDEL_CALLED": "The strain's reads are called as the reference at this place",
         "NO_VARIANT_CALLED": "No sample has a variant here, and this does not show the strain was sequenced",
         "NOT_COVERED": "The strain's reads do not cover the indel site",

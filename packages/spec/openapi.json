@@ -20144,6 +20144,7 @@
         "type": "string",
         "enum": [
           "ALTERNATE_AT_INDEL_SITE",
+          "IN_FRAME_INDEL_CALLED",
           "NO_INDEL_CALLED",
           "NO_VARIANT_CALLED",
           "NOT_COVERED",
@@ -20220,6 +20221,20 @@
             "type": "object",
             "title": "Sampleanswers"
           },
+          "frameEffects": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Frameeffects"
+          },
           "homopolymerBases": {
             "anyOf": [
               {
@@ -20249,6 +20264,7 @@
           "calls",
           "answer",
           "sampleAnswers",
+          "frameEffects",
           "homopolymerBases",
           "determinable"
         ],
