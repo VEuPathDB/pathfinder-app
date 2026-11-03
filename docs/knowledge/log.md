@@ -47,8 +47,8 @@
 * **A short model cut by a frameshift names the assembly.** `_length` maps the
   library's `FRAMESHIFT` to `assembly_frameshift` at medium certainty, a strain's
 * **A frameshift finding names the sequence and not the cause.** `_length` maps the
-  library's `FRAMESHIFT` to `sequence_frameshift` and `OTHER_FRAME` to `part_in_other_frame`
-  at medium certainty, a strain's answer names the same errors, and the finding states the
+  library's `FRAMESHIFT` to `sequence_frameshift`, and `OTHER_FRAME` to `possible_missed_exon`
+  or `part_in_other_frame`, at medium certainty, a strain's answer names the same errors, and the finding states the
   frame change, the run, the same run in the reference strain and the site's variant records
   with their sources, and concludes no cause. See
   [the decision](decisions/a-frameshift-finding-names-the-sequence-and-not-the-cause.md). It

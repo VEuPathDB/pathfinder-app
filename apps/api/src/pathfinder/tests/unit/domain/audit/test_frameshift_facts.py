@@ -117,6 +117,17 @@ def test_a_change_names_its_place_frames_and_run_with_their_source() -> None:
     assert _reads(FRAMESHIFT) == "Not read"
 
 
+def test_what_the_model_holds_past_a_change_is_stated_and_no_stop_is_claimed() -> None:
+    goes_on = FRAMESHIFT.model_copy(update={"model_goes_on": True})
+
+    assert _value(_facts(FRAMESHIFT), "Model past the change") == (
+        "The model holds nothing past this change"
+    )
+    assert _value(_facts(goes_on), "Model past the change") == (
+        "The model goes on past this change"
+    )
+
+
 def test_a_splice_pair_at_the_change_is_named_so_a_missed_exon_shows() -> None:
     shift = FRAMESHIFT.model_copy(
         update={"splice_pair": SplicePair(motif="GT..AG", donor=1200, acceptor=1233)}

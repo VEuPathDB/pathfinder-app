@@ -40,6 +40,7 @@ class ErrorTypeWords(BaseModel):
     truncated_model: str
     sequence_frameshift: str
     part_in_other_frame: str
+    possible_missed_exon: str
     split_model: str
     over_extended_model: str
     fused_model: str

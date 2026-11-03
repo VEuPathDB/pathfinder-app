@@ -4,16 +4,25 @@ from itertools import product
 from typing import get_args
 
 import pytest
-from veupathdb_mcp.audit import GeneLengthAudit, LengthClass, LengthVerdict
+from veupathdb_mcp.audit import (
+    FrameChange,
+    GeneLengthAudit,
+    LengthClass,
+    LengthVerdict,
+    SplicePair,
+)
 
 from pathfinder.domain.audit.confirmations import LengthConfirmation
 from pathfinder.domain.audit.findings import (
     NO_ERROR,
     Classification,
+    ErrorType,
     classify_confirmation,
 )
 from pathfinder.tests._support.audit import (
+    FRAMESHIFT,
     not_checked_audit,
+    revised,
     short_audit,
     split_audit,
 )
@@ -62,6 +71,46 @@ _GAPPED_SPLIT = GeneLengthAudit.model_validate(
 )
 _LENGTH_CLASSES = get_args(LengthClass.__value__)
 _LENGTH_VERDICTS = get_args(LengthVerdict.__value__)
+
+
+_PAIRED = FRAMESHIFT.model_copy(
+    update={"splice_pair": SplicePair(motif="GT..AG", donor=10, acceptor=40)}
+)
+
+
+def _with_changes(verdict: str, changes: list[FrameChange]) -> LengthConfirmation:
+    answer = short_audit("G1", reference_gene="R1", verdict=verdict)
+    return LengthConfirmation(
+        check="gene_length", result=revised(answer, frame_changes=changes)
+    )
+
+
+def test_a_truncation_with_a_change_further_out_is_medium() -> None:
+    assert classify_confirmation(
+        _with_changes("GENOME_ENCODES", [FRAMESHIFT])
+    ) == Classification(error_type="truncated_model", certainty="medium")
+
+
+def test_a_truncation_with_no_change_is_high() -> None:
+    assert classify_confirmation(_with_changes("GENOME_ENCODES", [])) == _TRUNCATED
+
+
+@pytest.mark.parametrize(
+    ("changes", "error_type"),
+    [
+        ([_PAIRED], "possible_missed_exon"),
+        ([_PAIRED, _PAIRED], "possible_missed_exon"),
+        ([_PAIRED, FRAMESHIFT], "part_in_other_frame"),
+        ([FRAMESHIFT], "part_in_other_frame"),
+        ([], "part_in_other_frame"),
+    ],
+)
+def test_a_part_in_another_frame_names_a_missed_exon_only_with_a_pair_at_each_change(
+    changes: list[FrameChange], error_type: ErrorType
+) -> None:
+    assert classify_confirmation(
+        _with_changes("OTHER_FRAME", changes)
+    ) == Classification(error_type=error_type, certainty="medium")
 
 
 def _length_answer(length_class: str, verdict: str) -> GeneLengthAudit:

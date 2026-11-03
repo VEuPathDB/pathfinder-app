@@ -13,6 +13,7 @@ from veupathdb_mcp.audit import (
     GeneEvidence,
     GeneFusionAudit,
     IntronVerdict,
+    LengthCheck,
     MissingVerdict,
     OrganelleVerdict,
     RelativeTier,
@@ -56,6 +57,7 @@ ErrorType = Literal[
     "truncated_model",
     "sequence_frameshift",
     "part_in_other_frame",
+    "possible_missed_exon",
     "split_model",
     "over_extended_model",
     "fused_model",
@@ -131,15 +133,24 @@ _LENGTH_UNREAD: dict[
 }
 
 
+def _short_part(check: LengthCheck) -> tuple[ErrorType, Certainty]:
+    if check.verdict == "OTHER_FRAME":
+        named: ErrorType = (
+            "possible_missed_exon"
+            if check.every_change_at_a_splice_pair
+            else "part_in_other_frame"
+        )
+        return named, "medium"
+    return "truncated_model", "medium" if check.frame_changes else "high"
+
+
 def _length(confirmation: LengthConfirmation) -> Classification:
     result = confirmation.result
     match (result.length_class, result.verdict):
-        case ("SHORT", "GENOME_ENCODES"):
-            return _named("truncated_model", "high")
+        case ("SHORT", "GENOME_ENCODES" | "OTHER_FRAME"):
+            return _named(*_short_part(result))
         case ("SHORT", "FRAMESHIFT"):
             return _named("sequence_frameshift", "medium")
-        case ("SHORT", "OTHER_FRAME"):
-            return _named("part_in_other_frame", "medium")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
         case (length_class, "NOT_CHECKED"):
@@ -258,13 +269,9 @@ def _strain(result: StrainModelAudit) -> Classification:
             return REFERENCE_LONG
         case (_, "FRAMESHIFT"):
             return _strain_model("sequence_frameshift", "medium")
-        case ("STRAIN_SHORT", verdict):
-            other_frame = verdict == "OTHER_FRAME"
-            return (
-                _strain_model("part_in_other_frame", "medium")
-                if other_frame
-                else _strain_model("truncated_model", "high")
-            )
+        case ("STRAIN_SHORT", _):
+            error_type, certainty = _short_part(result.dna)
+            return _strain_model(error_type, certainty)
         case ("UNCLEAR", _):
             return NO_ERROR
         case ("NO_RELATIVES", _):

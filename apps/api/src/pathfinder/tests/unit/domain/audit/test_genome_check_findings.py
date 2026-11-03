@@ -12,6 +12,7 @@ from veupathdb_mcp.audit import (
     NotRead,
     OrganelleVerdict,
     SideVerdict,
+    SplicePair,
     judged_side,
     missing_verdict,
 )
@@ -187,6 +188,28 @@ _FRAME_ANSWERS = [
     ("OTHER_FRAME", "REFERENCE_LONG", _SIDES["REFERENCE_LONG"]),
     ("FRAMESHIFT", "REFERENCE_LONG", _SIDES["REFERENCE_LONG"]),
 ]
+
+
+def test_a_strain_short_part_across_splice_pairs_names_a_possible_missed_exon() -> None:
+    paired = FRAMESHIFT.model_copy(
+        update={"splice_pair": SplicePair(motif="GT..AG", donor=10, acceptor=40)}
+    )
+
+    confirmation = StrainConfirmation(result=strain_frameshift(paired, "OTHER_FRAME"))
+
+    assert classify_confirmation(confirmation) == Classification(
+        error_type="possible_missed_exon", certainty="medium", model_role="strain"
+    )
+
+
+def test_a_strain_short_truncation_with_a_change_further_out_is_medium() -> None:
+    confirmation = StrainConfirmation(
+        result=strain_frameshift(FRAMESHIFT, "GENOME_ENCODES")
+    )
+
+    assert classify_confirmation(confirmation) == Classification(
+        error_type="truncated_model", certainty="medium", model_role="strain"
+    )
 
 
 @pytest.mark.parametrize(("verdict", "side", "expected"), _FRAME_ANSWERS)

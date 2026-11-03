@@ -202,6 +202,7 @@ ERROR_TYPE_TITLES: dict[ErrorType, str] = {
     "truncated_model": "Model too short",
     "sequence_frameshift": "Frameshift in the genome sequence",
     "part_in_other_frame": "Part encoded in another reading frame",
+    "possible_missed_exon": "Possible missed exon",
     "split_model": "One gene split into two models",
     "over_extended_model": "Model too long",
     "fused_model": "Two genes fused into one model",
@@ -227,13 +228,16 @@ ERROR_TYPE_DESCRIPTIONS: dict[ErrorType, str] = {
         "encodes the part it lacks."
     ),
     "sequence_frameshift": (
-        "The model follows the genome sequence to a stop, and the part it lacks lies "
-        "close by in another reading frame of the same DNA. The sequence alone does "
-        "not say whether the change is in the strain or in the assembly."
+        "The part the model lacks lies close by in another reading frame of the same "
+        "DNA. The sequence alone does not say whether the change is in the strain or in "
+        "the assembly."
     ),
     "part_in_other_frame": (
         "The genome's DNA encodes the part the model lacks in another reading frame, "
         "or past a stop in its own. The cause is not shown."
+    ),
+    "possible_missed_exon": (
+        "The missing part lies across a splice pair; the model may have missed an exon."
     ),
     "split_model": (
         "Two neighbouring models are parts of one protein, in order on one strand."

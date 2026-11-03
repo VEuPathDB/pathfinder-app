@@ -2680,6 +2680,7 @@ paths:
             - truncated_model
             - sequence_frameshift
             - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -6016,6 +6017,7 @@ components:
           - truncated_model
           - sequence_frameshift
           - part_in_other_frame
+          - possible_missed_exon
           - split_model
           - over_extended_model
           - fused_model
@@ -6067,6 +6069,7 @@ components:
           - truncated_model
           - sequence_frameshift
           - part_in_other_frame
+          - possible_missed_exon
           - split_model
           - over_extended_model
           - fused_model
@@ -6146,6 +6149,9 @@ components:
         part_in_other_frame:
           type: string
           title: Part In Other Frame
+        possible_missed_exon:
+          type: string
+          title: Possible Missed Exon
         split_model:
           type: string
           title: Split Model
@@ -6181,6 +6187,7 @@ components:
       - truncated_model
       - sequence_frameshift
       - part_in_other_frame
+      - possible_missed_exon
       - split_model
       - over_extended_model
       - fused_model
@@ -6513,6 +6520,7 @@ components:
             - truncated_model
             - sequence_frameshift
             - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -6766,6 +6774,7 @@ components:
             - truncated_model
             - sequence_frameshift
             - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -6868,6 +6877,7 @@ components:
             - truncated_model
             - sequence_frameshift
             - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -7040,6 +7050,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/SplicePair'
           - type: 'null'
+        modelGoesOn:
+          type: boolean
+          title: Modelgoeson
+          default: false
         referenceRun:
           anyOf:
           - $ref: '#/components/schemas/ReferenceRun'
@@ -7499,6 +7513,7 @@ components:
             - truncated_model
             - sequence_frameshift
             - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model

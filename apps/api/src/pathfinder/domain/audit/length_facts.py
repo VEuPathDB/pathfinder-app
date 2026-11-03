@@ -202,6 +202,14 @@ def _frame_change(change: FrameChange, gene: str | None) -> tuple[Fact, ...]:
         Fact(label="Frame change", value=_change(change)),
         Fact(label="Reference protein", value=_reference_protein(change, gene)),
         Fact(label="Splice pair at the change", value=_splice_pair(change)),
+        Fact(
+            label="Model past the change",
+            value=(
+                "The model goes on past this change"
+                if change.model_goes_on
+                else "The model holds nothing past this change"
+            ),
+        ),
         Fact(label="Run at the change", value=_run(change)),
         Fact(label="Same run in the reference strain", value=_reference_run(change)),
         Fact(label="Run counts", value=_run_counts(change)),

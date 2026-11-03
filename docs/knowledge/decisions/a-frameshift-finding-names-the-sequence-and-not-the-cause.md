@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A frameshift finding names the sequence and not the cause
-description: The library's FRAMESHIFT and OTHER_FRAME verdicts map to their own error types at medium certainty, never to truncated_model, and the finding states what the site served as facts with their sources; it concludes no cause from served calls.
+description: The library's FRAMESHIFT and OTHER_FRAME verdicts map to their own error types at medium certainty, sequence_frameshift, possible_missed_exon or part_in_other_frame, never to truncated_model, and the finding states what the site served as facts with their sources; it concludes no cause from served calls.
 tags: [audit, findings, frameshift]
 status: stable
 ---
@@ -9,15 +9,22 @@ status: stable
 # The choice
 
 `domain/audit/findings.py` maps a `SHORT` gene with the verdict `FRAMESHIFT` to
-`sequence_frameshift`, and `OTHER_FRAME` to `part_in_other_frame`, both at medium certainty.
-Only `GENOME_ENCODES`, the missing part in the model's open frame, stays `truncated_model`.
+`sequence_frameshift` at medium certainty. `OTHER_FRAME` maps to `possible_missed_exon` when a
+splice pair sits at every change, else to `part_in_other_frame`, both at medium certainty. Only
+`GENOME_ENCODES`, the missing part in the model's open frame, stays `truncated_model`: high
+certainty with no frame change on the track, medium with changes further out, which are stated.
+
+`possible_missed_exon` says "may": the missing part lies across a splice pair. A pair is not proof.
+On random sequence, for a stretch of 30 to 300 bases at the library's slack of 6 bases, a pair sits at
+one change by chance 9.3% of the time at 80% A+T and 24% at 60% A+T; taking changes as independent,
+0.87% and 5.8% at two changes, and 0.08% and 1.4% at three.
 
 A strain's side is judged from its relatives whatever frame the part is in. `REFERENCE_LONG` still
 names the reference. A `FRAMESHIFT` names `sequence_frameshift`. `STRAIN_SHORT` with `OTHER_FRAME`
-names `part_in_other_frame` and not `truncated_model`, because of what a curator does next:
+follows the same rule and does not name `truncated_model`, because of what a curator does next:
 `truncated_model` says extend the model through open DNA, and a part in another frame cannot be
-reached that way. It needs the exon structure or the assembly read first, and the facts name the
-splice pair for that.
+reached that way. `possible_missed_exon` gives them the next step, adding an exon, with the pair,
+position and shift as facts.
 
 The certainty is medium because the DNA shows where the frame changes and not why: an assembly
 error, a real mutation and a missed exon can read alike in one genome.
