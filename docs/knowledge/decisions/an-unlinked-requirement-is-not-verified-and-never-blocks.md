@@ -28,12 +28,13 @@ never a pass and never a failure, so it does not block the verdict, the same
 rule `no_check` already follows for `comparator` and `other`. The researcher
 sees which requirements nothing compared.
 
-Percentile, fold change and significance follow this rule
+Percentile, fold change, significance, data type and record type follow this
+rule
 ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)),
-with the reason as the grounding's note and `why_unchecked: no_check`. The code
-still grounds a data type and an organism by reading its words, and a hard
-stated requirement those readings cannot ground blocks
-(`constraints.is_blocking`), until steps 10 to 13 of that item land.
+with the reason as the grounding's note and `why_unchecked: no_check`; a data
+type no criterion links is not verified. The code still grounds an organism by
+reading its words, and a hard stated requirement that reading cannot ground
+blocks (`constraints.is_blocking`), until steps 11 and 13 of that item land.
 
 # What was rejected
 

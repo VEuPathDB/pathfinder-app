@@ -14320,15 +14320,19 @@ components:
           anyOf:
           - discriminator:
               mapping:
+                data_type: '#/components/schemas/DataTypeValue'
                 fold_change: '#/components/schemas/FoldChangeValue'
                 other: '#/components/schemas/UntypedValue'
                 percentile: '#/components/schemas/PercentileValue'
+                record_type: '#/components/schemas/RecordTypeValue'
                 statistical_threshold: '#/components/schemas/SignificanceValue'
               propertyName: kind
             oneOf:
             - $ref: '#/components/schemas/PercentileValue'
             - $ref: '#/components/schemas/FoldChangeValue'
             - $ref: '#/components/schemas/SignificanceValue'
+            - $ref: '#/components/schemas/DataTypeValue'
+            - $ref: '#/components/schemas/RecordTypeValue'
             - $ref: '#/components/schemas/UntypedValue'
           - type: 'null'
           title: Value
@@ -14982,6 +14986,24 @@ components:
       - atAnyEffect
       - atAnySignificance
       title: CutTallies
+      type: object
+    DataKind:
+      enum:
+      - rna_seq
+      - microarray
+      type: string
+    DataTypeValue:
+      properties:
+        kind:
+          const: data_type
+          default: data_type
+          title: Kind
+          type: string
+        data:
+          $ref: '#/components/schemas/DataKind'
+      required:
+      - data
+      title: DataTypeValue
       type: object
     DeclinedProposal:
       description: A proposal the researcher answered no, with the note they sent.
@@ -17125,6 +17147,29 @@ components:
       - createdAt
       title: RecalledMemory
       type: object
+    RecordRole:
+      enum:
+      - answer
+      - through
+      type: string
+    RecordTypeValue:
+      properties:
+        kind:
+          const: record_type
+          default: record_type
+          title: Kind
+          type: string
+        recordClass:
+          minLength: 1
+          title: Recordclass
+          type: string
+        role:
+          $ref: '#/components/schemas/RecordRole'
+          default: answer
+      required:
+      - recordClass
+      title: RecordTypeValue
+      type: object
     RecordsOrganismCaveat:
       properties:
         kind:
@@ -17873,6 +17918,37 @@ components:
           type: array
       title: StaleBuild
       type: object
+    StatedDataType:
+      properties:
+        quote:
+          minLength: 1
+          title: Quote
+          type: string
+        value:
+          minLength: 1
+          title: Value
+          type: string
+        hard:
+          default: true
+          title: Hard
+          type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
+        kind:
+          const: data_type
+          title: Kind
+          type: string
+        data:
+          $ref: '#/components/schemas/DataKind'
+      required:
+      - quote
+      - value
+      - kind
+      - data
+      title: StatedDataType
+      type: object
     StatedFoldChange:
       properties:
         quote:
@@ -17937,8 +18013,6 @@ components:
         kind:
           enum:
           - organism
-          - record_type
-          - data_type
           - count
           - ortholog
           - text
@@ -17985,6 +18059,42 @@ components:
       - share
       title: StatedPercentile
       type: object
+    StatedRecordType:
+      properties:
+        quote:
+          minLength: 1
+          title: Quote
+          type: string
+        value:
+          minLength: 1
+          title: Value
+          type: string
+        hard:
+          default: true
+          title: Hard
+          type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
+        kind:
+          const: record_type
+          title: Kind
+          type: string
+        recordClass:
+          minLength: 1
+          title: Recordclass
+          type: string
+        role:
+          $ref: '#/components/schemas/RecordRole'
+          default: answer
+      required:
+      - quote
+      - value
+      - kind
+      - recordClass
+      title: StatedRecordType
+      type: object
     StatedRequest:
       properties:
         goal:
@@ -17997,13 +18107,13 @@ components:
             discriminator:
               mapping:
                 count: '#/components/schemas/StatedOther'
-                data_type: '#/components/schemas/StatedOther'
+                data_type: '#/components/schemas/StatedDataType'
                 fold_change: '#/components/schemas/StatedFoldChange'
                 organism: '#/components/schemas/StatedOther'
                 ortholog: '#/components/schemas/StatedOther'
                 percentile: '#/components/schemas/StatedPercentile'
                 property: '#/components/schemas/StatedOther'
-                record_type: '#/components/schemas/StatedOther'
+                record_type: '#/components/schemas/StatedRecordType'
                 significance: '#/components/schemas/StatedSignificance'
                 text: '#/components/schemas/StatedOther'
                 untyped: '#/components/schemas/StatedUntyped'
@@ -18012,6 +18122,8 @@ components:
             - $ref: '#/components/schemas/StatedPercentile'
             - $ref: '#/components/schemas/StatedFoldChange'
             - $ref: '#/components/schemas/StatedSignificance'
+            - $ref: '#/components/schemas/StatedDataType'
+            - $ref: '#/components/schemas/StatedRecordType'
             - $ref: '#/components/schemas/StatedUntyped'
             - $ref: '#/components/schemas/StatedOther'
           title: Requirements

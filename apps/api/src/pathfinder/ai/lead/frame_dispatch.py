@@ -54,7 +54,6 @@ from pathfinder.domain.strategy.operator_reading import settled
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     numbered_requirements,
-    record_roles,
     resolved_reports,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
@@ -221,7 +220,6 @@ async def run_frame(
         deps.state.turn_markers.unstated_requirements = [c.id for c in lacking]
         domain.name_reading(result.chosen_reading)
         reported = resolved_reports(result.requirement_problems, domain.requirements)
-        domain.record_roles |= record_roles(result.record_types, domain.requirements)
         domain.group_scopes = merged_scopes(domain.group_scopes, result.group_scopes)
         domain.operational_spec = domain.follow_readings(
             domain.spec_before_dispatch, domain.operational_spec

@@ -28,8 +28,13 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    DataTypeValue,
 )
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    RequirementLink,
+)
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
@@ -143,6 +148,27 @@ def requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:
         requested_value=value,
         source=ConstraintSource.USER_EXPLICIT,
         quote=value,
+    )
+
+
+RNA_SEQ_ID = "r_rna_seq"
+
+
+def rna_seq_requirement() -> Constraint:
+    return Constraint(
+        id=RNA_SEQ_ID,
+        kind=ConstraintKind.DATA_TYPE,
+        label="RNA-Seq dataset",
+        requested_value="RNA-Seq",
+        source=ConstraintSource.USER_EXPLICIT,
+        quote="RNA-Seq",
+        value=DataTypeValue(data="rna_seq"),
+    )
+
+
+def linking_rna_seq(criterion: Criterion) -> Criterion:
+    return criterion.model_copy(
+        update={"answers": [RequirementLink(requirement=RNA_SEQ_ID)]}
     )
 
 

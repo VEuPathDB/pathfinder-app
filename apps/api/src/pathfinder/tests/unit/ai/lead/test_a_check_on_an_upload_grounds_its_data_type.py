@@ -17,7 +17,7 @@ from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintStatus
+from pathfinder.domain.strategy.constraints import ConstraintStatus
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -31,8 +31,9 @@ from pathfinder.tests.unit.ai.lead._site_verdict import VALID, serve_the_site
 from pathfinder.tests.unit.ai.lead.conftest import (
     final_result_part,
     lead_deps,
+    linking_rna_seq,
     pipeline_state,
-    requirement,
+    rna_seq_requirement,
     tool_script_model,
 )
 
@@ -80,21 +81,21 @@ def _deseq_state() -> Any:
     state.domain.operational_spec = OperationalSpec(
         goal="DESeq2 on my upload",
         criteria=[
-            Criterion(
-                id=_STEP,
-                text="Genes differentially expressed in pathfinder-uat-deseq.",
-                search_name="GenesByDESeqUserDataset",
-                analysis=AnalysisBinding(
-                    dataset_id=UPLOAD_DATASET,
-                    method="DESeq",
-                    words="Genes that differ between Control and Treated",
-                ),
+            linking_rna_seq(
+                Criterion(
+                    id=_STEP,
+                    text="Genes differentially expressed in pathfinder-uat-deseq.",
+                    search_name="GenesByDESeqUserDataset",
+                    analysis=AnalysisBinding(
+                        dataset_id=UPLOAD_DATASET,
+                        method="DESeq",
+                        words="Genes that differ between Control and Treated",
+                    ),
+                )
             )
         ],
     )
-    state.domain.requirements = [
-        requirement(ConstraintKind.DATA_TYPE, "RNA-Seq dataset", "RNA-Seq")
-    ]
+    state.domain.requirements = [rna_seq_requirement()]
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=[_STEP], wdk_strategy_id=330857143
     )
@@ -163,6 +164,6 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
     assert (seen, grounded.status, grounded.realized_value, delta.digest.success) == (
         [DataMarks(uploads={_STEP: "rnaseqrc"})],
         ConstraintStatus.GROUNDED,
-        "rna-seq",
+        "rna_seq",
         True,
     )

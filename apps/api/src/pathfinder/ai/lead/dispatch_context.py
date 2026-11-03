@@ -136,7 +136,6 @@ def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
             stated_operators=stated_operators(state.user_prompt),
             read_operators=frozenset() if found is None else read_operators(found),
             stated_requirements=list(state.domain.requirements),
-            held_record_roles=dict(state.domain.record_roles),
             held_group_scopes=dict(state.domain.group_scopes),
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),

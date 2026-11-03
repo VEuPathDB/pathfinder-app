@@ -70,7 +70,6 @@ DOMAIN_FIELDS = {
     "shown_records",
     "requirements",
     "retired_requirements",
-    "record_roles",
     "group_scopes",
     "answered_questions",
     "open_questions",

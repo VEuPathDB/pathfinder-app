@@ -15,9 +15,11 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    DataTypeValue,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.expression_handles import expression_handle
+from pathfinder.domain.strategy.operational_spec import RequirementLink
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -103,6 +105,7 @@ def test_a_constraint_that_lost_its_grounding_is_named() -> None:
         requested_value="RNA-Seq only",
         label="RNA-Seq only",
         source=ConstraintSource.USER_EXPLICIT,
+        value=DataTypeValue(data="rna_seq"),
     )
 
     briefing = compose_turn_briefing(
@@ -111,6 +114,7 @@ def test_a_constraint_that_lost_its_grounding_is_named() -> None:
         answered=_expression_ast(90),
         live=_expression_ast(90, rnaseq=False),
         marks=_MARKS,
+        links={"step_expr": [RequirementLink(requirement=requirement.id)]},
     )
 
     rendered = briefing.render()
@@ -232,6 +236,7 @@ def test_a_step_moved_onto_an_rna_seq_upload_keeps_the_rna_seq_grounding() -> No
         requested_value="RNA-Seq",
         label="RNA-Seq dataset",
         source=ConstraintSource.USER_EXPLICIT,
+        value=DataTypeValue(data="rna_seq"),
     )
     on_the_upload = StrategyAst(
         record_type="transcript",
@@ -244,6 +249,7 @@ def test_a_step_moved_onto_an_rna_seq_upload_keeps_the_rna_seq_grounding() -> No
         answered=_expression_ast(90),
         live=on_the_upload,
         marks=_MARKS.model_copy(update={"uploads": {"step_expr": "rnaseqrc"}}),
+        links={"step_expr": [RequirementLink(requirement=requirement.id)]},
     )
 
     assert briefing.constraints == []

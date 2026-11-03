@@ -8,7 +8,7 @@ from veupathdb.wdk import get_site_router
 from pathfinder.ai.agents.refusal_bound import may_refuse
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead.deltas import FrameResult, PassGap
+from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
 from pathfinder.domain.strategy.organism_steps import organisms_no_step_limits
@@ -16,7 +16,6 @@ from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
     numbered_requirements,
-    record_types_without_a_role,
     unknown_requirement_ids,
 )
 from pathfinder.domain.strategy.structure_bindings import unbound_in_structure
@@ -56,41 +55,6 @@ def hold_the_reports_to_the_requirement_list(
         f"{', '.join(numbered_requirements(held)) or 'none'}. A report names a "
         "requirement by its number in 'Requirements the researcher stated'. Use "
         "one of those numbers, or leave the entry out and say it in summary."
-    )
-    raise ModelRetry(msg)
-
-
-def hold_the_record_types_to_a_role(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult):
-        return output
-    state = ctx.deps.agent_state
-    unroled = record_types_without_a_role(
-        output.record_types, state.stated_requirements, state.held_record_roles
-    )
-    if not unroled:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gaps(
-            [
-                PassGap(
-                    kind="record_role_missing",
-                    sentence=(
-                        f"The pass stated no role for the record type "
-                        f"{c.requested_value!r}, so it is judged as the class the "
-                        f"result must be."
-                    ),
-                )
-                for c in unroled.values()
-            ]
-        )
-    state.refusals += 1
-    msg = (
-        f"record_types states no role for {', '.join(unroled)}. Give each "
-        "record-type requirement in 'Requirements the researcher stated' a role: "
-        "answer when the result is those records, through when the tree passes "
-        "through them."
     )
     raise ModelRetry(msg)
 
@@ -327,7 +291,6 @@ __all__ = [
     "hold_an_organism_to_a_step",
     "hold_the_questions_to_a_dimension",
     "hold_the_questions_to_the_draft",
-    "hold_the_record_types_to_a_role",
     "hold_the_reports_to_the_refusals",
     "hold_the_reports_to_the_requirement_list",
     "hold_the_route_to_another_site",

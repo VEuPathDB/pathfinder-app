@@ -7,9 +7,11 @@ from pathfinder.ai.lead.message_intent import intent_of
 from pathfinder.domain.message_reading import (
     Effect,
     MessageReading,
+    StatedDataType,
     StatedFoldChange,
     StatedOther,
     StatedPercentile,
+    StatedRecordType,
     StatedRequest,
     StatedSignificance,
     StatedUntyped,
@@ -19,8 +21,10 @@ from pathfinder.domain.message_reading import (
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
+    DataTypeValue,
     FoldChangeValue,
     PercentileValue,
+    RecordTypeValue,
     SignificanceValue,
     UntypedValue,
 )
@@ -199,17 +203,41 @@ def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
                 quote="from the 2019 study", kind="untyped", value="2019 study"
             ),
             StatedOther(quote="secreted", kind="property", value="secreted"),
+            StatedDataType(
+                quote="microarray experiment",
+                kind="data_type",
+                value="microarray",
+                data="microarray",
+            ),
+            StatedRecordType(
+                quote="their proteins",
+                kind="record_type",
+                value="proteins",
+                record_class="sequence",
+                role="through",
+            ),
         ]
     )
 
     intent = intent_of(_reading("new"), request)
 
-    assert [c.value for c in intent.explicit_constraints] == [
-        PercentileValue(end="top", share=5),
-        FoldChangeValue(cut=5, scale="log2", direction="up"),
-        SignificanceValue(statistic="p_value", at_most=1e-10),
-        UntypedValue(text="2019 study"),
-        None,
+    assert [(c.kind, c.value) for c in intent.explicit_constraints] == [
+        (ConstraintKind.PERCENTILE, PercentileValue(end="top", share=5)),
+        (
+            ConstraintKind.FOLD_CHANGE,
+            FoldChangeValue(cut=5, scale="log2", direction="up"),
+        ),
+        (
+            ConstraintKind.STATISTICAL_THRESHOLD,
+            SignificanceValue(statistic="p_value", at_most=1e-10),
+        ),
+        (ConstraintKind.OTHER, UntypedValue(text="2019 study")),
+        (ConstraintKind.OTHER, None),
+        (ConstraintKind.DATA_TYPE, DataTypeValue(data="microarray")),
+        (
+            ConstraintKind.RECORD_TYPE,
+            RecordTypeValue(record_class="sequence", role="through"),
+        ),
     ]
 
 

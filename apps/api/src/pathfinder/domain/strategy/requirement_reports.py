@@ -3,9 +3,8 @@ as asked. A report names the requirement by its number in the list the pass read
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from enum import StrEnum
-from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
 from pydantic import Field, model_validator
@@ -16,37 +15,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
-
-RecordRole = Literal["answer", "through"]
-
-
-class RecordTypeRole(CamelModel):
-    requirement: str = Field(
-        description=(
-            "The number of a record-type requirement, such as R2, from "
-            "'Requirements the researcher stated' in your instructions."
-        )
-    )
-    role: RecordRole = Field(
-        description=(
-            "answer: the researcher wants these records as the result, so the "
-            "root of the tree returns them. through: the tree passes through "
-            "these records on the way to the result, as in groups that contain "
-            "given proteins, so a step of the tree returns them."
-        )
-    )
-
-
-def record_roles(
-    stated: Sequence[RecordTypeRole], requirements: Sequence[Constraint]
-) -> dict[str, RecordRole]:
-    numbered = numbered_requirements(requirements)
-    return {
-        held.id: role.role
-        for role in stated
-        if (held := numbered.get(role.requirement)) is not None
-        and held.kind is ConstraintKind.RECORD_TYPE
-    }
 
 
 class RequirementProblem(StrEnum):
@@ -182,21 +150,6 @@ def requirements_block(requirements: Sequence[Constraint]) -> str | None:
         for number, c in numbered.items()
     ]
     return "\n".join(["## Requirements the researcher stated", *lines])
-
-
-def record_types_without_a_role(
-    stated: Sequence[RecordTypeRole],
-    requirements: Sequence[Constraint],
-    held: Mapping[str, RecordRole],
-) -> dict[str, Constraint]:
-    roled = {role.requirement for role in stated}
-    return {
-        number: c
-        for number, c in numbered_requirements(requirements).items()
-        if c.kind is ConstraintKind.RECORD_TYPE
-        and number not in roled
-        and c.id not in held
-    }
 
 
 def reported_requirements(

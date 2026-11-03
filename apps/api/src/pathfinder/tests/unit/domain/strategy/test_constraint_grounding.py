@@ -56,14 +56,6 @@ def _ground_on_microarray(constraint: Constraint) -> GroundedConstraint:
 
 
 class TestGroundingAgainstTheBuiltSearch:
-    def test_rnaseq_requested_but_microarray_used_is_substituted(self) -> None:
-        grounded = _ground_on_microarray(
-            _explicit(ConstraintKind.DATA_TYPE, "RNA-Seq", "data type")
-        )
-
-        assert grounded.status is ConstraintStatus.SUBSTITUTED
-        assert grounded.realized_value == "microarray"
-
     def test_a_threshold_the_search_does_not_link_is_not_verified(self) -> None:
         grounded = _ground_on_microarray(
             _explicit(

@@ -11,6 +11,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    DataTypeValue,
     FoldChangeValue,
     RequirementValue,
     SignificanceValue,
@@ -47,6 +48,7 @@ _RNA_SEQ = Constraint(
     requested_value="RNA-Seq",
     label="data type",
     source=ConstraintSource.USER_EXPLICIT,
+    value=DataTypeValue(data="rna_seq"),
 )
 
 _ORTHOLOGS = Criterion(
@@ -74,7 +76,7 @@ def _statuses(spec: OperationalSpec, *stated: Constraint) -> list[ConstraintStat
 
 
 def test_each_analysis_requirement_is_provisional_while_the_analysis_waits() -> None:
-    waiting = _linking(pending(), _P, _NO_FOLD, _TWO_FOLD)
+    waiting = _linking(pending(), _P, _NO_FOLD, _TWO_FOLD, _RNA_SEQ)
 
     grounded = ground_against_spec(
         [_P, _NO_FOLD, _TWO_FOLD, _RNA_SEQ], _spec(waiting, _ORTHOLOGS)

@@ -11,7 +11,6 @@ from pathfinder.ai.graph.stored_requirement_keys import (
     markers_by_id,
     questions_by_id,
     retired_by_id,
-    roles_by_id,
 )
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
@@ -37,7 +36,6 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     restored,
     retire,
 )
-from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.stated_requirements import (
     RecordedRequirements,
     attributed,
@@ -59,7 +57,6 @@ class ThreadRequirements(BaseModel):
     # The requirements a message withdrew or replaced, each with its
     # lifecycle. A check reports none as a gap.
     retired_requirements: list[RetiredRequirement] = Field(default_factory=list)
-    record_roles: dict[str, RecordRole] = Field(default_factory=dict)
     group_scopes: dict[str, GroupScope] = Field(default_factory=dict)
     # Every question an answer settled. A question is never a requirement, so
     # a check that restates one reports no gap.
@@ -77,7 +74,6 @@ class ThreadRequirements(BaseModel):
     def _names_each_requirement_by_id(self) -> ThreadRequirements:
         ids = ids_by_stored_key(self._recorded())
         self.retired_requirements = retired_by_id(self.retired_requirements, ids)
-        self.record_roles = roles_by_id(self.record_roles, ids)
         self.open_questions = questions_by_id(self.open_questions, ids)
         self.answered_questions = questions_by_id(self.answered_questions, ids)
         self.turn_markers = markers_by_id(self.turn_markers, ids)

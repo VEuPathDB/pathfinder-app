@@ -10,10 +10,14 @@ from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.log2_scale import Scale
 from pathfinder.domain.strategy.constraints import (
     Bound,
+    DataKind,
+    DataTypeValue,
     FoldChangeValue,
     FoldDirection,
     PercentileEnd,
     PercentileValue,
+    RecordRole,
+    RecordTypeValue,
     RequirementValue,
     Share,
     SignificanceValue,
@@ -77,6 +81,10 @@ class _Stated(CamelModel):
     hard: bool = True
     beside: str = ""
 
+    def on_the_site(self, listed: Collection[str]) -> _Stated:
+        del listed
+        return self
+
 
 class StatedPercentile(_Stated):
     kind: Literal["percentile"]
@@ -106,6 +114,34 @@ class StatedSignificance(_Stated):
         return SignificanceValue(statistic=self.statistic, at_most=self.at_most)
 
 
+class StatedDataType(_Stated):
+    kind: Literal["data_type"]
+    data: DataKind
+
+    def typed(self) -> RequirementValue:
+        return DataTypeValue(data=self.data)
+
+
+class StatedRecordType(_Stated):
+    kind: Literal["record_type"]
+    record_class: str = Field(min_length=1)
+    role: RecordRole = "answer"
+
+    def typed(self) -> RequirementValue:
+        return RecordTypeValue(record_class=self.record_class, role=self.role)
+
+    def on_the_site(self, listed: Collection[str]) -> _Stated:
+        if self.record_class in listed:
+            return self
+        return StatedUntyped(
+            kind="untyped",
+            quote=self.quote,
+            value=self.value,
+            hard=self.hard,
+            beside=self.beside,
+        )
+
+
 class StatedUntyped(_Stated):
     kind: Literal["untyped"]
 
@@ -114,9 +150,7 @@ class StatedUntyped(_Stated):
 
 
 class StatedOther(_Stated):
-    kind: Literal[
-        "organism", "record_type", "data_type", "count", "ortholog", "text", "property"
-    ]
+    kind: Literal["organism", "count", "ortholog", "text", "property"]
 
     def typed(self) -> RequirementValue | None:
         return None
@@ -126,6 +160,8 @@ StatedRequirement = Annotated[
     StatedPercentile
     | StatedFoldChange
     | StatedSignificance
+    | StatedDataType
+    | StatedRecordType
     | StatedUntyped
     | StatedOther,
     Discriminator("kind"),
@@ -158,10 +194,16 @@ class StatedRequest(CamelModel):
         ]
         return [q for q in quoted if q not in said]
 
-    def within(self, said: str, held: Collection[str]) -> StatedRequest:
+    def within(
+        self, said: str, held: Collection[str], record_classes: Collection[str]
+    ) -> StatedRequest:
         return self.model_copy(
             update={
-                "requirements": [r for r in self.requirements if r.quote in said],
+                "requirements": [
+                    r.on_the_site(record_classes)
+                    for r in self.requirements
+                    if r.quote in said
+                ],
                 "withdrawn": [
                     w
                     for w in self.withdrawn
@@ -176,9 +218,11 @@ __all__ = [
     "MessageReading",
     "ReadBy",
     "RequirementKind",
+    "StatedDataType",
     "StatedFoldChange",
     "StatedOther",
     "StatedPercentile",
+    "StatedRecordType",
     "StatedRequest",
     "StatedRequirement",
     "StatedSignificance",

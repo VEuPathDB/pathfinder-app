@@ -18,11 +18,7 @@ from pathfinder.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     read_step_columns,
 )
-from pathfinder.domain.requirement_checks import (
-    classes_named,
-    grounded_check,
-    record_type_check,
-)
+from pathfinder.domain.requirement_checks import grounded_check, record_type_check
 from pathfinder.domain.site_checks import (
     CountedOrganisms,
     HeldValue,
@@ -64,7 +60,6 @@ from pathfinder.services.experiment.paged_tally import (
 from pathfinder.services.experiment.reporter_refusals import ReporterRefusedError
 from pathfinder.services.experiment.step_tally import CountedStep, run_step_tally
 from pathfinder.services.site_errors import answered_with_a_status
-from pathfinder.services.strategies.record_classes import names_of_every_record_type
 from pathfinder.services.strategies.site_changes import (
     values_the_site_holds_otherwise,
 )
@@ -275,17 +270,11 @@ async def _organism_checks(
 async def _requirement_checks(
     deps: LeadDeps, judged: _Judged, stated: list[GroundedConstraint]
 ) -> list[SiteCheck]:
-    names = await names_of_every_record_type(judged.site_id)
     root = judged.root
     classes = {s.record_class for s in judged.steps.values() if s.record_class}
-    roles = deps.state.domain.record_roles
     return [
         record_type_check(
-            held.constraint,
-            roles.get(held.constraint.id, "answer"),
-            classes_named(held.constraint.requested_value, names),
-            None if root is None else root.record_class,
-            classes,
+            held.constraint, None if root is None else root.record_class, classes
         )
         if held.constraint.kind is ConstraintKind.RECORD_TYPE
         else grounded_check(held)

@@ -17,13 +17,21 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead import answered_strategy, pre_turn
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintStatus
+from pathfinder.ai.lead.pre_turn import (
+    attach_turn_briefing,
+    refresh_live_strategy_state,
+)
+from pathfinder.domain.strategy.constraints import ConstraintStatus
 from pathfinder.domain.strategy.data_marks import DataMarks
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.conversations.thread_activity import ThreadActivity
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.sheets import visible_sheet
-from pathfinder.tests.unit.ai.lead.conftest import requirement
+from pathfinder.tests.unit.ai.lead.conftest import (
+    linking_rna_seq,
+    rna_seq_requirement,
+)
 
 _PERCENTILE = "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile"
 _SIMILAR = "GenesByProfileSimilarity"
@@ -64,9 +72,7 @@ def _state() -> PipelineState:
         user_prompt="which genes are expressed",
         domain=StrategyDomainState(),
     )
-    state.domain.requirements = [
-        requirement(ConstraintKind.DATA_TYPE, "RNA-Seq dataset", "RNA-Seq")
-    ]
+    state.domain.requirements = [rna_seq_requirement()]
     return state
 
 
@@ -81,16 +87,43 @@ def _sheets(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _read)
 
 
-async def test_a_hydrated_strategy_grounds_by_its_datasets_assay() -> None:
+async def test_a_hydrated_strategy_reads_its_assay_and_links_no_requirement() -> None:
     refreshed = await refresh_live_strategy_state(
         _state(), _context(_session(_PERCENTILE))
     )
 
     [grounded] = derive_ledger(refreshed, None).constraints.grounded
-    assert (refreshed.domain.data_marks, grounded.status) == (
+    assert (refreshed.domain.data_marks, grounded.status, grounded.note) == (
         DataMarks(searches={_PERCENTILE: "RNASeq"}),
         ConstraintStatus.GROUNDED,
+        "no criterion links it",
     )
+
+
+def test_the_briefing_regrounds_a_requirement_through_the_specs_links() -> None:
+    state = _state()
+    state.domain.data_marks = DataMarks(
+        searches={_PERCENTILE: "RNASeq", _SIMILAR: "DNA Microarray Assay"}
+    )
+    state.domain.operational_spec = OperationalSpec(
+        goal="expressed",
+        criteria=[
+            linking_rna_seq(
+                Criterion(id="step_expr", text="expressed", search_name=_PERCENTILE)
+            )
+        ],
+    )
+    answered = _session(_PERCENTILE).get_graph(None)
+    assert answered is not None
+
+    attach_turn_briefing(
+        state,
+        _context(_session(_SIMILAR)),
+        ThreadActivity(),
+        answered=answered.to_strategy_ast(),
+    )
+
+    assert '- "RNA-Seq dataset": grounded -> substituted' in state.domain.turn_briefing
 
 
 async def test_the_tree_last_answered_keeps_its_mark_beside_the_live_one() -> None:

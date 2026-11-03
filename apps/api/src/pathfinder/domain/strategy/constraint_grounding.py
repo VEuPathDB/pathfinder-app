@@ -15,10 +15,13 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintStatus,
+    DataKind,
+    DataTypeValue,
     GroundedConstraint,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
+from pathfinder.domain.strategy.linked_values import linking, not_verified
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -27,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 from pathfinder.domain.strategy.value_grounding import (
+    UNTYPED,
     ground_percentile,
     ground_significance,
 )
@@ -34,41 +38,47 @@ from pathfinder.domain.strategy.value_grounding import (
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE
 )
-_MICROARRAY_RE = re.compile(r"microarray", re.IGNORECASE)
-_RNASEQ_REQUEST_RE = re.compile(r"rna[\s_-]?seq", re.IGNORECASE)
-_EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
+_ASSAYS: tuple[tuple[re.Pattern[str], DataKind], ...] = (
+    (re.compile(r"rna[\s_-]?seq", re.IGNORECASE), "rna_seq"),
+    (re.compile(r"microarray", re.IGNORECASE), "microarray"),
+)
 _MIN_MEMBERS = 2
 
 
-def _data_run_on(realized: RealizedSpec) -> list[str]:
-    """The data each criterion runs on, as the site marks it."""
-    marked = (realized.marks.run_on(criterion) for criterion in realized.criteria)
-    return [data for data in marked if data is not None]
+def _assay(mark: str | None) -> DataKind | None:
+    if mark is None:
+        return None
+    return next((data for found, data in _ASSAYS if found.search(mark)), None)
 
 
 def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    expr = [d for d in _data_run_on(realized) if _EXPRESSION_DATA_RE.search(d)]
-    if not expr and realized.analysis_pending:
-        return awaiting_analysis(c)
-    if not expr:
+    match c.value:
+        case DataTypeValue() as asked:
+            pass
+        case _:
+            return not_verified(c, UNTYPED)
+    linked = linking(c, realized.criteria)
+    if not linked:
+        return not_verified(c, "no criterion links it")
+    ran = {data for k in linked if (data := _assay(realized.marks.run_on(k)))}
+    if asked.data in ran:
         return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.UNGROUNDABLE,
-            note="no step runs on expression data",
+            constraint=c, status=ConstraintStatus.GROUNDED, realized_value=asked.data
         )
-    wants_rnaseq = bool(_RNASEQ_REQUEST_RE.search(c.requested_value))
-    all_microarray = all(_MICROARRAY_RE.search(s) for s in expr)
-    if wants_rnaseq and all_microarray:
+    if ran:
+        [built] = ran
         return GroundedConstraint(
             constraint=c,
             status=ConstraintStatus.SUBSTITUTED,
-            realized_value="microarray",
-            note="requested RNA-Seq but only microarray searches were selected",
+            realized_value=built,
+            note=f"asked {asked.data}, the steps that link it run on {built}",
         )
+    if any(k.pending_analysis for k in linked):
+        return awaiting_analysis(c)
     return GroundedConstraint(
         constraint=c,
-        status=ConstraintStatus.GROUNDED,
-        realized_value="rna-seq" if wants_rnaseq else "microarray",
+        status=ConstraintStatus.UNGROUNDABLE,
+        note="no step that links it runs on expression data",
     )
 
 

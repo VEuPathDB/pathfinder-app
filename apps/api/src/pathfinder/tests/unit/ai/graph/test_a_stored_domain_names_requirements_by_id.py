@@ -63,10 +63,11 @@ def test_a_stored_replacement_names_its_successor_by_id() -> None:
     }
 
 
-def test_a_stored_record_role_is_held_by_id() -> None:
+def test_a_stored_record_type_loads_untyped_and_its_role_is_dropped() -> None:
     domain = _read()
 
-    assert domain.record_roles == {_ids(domain)["proteins"]: "through"}
+    [proteins] = [c for c in domain.requirements if c.requested_value == "proteins"]
+    assert (proteins.value, "record_roles" in domain.model_dump()) == (None, False)
 
 
 def test_a_stored_card_binds_the_requirement_by_id() -> None:
@@ -159,7 +160,7 @@ def test_a_stored_domain_read_twice_gets_the_same_ids() -> None:
     assert _ids(_read()) == _ids(_read())
 
 
-def test_a_role_lands_on_the_live_requirement_a_retired_copy_shares() -> None:
+def test_a_retired_copy_shares_the_id_of_the_live_requirement() -> None:
     stored = stored_domain(_STORED)
     [proteins] = [
         c
@@ -177,10 +178,7 @@ def test_a_role_lands_on_the_live_requirement_a_retired_copy_shares() -> None:
     )
 
     [live] = [c.id for c in domain.requirements if c.requested_value == "proteins"]
-    assert (domain.record_roles, domain.retired_requirements[0].constraint.id) == (
-        {live: "through"},
-        live,
-    )
+    assert domain.retired_requirements[0].constraint.id == live
 
 
 def test_a_stored_id_hashes_the_whole_key() -> None:
