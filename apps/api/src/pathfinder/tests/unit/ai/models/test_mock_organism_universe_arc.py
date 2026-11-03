@@ -17,14 +17,24 @@ from pathfinder.ai.tools.standalone.frame_structure import (
     SetStructureResult,
     set_structure,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    OrganismValue,
+)
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    RequirementLink,
+    StructureNode,
+)
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.recorded_searches import client_search, suite_search
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.models import _mock_turns
-from pathfinder.tests.unit.ai.models._mock_turns import args_of, play
+from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, play
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 PEST = "Anopheles gambiae PEST"
@@ -32,6 +42,14 @@ _MESSAGE = (
     f"Find {PEST} genes whose proteins have a predicted signal peptide. "
     "[[arc:organism-universe]]"
 )
+_ORGANISM = Constraint(
+    kind=ConstraintKind.ORGANISM,
+    requested_value=PEST,
+    label="organism",
+    source=ConstraintSource.USER_EXPLICIT,
+    value=OrganismValue(organism=PEST),
+)
+_PINNED = Scene(instructions=f"- R1 (organism): {PEST}")
 
 
 @pytest.fixture(autouse=True)
@@ -63,6 +81,9 @@ def _bound(call: dict[str, object]) -> Criterion:
     return Criterion(
         id=str(call["criterion_id"]),
         text=str(call["text"]),
+        answers=[RequirementLink(requirement=_ORGANISM.id)]
+        if "answers" in call
+        else [],
         search_name=search_name,
         organism_param=_marked(search_name),
         resolved_params=bound(
@@ -116,8 +137,8 @@ async def test_the_real_structure_drops_the_organism_criterion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_organism_reads(monkeypatch, recorded_organisms("vectorbase"))
-    calls = play("frame", "vectorbase", _MESSAGE)
-    state = AgentToolState()
+    calls = play("frame", "vectorbase", _MESSAGE, scene=_PINNED)
+    state = AgentToolState(stated_requirements=[_ORGANISM])
     for call in _bindings(calls):
         criterion = _bound(call)
         state.frame_set_criterion(criterion)

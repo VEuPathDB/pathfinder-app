@@ -21755,6 +21755,7 @@
                   "mapping": {
                     "data_type": "#/components/schemas/DataTypeValue",
                     "fold_change": "#/components/schemas/FoldChangeValue",
+                    "organism": "#/components/schemas/OrganismValue",
                     "other": "#/components/schemas/UntypedValue",
                     "percentile": "#/components/schemas/PercentileValue",
                     "record_type": "#/components/schemas/RecordTypeValue",
@@ -21777,6 +21778,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/RecordTypeValue"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OrganismValue"
                   },
                   {
                     "$ref": "#/components/schemas/UntypedValue"
@@ -25193,6 +25197,26 @@
         "title": "OrganismChange",
         "type": "object"
       },
+      "OrganismValue": {
+        "properties": {
+          "kind": {
+            "const": "organism",
+            "default": "organism",
+            "title": "Kind",
+            "type": "string"
+          },
+          "organism": {
+            "minLength": 1,
+            "title": "Organism",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organism"
+        ],
+        "title": "OrganismValue",
+        "type": "object"
+      },
       "OrthologFact": {
         "properties": {
           "geneId": {
@@ -26788,6 +26812,48 @@
         "title": "StatedFoldChange",
         "type": "object"
       },
+      "StatedOrganism": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          },
+          "beside": {
+            "default": "",
+            "title": "Beside",
+            "type": "string"
+          },
+          "kind": {
+            "const": "organism",
+            "title": "Kind",
+            "type": "string"
+          },
+          "organism": {
+            "minLength": 1,
+            "title": "Organism",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quote",
+          "value",
+          "kind",
+          "organism"
+        ],
+        "title": "StatedOrganism",
+        "type": "object"
+      },
       "StatedOther": {
         "properties": {
           "quote": {
@@ -26812,7 +26878,6 @@
           },
           "kind": {
             "enum": [
-              "organism",
               "count",
               "ortholog",
               "text",
@@ -26935,7 +27000,7 @@
                   "count": "#/components/schemas/StatedOther",
                   "data_type": "#/components/schemas/StatedDataType",
                   "fold_change": "#/components/schemas/StatedFoldChange",
-                  "organism": "#/components/schemas/StatedOther",
+                  "organism": "#/components/schemas/StatedOrganism",
                   "ortholog": "#/components/schemas/StatedOther",
                   "percentile": "#/components/schemas/StatedPercentile",
                   "property": "#/components/schemas/StatedOther",
@@ -26961,6 +27026,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/StatedRecordType"
+                },
+                {
+                  "$ref": "#/components/schemas/StatedOrganism"
                 },
                 {
                   "$ref": "#/components/schemas/StatedUntyped"

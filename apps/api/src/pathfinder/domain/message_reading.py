@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.constraints import (
     DataTypeValue,
     FoldChangeValue,
     FoldDirection,
+    OrganismValue,
     PercentileEnd,
     PercentileValue,
     RecordRole,
@@ -142,6 +143,14 @@ class StatedRecordType(_Stated):
         )
 
 
+class StatedOrganism(_Stated):
+    kind: Literal["organism"]
+    organism: str = Field(min_length=1)
+
+    def typed(self) -> RequirementValue:
+        return OrganismValue(organism=self.organism)
+
+
 class StatedUntyped(_Stated):
     kind: Literal["untyped"]
 
@@ -150,7 +159,7 @@ class StatedUntyped(_Stated):
 
 
 class StatedOther(_Stated):
-    kind: Literal["organism", "count", "ortholog", "text", "property"]
+    kind: Literal["count", "ortholog", "text", "property"]
 
     def typed(self) -> RequirementValue | None:
         return None
@@ -162,6 +171,7 @@ StatedRequirement = Annotated[
     | StatedSignificance
     | StatedDataType
     | StatedRecordType
+    | StatedOrganism
     | StatedUntyped
     | StatedOther,
     Discriminator("kind"),
@@ -220,6 +230,7 @@ __all__ = [
     "RequirementKind",
     "StatedDataType",
     "StatedFoldChange",
+    "StatedOrganism",
     "StatedOther",
     "StatedPercentile",
     "StatedRecordType",

@@ -25,9 +25,9 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
     untyped_ids,
 )
+from pathfinder.ai.lead.organism_reader import named_organisms
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import Constraint
-from pathfinder.domain.strategy.organism_phrases import complete_organisms
 from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.services.gene_records.read import gene_record_url
 
@@ -168,11 +168,10 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
     state = deps.state
     markers = state.turn_markers
     site = await read_the_site(state, intent, said)
-    if intent.explicit_constraints:
-        constraints = complete_organisms(
-            intent.explicit_constraints, said, site.organisms
-        )
-        intent = intent.model_copy(update={"explicit_constraints": constraints})
+    named = await named_organisms(
+        state.site_id, intent.explicit_constraints, said, site.organisms
+    )
+    intent = intent.model_copy(update={"explicit_constraints": named.constraints})
     intent = _without(intent, set(_unheld_ids(state, intent, site, said)))
     held = state.domain.requirements
     intent = intent.model_copy(
@@ -187,6 +186,7 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
     if not worked and intent.classification is IntentClassification.NEW_STRATEGY:
         state.domain.take_a_new_request(strategy_has_steps=deps.step_count > 0)
     state.domain.record_intent(intent, request_text=said)
+    state.domain.hold_organism_picks(named.picks)
     if intent.classification in ANSWERING_INTENTS:
         state.domain.answer_the_questions_at_arrival(said)
     return intent

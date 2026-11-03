@@ -9,7 +9,7 @@ from veupathdb_mcp.wdk import ColumnCounts, ColumnNotCountedError, CountedValue
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.constraints import ConstraintKind, OrganismValue
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -41,7 +41,9 @@ _PF = "Plasmodium falciparum 3D7"
 _PF_IT = "Plasmodium falciparum IT"
 _EXPORTED = 441126163
 _EXPORTED_STRATEGY = 330125410
-_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", _PF)
+_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", _PF).model_copy(
+    update={"value": OrganismValue(organism=_PF)}
+)
 
 
 def _exported_deps() -> LeadDeps:
@@ -228,3 +230,27 @@ async def test_a_large_result_is_counted_from_the_organism_full_report(
             "the strategy does not select: Toxoplasma gondii ME49 (8,778)"
         ),
     )
+
+
+async def test_an_organism_requirement_with_no_entry_is_not_verified(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_the_site(monkeypatch, _exported_details(), [column_catalog()])
+    serve_columns(monkeypatch, ColumnSite({}, {}))
+    serve(
+        monkeypatch,
+        TallySite(column_catalog(), step_count=4200),
+        ToolServer(counts=_organisms(("<i>Plasmodium falciparum</i> 3D7", 4200))),
+    )
+    deps = _exported_deps()
+    deps.state.domain.requirements = [_ORGANISM.model_copy(update={"value": None})]
+
+    delta = await verify(monkeypatch, deps, UNANSWERED_DIGEST)
+
+    held, result = [c for c in delta.digest.review.checks if c.kind == "organism"]
+    assert (held.requirement, held.status, held.evidence) == (
+        _ORGANISM.id,
+        "unchecked",
+        "the requirement holds no organism entry of the site",
+    )
+    assert (result.requirement, result.status) == ("", "pass")

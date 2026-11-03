@@ -21,6 +21,7 @@ a `RequirementValue` or null. `RequirementValue` is a union discriminated by
 | `SignificanceValue` | `statistical_threshold` | `statistic` (`p_value`, `adjusted_p`, `fdr`, `q_value`, `unspecified`), `at_most` (above 0, at most 1) |
 | `DataTypeValue` | `data_type` | `data` (`rna_seq`, `microarray`) |
 | `RecordTypeValue` | `record_type` | `record_class` (a record class the site lists, by its name in the catalog), `role` (`answer`, `through`) |
+| `OrganismValue` | `organism` | `organism`, one entry of the site's organism list ([an organism requirement holds a site entry](an-organism-requirement-holds-a-site-entry.md)) |
 | `UntypedValue` | `other` | `text` |
 
 A model validator refuses a value whose kind is not the requirement's. The

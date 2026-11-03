@@ -21,7 +21,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.text_expression import unquoted_phrase_refusal
 from pathfinder.domain.strategy.words import words_of
@@ -99,8 +99,8 @@ def _refuse_an_organism_the_request_does_not_name(
     """Refuse a bind that holds a sibling or an ancestor of an organism entry
     the request names whole, in place of that entry.
 
-    The request names the organisms its live requirements state: a value a
-    later message replaced or withdrew is no longer named. A named entry is
+    The request names the site entries its live organism requirements hold: a
+    value a later message replaced or withdrew is no longer named. A named entry is
     covered by itself and by any entry under it. A bound entry the request
     names, or one under it, is the request's own value and substitutes for
     nothing. An entry of another lineage belongs to another criterion and is
@@ -109,11 +109,11 @@ def _refuse_an_organism_the_request_does_not_name(
     options = info.vocabulary()
     proposed = proposal_values(call.params.get(info.name))
     bound = [term for v in proposed if (term := match_exact_option(options, v))]
-    displays = {option.display: option.value for option in options}
-    named = _entries_stated(
-        [c.requested_value for c in requirements if c.kind is ConstraintKind.ORGANISM],
-        displays,
-    )
+    named = [
+        term
+        for c in requirements
+        if c.organism is not None and (term := match_exact_option(options, c.organism))
+    ]
     tree = _organism_tree(definition, info.name)
     unnamed = [b for b in bound if not any(b == n or tree.above(n, b) for n in named)]
     substituted = [

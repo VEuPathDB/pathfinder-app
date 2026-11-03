@@ -4,6 +4,8 @@ round trip that does not keep the source genes."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 __all__ = [
@@ -53,6 +55,14 @@ def round_trip_not_kept_message(detail: str) -> str:
         f"The plan's orthology round trip does not keep the source genes: "
         f"{detail} Nothing was built and the strategy is unchanged. Run "
         f"frame_problem so the framing pass states the tree again."
+    )
+
+
+def organism_unnamed_message(quotes: Sequence[str]) -> str:
+    named = ", ".join(f'"{quote}"' for quote in quotes)
+    return (
+        f"The strategy cannot be built until the researcher names the organism "
+        f"of {named}. Ask the card's question; do NOT re-frame."
     )
 
 

@@ -11,6 +11,7 @@ from veupathdb.model import CamelModel
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.domain.strategy.question_options import (
     Keep,
+    SetOrganism,
     SetValues,
     TypedOption,
     Withdraw,
@@ -37,7 +38,11 @@ def _asks_about(question: OpenQuestion) -> str:
         match option.binding:
             case ReadValues(replaces=replaced):
                 keys.extend(replaced)
-            case Withdraw(constraint_id=key) | Keep(constraint_id=key):
+            case (
+                Withdraw(constraint_id=key)
+                | Keep(constraint_id=key)
+                | SetOrganism(constraint_id=key)
+            ):
                 keys.append(key)
             case _:
                 continue

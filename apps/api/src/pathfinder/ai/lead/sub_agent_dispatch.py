@@ -24,6 +24,7 @@ from pathfinder.ai.lead.answered_strategy import (
 from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
+    organism_unnamed_message,
     round_trip_not_kept_message,
     structure_does_not_convert_message,
 )
@@ -53,6 +54,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.organism_picks import asked_organisms
 from pathfinder.domain.strategy.orthology import (
     OrganismChange,
     organism_change,
@@ -135,7 +137,11 @@ def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
 
 async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     """Mint the thread's spec into steps and push them, with no model in between."""
-    minted = minted_spec(deps.state.domain.operational_spec)
+    domain = deps.state.domain
+    asked = asked_organisms(domain.requirements, domain.organism_picks)
+    if asked:
+        raise ModelRetry(organism_unnamed_message([pick.quote for _, pick in asked]))
+    minted = minted_spec(domain.operational_spec)
     return await build_the_minted(deps, minted, call_id=call_id)
 
 

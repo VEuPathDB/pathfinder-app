@@ -9,7 +9,6 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.catalog import get_raw_record_types
 from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -46,7 +45,6 @@ from pathfinder.domain.strategy.spec_fold import (
     fold_organism_universe,
     intersected_leaves,
 )
-from pathfinder.domain.strategy.words import words_of
 from pathfinder.services.strategies.organism_universe import universe_counts
 from pathfinder.services.strategies.record_classes import (
     tree_record_class_refusal,
@@ -320,17 +318,6 @@ async def _organism_folded(
         for c in candidates
         if (overview := state.get_overview(c.search_name)) is not None
     }
-    record_words = [
-        word
-        for record in await get_raw_record_types(ctx.deps.site_id)
-        if record.url_segment in record_types.values()
-        for name in (
-            record.display_name,
-            record.display_name_plural,
-            record.short_display_name,
-        )
-        for word in words_of(name)
-    ]
     organisms = await list_organisms(ctx.deps.site_id)
     counts: dict[str, int] = {}
     for record_type in sorted(set(record_types.values())):
@@ -347,5 +334,10 @@ async def _organism_folded(
             {cid: counted[key] for cid, key in keyed.items() if key in counted}
         )
     return fold_organism_universe(
-        draft, proposed, organisms, record_words, counts, live_step_ids=live
+        draft,
+        proposed,
+        organisms,
+        state.stated_requirements,
+        counts,
+        live_step_ids=live,
     )

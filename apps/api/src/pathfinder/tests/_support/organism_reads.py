@@ -123,19 +123,14 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
 def serve_organism_reads(
     monkeypatch: pytest.MonkeyPatch, organisms: Sequence[str]
 ) -> list[str]:
-    """Serve the site's organisms and record types; each read is recorded."""
+    """Serve the site's organisms; each read is recorded."""
     reads: list[str] = []
 
     async def _organisms(site_id: str) -> list[str]:
         reads.append(f"organisms:{site_id}")
         return list(organisms)
 
-    async def _record_types(site_id: str) -> list[WDKRecordType]:
-        reads.append(f"record types:{site_id}")
-        return [TRANSCRIPT]
-
     monkeypatch.setattr(frame_structure, "list_organisms", _organisms)
-    monkeypatch.setattr(frame_structure, "get_raw_record_types", _record_types)
     return reads
 
 

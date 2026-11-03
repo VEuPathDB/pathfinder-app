@@ -31,7 +31,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
 )
-from pathfinder.domain.strategy.organism_phrases import names_the_organism
 from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.recorded_counts import recorded_count
@@ -293,20 +292,6 @@ def test_a_read_the_site_did_not_answer_is_unchecked_for_that_reason() -> None:
         ("result_count", True),
     ]
     assert checks[3].evidence == "the site did not answer the column read of step 11"
-
-
-@pytest.mark.parametrize(
-    ("words", "names"),
-    [
-        ("P. falciparum", True),
-        ("Plasmodium", True),
-        ("Plasmodium falciparum 3D7", True),
-        ("falciparum", False),
-        ("P. vivax", False),
-    ],
-)
-def test_words_name_an_organism_by_its_leading_words(words: str, names: bool) -> None:
-    assert names_the_organism(words, _pf("falciparum 3D7")) is names
 
 
 def _grounded(

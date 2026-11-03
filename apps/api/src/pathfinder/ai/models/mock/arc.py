@@ -20,7 +20,7 @@ Sequence = Callable[[list[ModelMessage]], list[ToolCallPart]]
 Reading = Callable[[PipelineState, str], UserIntent]
 
 
-async def no_operator_answer(request: DecisionRequest) -> DecisionResponse | None:
+async def no_decision(request: DecisionRequest) -> DecisionResponse | None:
     del request
     return None
 
@@ -45,7 +45,7 @@ class Arc:
     frame: Script
     verification: Script
     execution: Script
-    operators: DecisionsTransport = no_operator_answer
+    operators: DecisionsTransport = no_decision
 
     def script(self, role: Role) -> Script:
         match role:

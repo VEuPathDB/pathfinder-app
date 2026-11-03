@@ -41,7 +41,12 @@ def organism_split(intent: UserIntent, site_id: str) -> UserIntent:
         {
             **intent.model_dump(by_alias=True),
             "explicitConstraints": [
-                stated("organism", "organism", binomial),
+                stated(
+                    "organism",
+                    "organism",
+                    binomial,
+                    typed={"kind": "organism", "organism": binomial},
+                ),
                 stated("other", "gene category", f"{strain} genes"),
             ],
         }
