@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 afterEach(cleanup);
 
+import { constraintKindEnum } from "@pathfinder/shared/generated/types/ConstraintKind";
+
 import { ConstraintsSection } from "./ConstraintsSection";
 
 describe("ConstraintsSection", () => {
@@ -61,6 +63,35 @@ describe("ConstraintsSection", () => {
     );
     expect(screen.getByText("not verified")).toBeInTheDocument();
     expect(screen.queryByText(/grounded/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a row for a requirement of every kind", () => {
+    const kinds = Object.values(constraintKindEnum);
+    render(
+      <ConstraintsSection
+        constraints={{
+          blocking: false,
+          unmetCount: 0,
+          grounded: kinds.map((kind) => ({
+            constraint: {
+              kind,
+              requestedValue: `value of ${kind}`,
+              label: `label of ${kind}`,
+              source: "user_explicit",
+              hard: true,
+            },
+            status: "not_verified",
+            unverified: "untyped",
+          })),
+        }}
+      />,
+    );
+    expect(
+      kinds.map(
+        (kind) => screen.getByText(`requested value of ${kind} -> -`).textContent,
+      ),
+    ).toEqual(kinds.map((kind) => `requested value of ${kind} -> -`));
+    expect(screen.getAllByText("not verified")).toHaveLength(kinds.length);
   });
 
   it("renders nothing notable when there are no constraints", () => {

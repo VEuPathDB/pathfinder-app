@@ -12,7 +12,7 @@ status: stable
 `Constraint` (`domain/strategy/constraints.py`) keeps its id, kind, source, quote,
 hard flag, label and `requested_value`, which is display only. It gains `value`,
 a `RequirementValue` or null. `RequirementValue` is a union discriminated by
-`kind`; the members built so far are:
+`kind`; the members are:
 
 | Member | Kind | Fields |
 |---|---|---|
@@ -72,7 +72,9 @@ Count, ortholog, text and property are compared only through links
   count when the link says the requirement bounds the result size
   (`RequirementLink.result_size`, which names no parameter);
 - an ortholog's organisms against the organisms the linking transform targets,
-  by set equality of entries;
+  by set equality of entries, and a stated `syntenic` against the transform's
+  `isSyntenic` parameter (`yes` for syntenic orthologs, `no` for any ortholog);
+  a stated synteny that no linking transform sets is not verified;
 - a text phrase against the linked parameter's value: equal, without enclosing
   quotes and case, for an exact phrase, and every word of the phrase among the
   value's words otherwise. Both sides are the site's value and the researcher's
@@ -150,11 +152,19 @@ to every requirement, and nothing would hold a field to its kind.
 the patterns read is exactly one the type did not settle; grounding it by words
 is the fault the type removes.
 
+# What would prove this wrong
+
+Property and text stay two kinds: a text phrase is compared with the value of
+the parameter its link names, and a property is answered by the step that links
+it. If the typed gold set finds that most properties link a text parameter, or
+that the reading cannot tell the two apart, the two kinds merge into one.
+
 # Anchors
 
 `domain/strategy/constraints.py`, `domain/message_reading.py`,
 `ai/lead/message_intent.py`, `ai/lead/message_reader.py`,
 `ai/prompts/stated_request.md`, `domain/strategy/linked_values.py`,
 `domain/strategy/value_grounding.py`, `domain/strategy/fold_grounding.py`,
-`domain/strategy/constraint_grounding.py`, `domain/requirement_checks.py`,
+`domain/strategy/constraint_grounding.py`, `domain/strategy/link_grounding.py`,
+`domain/requirement_checks.py`,
 `ai/lead/frame_requirements.py`, `ai/lead/turn_briefing.py`.

@@ -2,6 +2,21 @@
 
 ## 2026-11-03
 
+* **Requirements are typed data: the last word reader is gone and synteny is
+  compared.** `constraints.message_states` is deleted; the deterministic VERIFY
+  of the mock model reads a record's organism by its own word test. An
+  ortholog requirement that states `syntenic` is compared with the linking
+  transform's `isSyntenic` (`yes` for syntenic orthologs, `no` for any ortholog),
+  a substitution when they differ and "not verified" when no linking transform
+  sets it. A property is shown by its linking step's title
+  (`step_naming.criterion_title`). The words that remain are read from the
+  researcher's messages or the site's data, never from a model-written value to
+  decide a requirement. The backlog item is done and removed; its open
+  measurement is
+  [typed requirements are measured](backlog/typed-requirements-are-measured.md),
+  and the property and text question is the condition in
+  [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md).
+
 * **Every requirement has a typed value of a named kind, and one nothing compared
   is "not verified".** `CountValue` (`feature`, `op`, `value`), `OrthologValue`
   (`organisms`, `syntenic`), `TextValue` (`phrase`, `exact`) and `PropertyValue`
@@ -35,7 +50,7 @@
   compares it with the stored strategy: a seed step gone or a seed value moved
   generates the name anew at the turn end, so the turn-start strategy is no longer
   read. A criterion titles its step by the search's display name and the bound
-  values' vocabulary labels (`Criterion.step_title`, `StepTitle`), the strategy's
+  values' vocabulary labels (`step_naming.criterion_title`, `StepTitle`), the strategy's
   metadata stores it per step (`StepWords.titles`), and a step whose name equals its
   stored title takes the newer title, less the label of a value it no longer holds.
   A step named by a person, a model or the site, or stored with no title, keeps its
@@ -238,9 +253,8 @@
   [a withdrawal names a held requirement by its number](decisions/a-withdrawal-names-a-held-requirement-by-its-number.md),
   which supersedes the value-words clause of the requirement lifecycle, and
   [an unlinked requirement is not verified and never blocks](decisions/an-unlinked-requirement-is-not-verified-and-never-blocks.md).
-  The work that builds them is backlog item 77,
-  [requirements are typed data](backlog/requirements-are-typed-data.md). No code
-  changed.
+  The work that builds them is backlog item 77, requirements are typed data. No
+  code changed.
 
 ## 2026-10-31
 

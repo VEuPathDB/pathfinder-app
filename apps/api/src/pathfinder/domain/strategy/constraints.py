@@ -11,7 +11,6 @@ from pydantic.json_schema import SkipJsonSchema
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.log2_scale import Scale
-from pathfinder.domain.strategy.words import words_of
 
 
 class ConstraintKind(StrEnum):
@@ -360,19 +359,6 @@ class GroundedConstraint(CamelModel):
     @property
     def answered_by_a_parameter(self) -> bool:
         return self.status is ConstraintStatus.GROUNDED and bool(self.realized_param)
-
-
-def message_states(message: str, value: str) -> bool:
-    """Whether the message carries every word of this value.
-
-    A classifier rewrites what it captures into a canonical value, so the words
-    are the test and the phrasing is not. This reads words and not meaning: a
-    short value whose words all appear somewhere in the message counts as
-    stated.
-    """
-    carried = set(words_of(message))
-    stated = words_of(value)
-    return bool(stated) and all(word in carried for word in stated)
 
 
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
