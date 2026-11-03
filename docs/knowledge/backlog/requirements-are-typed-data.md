@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: Requirements are typed data
-description: Every decision the thread makes about a requirement (who stated it, what it replaces, what a withdrawal or a delete retires, what an answer drops, how the verdict compares it) reads words, phrases or regexes in model-written values. Replace Constraint.requested_value with a discriminated union of typed requirements, each with a stable id, a verbatim quote and links from the criteria that answer it, and move each decision onto those fields, kind by kind, in the steps that remain.
+description: Every decision the thread makes about a requirement (who stated it, what it replaces, what a withdrawal or a delete retires, what an answer drops, how the verdict compares it) reads words, phrases or regexes in model-written values. Give each requirement a typed value discriminated by kind, beside its stable id, its verbatim quote and the links from the criteria that answer it, and move each decision onto those fields, kind by kind, in the steps that remain.
 tags: [agents, lead, frame, verification, requirements, redesign]
 generated: { by: claude-code/opus-5.5, at: 2026-11-01T00:00:00Z }
 status: proposed
@@ -35,27 +35,23 @@ build.
 
 `Criterion.answers` and the paths that read it are built
 ([a criterion links the requirement it answers](../decisions/a-criterion-links-the-requirement-it-answers.md)).
-A new `domain/strategy/requirements.py` holds `Requirement`, a union discriminated
-by `kind`. Every member carries `id` (minted by `ThreadRequirements`, never written
-by a model), `ref` (its number inside one classification), `source` (`stated` or
-`assumed`), `quote`, `hard` and `label` (display only). The kinds: `organism`
-(a site vocabulary entry), `record_type` (a WDK `recordClassName`, role `answer` or
-`through`), `data_type` (`rna_seq`, `microarray`), `percentile` (end and share),
-`fold_change` (cut, scale, direction), `significance` (statistic and an upper
-bound), `count` (feature, operator, value), `comparator` (two sides), `ortholog`
-(organisms, syntenic), `text` (phrase, exact), `property` (phrase) and `untyped`
-(text). No kind states how requirements combine: the operators are FRAME's tree,
-read against the researcher's words
+A requirement is `Constraint` with a typed `value`, a union discriminated by
+`kind`
+([a requirement carries a typed value of its kind](../decisions/a-requirement-carries-a-typed-value-of-its-kind.md));
+`percentile` (end and share), `fold_change` (cut, scale, direction),
+`significance` (statistic and an upper bound) and `untyped` (text) are built. The
+kinds still to gain a member: `organism` (a site vocabulary entry), `record_type`
+(a WDK `recordClassName`, role `answer` or `through`), `data_type` (`rna_seq`,
+`microarray`), `count` (feature, operator, value), `ortholog` (organisms,
+syntenic), `text` (phrase, exact) and `property` (phrase). No kind states how
+requirements combine: the operators are FRAME's tree, read against the
+researcher's words
 ([operators come from FRAME's tree](../decisions/operators-come-from-frames-tree.md)).
-`Criterion.answers` lists `RequirementLink`s (a requirement id and an optional
-parameter), set by FRAME in `set_criterion`. `UserIntent` carries `requirements`,
-`withdrawn` as held numbers, and `differential_sides` as refs. A value kind is
-compared only through a link that names a parameter; a percentile's end is read
-from the site's parameter name. Single-valued kinds replace by kind, unless the
-reading states the new value beside the held one; property, text, count,
-ortholog and untyped hold many values. A stored
-requirement of the old shape reads as `untyped` and shows "not verified" until
-restated; no shim keeps the old shape.
+A value kind is compared only through a link that names a parameter. Single-valued
+kinds replace by kind, unless the reading states the new value beside the held
+one; property, text, count, ortholog and untyped hold many values. A requirement
+with no value, stored before or of a kind not migrated yet, is untyped and shows
+"not verified"; no shim keeps an old shape.
 
 ## Steps
 
@@ -63,11 +59,6 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-7. Percentile (R): compared through its link; delete `PercentileRequest.parse`.
-8. Fold change (R): cut, scale and direction against the linked parameter or the
-   analysis effect size; `fold_grounding` reads no words.
-9. Significance (R): the bound against the linked parameter or the analysis
-   threshold.
 10. Data type (R): against the data marks of the linking criteria.
 11. Organism (R): a vocabulary entry compared by equality in grounding, the
     organism check, FRAME's bind refusal, the organism drop and `gene_record`'s

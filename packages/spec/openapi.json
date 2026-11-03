@@ -20904,6 +20904,11 @@
         "title": "BackgroundTaskStarted",
         "type": "object"
       },
+      "Bound": {
+        "exclusiveMinimum": 0,
+        "maximum": 1,
+        "type": "number"
+      },
       "BoundValue": {
         "description": "A bound value, who set it, and what the published sheet says of it.\n``basis`` is the request's words, the model's reason or the card's option\nid; a default and a held value have none. No sheet read, no sheet fields.",
         "properties": {
@@ -21742,6 +21747,39 @@
             "default": true,
             "title": "Hard",
             "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "fold_change": "#/components/schemas/FoldChangeValue",
+                    "other": "#/components/schemas/UntypedValue",
+                    "percentile": "#/components/schemas/PercentileValue",
+                    "statistical_threshold": "#/components/schemas/SignificanceValue"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/PercentileValue"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FoldChangeValue"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SignificanceValue"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UntypedValue"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
           }
         },
         "required": [
@@ -23684,6 +23722,50 @@
         "title": "FailureCause",
         "type": "string"
       },
+      "FoldChangeValue": {
+        "properties": {
+          "kind": {
+            "const": "fold_change",
+            "default": "fold_change",
+            "title": "Kind",
+            "type": "string"
+          },
+          "cut": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cut"
+          },
+          "scale": {
+            "default": "fold",
+            "enum": [
+              "log2",
+              "fold"
+            ],
+            "title": "Scale",
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/FoldDirection",
+            "default": "either"
+          }
+        },
+        "title": "FoldChangeValue",
+        "type": "object"
+      },
+      "FoldDirection": {
+        "enum": [
+          "up",
+          "down",
+          "either"
+        ],
+        "type": "string"
+      },
       "FrameSection": {
         "description": "The OperationalSpec the FRAME phase produced.\n\nIt holds criteria bound to WDK searches with resolved params and a\ncombine structure.",
         "properties": {
@@ -25216,6 +25298,35 @@
         "title": "ParameterFact",
         "type": "object"
       },
+      "PercentileEnd": {
+        "enum": [
+          "top",
+          "bottom"
+        ],
+        "type": "string"
+      },
+      "PercentileValue": {
+        "properties": {
+          "kind": {
+            "const": "percentile",
+            "default": "percentile",
+            "title": "Kind",
+            "type": "string"
+          },
+          "end": {
+            "$ref": "#/components/schemas/PercentileEnd"
+          },
+          "share": {
+            "$ref": "#/components/schemas/Share"
+          }
+        },
+        "required": [
+          "end",
+          "share"
+        ],
+        "title": "PercentileValue",
+        "type": "object"
+      },
       "PhaseDisposition": {
         "enum": [
           "awaiting_user",
@@ -25584,22 +25695,6 @@
         ],
         "title": "RequirementGap",
         "type": "object"
-      },
-      "RequirementKind": {
-        "enum": [
-          "organism",
-          "record_type",
-          "data_type",
-          "percentile",
-          "fold_change",
-          "significance",
-          "count",
-          "ortholog",
-          "text",
-          "property",
-          "untyped"
-        ],
-        "type": "string"
       },
       "RequirementLink": {
         "properties": {
@@ -26201,6 +26296,33 @@
         "title": "SetValuesChange",
         "type": "object"
       },
+      "Share": {
+        "exclusiveMinimum": 0,
+        "maximum": 100,
+        "type": "number"
+      },
+      "SignificanceValue": {
+        "properties": {
+          "kind": {
+            "const": "statistical_threshold",
+            "default": "statistical_threshold",
+            "title": "Kind",
+            "type": "string"
+          },
+          "statistic": {
+            "$ref": "#/components/schemas/Statistic",
+            "default": "unspecified"
+          },
+          "atMost": {
+            "$ref": "#/components/schemas/Bound"
+          }
+        },
+        "required": [
+          "atMost"
+        ],
+        "title": "SignificanceValue",
+        "type": "object"
+      },
       "SiteCheck": {
         "properties": {
           "kind": {
@@ -26502,6 +26624,154 @@
         "title": "StaleBuild",
         "type": "object"
       },
+      "StatedFoldChange": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          },
+          "beside": {
+            "default": "",
+            "title": "Beside",
+            "type": "string"
+          },
+          "kind": {
+            "const": "fold_change",
+            "title": "Kind",
+            "type": "string"
+          },
+          "cut": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cut"
+          },
+          "scale": {
+            "default": "fold",
+            "enum": [
+              "log2",
+              "fold"
+            ],
+            "title": "Scale",
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/FoldDirection",
+            "default": "either"
+          }
+        },
+        "required": [
+          "quote",
+          "value",
+          "kind"
+        ],
+        "title": "StatedFoldChange",
+        "type": "object"
+      },
+      "StatedOther": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          },
+          "beside": {
+            "default": "",
+            "title": "Beside",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "organism",
+              "record_type",
+              "data_type",
+              "count",
+              "ortholog",
+              "text",
+              "property"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quote",
+          "value",
+          "kind"
+        ],
+        "title": "StatedOther",
+        "type": "object"
+      },
+      "StatedPercentile": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          },
+          "beside": {
+            "default": "",
+            "title": "Beside",
+            "type": "string"
+          },
+          "kind": {
+            "const": "percentile",
+            "title": "Kind",
+            "type": "string"
+          },
+          "end": {
+            "$ref": "#/components/schemas/PercentileEnd"
+          },
+          "share": {
+            "$ref": "#/components/schemas/Share"
+          }
+        },
+        "required": [
+          "quote",
+          "value",
+          "kind",
+          "end",
+          "share"
+        ],
+        "title": "StatedPercentile",
+        "type": "object"
+      },
       "StatedRequest": {
         "properties": {
           "goal": {
@@ -26512,7 +26782,39 @@
           },
           "requirements": {
             "items": {
-              "$ref": "#/components/schemas/StatedRequirement"
+              "discriminator": {
+                "mapping": {
+                  "count": "#/components/schemas/StatedOther",
+                  "data_type": "#/components/schemas/StatedOther",
+                  "fold_change": "#/components/schemas/StatedFoldChange",
+                  "organism": "#/components/schemas/StatedOther",
+                  "ortholog": "#/components/schemas/StatedOther",
+                  "percentile": "#/components/schemas/StatedPercentile",
+                  "property": "#/components/schemas/StatedOther",
+                  "record_type": "#/components/schemas/StatedOther",
+                  "significance": "#/components/schemas/StatedSignificance",
+                  "text": "#/components/schemas/StatedOther",
+                  "untyped": "#/components/schemas/StatedUntyped"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/StatedPercentile"
+                },
+                {
+                  "$ref": "#/components/schemas/StatedFoldChange"
+                },
+                {
+                  "$ref": "#/components/schemas/StatedSignificance"
+                },
+                {
+                  "$ref": "#/components/schemas/StatedUntyped"
+                },
+                {
+                  "$ref": "#/components/schemas/StatedOther"
+                }
+              ]
             },
             "title": "Requirements",
             "type": "array"
@@ -26571,15 +26873,12 @@
         "title": "StatedRequest",
         "type": "object"
       },
-      "StatedRequirement": {
+      "StatedSignificance": {
         "properties": {
           "quote": {
             "minLength": 1,
             "title": "Quote",
             "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/RequirementKind"
           },
           "value": {
             "minLength": 1,
@@ -26595,14 +26894,63 @@
             "default": "",
             "title": "Beside",
             "type": "string"
+          },
+          "kind": {
+            "const": "significance",
+            "title": "Kind",
+            "type": "string"
+          },
+          "statistic": {
+            "$ref": "#/components/schemas/Statistic",
+            "default": "unspecified"
+          },
+          "atMost": {
+            "$ref": "#/components/schemas/Bound"
           }
         },
         "required": [
           "quote",
+          "value",
           "kind",
-          "value"
+          "atMost"
         ],
-        "title": "StatedRequirement",
+        "title": "StatedSignificance",
+        "type": "object"
+      },
+      "StatedUntyped": {
+        "properties": {
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          },
+          "hard": {
+            "default": true,
+            "title": "Hard",
+            "type": "boolean"
+          },
+          "beside": {
+            "default": "",
+            "title": "Beside",
+            "type": "string"
+          },
+          "kind": {
+            "const": "untyped",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quote",
+          "value",
+          "kind"
+        ],
+        "title": "StatedUntyped",
         "type": "object"
       },
       "StatedWithdrawal": {
@@ -26623,6 +26971,16 @@
         ],
         "title": "StatedWithdrawal",
         "type": "object"
+      },
+      "Statistic": {
+        "enum": [
+          "p_value",
+          "adjusted_p",
+          "fdr",
+          "q_value",
+          "unspecified"
+        ],
+        "type": "string"
       },
       "StatisticFact": {
         "description": "One statistic the service computed on the open analysis.",
@@ -28057,6 +28415,26 @@
           "sentence"
         ],
         "title": "UnsavedSetFact",
+        "type": "object"
+      },
+      "UntypedValue": {
+        "properties": {
+          "kind": {
+            "const": "other",
+            "default": "other",
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "UntypedValue",
         "type": "object"
       },
       "UserIntent": {

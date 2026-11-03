@@ -63,6 +63,7 @@ def _constraint(stated: StatedRequirement) -> Constraint:
         source=ConstraintSource.USER_EXPLICIT,
         quote=stated.quote,
         hard=stated.hard,
+        value=stated.typed(),
     )
 
 

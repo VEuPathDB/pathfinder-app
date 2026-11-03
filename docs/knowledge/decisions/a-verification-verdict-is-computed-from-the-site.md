@@ -26,7 +26,8 @@ review on the digest and on the evidence card carries them as `checks`.
 | `record_type` | the root's `recordClassName`, or every step's for a class the strategy passes through, against the classes the requirement's words name on the site |
 | `expression_fit` | the first groups of a phyletic step judged against the expression as the site reads it |
 | `tally` | a column tally this turn recorded on a step of the strategy, held as the recorded result |
-| `data_type`, `statistical_threshold`, `fold_change`, `percentile`, `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site; a stated significance is compared with the cut the strategy binds |
+| `statistical_threshold`, `fold_change`, `percentile` | the requirement's typed value against the parameter or the analysis cut a linking criterion names (`value_grounding`, `fold_grounding`), whose values `bound_values` holds to the site; with no such link or no value, `unchecked` ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
+| `data_type`, `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site |
 | `comparator`, `other` | no deterministic check: `unchecked` |
 
 The verdict is `success` exactly when no check fails, no word a criterion states
@@ -37,11 +38,12 @@ in code.
 
 An `unchecked` check names why in `why_unchecked`. `no_check` is a requirement
 kind or a step property with nothing to compare on the site; it never blocks
-the verdict. Once requirements are typed, a hard requirement that is untyped or
-that no criterion links is unchecked the same way and shown "not verified"
+the verdict. A percentile, fold-change or significance requirement that is
+untyped or that no criterion links is unchecked the same way and shown "not
+verified"
 ([an unlinked requirement is not verified and never blocks](an-unlinked-requirement-is-not-verified-and-never-blocks.md));
-until then a hard stated requirement its grounding marks ungroundable or
-substituted fails its check (`domain/requirement_checks.py::grounded_check`). `site_unanswered` is a read the site did not answer: the strategy
+a hard stated requirement its grounding marks ungroundable or substituted fails
+its check (`domain/requirement_checks.py::grounded_check`). `site_unanswered` is a read the site did not answer: the strategy
 read, a column read, the organism count, or a count the strategy read leaves
 out. Any such check makes the verdict not checked: `success` is false, nothing
 fails, the disposition stays `done` with no handoff, the reason says the site

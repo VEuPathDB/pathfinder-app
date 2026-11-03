@@ -1,4 +1,4 @@
-"""A significance cut and a fold requirement that a waiting analysis states are
+"""A significance cut and a fold requirement that a waiting analysis links are
 never offered for withdrawal: the analysis has not run, so nothing fails to
 state them."""
 
@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     OperationalSpec,
+    RequirementLink,
 )
 from pathfinder.domain.strategy.question_options import Withdraw
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -50,7 +51,17 @@ async def test_the_card_offers_no_withdrawal_of_a_cut_the_analysis_states(
     async def _fake(**kwargs: Any) -> FrameResult:
         draft = kwargs["agent_deps"].agent_state.operational_spec_draft
         draft.goal = _REQUEST
-        draft.criteria = [pending(), _ORTHOLOGS]
+        draft.criteria = [
+            pending().model_copy(
+                update={
+                    "answers": [
+                        RequirementLink(requirement=_P.id),
+                        RequirementLink(requirement=_NO_FOLD.id),
+                    ]
+                }
+            ),
+            _ORTHOLOGS,
+        ]
         return FrameResult(disposition="spec_ready", summary="waits for the analysis")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)

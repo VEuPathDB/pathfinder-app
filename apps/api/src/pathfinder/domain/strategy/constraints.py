@@ -11,6 +11,7 @@ from pydantic import BeforeValidator, ConfigDict, Discriminator, Field, model_va
 from pydantic.json_schema import SkipJsonSchema
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.log2_scale import Scale
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
@@ -73,6 +74,60 @@ def new_requirement_id() -> str:
     return uuid4().hex[:12]
 
 
+type PercentileEnd = Literal["top", "bottom"]
+type FoldDirection = Literal["up", "down", "either"]
+type Statistic = Literal["p_value", "adjusted_p", "fdr", "q_value", "unspecified"]
+type Share = Annotated[float, Field(gt=0, le=100)]
+type Bound = Annotated[float, Field(gt=0, le=1)]
+
+
+class PercentileValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.PERCENTILE] = ConstraintKind.PERCENTILE
+    end: PercentileEnd
+    share: Share
+
+
+class FoldChangeValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.FOLD_CHANGE] = ConstraintKind.FOLD_CHANGE
+    cut: float | None = None
+    scale: Scale = "fold"
+    direction: FoldDirection = "either"
+
+    @model_validator(mode="after")
+    def _a_fold_is_above_zero(self) -> FoldChangeValue:
+        if self.scale == "fold" and self.cut is not None and self.cut <= 0:
+            msg = f"a fold cut is above 0, not {self.cut:g}"
+            raise ValueError(msg)
+        return self
+
+
+class SignificanceValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.STATISTICAL_THRESHOLD] = (
+        ConstraintKind.STATISTICAL_THRESHOLD
+    )
+    statistic: Statistic = "unspecified"
+    at_most: Bound
+
+
+class UntypedValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.OTHER] = ConstraintKind.OTHER
+    text: str = Field(min_length=1)
+
+
+RequirementValue = Annotated[
+    PercentileValue | FoldChangeValue | SignificanceValue | UntypedValue,
+    Discriminator("kind"),
+]
+
+
 class Constraint(CamelModel):
     id: SkipJsonSchema[str] = Field(default_factory=new_requirement_id)
     kind: ConstraintKind
@@ -84,6 +139,7 @@ class Constraint(CamelModel):
     hard: bool = True
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
+    value: RequirementValue | None = None
 
     @model_validator(mode="after")
     def _a_value_of_a_record_is_no_record_type(self) -> Constraint:
@@ -92,6 +148,13 @@ class Constraint(CamelModel):
             self.requested_value
         ):
             self.kind = ConstraintKind.OTHER
+        return self
+
+    @model_validator(mode="after")
+    def _a_value_is_of_the_requirement_s_kind(self) -> Constraint:
+        if self.value is not None and self.value.kind != self.kind:
+            msg = f"a {self.value.kind} value on a {self.kind} requirement"
+            raise ValueError(msg)
         return self
 
 
@@ -247,72 +310,3 @@ def merge_constraints(
     for c in explicit:
         by_dimension[_dimension(c)] = c
     return list(by_dimension.values())
-
-
-_SHARE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent\b)", re.IGNORECASE)
-_ORDINAL_RE = re.compile(r"(\d+(?:\.\d+)?)(?:st|nd|rd|th)\s+percentile", re.IGNORECASE)
-_TOP_RE = re.compile(r"\btop\b|\bhighest\b", re.IGNORECASE)
-_BOTTOM_RE = re.compile(r"\bbottom\b|\blowest\b", re.IGNORECASE)
-# A percentile named as a cut is a lower bound unless the text puts the genes
-# below it.
-_BELOW_RE = re.compile(r"\bbelow\b|\bunder\b|\bat most\b", re.IGNORECASE)
-# A percentile named by one number and the end it bounds: "minimum
-# percentile 1", "percentile 75 or above", "80 or higher".
-_PERCENTILE_WORD_RE = re.compile(r"\bpercentile\b", re.IGNORECASE)
-_NUMBER_RE = re.compile(r"\b\d+(?:\.\d+)?\b")
-_UPPER_RE = re.compile(
-    r"\bmax(?:imum)?\b|\bat most\b|\bor (?:lower|below)\b", re.IGNORECASE
-)
-_LOWER_RE = re.compile(
-    r"\bmin(?:imum)?\b|\bat least\b|\bor (?:higher|above)\b", re.IGNORECASE
-)
-_FULL_SCALE = 100.0
-
-
-class PercentileRequest(CamelModel):
-    """A share of a ranked population, read from what the user stated."""
-
-    direction: Literal["top", "bottom"]
-    share: float
-
-    @classmethod
-    def parse(cls, text: str) -> PercentileRequest | None:
-        """A share with its end ("top 5 percent"), or the percentile that
-        bounds it ("95th percentile", "below the 10th percentile", "minimum
-        percentile 1")."""
-        ordinal = _ORDINAL_RE.search(text)
-        if ordinal is not None:
-            bound = float(ordinal.group(1))
-            if _BOTTOM_RE.search(text) or _BELOW_RE.search(text):
-                return cls(direction="bottom", share=bound)
-            return cls(direction="top", share=_FULL_SCALE - bound)
-        share = _SHARE_RE.search(text)
-        numbers = _NUMBER_RE.findall(text)
-        if share is None and _PERCENTILE_WORD_RE.search(text) and len(numbers) == 1:
-            return cls._bounded_at(float(numbers[0]), text)
-        if share is None:
-            return None
-        if _TOP_RE.search(text):
-            direction: Literal["top", "bottom"] = "top"
-        elif _BOTTOM_RE.search(text):
-            direction = "bottom"
-        else:
-            return None
-        return cls(direction=direction, share=float(share.group(1)))
-
-    @classmethod
-    def _bounded_at(cls, bound: float, text: str) -> PercentileRequest | None:
-        """The share a named bound keeps, or None when the text names no end."""
-        if _UPPER_RE.search(text):
-            return cls(direction="bottom", share=bound)
-        if _LOWER_RE.search(text):
-            return cls(direction="top", share=_FULL_SCALE - bound)
-        return None
-
-    @property
-    def bound(self) -> float:
-        """The percentile value that realizes this share."""
-        return _FULL_SCALE - self.share if self.direction == "top" else self.share
-
-    def share_of(self, bound: float) -> float:
-        return _FULL_SCALE - bound if self.direction == "top" else bound

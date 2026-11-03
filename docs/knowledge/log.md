@@ -2,6 +2,21 @@
 
 ## 2026-11-03
 
+* **A requirement carries a typed value of its kind.** `Constraint.value` is a
+  `RequirementValue`, a union discriminated by kind (`PercentileValue`,
+  `FoldChangeValue`, `SignificanceValue`, `UntypedValue` so far) that a validator
+  holds to the requirement's kind; a stored requirement with no value loads as
+  untyped. The message reading's `StatedRequirement` is a union by kind whose
+  percentile, fold-change and significance members write the fields, and
+  `intent_of` copies them. Those three kinds compare the value with the parameter
+  a linking criterion names or the cut of a linked analysis, a percentile's end
+  read from the parameter's name; without a link or a value they are not verified
+  and never block, and once a search is bound an unlinked one is offered for
+  withdrawal. `PercentileRequest`, the quote-first percentile read, the
+  significance number scrape, the fold number and no-cut words, and
+  `RealizedSpec.param_names`, `param_values`, `uncut` and `awaits_analysis` are
+  deleted. See
+  [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md).
 * **Operators come from FRAME's tree, read against the researcher's words.** After
   each framing pass, one Decisions question per combine whose inputs each link a
   quoted requirement reads the researcher's messages and the branches' quotes; a

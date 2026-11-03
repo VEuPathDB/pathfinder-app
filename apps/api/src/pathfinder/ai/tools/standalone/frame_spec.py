@@ -229,8 +229,10 @@ async def set_criterion(
 
     ``answers`` goes on the call that binds: each requirement of "Requirements
     the researcher stated" this criterion answers, by its number, and the
-    parameter that carries its value when one does. An empty list says it
-    answers none; leaving it out keeps what the criterion already answers.
+    parameter that carries its value when one does. A percentile, fold-change
+    or significance requirement is checked only against the parameter named
+    there, or against the cut of the analysis the criterion runs. An empty list says it answers none; leaving it out keeps what the
+    criterion already answers.
 
     ``result_count`` is how many records the binding you just made matches,
     and is null for a search that runs on another step or a count that did

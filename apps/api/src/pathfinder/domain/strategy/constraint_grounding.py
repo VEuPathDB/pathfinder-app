@@ -5,11 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
-from veupathdb.domain.parameters import to_wire
-
-from pathfinder.domain.constraint_check import agrees
 from pathfinder.domain.log2_scale import scale_of
-from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.combination_check import (
     exclusion_stands_over,
     meeting_operator,
@@ -20,7 +16,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintStatus,
     GroundedConstraint,
-    PercentileRequest,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
@@ -31,6 +26,10 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
+from pathfinder.domain.strategy.value_grounding import (
+    ground_percentile,
+    ground_significance,
+)
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE
@@ -38,9 +37,6 @@ _SIGNIFICANCE_RE = re.compile(
 _MICROARRAY_RE = re.compile(r"microarray", re.IGNORECASE)
 _RNASEQ_REQUEST_RE = re.compile(r"rna[\s_-]?seq", re.IGNORECASE)
 _EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
-_NUMBER_RE = re.compile(r"(?:\d+(?:\.\d+)?|\.\d+)(?:e-?\d+)?", re.IGNORECASE)
-_PERCENT_RE = re.compile(r"\d\s*%")
-_PERCENT = 100.0
 _MIN_MEMBERS = 2
 
 
@@ -76,67 +72,7 @@ def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstrai
     )
 
 
-def _significance(analysis: AnalysisBinding) -> float | None:
-    return analysis.significance_threshold
-
-
-def _requested_significance(c: Constraint) -> float | None:
-    numbers = _NUMBER_RE.findall(c.requested_value)
-    if len(numbers) != 1:
-        return None
-    value = float(numbers[0])
-    return value / _PERCENT if _PERCENT_RE.search(c.requested_value) else value
-
-
-def _bound_significances(realized: RealizedSpec) -> list[tuple[str, float]]:
-    analyses = [
-        ("significance_threshold", k.analysis.significance_threshold)
-        for k in realized.criteria
-        if k.analysis is not None and k.analysis.significance_threshold is not None
-    ]
-    params = [
-        (name, float(raw))
-        for name, raw in realized.param_values.items()
-        if _SIGNIFICANCE_RE.search(name) and _NUMBER_RE.fullmatch(raw)
-    ]
-    return [*analyses, *params]
-
-
-def _compared_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    requested = _requested_significance(c)
-    bound = _bound_significances(realized)
-    if requested is None or not bound:
-        return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
-    met = next(((n, v) for n, v in bound if agrees(requested, v)), None)
-    name, value = bound[0] if met is None else met
-    return GroundedConstraint(
-        constraint=c,
-        status=ConstraintStatus.GROUNDED if met else ConstraintStatus.SUBSTITUTED,
-        realized_value=f"{value:g}",
-        realized_param=name,
-        note="" if met else f"asked {requested:g}, built {value:g}",
-    )
-
-
-def _ground_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    if any(_SIGNIFICANCE_RE.search(name) for name in realized.param_names) or any(
-        k.analysis is not None and k.analysis.significance_threshold is not None
-        for k in realized.criteria
-    ):
-        return _compared_threshold(c, realized)
-    if realized.awaits_analysis(_significance):
-        return awaiting_analysis(c)
-    return GroundedConstraint(
-        constraint=c,
-        status=ConstraintStatus.UNGROUNDABLE,
-        note="no selected search exposes a significance parameter",
-    )
-
-
 _PERCENTILE_PARAM_RE = re.compile(r"percentile", re.IGNORECASE)
-# A "top" share is a lower bound on the percentile; a "bottom" share is an
-# upper bound. The name of the WDK parameter says which end it holds.
-_BOUND_WORD: dict[str, str] = {"top": "min", "bottom": "max"}
 
 
 def dimension_of_parameter(name: str, display_name: str) -> ConstraintKind:
@@ -148,78 +84,6 @@ def dimension_of_parameter(name: str, display_name: str) -> ConstraintKind:
     if FOLD_PARAM in name or scale_of(display_name) is not None:
         return ConstraintKind.FOLD_CHANGE
     return ConstraintKind.OTHER
-
-
-def _plain(number: float) -> str:
-    return str(int(number)) if number.is_integer() else str(number)
-
-
-def _percentile_bound(
-    request: PercentileRequest, realized: RealizedSpec
-) -> tuple[str, str] | None:
-    named = {
-        name: value
-        for name, value in realized.param_values.items()
-        if _PERCENTILE_PARAM_RE.search(name)
-    }
-    if not named:
-        return None
-    word = _BOUND_WORD[request.direction]
-    at_end = {name: value for name, value in named.items() if word in name.lower()}
-    chosen = at_end or named
-    if len(chosen) != 1:
-        return None
-    return next(iter(chosen.items()))
-
-
-def _ground_percentile(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    request = next(
-        (
-            read
-            for text in (c.quote, f"{c.requested_value} {c.label}")
-            if text and (read := PercentileRequest.parse(text)) is not None
-        ),
-        None,
-    )
-    if request is None:
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.UNGROUNDABLE,
-            note="the requested share and direction could not be read",
-        )
-    found = _percentile_bound(request, realized)
-    if found is None:
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.UNGROUNDABLE,
-            note="no percentile parameter in the strategy",
-        )
-    name, raw = found
-    try:
-        bound = float(raw)
-    except ValueError:
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.UNGROUNDABLE,
-            realized_value=raw,
-            realized_param=name,
-            note=f"{name} holds {raw!r}, which is not a percentile",
-        )
-    if bound == request.bound:
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.GROUNDED,
-            realized_value=raw,
-            realized_param=name,
-        )
-    meant = _plain(request.share_of(bound))
-    return GroundedConstraint(
-        constraint=c,
-        status=ConstraintStatus.SUBSTITUTED,
-        realized_value=raw,
-        realized_param=name,
-        note=f"bound {_plain(bound)} means {request.direction} {meant}%",
-    )
 
 
 def _abstained(c: Constraint, why: str) -> GroundedConstraint:
@@ -302,9 +166,9 @@ _NO_MARKS = DataMarks()
 
 _HANDLERS = {
     ConstraintKind.DATA_TYPE: _ground_data_type,
-    ConstraintKind.STATISTICAL_THRESHOLD: _ground_threshold,
+    ConstraintKind.STATISTICAL_THRESHOLD: ground_significance,
     ConstraintKind.FOLD_CHANGE: ground_fold_change,
-    ConstraintKind.PERCENTILE: _ground_percentile,
+    ConstraintKind.PERCENTILE: ground_percentile,
     ConstraintKind.COMBINATION: _ground_combination,
     ConstraintKind.ORGANISM: _ground_organism,
 }
@@ -339,12 +203,6 @@ def ground_constraints(
     return out
 
 
-def _param_names(spec: OperationalSpec) -> set[str]:
-    names = {p for c in spec.criteria for p in c.resolved_params}
-    names |= {s.param_name for c in spec.criteria for s in c.open_params}
-    return names | {s.param_name for s in spec.open_slots}
-
-
 def ground_against_spec(
     constraints: Sequence[Constraint],
     spec: OperationalSpec,
@@ -357,12 +215,6 @@ def ground_against_spec(
         list(constraints),
         RealizedSpec(
             search_names=[c.search_name for c in spec.criteria if c.search_name],
-            param_names=frozenset(_param_names(spec)),
-            param_values={
-                name: to_wire(value)
-                for c in spec.criteria
-                for name, value in c.param_values.items()
-            },
             structure=spec.structure,
             criteria=spec.criteria,
             marks=marks,
