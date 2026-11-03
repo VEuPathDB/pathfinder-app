@@ -147,7 +147,8 @@ now states. Earlier: `unnamed_search`, `misstated_count`, `counted_in_the_wrong_
 `unwritten_control_set`.
 
 The eval extract reads each turn's facts part beside its reply (`chunk_reader.read_turns`), the
-runner scores what a turn showed (its facts lines, then its reply), and `ObservedOutcome.assumed`
+runner scores what a turn showed (its facts lines, then its reply with the note's escapes
+removed once where the reply is read, `written_links.unescaped_markdown`), and `ObservedOutcome.assumed`
 counts the narrowing values the request did not state that the last facts part does not show
 with who set them (`uncarried_assumptions`).
 

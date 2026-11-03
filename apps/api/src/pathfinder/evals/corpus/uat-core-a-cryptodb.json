@@ -6,7 +6,7 @@
   ],
   "siteId": "cryptodb",
   "assistantId": "pathfinder",
-  "rationale": "A comparison's counts are in the reply, rendered from the comparison the turn ran: 84 genes over every text field and 82 genes beyond the 2 the product-field step holds, while the strategy keeps its one text step.",
+  "rationale": "A comparison's counts are shown beside the reply, rendered from the comparison the turn ran: the facts part holds 84 genes over every text field, the comparison card holds the 82 genes beyond the 2 the product-field step holds, and the strategy keeps its one text step.",
   "expected": {
     "buildsStrategy": true,
     "structure": "GenesByText",
@@ -33,8 +33,7 @@
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "1": [
-        "84 genes",
-        "82 genes"
+        "84 genes"
       ]
     },
     "turnReplyOmits": {

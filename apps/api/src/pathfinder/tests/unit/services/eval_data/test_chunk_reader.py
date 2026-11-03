@@ -15,6 +15,7 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.graph.stream_events import facts_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.turn_facts import SavedSetFact, StepFact, TurnFacts
+from pathfinder.evals.redaction import EMAIL_PLACEHOLDER
 from pathfinder.services.eval_data.chunk_reader import (
     LoggedChunk,
     read_turns,
@@ -246,3 +247,9 @@ def test_a_prompt_the_thread_withdrew_is_no_turn_of_the_extract() -> None:
     )
 
     assert [t.request for t in turns] == ["find kinases", "find phosphatases"]
+
+
+def test_an_address_behind_a_markdown_escape_is_redacted() -> None:
+    turns = read_turns(_log(_user("hi"), _delta(r"Write to ann\@example\.org\.")))
+
+    assert turns[0].reply == f"Write to {EMAIL_PLACEHOLDER}."

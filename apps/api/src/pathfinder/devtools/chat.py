@@ -49,6 +49,7 @@ from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools import inspector, run_models
 from pathfinder.devtools.capture import (
+    LoggedCapture,
     RunCapture,
     capture_tracebacks,
     collect_worker_llm,
@@ -656,7 +657,7 @@ async def _exec_one(
             spec=spec,
             compiled_graph=graph,
             memory_store=store,
-            writer=capture,
+            writer=LoggedCapture(capture),
         )
 
 

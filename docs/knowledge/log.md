@@ -7,6 +7,21 @@
   gives equal forms; a regrouping, a changed count and a changed code stay a
   difference. See
   [a held expression is compared by its parsed form](decisions/a-held-expression-is-compared-by-its-parsed-form.md).
+* **The eval measures what the product wrote, and an in-process run keeps the thread a
+  worker keeps.** A reply is scored in its plain text: `written_links.unescaped_markdown`
+  removes the note's escapes once, where the runner and `evals/run_directory.py` read it, so
+  `Omits` and `Mentions` phrases with punctuation, and phrases a marked reply splits, compare
+  with the words shown. `chunk_reader.read_turns` reads the same text before it redacts, so an
+  address behind an escape is redacted. `devtools/capture.py::LoggedCapture` writes each chunk of
+  an in-process turn to `conversation_events` beside the capture, so `write_turn_message` writes
+  the `messages` row and names the strategy revision, and a later turn reads the last change as a
+  worker turn does. `PF_WORKER_RUN_ROOT` names where a worker writes its model requests when no
+  compose mount exists. Three corpus expectations move to what the product shows: the unique count
+  of `uat-core-a-cryptodb` is on its comparison card, the difference in
+  `uat-core-d-microsporidiadb` is asked by nobody, and
+  `orthomcl-all-plasmodium-every-species-reading` holds the per-species reading at one genome or
+  more, at 797 groups, since the question that offered a stricter reading is removed. New: a card
+  offers the whole binding of a class.
 
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY

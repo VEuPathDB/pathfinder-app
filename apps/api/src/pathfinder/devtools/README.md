@@ -2,9 +2,11 @@
 
 An in-process debugger for the PathFinder chat pipeline, built for **agents** to
 drive. It runs one chat turn through the real `run_turn` (same code path the
-worker uses) **without** the API server, worker, procrastinate, or SSE - then
-captures every plane of the run to flat files you can `cat`/`jq` and runs a
-diagnosis pass that names known failure modes for you.
+worker uses) **without** the API server, worker, or SSE - then captures every
+plane of the run to flat files you can `cat`/`jq` and runs a diagnosis pass that
+names known failure modes for you. The turn writes the thread's durable log
+(`conversation_events`, then its `messages` row and the name of its strategy
+revision) as a worker turn does, so a later turn reads the same thread.
 
 Use it to reproduce and localize chat/agent bugs (phase routing, tool-call
 loops, validation failures, token blowups, WDK disagreements) without clicking
@@ -72,7 +74,7 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 | `--attach PATH` | attach a local file to the message (repeatable), inline as a `file` part, the way the composer attaches one. The chat route's refusal applies: a kind the Lead's model does not read, or a file over 10 MB, is refused before the turn. |
 | `--approve auto\|deny\|prompt` | how to answer mid-turn approval gates (`consult_user`, etc.). `auto` for unattended; `prompt` reads stdin. |
 | `--capture-wdk` | also record raw WDK httpx round-trips to `wdk/`. |
-| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes its `llm/` capture (the durable resumes too - the post-result phase agents) under `/data/pf-runs/.worker-llm/<turn>`, the compose mount it shares with `apps/api/.pf-runs`, and the devtool moves it into `<run-dir>/llm/` after the turn, so any `--run-dir` works; a capture that never arrives is reported on stderr. The devtool follows the thread's log (`turn_arc.py`) until the turn ends: a turn that parks on a durable task prints `turn parked on <tool>` and the devtool keeps waiting through the completion turn the task opens, as the web client does, then replays the chat stream into `events.jsonl`/`tools/`/`diagnosis`. The run ends at a turn that wrote its `done` without parking, or at a stopped turn. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
+| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes its `llm/` capture (the durable resumes too - the post-result phase agents) under `/data/pf-runs/.worker-llm/<turn>`, the compose mount it shares with `apps/api/.pf-runs`, and the devtool moves it into `<run-dir>/llm/` after the turn, so any `--run-dir` works; a capture that never arrives is reported on stderr. The devtool follows the thread's log (`turn_arc.py`) until the turn ends: a turn that parks on a durable task prints `turn parked on <tool>` and the devtool keeps waiting through the completion turn the task opens, as the web client does, then replays the chat stream into `events.jsonl`/`tools/`/`diagnosis`. The run ends at a turn that wrote its `done` without parking, or at a stopped turn. Use this whenever a turn needs a durable tool, which an in-process run declines. Requires the worker running. Where no compose mount holds `/data/pf-runs`, set `PF_WORKER_RUN_ROOT` to a directory the worker and the devtool both write. |
 | `llm/` (always) | every run records the exact LLM I/O per call to `llm/NN-<role>-{request,response}.json` - the full system prompt (`instructions`), the complete typed message history **as the model receives it** (incl. `tool-return` / `retry-prompt` parts - i.e. whether the model actually sees an error/directive), the tool definitions offered, model settings, and the response parts + usage + finish reason. The ground-truth plane for "does the model truly see X". Read with `inspect <dir> --llm [role]`. |
 | `--mock` | use the scripted model (free; also sets `API_ENV=test`). It routes on a token in the prompt, `[[arc:<name>]]` from the registry in `ai/models/mock/registry.py` (with an optional `[[fault:<name>]]`); a prompt with no token is echoed. Default is the real configured provider. |
 | `--email` / `--password` | WDK login override; default to `WDK_DEV_EMAIL` / `WDK_DEV_PASSWORD` (set in `.env.dev`). |
@@ -248,9 +250,9 @@ The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
 
 - **Run in the container, not the host** (host DB port conflict).
 - **Durable tools** (`run_control_tests_on_step`, `optimize_search_parameters`,
-  enrichment) call procrastinate, which isn't open in-process - they raise
-  `AppNotOpen`. The traceback is captured, but those tools can't fully execute
-  here. Use the full stack to debug them.
+  `separate_controls`, the EDA computes) need a worker. An in-process run declines
+  each call in writing (`durable_call_refusal`) and the turn finishes. Use
+  `--via-worker` to run them.
 - **State snapshots are chunk-derived** (reconstructed from ledger/problem-frame
   chunks), not read from live `agent_state`.
 - **Editing the devtool?** Rebuild with the env file or settings validation

@@ -19,6 +19,7 @@ _BARE = re.compile(
 )
 _TRAILING = ".,;:!?"
 _A_MARK = re.compile(r"[!-/:-@\[-`{-~]")
+_AN_ESCAPED_MARK = re.compile(rf"\\(?P<mark>{_A_MARK.pattern})")
 
 
 def _bare(match: re.Match[str]) -> tuple[str, str]:
@@ -56,8 +57,12 @@ def plain_markdown(text: str) -> str:
     return _A_MARK.sub(r"\\\g<0>", html.unescape(text))
 
 
+def unescaped_markdown(text: str) -> str:
+    return _AN_ESCAPED_MARK.sub(r"\g<mark>", text)
+
+
 def written_links(text: str) -> list[str]:
     return _unlinked(text)[1]
 
 
-__all__ = ["plain_markdown", "written_links"]
+__all__ = ["plain_markdown", "unescaped_markdown", "written_links"]

@@ -8,13 +8,15 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from assistant_core.platform.types import JSONObject
 
 from pathfinder.devtools.capture import (
-    WORKER_RUN_ROOT,
     RunCapture,
     collect_worker_llm,
+    local_run_root,
     worker_llm_dir,
+    worker_run_root,
 )
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
@@ -177,8 +179,26 @@ def test_a_lead_call_holds_the_output_its_event_carried(tmp_path: Path) -> None:
 def test_the_worker_writes_its_model_requests_under_the_shared_mount() -> None:
     turn = uuid4()
 
-    assert worker_llm_dir(turn).is_relative_to(WORKER_RUN_ROOT)
+    assert worker_llm_dir(turn).is_relative_to(worker_run_root())
     assert worker_llm_dir(turn).name == str(turn)
+
+
+def test_a_worker_with_no_container_mount_writes_under_the_root_the_run_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PF_WORKER_RUN_ROOT", str(tmp_path))
+    turn = uuid4()
+
+    assert worker_llm_dir(turn) == tmp_path / ".worker-llm" / str(turn)
+    assert local_run_root() == tmp_path
+
+
+def test_the_default_worker_root_is_the_compose_mount(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("PF_WORKER_RUN_ROOT", raising=False)
+
+    assert worker_run_root() == Path("/data/pf-runs")
 
 
 def test_a_worker_turn_s_model_requests_reach_a_run_dir_outside_the_mount(
@@ -189,7 +209,7 @@ def test_a_worker_turn_s_model_requests_reach_a_run_dir_outside_the_mount(
     capture = RunCapture(
         conversation_id=uuid4(), turn_id=uuid4(), run_dir=run_dir, quiet=True
     )
-    staged = shared / worker_llm_dir(capture.turn_id).relative_to(WORKER_RUN_ROOT)
+    staged = shared / worker_llm_dir(capture.turn_id).relative_to(worker_run_root())
     _model_request(staged)
     _write(capture, _step("started"))
     _write(capture, _step("completed", "1,249 records at 2.82843-fold"))

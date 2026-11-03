@@ -24,6 +24,7 @@ from pathfinder.domain.evidence import (
     VerificationReview,
 )
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.written_links import unescaped_markdown
 from pathfinder.evals.extract import ExtractedTurn, ExtractedVerification
 from pathfinder.evals.redaction import redact_text
 
@@ -131,7 +132,11 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
         elif chunk.type == TURN_WITHDRAWN and chunk.data is not None:
             withdrawn.add(WithdrawnPrompt.model_validate(chunk.data).message_id)
     return [
-        ExtractedTurn(request=request, reply=redact_text("".join(reply)), facts=facts)
+        ExtractedTurn(
+            request=request,
+            reply=redact_text(unescaped_markdown("".join(reply))),
+            facts=facts,
+        )
         for message_id, request, reply, facts in zip(
             ids, requests, replies, shown, strict=True
         )

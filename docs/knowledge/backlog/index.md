@@ -37,7 +37,7 @@ what left.
 
 ### Internal or blocked
 
-23. [The eval reads what the researcher sees](the-eval-reads-what-the-researcher-sees.md) - the corpus phrase checks match a reply's stored markdown, where every punctuation mark is escaped, and two cases leave the consult cards the Lead now asks unanswered; read the reply as shown and record an answer for each card.
+23. [Two cases answer the cards the Lead now asks](two-cases-answer-the-cards-the-lead-now-asks.md) - `uat-dry4-b-tritrypdb` and `uat-dry-b-fungidb` leave the consult cards the Lead now asks unanswered and end before a build; name an answer for each card, recorded from a run.
 24. [QA sites need a pass for automated clients](qa-sites-need-a-pass-for-automated-clients.md) - BLOCKED on the VEuPathDB team: outside the network the QA sites redirect every service call to a pre-release login, so the e2e jobs and both nightlies stay disabled; a stack inside the network reaches QA and the whole e2e suite passes there.
 25. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run on QA close both.
 26. [Three site bugs are reported to VEuPathDB](three-site-bugs-are-reported-to-veupathdb.md) - OrthoMCL's Single Copy Orthogroups runs the genome-count query (8,699 groups, largest 1,255 proteins); WDK answers 500, not 422, when a hidden parameter empties a dependent vocabulary; the phyletic parser recurses once per operator with no bound and froze the QA OrthoMCL instance.
@@ -48,6 +48,7 @@ what left.
 31. [A histogram fit and a byValue fit agree on one step](a-histogram-fit-and-a-by-value-fit-agree-on-one-step.md) - the recorded tm_count histogram sums to 854 transcripts and the byValue report of the same search to 840, with no request bodies kept; record one step with both reports, `totalCount` and the bodies, since until then a histogram fit may overstate its total.
 32. [A join under a saved-strategy branch is not measured](a-join-under-a-saved-strategy-branch-is-not-measured.md) - a combine added above a step inside an inserted saved strategy may land inside the nested strategy on the site; measure the WDK tree, then write the six headings.
 33. [Parallel browser test workers act as one user](parallel-browser-test-workers-act-as-one-user.md) - Every Playwright worker carries the account's website login, which names the account's own PathFinder user ahead of the dev login, so two workers of a shard share one user's rows; give each worker its own user or run one worker per stack.
+34. [A card offers the whole binding of a class](a-card-offers-the-whole-binding-of-a-class.md) - when FRAME bound several entries for a requirement naming a class, an unsettled pick's card offers only single entries and may recommend one; add one option holding everything FRAME bound, with its measured count, only if a re-measure shows it matters.
 
 ## Known and accepted
 

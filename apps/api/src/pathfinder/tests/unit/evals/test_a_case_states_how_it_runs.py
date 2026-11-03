@@ -425,8 +425,8 @@ def test_the_n1_case_answers_the_card_and_builds_the_three_criteria() -> None:
 @pytest.mark.parametrize(
     ("name", "stated"),
     [
-        ("uat-core-d-microsporidiadb", ["66 genes", "9 genes", "57 genes"]),
-        ("uat-core-a-cryptodb", ["84 genes", "82 genes"]),
+        ("uat-core-d-microsporidiadb", ["66 genes", "9 genes"]),
+        ("uat-core-a-cryptodb", ["84 genes"]),
     ],
 )
 def test_a_count_case_states_the_rendered_counts_and_no_reference(
@@ -436,3 +436,16 @@ def test_a_count_case_states_the_rendered_counts_and_no_reference(
 
     assert expected.turn_reply_mentions == {1: stated}
     assert all(omitted.startswith("[") for omitted in expected.turn_reply_omits[1])
+
+
+def test_the_every_species_case_holds_the_reading_that_is_built() -> None:
+    case = load_case("orthomcl-all-plasmodium-every-species-reading")
+
+    writings = case.expected.expressions["GroupsByPhyleticPattern"]
+    assert len(writings) == 1
+    assert ">=10T" not in writings[0]
+    assert writings[0].count(">=1T") == 23
+    assert writings[0].endswith("=0T")
+    assert case.expected.root_count is not None
+    assert case.expected.root_count.count == 797
+    assert case.gates.answers == []

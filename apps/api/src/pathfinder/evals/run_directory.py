@@ -16,6 +16,7 @@ from veupathdb_mcp.wdk import WireStep, build_snapshot_from_wdk
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.devtools.gates import Gate, consult_labels, gate_end
 from pathfinder.devtools.models import PhaseSnapshot
+from pathfinder.domain.written_links import unescaped_markdown
 from pathfinder.evals.case import EvalCase, ExpectedOutcome
 from pathfinder.evals.count_unit import counts_in_genes
 from pathfinder.evals.distance import COMBINE_LABEL, ComparisonNode
@@ -131,7 +132,7 @@ def observed_from_run_directory(case_dir: Path) -> ObservedOutcome:
     transcripts = [
         [(part / "transcript.md").read_text() for part in turn] for turn in turns
     ]
-    replies = [_section(texts[-1], _REPLY) for texts in transcripts]
+    replies = [unescaped_markdown(_section(texts[-1], _REPLY)) for texts in transcripts]
     facts = [
         next((f for t in reversed(texts) if (f := _section(t, _FACTS))), "")
         for texts in transcripts

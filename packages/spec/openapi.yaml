@@ -14250,11 +14250,11 @@ components:
       title: ColumnTally
       type: object
     ComparedVariant:
-      description: 'One variant a comparison ran: its genes, the genes no other variant
+      description: 'One variant a comparison ran: its genes, the strategy''s result with the
 
-        returned, the strategy''s result with the variant in place, and the wire
+        variant in place, and the wire value of each parameter whose value differs
 
-        value of each parameter whose value differs between the variants.'
+        between the variants.'
       properties:
         label:
           title: Label

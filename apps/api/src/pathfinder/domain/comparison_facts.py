@@ -14,9 +14,9 @@ _PICKED_ENTRIES: TypeAdapter[list[str]] = TypeAdapter(list[str])
 
 
 class ComparedVariant(CamelModel):
-    """One variant a comparison ran: its genes, the genes no other variant
-    returned, the strategy's result with the variant in place, and the wire
-    value of each parameter whose value differs between the variants."""
+    """One variant a comparison ran: its genes, the strategy's result with the
+    variant in place, and the wire value of each parameter whose value differs
+    between the variants."""
 
     model_config = ConfigDict(frozen=True)
 

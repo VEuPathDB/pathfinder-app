@@ -6,7 +6,7 @@
   ],
   "siteId": "microsporidiadb",
   "assistantId": "pathfinder",
-  "rationale": "A count question is answered with the counts the product renders from the facts: the signal peptide step's 66 genes, the result's 9 genes and their difference of 57 genes, each written as a reference to a step or a difference, with no edit.",
+  "rationale": "A count question is answered with the counts the product renders from the facts: the signal peptide search alone at 66 genes beside the result's 9 genes, with no edit.",
   "expected": {
     "buildsStrategy": true,
     "structure": "(GenesWithSignalPeptide INTERSECT GenesByOrthologPattern)",
@@ -29,8 +29,7 @@
     "turnReplyMentions": {
       "1": [
         "66 genes",
-        "9 genes",
-        "57 genes"
+        "9 genes"
       ]
     },
     "turnReplyOmits": {

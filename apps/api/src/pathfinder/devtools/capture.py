@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import time
 from collections.abc import Iterator, Mapping
@@ -10,6 +11,8 @@ from itertools import count
 from pathlib import Path
 from typing import Any
 from uuid import UUID
+
+from assistant_core.conversation.event_writer import ChatEventWriter
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.devtools.diagnosis import diagnose, loops, refused
@@ -71,20 +74,24 @@ def model_read_outputs(run_dir: Path, wanted: set[str]) -> dict[str, object]:
 
 
 # Where the worker container mounts the run directories.
-WORKER_RUN_ROOT = Path("/data/pf-runs")
 _WORKER_LLM = ".worker-llm"
+
+
+def worker_run_root() -> Path:
+    return Path(os.environ.get("PF_WORKER_RUN_ROOT", "/data/pf-runs"))
 
 
 def worker_llm_dir(turn_id: UUID) -> Path:
     """Where the worker writes one turn's model requests, as the worker sees it."""
-    return WORKER_RUN_ROOT / _WORKER_LLM / str(turn_id)
+    return worker_run_root() / _WORKER_LLM / str(turn_id)
 
 
 def local_run_root() -> Path:
     """This process's view of the worker's mount: the mount itself inside a
     container, and the host side of the compose bind mount outside one."""
-    if WORKER_RUN_ROOT.is_dir():
-        return WORKER_RUN_ROOT
+    root = worker_run_root()
+    if root.is_dir():
+        return root
     return Path(__file__).resolve().parents[3] / ".pf-runs"
 
 
@@ -93,7 +100,7 @@ def collect_worker_llm(local_root: Path, turn_id: UUID, run_dir: Path) -> bool:
 
     False when the worker wrote none where this process can read them.
     """
-    staged = local_root / worker_llm_dir(turn_id).relative_to(WORKER_RUN_ROOT)
+    staged = local_root / worker_llm_dir(turn_id).relative_to(worker_run_root())
     if not (staged / "llm").is_dir():
         return False
     target = run_dir / "llm"
@@ -602,3 +609,17 @@ class RunCapture:
         (out / "summary.json").write_text(summary.model_dump_json(indent=2))
         (out / "transcript.md").write_text(self._transcript())
         return out
+
+
+class LoggedCapture:
+    def __init__(self, capture: RunCapture) -> None:
+        self.conversation_id = capture.conversation_id
+        self.turn_id = capture.turn_id
+        self._capture = capture
+        self._log = ChatEventWriter(
+            conversation_id=capture.conversation_id, turn_id=capture.turn_id
+        )
+
+    async def write(self, chunk: dict[str, Any]) -> int:
+        await self._capture.write(chunk)
+        return await self._log.write(chunk)

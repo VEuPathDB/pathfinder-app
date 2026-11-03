@@ -130,6 +130,7 @@ def _install(
             built_strategy=True,
             reply_text=turns.replies[-1],
             turn_replies=turns.replies,
+            turn_record_ids=turns.record_ids,
             checks=turns.checks,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
@@ -176,6 +177,26 @@ async def test_step_ids_that_survive_the_last_turn_are_reported_unchanged(
 
     assert observed.step_ids_unchanged is True
     assert observed.reply_text == "reply to swap the organism and keep the rest"
+
+
+async def test_each_turn_is_observed_as_its_plain_text_and_its_rendered_links(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _install(monkeypatch, [{100}, {100}])
+    linked = r"See [PF3D7_1](https://x.org/PF3D7_1)\. Not \[PF3D7\_2\]\(https\:\/\/x\.org\)\."
+
+    async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
+        del args
+        return _Capture(linked), Gate(kind="none")
+
+    monkeypatch.setattr(eval_runner, "drive_run", _drive)
+
+    observed = await eval_runner.run_one_case(_case("one", "two"), run_root=tmp_path)
+
+    plain = "See [PF3D7_1](https://x.org/PF3D7_1). Not [PF3D7_2](https://x.org)."
+    assert observed.reply_text == plain
+    assert observed.turn_replies == [plain, plain]
+    assert observed.turn_record_ids == [["PF3D7_1"], ["PF3D7_1"]]
 
 
 async def test_a_rebuild_that_mints_new_step_ids_is_reported_changed(

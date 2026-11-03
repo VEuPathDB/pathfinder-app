@@ -52,6 +52,7 @@ from pathfinder.devtools.gates import Gate, consult_labels, gate_end
 from pathfinder.devtools.transcript import facts_lines
 from pathfinder.domain.reply_note import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.written_links import unescaped_markdown
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
 from pathfinder.evals.check_counts import CheckCounts, check_counts
 from pathfinder.evals.count_unit import counts_in_genes
@@ -386,9 +387,10 @@ async def _run_turns(
             refused.extend(capture.refused_tools())
             facts = capture.turn_facts() or facts
         last_facts = facts or last_facts
-        replies.append(capture.assistant_text())
+        rendered = capture.assistant_text()
+        replies.append(unescaped_markdown(rendered))
         shown_facts.append(facts_text(facts))
-        record_ids.append(records_shown(facts, replies[-1]))
+        record_ids.append(records_shown(facts, rendered))
         counted = await reviewed_checks(conversation_id)
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)
