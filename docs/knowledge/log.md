@@ -29,6 +29,14 @@
   binds nothing for a stored one and hands the Lead the refusal. The stop reply
   names a stage's model only on `a_provider_call_failed`. See
   [a card option is a binding](decisions/a-card-option-is-a-binding.md).
+* **A long phyletic expression reads by what it counts.** Past 200 characters
+  the reading comes from the parsed terms and the taxonomy
+  (`domain/strategy/expression_folds.py`): "at least 1 genome in each of the 23
+  species of Plasmodium (61 genomes)" says what "names 76 codes" hid, folded only
+  where the terms cover the group, and a stepped comparison reads as a comparison.
+  A computed comparison's facts lead with `heldBy`. Two OrthoMCL cases now accept a
+  question or a stated reading.
+  [A long expression reads by what it counts](decisions/a-long-expression-reads-by-what-it-counts.md).
 
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY

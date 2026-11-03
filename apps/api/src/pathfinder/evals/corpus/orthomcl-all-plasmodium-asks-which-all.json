@@ -5,9 +5,9 @@
   ],
   "siteId": "orthomcl",
   "assistantId": "pathfinder",
-  "rationale": "Presence in every member of a clade with many strains and incomplete assemblies has three readings: every genome, a share of the genomes, or every species. The turn asks once, with the genome and strain counts, before it binds; the absence half needs no question.",
+  "rationale": "Presence in every member of a clade with many strains and incomplete assemblies has three readings: every genome, a share of the genomes, or every species. Either a question or a stated reading is acceptable: the turn may ask which reading, or build one, and the facts then state what its count counts. The case holds that the turn runs to its end on this request.",
   "expected": {
-    "buildsStrategy": false,
+    "buildsStrategy": null,
     "structure": null,
     "recordType": null,
     "stepCount": null,
@@ -15,14 +15,7 @@
     "stepIdsUnchanged": null,
     "parameters": {},
     "replyMentions": [],
-    "replyOmits": [],
-    "endsOn": "consult",
-    "consultOptionsMin": 3,
-    "consultOptionMentions": [
-      "61",
-      "55",
-      "23"
-    ]
+    "replyOmits": []
   },
   "provenance": {
     "site": "orthomcl",
@@ -31,7 +24,7 @@
     "addedAt": "2026-10-21",
     "stagingId": "",
     "reference": "backlog/an-all-over-many-genomes-is-asked-about.md",
-    "curatorNote": "The second suggested OrthoMCL prompt. The question is left unanswered so the case pins that it is asked."
+    "curatorNote": "The second suggested OrthoMCL prompt. A question is left unanswered and a build is not expected."
   },
   "gates": {
     "policy": "stop",

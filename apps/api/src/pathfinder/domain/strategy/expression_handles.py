@@ -18,10 +18,12 @@ from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 
 from pathfinder.domain.strategy.computed_groups import COMPARISON_PREFIX
+from pathfinder.domain.strategy.expression_folds import condensed_reading
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
 
 READING_LIMIT = 2_000
+_DESCRIBED_LIMIT = 200
 _PREFIX = "expr:"
 _DIGITS = 12
 _HANDLE = re.compile(rf"{_PREFIX}[0-9a-f]{{{_DIGITS}}}")
@@ -111,20 +113,10 @@ def _bound_expressions(spec: OperationalSpec | None) -> dict[str, str]:
 
 def expression_reading(text: str, tree: PhyleticTree) -> str:
     expression = PhyleticExpression.parse(text)
-    if len(text) <= READING_LIMIT:
-        described = expression.describe(tree)
-        if len(described) <= READING_LIMIT:
-            return described
-    root = expression.site_reading().root
-    terms = root.operands("OR")
-    joined = (
-        f"{len(terms)} OR terms"
-        if len(terms) > 1
-        else f"{len(root.operands('AND'))} AND clauses"
-    )
-    return (
-        f"names {len(expression.codes())} codes in {joined}, {len(text):,} characters"
-    )
+    described = expression.describe(tree)
+    if len(described) <= _DESCRIBED_LIMIT:
+        return described
+    return condensed_reading(expression, len(text), tree, READING_LIMIT)
 
 
 def held_expressions(

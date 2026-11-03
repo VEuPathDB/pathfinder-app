@@ -5,9 +5,9 @@
   ],
   "siteId": "orthomcl",
   "assistantId": "pathfinder",
-  "rationale": "An underspecified comparison ends on one question whose options are readings the site can build, each with what it returns, never a request for raw thresholds, and the turn does not say the comparison is unavailable.",
+  "rationale": "An underspecified comparison has several readings. Either a question or a stated reading is acceptable: the turn may ask which reading, or build one, and the facts then state what its count counts. The case holds that the turn does not say the comparison is unavailable.",
   "expected": {
-    "buildsStrategy": false,
+    "buildsStrategy": null,
     "structure": null,
     "recordType": null,
     "stepCount": null,
@@ -17,9 +17,7 @@
     "replyMentions": [],
     "replyOmits": [
       "remains unavailable"
-    ],
-    "endsOn": "consult",
-    "consultOptionsMin": 2
+    ]
   },
   "provenance": {
     "site": "orthomcl",
@@ -28,7 +26,7 @@
     "addedAt": "2026-10-21",
     "stagingId": "",
     "reference": "backlog/a-clarifying-question-offers-what-the-site-can-build.md",
-    "curatorNote": "The question is left unanswered so the case pins its options."
+    "curatorNote": "A question is left unanswered and an offer is declined; a build is not expected."
   },
   "gates": {
     "policy": "decline-offers",

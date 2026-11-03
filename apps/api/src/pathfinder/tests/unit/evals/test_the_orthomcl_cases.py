@@ -41,22 +41,43 @@ def test_the_measured_counts_and_card_checks_are_pinned() -> None:
         recorded = _CASES[name].expected.root_count
         return None if recorded is None else recorded.count
 
-    asks = _CASES["orthomcl-all-plasmodium-asks-which-all"].expected
-    offers = _CASES["orthomcl-expanded-families-question-offers-readings"].expected
-
     assert (
         count("orthomcl-in-3d7-missing-from-two-falciparum-strains"),
         count("orthomcl-more-proteins-in-one-genome-than-another"),
         count("orthomcl-one-protein-in-each-cryptosporidium-genome"),
     ) == (304, 3896, 1736)
-    assert (asks.consult_options_min, asks.consult_option_mentions) == (
-        3,
-        ["61", "55", "23"],
-    )
-    assert offers.consult_options_min == 2
     assert _CASES[
         "orthomcl-singletons-counted-by-organism"
     ].expected.reply_mentions == ["Brachionus plicatilis"]
+
+
+@pytest.mark.parametrize(
+    ("name", "omits"),
+    [
+        ("orthomcl-all-plasmodium-asks-which-all", []),
+        (
+            "orthomcl-expanded-families-question-offers-readings",
+            ["remains unavailable"],
+        ),
+    ],
+)
+def test_a_question_or_a_stated_reading_both_score(name: str, omits: list[str]) -> None:
+    case = _CASES[name]
+    expected = case.expected
+
+    assert (
+        expected.builds_strategy,
+        expected.ends_on,
+        expected.consult_options_min,
+        expected.consult_option_mentions,
+        expected.reply_omits,
+    ) == (None, None, None, [], omits)
+    built = ObservedOutcome(built_strategy=True, ends_on="none")
+    asked = ObservedOutcome(built_strategy=False, ends_on="consult")
+    assert (score_case(case, built).passed, score_case(case, asked).passed) == (
+        True,
+        True,
+    )
 
 
 def test_no_curator_note_is_a_draft() -> None:

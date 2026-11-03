@@ -1,4 +1,4 @@
-"""An expression too long to describe reads by the join its clauses use."""
+"""An expression no tree places reads by the join its clauses use and what they say."""
 
 from __future__ import annotations
 
@@ -22,7 +22,8 @@ def test_an_and_of_many_clauses_reads_as_and_clauses() -> None:
     assert len(text) > READING_LIMIT
 
     assert expression_reading(text, PhyleticTree()) == (
-        f"names 300 codes in 300 AND clauses, {len(text):,} characters"
+        f"names 300 codes in 300 AND clauses, {len(text):,} characters: "
+        "300 of at least 1 genome"
     )
 
 
@@ -35,5 +36,7 @@ def test_an_or_of_terms_reads_as_or_terms() -> None:
     assert len(text) > READING_LIMIT
 
     assert expression_reading(text, PhyleticTree()) == (
-        f"names 300 codes in 150 OR terms, {len(text):,} characters"
+        f"names 300 codes in 150 OR terms of 2 AND clauses, {len(text):,} characters; "
+        f"first term: at least 1 genome of {codes[0]} and no protein in {codes[1]}; "
+        f"last term: at least 1 genome of {codes[-2]} and no protein in {codes[-1]}"
     )

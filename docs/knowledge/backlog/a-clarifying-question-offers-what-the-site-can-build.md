@@ -44,9 +44,12 @@ are two cases of this rule.
 
 Changes 1 to 3 are in: an open slot is asked with readings
 (`domain/strategy/question_options.py`, `ai/lead/recorded_cards.py`), pinned by
-`test_a_question_about_a_value_offers_readings.py`, and the corpus case
-`orthomcl-expanded-families-question-offers-readings` ends on a consult with two or more
-options. Change 4 has no code. Change 5 is open: `recorded_cards.the_card_asked` drops a
+`test_a_question_about_a_value_offers_readings.py`. Asking first is the model's call, so
+the corpus cases `orthomcl-expanded-families-question-offers-readings` and
+`orthomcl-all-plasmodium-asks-which-all` accept a question or a stated reading, and the
+facts state what the built count counts
+([a long expression reads by what it counts](../decisions/a-long-expression-reads-by-what-it-counts.md)).
+Change 4 has no code. Change 5 is open: `recorded_cards.the_card_asked` drops a
 Lead question only when its prompt or requirement id matches, and a test pins the
 duplicate. None of the replays below is recorded.
 
@@ -65,7 +68,8 @@ Replayed on QA OrthoMCL with Luna, one case at a time:
 ## Done when
 
 The copy-number question and the "all Plasmodium" question each reach a built strategy
-within one clarifying exchange in replay, and the consult offers are pinned by tests. In
+in replay, with or without one clarifying exchange, and the consult offers are pinned by
+tests. In
 replay, the trypanosomatid-targets question without human (H11), the kinetoplastid core
 single-copy question (H12) and the second message of the more-proteins-in-one-genome case
 each reach the researcher as a card of two or three readings with the site's counts, not

@@ -92,6 +92,7 @@ class SetFacts(CamelModel):
 class ComparisonFacts(CamelModel):
     model_config = ConfigDict(frozen=True)
 
+    held_by: Sentence
     route: Route
     computed_on: str
     reading: Sentence
@@ -129,7 +130,7 @@ def _leading(side: str, held: ComputedSet) -> str:
             f"Every genome of the {side} set is {leading.species} "
             f"({count_noun(held.genomes, 'genome')})."
         )
-    shown = f"{round(100 * _share(leading.genomes, held.genomes), 1):g}%"
+    shown = _percent(_share(leading.genomes, held.genomes))
     leaders = _leaders(held)
     if len(leaders) > 1:
         return (
@@ -140,6 +141,40 @@ def _leading(side: str, held: ComputedSet) -> str:
     return (
         f"{leading.species} is {leading.genomes:,} of the {held.genomes:,} genomes "
         f"of the {side} set ({shown}), the most of its {len(held.species)} species."
+    )
+
+
+def _percent(part: float) -> str:
+    return f"{round(100 * part, 1):g}%"
+
+
+def _side_name(side: str, held: ComputedSet) -> str:
+    name = (
+        held.species[0].species
+        if len(held.species) == 1
+        else f"{len(held.species)} species"
+    )
+    return f"the {side} set only ({name}, {count_noun(held.genomes, 'genome')})"
+
+
+def _held_by(answer: ComputedComparisonResult) -> str:
+    left, right = answer.sets
+    parts = sorted(
+        (
+            (answer.left_only, _side_name("left", left)),
+            (answer.both_held, "both sets"),
+            (answer.right_only, _side_name("right", right)),
+        ),
+        key=lambda part: -part[0],
+    )
+    (most, most_side), (next_most, next_side), (least, least_side) = parts
+    shown = [
+        f"{count:,} ({_percent(_share(count, answer.groups))})"
+        for count in (most, next_most, least)
+    ]
+    return (
+        f"Of the {answer.groups:,} selected groups, {shown[0]} are held by {most_side}, "
+        f"{shown[1]} by {next_side} and {shown[2]} by {least_side}."
     )
 
 
@@ -183,6 +218,7 @@ class HeldComparison(CamelModel):
         answer = self.answer
         left, right = answer.sets
         return ComparisonFacts(
+            held_by=_held_by(answer),
             route=COMPUTED_ROUTE,
             computed_on=self.computed_on.isoformat(),
             reading=answer.reading,

@@ -51,6 +51,8 @@ criterion holds outlives the internal strategy, and no strategy is left in the a
 **The facts.** `HeldComparison.facts()` is `ComparisonFacts`, registered in
 `FACT_SOURCES`, so every row takes its display form from its type: counts as numbers,
 shares of the groups and of each set's genomes as percentages, the route as its words.
+Its first row, `heldBy`, says in one sentence how many selected groups each side alone holds
+and both hold, largest first ([a long expression reads by what it counts](a-long-expression-reads-by-what-it-counts.md)).
 Its statements say the groups are a snapshot, that `ties` counts over every group either
 set holds and is no part of the selected groups, and which species leads each set, or
 that two species tie for it. A

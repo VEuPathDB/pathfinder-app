@@ -3,6 +3,7 @@ Lead reads its values and the facts part shows its breakdown."""
 
 from __future__ import annotations
 
+from datetime import date
 from typing import cast
 
 from langgraph.runtime import Runtime
@@ -13,7 +14,12 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.lead_pins import pinned_statistics
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.statistic_facts import statistic_id
-from pathfinder.tests._support.computed_comparison import framed_comparison
+from pathfinder.tests._support.computed_comparison import (
+    COMPARISON,
+    PATTERN,
+    framed_comparison,
+    held_comparison,
+)
 from pathfinder.tests._support.run_context import run_context_for
 
 
@@ -29,6 +35,67 @@ async def test_the_facts_show_the_groups_and_the_breakdown() -> None:
         rows["both held share"],
         rows["residual groups"],
     ) == ("7,364", "1,884", "25.6%", "1,969")
+
+
+_HELD_BY = (
+    "Of the 7,364 selected groups, 5,480 (74.4%) are held by the left set only "
+    "(Toxoplasma gondii, 15 genomes), 1,884 (25.6%) by both sets and 0 (0%) by the "
+    "right set only (23 species, 61 genomes)."
+)
+
+
+async def test_the_facts_lead_with_what_one_side_alone_holds() -> None:
+    deps, _ = await framed_comparison()
+
+    [shown] = turn_facts(deps).reads
+
+    assert (shown.rows[0].label, shown.rows[0].value) == ("held by", _HELD_BY)
+
+
+async def test_the_lead_reads_what_one_side_alone_holds_first() -> None:
+    deps, _ = await framed_comparison()
+
+    lines = (pinned_statistics(run_context_for(deps)) or "").splitlines()
+
+    assert lines[3] == f"  - heldBy = {_HELD_BY}"
+
+
+def _held(left_only: int, both_held: int, right_only: int) -> str:
+    groups = left_only + both_held + right_only
+    answer = COMPARISON.model_copy(
+        update={
+            "groups": groups,
+            "group_ids": tuple(f"g{n}" for n in range(groups)),
+            "left_only": left_only,
+            "both_held": both_held,
+            "right_only": right_only,
+        }
+    )
+    held = held_comparison(PATTERN, date(2026, 1, 2)).model_copy(
+        update={"answer": answer}
+    )
+    return held.facts().held_by
+
+
+def test_the_largest_part_is_named_first() -> None:
+    assert _held(1, 2, 7) == (
+        "Of the 10 selected groups, 7 (70%) are held by the right set only (2 species, "
+        "3 genomes), 2 (20%) by both sets and 1 (10%) by the left set only (Toxoplasma "
+        "gondii, 2 genomes)."
+    )
+    assert _held(1, 7, 2) == (
+        "Of the 10 selected groups, 7 (70%) are held by both sets, 2 (20%) by the right "
+        "set only (2 species, 3 genomes) and 1 (10%) by the left set only (Toxoplasma "
+        "gondii, 2 genomes)."
+    )
+
+
+def test_parts_of_one_size_keep_their_order() -> None:
+    assert _held(2, 2, 2) == (
+        "Of the 6 selected groups, 2 (33.3%) are held by the left set only (Toxoplasma "
+        "gondii, 2 genomes), 2 (33.3%) by both sets and 2 (33.3%) by the right set only "
+        "(2 species, 3 genomes)."
+    )
 
 
 async def test_the_lead_reads_the_route_and_the_leading_species() -> None:
