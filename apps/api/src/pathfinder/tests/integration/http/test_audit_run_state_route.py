@@ -112,7 +112,13 @@ async def test_a_run_halted_for_its_sign_in_offers_resume(app: FastAPI) -> None:
         "resume",
         {"kind": "sign_in", "detail": "sign-in needed"},
     )
-    assert run["left"] == {"genomes": 0, "findings": 0, "evidence": 0, "total": 0}
+    assert run["left"] == {
+        "genomes": 0,
+        "findings": 0,
+        "evidence": 0,
+        "refused": 0,
+        "total": 0,
+    }
 
 
 async def test_a_finished_run_with_units_left_offers_retry(app: FastAPI) -> None:
@@ -124,7 +130,13 @@ async def test_a_finished_run_with_units_left_offers_retry(app: FastAPI) -> None
         "retry",
         False,
     )
-    assert run["left"] == {"genomes": 0, "findings": 1, "evidence": 1, "total": 2}
+    assert run["left"] == {
+        "genomes": 0,
+        "findings": 1,
+        "evidence": 1,
+        "refused": 0,
+        "total": 2,
+    }
     assert run["evidence"] == [{"kind": "relatives", "status": "unreached", "count": 1}]
 
 
