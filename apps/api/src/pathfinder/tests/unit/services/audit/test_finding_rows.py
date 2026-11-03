@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import unicodedata
 
 import pytest
 
@@ -16,7 +17,12 @@ from pathfinder.domain.audit.findings import (
 from pathfinder.domain.audit.scope import GenePairTarget
 from pathfinder.domain.audit.verdicts import FindingReview, GeneModelVerdict
 from pathfinder.persistence.models import AuditEvidenceRecord
-from pathfinder.services.audit.export import HEADER, csv_line, finding_row
+from pathfinder.services.audit.export import (
+    HEADER,
+    csv_line,
+    finding_row,
+    safe_cell,
+)
 from pathfinder.services.audit.finding_views import FindingView, GeneLink
 from pathfinder.services.audit.review_views import review_line
 from pathfinder.tests._support.audit import NF54, NF54_PIGA, PIGA, PIGA_INTACT
@@ -162,35 +168,104 @@ def _genome_cell(text: str) -> str:
     return _parsed(csv_line(row))[0]
 
 
+def _fields(line: str, delimiter: str) -> list[str]:
+    reader = csv.reader(io.StringIO(line, newline=""), delimiter=delimiter)
+    return [field for row in reader for field in row]
+
+
+def _starts_a_formula(field: str) -> bool:
+    marks = (
+        c
+        for c in unicodedata.normalize("NFKC", field)
+        if not unicodedata.category(c).startswith(("C", "Z"))
+    )
+    return next(marks, "") in frozenset("=+-@")
+
+
 @pytest.mark.parametrize(
     "text",
-    [
-        "=A1",
-        "+1",
-        "-3",
-        "@A1",
-        "\n=A1",
-        " =A1",
-        "\r=A1",
-        "\t=A1",
-        "\u200b=A1",
-        "\uff1dA1",
-    ],
+    ["=A1", "+1", "-3", "@A1", " =A1", "\u200b=A1", "\uff1dA1"],
 )
 def test_a_cell_a_spreadsheet_would_read_as_a_formula_is_quoted(text: str) -> None:
     assert _genome_cell(text) == f"'{text}"
 
 
 @pytest.mark.parametrize(
-    "text", [PIGA, "Plasmodium falciparum NF54", "a=b", "x;=A1;", "\tA1", ""]
+    ("text", "written"),
+    [
+        ("\n=A1", "'\n'=A1"),
+        ("\r=A1", "'\r'=A1"),
+        ("\t=A1", "'\t'=A1"),
+        ("x;=A1;", "x;'=A1;"),
+        ("x\n=A1", "x\n'=A1"),
+        ("x\t+A1", "x\t'+A1"),
+        ("x\r@A1", "x\r'@A1"),
+        ("x; -A1", "x; '-A1"),
+        ("x;\u00a0\uff1dA1", "x;\u00a0'\uff1dA1"),
+        ("x;\u200b=A1", "x;\u200b'=A1"),
+        ('x;"=A1', "x;\"'=A1"),
+        ("x;;=A1", "x;;'=A1"),
+        ("x; \n=A1", "x; \n'=A1"),
+        ("x;=A1;=B2", "x;'=A1;'=B2"),
+    ],
 )
-def test_a_plain_cell_keeps_its_text(text: str) -> None:
-    assert _genome_cell(text) == text
+def test_a_trigger_after_a_separator_is_neutralized_in_place(
+    text: str, written: str
+) -> None:
+    assert safe_cell(text) == written
 
 
-def test_a_separator_inside_a_cell_stays_inside_its_quotes() -> None:
-    assert _parsed(csv_line(["x;=A1;"]), delimiter=";") == ["x;=A1;"]
-    assert csv_line(["x;=A1;", "plain"]) == '"x;=A1;","plain"\r\n'
+@pytest.mark.parametrize(
+    "text",
+    [
+        PIGA,
+        "Plasmodium falciparum NF54",
+        "a=b",
+        "x, =A1",
+        "x,=A1",
+        "a=b; c-d",
+        "1-2; 3-4",
+        "x;y",
+        "PF3D7_1032400; PF3D7_1133400",
+        "Already reported; PMID:1; PMID:2",
+        "\tA1",
+        "x\ny",
+        "",
+    ],
+)
+def test_text_with_no_such_pattern_is_byte_identical(text: str) -> None:
+    assert safe_cell(text) == text
+    assert csv_line([safe_cell(text)]) == f'"{text}"\r\n'
+
+
+@pytest.mark.parametrize(
+    "hostile", ["x;=A1;", "x\n=A1", "x\t+A1", "x; -A1", 'x;"=A1', "\n=A1", ";=A1"]
+)
+@pytest.mark.parametrize("delimiter", [",", ";", "\t"])
+def test_no_parsed_text_field_starts_a_formula(hostile: str, delimiter: str) -> None:
+    review = _review()
+    review = review.model_copy(
+        update={
+            "verdict": review.verdict.model_copy(update={"cause": hostile}),
+            "card_text": hostile,
+        }
+    )
+    view = _view(review).model_copy(
+        update={"genes": [GeneLink(gene=hostile, url=hostile)]}
+    )
+    line = csv_line(finding_row(view, [], review))
+    fields = _fields(line, delimiter)
+    assert [field for field in fields if _starts_a_formula(field)] == []
+
+
+def test_a_comma_parser_reads_each_hostile_cell_whole() -> None:
+    view = _view(None).model_copy(update={"genes": [GeneLink(gene="x;=A1;", url="u")]})
+    row = _fields(csv_line(finding_row(view, [], None)), ",")
+    assert dict(zip(HEADER, row, strict=True))["Gene IDs"] == "x;'=A1;"
+
+
+def test_every_field_is_quoted() -> None:
+    assert csv_line(["x;'=A1;", "plain", ""]) == '"x;\'=A1;","plain",""\r\n'
 
 
 def test_every_text_column_is_quoted() -> None:
@@ -208,7 +283,7 @@ def test_every_text_column_is_quoted() -> None:
     row = _parsed(csv_line(finding_row(view, [], review)))
     columns = dict(zip(HEADER, row, strict=True))
     for column in ("Genome", "Gene IDs", "Cause", "Fix", "Gene pages"):
-        assert columns[column] == f"'{hostile}"
+        assert columns[column] == "'\n'=A1"
 
 
 def test_a_number_the_export_writes_stays_a_number() -> None:

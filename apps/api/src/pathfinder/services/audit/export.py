@@ -43,20 +43,35 @@ EXPORT_PAGE = MAX_PAGE
 _NUMBER_COLUMNS = frozenset({"Impact", "Impact after review"})
 _FORMULA = frozenset("=+-@")
 _BLANK_CATEGORIES = ("C", "Z")
+_SEPARATORS = frozenset(";\t\r\n")
+_QUOTE = '"'
 
 
-def _first_mark(text: str) -> str:
-    normalized = unicodedata.normalize("NFKC", text)
-    marks = (
-        c
-        for c in normalized
-        if not unicodedata.category(c).startswith(_BLANK_CATEGORIES)
-    )
-    return next(marks, "")
+def _mark(char: str) -> str:
+    return unicodedata.normalize("NFKC", char)[:1]
+
+
+def _is_blank(char: str) -> bool:
+    return unicodedata.category(_mark(char)).startswith(_BLANK_CATEGORIES)
+
+
+def _neutralized_inside(text: str) -> str:
+    written: list[str] = []
+    armed = False
+    for char in text:
+        if armed and char != _QUOTE and not _is_blank(char):
+            if _mark(char) in _FORMULA:
+                written.append("'")
+            armed = False
+        armed = armed or char in _SEPARATORS
+        written.append(char)
+    return "".join(written)
 
 
 def safe_cell(text: str) -> str:
-    return f"'{text}" if _first_mark(text) in _FORMULA else text
+    inside = _neutralized_inside(text)
+    first = next((char for char in text if not _is_blank(char)), "")
+    return f"'{inside}" if _mark(first) in _FORMULA else inside
 
 
 def _evidence_text(evidence: Sequence[AuditEvidenceRecord]) -> str:
