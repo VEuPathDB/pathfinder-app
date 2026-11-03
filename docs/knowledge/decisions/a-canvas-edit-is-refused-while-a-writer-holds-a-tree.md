@@ -63,7 +63,8 @@ the same refusal. The EDA export reaches `apply_operation` and takes it there.
 `POST /conversations/{id}/refresh-counts` is not refused. It stores only what the site answers,
 and the researcher's edit is not among it. A turn that commits after it writes the counts it
 holds, and the next refresh reads them again. A rename through `PATCH /conversations/{id}` is
-not refused, because the thread owns the name and the tree holds a copy.
+not refused, because the thread owns the name and the tree holds a copy. That route no longer
+takes a tree: nothing sent one, and a tree written there held no lock and passed no check.
 
 # What was rejected
 
@@ -83,4 +84,5 @@ The web app has no gate on a running turn: `useApplyOperation` sends from every 
 whatever the turn's state. The refusal reaches the researcher as the toast `toUserMessage`
 reads from the problem detail. `onMutate` runs before a queued mutation takes its place in the
 scope, so a second edit's snapshot can hold the first one's optimistic state. So a failed edit
-takes its own entry off the undo stack and reads the strategy again after its rollback.
+takes its own entry off the undo stack, gives back the redo stack its push cleared unless a
+later edit stands on it, and reads the strategy again after its rollback.

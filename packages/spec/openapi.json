@@ -984,7 +984,7 @@
           "conversations"
         ],
         "summary": "Update Strategy",
-        "description": "Update strategy metadata (name, plan, wdk link, saved flag).",
+        "description": "Update strategy metadata (name, wdk link, saved flag).",
         "operationId": "update_strategy_api_v1_conversations__strategyId__patch",
         "security": [
           {
@@ -20003,16 +20003,6 @@
               }
             ],
             "title": "Name"
-          },
-          "strategyAst": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StrategyAst"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "wdkStrategyId": {
             "anyOf": [

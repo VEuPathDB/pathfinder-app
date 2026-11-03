@@ -203,3 +203,25 @@ async def test_a_second_delete_removes_a_recently_deleted_conversation(
     assert dismissed.json() == []
     gone = await api_client.get(f"/api/v1/conversations/{conv_id}")
     assert gone.status_code == 404
+
+
+async def test_a_patch_cannot_write_the_tree(api_client: httpx.AsyncClient) -> None:
+    created = await api_client.post(
+        "/api/v1/conversations",
+        json={"name": "Kinase strategy", "siteId": "plasmodb", "strategyAst": _AST},
+    )
+    conv_id = created.json()["id"]
+    other = {
+        "recordType": "transcript",
+        "root": {"id": "other", "searchName": "GenesByText", "parameters": {}},
+    }
+
+    patched = await api_client.patch(
+        f"/api/v1/conversations/{conv_id}",
+        json={"name": "Renamed kinases", "strategyAst": other},
+    )
+
+    assert patched.status_code == 200
+    assert patched.json()["name"] == "Renamed kinases"
+    ast = await api_client.get(f"/api/v1/conversations/{conv_id}/ast")
+    assert ast.json()["root"]["searchName"] == "GenesByTaxon"

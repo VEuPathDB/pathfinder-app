@@ -15,7 +15,7 @@
   applies under it. The canvas shows the refusal's detail, takes the edit's undo entry back and
   reads the strategy again. See
   [the decision](decisions/a-canvas-edit-is-refused-while-a-writer-holds-a-tree.md). The
-  backlog item is done and removed.
+  backlog item is done and removed. `PATCH /conversations/{id}` no longer takes `strategyAst`.
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`
   gives equal forms; a regrouping, a changed count and a changed code stay a

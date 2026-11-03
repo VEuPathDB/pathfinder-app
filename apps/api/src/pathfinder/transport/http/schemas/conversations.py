@@ -53,7 +53,6 @@ class CreateConversationRequest(CamelModel):
 
 class UpdateConversationRequest(CamelModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    strategy_ast: StrategyAst | None = Field(default=None)
     wdk_strategy_id: int | None = Field(default=None)
     is_saved: bool | None = Field(default=None)
 

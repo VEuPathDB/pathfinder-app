@@ -83,11 +83,10 @@ async def update_strategy(
     session: DBSession,
     user_id: CurrentUser,
 ) -> ConversationResponse:
-    """Update strategy metadata (name, plan, wdk link, saved flag)."""
+    """Update strategy metadata (name, wdk link, saved flag)."""
     fields_set = request.model_fields_set
     patch = ConversationUpdateInput(
         name=request.name,
-        strategy_ast=request.strategy_ast,
         wdk_strategy_id=request.wdk_strategy_id,
         wdk_strategy_id_set="wdk_strategy_id" in fields_set,
         is_saved=request.is_saved,

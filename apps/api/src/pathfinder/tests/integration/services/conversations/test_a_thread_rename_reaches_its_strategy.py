@@ -47,7 +47,6 @@ async def test_a_rename_writes_the_thread_and_its_stored_strategy(
             user_id,
             ConversationUpdateInput(
                 name="Exported kinases",
-                strategy_ast=None,
                 wdk_strategy_id=None,
                 wdk_strategy_id_set=False,
                 is_saved=None,
