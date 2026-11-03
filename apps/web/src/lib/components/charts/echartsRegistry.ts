@@ -1,10 +1,17 @@
-import { BarChart, BoxplotChart, LineChart, ScatterChart } from "echarts/charts";
+import {
+  BarChart,
+  BoxplotChart,
+  HeatmapChart,
+  LineChart,
+  ScatterChart,
+} from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
   LegendComponent,
   MarkLineComponent,
   TooltipComponent,
+  VisualMapComponent,
 } from "echarts/components";
 import * as echartsCore from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -14,6 +21,7 @@ import { buildChartTheme, readChartTokens } from "./chartTheme";
 echartsCore.use([
   BarChart,
   BoxplotChart,
+  HeatmapChart,
   LineChart,
   ScatterChart,
   DataZoomComponent,
@@ -21,6 +29,7 @@ echartsCore.use([
   LegendComponent,
   MarkLineComponent,
   TooltipComponent,
+  VisualMapComponent,
   CanvasRenderer,
 ]);
 

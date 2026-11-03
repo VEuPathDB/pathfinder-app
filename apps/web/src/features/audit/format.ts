@@ -1,4 +1,5 @@
 import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
+import type { GenomeView } from "@pathfinder/shared/generated/types/GenomeView";
 import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
 import type { Unresolved } from "@pathfinder/shared/generated/types/Unresolved";
 import type { UnresolvedWords } from "@pathfinder/shared/generated/types/UnresolvedWords";
@@ -63,4 +64,11 @@ export function unresolvedText(unresolved: Unresolved, words: UnresolvedWords): 
     return count > 0 ? [`${String(count)} ${text}`] : [];
   });
   return `${String(unresolved.total)} (${parts.join(", ")})`;
+}
+
+export function gapText(genome: GenomeView): string {
+  if (genome.priority !== null) return `${String(genome.priority.gap)} points`;
+  return genome.message === null
+    ? "Not served by the site"
+    : "Unknown: the scores read failed";
 }
