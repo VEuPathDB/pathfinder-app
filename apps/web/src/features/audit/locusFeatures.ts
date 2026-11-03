@@ -35,7 +35,7 @@ export function locusFeatures(audit: MissingGeneAudit): LocusFeature[] {
             kind: encodes ? ("found" as const) : ("matched" as const),
             label: encodes
               ? `Where the DNA encodes ${audit.exampleGene}`
-              : `Windows that match, ${String(located.found)} of ${String(located.windows)}`,
+              : `${String(located.found)} of ${String(located.windows)} parts of the gene match`,
             start: span[0],
             end: span[1],
             strand: null,

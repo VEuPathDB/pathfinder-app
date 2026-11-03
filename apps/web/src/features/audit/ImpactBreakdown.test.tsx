@@ -68,6 +68,29 @@ describe("ImpactBreakdown", () => {
   });
 });
 
+describe("citations the site did not serve", () => {
+  it("says they were not read, not that no record cites a paper", () => {
+    const { finding } = sampleDetail("pseudogene_call");
+    const { weighing } = finding;
+    if (weighing === null) throw new Error("the sample pseudogene finding is weighed");
+    render(
+      <ImpactBreakdown
+        finding={{
+          ...finding,
+          weighing: {
+            ...weighing,
+            importance: { ...weighing.importance, source: "not_read" },
+          },
+        }}
+      />,
+    );
+    expect(screen.getAllByRole("listitem")[1]).toHaveTextContent(
+      "because the gene records' citations and comments were not read, so the lower value is used",
+    );
+    expect(screen.queryByText(/no gene record cites/)).toBe(null);
+  });
+});
+
 describe("an error with no weighing", () => {
   it("says the run has not weighed it, not that it names no error", () => {
     const { finding } = sampleDetail("strain_model");

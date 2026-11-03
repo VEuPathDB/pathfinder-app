@@ -87,7 +87,8 @@ describe("audit words", () => {
     expect(words.IMPORTANCE_WORDS).toEqual({
       cited: "a gene record cites a paper or holds a comment",
       uncited: "no gene record cites a paper or holds a comment",
-      not_read: "the gene records were not read, so the lower value is used",
+      not_read:
+        "the gene records' citations and comments were not read, so the lower value is used",
     });
     expect(words.USE_WORDS).toEqual({
       reference_strain: "the site marks this genome as its species' reference strain",

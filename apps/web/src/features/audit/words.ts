@@ -48,7 +48,8 @@ export const PHASE_WORDS: Record<AuditRunSummaryPhaseEnumKey, string> = {
 export const IMPORTANCE_WORDS: Record<ImportanceSourceEnumKey, string> = {
   cited: "a gene record cites a paper or holds a comment",
   uncited: "no gene record cites a paper or holds a comment",
-  not_read: "the gene records were not read, so the lower value is used",
+  not_read:
+    "the gene records' citations and comments were not read, so the lower value is used",
 };
 
 export const USE_WORDS: Record<GenomeUseSourceEnumKey, string> = {

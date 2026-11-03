@@ -23,13 +23,16 @@ const FEATURE_COLORS: Record<LocusFeature["kind"], string> = {
 const FEATURE_WORDS: Record<LocusFeature["kind"], string> = {
   anchor: "Conserved neighbour",
   found: "Where the DNA encodes the gene",
-  matched: "Windows that match",
+  matched: "Parts of the gene that match",
   overlap: "Gene model over the span",
 };
 
 const FEATURE_KINDS: LocusFeature["kind"][] = ["anchor", "found", "matched", "overlap"];
 
 function featureText(feature: LocusFeature): string {
+  if (feature.kind === "matched") {
+    return `${feature.label}, first to last at bases ${baseText(feature.start)} to ${baseText(feature.end)}`;
+  }
   const strand = feature.strand === null ? "" : `, ${feature.strand} strand`;
   return `${feature.label}${strand}: bases ${baseText(feature.start)} to ${baseText(feature.end)}`;
 }
@@ -49,7 +52,9 @@ function FeatureDrawing({ feature }: { feature: PlacedFeature }) {
         y={BOX_TOP}
         width={feature.width.toFixed(1)}
         height={BOX_HEIGHT}
-        fill={fill}
+        {...(feature.kind === "matched"
+          ? { fill: "none", stroke: fill, strokeDasharray: "4 3" }
+          : { fill })}
       />
       {feature.strand === null ? null : (
         <polygon
@@ -102,7 +107,15 @@ export function LocusFigure({ audit }: { audit: MissingGeneAudit }) {
         <FigureLegend
           entries={FEATURE_KINDS.filter((kind) =>
             features.some((feature) => feature.kind === kind),
-          ).map((kind) => ({ word: FEATURE_WORDS[kind], fill: FEATURE_COLORS[kind] }))}
+          ).map((kind) =>
+            kind === "matched"
+              ? {
+                  word: FEATURE_WORDS[kind],
+                  fill: "none",
+                  stroke: FEATURE_COLORS[kind],
+                }
+              : { word: FEATURE_WORDS[kind], fill: FEATURE_COLORS[kind] },
+          )}
         />
       </figcaption>
     </figure>

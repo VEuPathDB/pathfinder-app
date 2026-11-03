@@ -225,13 +225,18 @@ class Weighing(CamelModel):
         return impact(self.certainty, self.importance.value, self.use.value)
 
 
+CITATION_TABLES = frozenset({"PubMed", "UserComments"})
+
+
 def importance_of(
     genes: Sequence[str], evidence: Sequence[GeneEvidence] | None
 ) -> Importance:
     if evidence is None:
         return Importance(genes=tuple(genes), source="not_read")
-    cited = any(read.pubmed > 0 or read.comments > 0 for read in evidence)
-    return Importance(genes=tuple(genes), source="cited" if cited else "uncited")
+    if any(read.pubmed > 0 or read.comments > 0 for read in evidence):
+        return Importance(genes=tuple(genes), source="cited")
+    unread = any(CITATION_TABLES.intersection(read.unserved) for read in evidence)
+    return Importance(genes=tuple(genes), source="not_read" if unread else "uncited")
 
 
 def use_of(genome: str, *, reference_strain: bool | None) -> GenomeUse:

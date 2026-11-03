@@ -80,7 +80,10 @@ def test_the_no_relatives_table_reads_its_exact_words() -> None:
     assert _NO_RELATIVES == {
         "RESIDUAL_GROUP": "the ortholog group is a residual group",
         "PARALOGS": "the related genomes do not hold one copy each",
-        "FEWER_THAN_TWO": "fewer than two independent related genomes hold the gene",
+        "FEWER_THAN_TWO": (
+            "fewer than two related genomes of one tier (same genus, or other genera) "
+            "hold the gene"
+        ),
     }
 
 

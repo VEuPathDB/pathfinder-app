@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from veupathdb_mcp.audit import GeneRow, GroupMember, tie_break
+from veupathdb_mcp.audit import GeneRow, GroupMember, strain_relatives, tie_break
 
 from pathfinder.domain.audit.findings import RelativesEvidence
+from pathfinder.domain.audit.length_facts import _NO_RELATIVES
 from pathfinder.services.audit.tie_break import relatives_evidence
 from pathfinder.services.audit.units import UnitFailure
 from pathfinder.tests._support.audit import gene_row
@@ -30,6 +31,51 @@ RELATIVES = {
     "Plasmodium knowlesi H": 302,
     "Plasmodium berghei ANKA": 298,
 }
+
+
+ONE_IN_EACH_TIER = [
+    *ROWS[:3],
+    gene_row("TG", "Toxoplasma gondii ME49", 350),
+]
+
+
+def test_one_relative_in_each_tier_is_too_few() -> None:
+    weighed = _weighed("REF", ["STRAIN"], ONE_IN_EACH_TIER)
+    assert isinstance(weighed, RelativesEvidence)
+    assert (weighed.relative_lengths, weighed.reference_organism) == (
+        {},
+        "Plasmodium falciparum 3D7",
+    )
+    reference, strain, *_ = ONE_IN_EACH_TIER
+    found = strain_relatives(
+        reference, strain, [GroupMember.of_row(row) for row in ONE_IN_EACH_TIER]
+    )
+    assert found.missing == "FEWER_THAN_TWO"
+    assert _NO_RELATIVES[found.missing] == (
+        "fewer than two related genomes of one tier (same genus, or other genera) "
+        "hold the gene"
+    )
+
+
+def test_a_reference_row_with_no_length_still_names_its_organism() -> None:
+    rows = [gene_row("REF", "Plasmodium falciparum 3D7", None), *ONE_IN_EACH_TIER[1:]]
+    weighed = _weighed("REF", ["STRAIN"], rows)
+    assert isinstance(weighed, RelativesEvidence)
+    assert (
+        weighed.reference_length,
+        weighed.reference_organism,
+        weighed.relative_lengths,
+    ) == (None, "Plasmodium falciparum 3D7", {})
+
+
+def test_an_absent_reference_row_names_no_organism() -> None:
+    weighed = _weighed("REF", ["STRAIN"], ONE_IN_EACH_TIER[1:])
+    assert isinstance(weighed, RelativesEvidence)
+    assert (
+        weighed.reference_length,
+        weighed.reference_organism,
+        weighed.relative_lengths,
+    ) == (None, None, {})
 
 
 def test_the_relatives_are_the_other_species_of_the_reference_genus() -> None:

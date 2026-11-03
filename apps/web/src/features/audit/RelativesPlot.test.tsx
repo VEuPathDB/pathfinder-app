@@ -3,8 +3,15 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
 import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { RelativesEvidence } from "@pathfinder/shared/generated/types/RelativesEvidence";
 
+import {
+  RELATIVES_NO_REFERENCE_ROW,
+  RELATIVES_ONE_IN_EACH_TIER,
+  RELATIVES_REFERENCE_NO_LENGTH,
+} from "./__fixtures__/derivedAudits";
 import { sampleDetail } from "./__fixtures__/sampleRun";
 import type { RelativesPoints } from "./relativesPoints";
 import { relativesOutcome, stripX } from "./relativesPoints";
@@ -28,7 +35,7 @@ function lengthDetailWith(relativeLengths: Record<string, number>): FindingDetai
           relativeLengths,
           relativesTier: null,
           side: "STRAIN_SHORT",
-          referenceOrganism: null,
+          referenceOrganism: "Plasmodium falciparum 3D7",
         },
         requests: 0,
         attempts: 1,
@@ -39,6 +46,26 @@ function lengthDetailWith(relativeLengths: Record<string, number>): FindingDetai
   };
 }
 
+const TOO_FEW =
+  "Fewer than two related genomes of one tier (same genus, or other genera) hold the gene.";
+
+function storedRow(payload: RelativesEvidence): EvidenceView {
+  return {
+    kind: "relatives",
+    status: "stored",
+    payload: { ...payload, kind: "relatives" },
+    requests: 0,
+    attempts: 1,
+    stopped: 0,
+    message: null,
+  };
+}
+
+function detailWithRow(row: EvidenceView): FindingDetail {
+  const detail = sampleDetail("gene_length");
+  return { ...detail, evidence: [...detail.evidence, row] };
+}
+
 function plotted(detail: FindingDetail): RelativesPoints {
   const outcome = relativesOutcome(detail);
   if (outcome.kind !== "plotted") throw new Error("the finding stores lengths to plot");
@@ -47,7 +74,7 @@ function plotted(detail: FindingDetail): RelativesPoints {
 
 function strainDetailWith(
   members: { organism: string; length: number }[],
-  missing: "PARALOGS" | "FEWER_THAN_TWO" | "RESIDUAL_GROUP" | null,
+  missing: "PARALOGS" | "FEWER_THAN_TWO" | "RESIDUAL_GROUP",
 ): FindingDetail {
   const detail = sampleDetail("strain_model");
   return {
@@ -80,6 +107,56 @@ function strainDetailWith(
 }
 
 describe("relativesOutcome", () => {
+  it("reads the real tie-break result of one relative in each tier as too few", () => {
+    expect(
+      relativesOutcome(detailWithRow(storedRow(RELATIVES_ONE_IN_EACH_TIER))),
+    ).toEqual({
+      kind: "looked",
+      reason: TOO_FEW,
+    });
+  });
+
+  it("blames the reference only when its row is absent", () => {
+    expect(
+      relativesOutcome(detailWithRow(storedRow(RELATIVES_REFERENCE_NO_LENGTH))),
+    ).toEqual({ kind: "looked", reason: TOO_FEW });
+    expect(
+      relativesOutcome(detailWithRow(storedRow(RELATIVES_NO_REFERENCE_ROW))),
+    ).toEqual({
+      kind: "looked",
+      reason:
+        "The gene records hold no row of the reference gene, so no related genome was compared.",
+    });
+  });
+
+  it("says a relatives row the run could not read was not read, with why", () => {
+    const failed = relativesOutcome(
+      detailWithRow({
+        ...storedRow(RELATIVES_ONE_IN_EACH_TIER),
+        status: "failed",
+        payload: null,
+        message: "the group of TGGT1_257090 is unreadable",
+      }),
+    );
+    expect(failed).toEqual({
+      kind: "not_read",
+      words: "Could not be read: the group of TGGT1_257090 is unreadable",
+    });
+    render(<RelativesPlot outcome={failed} />);
+    expect(
+      screen.getByText("Could not be read: the group of TGGT1_257090 is unreadable"),
+    ).toBeInTheDocument();
+    expect(
+      relativesOutcome(
+        detailWithRow({
+          ...storedRow(RELATIVES_ONE_IN_EACH_TIER),
+          status: "unread",
+          payload: null,
+        }),
+      ),
+    ).toEqual({ kind: "not_read", words: "Not read before the run's deadline" });
+  });
+
   it("plots the relatives a length finding stored, with the model, the reference and the median", () => {
     const points = plotted(
       lengthDetailWith({ "Relative C": 300, "Relative B": 296, "Relative A": 319 }),
@@ -102,12 +179,10 @@ describe("relativesOutcome", () => {
     const outcome = relativesOutcome(lengthDetailWith({}));
     expect(outcome).toEqual({
       kind: "looked",
-      reason: "Fewer than two independent related genomes hold the gene.",
+      reason: TOO_FEW,
     });
     render(<RelativesPlot outcome={outcome} />);
-    expect(
-      screen.getByText("Fewer than two independent related genomes hold the gene."),
-    ).toBeInTheDocument();
+    expect(screen.getByText(TOO_FEW)).toBeInTheDocument();
     expect(screen.queryByText(/not stored/)).toBe(null);
   });
 
@@ -117,16 +192,11 @@ describe("relativesOutcome", () => {
         strainDetailWith([], "PARALOGS"),
         strainDetailWith([], "FEWER_THAN_TWO"),
         strainDetailWith([], "RESIDUAL_GROUP"),
-        strainDetailWith([], null),
       ].map(relativesOutcome),
     ).toEqual([
       { kind: "looked", reason: "The related genomes do not hold one copy each." },
-      {
-        kind: "looked",
-        reason: "Fewer than two independent related genomes hold the gene.",
-      },
+      { kind: "looked", reason: TOO_FEW },
       { kind: "looked", reason: "The ortholog group is a residual group." },
-      { kind: "looked", reason: "The check found no related genome's length." },
     ]);
   });
 

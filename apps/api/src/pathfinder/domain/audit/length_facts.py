@@ -46,7 +46,10 @@ _PARTS: dict[WindowState | Literal["part1", "part2"], str] = {
 _NO_RELATIVES: dict[NoRelatives, str] = {
     "RESIDUAL_GROUP": "the ortholog group is a residual group",
     "PARALOGS": "the related genomes do not hold one copy each",
-    "FEWER_THAN_TWO": "fewer than two independent related genomes hold the gene",
+    "FEWER_THAN_TWO": (
+        "fewer than two related genomes of one tier (same genus, or other genera) "
+        "hold the gene"
+    ),
 }
 _NOT_READ: dict[NotRead, str] = {
     "NO_LOST_RUN": "The strain protein lacks no run of the reference protein",

@@ -254,6 +254,38 @@ def test_each_certainty_has_its_fixed_weight(
         ((UNCITED_EVIDENCE.model_copy(update={"comments": 1}),), "cited", 1.0),
         ((UNCITED_EVIDENCE, K13_EVIDENCE), "cited", 1.0),
         ((UNCITED_EVIDENCE,), "uncited", 0.5),
+        (
+            (UNCITED_EVIDENCE.model_copy(update={"unserved": ["PubMed"]}),),
+            "not_read",
+            0.5,
+        ),
+        (
+            (UNCITED_EVIDENCE.model_copy(update={"unserved": ["UserComments"]}),),
+            "not_read",
+            0.5,
+        ),
+        (
+            (
+                UNCITED_EVIDENCE.model_copy(
+                    update={"unserved": ["PubMed"], "comments": 1}
+                ),
+            ),
+            "cited",
+            1.0,
+        ),
+        (
+            (
+                UNCITED_EVIDENCE.model_copy(update={"unserved": ["PubMed"]}),
+                K13_EVIDENCE,
+            ),
+            "cited",
+            1.0,
+        ),
+        (
+            (UNCITED_EVIDENCE.model_copy(update={"unserved": ["Notes"]}),),
+            "uncited",
+            0.5,
+        ),
         (None, "not_read", 0.5),
     ],
 )

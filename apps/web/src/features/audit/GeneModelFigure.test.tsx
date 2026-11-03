@@ -100,6 +100,37 @@ describe("GeneModelFigure", () => {
     expect(screen.queryByText("stop")).toBe(null);
   });
 
+  it("draws a merged model to the scale of its own span, dashed", () => {
+    const { container } = render(
+      <GeneModelFigure models={RPT6_MODELS} proteinTracks={[]} />,
+    );
+    expect(
+      screen.getByRole("img", {
+        name: /Gene models on KQ001672, bases 202,826 to 207,689/,
+      }),
+    ).toBeInTheDocument();
+    const [span] = parts(container, "span");
+    expect(span).toHaveAttribute("x", "0.0");
+    expect(span).toHaveAttribute("width", "600.0");
+    expect(span).toHaveAttribute("stroke-dasharray", "4 3");
+  });
+
+  it("places each gene's arrow at that gene's own end", () => {
+    const { container } = render(
+      <GeneModelFigure models={RPT6_MODELS} proteinTracks={[]} />,
+    );
+    expect(attributes(parts(container, "strand"), "points")).toEqual([
+      "600.0,14 606.0,21 600.0,28",
+      "600.0,14 606.0,21 600.0,28",
+      "253.3,14 259.3,21 253.3,28",
+    ]);
+  });
+
+  it("writes the last codon's word at the codon", () => {
+    render(<GeneModelFigure models={GT1_SELK_MODELS} proteinTracks={[]} />);
+    expect(screen.getByText("last codon")).toHaveAttribute("x", "599.0");
+  });
+
   it("draws every span of a last codon split by an intron", () => {
     const { container } = render(
       <GeneModelFigure models={SEC_SPLIT_STOP_MODELS} proteinTracks={[]} />,

@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { NAC_MISSING_IN_GT1 } from "./__fixtures__/recordedAudits";
+import { NAC_MISSING_IN_GT1 } from "./__fixtures__/derivedAudits";
 import { locusFeatures, placeLocus } from "./locusFeatures";
 import { LocusFigure } from "./LocusFigure";
 
@@ -67,7 +67,7 @@ describe("the locus of a missing gene", () => {
     for (const verdict of ["PARTIAL", "NOT_IN_DNA", "GAP", "NO_SYNTENY"] as const) {
       expect(locusFeatures({ ...partial, verdict })[2]).toEqual({
         kind: "matched",
-        label: "Windows that match, 12 of 34",
+        label: "12 of 34 parts of the gene match",
         start: 4156680,
         end: 4157729,
         strand: null,
@@ -78,10 +78,28 @@ describe("the locus of a missing gene", () => {
     );
     render(<LocusFigure audit={{ ...partial, verdict: "NOT_IN_DNA" }} />);
     expect(
-      screen.getByText(/^Windows that match, 12 of 34: bases/),
+      screen.getByText(
+        "12 of 34 parts of the gene match, first to last at bases 4,156,680 to 4,157,729",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Windows that match")).toBeInTheDocument();
+    expect(screen.getByText("Parts of the gene that match")).toBeInTheDocument();
     expect(screen.queryByText(/encodes/)).toBe(null);
+  });
+
+  it("outlines the matched span, for its parts need not join", () => {
+    const { container } = render(
+      <LocusFigure
+        audit={{ ...NAC_MISSING_IN_GT1, verdict: "PARTIAL", located: PARTIAL_LOCATED }}
+      />,
+    );
+    const span = container.querySelector('[data-part="matched"]');
+    expect(span).toHaveAttribute("fill", "none");
+    expect(span).toHaveAttribute("stroke", "hsl(var(--chart-3))");
+    expect(span).toHaveAttribute("stroke-dasharray", "4 3");
+    expect(container.querySelector('[data-part="anchor"]')).toHaveAttribute(
+      "fill",
+      "hsl(var(--muted-foreground))",
+    );
   });
 
   it("points each neighbour's arrow along its strand", () => {
