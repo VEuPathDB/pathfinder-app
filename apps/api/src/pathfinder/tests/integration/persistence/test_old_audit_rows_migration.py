@@ -33,6 +33,8 @@ _STAGE_NOTE = f"NF54: failed ({_RAW})"
 _WRITTEN_NOTE = "2 candidates in 1 genome, 1 sampled"
 _WIRE = "WDKError: POST /record-types/gene/records -> HTTP 404: <html>body</html>"
 _REFUSED_WORDS = "VEuPathDB service error: the organism is unknown"
+_VERDICT = "GAP: the absent genome holds an assembly gap there"
+_DECLINED = "PF3D7_X names no gene of plasmodb"
 
 
 def _stages(**fields: str | None) -> str:
@@ -126,9 +128,17 @@ def _seeded(url: str) -> dict[str, str]:
         unread_raw = seed.finding(raw, "unread", _RAW)
         wire = seed.finding(raw, "failed", _WIRE)
         said = seed.finding(raw, "failed", _REFUSED_WORDS)
+        confirmed_raw = seed.finding(raw, "confirmed", _RAW)
+        declined_raw = seed.finding(raw, "declined", _WIRE)
+        screened_raw = seed.finding(raw, "screened", _RAW)
+        confirmed_said = seed.finding(raw, "confirmed", _VERDICT)
+        declined_said = seed.finding(raw, "declined", _DECLINED)
+        seed.genome(raw, "collected", f"BUSCO scores failed: {_RAW}")
+        seed.genome(raw, "unread", _RAW)
         placed = seed.finding(targets, "unreached", _RAW)
         seed.evidence(finding, "relatives", "trying", _RAW_REASON)
         seed.evidence(failed, "gene_evidence", "failed", _RAW)
+        seed.evidence(failed, "relatives", "unread", _RAW)
         return {
             "raw": raw,
             "multi_line": multi_line,
@@ -143,6 +153,11 @@ def _seeded(url: str) -> dict[str, str]:
             "unread_raw": str(unread_raw),
             "wire": str(wire),
             "said": str(said),
+            "confirmed_raw": str(confirmed_raw),
+            "declined_raw": str(declined_raw),
+            "screened_raw": str(screened_raw),
+            "confirmed_said": str(confirmed_said),
+            "declined_said": str(declined_said),
             "placed": str(placed),
         }
 
@@ -244,15 +259,33 @@ def test_a_stage_note_holding_an_address_is_cleaned_and_a_written_one_is_kept(
     assert names == ["collect", "screen"]
 
 
-def test_a_sentence_we_wrote_and_a_row_of_no_failed_status_are_left_alone(
+def test_a_row_of_any_status_holding_an_address_or_a_wire_line_is_cleaned(
+    database: str,
+) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    for held in ("unread_raw", "confirmed_raw", "declined_raw", "screened_raw"):
+        assert _finding_message(database, ids[held]) == _GENERIC
+    assert rows(
+        database,
+        "SELECT message FROM audit_genomes WHERE status IN ('collected', 'unread') "
+        "ORDER BY status",
+    ) == [(_GENERIC,), (_GENERIC,)]
+    assert rows(
+        database, "SELECT message FROM audit_evidence WHERE status = 'unread'"
+    ) == [(_GENERIC,)]
+
+
+def test_a_sentence_we_wrote_is_left_alone_in_any_status(
     database: str,
 ) -> None:
     ids = _seeded(database)
     command.upgrade(alembic_config(database), REVISION)
     assert _finding_message(database, ids["written"]) == _WRITTEN
     assert _finding_message(database, ids["unread"]) == NOT_READ
-    assert _finding_message(database, ids["unread_raw"]) == _RAW
     assert _finding_message(database, ids["said"]) == _REFUSED_WORDS
+    assert _finding_message(database, ids["confirmed_said"]) == _VERDICT
+    assert _finding_message(database, ids["declined_said"]) == _DECLINED
 
 
 def test_a_second_run_of_the_migration_changes_nothing(database: str) -> None:

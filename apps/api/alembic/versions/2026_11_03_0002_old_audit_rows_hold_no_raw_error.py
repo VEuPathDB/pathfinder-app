@@ -48,18 +48,15 @@ def upgrade() -> None:
     )
     op.execute(
         "UPDATE audit_genomes SET message = 'An internal error occurred' "
-        "WHERE status IN ('failed', 'unreached') "
-        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+        "WHERE message ~ '(https?://|-> HTTP [0-9]+)'"
     )
     op.execute(
         "UPDATE audit_findings SET message = 'An internal error occurred' "
-        "WHERE status IN ('failed', 'unreached') "
-        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+        "WHERE message ~ '(https?://|-> HTTP [0-9]+)'"
     )
     op.execute(
         "UPDATE audit_evidence SET message = 'An internal error occurred' "
-        "WHERE status IN ('failed', 'unreached') "
-        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+        "WHERE message ~ '(https?://|-> HTTP [0-9]+)'"
     )
     op.execute(
         "UPDATE audit_runs SET stages = jsonb_set(stages, '{stages}', ("

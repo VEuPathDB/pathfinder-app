@@ -8,7 +8,7 @@ from uuid import UUID
 import pytest
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
-from sqlalchemy import update
+from sqlalchemy import text, update
 
 from pathfinder.domain.audit.findings import GeneEvidencePayload
 from pathfinder.domain.audit.rates import Weighing
@@ -205,3 +205,16 @@ async def _ties(owner: RunOwner) -> tuple[UUID, list[int]]:
             )
             await session.commit()
     return run_id, [record.id for record in found]
+
+
+async def test_the_repository_orders_ties_by_id_on_a_sequential_scan() -> None:
+    owner = await seed_thread()
+    run_id, ids = await _ties(owner)
+    async with async_session_factory() as session:
+        await session.execute(text("SET LOCAL enable_indexscan = off"))
+        await session.execute(text("SET LOCAL enable_bitmapscan = off"))
+        await session.execute(text("SET LOCAL enable_indexonlyscan = off"))
+        found = await AuditFindingRepository(session).findings(
+            run_id, FindingFilter(), by_impact=True
+        )
+    assert [record.id for record in found] == ids

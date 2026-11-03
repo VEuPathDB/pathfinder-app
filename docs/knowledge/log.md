@@ -16,7 +16,7 @@
   review's when it named one, and a rejected finding is in neither. Migration
   `2026_11_03_0002` cleans what old rows let it identify: the fixed prefix of a
   halted run or a unit, `targetFailure` with the findings that repeat it, and
-  `failed` or `unreached` units and stage notes that hold an address or a wire line.
+  units of any status and stage notes that hold an address or a wire line.
   The words of an evidence kind and status are served by `/api/v1/audits/words`.
 
 * **The last live check of the refused call and the singleton count is closed.** The
