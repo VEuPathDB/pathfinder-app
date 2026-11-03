@@ -27,7 +27,6 @@ from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.services.audit import units
 from pathfinder.services.audit.collect import run_collect_stage
@@ -217,8 +216,7 @@ _STOPPED_ON_AN_ERROR = "An audit run stopped on an error"
 async def _failed(run_id: UUID, error: Exception) -> None:
     with log_ids_scope(LogIds(run_id=run_id)):
         logger.error(_STOPPED_ON_AN_ERROR, exc_info=error)
-    safe = sanitize_error_for_client(error)
-    reason = f"the audit job failed: {type(error).__name__}: {safe}"
+    reason = f"the audit job failed: {units.stored_failure(error)}"
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         await repo.note_on_trying(run_id, reason)

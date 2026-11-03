@@ -30,6 +30,7 @@ from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
     Waits,
+    failure_message,
     failure_status,
     in_passes,
     tallied,
@@ -54,7 +55,7 @@ async def _organisms(
     try:
         rows = await record_rows(site_id, list(genes))
     except UNIT_FAILURES as exc:
-        return UnitFailure(status=failure_status(exc), message=str(exc))
+        return UnitFailure(status=failure_status(exc), message=failure_message(exc))
     organisms = {row.gene: row.organism for row in rows}
     missing = [name for name in genes if name not in organisms]
     if missing:

@@ -29,6 +29,7 @@ from pathfinder.services.audit.units import (
     Waits,
     failure_status,
     in_passes,
+    stored_failure,
     waits_until,
     watching_refusals,
 )
@@ -387,7 +388,8 @@ def test_three_forbidden_reads_in_a_row_on_a_valid_sign_in_halt_as_revoked() -> 
                 failure_status(_answered(403))
     finally:
         veupathdb_auth_token_ctx.reset(held)
-    assert revoked.value.forbidden == (str(_answered(403)),) * 3
+    assert revoked.value.forbidden == (stored_failure(_answered(403)),) * 3
+    assert revoked.value.forbidden[0] == "HTTPStatusError: An internal error occurred"
 
 
 async def test_an_answered_unit_between_forbidden_reads_breaks_the_streak() -> None:

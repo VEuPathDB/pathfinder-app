@@ -64,7 +64,9 @@ reopens the run and writes its new deadline and token in one transaction. A job
 that raises stores "the audit job failed" with the exception's type and
 `sanitize_error_for_client` of it on the run and on the unit it was reading, logs the
 full error with the run bound, and erases the kept sign-in; a unit failed after its
-third stop keeps that text after the stop message. The run stays halted until a new
+third stop keeps that text after the stop message. A unit a handled error fails
+stores the same type and sanitized text (`units.stored_failure`), a tool's refusal
+keeps its own words, and the log holds the full error. The run stays halted until a new
 `start_run`; the resume pass does not queue a halted run. The run's page calls it
 through `POST /api/v1/audits/{run_id}/start` (`services/audit/page_start.py`),
 which takes only the action the run view offers, `resume` or `retry`, and

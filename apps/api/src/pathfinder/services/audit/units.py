@@ -13,16 +13,20 @@ from uuid import UUID
 import httpx
 import pydantic
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.logging import get_logger
 from fastmcp.exceptions import ToolError
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, StageName
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.platform.metrics import RequestTally, counting_wdk_requests
 from pathfinder.services.audit.sign_in import sign_in_holds
 from pathfinder.services.site_errors import site_status, unreached
 
+logger = get_logger(__name__)
 _FORBIDDEN = 403
+_UNIT_FAILED = "An audit unit failed"
 FIRST_WAIT_SECONDS = 30.0
 LONGEST_WAIT_SECONDS = 900.0
 SLICE_SECONDS = 1800.0
@@ -31,6 +35,19 @@ UNIT_FAILURES = (httpx.HTTPError, VEuPathDBError, ToolError, pydantic.Validation
 
 
 REVOKED_AFTER = 3
+
+
+def stored_failure(exc: BaseException) -> str:
+    match exc:
+        case ToolError():
+            return str(exc)
+        case _:
+            return f"{type(exc).__name__}: {sanitize_error_for_client(exc)}"
+
+
+def failure_message(exc: BaseException) -> str:
+    logger.warning(_UNIT_FAILED, exc_info=exc)
+    return stored_failure(exc)
 
 
 class SignInNeededError(Exception):
@@ -63,7 +80,7 @@ def _note_forbidden(exc: BaseException) -> None:
     streak = _STREAK.get()
     if streak is None:
         return
-    streak.messages.append(str(exc))
+    streak.messages.append(stored_failure(exc))
     if len(streak.messages) >= REVOKED_AFTER:
         raise SignInNeededError(tuple(streak.messages)) from exc
 

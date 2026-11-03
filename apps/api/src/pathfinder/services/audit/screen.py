@@ -30,6 +30,7 @@ from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
     Waits,
+    failure_message,
     failure_status,
     in_passes,
     tallied,
@@ -110,7 +111,7 @@ async def _target_rows(
     try:
         return await read_gene_list(run.site_id, genes)
     except UNIT_FAILURES as exc:
-        return UnitFailure(status=failure_status(exc), message=str(exc))
+        return UnitFailure(status=failure_status(exc), message=failure_message(exc))
 
 
 async def _counted(run_id: UUID, requests: int) -> None:

@@ -143,5 +143,5 @@ async def test_a_target_the_site_left_unanswered_stays_unreached_past_the_deadli
     assert (target.status, target.attempts, target.message) == (
         "unreached",
         0,
-        "connection refused",
+        "ConnectError: An internal error occurred",
     )

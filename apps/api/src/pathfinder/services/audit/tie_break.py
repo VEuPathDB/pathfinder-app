@@ -44,6 +44,7 @@ from pathfinder.services.audit.units import (
     UNIT_FAILURES,
     ContinueLaterError,
     Waits,
+    failure_message,
     failure_status,
     in_passes,
     tallied,
@@ -220,7 +221,9 @@ async def _read_relatives(
                 group = await orthologs_of(site_id, genes[0])
                 rows = await record_rows(site_id, named)
             except UNIT_FAILURES as exc:
-                return UnitFailure(status=failure_status(exc), message=str(exc))
+                return UnitFailure(
+                    status=failure_status(exc), message=failure_message(exc)
+                )
             return relatives_evidence(reference_gene, genes, rows, group.members)
 
 

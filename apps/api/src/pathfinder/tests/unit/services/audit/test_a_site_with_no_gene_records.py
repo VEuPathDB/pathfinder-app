@@ -22,6 +22,6 @@ async def test_a_gene_read_on_a_site_with_no_gene_records_is_a_named_failure(
 
     assert placed == UnitFailure(
         status="failed",
-        message=f"The site serves no gene records: {NO_GENE_RECORDS}",
+        message=f"NoGeneRecordsError: The site serves no gene records: {NO_GENE_RECORDS}",
     )
     assert (wire.gene_reads.call_count, wire.record_type_reads.call_count) == (1, 0)

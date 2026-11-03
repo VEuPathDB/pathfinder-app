@@ -37,7 +37,11 @@ from pathfinder.domain.audit.scope import (
     OrganelleTarget,
     SingleGeneTarget,
 )
-from pathfinder.services.audit.units import UNIT_FAILURES, failure_status
+from pathfinder.services.audit.units import (
+    UNIT_FAILURES,
+    failure_message,
+    failure_status,
+)
 
 
 class UnitFailure(CamelModel):
@@ -126,4 +130,6 @@ async def confirm_target(
             case ToolError() if is_unchained(exc):
                 return DeclinedCheck(message=str(exc))
             case _:
-                return UnitFailure(status=failure_status(exc), message=str(exc))
+                return UnitFailure(
+                    status=failure_status(exc), message=failure_message(exc)
+                )

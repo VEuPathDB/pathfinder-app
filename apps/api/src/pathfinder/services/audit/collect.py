@@ -29,6 +29,7 @@ from pathfinder.services.audit.units import (
     NOT_READ,
     UNIT_FAILURES,
     Waits,
+    failure_message,
     failure_status,
     halt_when_signed_out,
     in_passes,
@@ -54,7 +55,7 @@ async def _read_release(run: AuditRunRecord) -> str | None:
     if failure is None:
         return None
     halt_when_signed_out(failure)
-    return str(failure)
+    return failure_message(failure)
 
 
 class _Scores:
@@ -66,7 +67,7 @@ class _Scores:
         try:
             return await genome_priorities(self.site_id)
         except UNIT_FAILURES as exc:
-            return UnitFailure(status=failure_status(exc), message=str(exc))
+            return UnitFailure(status=failure_status(exc), message=failure_message(exc))
 
     async def of(self, state: AuditGenomeState) -> GenomePriority | UnitFailure | None:
         if state.role != "audited" or state.priority is not None:
@@ -89,7 +90,7 @@ class _Provenances:
         try:
             return await organism_report(self.site_id, GENOME_ATTRIBUTES)
         except UNIT_FAILURES as exc:
-            return UnitFailure(status=failure_status(exc), message=str(exc))
+            return UnitFailure(status=failure_status(exc), message=failure_message(exc))
 
     def _served(self, answer: WDKAnswer, organism: str) -> bool | UnitFailure:
         try:
@@ -187,7 +188,10 @@ async def _read_genome(
             rows = await genes_of_genome(run.site_id, organism)
         except UNIT_FAILURES as exc:
             return served.genome(
-                organism, tally.count, status=failure_status(exc), message=str(exc)
+                organism,
+                tally.count,
+                status=failure_status(exc),
+                message=failure_message(exc),
             )
     return served.genome(organism, tally.count, status="collected", genes=rows)
 
