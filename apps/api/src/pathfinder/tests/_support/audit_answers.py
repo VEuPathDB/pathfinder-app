@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from veupathdb_mcp.audit import (
-    Frameshift,
+    FrameChange,
     FusionVerdict,
     GeneFusionAudit,
     GeneticCode,
@@ -182,7 +182,9 @@ CONSTRUCTED_STRAIN = "constructed_strain_gene"
 CONSTRUCTED_REFERENCE = "constructed_reference_gene"
 
 
-def strain_frameshift(shift: Frameshift) -> StrainModelAudit:
+def strain_frameshift(
+    shift: FrameChange, verdict: str = "FRAMESHIFT"
+) -> StrainModelAudit:
     return StrainModelAudit.model_validate(
         {
             "extra": [],
@@ -195,8 +197,8 @@ def strain_frameshift(shift: Frameshift) -> StrainModelAudit:
             "lost": [(41, 100)],
             "dna": {
                 **_ENCODED,
-                "verdict": "FRAMESHIFT",
-                "frameshifts": [shift],
+                "verdict": verdict,
+                "frame_changes": [shift],
                 "windows": 33,
                 "ns_in_window": 0,
                 "at_contig_edge": False,

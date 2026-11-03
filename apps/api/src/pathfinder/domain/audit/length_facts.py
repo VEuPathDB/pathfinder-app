@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 from veupathdb_mcp.audit import (
-    Frameshift,
+    FrameChange,
     GeneFusionAudit,
     GeneLengthAudit,
     GenomeSource,
@@ -12,9 +12,9 @@ from veupathdb_mcp.audit import (
     NoRelatives,
     NotRead,
     ReferenceMiss,
+    StrainCall,
     StrainModelAudit,
-    VariantAnswer,
-    VariantCalls,
+    VariantSite,
     VariantsUnread,
     WindowState,
 )
@@ -54,32 +54,11 @@ _NOT_READ: dict[NotRead, str] = {
     "PARALOG_IN_WINDOW": "A paralog lies in the region the check reads",
 }
 
-_VARIANT_ANSWERS: dict[VariantAnswer, str] = {
-    "ALTERNATE_AT_INDEL_SITE": (
-        "The strain's reads differ from the reference at an indel the site does not call "
-        "in frame. It is not established that this is the change"
-    ),
-    "IN_FRAME_INDEL_CALLED": (
-        "The strain's reads carry an indel here that the site calls in frame, which "
-        "cannot be the change that shifted the frame"
-    ),
-    "NO_INDEL_CALLED": "The strain's reads are called as the reference at this place",
-    "NO_VARIANT_CALLED": (
-        "No sample has a variant here, and this does not show the strain was sequenced"
-    ),
-    "NOT_COVERED": "The strain's reads do not cover the indel site",
-    "NO_SAMPLE_MATCHED": "No sample of the site's calls was matched to the strain",
-    "CALL_UNREADABLE": "The strain's call here cannot be read as an indel or as none",
-    "SAMPLES_DISAGREE": "The samples matched to the strain do not agree",
-}
-_UNDETERMINED = (
-    "The site's calls hold almost no indel in a run this long, so a missing call does "
-    "not show whether the strain's reads carry the change"
+_CALLS_SAY_LITTLE = (
+    "The site's calls hold almost no indel in a run this long, so they say little here"
 )
-_MISCOUNT = "The assembly likely miscounts the run"
-_EQUAL_COUNTS = (
-    "The run holds as many bases in both strains, which is evidence against a miscount"
-)
+_NO_SAMPLE = "No sample of the site's calls was matched to the strain"
+_NO_RECORD = "The search holds no variant record here"
 _REFERENCE_MISSES: dict[ReferenceMiss, str] = {
     "MODEL_UNREAD": "The reference gene's model could not be read",
     "WINDOW_TOO_LONG": "The reference gene spans more than an audit reads",
@@ -115,87 +94,118 @@ def _from_genome(source: GenomeSource) -> str:
     return f"from the {source.site} genome of {source.organism}"
 
 
-def _change(shift: Frameshift) -> str:
-    strand = "plus" if shift.strand == "+" else "minus"
-    bases = "base" if abs(shift.shift) == 1 else "bases"
+def _change(change: FrameChange) -> str:
+    strand = "plus" if change.strand == "+" else "minus"
+    bases = "base" if abs(change.shift) == 1 else "bases"
     return (
-        f"{shift.source.site} genome {shift.source.organism}, {shift.source.seqid} bases "
-        f"{shift.start:,} to {shift.end:,} ({strand} strand), "
-        f"frame {shift.frame_before + 1} to frame {shift.frame_after + 1}, a shift of "
-        f"{shift.shift:+d} {bases} against the reference protein's spacing"
+        f"{change.source.site} genome {change.source.organism}, {change.source.seqid} "
+        f"bases {change.start:,} to {change.end:,} ({strand} strand), "
+        f"frame {change.frame_before + 1} to frame {change.frame_after + 1}, a shift of "
+        f"{change.shift:+d} {bases} against the reference protein's spacing"
     )
 
 
-def _reference_protein(shift: Frameshift, gene: str | None) -> str:
-    first, last = shift.reference_residues
+def _reference_protein(change: FrameChange, gene: str | None) -> str:
+    first, last = change.reference_residues
     return f"{known(gene)}, residues {first} to {last}"
 
 
-def _run(shift: Frameshift) -> str:
-    run = shift.run
+def _run(change: FrameChange) -> str:
+    run = change.run
     if run is None:
         return NONE
     return (
-        f"{run.bases} bases of {run.unit}, {shift.source.seqid} {run.start:,} to "
-        f"{run.end:,}, {_from_genome(shift.source)}"
+        f"{run.bases} bases of {run.unit}, {change.source.seqid} {run.start:,} to "
+        f"{run.end:,}, {_from_genome(change.source)}"
     )
 
 
-def _reference_run(shift: Frameshift) -> str:
-    run = shift.reference_run
+def _splice_pair(change: FrameChange) -> str:
+    pair = change.splice_pair
+    if pair is None:
+        return NONE
+    return (
+        f"{pair.motif}, bases {pair.donor:,} to {pair.acceptor:,} of "
+        f"{change.source.seqid}"
+    )
+
+
+def _reference_run(change: FrameChange) -> str:
+    run = change.reference_run
     if run is not None:
         return (
             f"{run.bases} bases in {run.gene}, {run.source.seqid} {run.start:,} to "
             f"{run.end:,}, {_from_genome(run.source)}"
         )
-    if shift.reference_unread is not None:
-        return _REFERENCE_MISSES[shift.reference_unread]
+    if change.reference_unread is not None:
+        return _REFERENCE_MISSES[change.reference_unread]
     return "No reference strain was compared"
 
 
-def _said_of_the_calls(shift: Frameshift, calls: VariantCalls) -> str:
-    said = (
-        _UNDETERMINED
-        if calls.answer in {"NO_INDEL_CALLED", "IN_FRAME_INDEL_CALLED"}
-        and not calls.determinable
-        else _VARIANT_ANSWERS[calls.answer]
+def _run_counts(change: FrameChange) -> str:
+    run, reference = change.run, change.reference_run
+    if run is None or reference is None:
+        return "Not compared"
+    fits = "matches" if change.counts_match_shift else "does not match"
+    return (
+        f"{run.bases} here against {reference.bases} in the reference strain, a "
+        f"difference of {run.bases - reference.bases}, which {fits} the shift of "
+        f"{change.shift:+d}"
     )
-    if shift.reads_show_miscount:
-        return f"{said}. {_MISCOUNT}"
-    if shift.run_counts_equal:
-        return f"{said}. {_EQUAL_COUNTS}"
-    return said
 
 
-def _frame_effects(calls: VariantCalls) -> str:
-    effects = "; ".join(
-        f"{variant}: {'not served' if effect is None else effect}"
-        for variant, effect in calls.frame_effects.items()
+def _served(value: str | None) -> str:
+    return "not served" if value is None else value
+
+
+def _call(call: StrainCall) -> str:
+    return (
+        f"{call.sample} genotype {call.genotype}, allele {_served(call.allele)}, "
+        f"depth {_served(call.depth)}, read frequency {_served(call.read_frequency)}"
     )
-    return f", indel_frame_effect {effects}" if effects else ""
 
 
-def _strain_reads(shift: Frameshift) -> str:
-    calls = shift.variant_calls
+def _site(site: VariantSite) -> str:
+    calls = "; ".join(_call(call) for call in site.calls)
+    return (
+        f"{site.variant}: variant_type {_served(site.variant_type)}, indel_ref_allele "
+        f"{_served(site.indel_ref_allele)}, indel_frame_effect "
+        f"{_served(site.indel_frame_effect)}{'; ' + calls if calls else ''}"
+    )
+
+
+def _strain_reads(change: FrameChange) -> str:
+    calls = change.variant_calls
     if calls is None:
-        if shift.variants_unread is None:
+        if change.variants_unread is None:
             return NOT_READ
-        return _VARIANTS_UNREAD[shift.variants_unread]
-    return (
-        f"{_said_of_the_calls(shift, calls)}. {calls.site} {calls.record_type} search "
-        f"{calls.search} for {calls.organism} over {calls.seqid} {calls.start:,} to "
-        f"{calls.end:,}, table {calls.table}, samples {listed(calls.samples)}, variants "
-        f"{listed(calls.variants)}{_frame_effects(calls)}"
-    )
+        return _VARIANTS_UNREAD[change.variants_unread]
+    said = [
+        (
+            f"{calls.site} {calls.record_type} search {calls.search} for "
+            f"{calls.organism} over {calls.seqid} {calls.start:,} to {calls.end:,}, "
+            f"table {calls.table}"
+        ),
+        *(_site(site) for site in calls.sites),
+    ]
+    if not calls.sites:
+        said.append(_NO_RECORD)
+    elif not calls.samples:
+        said.append(_NO_SAMPLE)
+    if calls.calls_say_little:
+        said.append(_CALLS_SAY_LITTLE)
+    return ". ".join(said)
 
 
-def _frameshift(shift: Frameshift, gene: str | None) -> tuple[Fact, ...]:
+def _frame_change(change: FrameChange, gene: str | None) -> tuple[Fact, ...]:
     return (
-        Fact(label="Frame change", value=_change(shift)),
-        Fact(label="Reference protein", value=_reference_protein(shift, gene)),
-        Fact(label="Run at the change", value=_run(shift)),
-        Fact(label="Same run in the reference strain", value=_reference_run(shift)),
-        Fact(label="Strain's reads at the run", value=_strain_reads(shift)),
+        Fact(label="Frame change", value=_change(change)),
+        Fact(label="Reference protein", value=_reference_protein(change, gene)),
+        Fact(label="Splice pair at the change", value=_splice_pair(change)),
+        Fact(label="Run at the change", value=_run(change)),
+        Fact(label="Same run in the reference strain", value=_reference_run(change)),
+        Fact(label="Run counts", value=_run_counts(change)),
+        Fact(label="Strain's reads at the run", value=_strain_reads(change)),
     )
 
 
@@ -205,8 +215,8 @@ def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
         Fact(label="Parts of the reference protein", value=_parts(check)),
         *(
             fact
-            for shift in check.frameshifts
-            for fact in _frameshift(shift, reference_gene)
+            for shift in check.frame_changes
+            for fact in _frame_change(shift, reference_gene)
         ),
         Fact(
             label="Unknown bases in the region read",

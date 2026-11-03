@@ -55,6 +55,7 @@ ErrorType = Literal[
     "sec_read_as_stop",
     "truncated_model",
     "sequence_frameshift",
+    "part_in_other_frame",
     "split_model",
     "over_extended_model",
     "fused_model",
@@ -137,6 +138,8 @@ def _length(confirmation: LengthConfirmation) -> Classification:
             return _named("truncated_model", "high")
         case ("SHORT", "FRAMESHIFT"):
             return _named("sequence_frameshift", "medium")
+        case ("SHORT", "OTHER_FRAME"):
+            return _named("part_in_other_frame", "medium")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
         case (length_class, "NOT_CHECKED"):
@@ -243,6 +246,19 @@ def _unread_strain(result: StrainModelAudit) -> str:
     return f"{why}, so the check reads no genome and judges no side"
 
 
+def _strain_not_judged(result: StrainModelAudit) -> Classification:
+    match result.dna.verdict:
+        case "FRAMESHIFT":
+            error_type: ErrorType = "sequence_frameshift"
+        case "OTHER_FRAME":
+            error_type = "part_in_other_frame"
+        case _:
+            return _unjudged("NOT_JUDGED", _unread_strain(result))
+    return Classification(
+        error_type=error_type, certainty="medium", model_role="strain"
+    )
+
+
 def _strain(result: StrainModelAudit) -> Classification:
     match result.side:
         case "STRAIN_SHORT":
@@ -261,14 +277,8 @@ def _strain(result: StrainModelAudit) -> Classification:
                 f"the ortholog group has no independent relatives "
                 f"({result.relatives.missing}) to judge which side is wrong",
             )
-        case "NOT_JUDGED" if result.dna.verdict == "FRAMESHIFT":
-            return Classification(
-                error_type="sequence_frameshift",
-                certainty="medium",
-                model_role="strain",
-            )
         case "NOT_JUDGED":
-            return _unjudged("NOT_JUDGED", _unread_strain(result))
+            return _strain_not_judged(result)
 
 
 def remodeled_by_side(

@@ -62,6 +62,11 @@ _EXPECTED: list[tuple[CheckName, FindingVerdict, str]] = [
     ),
     (
         "gene_length",
+        "OTHER_FRAME",
+        "The genome's DNA encodes the part the model lacks, but not as an open continuation of the model's reading frame. The cause is not shown",
+    ),
+    (
+        "gene_length",
         "ASSEMBLY",
         "The part the model lacks falls in an assembly gap or at a contig end",
     ),
@@ -95,6 +100,11 @@ _EXPECTED: list[tuple[CheckName, FindingVerdict, str]] = [
         "gene_split",
         "FRAMESHIFT",
         "The model follows the genome sequence, whose DNA holds the part the model lacks in another reading frame",
+    ),
+    (
+        "gene_split",
+        "OTHER_FRAME",
+        "The genome's DNA encodes the part the model lacks, but not as an open continuation of the model's reading frame. The cause is not shown",
     ),
     (
         "gene_split",

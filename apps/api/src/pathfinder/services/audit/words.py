@@ -39,6 +39,7 @@ class ErrorTypeWords(BaseModel):
     sec_read_as_stop: str
     truncated_model: str
     sequence_frameshift: str
+    part_in_other_frame: str
     split_model: str
     over_extended_model: str
     fused_model: str

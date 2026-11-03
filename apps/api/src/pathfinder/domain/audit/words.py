@@ -92,6 +92,10 @@ LENGTH_SENTENCES: dict[LengthVerdict, str] = {
         "The model follows the genome sequence, whose DNA holds the part the model "
         "lacks in another reading frame"
     ),
+    "OTHER_FRAME": (
+        "The genome's DNA encodes the part the model lacks, but not as an open "
+        "continuation of the model's reading frame. The cause is not shown"
+    ),
     "ASSEMBLY": (
         "The part the model lacks falls in an assembly gap or at a contig end"
     ),
@@ -197,6 +201,7 @@ ERROR_TYPE_TITLES: dict[ErrorType, str] = {
     "sec_read_as_stop": "Selenocysteine codon read as a stop",
     "truncated_model": "Model too short",
     "sequence_frameshift": "Frameshift in the genome sequence",
+    "part_in_other_frame": "Part encoded in another reading frame",
     "split_model": "One gene split into two models",
     "over_extended_model": "Model too long",
     "fused_model": "Two genes fused into one model",
@@ -225,6 +230,10 @@ ERROR_TYPE_DESCRIPTIONS: dict[ErrorType, str] = {
         "The model follows the genome sequence to a stop, and the part it lacks lies "
         "close by in another reading frame of the same DNA. The sequence alone does "
         "not say whether the change is in the strain or in the assembly."
+    ),
+    "part_in_other_frame": (
+        "The genome's DNA encodes the part the model lacks in another reading frame, "
+        "or past a stop in its own. The cause is not shown."
     ),
     "split_model": (
         "Two neighbouring models are parts of one protein, in order on one strand."

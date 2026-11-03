@@ -5,14 +5,13 @@ from veupathdb_mcp.audit import GeneticCode
 from pathfinder.domain.audit.facts import _CODES, TIER_WORDS, YES_NO
 from pathfinder.domain.audit.intron_facts import _ACROSS_GAP, _OUTCOMES
 from pathfinder.domain.audit.length_facts import (
-    _EQUAL_COUNTS,
-    _MISCOUNT,
+    _CALLS_SAY_LITTLE,
+    _NO_RECORD,
     _NO_RELATIVES,
+    _NO_SAMPLE,
     _NOT_READ,
     _PARTS,
     _REFERENCE_MISSES,
-    _UNDETERMINED,
-    _VARIANT_ANSWERS,
     _VARIANTS_UNREAD,
 )
 
@@ -47,26 +46,13 @@ def test_the_parts_table_reads_its_exact_words() -> None:
     }
 
 
-def test_the_variant_answers_table_reads_its_exact_words() -> None:
-    assert _VARIANT_ANSWERS == {
-        "ALTERNATE_AT_INDEL_SITE": "The strain's reads differ from the reference at an indel the site does not call in frame. It is not established that this is the change",
-        "IN_FRAME_INDEL_CALLED": "The strain's reads carry an indel here that the site calls in frame, which cannot be the change that shifted the frame",
-        "NO_INDEL_CALLED": "The strain's reads are called as the reference at this place",
-        "NO_VARIANT_CALLED": "No sample has a variant here, and this does not show the strain was sequenced",
-        "NOT_COVERED": "The strain's reads do not cover the indel site",
-        "NO_SAMPLE_MATCHED": "No sample of the site's calls was matched to the strain",
-        "CALL_UNREADABLE": "The strain's call here cannot be read as an indel or as none",
-        "SAMPLES_DISAGREE": "The samples matched to the strain do not agree",
-    }
-    assert _UNDETERMINED == (
-        "The site's calls hold almost no indel in a run this long, so a missing call "
-        "does not show whether the strain's reads carry the change"
+def test_the_frame_fact_words_read_exactly() -> None:
+    assert _CALLS_SAY_LITTLE == (
+        "The site's calls hold almost no indel in a run this long, so they say little "
+        "here"
     )
-    assert _MISCOUNT == "The assembly likely miscounts the run"
-    assert _EQUAL_COUNTS == (
-        "The run holds as many bases in both strains, which is evidence against a "
-        "miscount"
-    )
+    assert _NO_SAMPLE == "No sample of the site's calls was matched to the strain"
+    assert _NO_RECORD == "The search holds no variant record here"
     assert _REFERENCE_MISSES == {
         "MODEL_UNREAD": "The reference gene's model could not be read",
         "WINDOW_TOO_LONG": "The reference gene spans more than an audit reads",

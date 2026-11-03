@@ -170,6 +170,16 @@ def test_a_strain_frameshift_names_the_sequence_of_the_strain() -> None:
     assert confirmation.verdict == "NOT_JUDGED"
 
 
+def test_a_strain_part_in_another_frame_names_that_and_no_truncation() -> None:
+    confirmation = StrainConfirmation(
+        result=strain_frameshift(FRAMESHIFT, "OTHER_FRAME")
+    )
+
+    assert classify_confirmation(confirmation) == Classification(
+        error_type="part_in_other_frame", certainty="medium", model_role="strain"
+    )
+
+
 @pytest.mark.parametrize(
     ("reason", "message"),
     [

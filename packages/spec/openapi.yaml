@@ -2679,6 +2679,7 @@ paths:
             - sec_read_as_stop
             - truncated_model
             - sequence_frameshift
+            - part_in_other_frame
             - split_model
             - over_extended_model
             - fused_model
@@ -6014,6 +6015,7 @@ components:
           - sec_read_as_stop
           - truncated_model
           - sequence_frameshift
+          - part_in_other_frame
           - split_model
           - over_extended_model
           - fused_model
@@ -6064,6 +6066,7 @@ components:
           - sec_read_as_stop
           - truncated_model
           - sequence_frameshift
+          - part_in_other_frame
           - split_model
           - over_extended_model
           - fused_model
@@ -6140,6 +6143,9 @@ components:
         sequence_frameshift:
           type: string
           title: Sequence Frameshift
+        part_in_other_frame:
+          type: string
+          title: Part In Other Frame
         split_model:
           type: string
           title: Split Model
@@ -6174,6 +6180,7 @@ components:
       - sec_read_as_stop
       - truncated_model
       - sequence_frameshift
+      - part_in_other_frame
       - split_model
       - over_extended_model
       - fused_model
@@ -6505,6 +6512,7 @@ components:
             - sec_read_as_stop
             - truncated_model
             - sequence_frameshift
+            - part_in_other_frame
             - split_model
             - over_extended_model
             - fused_model
@@ -6757,6 +6765,7 @@ components:
             - sec_read_as_stop
             - truncated_model
             - sequence_frameshift
+            - part_in_other_frame
             - split_model
             - over_extended_model
             - fused_model
@@ -6858,6 +6867,7 @@ components:
             - sec_read_as_stop
             - truncated_model
             - sequence_frameshift
+            - part_in_other_frame
             - split_model
             - over_extended_model
             - fused_model
@@ -6993,7 +7003,7 @@ components:
       required:
       - fromMessageId
       title: ForkConversationRequest
-    Frameshift:
+    FrameChange:
       properties:
         source:
           $ref: '#/components/schemas/GenomeSource'
@@ -7026,6 +7036,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/RepeatRun'
           - type: 'null'
+        splicePair:
+          anyOf:
+          - $ref: '#/components/schemas/SplicePair'
+          - type: 'null'
         referenceRun:
           anyOf:
           - $ref: '#/components/schemas/ReferenceRun'
@@ -7042,13 +7056,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/VariantsUnread'
           - type: 'null'
-        runCountsEqual:
-          type: boolean
-          title: Runcountsequal
-          readOnly: true
-        readsShowMiscount:
-          type: boolean
-          title: Readsshowmiscount
+        countsMatchShift:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Countsmatchshift
           readOnly: true
       type: object
       required:
@@ -7061,9 +7073,8 @@ components:
       - shift
       - referenceResidues
       - run
-      - runCountsEqual
-      - readsShowMiscount
-      title: Frameshift
+      - countsMatchShift
+      title: FrameChange
     FusionAudit:
       properties:
         extra:
@@ -7409,12 +7420,12 @@ components:
           - type: boolean
           - type: 'null'
           title: Atcontigedge
-        frameshifts:
+        frameChanges:
           items:
-            $ref: '#/components/schemas/Frameshift'
+            $ref: '#/components/schemas/FrameChange'
           type: array
           maxItems: 2
-          title: Frameshifts
+          title: Framechanges
         code:
           anyOf:
           - $ref: '#/components/schemas/GeneticCode'
@@ -7487,6 +7498,7 @@ components:
             - sec_read_as_stop
             - truncated_model
             - sequence_frameshift
+            - part_in_other_frame
             - split_model
             - over_extended_model
             - fused_model
@@ -8431,12 +8443,12 @@ components:
           - type: boolean
           - type: 'null'
           title: Atcontigedge
-        frameshifts:
+        frameChanges:
           items:
-            $ref: '#/components/schemas/Frameshift'
+            $ref: '#/components/schemas/FrameChange'
           type: array
           maxItems: 2
-          title: Frameshifts
+          title: Framechanges
       type: object
       required:
       - verdict
@@ -8474,6 +8486,7 @@ components:
       enum:
       - GENOME_ENCODES
       - FRAMESHIFT
+      - OTHER_FRAME
       - ASSEMBLY
       - ABSENT
       - NOT_SHORT
@@ -11253,6 +11266,23 @@ components:
       type: array
       maxItems: 2
       minItems: 2
+    SplicePair:
+      properties:
+        motif:
+          type: string
+          title: Motif
+        donor:
+          type: integer
+          title: Donor
+        acceptor:
+          type: integer
+          title: Acceptor
+      type: object
+      required:
+      - motif
+      - donor
+      - acceptor
+      title: SplicePair
     StageRecord:
       properties:
         name:
@@ -11669,9 +11699,6 @@ components:
         sample:
           type: string
           title: Sample
-        variant:
-          type: string
-          title: Variant
         genotype:
           type: string
           title: Genotype
@@ -11693,7 +11720,6 @@ components:
       type: object
       required:
       - sample
-      - variant
       - genotype
       - allele
       - depth
@@ -13170,17 +13196,6 @@ components:
       - isValid
       title: ValidationResult
       description: Single validation result with normalized values.
-    VariantAnswer:
-      type: string
-      enum:
-      - ALTERNATE_AT_INDEL_SITE
-      - IN_FRAME_INDEL_CALLED
-      - NO_INDEL_CALLED
-      - NO_VARIANT_CALLED
-      - NOT_COVERED
-      - NO_SAMPLE_MATCHED
-      - CALL_UNREADABLE
-      - SAMPLES_DISAGREE
     VariantCalls:
       properties:
         site:
@@ -13210,43 +13225,24 @@ components:
         end:
           type: integer
           title: End
-        variants:
+        sites:
           items:
-            type: string
+            $ref: '#/components/schemas/VariantSite'
           type: array
-          title: Variants
+          title: Sites
         samples:
           items:
             type: string
           type: array
           title: Samples
-        calls:
-          items:
-            $ref: '#/components/schemas/StrainCall'
-          type: array
-          title: Calls
-        answer:
-          $ref: '#/components/schemas/VariantAnswer'
-        sampleAnswers:
-          additionalProperties:
-            $ref: '#/components/schemas/VariantAnswer'
-          type: object
-          title: Sampleanswers
-        frameEffects:
-          additionalProperties:
-            anyOf:
-            - type: string
-            - type: 'null'
-          type: object
-          title: Frameeffects
         homopolymerBases:
           anyOf:
           - type: integer
           - type: 'null'
           title: Homopolymerbases
-        determinable:
+        callsSayLittle:
           type: boolean
-          title: Determinable
+          title: Callssaylittle
           readOnly: true
       type: object
       required:
@@ -13255,15 +13251,44 @@ components:
       - seqid
       - start
       - end
-      - variants
+      - sites
       - samples
-      - calls
-      - answer
-      - sampleAnswers
-      - frameEffects
       - homopolymerBases
-      - determinable
+      - callsSayLittle
       title: VariantCalls
+    VariantSite:
+      properties:
+        variant:
+          type: string
+          title: Variant
+        variantType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Varianttype
+        indelRefAllele:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Indelrefallele
+        indelFrameEffect:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Indelframeeffect
+        calls:
+          items:
+            $ref: '#/components/schemas/StrainCall'
+          type: array
+          title: Calls
+      type: object
+      required:
+      - variant
+      - variantType
+      - indelRefAllele
+      - indelFrameEffect
+      - calls
+      title: VariantSite
     VariantsUnread:
       type: string
       enum:

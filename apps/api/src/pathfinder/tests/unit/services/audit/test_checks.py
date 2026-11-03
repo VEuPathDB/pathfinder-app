@@ -299,11 +299,10 @@ async def test_the_library_refuses_a_strain_gene_its_site_does_not_flag() -> Non
     assert report.call_count == 2
 
 
-async def test_a_gene_record_with_no_transcript_table_is_failed() -> None:
+async def test_a_gene_record_with_no_transcript_table_is_declined() -> None:
     with yip1_records(readable=False) as report:
         found = await confirm_target(SITE, UNFLAGGED_STRAIN)
-    assert found == UnitFailure(
-        status="failed",
+    assert found == DeclinedCheck(
         message=(
             f"the gene record of {DD2_YIP1} on plasmodb gives no readable "
             "GeneTranscripts"
