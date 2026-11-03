@@ -43,6 +43,7 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
+from pathfinder.domain.strategy.expression_handles import same_wire_value
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
@@ -280,7 +281,8 @@ async def _differing(
     names = [
         name
         for name, value in held.items()
-        if name in wire.parameters and wire.parameters[name] != value
+        if name in wire.parameters
+        and not same_wire_value(name, value, wire.parameters[name])
     ]
     if names and wire.record_class is not None:
         pushed = await get_wdk_client(site_id).expand_tree_params_to_leaves(

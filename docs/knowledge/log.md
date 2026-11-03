@@ -2,6 +2,12 @@
 
 ## 2026-11-03
 
+* **A held phyletic expression is compared by its parsed form.** The value a step
+  holds and the value the site holds are one value when `PhyleticExpression.parse`
+  gives equal forms; a regrouping, a changed count and a changed code stay a
+  difference. See
+  [a held expression is compared by its parsed form](decisions/a-held-expression-is-compared-by-its-parsed-form.md).
+
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY
   of the mock model reads a record's organism by its own word test. An

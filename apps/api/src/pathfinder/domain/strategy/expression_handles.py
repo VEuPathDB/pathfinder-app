@@ -4,7 +4,7 @@ import hashlib
 import re
 from collections.abc import Mapping
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, ValidationError
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     ParamValue,
@@ -13,6 +13,7 @@ from veupathdb.domain.parameters import (
     StringValue,
     to_wire,
 )
+from veupathdb.errors import VEuPathDBError
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 
@@ -79,6 +80,19 @@ def shown_parameters(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
         else value
         for name, value in values.items()
     }
+
+
+def _same_expression(left: str, right: str) -> bool:
+    try:
+        return PhyleticExpression.parse(left) == PhyleticExpression.parse(right)
+    except VEuPathDBError, ValidationError, RecursionError:
+        return False
+
+
+def same_wire_value(name: str, left: str, right: str) -> bool:
+    if left == right:
+        return True
+    return name == PHYLETIC_EXPRESSION_PARAM and _same_expression(left, right)
 
 
 def _bound_texts(spec: OperationalSpec | None) -> list[tuple[str, str]]:

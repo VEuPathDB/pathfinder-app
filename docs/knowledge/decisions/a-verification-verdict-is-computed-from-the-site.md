@@ -19,7 +19,7 @@ review on the digest and on the evidence card carries them as `checks`.
 | Kind | What the site answers |
 |---|---|
 | `step_valid` | the `validation` WDK states on each step of the strategy read |
-| `bound_values` | each step's `searchConfig` against the values the build pushed, in the wire form and the decoded form (`site_changes.values_the_site_holds_otherwise`) |
+| `bound_values` | each step's `searchConfig` against the values the build pushed, in the wire form and the decoded form, and a phyletic expression in [its parsed form](a-held-expression-is-compared-by-its-parsed-form.md) (`site_changes.values_the_site_holds_otherwise`) |
 | `combine_counts` | each boolean combine's `estimatedSize` against its inputs': an intersection at most the smaller, a union between the larger and the sum, a minus at most the input it keeps |
 | `result_count` | the root's `estimatedSize`; a root of no record fails |
 | `organism` | the root's `organism` column counted by value over the whole step, against the organisms its WDK-marked organism parameter selects (`extract_output_organisms`); a requirement whose site entry is a selected organism carries the same result, and one with no entry is `unchecked` ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
