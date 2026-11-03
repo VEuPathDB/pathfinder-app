@@ -4,8 +4,6 @@ answered, is never asked."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
 from veupathdb.domain.parameters import SinglePickValue, StringValue
 
 from pathfinder.ai.lead.deltas import FrameResult
@@ -134,18 +132,19 @@ def test_a_requirement_no_question_asks_is_offered_to_drop_or_keep() -> None:
     ]
 
 
-def test_a_question_whose_only_option_withdraws_is_refused() -> None:
-    with pytest.raises(ValidationError, match="offers one option"):
-        OpenQuestion(
-            question="No search on this site states '1.5-fold'. Drop it?",
-            options=[
-                TypedOption(
-                    id="drop",
-                    label="Drop 1.5-fold",
-                    binding=Withdraw(constraint_id=_FOLD.id),
-                )
-            ],
-        )
+def test_a_question_whose_only_option_withdraws_is_answered_in_words() -> None:
+    question = OpenQuestion(
+        question="No search on this site states '1.5-fold'. Drop it?",
+        options=[
+            TypedOption(
+                id="drop",
+                label="Drop 1.5-fold",
+                binding=Withdraw(constraint_id=_FOLD.id),
+            )
+        ],
+    )
+
+    assert question.options == []
 
 
 def test_a_question_the_researcher_answered_is_not_asked_again() -> None:

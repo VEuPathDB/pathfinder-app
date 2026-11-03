@@ -3,9 +3,6 @@ the others do not; no path builds one that offers a single option."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.question_options import SetValues, TypedOption
@@ -29,20 +26,18 @@ def _sets(option_id: str, value: str) -> TypedOption:
     )
 
 
-def test_a_question_with_one_option_is_refused_where_it_is_built() -> None:
-    with pytest.raises(ValidationError) as refused:
-        OpenQuestion(question=_TM_PROMPT, options=[_sets("three", "3")])
+def test_a_question_with_one_option_is_answered_in_words() -> None:
+    question = OpenQuestion(question=_TM_PROMPT, options=[_sets("three", "3")])
 
-    assert "offers one option, 'Minimum Number of Transmembrane Domains 3'" in str(
-        refused.value
-    )
+    assert question.options == []
 
 
 def test_two_options_that_bind_the_same_values_are_one_option() -> None:
-    with pytest.raises(ValidationError, match="bind the same"):
-        OpenQuestion(
-            question=_TM_PROMPT, options=[_sets("three", "3"), _sets("3", "3")]
-        )
+    question = OpenQuestion(
+        question=_TM_PROMPT, options=[_sets("three", "3"), _sets("3", "3")]
+    )
+
+    assert question.options == []
 
 
 def test_a_question_offering_two_values_is_asked() -> None:

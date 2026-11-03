@@ -78,7 +78,7 @@ def _question_by_id(question: OpenQuestion, ids: Ids) -> OpenQuestion:
     options = [_option_by_id(o, ids) for o in question.options]
     if options == question.options:
         return question
-    return question.model_copy(update={"options": options})
+    return question.with_options(options)
 
 
 def questions_by_id(questions: Sequence[OpenQuestion], ids: Ids) -> list[OpenQuestion]:

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import replace
 from types import MappingProxyType
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.graph.turn_state import UserQuestionAnswer
+from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
@@ -52,6 +52,10 @@ from pathfinder.services.strategies.sheet_params import sheet_params_for_searche
 _LABEL_LIMIT = 120
 _QUESTION_LIMIT = 300
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
+
+
+class CardAnswer(UserQuestionAnswer):
+    refused: list[str] = Field(default_factory=list)
 
 
 def card_stand_ins(
@@ -261,6 +265,15 @@ def _without_picks(
     ]
 
 
+def _with_refusals(
+    answer: UserQuestionAnswer, refusals: Mapping[str, str]
+) -> UserQuestionAnswer:
+    refused = [refusals[x] for x in answer.chosen_labels if x in refusals]
+    if not refused:
+        return answer
+    return CardAnswer.model_validate({**answer.model_dump(), "refused": refused})
+
+
 def _chosen(label: str, question: OpenQuestion | None) -> str:
     """The picked label, with the values its option binds."""
     options = question.options if question is not None else []
@@ -346,27 +359,29 @@ async def consult_user(
     pending = state.pending_approval
     card = "" if pending is None else pending.tool_call_id
     answers = answered_on_the_card(state.user_question_answers.get(card, []), shown)
-    asked = with_summary(
-        answers,
-        f"{len(questions)} questions asked",
-        ctx=ctx,
-    )
     sheets = await _card_sheets(state, answers)
     no_values = _picks_that_are_no_value(state, answers, sheets)
     refused = await refused_picks(state, _without_picks(answers, no_values))
-    refusals = [
-        *(
-            f"{label!r} binds nothing: {why}. Run frame_problem again so it offers "
-            "values this parameter takes, or asks in free text"
+    refusals = {
+        **{
+            label: (
+                f"{label!r} binds nothing: {why}. Run frame_problem again so it "
+                "offers values this parameter takes, or asks in free text"
+            )
             for label, why in no_values.items()
-        ),
-        *(
-            f"the site refused {label!r}, so it binds nothing: {why}"
+        },
+        **{
+            label: f"the site refused {label!r}, so it binds nothing: {why}"
             for label, why in refused.items()
-        ),
-    ]
+        },
+    }
+    asked = with_summary(
+        [_with_refusals(a, refusals) for a in answers],
+        f"{len(questions)} questions asked",
+        ctx=ctx,
+    )
     answered = "; ".join(
-        [_format_answers(answers, state.domain.open_questions), *refusals]
+        [_format_answers(answers, state.domain.open_questions), *refusals.values()]
     )
     answers = _without_picks(answers, {*no_values, *refused})
     if answers:
@@ -382,4 +397,4 @@ async def consult_user(
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))
-    return replace(asked, content="; ".join(refusals)) if refusals else asked
+    return asked

@@ -34,9 +34,14 @@ ungroundable (`constraint_grounding.ground_constraints`).
 A card offers a choice or it is not asked, and the rule is held by the question
 types, so no path can build a card that breaks it: FRAME's first pass or its
 second, an edit's pass, the Lead's own card and the questions a reply records. An
-`OpenQuestion` and the Lead's `CardQuestion` that offer options offer two at least,
-and two options that bind the same values are refused as one; a question with no
-option is answered in the researcher's words. An `AskedQuestion` (and so FRAME's
+`OpenQuestion` that offers options offers two at least: the type keeps the first of
+two options with one id or one binding, and with fewer than two left it holds no
+option, on every validation, so a checkpoint or a ledger reads a stored question
+under the same rule. `OpenQuestion.with_options` is the one way to change the options
+of a question, because `model_copy` runs no validator. The Lead's `CardQuestion` refuses
+a card with one option. A question with no
+option is answered in the researcher's words, and a drop offer joins only a question
+of its dimension that offers options. An `AskedQuestion` (and so FRAME's
 `SlotQuestion`) is a model's answer, so its one option is no refusal: the type reads
 it as a question answered in words, and keeps eight options at most. An option spelled as the site's label of a vocabulary term binds
 that term, so a slot question whose offered values bind one term offers no choice
@@ -95,7 +100,8 @@ with no option, is answered in the researcher's words, and the pass carries the 
 drops only the readings it refuses. The same call runs when a card is answered, on
 the published sheet too, because a stored card predates the check or a sheet can name a
 kind the draft does not hold. `consult_user` then binds nothing for that pick, closes the
-question and hands the Lead the refusal, so the turn goes on. The same prompt is not
+question and returns the refusal in that answer's `refused`, so the turn goes on and the
+Lead reads it as the tool's data, never as the researcher's message. The same prompt is not
 asked again, because the question is answered; the next pass words its question
 another way.
 
@@ -137,6 +143,11 @@ card listed (`_delete_rules.refuse_a_delete_the_card_did_not_list`).
 on paths that did not call it: the Lead's card, and a card a second pass built. A
 check a caller must remember is a check a new caller forgets; a validator on the
 question types runs wherever a card is built.
+
+**Refusing a question with one option on the type.** The refusal fires wherever the
+question is next validated, far from what built it: a ledger derived mid-turn ends
+the turn, and a checkpoint that holds one refuses the whole thread on load. The
+researcher can always answer in words, so the type reads it that way.
 
 **A value check on the option type.** A `SetValues` holds wire strings and no
 kind, and a kind comes from the criterion, the slot or the sheet, so a validator on

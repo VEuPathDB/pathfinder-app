@@ -103,11 +103,10 @@ def test_a_withdraw_option_names_the_requirement_key() -> None:
     ]
 
 
-def test_two_options_with_one_id_are_refused() -> None:
+def test_two_options_with_one_id_are_one_option() -> None:
     twice = TypedOption(id="a", label="a", binding=Keep(constraint_id="other:a"))
 
-    with pytest.raises(ValidationError):
-        OpenQuestion(question="Which?", options=[twice, twice])
+    assert OpenQuestion(question="Which?", options=[twice, twice]).options == []
 
 
 def test_a_set_values_binding_sets_at_least_one_value() -> None:

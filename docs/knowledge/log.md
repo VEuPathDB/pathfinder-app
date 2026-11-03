@@ -22,11 +22,17 @@
   `orthomcl-all-plasmodium-every-species-reading` holds the per-species reading at one genome or
   more, at 797 groups, since the question that offered a stricter reading is removed. New: a card
   offers the whole binding of a class.
+* **A question with fewer than two usable options is answered in words.** The
+  `OpenQuestion` validator keeps the first option of each id and binding and holds
+  none when fewer than two remain, and `with_options` is how a path changes the
+  options. A drop offer joins only a question that offers options, so a free-text
+  question keeps its words and a new question offers the drop and the keep.
+
 * **A card option is a value of its parameter, and a stop reply blames a model
   only for a provider failure.** `card_answers.option_refusal` runs a pick's binding
   and returns why its value does not read; FRAME's
   `hold_an_option_to_its_parameter` sends such an option back, and `consult_user`
-  binds nothing for a stored one and hands the Lead the refusal. The stop reply
+  binds nothing for a stored one and returns the refusal in that answer's `refused`. The stop reply
   names a stage's model only on `a_provider_call_failed`. See
   [a card option is a binding](decisions/a-card-option-is-a-binding.md).
 * **A long phyletic expression reads by what it counts.** Past 200 characters

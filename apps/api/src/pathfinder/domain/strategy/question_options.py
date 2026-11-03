@@ -136,15 +136,3 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             return (option.binding.kind, handle, str(save))
         case SetOperator(criteria=criteria, operator=operator):
             return (option.binding.kind, *sorted(criteria), operator.value)
-
-
-def refuse_a_single_option(question: str, labels: Sequence[str]) -> None:
-    """A question that offers options offers a choice between two at least."""
-    if len(labels) != 1:
-        return
-    msg = (
-        f"the question {question!r} offers one option, {labels[0]!r}, which is no "
-        f"choice: offer at least two values that each change something, or no "
-        f"options for an answer in the researcher's words"
-    )
-    raise ValueError(msg)

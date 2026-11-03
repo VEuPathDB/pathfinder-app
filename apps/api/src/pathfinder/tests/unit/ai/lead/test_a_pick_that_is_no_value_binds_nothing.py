@@ -4,13 +4,14 @@ from collections.abc import Collection
 
 import pytest
 from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
-from pydantic_ai.messages import ToolReturn
+from pydantic import TypeAdapter
+from pydantic_ai.messages import ToolReturn, ToolReturnPart
 from veupathdb.domain.parameters import ParamKind, from_wire
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_consult
-from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.lead_consult import CardAnswer, consult_user
 from pathfinder.ai.lead.recorded_cards import card_questions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -112,6 +113,14 @@ async def _clicked(
     return deps, returned
 
 
+def _told(returned: ToolReturn[list[UserQuestionAnswer]]) -> list[str]:
+    part = ToolReturnPart(
+        tool_name="consult_user", content=returned.return_value, tool_call_id="c"
+    )
+    answers = TypeAdapter(list[CardAnswer]).validate_json(part.model_response_str())
+    return [why for answer in answers for why in answer.refused]
+
+
 def _bound_on(deps: LeadDeps) -> Criterion:
     spec = deps.state.domain.operational_spec
     assert spec is not None
@@ -132,7 +141,7 @@ async def test_a_stored_label_on_a_filter_becomes_a_refusal() -> None:
 
     assert _bound_on(deps) == criterion
     assert _BINDS_NOTHING in _answer_told(deps)
-    assert returned.content == _BINDS_NOTHING
+    assert _told(returned) == [_BINDS_NOTHING]
     assert deps.state.domain.open_questions == []
     assert deps.state.domain.requirements == []
 
@@ -144,7 +153,7 @@ async def test_the_sheet_alone_can_name_the_kind() -> None:
     deps, returned = await _clicked(criterion, question, _LABEL)
 
     assert _bound_on(deps) == criterion
-    assert returned.content == _BINDS_NOTHING
+    assert _told(returned) == [_BINDS_NOTHING]
 
 
 async def test_a_stored_label_on_a_held_filter_keeps_the_held_value() -> None:
@@ -166,8 +175,7 @@ async def test_a_stored_label_on_a_number_becomes_a_refusal() -> None:
     deps, returned = await _clicked(criterion, question, _LABEL)
 
     assert _bound_on(deps) == criterion
-    assert returned.content is not None
-    assert "it takes a number value" in str(returned.content)
+    assert "it takes a number value" in _told(returned)[0]
 
 
 async def test_a_stored_label_on_an_expression_becomes_a_refusal() -> None:
@@ -181,7 +189,7 @@ async def test_a_stored_label_on_an_expression_becomes_a_refusal() -> None:
     deps, returned = await _clicked(criterion, question, label)
 
     assert _bound_on(deps) == criterion
-    assert f"{label!r} is not a value of {name}" in str(returned.content)
+    assert f"{label!r} is not a value of {name}" in _told(returned)[0]
 
 
 async def test_a_stored_reading_with_a_label_becomes_a_refusal() -> None:
@@ -198,7 +206,7 @@ async def test_a_stored_reading_with_a_label_becomes_a_refusal() -> None:
     deps, returned = await _clicked(criterion, question, _LABEL)
 
     assert _bound_on(deps).accepted_reading is None
-    assert returned.content == _BINDS_NOTHING
+    assert _told(returned) == [_BINDS_NOTHING]
 
 
 async def test_a_thread_with_no_spec_binds_nothing_and_refuses_nothing() -> None:
@@ -220,7 +228,7 @@ async def test_a_thread_with_no_spec_binds_nothing_and_refuses_nothing() -> None
         reply="One value decides it.",
     )
 
-    assert (returned.content, deps.state.domain.operational_spec) == (None, None)
+    assert (_told(returned), deps.state.domain.operational_spec) == ([], None)
 
 
 async def test_a_value_the_parameter_takes_binds_and_tells_nothing_more() -> None:
@@ -233,5 +241,5 @@ async def test_a_value_the_parameter_takes_binds_and_tells_nothing_more() -> Non
         _bound_on(deps).resolved_params[_FILTER].value.to_decoded()
         == from_wire("filter", _FILTER_VALUE).to_decoded()
     )
-    assert returned.content is None
+    assert _told(returned) == []
     assert "binds nothing" not in _answer_told(deps)

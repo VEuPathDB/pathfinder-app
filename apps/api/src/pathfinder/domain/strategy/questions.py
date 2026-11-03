@@ -33,7 +33,6 @@ from pathfinder.domain.strategy.question_options import (
     binding_key,
     option_id,
     options_by_id,
-    refuse_a_single_option,
 )
 from pathfinder.domain.strategy.readings import (
     KeysOnTheReadings,
@@ -44,6 +43,7 @@ from pathfinder.domain.strategy.readings import (
 _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
 _OPTIONS_LIMIT = 8
+_LEAST_OPTIONS = 2
 
 
 _NO_READINGS: Mapping[str, str] = MappingProxyType({})
@@ -104,21 +104,22 @@ class OpenQuestion(_Question):
 
     @model_validator(mode="after")
     def _offers_a_choice(self) -> OpenQuestion:
-        """No option, or at least two, each with its own id and binding."""
-        refuse_a_single_option(self.question, [o.label for o in self.options])
-        ids = [option.id for option in self.options]
-        if len(ids) != len(set(ids)):
-            msg = f"the question offers the option ids {ids} more than once"
-            raise ValueError(msg)
-        bound = [binding_key(option) for option in self.options]
-        if len(bound) != len(set(bound)):
-            labels = [option.label for option in self.options]
-            msg = (
-                f"the options {labels} of {self.question!r} bind the same values, "
-                f"so they are one option and the question offers no choice"
-            )
-            raise ValueError(msg)
+        ids: set[str] = set()
+        bound: set[tuple[str, ...]] = set()
+        kept: list[TypedOption] = []
+        for option in self.options:
+            key = binding_key(option)
+            if option.id not in ids and key not in bound:
+                kept.append(option)
+            ids.add(option.id)
+            bound.add(key)
+        self.options = kept if len(kept) >= _LEAST_OPTIONS else []
         return self
+
+    def with_options(self, options: Sequence[TypedOption]) -> OpenQuestion:
+        return OpenQuestion.model_validate(
+            self.model_copy(update={"options": list(options)})
+        )
 
 
 class AskedQuestion(_Question):
@@ -352,7 +353,8 @@ def with_withdrawals(
 
     An optionless question that names the requirement, else one about a
     criterion that links it, offers to drop it or keep it; else a question on
-    its dimension gains the option; else a new question offers both. An
+    its dimension that offers options gains the option; else a new question
+    offers both. An
     optionless question keeps its own prompt, so an answer in the researcher's
     words, such as a substitute it offers, still reaches the thread."""
     asked = list(questions)
@@ -361,9 +363,7 @@ def with_withdrawals(
         linking = {c.id for c in criteria if c.links(requirement.id)}
         about = _about(asked, requirement, linking)
         if about is not None:
-            asked[about] = asked[about].model_copy(
-                update={"options": [option, _keeping(requirement)]}
-            )
+            asked[about] = asked[about].with_options([option, _keeping(requirement)])
             continue
         at = next(
             (
@@ -371,7 +371,7 @@ def with_withdrawals(
                 for i, q in enumerate(asked)
                 if requirement.kind is not ConstraintKind.UNTYPED
                 and q.dimension is requirement.kind
-                and len(q.options) < _OPTIONS_LIMIT
+                and 0 < len(q.options) < _OPTIONS_LIMIT
             ),
             None,
         )
@@ -387,9 +387,7 @@ def with_withdrawals(
                 )
             )
         elif all(o.id != option.id for o in asked[at].options):
-            asked[at] = asked[at].model_copy(
-                update={"options": [*asked[at].options, option]}
-            )
+            asked[at] = asked[at].with_options([*asked[at].options, option])
     return asked
 
 
