@@ -37,8 +37,10 @@ _STAND_IN = (
     "Use a text search for GPI anchor in the gene product descriptions as the stand-in"
 )
 _ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "Cytauxzoon felis Winnie")
-_GPI = requirement(ConstraintKind.OTHER, "predicted GPI anchor", "predicted GPI anchor")
-_SIGNAL = requirement(ConstraintKind.OTHER, "signal peptide", "signal peptide")
+_GPI = requirement(
+    ConstraintKind.UNTYPED, "predicted GPI anchor", "predicted GPI anchor"
+)
+_SIGNAL = requirement(ConstraintKind.UNTYPED, "signal peptide", "signal peptide")
 _COMBINATION = requirement(
     ConstraintKind.COMBINATION,
     "evidence combination",
@@ -61,7 +63,7 @@ def _answered(
         user_message_id=uuid4(),
         domain=StrategyDomainState(requirements=list(_HELD)),
     )
-    card = CardQuestion(id="q1", prompt=prompt, dimension=ConstraintKind.OTHER)
+    card = CardQuestion(id="q1", prompt=prompt, dimension=ConstraintKind.UNTYPED)
     answer = UserQuestionAnswer(question_id="q1", prompt=prompt, note=note)
 
     apply_option_bindings(state, [answer], [card], sheets={}, replaced=replaced)
@@ -100,7 +102,10 @@ def test_a_question_that_names_two_requirements_replaces_both() -> None:
 
 def _card(*numbers: str) -> CardQuestion:
     return CardQuestion(
-        id="q1", prompt=_REPLACE, dimension=ConstraintKind.OTHER, replaces=list(numbers)
+        id="q1",
+        prompt=_REPLACE,
+        dimension=ConstraintKind.UNTYPED,
+        replaces=list(numbers),
     )
 
 
@@ -133,7 +138,7 @@ async def test_the_numbers_the_card_showed_decide_after_the_list_moves() -> None
     await consult_can_ask(
         run_context_for(deps, "call_card"), [card], reply="One question."
     )
-    secreted = requirement(ConstraintKind.OTHER, "secreted", "secreted")
+    secreted = requirement(ConstraintKind.UNTYPED, "secreted", "secreted")
     state.domain.requirements = [secreted, *_HELD]
     state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_card", tool_name="consult_user"

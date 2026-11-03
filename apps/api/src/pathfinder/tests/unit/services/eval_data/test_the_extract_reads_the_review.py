@@ -33,7 +33,7 @@ from pathfinder.tests._support.ledger import ledger_with
 _REVIEW = VerificationReview(
     checks=[
         SiteCheck(
-            kind=ConstraintKind.OTHER,
+            kind=ConstraintKind.UNTYPED,
             subject="the genes ada@example.org asked for",
             status="unchecked",
             evidence="no check reads this requirement on the site",

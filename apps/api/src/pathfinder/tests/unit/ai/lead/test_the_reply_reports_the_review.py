@@ -21,7 +21,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _UNMET = SiteCheck(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     subject="at least 2 transmembrane domains",
     status="fail",
     evidence="the strategy states tm_count = 1",
@@ -53,7 +53,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
     review = VerificationReview(checks=[_UNMET], sampled_genes=_SAMPLE)
     state.domain.requirements = [
         requirement(
-            ConstraintKind.OTHER,
+            ConstraintKind.UNTYPED,
             "transmembrane domains",
             "at least 2 transmembrane domains",
         )

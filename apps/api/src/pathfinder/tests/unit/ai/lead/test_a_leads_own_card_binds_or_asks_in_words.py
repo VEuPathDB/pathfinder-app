@@ -36,7 +36,7 @@ _REPLY = "A card."
 _UKMEL1 = requirement(
     ConstraintKind.ORGANISM, "organism", "Cryptosporidium meleagridis UKMEL1"
 )
-_SPORES = requirement(ConstraintKind.OTHER, "expression", "expressed in oocysts")
+_SPORES = requirement(ConstraintKind.UNTYPED, "expression", "expressed in oocysts")
 
 
 def _oocyst_proxy() -> Criterion:
@@ -108,7 +108,7 @@ _SPEC = OperationalSpec(criteria=[_signal_peptide(), _oocyst_proxy()])
 async def test_the_drop_option_of_the_leads_card_retires_the_requirement() -> None:
     card = _card(
         "No search states oocyst expression in UKMEL1. Drop it?",
-        ConstraintKind.OTHER,
+        ConstraintKind.UNTYPED,
         "Drop expressed in oocysts",
         "Keep expressed in oocysts",
     )
@@ -155,4 +155,4 @@ def _obp_domain() -> Criterion:
     )
 
 
-_OBP = requirement(ConstraintKind.OTHER, "annotation", "odorant-binding protein")
+_OBP = requirement(ConstraintKind.UNTYPED, "annotation", "odorant-binding protein")

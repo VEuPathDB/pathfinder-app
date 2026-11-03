@@ -121,7 +121,7 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
 
     assert [(q.question, q.dimension) for q in deps.state.domain.open_questions] == [
         ("Which gametocyte RNA-seq study?", ConstraintKind.DATA_TYPE),
-        ("What counts as a SNP?", ConstraintKind.OTHER),
+        ("What counts as a SNP?", ConstraintKind.UNTYPED),
     ]
 
 

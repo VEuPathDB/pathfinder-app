@@ -166,7 +166,7 @@ def test_a_turn_that_started_an_audit_withholds_every_read() -> None:
 
 
 _STRAIN = requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum 3D7")
-_KINASES = requirement(ConstraintKind.OTHER, "kinases", "protein kinases")
+_KINASES = requirement(ConstraintKind.UNTYPED, "kinases", "protein kinases")
 
 
 def test_an_audit_turn_records_no_thread_requirement() -> None:

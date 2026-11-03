@@ -32,7 +32,9 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _REQUEST = "Find P. falciparum 3D7 genes with a predicted GPI anchor"
 _ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "P. falciparum 3D7")
-_GPI = requirement(ConstraintKind.OTHER, "predicted GPI anchor", "predicted GPI anchor")
+_GPI = requirement(
+    ConstraintKind.UNTYPED, "predicted GPI anchor", "predicted GPI anchor"
+)
 _SUBSTITUTE = SlotQuestion(
     question=(
         "VEuPathDB does not provide a predicted GPI-anchor search. Should I "

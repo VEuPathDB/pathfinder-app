@@ -43,18 +43,19 @@ A requirement is `Constraint` with a typed `value`, a union discriminated by
 entry,
 [an organism requirement holds a site entry](../decisions/an-organism-requirement-holds-a-site-entry.md)),
 `data_type` (`rna_seq`, `microarray`), `record_type` (a record class the site
-lists, role `answer` or `through`) and `untyped` (text) are built. The kinds
-still to gain a member: `count` (feature, operator, value), `ortholog`
-(organisms, syntenic), `text` (phrase, exact) and `property` (phrase). No kind
+lists, role `answer` or `through`), `count` (feature, operator, value),
+`ortholog` (organisms, syntenic), `text` (phrase, exact), `property` (phrase)
+and `untyped` (text) are built, and `other` is gone. No kind
 states how
 requirements combine: the operators are FRAME's tree, read against the
 researcher's words
 ([operators come from FRAME's tree](../decisions/operators-come-from-frames-tree.md)).
-A value kind is compared only through a link that names a parameter. Single-valued
-kinds replace by kind, unless the reading states the new value beside the held
-one; property, text, count, ortholog and untyped hold many values. A requirement
-with no value, stored before or of a kind not migrated yet, is untyped and shows
-"not verified"; no shim keeps an old shape.
+Every kind is compared only through a link. Single-valued kinds replace by kind,
+unless the reading states the new value beside the held one; property, text,
+count, ortholog and untyped hold many values. A requirement with no value,
+stored before, is untyped and shows "not verified"
+([an unlinked requirement is not verified and never blocks](../decisions/an-unlinked-requirement-is-not-verified-and-never-blocks.md));
+no shim keeps an old shape.
 
 ## Steps
 
@@ -62,14 +63,11 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-13. Count, ortholog, text, property and untyped; `other` is removed; the "not
-    verified" display (R). `merge_constraints._dimension` and
-    `phrasings_the_request_states` read typed fields.
 14. Names: a generated name stores its seed (step id to parameter and wire value)
     and is outdated when a seed value or step is gone; a step name PathFinder made
     is regenerated from the search display name and bound labels, and a name the
     researcher wrote is never rewritten. Not R.
-15. Cleanup: delete `message_states` and `content_words` with their tests; run
+15. Cleanup: delete `message_states` with its tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision
     and the vocabulary convention; regenerate the shared types and update the web
     constraints section.

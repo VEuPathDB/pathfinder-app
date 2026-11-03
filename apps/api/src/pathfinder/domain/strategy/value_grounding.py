@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Literal, NamedTuple
 
 from pathfinder.domain.constraint_check import agrees
@@ -10,18 +11,18 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileValue,
     SignificanceValue,
+    Statistic,
 )
 from pathfinder.domain.strategy.linked_values import (
     NO_LINK,
     LinkedParam,
     linked_analyses,
     linked_params,
-    not_verified,
     unread,
+    untyped,
 )
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
 
-UNTYPED = "no typed value to compare"
 _FULL_SCALE = 100.0
 
 type _Held = Literal["min", "max"]
@@ -84,7 +85,7 @@ def ground_percentile(c: Constraint, realized: RealizedSpec) -> GroundedConstrai
         case PercentileValue() as asked:
             pass
         case _:
-            return not_verified(c, UNTYPED)
+            return untyped(c)
     bounds = _held_bounds(c, realized)
     off = next(
         (b for b in bounds if not agrees(_expected(asked, b.held), b.number)), None
@@ -114,18 +115,54 @@ def _significance(analysis: AnalysisBinding) -> float | None:
     return analysis.significance_threshold
 
 
-def _significances(c: Constraint, realized: RealizedSpec) -> list[tuple[str, float]]:
+class _HeldCut(NamedTuple):
+    name: str
+    value: float
+    statistic: Statistic | None
+
+
+_STATISTICS: tuple[tuple[re.Pattern[str], Statistic], ...] = (
+    (re.compile(r"fdr|false discovery", re.IGNORECASE), "fdr"),
+    (re.compile(r"q[\s_-]?val", re.IGNORECASE), "q_value"),
+    (re.compile(r"adj", re.IGNORECASE), "adjusted_p"),
+    (re.compile(r"p[\s_-]?val", re.IGNORECASE), "p_value"),
+)
+
+
+def _statistic_of(param: LinkedParam) -> Statistic | None:
+    named = f"{param.name} {param.display_name}"
+    return next((stat for found, stat in _STATISTICS if found.search(named)), None)
+
+
+def _significances(c: Constraint, realized: RealizedSpec) -> list[_HeldCut]:
     params = [
-        (p.name, number)
+        _HeldCut(p.name, number, _statistic_of(p))
         for p in linked_params(c, realized.criteria)
         if (number := p.number) is not None
     ]
     analyses = [
-        ("significance_threshold", cut)
+        _HeldCut("significance_threshold", cut, None)
         for a in linked_analyses(c, realized.criteria)
         if (cut := a.significance_threshold) is not None
     ]
     return [*params, *analyses]
+
+
+def _another_statistic(asked: SignificanceValue, held: _HeldCut) -> bool:
+    return (
+        asked.statistic != "unspecified"
+        and held.statistic is not None
+        and held.statistic != asked.statistic
+    )
+
+
+def _off_cut(asked: SignificanceValue, held: _HeldCut) -> str:
+    if _another_statistic(asked, held):
+        return (
+            f"asked {asked.statistic} <= {asked.at_most:g}, {held.name} holds a "
+            f"{held.statistic} cut of {held.value:g}"
+        )
+    return f"asked {asked.at_most:g}, built {held.value:g}"
 
 
 def ground_significance(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
@@ -133,18 +170,25 @@ def ground_significance(c: Constraint, realized: RealizedSpec) -> GroundedConstr
         case SignificanceValue() as asked:
             pass
         case _:
-            return not_verified(c, UNTYPED)
+            return untyped(c)
     held = _significances(c, realized)
     if not held:
         return unread(c, realized, NO_LINK, cut=_significance)
-    off = next(((n, v) for n, v in held if not agrees(asked.at_most, v)), None)
-    name, value = held[0] if off is None else off
+    off = next(
+        (
+            h
+            for h in held
+            if _another_statistic(asked, h) or not agrees(asked.at_most, h.value)
+        ),
+        None,
+    )
+    shown = held[0] if off is None else off
     return GroundedConstraint(
         constraint=c,
         status=ConstraintStatus.GROUNDED
         if off is None
         else ConstraintStatus.SUBSTITUTED,
-        realized_value=f"{value:g}",
-        realized_param=name,
-        note="" if off is None else f"asked {asked.at_most:g}, built {value:g}",
+        realized_value=f"{shown.value:g}",
+        realized_param=shown.name,
+        note="" if off is None else _off_cut(asked, off),
     )

@@ -159,7 +159,7 @@ describe("DataEvidenceCard", () => {
       "the strategy on the sitePassedthe site marks 3 of 3 steps valid",
       "the strategy on the sitePassedeach combine holds a count its operator allows: INTERSECT 'Intersect' holds 116 from inputs of 479 and 840",
       "P. falciparum 3D7Passedall 116 records of step 440597243 ('Intersect') hold an organism the strategy selects: Plasmodium falciparum 3D7 (116)",
-      "with a signal peptideNot checkedno check reads this requirement on the site",
+      "with a signal peptideNot verifiedno step of the strategy states it",
     ]);
   });
 
@@ -222,7 +222,7 @@ describe("DataEvidenceCard", () => {
       "The site did not answer, so the strategy is not checked.",
       "CheckResultWhat the site answered",
       "the strategy on the siteNo answer from the sitethe site did not answer the strategy read",
-      "with a signal peptideNot checkedno check reads this requirement on the site",
+      "with a signal peptideNot verifiedno step of the strategy states it",
     ]);
   });
 

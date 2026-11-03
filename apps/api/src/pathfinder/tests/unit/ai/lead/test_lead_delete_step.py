@@ -442,13 +442,13 @@ async def test_an_approved_delete_withdraws_what_only_its_step_links(
     ctx = _ctx()
     domain = ctx.deps.state.domain
     blood = Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value="blood stages",
         label="stage",
         source=ConstraintSource.USER_EXPLICIT,
     )
     kinase = Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value="kinase domain",
         label="stage",
         source=ConstraintSource.USER_EXPLICIT,

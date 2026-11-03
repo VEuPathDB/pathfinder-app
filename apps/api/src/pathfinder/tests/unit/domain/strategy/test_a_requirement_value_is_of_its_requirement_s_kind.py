@@ -6,12 +6,16 @@ from pydantic import ValidationError
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
+    CountValue,
     DataTypeValue,
     FoldChangeValue,
     OrganismValue,
+    OrthologValue,
     PercentileValue,
+    PropertyValue,
     RecordTypeValue,
     SignificanceValue,
+    TextValue,
     UntypedValue,
 )
 
@@ -56,8 +60,28 @@ def _constraint(kind: ConstraintKind, value: object) -> Constraint:
             OrganismValue(organism="Plasmodium falciparum 3D7"),
         ),
         (
-            ConstraintKind.OTHER,
-            {"kind": "other", "text": "secreted"},
+            ConstraintKind.COUNT,
+            {"kind": "count", "feature": "exons", "op": "<", "value": 3},
+            CountValue(feature="exons", op="<", value=3),
+        ),
+        (
+            ConstraintKind.ORTHOLOG,
+            {"kind": "ortholog", "organisms": ["Homo sapiens"], "syntenic": False},
+            OrthologValue(organisms=["Homo sapiens"], syntenic=False),
+        ),
+        (
+            ConstraintKind.TEXT,
+            {"kind": "text", "phrase": "mucin*", "exact": False},
+            TextValue(phrase="mucin*"),
+        ),
+        (
+            ConstraintKind.PROPERTY,
+            {"kind": "property", "phrase": "secreted"},
+            PropertyValue(phrase="secreted"),
+        ),
+        (
+            ConstraintKind.UNTYPED,
+            {"kind": "untyped", "text": "secreted"},
             UntypedValue(text="secreted"),
         ),
     ],

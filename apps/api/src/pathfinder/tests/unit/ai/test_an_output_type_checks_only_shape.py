@@ -22,6 +22,7 @@ _NORMALIZERS = {
     "_one_option_is_a_free_text_question",
     "_keys_on_the_readings_are_the_question_s",
     "_a_search_and_a_site_only_where_the_problem_takes_them",
+    "_a_stored_other_dimension_is_untyped",
 }
 _LIMITS = (
     annotated_types.MaxLen,
@@ -127,7 +128,7 @@ def test_a_judgement_in_field_metadata_is_found_and_a_clip_is_not() -> None:
 
 _QUESTION = {
     "question": "How many genomes?",
-    "dimension": "other",
+    "dimension": "untyped",
     "recommendedValue": "At most 5",
     "criterionId": "c_families",
     "paramName": "phyletic_expression",

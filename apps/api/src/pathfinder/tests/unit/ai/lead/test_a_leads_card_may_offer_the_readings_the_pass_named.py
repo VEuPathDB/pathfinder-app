@@ -59,7 +59,7 @@ def _card(dimension: ConstraintKind, *labels: str) -> CardQuestion:
 
 
 async def test_the_picked_reading_is_a_requirement_beside_the_held_ones() -> None:
-    card = _card(ConstraintKind.OTHER, _BUILT, _OTHER)
+    card = _card(ConstraintKind.UNTYPED, _BUILT, _OTHER)
     deps = _deps()
     deps.state.user_message_id = uuid4()
     deps.state.pending_approval = PendingApproval(
@@ -75,7 +75,7 @@ async def test_the_picked_reading_is_a_requirement_beside_the_held_ones() -> Non
 
     assert [(c.kind, c.requested_value) for c in deps.state.domain.requirements] == [
         (ConstraintKind.ORGANISM, "the genus species"),
-        (ConstraintKind.OTHER, _OTHER),
+        (ConstraintKind.UNTYPED, _OTHER),
     ]
     assert deps.state.researcher_messages() == [
         "Aggregate the strains to species level."

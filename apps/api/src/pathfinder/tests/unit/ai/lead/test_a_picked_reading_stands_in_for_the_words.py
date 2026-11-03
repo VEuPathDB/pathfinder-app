@@ -65,11 +65,11 @@ _EVERY_LABEL = "Every one of the 61 genomes"
 _SHARE_LABEL = "At least 55 of the 61 genomes (90%)"
 _SHARE_CAVEAT = "Keeps groups missing from up to 6 genomes"
 _PRESENT = requirement(
-    ConstraintKind.OTHER, "presence", "present in all Plasmodium species"
+    ConstraintKind.UNTYPED, "presence", "present in all Plasmodium species"
 )
-_STAGE = requirement(ConstraintKind.OTHER, "stage", "expressed in blood stages")
+_STAGE = requirement(ConstraintKind.UNTYPED, "stage", "expressed in blood stages")
 _STAND_IN = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value=_SHARE_LABEL,
     label=_PROMPT,
     source=ConstraintSource.USER_EXPLICIT,

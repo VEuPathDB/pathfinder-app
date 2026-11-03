@@ -51,7 +51,7 @@ def _question(
     reading: OperatorReading, read: CombineOp, quotes: dict[str, str], noun: str
 ) -> OpenQuestion:
     names = [
-        " and ".join(f'"{quotes[rid]}"' for rid in ids if rid in quotes)
+        " and ".join(dict.fromkeys(f'"{quotes[rid]}"' for rid in ids if rid in quotes))
         for ids in reading.branches
     ]
     built, wanted = _finds(reading.built, names, noun), _finds(read, names, noun)

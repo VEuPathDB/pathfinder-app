@@ -11,6 +11,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintStatus,
     GroundedConstraint,
+    Unverified,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.realized_spec import (
@@ -24,9 +25,11 @@ COMPARED_THROUGH_A_LINK = frozenset(
         ConstraintKind.PERCENTILE,
         ConstraintKind.FOLD_CHANGE,
         ConstraintKind.STATISTICAL_THRESHOLD,
+        ConstraintKind.COUNT,
     }
 )
 NO_LINK = "no criterion links it to a parameter"
+UNTYPED = "no typed value to compare"
 
 
 class LinkedParam(NamedTuple):
@@ -67,8 +70,14 @@ def linked_analyses(
     return [k.analysis for k in linking(c, criteria) if k.analysis is not None]
 
 
-def not_verified(c: Constraint, why: str) -> GroundedConstraint:
-    return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED, note=why)
+def not_verified(c: Constraint, why: Unverified, note: str) -> GroundedConstraint:
+    return GroundedConstraint(
+        constraint=c, status=ConstraintStatus.NOT_VERIFIED, note=note, unverified=why
+    )
+
+
+def untyped(c: Constraint) -> GroundedConstraint:
+    return not_verified(c, "untyped", UNTYPED)
 
 
 def unread(
@@ -83,7 +92,7 @@ def unread(
     )
     if uncut or any(k.pending_analysis for k in linked):
         return awaiting_analysis(c)
-    return not_verified(c, why)
+    return not_verified(c, "no_value_to_compare", why)
 
 
 def linked_by_none(c: Constraint, criteria: Sequence[Criterion]) -> bool:

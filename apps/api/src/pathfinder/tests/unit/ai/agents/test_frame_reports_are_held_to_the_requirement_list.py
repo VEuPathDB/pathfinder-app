@@ -38,7 +38,7 @@ def _context() -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     ctx.deps.agent_state.stated_requirements = [
         _stated(ConstraintKind.ORGANISM, "P. falciparum 3D7"),
-        _stated(ConstraintKind.OTHER, "predicted GPI anchor"),
+        _stated(ConstraintKind.UNTYPED, "predicted GPI anchor"),
     ]
     return ctx
 
@@ -59,7 +59,7 @@ def test_frame_reads_the_requirements_under_their_numbers() -> None:
     assert pinned_requirements(_context()) == (
         "## Requirements the researcher stated\n"
         "- R1 (organism): P. falciparum 3D7\n"
-        "- R2 (other): predicted GPI anchor"
+        "- R2 (untyped): predicted GPI anchor"
     )
 
 

@@ -60,5 +60,5 @@ The search is built and returns 1,736 groups. It applies an exact single-copy re
 summary.assumed (narrowing values no message states that the facts part does not show): 0
 ledger constraint rows the Lead marked source=assumed (not counted in summary.assumed): 3
 - Organism scope (organism): 'Cryptosporidium genomes' -> grounded
-- Orthology criterion (other): 'ortholog groups with exactly one protein in each genome' -> grounded
-- phyletic_expression (other): 'cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1' -> grounded
+- Orthology criterion (untyped): 'ortholog groups with exactly one protein in each genome' -> grounded
+- phyletic_expression (untyped): 'cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1' -> grounded

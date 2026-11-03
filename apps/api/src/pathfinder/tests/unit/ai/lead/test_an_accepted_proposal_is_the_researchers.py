@@ -63,13 +63,13 @@ _ACCEPTED = [
         quote="Encephalitozoon cuniculi GB-M1",
     ),
     Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value="spore wall or spore-wall-associated proteins",
         label="direct spore wall annotation",
         source=ConstraintSource.USER_EXPLICIT,
     ),
     Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value=(
             "related structural or surface-coat terminology where the catalog "
             "annotation supports that connection"

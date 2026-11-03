@@ -247,7 +247,7 @@ def test_a_long_list_of_captured_requirements_counts_what_it_leaves_out() -> Non
     section = ConstraintSection(
         composed=[
             Constraint(
-                kind=ConstraintKind.OTHER,
+                kind=ConstraintKind.UNTYPED,
                 label=f"r{i}",
                 requested_value=f"requirement {i}",
             )
@@ -259,6 +259,6 @@ def test_a_long_list_of_captured_requirements_counts_what_it_leaves_out() -> Non
 
     assert lines[:2] == [
         "- (2 more captured earlier)",
-        "- r2 (other): 'requirement 2'",
+        "- r2 (untyped): 'requirement 2'",
     ]
     assert len(lines) == 21

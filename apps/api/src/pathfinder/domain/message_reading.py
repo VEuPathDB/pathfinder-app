@@ -10,19 +10,24 @@ from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.log2_scale import Scale
 from pathfinder.domain.strategy.constraints import (
     Bound,
+    CountOp,
+    CountValue,
     DataKind,
     DataTypeValue,
     FoldChangeValue,
     FoldDirection,
     OrganismValue,
+    OrthologValue,
     PercentileEnd,
     PercentileValue,
+    PropertyValue,
     RecordRole,
     RecordTypeValue,
     RequirementValue,
     Share,
     SignificanceValue,
     Statistic,
+    TextValue,
     UntypedValue,
 )
 
@@ -158,11 +163,39 @@ class StatedUntyped(_Stated):
         return UntypedValue(text=self.value)
 
 
-class StatedOther(_Stated):
-    kind: Literal["count", "ortholog", "text", "property"]
+class StatedCount(_Stated):
+    kind: Literal["count"]
+    feature: str = Field(min_length=1)
+    op: CountOp
+    number: float
 
-    def typed(self) -> RequirementValue | None:
-        return None
+    def typed(self) -> RequirementValue:
+        return CountValue(feature=self.feature, op=self.op, value=self.number)
+
+
+class StatedOrtholog(_Stated):
+    kind: Literal["ortholog"]
+    organisms: list[str] = Field(min_length=1)
+    syntenic: bool | None = None
+
+    def typed(self) -> RequirementValue:
+        return OrthologValue(organisms=self.organisms, syntenic=self.syntenic)
+
+
+class StatedText(_Stated):
+    kind: Literal["text"]
+    phrase: str = Field(min_length=1)
+    exact: bool = False
+
+    def typed(self) -> RequirementValue:
+        return TextValue(phrase=self.phrase, exact=self.exact)
+
+
+class StatedProperty(_Stated):
+    kind: Literal["property"]
+
+    def typed(self) -> RequirementValue:
+        return PropertyValue(phrase=self.value)
 
 
 StatedRequirement = Annotated[
@@ -172,8 +205,11 @@ StatedRequirement = Annotated[
     | StatedDataType
     | StatedRecordType
     | StatedOrganism
-    | StatedUntyped
-    | StatedOther,
+    | StatedCount
+    | StatedOrtholog
+    | StatedText
+    | StatedProperty
+    | StatedUntyped,
     Discriminator("kind"),
 ]
 
@@ -228,15 +264,18 @@ __all__ = [
     "MessageReading",
     "ReadBy",
     "RequirementKind",
+    "StatedCount",
     "StatedDataType",
     "StatedFoldChange",
     "StatedOrganism",
-    "StatedOther",
+    "StatedOrtholog",
     "StatedPercentile",
+    "StatedProperty",
     "StatedRecordType",
     "StatedRequest",
     "StatedRequirement",
     "StatedSignificance",
+    "StatedText",
     "StatedUntyped",
     "StatedWithdrawal",
     "Want",

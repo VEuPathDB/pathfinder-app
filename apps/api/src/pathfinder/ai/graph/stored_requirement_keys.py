@@ -23,11 +23,14 @@ from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 
 type Ids = Mapping[str, str]
 
-_STORED_KINDS = frozenset(kind.value for kind in ConstraintKind)
+_STORED_NAMES = {kind: kind.value for kind in ConstraintKind} | {
+    ConstraintKind.UNTYPED: "other"
+}
+_STORED_KINDS = frozenset(_STORED_NAMES.values())
 
 
 def _stored_key(c: Constraint) -> str:
-    return f"{c.kind.value}:{c.requested_value}"
+    return f"{_STORED_NAMES[c.kind]}:{c.requested_value}"
 
 
 def ids_by_stored_key(recorded: Sequence[Constraint]) -> dict[str, str]:

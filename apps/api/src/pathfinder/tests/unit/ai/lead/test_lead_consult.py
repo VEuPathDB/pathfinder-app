@@ -130,7 +130,7 @@ class TestAnswersBecomeRequirements:
         )
 
         [requirement] = state.domain.requirements
-        assert requirement.kind is ConstraintKind.OTHER
+        assert requirement.kind is ConstraintKind.UNTYPED
         assert (
             requirement.requested_value
             == "mass spectrometry evidence OR DeRisi expression"
@@ -158,7 +158,7 @@ class TestAnswersBecomeRequirements:
         )
 
         [requirement] = state.domain.requirements
-        assert requirement.kind is ConstraintKind.OTHER
+        assert requirement.kind is ConstraintKind.UNTYPED
         assert requirement.requested_value == "mass spec OR DeRisi expression"
 
     @pytest.mark.asyncio
@@ -180,7 +180,7 @@ class TestAnswersBecomeRequirements:
         )
 
         [requirement] = state.domain.requirements
-        assert requirement.kind is ConstraintKind.OTHER
+        assert requirement.kind is ConstraintKind.UNTYPED
         assert requirement.requested_value == "2-fold; log2 scale"
 
     @pytest.mark.asyncio

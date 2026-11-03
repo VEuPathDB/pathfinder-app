@@ -135,7 +135,7 @@ def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
             source=ConstraintSource.USER_EXPLICIT,
         ),
         Constraint(
-            kind=ConstraintKind.OTHER,
+            kind=ConstraintKind.PROPERTY,
             requested_value="a predicted GPI anchor",
             label="a predicted GPI anchor",
             source=ConstraintSource.USER_EXPLICIT,
@@ -165,7 +165,7 @@ def test_the_property_no_search_states_is_read_as_a_requirement(
         for c in intent.explicit_constraints
     ] == [
         (
-            ConstraintKind.OTHER,
+            ConstraintKind.PROPERTY,
             "a predicted GPI anchor",
             "a predicted GPI anchor",
             ConstraintSource.USER_EXPLICIT,

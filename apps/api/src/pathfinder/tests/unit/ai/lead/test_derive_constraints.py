@@ -261,7 +261,7 @@ def test_an_assumed_value_is_a_grounded_non_blocking_constraint() -> None:
     ledger = derive_ledger(_assumption_state(), None)
 
     [grounded] = ledger.constraints.grounded
-    assert grounded.constraint.kind is ConstraintKind.OTHER
+    assert grounded.constraint.kind is ConstraintKind.UNTYPED
     assert grounded.constraint.source is ConstraintSource.ASSUMED
     assert grounded.constraint.hard is False
     assert grounded.constraint.label == "samples_percentile_generic"

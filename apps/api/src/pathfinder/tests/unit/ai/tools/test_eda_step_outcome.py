@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    DataTypeValue,
 )
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -237,7 +238,7 @@ async def test_a_draft_export_the_site_never_took_records_no_build(
 async def test_the_export_reads_the_assay_of_its_study(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    """The ledger grounds an RNA-Seq requirement on the export before a check."""
+    """The export's study assay is read; a requirement it does not link is not verified."""
     session = lead_ctx.deps.runtime.strategy_session
     state = lead_ctx.deps.state
     state.domain.requirements = [
@@ -246,6 +247,7 @@ async def test_the_export_reads_the_assay_of_its_study(
             label="RNA-Seq dataset",
             requested_value="RNA-Seq",
             source=ConstraintSource.USER_EXPLICIT,
+            value=DataTypeValue(data="rna_seq"),
         )
     ]
     _wire(
@@ -259,7 +261,8 @@ async def test_the_export_reads_the_assay_of_its_study(
     )
 
     [grounded] = derive_ledger(state, None).constraints.grounded
-    assert (state.domain.data_marks.studies, grounded.status) == (
-        {DE_DATASET: "RNASeq"},
-        ConstraintStatus.GROUNDED,
-    )
+    assert (
+        state.domain.data_marks.studies,
+        grounded.status,
+        grounded.unverified,
+    ) == ({DE_DATASET: "RNASeq"}, ConstraintStatus.NOT_VERIFIED, "no_step_states_it")

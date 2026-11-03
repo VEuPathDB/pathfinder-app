@@ -187,7 +187,7 @@ def apply_option_bindings(
         dimension = (
             question.dimension
             if question is not None
-            else dimensions.get(answer.prompt, ConstraintKind.OTHER)
+            else dimensions.get(answer.prompt, ConstraintKind.UNTYPED)
         )
         stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
         if stated is not None:

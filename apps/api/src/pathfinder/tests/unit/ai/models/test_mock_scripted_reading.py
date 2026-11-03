@@ -232,7 +232,7 @@ async def test_a_split_organism_is_held_whole(
 
     assert _constraints(split) == [
         (ConstraintKind.ORGANISM, binomial),
-        (ConstraintKind.OTHER, f"{strain} genes"),
+        (ConstraintKind.UNTYPED, f"{strain} genes"),
     ]
     assert _constraints(held)[0] == (ConstraintKind.ORGANISM, organism)
     assert deps.intent == held

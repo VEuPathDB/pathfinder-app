@@ -33,7 +33,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
 SAVED = "c_saved"
 WHICH_ONE = SlotQuestion(
     question="Which saved strategy: 'kinase panel', 'surfaceome v2'?",
-    dimension=ConstraintKind.OTHER,
+    dimension=ConstraintKind.UNTYPED,
     recommended_value="surfaceome v2",
 )
 

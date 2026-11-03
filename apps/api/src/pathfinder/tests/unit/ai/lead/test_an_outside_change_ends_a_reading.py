@@ -34,7 +34,7 @@ from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 _TEXT, _WORDS = "GenesByText", "GenesByWords"
 _READING = "Every kinase named in the product"
 _STAND_IN = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value=_READING,
     label="Which kinases?",
     source=ConstraintSource.USER_EXPLICIT,

@@ -11,7 +11,7 @@ from pydantic.json_schema import SkipJsonSchema
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.log2_scale import Scale
-from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
+from pathfinder.domain.strategy.words import words_of
 
 
 class ConstraintKind(StrEnum):
@@ -23,7 +23,11 @@ class ConstraintKind(StrEnum):
     RECORD_TYPE = "record_type"
     PERCENTILE = "percentile"
     COMBINATION = "combination"
-    OTHER = "other"
+    COUNT = "count"
+    ORTHOLOG = "ortholog"
+    TEXT = "text"
+    PROPERTY = "property"
+    UNTYPED = "untyped"
 
 
 # Every dimension a constraint can state, as an agent must spell it.
@@ -31,6 +35,26 @@ CONSTRAINT_KINDS = ", ".join(kind.value for kind in ConstraintKind)
 
 # The dimensions every search of a strategy runs in. No single search states them.
 STRATEGY_SCOPES = frozenset({ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE})
+
+# The kinds a thread holds any number of values of. Every other kind holds one
+# value, so a new value of it replaces the old one.
+MANY_VALUED_KINDS = frozenset(
+    {
+        ConstraintKind.COMBINATION,
+        ConstraintKind.COUNT,
+        ConstraintKind.ORTHOLOG,
+        ConstraintKind.TEXT,
+        ConstraintKind.PROPERTY,
+        ConstraintKind.UNTYPED,
+    }
+)
+
+
+def _untyped_when_other(kind: object) -> object:
+    return ConstraintKind.UNTYPED if kind == "other" else kind
+
+
+type StoredKind = Annotated[ConstraintKind, BeforeValidator(_untyped_when_other)]
 
 
 # The record classes a request for genes is answered by: a genomics site's
@@ -49,6 +73,11 @@ class ConstraintStatus(StrEnum):
     GROUNDED = "grounded"
     SUBSTITUTED = "substituted"
     UNGROUNDABLE = "ungroundable"
+    NOT_VERIFIED = "not_verified"
+
+    @property
+    def shown(self) -> str:
+        return self.value.replace("_", " ")
 
 
 def new_requirement_id() -> str:
@@ -62,6 +91,9 @@ type FoldDirection = Literal["up", "down", "either"]
 type Statistic = Literal["p_value", "adjusted_p", "fdr", "q_value", "unspecified"]
 type Share = Annotated[float, Field(gt=0, le=100)]
 type Bound = Annotated[float, Field(gt=0, le=1)]
+type CountOp = Literal[">=", ">", "<=", "<", "="]
+type Unverified = Literal["untyped", "no_value_to_compare", "no_step_states_it"]
+type _Phrase = Annotated[str, Field(min_length=1)]
 
 
 class PercentileValue(CamelModel):
@@ -126,11 +158,60 @@ class OrganismValue(CamelModel):
     organism: str = Field(min_length=1)
 
 
+class CountValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.COUNT] = ConstraintKind.COUNT
+    feature: _Phrase
+    op: CountOp
+    value: float
+
+    def holds(self, number: float) -> bool:
+        match self.op:
+            case ">=":
+                return number >= self.value
+            case ">":
+                return number > self.value
+            case "<=":
+                return number <= self.value
+            case "<":
+                return number < self.value
+            case "=":
+                return number == self.value
+
+    @property
+    def shown(self) -> str:
+        return f"{self.feature} {self.op} {self.value:g}"
+
+
+class OrthologValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.ORTHOLOG] = ConstraintKind.ORTHOLOG
+    organisms: list[_Phrase] = Field(min_length=1)
+    syntenic: bool | None = None
+
+
+class TextValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.TEXT] = ConstraintKind.TEXT
+    phrase: _Phrase
+    exact: bool = False
+
+
+class PropertyValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.PROPERTY] = ConstraintKind.PROPERTY
+    phrase: _Phrase
+
+
 class UntypedValue(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    kind: Literal[ConstraintKind.OTHER] = ConstraintKind.OTHER
-    text: str = Field(min_length=1)
+    kind: Literal[ConstraintKind.UNTYPED] = ConstraintKind.UNTYPED
+    text: _Phrase
 
 
 RequirementValue = Annotated[
@@ -140,9 +221,24 @@ RequirementValue = Annotated[
     | DataTypeValue
     | RecordTypeValue
     | OrganismValue
+    | CountValue
+    | OrthologValue
+    | TextValue
+    | PropertyValue
     | UntypedValue,
     Discriminator("kind"),
 ]
+
+
+def _untyped_other(value: object) -> object:
+    match value:
+        case {"kind": "other", "requested_value": str(text), **rest}:
+            held: dict[object, object] = {**rest, "requested_value": text}
+        case {"kind": "other", "requestedValue": str(text), **rest}:
+            held = {**rest, "requestedValue": text}
+        case _:
+            return value
+    return {**held, "kind": ConstraintKind.UNTYPED, "value": UntypedValue(text=text)}
 
 
 class Constraint(CamelModel):
@@ -157,6 +253,11 @@ class Constraint(CamelModel):
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
     value: RequirementValue | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _an_other_requirement_is_untyped(cls, value: object) -> object:
+        return _untyped_other(value)
 
     @property
     def organism(self) -> str | None:
@@ -239,7 +340,17 @@ class GroundedConstraint(CamelModel):
     # single parameter.
     realized_param: str = ""
     note: str = ""
+    unverified: Unverified | None = None
     lifecycle: Lifecycle = Field(default_factory=OpenLifecycle)
+
+    @model_validator(mode="after")
+    def _a_requirement_not_verified_says_why(self) -> GroundedConstraint:
+        if (self.status is ConstraintStatus.NOT_VERIFIED) != (
+            self.unverified is not None
+        ):
+            msg = "a requirement is not verified exactly when it names why"
+            raise ValueError(msg)
+        return self
 
     @property
     def retired(self) -> bool:
@@ -262,11 +373,6 @@ def message_states(message: str, value: str) -> bool:
     carried = set(words_of(message))
     stated = words_of(value)
     return bool(stated) and all(word in carried for word in stated)
-
-
-def content_words(value: str) -> frozenset[str]:
-    """The words of the value that are not filler."""
-    return frozenset(word for word in words_of(value) if word not in FILLER_WORDS)
 
 
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
@@ -300,17 +406,17 @@ def organism_hints_from(requirements: Sequence[Constraint]) -> list[str]:
     )
 
 
-_Dimension = tuple[ConstraintKind, str | frozenset[str]]
+_Dimension = tuple[ConstraintKind, str]
 
 
 def _dimension(c: Constraint) -> _Dimension:
-    """What a constraint collapses on: a combination on its value, an other
-    value on its non-filler words, and every other kind on the kind alone."""
-    if c.kind is ConstraintKind.COMBINATION:
-        return (c.kind, c.requested_value)
-    if c.kind is ConstraintKind.OTHER:
-        return (c.kind, content_words(c.requested_value))
-    return (c.kind, "")
+    """What a constraint collapses on: a kind of many values on its typed value,
+    or its id when it holds none, and every other kind on the kind alone."""
+    if c.kind not in MANY_VALUED_KINDS:
+        return (c.kind, "")
+    if c.value is None:
+        return (c.kind, c.id)
+    return (c.kind, c.value.model_dump_json())
 
 
 def merge_constraints(

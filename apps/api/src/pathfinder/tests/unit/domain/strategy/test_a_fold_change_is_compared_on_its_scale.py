@@ -193,7 +193,7 @@ def test_a_fold_parameter_no_link_names_is_not_verified() -> None:
     grounded = _against(held, unlinked)
 
     assert (grounded.status, grounded_check(grounded).status) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         "unchecked",
     )
     assert not is_blocking(grounded)

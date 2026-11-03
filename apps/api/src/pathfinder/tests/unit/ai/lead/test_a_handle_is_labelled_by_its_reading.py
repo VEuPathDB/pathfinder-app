@@ -69,7 +69,7 @@ async def test_a_card_option_naming_a_handle_is_labelled_by_its_reading() -> Non
         open_questions=[
             SlotQuestion(
                 question=_PROMPT,
-                dimension=ConstraintKind.OTHER,
+                dimension=ConstraintKind.UNTYPED,
                 recommended_value=long,
                 criterion_id="c_more",
                 param_name=EXPRESSION,
@@ -95,7 +95,7 @@ async def test_the_facts_row_shows_the_reading_of_a_card_bound_handle() -> None:
     spec = state.operational_spec_draft
     asked = SlotQuestion(
         question=_PROMPT,
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         recommended_value=long,
         criterion_id="c_more",
         param_name=EXPRESSION,

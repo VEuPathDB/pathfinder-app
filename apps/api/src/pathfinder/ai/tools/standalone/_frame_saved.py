@@ -15,8 +15,8 @@ from pathfinder.ai.tools.standalone._frame_roles import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
-    SavedStrategyRef,
 )
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.services.strategies.insert_saved import clone_saved_strategy
 from pathfinder.services.strategies.saved_library import (
     SavedStrategyListing,

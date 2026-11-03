@@ -21,7 +21,13 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
-from pathfinder.domain.strategy.linked_values import linking, not_verified
+from pathfinder.domain.strategy.link_grounding import (
+    ground_count,
+    ground_ortholog,
+    ground_property,
+    ground_text,
+)
+from pathfinder.domain.strategy.linked_values import linking, not_verified, untyped
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -30,7 +36,6 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.organism_scope import selected_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 from pathfinder.domain.strategy.value_grounding import (
-    UNTYPED,
     ground_percentile,
     ground_significance,
 )
@@ -56,10 +61,10 @@ def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstrai
         case DataTypeValue() as asked:
             pass
         case _:
-            return not_verified(c, UNTYPED)
+            return untyped(c)
     linked = linking(c, realized.criteria)
     if not linked:
-        return not_verified(c, "no criterion links it")
+        return not_verified(c, "no_step_states_it", "no criterion links it")
     ran = {data for k in linked if (data := _assay(realized.marks.run_on(k)))}
     if asked.data in ran:
         return GroundedConstraint(
@@ -93,7 +98,7 @@ def dimension_of_parameter(name: str, display_name: str) -> ConstraintKind:
         return ConstraintKind.STATISTICAL_THRESHOLD
     if FOLD_PARAM in name or scale_of(display_name) is not None:
         return ConstraintKind.FOLD_CHANGE
-    return ConstraintKind.OTHER
+    return ConstraintKind.UNTYPED
 
 
 def _abstained(c: Constraint, why: str) -> GroundedConstraint:
@@ -186,6 +191,11 @@ def _ground_organism(c: Constraint, realized: RealizedSpec) -> GroundedConstrain
     return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
 
 
+def _ground_untyped(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    del realized
+    return untyped(c)
+
+
 _NO_MARKS = DataMarks()
 
 _HANDLERS = {
@@ -195,6 +205,11 @@ _HANDLERS = {
     ConstraintKind.PERCENTILE: ground_percentile,
     ConstraintKind.COMBINATION: _ground_combination,
     ConstraintKind.ORGANISM: _ground_organism,
+    ConstraintKind.COUNT: ground_count,
+    ConstraintKind.ORTHOLOG: ground_ortholog,
+    ConstraintKind.TEXT: ground_text,
+    ConstraintKind.PROPERTY: ground_property,
+    ConstraintKind.UNTYPED: _ground_untyped,
 }
 
 

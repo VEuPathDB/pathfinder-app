@@ -69,7 +69,7 @@ def _eight_criterion_thread() -> list[Constraint]:
             "domain OR ec number OR go term OR annotation",
         ),
         requirement(
-            ConstraintKind.OTHER,
+            ConstraintKind.UNTYPED,
             "non-syntenic orthologs",
             "transform to orthologs",
         ),

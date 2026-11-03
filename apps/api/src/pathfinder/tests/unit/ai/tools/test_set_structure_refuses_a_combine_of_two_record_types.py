@@ -11,9 +11,9 @@ from pathfinder.ai.tools.standalone.frame_structure import (
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    SavedStrategyRef,
     StructureNode,
 )
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )

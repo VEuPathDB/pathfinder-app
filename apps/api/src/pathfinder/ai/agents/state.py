@@ -10,7 +10,7 @@ from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.ai.agents.unserved import UnservedSearch
 from pathfinder.domain.strategy.computed_groups import HeldComparison
-from pathfinder.domain.strategy.constraints import Constraint, message_states
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
 from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.named_groups import GroupScope
@@ -244,14 +244,6 @@ class AgentToolState:
     # turn shares it, so one configuration is read once.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
     offered_readings: list[ReadValues] = field(default_factory=list)
-
-    def phrasings_the_request_states(self, phrasings: Sequence[str]) -> list[str]:
-        """The phrasings a request message carries every word of."""
-        return [
-            phrasing
-            for phrasing in phrasings
-            if any(message_states(m, phrasing) for m in self.request_messages)
-        ]
 
     def pin_sheet(
         self,

@@ -38,18 +38,18 @@ def _thread(*held: Constraint) -> ThreadRequirements:
 
 
 def test_two_requirements_never_share_an_id() -> None:
-    first = _stated(ConstraintKind.OTHER, "signal peptide")
-    second = _stated(ConstraintKind.OTHER, "signal peptide")
+    first = _stated(ConstraintKind.UNTYPED, "signal peptide")
+    second = _stated(ConstraintKind.UNTYPED, "signal peptide")
 
     assert first.id != second.id
 
 
 def test_a_restated_requirement_keeps_the_id_the_thread_holds() -> None:
-    held = _stated(ConstraintKind.OTHER, "signal peptide")
+    held = _stated(ConstraintKind.UNTYPED, "signal peptide")
     thread = _thread(held)
 
     thread.record(
-        _intent(_stated(ConstraintKind.OTHER, "signal peptide")),
+        _intent(_stated(ConstraintKind.UNTYPED, "signal peptide")),
         ["Only those with a signal peptide."],
     )
 
@@ -71,7 +71,7 @@ def test_a_replacement_names_its_successor_by_id() -> None:
 
 
 def test_an_id_a_held_requirement_owns_is_never_taken_by_another() -> None:
-    held = _stated(ConstraintKind.OTHER, "signal peptide")
+    held = _stated(ConstraintKind.UNTYPED, "signal peptide")
     taken = _stated(ConstraintKind.ORGANISM, "Plasmodium falciparum 3D7").model_copy(
         update={"id": held.id}
     )

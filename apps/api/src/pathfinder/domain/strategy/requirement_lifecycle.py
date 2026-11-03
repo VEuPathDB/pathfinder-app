@@ -22,10 +22,6 @@ RetiredLifecycle = Annotated[
     WithdrawnLifecycle | ReplacedLifecycle, Discriminator("state")
 ]
 
-# The kinds a thread holds any number of values of. Every other kind holds one
-# value, so a new value of it replaces the old one.
-MANY_VALUED_KINDS = frozenset({ConstraintKind.OTHER, ConstraintKind.COMBINATION})
-
 
 class RetiredRequirement(CamelModel):
     """A requirement the thread no longer holds live, and why."""

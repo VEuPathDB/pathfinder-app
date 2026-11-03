@@ -113,7 +113,7 @@ def test_a_question_frame_asks_about_a_requirement_carries_its_id() -> None:
 
 
 _SIGNAL = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="signal peptide",
     label="signal peptide",
     source=ConstraintSource.USER_EXPLICIT,

@@ -88,7 +88,7 @@ def test_a_share_no_link_bounds_is_not_verified_and_never_blocks(
 
     check = grounded_check(grounded)
     assert (grounded.status, grounded.realized_value, grounded.note) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         None,
         why,
     )
@@ -102,7 +102,7 @@ def test_a_percentile_held_with_no_value_is_not_verified() -> None:
     [grounded] = ground_against_spec([held], spec)
 
     assert (grounded.status, grounded.note, grounded_check(grounded).status) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         "no typed value to compare",
         "unchecked",
     )

@@ -137,7 +137,7 @@ async def _answered() -> LeadDeps:
                     ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum 3D7"
                 ),
                 requirement(
-                    ConstraintKind.OTHER,
+                    ConstraintKind.UNTYPED,
                     "InterPro protein kinase domain",
                     "InterPro protein kinase domain",
                 ),
@@ -206,6 +206,6 @@ async def test_a_requirement_the_pick_words_with_no_quote_is_kept_as_assumed() -
 
     assert [(c.kind, c.source, c.hard) for c in deps.state.domain.requirements] == [
         (ConstraintKind.ORGANISM, ConstraintSource.USER_EXPLICIT, True),
-        (ConstraintKind.OTHER, ConstraintSource.USER_EXPLICIT, True),
+        (ConstraintKind.UNTYPED, ConstraintSource.USER_EXPLICIT, True),
         (ConstraintKind.DATA_TYPE, ConstraintSource.ASSUMED, False),
     ]

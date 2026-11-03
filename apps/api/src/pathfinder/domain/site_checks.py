@@ -10,12 +10,19 @@ from veupathdb.domain.strategy.validation import StepValidation
 
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.expression_fit import ExpressionFit
-from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.constraints import ConstraintKind, StoredKind
 from pathfinder.domain.strategy.words import words_of
 from pathfinder.domain.tally_facts import TallyFact
 
 type CheckStatus = Literal["pass", "fail", "unchecked"]
-type UncheckedReason = Literal["no_check", "site_unanswered", "site_refused"]
+type UncheckedReason = Literal[
+    "no_check",
+    "site_unanswered",
+    "site_refused",
+    "untyped",
+    "no_value_to_compare",
+    "no_step_states_it",
+]
 type StepCheckKind = Literal[
     "step_valid",
     "bound_values",
@@ -34,7 +41,7 @@ _STRUCTURE_KINDS: frozenset[str] = frozenset(
 class SiteCheck(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    kind: ConstraintKind | StepCheckKind
+    kind: StoredKind | StepCheckKind
     subject: str = Field(min_length=1)
     status: CheckStatus
     evidence: str = Field(min_length=1)

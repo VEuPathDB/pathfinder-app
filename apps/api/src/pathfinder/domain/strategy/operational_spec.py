@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
 from veupathdb.domain.parameters import ParamKind, ParamValue, UnboundParameter
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
 from pathfinder.domain.strategy.operator_reads import OperatorReading
 from pathfinder.domain.strategy.readings import AcceptedReading, why_no_readings
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
@@ -256,34 +257,19 @@ def combine_nodes(node: StructureNode) -> Iterator[StructureNode]:
         yield from combine_nodes(child)
 
 
-class SavedStrategyRef(CamelModel):
-    """A saved strategy the user reuses as the input of a criterion.
-
-    ``subtree`` is the saved strategy's steps, cloned with fresh ids, so the
-    build pushes steps of its own instead of borrowing the saved strategy's.
-    """
-
-    conversation_id: str
-    name: str
-    wdk_strategy_id: int
-    root_count: int | None = None
-    step_count: int = 0
-    subtree: StrategyStepNode
-
-    @property
-    def label(self) -> str:
-        """The saved strategy named with the size it brings."""
-        size = f"{self.step_count} steps"
-        if self.root_count is not None:
-            size = f"{self.root_count} results, {size}"
-        return f"saved strategy {self.name!r} ({size})"
-
-
 class RequirementLink(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     requirement: str
     param: str | None = None
+    result_size: bool = False
+
+    @model_validator(mode="after")
+    def _a_result_size_names_no_parameter(self) -> RequirementLink:
+        if self.result_size and self.param is not None:
+            msg = "a link to the result size names no parameter"
+            raise ValueError(msg)
+        return self
 
 
 class Criterion(CamelModel):

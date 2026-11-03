@@ -22,11 +22,10 @@ from pathfinder.domain.strategy.linked_values import (
     NO_LINK,
     linked_analyses,
     linked_params,
-    not_verified,
     unread,
+    untyped,
 )
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
-from pathfinder.domain.strategy.value_grounding import UNTYPED
 
 FOLD_PARAM = "fold_change"
 _DIRECTION: dict[FoldDirection, EdaEffectDirection] = {
@@ -143,7 +142,7 @@ def ground_fold_change(c: Constraint, realized: RealizedSpec) -> GroundedConstra
         case FoldChangeValue() as asked:
             pass
         case _:
-            return not_verified(c, UNTYPED)
+            return untyped(c)
     turned = _another_direction(c, asked, realized)
     if turned is not None:
         return turned

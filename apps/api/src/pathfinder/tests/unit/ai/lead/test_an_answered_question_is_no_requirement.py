@@ -189,7 +189,7 @@ async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> No
 def test_answering_questions_retires_no_requirement() -> None:
     domain = StrategyDomainState(
         open_questions=[_comparison_question()],
-        requirements=[requirement(ConstraintKind.OTHER, "localisation", "secreted")],
+        requirements=[requirement(ConstraintKind.UNTYPED, "localisation", "secreted")],
     )
 
     domain.answer_open_questions("Comparisons amastigote", on_card=True)

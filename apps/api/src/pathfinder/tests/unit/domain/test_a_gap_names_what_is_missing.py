@@ -8,10 +8,10 @@ from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap, failed
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 
 _EXPORTED = Constraint(
-    kind=ConstraintKind.OTHER, requested_value="exported", label="exported"
+    kind=ConstraintKind.UNTYPED, requested_value="exported", label="exported"
 )
 _HOST = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="in the host cell",
     label="in the host cell",
 )

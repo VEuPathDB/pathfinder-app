@@ -73,7 +73,7 @@ def test_only_the_organism_requirements_are_hints() -> None:
 def test_the_stated_order_is_kept() -> None:
     requirements = [
         requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
-        requirement(ConstraintKind.OTHER, "other", "kinase"),
+        requirement(ConstraintKind.UNTYPED, "other", "kinase"),
         requirement(ConstraintKind.ORGANISM, "organism", "Anopheles gambiae"),
     ]
 
@@ -149,7 +149,7 @@ def _turn_one_intent() -> UserIntent:
         inferred_goal="midgut proteases near a motif",
         explicit_constraints=[
             requirement(ConstraintKind.ORGANISM, "organism", "Anopheles gambiae"),
-            requirement(ConstraintKind.OTHER, "regulatory motif", _MOTIF),
+            requirement(ConstraintKind.UNTYPED, "regulatory motif", _MOTIF),
         ],
     )
 
@@ -160,7 +160,7 @@ def _turn_two_intent() -> UserIntent:
         inferred_goal="confirm the definitions and proceed",
         explicit_constraints=[
             requirement(
-                ConstraintKind.OTHER, "motif proximity", "within 1 kb upstream"
+                ConstraintKind.UNTYPED, "motif proximity", "within 1 kb upstream"
             ),
         ],
     )
@@ -211,7 +211,7 @@ def test_the_summary_marks_a_requirement_the_message_did_not_state() -> None:
             requirement(
                 ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"
             ).model_copy(update={"quote": "P. falciparum"}),
-            requirement(ConstraintKind.OTHER, "profile breadth", composed),
+            requirement(ConstraintKind.UNTYPED, "profile breadth", composed),
         ],
     )
     state = _threaded_state(_HINT_PROMPT, intent)
@@ -219,7 +219,7 @@ def test_the_summary_marks_a_requirement_the_message_did_not_state() -> None:
     summary = derive_ledger(state, intent).render_summary()
 
     assert (
-        f"### Captured for the user, not stated by them\n- profile breadth (other): {composed!r}"
+        f"### Captured for the user, not stated by them\n- profile breadth (untyped): {composed!r}"
         in summary
     )
     assert (
@@ -232,7 +232,7 @@ def test_the_summary_caps_the_requirement_list() -> None:
         IntentClassification.NEW_STRATEGY,
         inferred_goal="many",
         explicit_constraints=[
-            requirement(ConstraintKind.OTHER, f"r{i}", f"requirement {i}")
+            requirement(ConstraintKind.UNTYPED, f"r{i}", f"requirement {i}")
             for i in range(30)
         ],
     )

@@ -47,7 +47,12 @@ def organism_split(intent: UserIntent, site_id: str) -> UserIntent:
                     binomial,
                     typed={"kind": "organism", "organism": binomial},
                 ),
-                stated("other", "gene category", f"{strain} genes"),
+                stated(
+                    "untyped",
+                    "gene category",
+                    f"{strain} genes",
+                    typed={"kind": "untyped", "text": f"{strain} genes"},
+                ),
             ],
         }
     )

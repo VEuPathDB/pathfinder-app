@@ -29,7 +29,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _CUTOFF = requirement(ConstraintKind.PERCENTILE, "expression", "top 50th percentile")
 _QUARTILE = requirement(ConstraintKind.PERCENTILE, "expression", "top quartile")
-_SIGNAL = requirement(ConstraintKind.OTHER, "localisation", "signal peptide")
+_SIGNAL = requirement(ConstraintKind.UNTYPED, "localisation", "signal peptide")
 
 
 @pytest.fixture(autouse=True)

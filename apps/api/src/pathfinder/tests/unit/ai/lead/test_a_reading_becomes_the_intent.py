@@ -7,14 +7,17 @@ from pathfinder.ai.lead.message_intent import intent_of
 from pathfinder.domain.message_reading import (
     Effect,
     MessageReading,
+    StatedCount,
     StatedDataType,
     StatedFoldChange,
     StatedOrganism,
-    StatedOther,
+    StatedOrtholog,
     StatedPercentile,
+    StatedProperty,
     StatedRecordType,
     StatedRequest,
     StatedSignificance,
+    StatedText,
     StatedUntyped,
     StatedWithdrawal,
     Want,
@@ -22,12 +25,16 @@ from pathfinder.domain.message_reading import (
 from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
+    CountValue,
     DataTypeValue,
     FoldChangeValue,
     OrganismValue,
+    OrthologValue,
     PercentileValue,
+    PropertyValue,
     RecordTypeValue,
     SignificanceValue,
+    TextValue,
     UntypedValue,
 )
 
@@ -120,7 +127,7 @@ def test_a_comparison_carries_its_sides() -> None:
     assert (intent.is_differential, intent.differential_sides) == (True, ["3D7", "Dd2"])
 
 
-def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
+def test_each_requirement_is_a_stated_constraint_of_its_kind() -> None:
     request = StatedRequest(
         goal="3D7 genes with a signal peptide at adjusted p 0.05",
         requirements=[
@@ -137,7 +144,7 @@ def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
                 statistic="adjusted_p",
                 at_most=0.05,
             ),
-            StatedOther(
+            StatedProperty(
                 quote="a predicted signal peptide",
                 kind="property",
                 value="predicted signal peptide",
@@ -167,7 +174,7 @@ def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
             True,
         ),
         (
-            ConstraintKind.OTHER,
+            ConstraintKind.PROPERTY,
             "predicted signal peptide",
             "a predicted signal peptide",
             ConstraintSource.USER_EXPLICIT,
@@ -211,7 +218,28 @@ def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
                 value="Plasmodium falciparum 3D7",
                 organism="Plasmodium falciparum 3D7",
             ),
-            StatedOther(quote="secreted", kind="property", value="secreted"),
+            StatedProperty(quote="secreted", kind="property", value="secreted"),
+            StatedCount(
+                quote="2 to 99 transmembrane domains",
+                kind="count",
+                value="at least 2 transmembrane domains",
+                feature="transmembrane domains",
+                op=">=",
+                number=2,
+            ),
+            StatedOrtholog(
+                quote="syntenic orthologs in P. vivax P01",
+                kind="ortholog",
+                value="syntenic orthologs in Plasmodium vivax P01",
+                organisms=["Plasmodium vivax P01"],
+                syntenic=True,
+            ),
+            StatedText(
+                quote="kinase in the product name",
+                kind="text",
+                value="kinase in the product name",
+                phrase="kinase",
+            ),
             StatedDataType(
                 quote="microarray experiment",
                 kind="data_type",
@@ -240,12 +268,21 @@ def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
             ConstraintKind.STATISTICAL_THRESHOLD,
             SignificanceValue(statistic="p_value", at_most=1e-10),
         ),
-        (ConstraintKind.OTHER, UntypedValue(text="2019 study")),
+        (ConstraintKind.UNTYPED, UntypedValue(text="2019 study")),
         (
             ConstraintKind.ORGANISM,
             OrganismValue(organism="Plasmodium falciparum 3D7"),
         ),
-        (ConstraintKind.OTHER, None),
+        (ConstraintKind.PROPERTY, PropertyValue(phrase="secreted")),
+        (
+            ConstraintKind.COUNT,
+            CountValue(feature="transmembrane domains", op=">=", value=2),
+        ),
+        (
+            ConstraintKind.ORTHOLOG,
+            OrthologValue(organisms=["Plasmodium vivax P01"], syntenic=True),
+        ),
+        (ConstraintKind.TEXT, TextValue(phrase="kinase")),
         (ConstraintKind.DATA_TYPE, DataTypeValue(data="microarray")),
         (
             ConstraintKind.RECORD_TYPE,
@@ -272,7 +309,7 @@ def test_a_stated_percentile_reads_from_the_extraction_s_json() -> None:
 
     assert [r.typed() for r in request.requirements] == [
         PercentileValue(end="top", share=5),
-        None,
+        PropertyValue(phrase="secreted"),
     ]
 
 

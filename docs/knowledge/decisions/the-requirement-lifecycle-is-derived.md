@@ -29,10 +29,11 @@ successor. `ThreadRequirements.record(intent, messages)`
   never displaces a value the researcher stated of a single-valued dimension: it is dropped, neither recorded
   nor retired (`stated_requirements._outranked`). A stated value displaces an
   assumed one.
-- `other` holds many values everywhere, the ledger's merge included: two `other`
-  values collapse only when their non-filler words are equal
-  (`constraints.content_words`, `constraints.merge_constraints`), the stated one
-  winning.
+- `count`, `ortholog`, `text`, `property`, `untyped` and `combination` hold many
+  values everywhere, the ledger's merge included: two of them collapse only when
+  their typed values are equal, or when they are one requirement by id
+  (`constraints.MANY_VALUED_KINDS`, `constraints.merge_constraints`), the stated
+  one winning.
 - A withdrawn requirement retires as `replaced` by a value of the same dimension
   the message states, else as `withdrawn` on this message. Which held
   requirement a message withdraws is decided by

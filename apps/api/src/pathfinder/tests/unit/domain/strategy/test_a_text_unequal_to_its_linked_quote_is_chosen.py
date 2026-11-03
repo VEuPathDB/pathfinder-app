@@ -129,7 +129,7 @@ async def test_the_phrase_a_text_was_cut_from_is_never_a_reading(
 
 def test_each_parameter_takes_the_quotes_of_the_requirements_linked_to_it() -> None:
     linked = Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value="variant erythrocyte surface antigen",
         label="annotation",
         quote=_QUOTE,

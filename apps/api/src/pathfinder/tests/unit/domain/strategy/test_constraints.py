@@ -151,10 +151,8 @@ class TestMergingRequirements:
         ]
 
     def test_the_same_combination_stated_twice_is_one_requirement(self) -> None:
-        merged = merge_constraints(
-            [_combination("mass spec OR DeRisi expression")],
-            [_combination("mass spec OR DeRisi expression")],
-        )
+        held = _combination("mass spec OR DeRisi expression")
+        merged = merge_constraints([held], [held])
 
         assert len(merged) == 1
         assert merged[0].requested_value == "mass spec OR DeRisi expression"
@@ -165,33 +163,3 @@ class TestMergingRequirements:
         )
 
         assert [c.requested_value for c in merged] == ["RNA-Seq only"]
-
-
-def _other(value: str, source: ConstraintSource) -> Constraint:
-    return Constraint(
-        kind=ConstraintKind.OTHER, requested_value=value, source=source, label="other"
-    )
-
-
-def test_two_distinct_other_values_both_survive_the_merge() -> None:
-    merged = merge_constraints(
-        [_other("signal peptide", ConstraintSource.ASSUMED)],
-        [_other("zinc finger domain", ConstraintSource.USER_EXPLICIT)],
-    )
-
-    assert [c.requested_value for c in merged] == [
-        "signal peptide",
-        "zinc finger domain",
-    ]
-
-
-def test_a_reworded_other_value_collapses_to_the_stated_one() -> None:
-    """Values whose non-filler words are equal are one requirement."""
-    merged = merge_constraints(
-        [_other("transmembrane domain", ConstraintSource.ASSUMED)],
-        [_other("a transmembrane domain", ConstraintSource.USER_EXPLICIT)],
-    )
-
-    assert [(c.requested_value, c.source) for c in merged] == [
-        ("a transmembrane domain", ConstraintSource.USER_EXPLICIT)
-    ]

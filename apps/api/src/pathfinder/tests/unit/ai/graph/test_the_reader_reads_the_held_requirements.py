@@ -28,7 +28,7 @@ def test_the_reader_is_given_each_held_requirement_under_its_number() -> None:
         genes,
         assumed,
         requirement(ConstraintKind.FOLD_CHANGE, "fold change", "at least 2-fold"),
-        requirement(ConstraintKind.OTHER, "localisation", "signal peptide"),
+        requirement(ConstraintKind.PROPERTY, "localisation", "signal peptide"),
     ]
     message = "Drop the fold change."
     state = pipeline_state(
@@ -42,6 +42,6 @@ def test_the_reader_is_given_each_held_requirement_under_its_number() -> None:
     assert read.record_classes == {"transcript": "Genes"}
     assert read.held == {
         "R1": "fold_change: at least 2-fold",
-        "R2": "other: signal peptide",
+        "R2": "property: signal peptide",
         "R3": "record_type: genes",
     }

@@ -60,14 +60,14 @@ _V2_CAVEAT = ControlsCaveat(
     positives_returned=52, positives_total=80, negatives_returned=2, negatives_total=40
 )
 _TM = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     label="transmembrane domains",
     requested_value="at least 2 transmembrane domains",
     source=ConstraintSource.USER_EXPLICIT,
 )
 _UNMET = SiteCheckGap(
     check=SiteCheck(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         subject="at least 2 transmembrane domains",
         status="fail",
         evidence="the strategy states tm_count = 1",
@@ -96,7 +96,7 @@ def _checked(
     )
     state.domain.requirements = [
         requirement(
-            ConstraintKind.OTHER,
+            ConstraintKind.UNTYPED,
             "transmembrane domains",
             "at least 2 transmembrane domains",
         )
@@ -146,7 +146,7 @@ _GPI_REQUEST = "Find Plasmodium falciparum 3D7 genes with a predicted GPI anchor
 
 
 _GPI = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     label="predicted GPI anchor",
     requested_value="predicted GPI anchor",
     source=ConstraintSource.USER_EXPLICIT,

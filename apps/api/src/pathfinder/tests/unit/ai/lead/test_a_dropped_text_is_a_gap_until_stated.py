@@ -31,7 +31,7 @@ _ASKED = f"Genes with a signal peptide that {_ISOLATES}."
 # The criterion's own text, which is the plan's words and never a gap.
 _PLAN = "SNP density at the site default across isolates"
 _REQUIREMENT = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value=_ISOLATES,
     label="little variation between isolates",
     source=ConstraintSource.USER_EXPLICIT,

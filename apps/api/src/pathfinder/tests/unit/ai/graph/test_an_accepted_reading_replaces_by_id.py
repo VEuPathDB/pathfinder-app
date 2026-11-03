@@ -37,8 +37,8 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
     )
 
 
-_PRESENT = _stated(ConstraintKind.OTHER, "present in all Plasmodium species")
-_STAGE = _stated(ConstraintKind.OTHER, "expressed in blood stages")
+_PRESENT = _stated(ConstraintKind.UNTYPED, "present in all Plasmodium species")
+_STAGE = _stated(ConstraintKind.UNTYPED, "expressed in blood stages")
 _PLASMODIUM = _stated(ConstraintKind.ORGANISM, "Plasmodium")
 
 
@@ -57,7 +57,7 @@ def _asked(
     criterion_id: str,
     prompt: str,
     replaces: list[str],
-    dimension: ConstraintKind = ConstraintKind.OTHER,
+    dimension: ConstraintKind = ConstraintKind.UNTYPED,
 ) -> OpenQuestion:
     return SlotQuestion(
         question=prompt,
@@ -83,7 +83,7 @@ def _accepted(replaces: list[str]) -> AcceptedReading:
 
 def _stand_in(prompt: str) -> Constraint:
     return Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value=_SHARE_LABEL,
         label=prompt,
         source=ConstraintSource.USER_EXPLICIT,

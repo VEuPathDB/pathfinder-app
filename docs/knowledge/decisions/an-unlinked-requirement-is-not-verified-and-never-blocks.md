@@ -20,21 +20,28 @@ a requirement only through what the strategy binds for it:
 - A value requirement (percentile, fold change, significance, count) that no
   criterion links to a parameter or an analysis field gives `unchecked` with
   `no_value_to_compare`.
-- A text or property requirement no criterion links gives `unchecked` with
-  `no_step_states_it`. A linked one shows "answered by step" and the step's title.
+- A text, ortholog or property requirement no criterion links gives `unchecked`
+  with `no_step_states_it`. A linked property shows "answered by step" and the
+  step's title; a linked text or ortholog is compared with the value the site
+  holds.
 
-An unchecked check is shown "not verified" on the card and in the facts. It is
+The grounding marks such a requirement with the status `not_verified` and the
+reason (`GroundedConstraint.unverified`, held to the status by a validator), and
+`requirement_checks.grounded_check` carries the reason as `why_unchecked`. It is
 never a pass and never a failure, so it does not block the verdict, the same
-rule `no_check` already follows for `comparator` and `other`. The researcher
-sees which requirements nothing compared.
+rule `no_check` follows for `comparator`. The ledger renders it "not verified",
+the evidence card's check row reads "Not verified", and the web constraints
+section shows a "not verified" pill, never "grounded". The researcher sees which
+requirements nothing compared.
 
-Percentile, fold change, significance, data type and record type follow this
-rule
-([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)),
-with the reason as the grounding's note and `why_unchecked: no_check`; a data
-type no criterion links is not verified. The code still grounds an organism by
-reading its words, and a hard stated requirement that reading cannot ground
-blocks (`constraints.is_blocking`), until steps 11 and 13 of that item land.
+Every kind follows this rule
+([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)):
+a value with no typed field is `untyped`; a percentile, fold change,
+significance or count with no linked parameter, analysis cut or step count, a
+text linked with no parameter and an ortholog with no linking transform are
+`no_value_to_compare`; a data type, text, ortholog or property no criterion
+links is `no_step_states_it`; a record type or an organism with no value is
+`untyped`.
 
 # What was rejected
 

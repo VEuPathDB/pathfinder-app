@@ -14,18 +14,18 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 
-_OLD_KIND: dict[RequirementKind, ConstraintKind] = {
+_KIND: dict[RequirementKind, ConstraintKind] = {
     "organism": ConstraintKind.ORGANISM,
     "record_type": ConstraintKind.RECORD_TYPE,
     "data_type": ConstraintKind.DATA_TYPE,
     "percentile": ConstraintKind.PERCENTILE,
     "fold_change": ConstraintKind.FOLD_CHANGE,
     "significance": ConstraintKind.STATISTICAL_THRESHOLD,
-    "count": ConstraintKind.OTHER,
-    "ortholog": ConstraintKind.OTHER,
-    "text": ConstraintKind.OTHER,
-    "property": ConstraintKind.OTHER,
-    "untyped": ConstraintKind.OTHER,
+    "count": ConstraintKind.COUNT,
+    "ortholog": ConstraintKind.ORTHOLOG,
+    "text": ConstraintKind.TEXT,
+    "property": ConstraintKind.PROPERTY,
+    "untyped": ConstraintKind.UNTYPED,
 }
 
 _BY_EFFECT: dict[Effect, IntentClassification] = {
@@ -57,7 +57,7 @@ def _classification(reading: MessageReading, effect: Effect) -> IntentClassifica
 
 def _constraint(stated: StatedRequirement) -> Constraint:
     return Constraint(
-        kind=_OLD_KIND[stated.kind],
+        kind=_KIND[stated.kind],
         requested_value=stated.value,
         label=stated.value,
         source=ConstraintSource.USER_EXPLICIT,

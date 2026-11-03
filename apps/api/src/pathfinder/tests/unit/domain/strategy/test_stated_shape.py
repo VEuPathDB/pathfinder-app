@@ -12,7 +12,6 @@ from veupathdb.domain.strategy import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    SavedStrategyRef,
     SpecStructure,
 )
 from pathfinder.domain.strategy.operations import (
@@ -25,6 +24,7 @@ from pathfinder.domain.strategy.operations.types import (
     AttachNewRoot,
     GraphOperation,
 )
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,

@@ -14320,13 +14320,17 @@ components:
           anyOf:
           - discriminator:
               mapping:
+                count: '#/components/schemas/CountValue'
                 data_type: '#/components/schemas/DataTypeValue'
                 fold_change: '#/components/schemas/FoldChangeValue'
                 organism: '#/components/schemas/OrganismValue'
-                other: '#/components/schemas/UntypedValue'
+                ortholog: '#/components/schemas/OrthologValue'
                 percentile: '#/components/schemas/PercentileValue'
+                property: '#/components/schemas/PropertyValue'
                 record_type: '#/components/schemas/RecordTypeValue'
                 statistical_threshold: '#/components/schemas/SignificanceValue'
+                text: '#/components/schemas/TextValue'
+                untyped: '#/components/schemas/UntypedValue'
               propertyName: kind
             oneOf:
             - $ref: '#/components/schemas/PercentileValue'
@@ -14335,6 +14339,10 @@ components:
             - $ref: '#/components/schemas/DataTypeValue'
             - $ref: '#/components/schemas/RecordTypeValue'
             - $ref: '#/components/schemas/OrganismValue'
+            - $ref: '#/components/schemas/CountValue'
+            - $ref: '#/components/schemas/OrthologValue'
+            - $ref: '#/components/schemas/TextValue'
+            - $ref: '#/components/schemas/PropertyValue'
             - $ref: '#/components/schemas/UntypedValue'
           - type: 'null'
           title: Value
@@ -14354,7 +14362,11 @@ components:
       - record_type
       - percentile
       - combination
-      - other
+      - count
+      - ortholog
+      - text
+      - property
+      - untyped
       title: ConstraintKind
       type: string
     ConstraintSection:
@@ -14389,6 +14401,7 @@ components:
       - grounded
       - substituted
       - ungroundable
+      - not_verified
       title: ConstraintStatus
       type: string
     ConsultOption:
@@ -14761,6 +14774,34 @@ components:
       required:
       - title
       title: ConversationTitlePayload
+      type: object
+    CountOp:
+      enum:
+      - '>='
+      - '>'
+      - <=
+      - <
+      - '='
+      type: string
+    CountValue:
+      properties:
+        kind:
+          const: count
+          default: count
+          title: Kind
+          type: string
+        feature:
+          $ref: '#/components/schemas/_Phrase'
+        op:
+          $ref: '#/components/schemas/CountOp'
+        value:
+          title: Value
+          type: number
+      required:
+      - feature
+      - op
+      - value
+      title: CountValue
       type: object
     CountedIn:
       enum:
@@ -15992,6 +16033,10 @@ components:
           default: ''
           title: Note
           type: string
+        unverified:
+          anyOf:
+          - $ref: '#/components/schemas/Unverified'
+          - type: 'null'
         lifecycle:
           discriminator:
             mapping:
@@ -16850,6 +16895,28 @@ components:
       - geneId
       title: OrthologFact
       type: object
+    OrthologValue:
+      properties:
+        kind:
+          const: ortholog
+          default: ortholog
+          title: Kind
+          type: string
+        organisms:
+          items:
+            $ref: '#/components/schemas/_Phrase'
+          minItems: 1
+          title: Organisms
+          type: array
+        syntenic:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Syntenic
+      required:
+      - organisms
+      title: OrthologValue
+      type: object
     PairwiseOverlap:
       properties:
         a:
@@ -17011,6 +17078,19 @@ components:
       - phraseCount
       - sentence
       title: PhraseCaveat
+      type: object
+    PropertyValue:
+      properties:
+        kind:
+          const: property
+          default: property
+          title: Kind
+          type: string
+        phrase:
+          $ref: '#/components/schemas/_Phrase'
+      required:
+      - phrase
+      title: PropertyValue
       type: object
     Proposal:
       description: 'The work a card offers: one question and the changes a yes makes.'
@@ -17281,6 +17361,10 @@ components:
           - type: string
           - type: 'null'
           title: Param
+        resultSize:
+          default: false
+          title: Resultsize
+          type: boolean
       required:
       - requirement
       title: RequirementLink
@@ -17717,7 +17801,7 @@ components:
       properties:
         kind:
           anyOf:
-          - $ref: '#/components/schemas/ConstraintKind'
+          - $ref: '#/components/schemas/StoredKind'
           - $ref: '#/components/schemas/StepCheckKind'
           title: Kind
         subject:
@@ -17935,6 +18019,46 @@ components:
           type: array
       title: StaleBuild
       type: object
+    StatedCount:
+      properties:
+        quote:
+          minLength: 1
+          title: Quote
+          type: string
+        value:
+          minLength: 1
+          title: Value
+          type: string
+        hard:
+          default: true
+          title: Hard
+          type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
+        kind:
+          const: count
+          title: Kind
+          type: string
+        feature:
+          minLength: 1
+          title: Feature
+          type: string
+        op:
+          $ref: '#/components/schemas/CountOp'
+        number:
+          title: Number
+          type: number
+      required:
+      - quote
+      - value
+      - kind
+      - feature
+      - op
+      - number
+      title: StatedCount
+      type: object
     StatedDataType:
       properties:
         quote:
@@ -18042,7 +18166,7 @@ components:
       - organism
       title: StatedOrganism
       type: object
-    StatedOther:
+    StatedOrtholog:
       properties:
         quote:
           minLength: 1
@@ -18061,18 +18185,26 @@ components:
           title: Beside
           type: string
         kind:
-          enum:
-          - count
-          - ortholog
-          - text
-          - property
+          const: ortholog
           title: Kind
           type: string
+        organisms:
+          items:
+            type: string
+          minItems: 1
+          title: Organisms
+          type: array
+        syntenic:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Syntenic
       required:
       - quote
       - value
       - kind
-      title: StatedOther
+      - organisms
+      title: StatedOrtholog
       type: object
     StatedPercentile:
       properties:
@@ -18107,6 +18239,34 @@ components:
       - end
       - share
       title: StatedPercentile
+      type: object
+    StatedProperty:
+      properties:
+        quote:
+          minLength: 1
+          title: Quote
+          type: string
+        value:
+          minLength: 1
+          title: Value
+          type: string
+        hard:
+          default: true
+          title: Hard
+          type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
+        kind:
+          const: property
+          title: Kind
+          type: string
+      required:
+      - quote
+      - value
+      - kind
+      title: StatedProperty
       type: object
     StatedRecordType:
       properties:
@@ -18155,16 +18315,16 @@ components:
           items:
             discriminator:
               mapping:
-                count: '#/components/schemas/StatedOther'
+                count: '#/components/schemas/StatedCount'
                 data_type: '#/components/schemas/StatedDataType'
                 fold_change: '#/components/schemas/StatedFoldChange'
                 organism: '#/components/schemas/StatedOrganism'
-                ortholog: '#/components/schemas/StatedOther'
+                ortholog: '#/components/schemas/StatedOrtholog'
                 percentile: '#/components/schemas/StatedPercentile'
-                property: '#/components/schemas/StatedOther'
+                property: '#/components/schemas/StatedProperty'
                 record_type: '#/components/schemas/StatedRecordType'
                 significance: '#/components/schemas/StatedSignificance'
-                text: '#/components/schemas/StatedOther'
+                text: '#/components/schemas/StatedText'
                 untyped: '#/components/schemas/StatedUntyped'
               propertyName: kind
             oneOf:
@@ -18174,8 +18334,11 @@ components:
             - $ref: '#/components/schemas/StatedDataType'
             - $ref: '#/components/schemas/StatedRecordType'
             - $ref: '#/components/schemas/StatedOrganism'
+            - $ref: '#/components/schemas/StatedCount'
+            - $ref: '#/components/schemas/StatedOrtholog'
+            - $ref: '#/components/schemas/StatedText'
+            - $ref: '#/components/schemas/StatedProperty'
             - $ref: '#/components/schemas/StatedUntyped'
-            - $ref: '#/components/schemas/StatedOther'
           title: Requirements
           type: array
         withdrawn:
@@ -18249,6 +18412,43 @@ components:
       - kind
       - atMost
       title: StatedSignificance
+      type: object
+    StatedText:
+      properties:
+        quote:
+          minLength: 1
+          title: Quote
+          type: string
+        value:
+          minLength: 1
+          title: Value
+          type: string
+        hard:
+          default: true
+          title: Hard
+          type: boolean
+        beside:
+          default: ''
+          title: Beside
+          type: string
+        kind:
+          const: text
+          title: Kind
+          type: string
+        phrase:
+          minLength: 1
+          title: Phrase
+          type: string
+        exact:
+          default: false
+          title: Exact
+          type: boolean
+      required:
+      - quote
+      - value
+      - kind
+      - phrase
+      title: StatedText
       type: object
     StatedUntyped:
       properties:
@@ -18470,6 +18670,8 @@ components:
       - error
       title: StepPushFailure
       type: object
+    StoredKind:
+      $ref: '#/components/schemas/ConstraintKind'
     StrategyLink:
       description: A link to the strategy in the public WDK UI.
       properties:
@@ -18870,6 +19072,23 @@ components:
       - value
       title: TestedParameter
       type: object
+    TextValue:
+      properties:
+        kind:
+          const: text
+          default: text
+          title: Kind
+          type: string
+        phrase:
+          $ref: '#/components/schemas/_Phrase'
+        exact:
+          default: false
+          title: Exact
+          type: boolean
+      required:
+      - phrase
+      title: TextValue
+      type: object
     ThresholdSides:
       description: 'The records on each side of one threshold whose direction the site does
 
@@ -19208,6 +19427,9 @@ components:
       - no_check
       - site_unanswered
       - site_refused
+      - untyped
+      - no_value_to_compare
+      - no_step_states_it
       type: string
     UniqueGene:
       description: One gene only this variant returns, with the product its record names.
@@ -19304,18 +19526,22 @@ components:
     UntypedValue:
       properties:
         kind:
-          const: other
-          default: other
+          const: untyped
+          default: untyped
           title: Kind
           type: string
         text:
-          minLength: 1
-          title: Text
-          type: string
+          $ref: '#/components/schemas/_Phrase'
       required:
       - text
       title: UntypedValue
       type: object
+    Unverified:
+      enum:
+      - untyped
+      - no_value_to_compare
+      - no_step_states_it
+      type: string
     UserIntent:
       description: 'The Lead''s typed parsing of the latest user message.
 
@@ -19811,6 +20037,9 @@ components:
       - sentence
       title: ZeroCombineCaveat
       type: object
+    _Phrase:
+      minLength: 1
+      type: string
     StreamPartsSchemaIndex:
       description: Index of stream-part payload schemas. Never called - exists for OpenAPI generation.
       properties:

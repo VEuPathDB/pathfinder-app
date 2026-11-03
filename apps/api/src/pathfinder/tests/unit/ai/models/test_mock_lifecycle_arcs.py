@@ -73,8 +73,8 @@ async def test_a_withdrawal_retires_the_requirement_its_number_names(
     site_id: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     serve_recorded_organisms(monkeypatch)
-    tm = _stated(ConstraintKind.OTHER, "a transmembrane domain")
-    signal = _stated(ConstraintKind.OTHER, "a signal peptide")
+    tm = _stated(ConstraintKind.UNTYPED, "a transmembrane domain")
+    signal = _stated(ConstraintKind.UNTYPED, "a signal peptide")
     message = "Drop the transmembrane domain. [[arc:withdrawn-requirement]]"
     assert names(play("lead", site_id, message)) == ["final_result"]
     state = pipeline_state(

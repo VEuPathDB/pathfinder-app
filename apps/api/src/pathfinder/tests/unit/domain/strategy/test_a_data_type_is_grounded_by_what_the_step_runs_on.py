@@ -194,7 +194,7 @@ def test_a_requirement_no_criterion_links_is_not_verified() -> None:
     marks = DataMarks(searches={_PROFILE: "DNA Microarray Assay"})
 
     assert _ground(_curated(_PROFILE, linked=False), marks) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         None,
         "no criterion links it",
     )
@@ -204,7 +204,7 @@ def test_a_requirement_with_no_typed_value_is_not_verified() -> None:
     marks = DataMarks(searches={_PROFILE: "DNA Microarray Assay"})
 
     assert _ground(_curated(_PROFILE), marks, _asked(None)) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         None,
         "no typed value to compare",
     )

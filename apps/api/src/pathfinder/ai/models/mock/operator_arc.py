@@ -31,13 +31,36 @@ from pathfinder.domain.strategy.operator_reading import OPERATOR_QUESTION
 
 SIGNAL_PEPTIDE = "a predicted signal peptide"
 TM_DOMAINS = "2 to 99 transmembrane domains"
+TM_BOUNDS = (
+    (f"at least {TM_RANGE[0]} transmembrane domains", ">=", int(TM_RANGE[0])),
+    (f"at most {TM_RANGE[1]} transmembrane domains", "<=", int(TM_RANGE[1])),
+)
 _READ = "intersect"
 _READ_CONFIDENCE = 0.93
 
 operator_reading = read_as(
     IntentClassification.NEW_STRATEGY,
-    stated("other", "signal peptide", SIGNAL_PEPTIDE),
-    stated("other", "transmembrane domains", TM_DOMAINS),
+    stated(
+        "property",
+        "signal peptide",
+        SIGNAL_PEPTIDE,
+        typed={"kind": "property", "phrase": SIGNAL_PEPTIDE},
+    ),
+    *(
+        stated(
+            "count",
+            "transmembrane domains",
+            value,
+            typed={
+                "kind": "count",
+                "feature": "transmembrane domains",
+                "op": op,
+                "value": bound,
+            },
+            quote=TM_DOMAINS,
+        )
+        for value, op, bound in TM_BOUNDS
+    ),
 )
 
 
@@ -45,7 +68,9 @@ def union_of_the_stated(values: SiteValues) -> SpecPlan:
     left = signal_peptide(values)
     right = tm_domains(values, *TM_RANGE)
     left = replace(left, answers=(*left.answers, SIGNAL_PEPTIDE))
-    right = replace(right, answers=(*right.answers, TM_DOMAINS))
+    right = replace(
+        right, answers=(*right.answers, *(value for value, _, _ in TM_BOUNDS))
+    )
     return SpecPlan(
         title=f"{values.organism} signal peptide or membrane genes (mock)",
         criteria=(left, right),
