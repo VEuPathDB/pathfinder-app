@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 from collections.abc import Iterator
 
 import pytest
 from assistant_core.errors import ModelDeclinedError
 from pydantic import SecretStr
 from pydantic_ai import RunContext, Tool
+from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models import infer_model
 from pydantic_ai.models.function import FunctionModel
@@ -41,7 +43,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 pytestmark = pytest.mark.usefixtures("collector")
 
-_UNREACHABLE = "Connection error."
+_REFUSED = ModelHTTPError(400, "scripted")
 _DEFAULT_MODEL = DEFAULT_MODEL
 _PICKED_MODEL = ANTHROPIC_SMALL
 
@@ -74,13 +76,19 @@ async def ping(ctx: RunContext[AgentDeps]) -> str:
 def _crashes_at_once(messages: list[ModelMessage]) -> ToolCallPart:
     """A model the provider never answers for."""
     del messages
-    raise RuntimeError(_UNREACHABLE)
+    raise _REFUSED
+
+
+def _our_code_raises(messages: list[ModelMessage]) -> ToolCallPart:
+    del messages
+    json.loads("a label")
+    return ToolCallPart(tool_name="ping", args="{}", tool_call_id="call_ping_1")
 
 
 def _crashes_after_one_call(messages: list[ModelMessage]) -> ToolCallPart:
     """A model that answers one step, then loses its connection."""
     if "ping" in called_tool_names(messages):
-        raise RuntimeError(_UNREACHABLE)
+        raise _REFUSED
     return ToolCallPart(tool_name="ping", args="{}", tool_call_id="call_ping_1")
 
 
@@ -99,6 +107,11 @@ def _pinned(monkeypatch: pytest.MonkeyPatch, model: FunctionModel) -> Iterator[N
 @pytest.fixture
 def unreachable_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     yield from _pinned(monkeypatch, tool_script_model(_crashes_at_once))
+
+
+@pytest.fixture
+def frame_our_code_fails(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    yield from _pinned(monkeypatch, tool_script_model(_our_code_raises))
 
 
 @pytest.fixture
@@ -132,7 +145,7 @@ async def _dispatch(deps: LeadDeps) -> object:
 async def test_a_pass_whose_model_never_answered_names_its_stage() -> None:
     deps = _deps()
 
-    with pytest.raises(RuntimeError, match=_UNREACHABLE):
+    with pytest.raises(ModelHTTPError):
         await _dispatch(deps)
 
     stage = deps.unanswered_stage
@@ -150,7 +163,7 @@ async def test_the_stage_names_the_model_the_researcher_picked_for_it() -> None:
         phase_models={"frame": _PICKED_MODEL},
     )
 
-    with pytest.raises(RuntimeError, match=_UNREACHABLE):
+    with pytest.raises(ModelHTTPError):
         await _dispatch(deps)
 
     stage = deps.unanswered_stage
@@ -158,11 +171,21 @@ async def test_the_stage_names_the_model_the_researcher_picked_for_it() -> None:
     assert stage.model_id == _PICKED_MODEL
 
 
+@pytest.mark.usefixtures("frame_our_code_fails")
+async def test_a_pass_that_failed_in_our_own_code_names_no_stage() -> None:
+    deps = _deps()
+
+    with pytest.raises(json.JSONDecodeError):
+        await _dispatch(deps)
+
+    assert deps.unanswered_stage is None
+
+
 @pytest.mark.usefixtures("frame_lost_after_answering")
 async def test_a_pass_that_answered_before_it_failed_names_no_stage() -> None:
     deps = _deps()
 
-    with pytest.raises(RuntimeError, match=_UNREACHABLE):
+    with pytest.raises(ModelHTTPError):
         await _dispatch(deps)
 
     assert deps.unanswered_stage is None

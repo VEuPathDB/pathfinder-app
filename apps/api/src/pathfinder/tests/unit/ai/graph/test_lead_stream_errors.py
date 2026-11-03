@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import json
 import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
@@ -18,7 +19,11 @@ import openai
 import pytest
 from assistant_core.platform.types import PaidBy
 from langgraph.errors import GraphBubbleUp
-from pydantic_ai.exceptions import ModelAPIError, ModelHTTPError
+from pydantic_ai.exceptions import (
+    ModelAPIError,
+    ModelHTTPError,
+    UnexpectedModelBehavior,
+)
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
@@ -198,7 +203,12 @@ def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
     """A transport failure is not a badly phrased message; the reply says which it was."""
     capture = _LeadRunCapture()
 
-    _drive(monkeypatch, RuntimeError("peer closed connection"), capture, Collector())
+    _drive(
+        monkeypatch,
+        ModelAPIError("scripted", "peer closed connection"),
+        capture,
+        Collector(),
+    )
 
     assert capture.run_error == "peer closed connection"
     assert fallback_prose(capture, None, change="unchanged") == (
@@ -243,6 +253,27 @@ def test_a_model_that_never_answered_is_recorded_as_unanswered(
     _drive(monkeypatch, RuntimeError("Connection error."), capture, Collector())
 
     assert capture.model_answered is False
+
+
+@pytest.mark.parametrize(
+    ("error", "provider_failed"),
+    [
+        (ModelHTTPError(400, "scripted"), True),
+        (ModelAPIError("scripted", "The provider did not complete it."), True),
+        (UnexpectedModelBehavior("Received empty model response"), True),
+        (json.JSONDecodeError("Expecting value", "a label", 0), False),
+        (RuntimeError("Connection error."), False),
+    ],
+)
+def test_the_capture_says_whether_a_provider_call_failed(
+    monkeypatch: pytest.MonkeyPatch, error: Exception, provider_failed: bool
+) -> None:
+    capture = _LeadRunCapture()
+
+    _drive(monkeypatch, error, capture, Collector())
+
+    assert capture.run_error is not None
+    assert capture.provider_failed is provider_failed
 
 
 def test_a_model_that_answered_once_is_recorded_as_answered(

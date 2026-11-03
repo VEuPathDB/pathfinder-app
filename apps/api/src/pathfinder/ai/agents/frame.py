@@ -19,6 +19,7 @@ from pathfinder.ai.agents._instructions import (
 from pathfinder.ai.agents.frame_expression_checks import hold_the_taxa_to_their_scope
 from pathfinder.ai.agents.frame_option_checks import (
     hold_an_option_to_a_held_expression,
+    hold_an_option_to_its_parameter,
 )
 from pathfinder.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
 from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
@@ -368,6 +369,7 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
     agent.output_validator(hold_an_option_to_a_held_expression)
+    agent.output_validator(hold_an_option_to_its_parameter)
     agent.output_validator(hold_the_readings_to_the_site)
     agent.output_validator(hold_the_taxa_to_their_scope)
     agent.output_validator(hold_an_unsettled_pick_to_a_question)

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
+from collections.abc import AsyncIterator
 from typing import Any, Literal
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
+from assistant_core.errors import ModelDeclinedError
 from assistant_core.platform.logging import get_logger
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
@@ -16,7 +18,10 @@ from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.sub_agent_stops import spent_its_output_retries
+from pathfinder.ai.lead.sub_agent_stops import (
+    a_provider_call_failed,
+    spent_its_output_retries,
+)
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, UnansweredStage
 from pathfinder.ai.lead.turn_budget import budget_stop_report
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -26,6 +31,28 @@ from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.model_keys import turn_deployment_refusals, turn_refusals
 
 logger = get_logger(__name__)
+
+
+async def noting_a_decline[EventT](
+    events: AsyncIterator[EventT], capture: _LeadRunCapture
+) -> AsyncIterator[EventT]:
+    try:
+        async for event in events:
+            yield event
+    except ModelDeclinedError as exc:
+        capture.declined = exc
+        raise
+
+
+async def noting_a_provider_failure[EventT](
+    events: AsyncIterator[EventT], capture: _LeadRunCapture
+) -> AsyncIterator[EventT]:
+    try:
+        async for event in events:
+            yield event
+    except Exception as exc:
+        capture.provider_failed = a_provider_call_failed(exc)
+        raise
 
 
 def guard_stop_of(
@@ -78,6 +105,7 @@ def absorb_loop_stop(
 # A link's query can carry a credential, so the refusal is shown without it.
 _URL_QUERY = re.compile(r"(\S*://[^\s?]*)\?\S*")
 _SHOWN_BESIDE = "what it answered is shown beside this reply"
+_ERROR_BESIDE = "the error is shown beside this reply"
 
 
 def shown_refusal(error: str | None) -> str:
@@ -147,7 +175,7 @@ def _stage_that_did_not_answer(
     """
     if unanswered is not None:
         return unanswered
-    if capture.model_answered:
+    if capture.model_answered or not capture.provider_failed:
         return None
     return UnansweredStage(role="lead", model_id=capture.lead_model)
 
@@ -289,9 +317,10 @@ def fallback_prose(
     if capture.run_error and refused is not None:
         return refused
     if capture.run_error:
+        shown = _SHOWN_BESIDE if capture.provider_failed else _ERROR_BESIDE
         return (
             f"I stopped this turn on an error I could not recover from; "
-            f"{_SHOWN_BESIDE}. {_what_to_do_next(capture, unanswered, change=change)}"
+            f"{shown}. {_what_to_do_next(capture, unanswered, change=change)}"
         )
     if change != "unchanged":
         return _NEXT[change]

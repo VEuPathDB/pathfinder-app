@@ -82,6 +82,23 @@ that follows sources it `card` again.
 FRAME's `questions_that_bind_to_nothing` refuses a question that names a slot no
 criterion of its draft holds, open or bound.
 
+An option binds its value as written, so the value must be one its parameter
+takes. `card_answers.option_refusal` runs the binding a pick would run, on the spec,
+and returns the refusal when the value does not read in the parameter's kind: a
+number, a range or a filter object, or the phyletic grammar on an expression
+parameter (`_kind_of` names the kind; a handle is resolved first). FRAME's output check
+`hold_an_option_to_its_parameter` (`ai/agents/frame_option_checks.py`) calls it for
+each option, with the kinds the draft holds and no read of the site, and sends the
+pass back within the refusal bound. Past the bound the question keeps its prompt
+with no option, is answered in the researcher's words, and the pass carries the gap
+`option_not_a_value`. A reading goes through `hold_the_readings_to_the_site`, which
+drops only the readings it refuses. The same call runs when a card is answered, on
+the published sheet too, because a stored card predates the check or a sheet can name a
+kind the draft does not hold. `consult_user` then binds nothing for that pick, closes the
+question and hands the Lead the refusal, so the turn goes on. The same prompt is not
+asked again, because the question is answered; the next pass words its question
+another way.
+
 A requirement the researcher takes back leaves `requirements` for
 `retiredRequirements` with a `withdrawn(turn)` or a `replaced(by)` lifecycle, and the
 thread derives which from the message: see
@@ -120,6 +137,15 @@ card listed (`_delete_rules.refuse_a_delete_the_card_did_not_list`).
 on paths that did not call it: the Lead's card, and a card a second pass built. A
 check a caller must remember is a check a new caller forgets; a validator on the
 question types runs wherever a card is built.
+
+**A value check on the option type.** A `SetValues` holds wire strings and no
+kind, and a kind comes from the criterion, the slot or the sheet, so a validator on
+the type has nothing to read it from. The check at the read of FRAME's result calls
+the binding itself, so it cannot disagree with what a pick does.
+
+**Repairing a label into a value.** A label names no filter clause or range, so a
+repair is a guess the researcher never sees. The pass offers a value or asks in
+free text.
 
 **Rewriting the card's arguments to the recorded options.** The card is drawn from
 the tool call's input, which the model wrote, so a rewrite on validation would draw

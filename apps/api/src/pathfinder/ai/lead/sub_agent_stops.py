@@ -175,6 +175,10 @@ def stopped(
     )
 
 
+def a_provider_call_failed(error: Exception) -> bool:
+    return isinstance(error, (ModelAPIError, UnexpectedModelBehavior))
+
+
 def the_provider_did_not_complete(error: ModelAPIError) -> bool:
     """Whether the provider failed the request rather than refusing it: no
     status, or a server status."""

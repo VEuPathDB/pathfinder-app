@@ -46,6 +46,7 @@ def test_a_failure_with_no_refused_key_still_offers_another_model() -> None:
     capture = _refused_turn()
     model_name = ANTHROPIC_SMALL.partition(":")[2]
     capture.run_error = f"status_code: 503, model_name: {model_name}, body: None"
+    capture.provider_failed = True
 
     with attach_keyring(_KEYRING):
         reply = final_reply(capture, None, change="unchanged")

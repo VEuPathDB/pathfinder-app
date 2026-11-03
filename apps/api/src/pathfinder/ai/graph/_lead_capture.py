@@ -91,6 +91,7 @@ class _LeadRunCapture:
     guard_stop: GuardStop | None = None
     # The text of the error chunk that ended the run, when one did.
     run_error: str | None = None
+    provider_failed: bool = False
     unanswered_site: SiteInfo | None = None
     # Whether the model produced any part of an answer in this run.
     model_answered: bool = False

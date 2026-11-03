@@ -60,6 +60,7 @@ from pathfinder.ai.lead.sub_agent_stops import (
     GUARD_STOP_REASON,
     Stopping,
     ToolRefusal,
+    a_provider_call_failed,
     early_stop,
     phase_stop,
     refusal_of,
@@ -195,8 +196,8 @@ def _name_the_stage_that_did_not_answer(
     answer = _PassAnswer()
     try:
         yield answer
-    except Exception:
-        if not answer.answered:
+    except Exception as exc:
+        if not answer.answered and a_provider_call_failed(exc):
             deps.unanswered_stage = UnansweredStage(
                 role=role,
                 model_id=phase_model_id(deps.runtime, role),

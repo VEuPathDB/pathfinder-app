@@ -46,6 +46,14 @@ _CHOSEN_MODEL_NAME = display_name(DEFAULT_MODEL)
 def _failed(error: str) -> _LeadRunCapture:
     capture = _LeadRunCapture()
     capture.run_error = error
+    capture.provider_failed = True
+    return capture
+
+
+def _own_fault(*, model: str = _CHOSEN_MODEL) -> _LeadRunCapture:
+    capture = _LeadRunCapture()
+    capture.run_error = "Expecting value: line 1 column 1 (char 0)"
+    capture.lead_model = model
     return capture
 
 
@@ -197,6 +205,29 @@ class TestTheModelTheTurnCouldNotReach:
             "will start over from it."
         )
         assert _CHOSEN_MODEL_NAME not in prose
+
+
+class TestAnErrorOfOurOwn:
+    def test_the_reply_names_no_model_and_offers_to_start_over(self) -> None:
+        assert fallback_prose(_own_fault(), None, change="unchanged") == (
+            "I stopped this turn on an error I could not recover from; the error is "
+            "shown beside this reply. Send the message again and I will start over "
+            "from it."
+        )
+
+    def test_a_change_that_landed_is_kept(self) -> None:
+        assert fallback_prose(_own_fault(), None, change="unchecked") == (
+            "I stopped this turn on an error I could not recover from; the error is "
+            "shown beside this reply. The change shown beside this reply landed and "
+            "was not checked. Ask me to check it and I will go on from there."
+        )
+
+    def test_the_reply_the_turn_writes_names_no_model(self) -> None:
+        reply = final_reply(_own_fault(), None, change="unchanged")
+
+        assert reply is not None
+        assert _CHOSEN_MODEL_NAME not in reply.prose
+        assert "Settings" not in reply.prose
 
 
 class TestTheSubAgentStageTheTurnCouldNotReach:

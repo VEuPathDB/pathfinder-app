@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
+from dataclasses import replace
 from types import MappingProxyType
 
 from assistant_core.graph.tool_summary import with_summary
@@ -18,6 +19,7 @@ from pathfinder.ai.lead.readings import refused_picks
 from pathfinder.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import (
+    option_refusal,
     spec_bound_by_card,
     spec_with_reading,
 )
@@ -199,16 +201,6 @@ def apply_option_bindings(
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
 
-def _bound_criterion(option: TypedOption) -> str | None:
-    match option.binding:
-        case (
-            SetValues(criterion_id=criterion_id) | ReadValues(criterion_id=criterion_id)
-        ):
-            return criterion_id
-        case _:
-            return None
-
-
 async def _card_sheets(
     state: PipelineState, answers: Sequence[UserQuestionAnswer]
 ) -> dict[str, list[ParameterInfo]]:
@@ -216,11 +208,12 @@ async def _card_sheets(
     spec = state.domain.operational_spec
     recorded = {q.question: q for q in state.domain.open_questions}
     bound = {
-        _bound_criterion(option)
+        values.criterion_id
         for answer in answers
         if (question := recorded.get(answer.prompt)) is not None
         for option in question.options
         if option.label in answer.chosen_labels
+        and (values := option.values_bound()) is not None
     }
     searches = (
         {c.search_name for c in spec.criteria if c.id in bound and c.search_name}
@@ -230,6 +223,42 @@ async def _card_sheets(
     if spec is None or not searches:
         return {}
     return await sheet_params_for_searches(site_id=state.site_id, search_names=searches)
+
+
+def _picks_that_are_no_value(
+    state: PipelineState,
+    answers: Sequence[UserQuestionAnswer],
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> dict[str, str]:
+    domain = state.domain
+    spec = domain.operational_spec
+    if spec is None:
+        return {}
+    recorded = {q.question: q for q in domain.open_questions}
+    return {
+        option.label: why
+        for answer in answers
+        if (question := recorded.get(answer.prompt)) is not None
+        for option in question.options
+        if option.label in answer.chosen_labels
+        and (values := option.values_bound()) is not None
+        and (
+            why := option_refusal(
+                spec, values, sheets=sheets, expressions=domain.built_expressions
+            )
+        )
+    }
+
+
+def _without_picks(
+    answers: Sequence[UserQuestionAnswer], labels: Collection[str]
+) -> list[UserQuestionAnswer]:
+    return [
+        a.model_copy(
+            update={"chosen_labels": [x for x in a.chosen_labels if x not in labels]}
+        )
+        for a in answers
+    ]
 
 
 def _chosen(label: str, question: OpenQuestion | None) -> str:
@@ -322,22 +351,24 @@ async def consult_user(
         f"{len(questions)} questions asked",
         ctx=ctx,
     )
-    refused = await refused_picks(state, answers)
-    answered = "; ".join(
-        [
-            _format_answers(answers, state.domain.open_questions),
-            *(
-                f"the site refused {label!r}, so it binds nothing: {why}"
-                for label, why in refused.items()
-            ),
-        ]
-    )
-    answers = [
-        a.model_copy(
-            update={"chosen_labels": [x for x in a.chosen_labels if x not in refused]}
-        )
-        for a in answers
+    sheets = await _card_sheets(state, answers)
+    no_values = _picks_that_are_no_value(state, answers, sheets)
+    refused = await refused_picks(state, _without_picks(answers, no_values))
+    refusals = [
+        *(
+            f"{label!r} binds nothing: {why}. Run frame_problem again so it offers "
+            "values this parameter takes, or asks in free text"
+            for label, why in no_values.items()
+        ),
+        *(
+            f"the site refused {label!r}, so it binds nothing: {why}"
+            for label, why in refused.items()
+        ),
     ]
+    answered = "; ".join(
+        [_format_answers(answers, state.domain.open_questions), *refusals]
+    )
+    answers = _without_picks(answers, {*no_values, *refused})
     if answers:
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False
@@ -346,9 +377,9 @@ async def consult_user(
             state,
             answers,
             shown,
-            sheets=await _card_sheets(state, answers),
+            sheets=sheets,
             replaced=state.turn_markers.card_stand_ins.get(ctx.tool_call_id or "", {}),
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))
-    return asked
+    return replace(asked, content="; ".join(refusals)) if refusals else asked

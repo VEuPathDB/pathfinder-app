@@ -46,6 +46,13 @@ real errors. The library raises `UnexpectedModelBehavior` for this and for other
 faults with no field that names the kind, so its message is the discriminator, read
 in one place (`ai/lead/sub_agent_stops.py::spent_its_output_retries`).
 
+**A stop reply names a model only when a provider call failed.** The exception
+that ends a run decides it (`ai/lead/sub_agent_stops.py::a_provider_call_failed`:
+`ModelAPIError` or `UnexpectedModelBehavior`), for the Lead's run and for a
+dispatch. Any other unrecovered error says the turn stopped on an error, shows the
+error beside the reply and offers to start over. The reply never sends the
+researcher to Settings for a fault no model caused.
+
 **One budget per pass.** `ai/agents/refusal_bound.py::may_refuse` holds
 `REFUSALS_PER_CHECK = 2`, one count shared by every check of a pass
 (`AgentToolState.refusals` for FRAME and VERIFY, `TurnMarkers.output_refusals`
@@ -77,6 +84,10 @@ evidence card show; a met row with no answer stands unmet. An edit carries FRAME
 gaps on its `EditDelta` as a build does on its result.
 
 # What was rejected
+
+**Blaming the model that produced no part.** A run resumed on an answered card
+runs a tool before its model is asked, so a tool's error also comes before any part
+of an answer. No part shows only that the model did not speak yet, not that it failed.
 
 **Refusing until the answer is fixed.** A check whose change the model cannot
 make, or will not make, then ends the turn on "Exceeded maximum output retries",

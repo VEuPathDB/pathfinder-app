@@ -22,6 +22,13 @@
   `orthomcl-all-plasmodium-every-species-reading` holds the per-species reading at one genome or
   more, at 797 groups, since the question that offered a stricter reading is removed. New: a card
   offers the whole binding of a class.
+* **A card option is a value of its parameter, and a stop reply blames a model
+  only for a provider failure.** `card_answers.option_refusal` runs a pick's binding
+  and returns why its value does not read; FRAME's
+  `hold_an_option_to_its_parameter` sends such an option back, and `consult_user`
+  binds nothing for a stored one and hands the Lead the refusal. The stop reply
+  names a stage's model only on `a_provider_call_failed`. See
+  [a card option is a binding](decisions/a-card-option-is-a-binding.md).
 
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY

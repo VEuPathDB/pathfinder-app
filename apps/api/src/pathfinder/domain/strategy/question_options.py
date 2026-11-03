@@ -91,6 +91,16 @@ class TypedOption(CamelModel):
             case _:
                 return None
 
+    def values_bound(self) -> SetValues | None:
+        match self.binding:
+            case (
+                SetValues(criterion_id=criterion_id, params=params)
+                | ReadValues(criterion_id=criterion_id, params=params)
+            ):
+                return SetValues(criterion_id=criterion_id, params=params)
+            case _:
+                return None
+
 
 def option_id(label: str) -> str:
     """The option's id: the words of its label, joined by hyphens."""

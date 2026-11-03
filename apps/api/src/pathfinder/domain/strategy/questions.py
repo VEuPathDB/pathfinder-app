@@ -202,6 +202,9 @@ class SlotQuestion(AskedQuestion):
                 )
         return by_wire
 
+    def wires_offered(self, criterion: Criterion | None) -> list[str]:
+        return [] if self.readings else list(self._by_wire(criterion))
+
     def offers_a_choice(self, criterion: Criterion | None) -> bool:
         """Whether the offered values bind two values at least, or none.
 

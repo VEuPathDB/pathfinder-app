@@ -6,11 +6,14 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 
 from veupathdb.domain.parameters import (
+    PHYLETIC_EXPRESSION_PARAM,
     ParamKind,
     ParamValue,
+    PhyleticExpression,
     from_wire,
     param_value_from_raw,
 )
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.expression_handles import (
@@ -45,11 +48,27 @@ def params_held(spec: OperationalSpec) -> dict[str, set[str]]:
     return held
 
 
-def _option_value(kind: ParamKind, value: str) -> ParamValue:
+def _not_a_value(name: str, value: str, why: str) -> ValidationError:
+    return ValidationError(title=f"{value!r} is not a value of {name}", detail=why)
+
+
+def _option_value(name: str, kind: ParamKind, value: str) -> ParamValue:
     """The option's value in the parameter's kind; a pick option names one term."""
-    if kind in _OBJECT_KINDS:
-        return from_wire(kind, value)
-    return param_value_from_raw(value, kind)
+    try:
+        if kind in _OBJECT_KINDS:
+            return from_wire(kind, value)
+        return param_value_from_raw(value, kind)
+    except (ValueError, TypeError) as unread:
+        raise _not_a_value(name, value, f"it takes a {kind} value") from unread
+
+
+def _card_value(name: str, kind: ParamKind, value: str) -> ParamValue:
+    if name == PHYLETIC_EXPRESSION_PARAM:
+        try:
+            PhyleticExpression.parse(value)
+        except (ValidationError, ValueError) as refused:
+            raise _not_a_value(name, value, str(refused)) from refused
+    return _option_value(name, kind, value)
 
 
 def _kind_of(
@@ -70,7 +89,7 @@ def _kind_of(
 
 def option_value(criterion: Criterion, name: str, value: str) -> ParamValue:
     kind = _kind_of(criterion, name, list(criterion.open_params), [])
-    return _option_value(kind, value)
+    return _option_value(name, kind, value)
 
 
 def _card_bound(
@@ -91,7 +110,7 @@ def _card_bound(
         criterion = criterion_restated(
             criterion,
             name,
-            _option_value(kind, value),
+            _card_value(name, kind, value),
             sheet=sheet,
             source="card",
             basis=option_id,
@@ -149,3 +168,19 @@ def spec_bound_by_card(
             ],
         }
     )
+
+
+def option_refusal(
+    spec: OperationalSpec,
+    binding: SetValues,
+    *,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+    expressions: Mapping[str, BuiltPattern],
+) -> str | None:
+    try:
+        spec_bound_by_card(
+            spec, binding, option_id="", sheets=sheets, expressions=expressions
+        )
+    except ValidationError as refused:
+        return str(refused)
+    return None

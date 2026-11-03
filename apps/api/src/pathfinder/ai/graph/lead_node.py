@@ -12,7 +12,7 @@ selection in ``_lead_model``, and memory retrieval plus approval resolution in
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
+from collections.abc import AsyncGenerator, Awaitable, Sequence
 from functools import partial
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
@@ -25,7 +25,6 @@ from assistant_core.conversation.vercel_adapter import (
     DeferredToolHint,
     PhaseStreamEmitter,
 )
-from assistant_core.errors import ModelDeclinedError
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.pre_turn import PreTurnHook
@@ -80,6 +79,8 @@ from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
     final_reply,
     guard_stop_of,
+    noting_a_decline,
+    noting_a_provider_failure,
     run_stop_reply,
     strategy_change,
 )
@@ -226,17 +227,6 @@ def _turn_emitter(
     )
 
 
-async def _noting_a_decline[EventT](
-    events: AsyncIterator[EventT], capture: _LeadRunCapture
-) -> AsyncIterator[EventT]:
-    try:
-        async for event in events:
-            yield event
-    except ModelDeclinedError as exc:
-        capture.declined = exc
-        raise
-
-
 async def _drive_lead_stream(
     *,
     state: PipelineState,
@@ -334,8 +324,12 @@ async def _drive_lead_stream(
             async for v6_chunk in without_calls_of(
                 _calls_of_an_earlier_message(state, parked, hints),
                 emitter.chunks(
-                    _noting_a_decline(
-                        naming_a_dead_site(_agent_events(), capture), capture
+                    noting_a_decline(
+                        naming_a_dead_site(
+                            noting_a_provider_failure(_agent_events(), capture),
+                            capture,
+                        ),
+                        capture,
                     )
                 ),
             ):
