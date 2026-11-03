@@ -74,7 +74,7 @@ message.
 
 # What was rejected
 
-**Containment of the value's words in a message** (`message_states`). It reads a
+**Containment of the value's words in a message** (`message_states`, deleted). It reads a
 model-written value, so a plural, a verb form or a filler word decides
 provenance. The measurement above is the evidence.
 

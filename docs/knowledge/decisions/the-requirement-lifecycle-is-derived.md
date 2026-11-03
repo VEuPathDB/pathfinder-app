@@ -21,9 +21,9 @@ successor. `ThreadRequirements.record(intent, messages)`
   the thread held for it, which retires as `replaced(by=<new id>)`
   (`stated_requirements.with_requirements`). Two values stated in one message
   both stand, and a value the reading states `beside` a held requirement's number
-  adds beside that one. `other` and `combination` hold many values; no reading or
-  card writes a new combination, and a message that swaps an `other` value names
-  the old one's number among its withdrawals.
+  adds beside that one. The kinds of the next clause hold many values; no
+  reading or card writes a new combination, and a message that swaps one of
+  their values names the old one's number among its withdrawals.
 - A value whose quote no researcher message holds (`assumed`, see
   [a requirement is the researcher's when it quotes their words](a-requirement-is-the-researchers-when-it-quotes-their-words.md))
   never displaces a value the researcher stated of a single-valued dimension: it is dropped, neither recorded
@@ -54,6 +54,10 @@ successor. `ThreadRequirements.record(intent, messages)`
   a held combination among them. A withdrawn combination shows no row: each
   requirement its criteria linked has a row of its own
   (`RetiredRequirement.shown_requirements`).
+
+No clause reads the words of a requirement's value: a replacement is decided by
+kind, a collapse by typed value or id, a withdrawal by number and the source by
+the quote against the researcher's messages.
 
 FRAME's disposition of each criterion the dispatch found is the computed diff of
 the two specs (`frame_dispatch.derived_changes`): `kept` only when no wire value

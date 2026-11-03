@@ -10,9 +10,9 @@ status: stable
 # What was decided
 
 [A verification verdict is computed from the site](a-verification-verdict-is-computed-from-the-site.md)
-runs one typed check per requirement. Once requirements are typed data
-([the typed-requirements backlog item](../backlog/requirements-are-typed-data.md)), a check compares
-a requirement only through what the strategy binds for it:
+runs one typed check per requirement. Requirements are typed data
+([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)),
+and a check compares a requirement only through what the strategy binds for it:
 
 - An untyped requirement (a stored requirement read back from before the typed
   model, or one the classifier could not type) gives an `unchecked` check with

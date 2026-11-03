@@ -30,7 +30,6 @@ from pathfinder.ai.models.mock.reads import (
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.evidence import SampledGene, VerificationReview
-from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.domain.strategy.words import words_of
 
 READ = "get_strategy"
@@ -82,11 +81,10 @@ def review_call(messages: list[ModelMessage]) -> ToolCallPart | None:
 
 
 def _names(record_organism: str, organism: str) -> bool:
+    held = set(words_of(record_organism))
     genus, *rest = words_of(organism) or [""]
-    abbreviated = " ".join([genus[:1], *rest]) if rest else organism
-    return message_states(record_organism, organism) or message_states(
-        record_organism, abbreviated
-    )
+    spellings = [words_of(organism), [genus[:1], *rest] if rest else []]
+    return any(words and set(words) <= held for words in spellings)
 
 
 def review(messages: list[ModelMessage], organism: str) -> dict[str, JsonValue]:

@@ -49,7 +49,7 @@ an empty seed, so the next build is covered again.
 **A step name PathFinder made follows the values it labels.** A criterion
 titles its step by the search's display name and the site's vocabulary labels
 of the values it binds, which the binding pass reads
-(`Criterion.step_title`; `domain/strategy/step_naming.py::StepTitle`). A label
+(`step_naming.criterion_title`; `domain/strategy/step_naming.py::StepTitle`). A label
 counts when the value is shown, is not the site's initial value or prompt, and
 is not the organism parameter, which the strategy name carries; the labels are
 cut on a word at 60 code points. `StepWords.titles` stores that title per step

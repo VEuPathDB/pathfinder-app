@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from typing import NamedTuple
 
+from veupathdb.domain.parameters import to_wire
+
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
@@ -19,10 +21,13 @@ from pathfinder.domain.strategy.linked_values import (
     not_verified,
     untyped,
 )
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.organism_scope import selected_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
+from pathfinder.domain.strategy.step_naming import criterion_title
 from pathfinder.domain.strategy.words import words_of
 
+_SYNTENIC = "isSyntenic"
 _NO_STEP = "no step of the strategy states it"
 _NO_NUMBER = "no linked parameter or step count holds a number to compare"
 
@@ -122,10 +127,38 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
             "no ortholog step that answers it targets an organism",
         )
     shown = ", ".join(sorted(targets))
-    if targets == set(asked.organisms):
+    if targets != set(asked.organisms):
+        note = f"asked orthologs in {', '.join(asked.organisms)}, the transform targets {shown}"
+        return _missed(c, "", shown, note)
+    if asked.syntenic is None:
         return _met(c, "", shown)
-    note = f"asked orthologs in {', '.join(asked.organisms)}, the transform targets {shown}"
-    return _missed(c, "", shown, note)
+    return _synteny(c, linked, shown, syntenic=asked.syntenic)
+
+
+def _synteny(
+    c: Constraint, linked: list[Criterion], shown: str, *, syntenic: bool
+) -> GroundedConstraint:
+    settings = [
+        to_wire(k.resolved_params[_SYNTENIC].value)
+        for k in linked
+        if k.role == "transform" and _SYNTENIC in k.resolved_params
+    ]
+    if not settings:
+        return not_verified(
+            c,
+            "no_value_to_compare",
+            f"no ortholog step that answers it sets {_SYNTENIC}",
+        )
+    wanted = "yes" if syntenic else "no"
+    off = next((s for s in settings if s != wanted), None)
+    if off is None:
+        return _met(c, "", shown)
+    asked = (
+        "asked syntenic orthologs"
+        if syntenic
+        else "asked orthologs not limited to syntenic ones"
+    )
+    return _missed(c, _SYNTENIC, off, f"{asked}, {_SYNTENIC} holds '{off}'")
 
 
 def _states(asked: TextValue, bound: str) -> bool:
@@ -162,7 +195,7 @@ def ground_property(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
     linked = linking(c, realized.criteria)
     if not linked:
         return not_verified(c, "no_step_states_it", _NO_STEP)
-    title = linked[0].title
+    title = criterion_title(linked[0]).head
     return GroundedConstraint(
         constraint=c,
         status=ConstraintStatus.GROUNDED,
