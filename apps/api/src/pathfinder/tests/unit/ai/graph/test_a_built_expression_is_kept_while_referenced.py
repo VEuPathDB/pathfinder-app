@@ -38,7 +38,7 @@ def _held(expression: str) -> tuple[str, BuiltPattern]:
 def _question() -> OpenQuestion:
     return OpenQuestion(
         question="Which pattern?",
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         options=[
             TypedOption(
                 id="o_offered",

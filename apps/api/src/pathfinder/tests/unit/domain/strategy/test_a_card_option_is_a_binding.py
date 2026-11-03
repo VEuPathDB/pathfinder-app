@@ -50,7 +50,7 @@ def test_a_slot_question_offers_options_that_set_the_slot() -> None:
 def test_a_slot_question_keeps_what_it_asks_and_recommends() -> None:
     typed = SlotQuestion(
         question="Which stage?",
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         recommended_value="ring",
         criterion_id="c_stage",
         param_name="stage",

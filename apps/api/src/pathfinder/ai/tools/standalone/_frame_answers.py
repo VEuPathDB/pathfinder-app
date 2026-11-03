@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_ai import ModelRetry
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import ParameterInfo
@@ -26,6 +26,20 @@ class AnsweredRequirement(CamelModel):
             "from the sheet, or null when no one parameter carries it."
         ),
     )
+    result_size: bool = Field(
+        default=False,
+        description=(
+            "True when the requirement bounds how many records this criterion's "
+            "step returns, so the step's count answers it; param is then null."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _a_result_size_names_no_parameter(self) -> AnsweredRequirement:
+        if self.result_size and self.param is not None:
+            msg = "result_size names no parameter: pass a null param with it"
+            raise ValueError(msg)
+        return self
 
 
 def linked_requirements(
@@ -52,7 +66,11 @@ def linked_requirements(
         )
         raise ModelRetry(msg)
     return [
-        RequirementLink(requirement=numbered[a.requirement].id, param=a.param)
+        RequirementLink(
+            requirement=numbered[a.requirement].id,
+            param=a.param,
+            result_size=a.result_size,
+        )
         for a in answers
     ]
 

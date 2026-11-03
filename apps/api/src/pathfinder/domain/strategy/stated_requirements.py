@@ -6,15 +6,13 @@ from collections.abc import Iterable, Sequence
 from typing import NamedTuple
 
 from pathfinder.domain.strategy.constraints import (
+    MANY_VALUED_KINDS,
     Constraint,
     ConstraintSource,
     ReplacedLifecycle,
     new_requirement_id,
 )
-from pathfinder.domain.strategy.requirement_lifecycle import (
-    MANY_VALUED_KINDS,
-    RetiredRequirement,
-)
+from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 
 
 def _quoted(constraint: Constraint, messages: Sequence[str]) -> bool:

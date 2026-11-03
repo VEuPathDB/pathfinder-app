@@ -203,9 +203,9 @@ def _singleton_deps() -> LeadDeps:
     state = pipeline_state("orthomcl", user_prompt=_ASKED)
     state.domain.operational_spec = _singleton_spec()
     state.domain.requirements = [
-        requirement(ConstraintKind.OTHER, "orthology dataset/search", "OrthoMCL"),
+        requirement(ConstraintKind.UNTYPED, "orthology dataset/search", "OrthoMCL"),
         requirement(
-            ConstraintKind.OTHER,
+            ConstraintKind.UNTYPED,
             "singleton definition",
             "orthogroups with just a single protein",
         ),
@@ -232,8 +232,8 @@ async def test_the_recorded_singleton_ranking_passes_over_an_objecting_checker(
         ("step_valid", "pass"),
         ("bound_values", "pass"),
         ("result_count", "pass"),
-        (ConstraintKind.OTHER, "unchecked"),
-        (ConstraintKind.OTHER, "unchecked"),
+        (ConstraintKind.UNTYPED, "unchecked"),
+        (ConstraintKind.UNTYPED, "unchecked"),
         (ConstraintKind.ORGANISM, "unchecked"),
         ("tally", "pass"),
     ]

@@ -46,6 +46,9 @@ const UNCHECKED_WORDS: Record<NonNullable<SiteCheck["whyUnchecked"]>, string | n
   no_check: null,
   site_unanswered: "No answer from the site",
   site_refused: "The site refused this count",
+  untyped: "Not verified",
+  no_value_to_compare: "Not verified",
+  no_step_states_it: "Not verified",
 };
 
 function statusWords(check: SiteCheck): string {

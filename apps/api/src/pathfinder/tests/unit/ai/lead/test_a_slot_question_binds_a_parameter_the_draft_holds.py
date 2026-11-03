@@ -65,7 +65,7 @@ def _asked(*questions: SlotQuestion) -> FrameResult:
 
 
 _GPI = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     label="predicted GPI anchor",
     requested_value="predicted GPI anchor",
     source=ConstraintSource.USER_EXPLICIT,

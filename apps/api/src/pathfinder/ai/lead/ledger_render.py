@@ -50,7 +50,7 @@ def render_constraints_full(section: ConstraintSection) -> str:
         note = f" - {g.note}" if g.note else ""
         lines.append(
             f"- [{c.source}] {c.label} ({c.kind}): requested {c.requested_value!r} "
-            f"-> {g.status} (realized {realized}){note}"
+            f"-> {g.status.shown} (realized {realized}){note}"
         )
     return "\n".join(lines)
 

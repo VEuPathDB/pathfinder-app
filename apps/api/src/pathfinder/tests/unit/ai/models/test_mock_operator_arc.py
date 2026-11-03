@@ -10,7 +10,7 @@ from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_requirements import questions_for_the_card
 from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.operator_reader import read_the_operators
-from pathfinder.ai.models.mock.operator_arc import SIGNAL_PEPTIDE, TM_DOMAINS
+from pathfinder.ai.models.mock.operator_arc import SIGNAL_PEPTIDE, TM_BOUNDS, TM_DOMAINS
 from pathfinder.ai.models.mock.reading import scripted_intent
 from pathfinder.domain.strategy.constraints import ConstraintSource
 from pathfinder.domain.strategy.operational_spec import (
@@ -27,8 +27,9 @@ from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, names, p
 _MESSAGE = f"Find genes with {SIGNAL_PEPTIDE} and {TM_DOMAINS}. [[arc:operator-card]]"
 _LISTED = (
     "## Requirements the researcher stated\n"
-    f"- R1 (other): {SIGNAL_PEPTIDE}\n"
-    f"- R2 (other): {TM_DOMAINS}\n"
+    f"- R1 (property): {SIGNAL_PEPTIDE}\n"
+    f"- R2 (count): {TM_BOUNDS[0][0]}\n"
+    f"- R3 (count): {TM_BOUNDS[1][0]}\n"
 )
 
 
@@ -49,7 +50,7 @@ def test_the_frame_unions_what_the_words_join() -> None:
     ]
     assert (structure["root"]["operator"], linked) == (
         CombineOp.UNION.value,
-        [["R1"], ["R2"]],
+        [["R1"], ["R2", "R3"]],
     )
 
 
@@ -64,7 +65,7 @@ async def test_the_words_read_as_an_intersect_and_the_card_asks_it(
     )
     deps = lead_deps(state)
     await hold_the_intent(deps, scripted_intent(state, _MESSAGE), _MESSAGE)
-    first, second = state.domain.requirements
+    first, *bounds = state.domain.requirements
     spec = OperationalSpec(
         criteria=[
             Criterion(
@@ -72,11 +73,11 @@ async def test_the_words_read_as_an_intersect_and_the_card_asks_it(
                 text=cid,
                 search_name=search,
                 record_class="transcript",
-                answers=[RequirementLink(requirement=held.id)],
+                answers=[RequirementLink(requirement=c.id) for c in held],
             )
             for cid, search, held in (
-                ("signal_peptide", "GenesWithSignalPeptide", first),
-                ("tm_domains", "GenesByTransmembraneDomains", second),
+                ("signal_peptide", "GenesWithSignalPeptide", [first]),
+                ("tm_domains", "GenesByTransmembraneDomains", bounds),
             )
         ],
         structure=SpecStructure(
@@ -98,7 +99,7 @@ async def test_the_words_read_as_an_intersect_and_the_card_asks_it(
         [c.source for c in state.domain.requirements],
         [o.label for o in question.options],
     ) == (
-        [ConstraintSource.USER_EXPLICIT, ConstraintSource.USER_EXPLICIT],
+        [ConstraintSource.USER_EXPLICIT] * 3,
         [
             f'Keep genes in "{SIGNAL_PEPTIDE}" or "{TM_DOMAINS}"',
             f'Change to genes in both "{SIGNAL_PEPTIDE}" and "{TM_DOMAINS}"',

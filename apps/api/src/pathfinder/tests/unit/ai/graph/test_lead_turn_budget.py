@@ -264,7 +264,7 @@ def _build_then_verify(messages: list[ModelMessage]) -> ToolCallPart:
 
 
 _OBJECTED = SiteCheck(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     subject="the reference group",
     status="fail",
     evidence=OBJECTION,

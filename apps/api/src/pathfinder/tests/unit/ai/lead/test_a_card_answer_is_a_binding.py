@@ -141,7 +141,7 @@ def _floor_question() -> OpenQuestion:
     ).typed(_trophozoite(), noun="gene")
 
 
-_TROPHOZOITES = requirement(ConstraintKind.OTHER, "expression", "trophozoites")
+_TROPHOZOITES = requirement(ConstraintKind.UNTYPED, "expression", "trophozoites")
 
 
 def _deps(*questions: OpenQuestion) -> LeadDeps:

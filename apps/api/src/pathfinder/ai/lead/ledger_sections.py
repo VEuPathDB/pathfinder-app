@@ -264,7 +264,7 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
     return [
         GroundedConstraint(
             constraint=Constraint(
-                kind=ConstraintKind.OTHER,
+                kind=ConstraintKind.UNTYPED,
                 requested_value=to_wire(chosen.value),
                 label=name,
                 source=ConstraintSource.ASSUMED,
@@ -365,7 +365,7 @@ class ConstraintSection(CamelModel):
             [
                 f"- {_numbered(self.numbers.get(g.constraint.id, ''))}"
                 f"{g.constraint.label} ({g.constraint.kind}): "
-                f"{g.constraint.requested_value!r} -> {g.status}"
+                f"{g.constraint.requested_value!r} -> {g.status.shown}"
                 + (" (from an earlier message)" if g.constraint.id in carried else "")
                 + f"; id {g.constraint.id}"
                 for g in stated

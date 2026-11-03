@@ -15,9 +15,9 @@ from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    SavedStrategyRef,
     StructureNode,
 )
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 
 # Swapping a combine's operands mirrors the operator that is not symmetric.
 _MIRRORED_OPERATORS = {

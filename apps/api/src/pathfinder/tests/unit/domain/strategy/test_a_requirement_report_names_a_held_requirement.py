@@ -30,7 +30,7 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
 
 
 _ORGANISM = _stated(ConstraintKind.ORGANISM, "P. falciparum 3D7")
-_GPI = _stated(ConstraintKind.OTHER, "predicted GPI anchor")
+_GPI = _stated(ConstraintKind.UNTYPED, "predicted GPI anchor")
 _ASSUMED = Constraint(
     kind=ConstraintKind.COMBINATION,
     label="combination",
@@ -56,7 +56,7 @@ def test_the_block_prints_each_number_beside_the_held_words() -> None:
     assert requirements_block(_HELD) == (
         "## Requirements the researcher stated\n"
         "- R1 (organism): P. falciparum 3D7\n"
-        "- R2 (other): predicted GPI anchor"
+        "- R2 (untyped): predicted GPI anchor"
     )
 
 
@@ -71,7 +71,7 @@ def test_an_assumed_record_type_is_numbered_after_what_was_stated() -> None:
     assert requirements_block(held) == (
         "## Requirements the researcher stated\n"
         "- R1 (organism): P. falciparum 3D7\n"
-        "- R2 (other): predicted GPI anchor\n"
+        "- R2 (untyped): predicted GPI anchor\n"
         "- R3 (record_type, assumed): ortholog groups"
     )
 

@@ -62,5 +62,5 @@ def test_a_record_type_with_no_typed_class_is_unchecked() -> None:
     assert (check.status, check.evidence, check.why_unchecked) == (
         "unchecked",
         "no typed record class to compare",
-        "no_check",
+        "untyped",
     )

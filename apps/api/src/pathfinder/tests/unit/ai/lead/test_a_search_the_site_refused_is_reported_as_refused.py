@@ -191,7 +191,7 @@ async def test_the_card_says_the_site_failed_and_offers_to_keep_it(
             domain=StrategyDomainState(
                 requirements=[
                     requirement(
-                        ConstraintKind.OTHER, "search", "the map proteins search"
+                        ConstraintKind.UNTYPED, "search", "the map proteins search"
                     )
                 ],
                 discovered_searches={

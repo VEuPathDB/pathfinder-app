@@ -206,7 +206,7 @@ def test_an_organism_requirement_with_no_entry_names_no_organism() -> None:
 
 def test_a_requirement_of_another_kind_names_no_organism() -> None:
     other = Constraint(
-        kind=ConstraintKind.OTHER, requested_value=_UKMEL1, label="other"
+        kind=ConstraintKind.UNTYPED, requested_value=_UKMEL1, label="other"
     )
 
     assert _bind_under(_CRYPTO, [other], [_TU1867]) == [_TU1867]

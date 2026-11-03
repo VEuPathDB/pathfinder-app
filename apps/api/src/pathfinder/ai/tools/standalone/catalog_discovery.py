@@ -161,15 +161,7 @@ async def get_parameter_options(
     typed_context = merged or None
     asked = VocabNarrowing(query=query, organism_hints=deps.agent_state.organism_hints)
     narrowing = replace(
-        asked,
-        request=list(
-            dict.fromkeys(
-                [
-                    *_requirement_words(deps.agent_state, requirement),
-                    *deps.agent_state.phrasings_the_request_states(asked.terms),
-                ]
-            )
-        ),
+        asked, request=_requirement_words(deps.agent_state, requirement)
     )
     read_key = deps.agent_state.param_read_key(
         search_name, parameter_id, context_values=typed_context, terms=narrowing.terms
@@ -251,7 +243,8 @@ def _requirement_words(state: AgentToolState, number: str | None) -> list[str]:
             "no requirement."
         )
         raise ModelRetry(msg)
-    return [held[number].requested_value]
+    stated = held[number]
+    return list(dict.fromkeys(filter(None, [stated.quote, stated.requested_value])))
 
 
 def _with_note(note: str | None, read: PickRead) -> str:

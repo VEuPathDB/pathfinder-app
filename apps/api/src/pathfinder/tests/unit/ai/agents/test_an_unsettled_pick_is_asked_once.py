@@ -44,7 +44,7 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
 
 _V7_REQUIREMENTS = [
     _stated(ConstraintKind.ORGANISM, "Plasmodium falciparum 3D7"),
-    _stated(ConstraintKind.OTHER, "InterPro protein kinase domain"),
+    _stated(ConstraintKind.UNTYPED, "InterPro protein kinase domain"),
 ]
 
 

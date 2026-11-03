@@ -75,7 +75,7 @@ def _questions() -> tuple[OpenQuestion, OpenQuestion]:
         ),
         OpenQuestion(
             question=_SNP,
-            dimension=ConstraintKind.OTHER,
+            dimension=ConstraintKind.UNTYPED,
             recommended_value=_SNP_DEFAULT,
         ),
     )
@@ -89,7 +89,7 @@ def _answering_intent() -> UserIntent:
             requirement(
                 ConstraintKind.DATA_TYPE, "RNA-seq study", "the second one"
             ).model_copy(update={"quote": "the one you named second"}),
-            requirement(ConstraintKind.OTHER, "SNP definition", "non-synonymous"),
+            requirement(ConstraintKind.UNTYPED, "SNP definition", "non-synonymous"),
         ],
     )
 
@@ -147,7 +147,7 @@ def test_the_pinned_summary_shows_the_carried_recommendations() -> None:
     heading = "### Recommended by you, not replaced by the user\n"
     assert summary.split(heading)[-1] == (
         f"- {_STUDY} (data_type): {_STUDY_DEFAULT!r}\n"
-        f"- {_SNP} (other): {_SNP_DEFAULT!r}"
+        f"- {_SNP} (untyped): {_SNP_DEFAULT!r}"
     )
 
 
@@ -331,7 +331,7 @@ def _frame_questions() -> list[OpenQuestion]:
         ),
         OpenQuestion(
             question=_SNP,
-            dimension=ConstraintKind.OTHER,
+            dimension=ConstraintKind.UNTYPED,
             recommended_value=_SNP_DEFAULT,
         ),
     ]
@@ -347,7 +347,7 @@ def test_a_recorded_frame_question_keeps_the_dimension_it_decides() -> None:
         (q.dimension, q.recommended_value) for q in state.domain.open_questions
     ] == [
         (ConstraintKind.DATA_TYPE, _STUDY_DEFAULT),
-        (ConstraintKind.OTHER, _SNP_DEFAULT),
+        (ConstraintKind.UNTYPED, _SNP_DEFAULT),
     ]
 
 

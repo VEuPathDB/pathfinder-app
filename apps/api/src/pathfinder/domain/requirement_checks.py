@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
-from pathfinder.domain.site_checks import CheckStatus, SiteCheck
+from pathfinder.domain.site_checks import CheckStatus, SiteCheck, UncheckedReason
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
@@ -14,27 +14,33 @@ from pathfinder.domain.strategy.constraints import (
 _UNMET = frozenset({ConstraintStatus.SUBSTITUTED, ConstraintStatus.UNGROUNDABLE})
 
 
-def _judged(c: Constraint, status: CheckStatus, evidence: str) -> SiteCheck:
+def _judged(
+    c: Constraint,
+    status: CheckStatus,
+    evidence: str,
+    why: UncheckedReason = "no_check",
+) -> SiteCheck:
     return SiteCheck(
         kind=c.kind,
         subject=c.requested_value,
         status=status,
         evidence=evidence,
         requirement=c.id,
-        why_unchecked="no_check" if status == "unchecked" else None,
+        why_unchecked=why if status == "unchecked" else None,
     )
 
 
 def grounded_check(grounded: GroundedConstraint) -> SiteCheck:
     c = grounded.constraint
+    if grounded.unverified is not None:
+        return _judged(c, "unchecked", grounded.note, grounded.unverified)
     if grounded.status in _UNMET:
         said = grounded.note or f"the strategy states {grounded.realized_value}"
         return _judged(c, "fail" if is_blocking(grounded) else "unchecked", said)
     if grounded.status is ConstraintStatus.GROUNDED and grounded.realized_value:
         param = f"{grounded.realized_param} = " if grounded.realized_param else ""
-        return _judged(
-            c, "pass", f"the strategy states {param}{grounded.realized_value}"
-        )
+        stated = f"the strategy states {param}{grounded.realized_value}"
+        return _judged(c, "pass", grounded.note or stated)
     return _judged(
         c, "unchecked", grounded.note or "no check reads this requirement on the site"
     )
@@ -47,7 +53,9 @@ def record_type_check(
         case RecordTypeValue() as asked:
             pass
         case _:
-            return _judged(c, "unchecked", "no typed record class to compare")
+            return _judged(
+                c, "unchecked", "no typed record class to compare", "untyped"
+            )
     named = asked.answering_classes
     if asked.role == "through":
         through = sorted(set(step_classes) & named)

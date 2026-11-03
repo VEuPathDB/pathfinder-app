@@ -31,7 +31,7 @@ _ORGANISM = Constraint(
     source=ConstraintSource.USER_EXPLICIT,
 )
 _SIGNAL = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.PROPERTY,
     requested_value="a signal peptide",
     label="signal peptide",
     source=ConstraintSource.USER_EXPLICIT,
@@ -95,6 +95,24 @@ async def test_a_bound_criterion_links_each_number_to_the_held_id(
         RequirementLink(requirement=_ORGANISM.id, param="organism"),
         RequirementLink(requirement=_SIGNAL.id),
     ]
+
+
+@pytest.mark.asyncio
+async def test_a_link_to_the_result_size_is_kept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+
+    links = await _bind(
+        _state(), [AnsweredRequirement(requirement="R2", result_size=True)]
+    )
+
+    assert links == [RequirementLink(requirement=_SIGNAL.id, result_size=True)]
+
+
+def test_a_result_size_with_a_parameter_is_sent_back() -> None:
+    with pytest.raises(ValueError, match="null param"):
+        AnsweredRequirement(requirement="R2", param="organism", result_size=True)
 
 
 @pytest.mark.asyncio

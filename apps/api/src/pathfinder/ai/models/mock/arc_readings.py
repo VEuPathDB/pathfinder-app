@@ -18,12 +18,13 @@ def stated(
     *,
     hard: bool = True,
     typed: dict[str, Any] | None = None,
+    quote: str = "",
 ) -> dict[str, Any]:
     return {
         "kind": kind,
         "label": label,
         "requestedValue": value,
-        "quote": value,
+        "quote": quote or value,
         "source": "user_explicit",
         "hard": hard,
         "value": typed,

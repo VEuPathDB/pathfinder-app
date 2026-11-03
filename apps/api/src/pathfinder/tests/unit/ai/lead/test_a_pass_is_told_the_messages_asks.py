@@ -105,7 +105,7 @@ def test_every_continuation_of_a_frame_pass_is_told_the_asks() -> None:
         role="frame", reason=PhaseStopReason.BUDGET, tool_calls=12, tool_name=""
     )
     question = OpenQuestion(
-        question="Which chromosome?", dimension=ConstraintKind.OTHER
+        question="Which chromosome?", dimension=ConstraintKind.UNTYPED
     )
     orders = [
         earlier_turn_work_order(

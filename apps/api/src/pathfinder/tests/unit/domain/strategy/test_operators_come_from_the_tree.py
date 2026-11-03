@@ -31,7 +31,7 @@ _FLOOR = 0.5
 
 
 def _stated(
-    rid: str, quote: str, kind: ConstraintKind = ConstraintKind.OTHER
+    rid: str, quote: str, kind: ConstraintKind = ConstraintKind.UNTYPED
 ) -> Constraint:
     return Constraint(
         id=rid,
@@ -49,7 +49,7 @@ _SECRETED = _stated("r_sec", "secreted")
 _ORGANISM = _stated("r_org", "P. falciparum 3D7", ConstraintKind.ORGANISM)
 _ASSUMED = Constraint(
     id="r_assumed",
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="drug target",
     label="drug target",
 )

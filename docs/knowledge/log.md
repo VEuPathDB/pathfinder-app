@@ -2,6 +2,32 @@
 
 ## 2026-11-03
 
+* **Every requirement has a typed value of a named kind, and one nothing compared
+  is "not verified".** `CountValue` (`feature`, `op`, `value`), `OrthologValue`
+  (`organisms`, `syntenic`), `TextValue` (`phrase`, `exact`) and `PropertyValue`
+  (`phrase`) join the union, `ConstraintKind.OTHER` is gone and `untyped` holds
+  what fits no kind; a stored `other` requirement, check or question loads as
+  `untyped`, and its stored key still maps to its id. The reading writes the four
+  kinds (a range is two counts with one quote) and `StatedOther` is deleted. Each
+  is compared only through links (`link_grounding`): a count against the linked
+  parameter's number, or the step's count when `RequirementLink.result_size` says
+  the link bounds the result; an ortholog against the organisms the linking
+  transform targets; a text phrase against the linked parameter's value; a
+  property is answered by its linking step. A significance whose statistic
+  differs from the one the site's parameter names is a substitution. The grounding
+  status `not_verified` carries its reason (`untyped`, `no_value_to_compare`,
+  `no_step_states_it`) to the check's `why_unchecked`; the ledger, the evidence
+  card and the web constraints section show it "not verified", never grounded and
+  never a failure. `merge_constraints` collapses a kind of many values on its
+  typed value, `content_words` and `phrasings_the_request_states` are deleted, and
+  a lookup's request is the linked requirement's quote and words. Measured on 22
+  labelled corpus turns (39 requirements of the four kinds), two runs on Luna:
+  every requirement extracted with its kind in both runs, and 131 of the 132
+  typed fields right; the miss wrote the source organism of a carried ortholog
+  set. See
+  [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md)
+  and
+  [an unlinked requirement is not verified and never blocks](decisions/an-unlinked-requirement-is-not-verified-and-never-blocks.md).
 * **A request the provider flags is declined, not failed.** OpenAI answers some
   ordinary research messages with a 400 `invalid_request_error` whose message says
   the content was flagged (seen on a Cryptosporidium ortholog request, once in two

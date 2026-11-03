@@ -70,7 +70,7 @@ _RECORDED_LEAD_CARD = {
         "across taxa."
     ),
     "kind": "free_text",
-    "dimension": "other",
+    "dimension": "untyped",
     "allowNotes": True,
 }
 

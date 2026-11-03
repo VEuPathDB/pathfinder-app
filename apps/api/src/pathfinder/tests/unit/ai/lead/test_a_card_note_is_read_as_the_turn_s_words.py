@@ -27,9 +27,9 @@ _NOTE = (
 _ANSWER = user_intent(
     IntentClassification.CLARIFICATION_RESPONSE,
     explicit_constraints=[
-        requirement(ConstraintKind.OTHER, "Phrase", "GPI anchored"),
+        requirement(ConstraintKind.UNTYPED, "Phrase", "GPI anchored"),
         requirement(
-            ConstraintKind.OTHER, "VSG products", "variant surface glycoprotein"
+            ConstraintKind.UNTYPED, "VSG products", "variant surface glycoprotein"
         ),
     ],
 )

@@ -53,8 +53,17 @@ class _Question(CamelModel):
     """What a question asks, the dimension it decides and the value it recommends."""
 
     question: Annotated[str, Field(min_length=1), text_clipped_to(_QUESTION_LIMIT)]
-    dimension: ConstraintKind = ConstraintKind.OTHER
+    dimension: ConstraintKind = ConstraintKind.UNTYPED
     recommended_value: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _a_stored_other_dimension_is_untyped(cls, data: object) -> object:
+        match data:
+            case {"dimension": "other", **rest}:
+                return {**rest, "dimension": ConstraintKind.UNTYPED}
+            case _:
+                return data
 
     @property
     def decides_a_dimension(self) -> bool:
@@ -64,7 +73,7 @@ class _Question(CamelModel):
         names nothing.
         """
         return (
-            bool(self.recommended_value) or self.dimension is not ConstraintKind.OTHER
+            bool(self.recommended_value) or self.dimension is not ConstraintKind.UNTYPED
         )
 
     def recommendation(self) -> Constraint | None:
@@ -357,7 +366,7 @@ def with_withdrawals(
             (
                 i
                 for i, q in enumerate(asked)
-                if requirement.kind is not ConstraintKind.OTHER
+                if requirement.kind is not ConstraintKind.UNTYPED
                 and q.dimension is requirement.kind
                 and len(q.options) < _OPTIONS_LIMIT
             ),

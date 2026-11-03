@@ -159,7 +159,7 @@ async def test_a_card_binds_the_full_expression_its_handle_stands_for() -> None:
     ]
     question = OpenQuestion(
         question=_PROMPT,
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         options=[
             TypedOption(
                 id="o_more",

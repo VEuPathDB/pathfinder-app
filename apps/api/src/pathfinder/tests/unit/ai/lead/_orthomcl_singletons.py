@@ -33,7 +33,7 @@ ORGANISM = Constraint(
     source=ConstraintSource.USER_EXPLICIT,
 )
 SINGLETON = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="singleton genes, meaning genes in a group of their own",
     label="singleton ortholog groups",
     source=ConstraintSource.USER_EXPLICIT,

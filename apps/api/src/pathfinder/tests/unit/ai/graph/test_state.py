@@ -265,7 +265,7 @@ _ABANDONED = "Forget that. Find P. falciparum kinases."
 
 _ORGANISM = _requirement(ConstraintKind.ORGANISM, "organism", "Anopheles gambiae")
 _PROXIMITY = _requirement(
-    ConstraintKind.OTHER, "motif proximity", "within 1 kb upstream"
+    ConstraintKind.UNTYPED, "motif proximity", "within 1 kb upstream"
 )
 
 
@@ -378,7 +378,7 @@ def test_a_requirement_the_message_does_not_state_is_not_the_users() -> None:
     domain = StrategyDomainState()
 
     domain.record_intent(
-        _classified(_requirement(ConstraintKind.OTHER, "profile breadth", _INVENTED)),
+        _classified(_requirement(ConstraintKind.UNTYPED, "profile breadth", _INVENTED)),
         request_text=_RETRY,
     )
 
@@ -407,11 +407,11 @@ def test_a_requirement_the_message_quotes_is_the_users() -> None:
 def test_a_card_answer_restated_with_no_quote_stays_the_users() -> None:
     domain = StrategyDomainState()
     [answer] = domain.record_requirements(
-        [_requirement(ConstraintKind.OTHER, "breadth", _INVENTED)]
+        [_requirement(ConstraintKind.UNTYPED, "breadth", _INVENTED)]
     )
 
     domain.record_intent(
-        _classified(_requirement(ConstraintKind.OTHER, "breadth", _INVENTED)),
+        _classified(_requirement(ConstraintKind.UNTYPED, "breadth", _INVENTED)),
         request_text=_RETRY,
     )
 

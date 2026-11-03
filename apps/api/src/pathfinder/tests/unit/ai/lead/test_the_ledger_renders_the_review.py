@@ -31,7 +31,7 @@ def test_the_full_section_lists_the_review() -> None:
                 evidence="the result step 11 ('Signal') holds 840 records",
             ),
             SiteCheck(
-                kind=ConstraintKind.OTHER,
+                kind=ConstraintKind.UNTYPED,
                 subject="at least 2 transmembrane domains",
                 status="unchecked",
                 evidence="no check reads this requirement on the site",

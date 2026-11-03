@@ -162,7 +162,7 @@ def test_a_withdrawn_requirement_is_shown_retired_and_never_as_a_gap() -> None:
     deps.state.domain.retired_requirements = [
         RetiredRequirement(
             constraint=Constraint(
-                kind=ConstraintKind.OTHER,
+                kind=ConstraintKind.UNTYPED,
                 label="expression cutoff",
                 requested_value="above the 50th percentile",
                 source=ConstraintSource.USER_EXPLICIT,

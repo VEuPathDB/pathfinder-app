@@ -102,7 +102,7 @@ def test_a_count_made_after_the_read_follows_it() -> None:
 def test_a_reply_that_asks_about_the_transform_stands() -> None:
     question = AskedQuestion(
         question="Shall I turn the groups into proteins and count them by taxon?",
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         recommended_value="turn the groups into proteins",
     )
 

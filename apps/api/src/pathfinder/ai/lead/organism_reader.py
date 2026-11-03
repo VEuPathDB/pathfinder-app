@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     OrganismValue,
+    OrthologValue,
 )
 from pathfinder.domain.strategy.organism_phrases import completed_entry
 from pathfinder.domain.strategy.organism_picks import OrganismPick
@@ -143,6 +144,18 @@ class _Reading:
         return pick.picked if pick.confidence >= self.floor else None
 
 
+def _orthologs_named(
+    c: Constraint, message: str, vocabulary: Sequence[str]
+) -> Constraint:
+    match c.value:
+        case OrthologValue(organisms=organisms) as asked:
+            entries = [completed_entry(o, message, vocabulary) or o for o in organisms]
+            named = asked.model_copy(update={"organisms": entries})
+            return c.model_copy(update={"value": named})
+        case _:
+            return c
+
+
 def _named(c: Constraint, entry: str) -> Constraint:
     return c.model_copy(
         update={"requested_value": entry, "value": OrganismValue(organism=entry)}
@@ -165,6 +178,9 @@ async def named_organisms(
     named: list[Constraint] = []
     picks: list[OrganismPick] = []
     for c in constraints:
+        if c.kind is ConstraintKind.ORTHOLOG:
+            named.append(_orthologs_named(c, message, vocabulary))
+            continue
         words = c.organism
         if c.kind is not ConstraintKind.ORGANISM or words is None or not vocabulary:
             named.append(c)

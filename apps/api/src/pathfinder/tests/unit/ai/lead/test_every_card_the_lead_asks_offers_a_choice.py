@@ -100,7 +100,7 @@ def test_a_free_text_card_offers_no_option() -> None:
 
 
 _SPORES = requirement(
-    ConstraintKind.OTHER, "expression in spores", "expressed in spores"
+    ConstraintKind.UNTYPED, "expression in spores", "expressed in spores"
 )
 _SUBSTITUTE_CARD = CardQuestion.model_validate(
     {
@@ -125,7 +125,7 @@ _SUBSTITUTE_CARD = CardQuestion.model_validate(
                 "recommended": True,
             },
         ],
-        "dimension": "other",
+        "dimension": "untyped",
     }
 )
 
@@ -293,7 +293,7 @@ async def test_a_pass_that_asks_about_a_slot_it_lacks_keeps_what_it_bound(
             open_questions=[
                 SlotQuestion(
                     question="Which chromosome holds the region?",
-                    dimension=ConstraintKind.OTHER,
+                    dimension=ConstraintKind.UNTYPED,
                     recommended_value="1",
                     criterion_id="c_sex_region",
                     param_name="chromosomeOptional",

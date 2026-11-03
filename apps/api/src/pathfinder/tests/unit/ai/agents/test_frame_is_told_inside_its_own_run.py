@@ -38,7 +38,7 @@ from pathfinder.services.strategies import reading_check
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _GPI = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     label="predicted GPI anchor",
     requested_value="predicted GPI anchor",
     source=ConstraintSource.USER_EXPLICIT,
@@ -91,7 +91,7 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
 
 
 _HANDFUL = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     label="restricted to a handful of microsporidia",
     requested_value="restricted to a handful of microsporidia",
     source=ConstraintSource.USER_EXPLICIT,
@@ -125,7 +125,7 @@ def _asked(
         "openQuestions": [
             {
                 "question": "How many Microsporidia genomes should a family occur in at most?",
-                "dimension": "other",
+                "dimension": "untyped",
                 "recommendedValue": "At most 5 Microsporidia genomes",
                 "readings": _readings(on_readings)[:readings],
                 "criterionId": _FAMILIES,
@@ -318,7 +318,7 @@ def _bands(keys: list[str]) -> dict[str, object]:
 def _stated(*values: str) -> list[Constraint]:
     return [
         Constraint(
-            kind=ConstraintKind.OTHER,
+            kind=ConstraintKind.UNTYPED,
             label=value,
             requested_value=value,
             source=ConstraintSource.USER_EXPLICIT,

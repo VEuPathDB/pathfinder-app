@@ -92,7 +92,7 @@ async def test_a_pass_that_reports_another_site_answers_with_its_sentence(
             domain=StrategyDomainState(
                 requirements=[
                     requirement(
-                        ConstraintKind.OTHER,
+                        ConstraintKind.UNTYPED,
                         "absence",
                         "absent from at least 2 other strains",
                     )

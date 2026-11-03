@@ -25,7 +25,7 @@ _CUTOFF = Constraint(
     source=ConstraintSource.USER_EXPLICIT,
 )
 _SIGNAL = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="signal peptide",
     label="localisation",
     source=ConstraintSource.USER_EXPLICIT,

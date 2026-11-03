@@ -87,7 +87,7 @@ def test_a_bound_search_no_fold_links_leaves_the_fold_not_verified() -> None:
     [fold] = ground_against_spec([two_fold], spec)
 
     assert (fold.status, fold.realized_value, is_blocking(fold)) == (
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         None,
         False,
     )

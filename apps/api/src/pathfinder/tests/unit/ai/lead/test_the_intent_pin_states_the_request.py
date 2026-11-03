@@ -32,7 +32,7 @@ def test_a_turn_with_no_intent_pins_that_it_has_none() -> None:
 
 def test_the_pin_states_what_the_message_asks_and_states() -> None:
     ctx = lead_run_context()
-    signal = _stated(ConstraintKind.OTHER, "signal peptide", "a signal peptide")
+    signal = _stated(ConstraintKind.UNTYPED, "signal peptide", "a signal peptide")
     ctx.deps.state.domain.requirements = [signal]
     ctx.deps.intent = UserIntent(
         classification=IntentClassification.EDIT_STRATEGY,
@@ -58,7 +58,7 @@ def test_the_pin_states_what_the_message_asks_and_states() -> None:
             "- inferred goal: the same search at a lower cut",
             '- states fold_change: at least 1.5-fold, in its words "1.5 fold"',
             '- prefers data_type: RNA-Seq, in its words "RNA-Seq preferred"',
-            '- takes back other: signal peptide, in its words "a signal peptide"',
+            '- takes back untyped: signal peptide, in its words "a signal peptide"',
             "- asks: tell me the new count",
             "- positive controls: PF3D7_1133400",
             "- names genes: PF3D7_0709000",

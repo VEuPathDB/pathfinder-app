@@ -17,6 +17,15 @@ const STATUS_TONE: Record<GroundedConstraint["status"], Tone> = {
   provisional: "neutral",
   substituted: "warn",
   ungroundable: "bad",
+  not_verified: "neutral",
+};
+
+const STATUS_WORDS: Record<GroundedConstraint["status"], string> = {
+  grounded: "grounded",
+  provisional: "provisional",
+  substituted: "substituted",
+  ungroundable: "ungroundable",
+  not_verified: "not verified",
 };
 
 function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
@@ -29,7 +38,10 @@ function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
           {constraint.label}
           {constraint.source === "user_explicit" ? " *" : ""}
         </span>
-        <StatusPill text={entry.status} tone={STATUS_TONE[entry.status]} />
+        <StatusPill
+          text={STATUS_WORDS[entry.status]}
+          tone={STATUS_TONE[entry.status]}
+        />
       </div>
       <p className="text-muted-foreground">
         requested {constraint.requestedValue} -&gt; {realized}

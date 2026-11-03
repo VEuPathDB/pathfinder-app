@@ -37,6 +37,9 @@ STATED = {
             "quote": "chromosome 12",
             "kind": "count",
             "value": "chromosome 12",
+            "feature": "chromosome",
+            "op": "=",
+            "number": 12,
             "hard": True,
         }
     ],
@@ -226,7 +229,14 @@ async def test_a_quote_the_message_does_not_hold_is_asked_once_more_then_dropped
     wrong = {
         **STATED,
         "requirements": [
-            {"quote": "chromosome twelve", "kind": "count", "value": "chromosome 12"}
+            {
+                "quote": "chromosome twelve",
+                "kind": "count",
+                "value": "chromosome 12",
+                "feature": "chromosome",
+                "op": "=",
+                "number": 12,
+            }
         ],
     }
     ask = _Decisions(_answer(("change", 0.95), ("status", 0.9)), None)
@@ -245,7 +255,14 @@ async def test_a_corrected_quote_is_kept() -> None:
     wrong = {
         **STATED,
         "requirements": [
-            {"quote": "chromosome twelve", "kind": "count", "value": "chromosome 12"}
+            {
+                "quote": "chromosome twelve",
+                "kind": "count",
+                "value": "chromosome 12",
+                "feature": "chromosome",
+                "op": "=",
+                "number": 12,
+            }
         ],
     }
     ask = _Decisions(_answer(("change", 0.95), ("status", 0.9)), None)

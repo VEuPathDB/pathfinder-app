@@ -125,12 +125,12 @@ export const REVIEWED_CARD: EvidenceCard = {
         requirement: "organism:P. falciparum 3D7",
       },
       {
-        kind: "other",
+        kind: "property",
         subject: "with a signal peptide",
         status: "unchecked",
-        evidence: "no check reads this requirement on the site",
-        requirement: "other:with a signal peptide",
-        whyUnchecked: "no_check",
+        evidence: "no step of the strategy states it",
+        requirement: "property:with a signal peptide",
+        whyUnchecked: "no_step_states_it",
       },
     ],
     sampledGenes: [

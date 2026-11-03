@@ -106,7 +106,7 @@ def test_a_clicked_no_on_a_removal_withdraws_what_its_message_asked(
         requested_value="Plasmodium falciparum 3D7",
     )
     asked = Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         label="removal",
         requested_value="Delete the intersection step",
     )

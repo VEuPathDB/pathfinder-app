@@ -26,10 +26,15 @@ review on the digest and on the evidence card carries them as `checks`.
 | `record_type` | the root's `recordClassName` for an `answer`, or every step's for a `through`, equal to the requirement's typed record class (`gene` is also answered by `transcript` and `sequence`); with no value, `unchecked` ([a record type's role is read with its class](a-record-types-role-is-read-with-its-class.md)) |
 | `expression_fit` | the first groups of a phyletic step judged against the expression as the site reads it |
 | `tally` | a column tally this turn recorded on a step of the strategy, held as the recorded result |
-| `statistical_threshold`, `fold_change`, `percentile` | the requirement's typed value against the parameter or the analysis cut a linking criterion names (`value_grounding`, `fold_grounding`), whose values `bound_values` holds to the site; with no such link or no value, `unchecked` ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
+| `statistical_threshold`, `fold_change`, `percentile` | the requirement's typed value against the parameter or the analysis cut a linking criterion names (`value_grounding`, `fold_grounding`), whose values `bound_values` holds to the site; a significance whose statistic differs from the one the site's parameter names fails; with no such link `unchecked` (`no_value_to_compare`), with no value `unchecked` (`untyped`) ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
+| `count` | the bound against the number the linked parameter holds, or against the step's own count when the link names the result size (`link_grounding`); else `unchecked` (`no_value_to_compare`) |
+| `ortholog` | the organisms against those the linking transform targets, by entry equality; no linking criterion `unchecked` (`no_step_states_it`), no linking transform with organisms `unchecked` (`no_value_to_compare`) |
+| `text` | the phrase against the linked parameter's value: equal for an exact phrase, every word held otherwise; no linking criterion `unchecked` (`no_step_states_it`), no linked parameter `unchecked` (`no_value_to_compare`) |
+| `property` | passed by the linking step, shown "answered by step" and its title; no linking criterion `unchecked` (`no_step_states_it`) |
+| `untyped` | no typed value: `unchecked` (`untyped`) |
 | `data_type` | the requirement's typed data against what the site marks each linking criterion runs on (`DataMarks.run_on`, `constraint_grounding`); with no linking criterion or no value, `unchecked` |
 | `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site |
-| `comparator`, `other` | no deterministic check: `unchecked` |
+| `comparator` | no deterministic check: `unchecked` |
 
 The verdict is `success` exactly when no check fails, no word a criterion states
 is unstated by every search, and the build put every step on the site with
@@ -39,9 +44,11 @@ in code.
 
 An `unchecked` check names why in `why_unchecked`. `no_check` is a requirement
 kind or a step property with nothing to compare on the site; it never blocks
-the verdict. A percentile, fold-change, significance or data-type requirement
-that is untyped or that no criterion links, and a record type with no value,
-are unchecked the same way and shown "not verified"
+the verdict. A requirement the grounding marks `not_verified` is unchecked with
+its reason: `untyped` (no typed value), `no_value_to_compare` (no linked
+parameter, analysis cut or step count to compare) or `no_step_states_it` (no
+criterion links it). It never passes or blocks, and the ledger, the card and the
+constraints section show it "not verified"
 ([an unlinked requirement is not verified and never blocks](an-unlinked-requirement-is-not-verified-and-never-blocks.md));
 a hard stated requirement its grounding marks ungroundable or substituted fails
 its check (`domain/requirement_checks.py::grounded_check`). `site_unanswered` is a read the site did not answer: the strategy

@@ -52,7 +52,7 @@ def _a_deployment_that_asks_the_service(monkeypatch: pytest.MonkeyPatch) -> None
 def _stated(rid: str, quote: str) -> Constraint:
     return Constraint(
         id=rid,
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value=quote,
         label=quote,
         source=ConstraintSource.USER_EXPLICIT,
@@ -63,7 +63,7 @@ def _stated(rid: str, quote: str) -> Constraint:
 _KINASES = _stated("r1", "kinases")
 _GAMETOCYTES = _stated("r2", "expressed in gametocytes")
 _ASSUMED = Constraint(
-    id="r3", kind=ConstraintKind.OTHER, requested_value="drug target", label="x"
+    id="r3", kind=ConstraintKind.UNTYPED, requested_value="drug target", label="x"
 )
 
 

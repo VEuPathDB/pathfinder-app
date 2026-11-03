@@ -84,7 +84,7 @@ def test_the_proposal_links_the_stated_organism_by_its_number() -> None:
     crit = seed_criterion(values, _NO_SEED, "c_located", "genes on chromosome 2L")
     listed = (
         "## Requirements the researcher stated\n"
-        "- R1 (other): genes on chromosome 2L\n"
+        "- R1 (untyped): genes on chromosome 2L\n"
         f"- R2 (organism): {values.organism}\n"
     )
     sheet = dict.fromkeys(["organismSinglePick", "chromosome"])

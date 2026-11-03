@@ -50,7 +50,7 @@ class TestAReplyThatEndsOnAQuestion:
             questions=[
                 AskedQuestion(
                     question="Enforce strict 3-hour specificity?",
-                    dimension=ConstraintKind.OTHER,
+                    dimension=ConstraintKind.UNTYPED,
                     recommended_value="yes",
                 )
             ],

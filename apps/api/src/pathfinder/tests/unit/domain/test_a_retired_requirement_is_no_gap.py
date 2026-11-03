@@ -15,7 +15,7 @@ from pathfinder.domain.strategy.constraints import (
 
 def _requirement(value: str) -> Constraint:
     return Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value=value,
         label=value,
         source=ConstraintSource.USER_EXPLICIT,
@@ -63,7 +63,7 @@ def test_a_requirement_no_search_states_is_one_gap_beside_its_word() -> None:
 def test_a_lifecycle_defaults_to_open() -> None:
     grounded = GroundedConstraint(
         constraint=Constraint(
-            kind=ConstraintKind.OTHER, requested_value="x", label="x"
+            kind=ConstraintKind.UNTYPED, requested_value="x", label="x"
         ),
         status=ConstraintStatus.PROVISIONAL,
     )

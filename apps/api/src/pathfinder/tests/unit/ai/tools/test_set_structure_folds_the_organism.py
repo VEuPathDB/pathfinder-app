@@ -44,7 +44,7 @@ ORGANISMS = [PEST, "Anopheles stephensi Indian", "Aedes aegypti LVP_AGWG"]
 PEST_GENES = 13_845
 # The requirement the researcher stated, which the dropped criterion links.
 ANNOTATED = Constraint(
-    kind=ConstraintKind.OTHER,
+    kind=ConstraintKind.UNTYPED,
     requested_value="gene annotation",
     label="annotated genes",
     source=ConstraintSource.USER_EXPLICIT,

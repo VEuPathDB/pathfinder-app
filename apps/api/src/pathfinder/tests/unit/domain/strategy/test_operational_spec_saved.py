@@ -10,10 +10,10 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
-    SavedStrategyRef,
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
 )

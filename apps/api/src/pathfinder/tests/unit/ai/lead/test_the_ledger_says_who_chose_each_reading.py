@@ -72,7 +72,7 @@ async def test_a_reading_picked_on_a_card_is_shown_as_the_researchers() -> None:
     card = CardQuestion(
         id="q1",
         prompt=_PROMPT,
-        dimension=ConstraintKind.OTHER,
+        dimension=ConstraintKind.UNTYPED,
         options=[ConsultOption(label=_STRAIN), ConsultOption(label=_SPECIES)],
     )
 

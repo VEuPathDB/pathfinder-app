@@ -44,7 +44,7 @@ def _asked(*values: str) -> FrameResult:
         open_questions=[
             SlotQuestion(
                 question="Which comparison do you mean?",
-                dimension=ConstraintKind.OTHER,
+                dimension=ConstraintKind.UNTYPED,
                 recommended_value="More proteins in tgon",
                 criterion_id="c_more",
                 param_name=_EXPRESSION,

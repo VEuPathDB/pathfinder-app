@@ -53,7 +53,7 @@ _STRATEGY = 214647290
 _TALLY_ID = "tally_57ea13f0"
 _ORGANISM = requirement(ConstraintKind.ORGANISM, "organism scope", "Plasmodium species")
 _DEFINITION = requirement(
-    ConstraintKind.OTHER,
+    ConstraintKind.UNTYPED,
     "singleton definition",
     "singleton genes, meaning genes in a group of their own",
 )
@@ -236,7 +236,7 @@ def test_turn_one_check_keeps_the_taxonomy_step_answering_the_organism() -> None
         ("Plasmodium species", ConstraintStatus.GROUNDED),
         (
             "singleton genes, meaning genes in a group of their own",
-            ConstraintStatus.GROUNDED,
+            ConstraintStatus.NOT_VERIFIED,
         ),
     ]
     assert (constraints.blocking, constraints.unmet_count) == (False, 0)

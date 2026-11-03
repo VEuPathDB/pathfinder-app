@@ -181,7 +181,10 @@ def _summarized(messages: list[ModelMessage]) -> list[ToolCallPart]:
 def _unstated_property(state: PipelineState, words: str) -> UserIntent:
     del state
     asked = frame_arcs.asked_property(without_tokens(words))
-    return intent_of(IntentClassification.NEW_STRATEGY, stated("other", asked, asked))
+    return intent_of(
+        IntentClassification.NEW_STRATEGY,
+        stated("property", asked, asked, typed={"kind": "property", "phrase": asked}),
+    )
 
 
 _AUDIT = read_as(IntentClassification.GENE_MODEL_AUDIT)

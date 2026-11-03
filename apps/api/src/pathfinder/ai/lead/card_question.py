@@ -13,7 +13,7 @@ class CardQuestion(ConsultQuestion):
     """A question card, and the dimension its answer states."""
 
     dimension: ConstraintKind = Field(
-        default=ConstraintKind.OTHER,
+        default=ConstraintKind.UNTYPED,
         description=(
             f"The dimension the answer states, one of {CONSTRAINT_KINDS}. A "
             "recorded question keeps the dimension its `cardQuestions` entry names."

@@ -95,7 +95,7 @@ async def test_a_hydrated_strategy_reads_its_assay_and_links_no_requirement() ->
     [grounded] = derive_ledger(refreshed, None).constraints.grounded
     assert (refreshed.domain.data_marks, grounded.status, grounded.note) == (
         DataMarks(searches={_PERCENTILE: "RNASeq"}),
-        ConstraintStatus.GROUNDED,
+        ConstraintStatus.NOT_VERIFIED,
         "no criterion links it",
     )
 

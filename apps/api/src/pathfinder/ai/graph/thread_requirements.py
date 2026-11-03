@@ -235,7 +235,7 @@ class ThreadRequirements(BaseModel):
         [stand_in] = self.record_requirements(
             [
                 Constraint(
-                    kind=ConstraintKind.OTHER
+                    kind=ConstraintKind.UNTYPED
                     if dimension in STRATEGY_SCOPES
                     else dimension,
                     requested_value=accepted.reading,

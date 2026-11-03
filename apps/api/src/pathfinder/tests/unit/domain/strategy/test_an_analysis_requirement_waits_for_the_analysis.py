@@ -111,6 +111,6 @@ def test_a_bound_search_and_no_link_leaves_the_threshold_not_verified() -> None:
     grounded = ground_against_spec([_P, _NO_FOLD], _spec(_ORTHOLOGS))
 
     assert [(g.status, g.note) for g in grounded] == [
-        (ConstraintStatus.GROUNDED, "no criterion links it to a parameter")
+        (ConstraintStatus.NOT_VERIFIED, "no criterion links it to a parameter")
     ] * 2
     assert not any(is_blocking(g) for g in grounded)

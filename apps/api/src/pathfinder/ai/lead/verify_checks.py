@@ -258,7 +258,7 @@ async def _organism_checks(
                 if c.organism is not None
                 else "the requirement holds no organism entry of the site",
                 requirement=c.id,
-                why_unchecked="no_check",
+                why_unchecked="no_check" if c.organism is not None else "untyped",
             )
         )
     if not carried:

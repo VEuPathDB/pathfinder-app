@@ -52,7 +52,7 @@ def test_the_review_lists_every_text_a_reader_can_see() -> None:
     review = VerificationReview(
         checks=[
             SiteCheck(
-                kind=ConstraintKind.OTHER,
+                kind=ConstraintKind.UNTYPED,
                 subject="with a signal peptide",
                 status="unchecked",
                 evidence="no check reads this requirement on the site",

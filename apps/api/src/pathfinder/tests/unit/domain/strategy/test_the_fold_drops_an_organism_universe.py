@@ -185,7 +185,7 @@ def test_a_leaf_that_links_only_the_organism_is_dropped_and_met() -> None:
     )
 
 
-def _stated(value: str, kind: ConstraintKind = ConstraintKind.OTHER) -> Constraint:
+def _stated(value: str, kind: ConstraintKind = ConstraintKind.UNTYPED) -> Constraint:
     return Constraint(
         kind=kind,
         requested_value=value,

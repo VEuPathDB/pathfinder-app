@@ -37,7 +37,7 @@ def test_a_rewritten_value_with_no_quote_the_message_holds_is_assumed() -> None:
 
 def test_a_value_the_message_words_with_no_quote_is_assumed() -> None:
     signal = Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         requested_value="signal peptide",
         label="signal peptide",
         source=ConstraintSource.USER_EXPLICIT,

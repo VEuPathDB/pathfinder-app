@@ -28,7 +28,7 @@ _OR = _stated(
     "Use a text search for GPI anchor in the gene product descriptions as the "
     "stand-in and keep it OR with the signal peptide",
 )
-_GPI = _stated(ConstraintKind.OTHER, "GPI anchor")
+_GPI = _stated(ConstraintKind.UNTYPED, "GPI anchor")
 
 
 def test_a_held_combination_is_displaced_by_no_new_requirement() -> None:
@@ -78,8 +78,8 @@ def test_a_value_stated_beside_another_requirement_still_replaces_its_kind() -> 
 
 
 def test_a_new_value_of_a_many_valued_kind_adds() -> None:
-    kinase = _stated(ConstraintKind.OTHER, "protein kinase")
-    signal = _stated(ConstraintKind.OTHER, "signal peptide")
+    kinase = _stated(ConstraintKind.UNTYPED, "protein kinase")
+    signal = _stated(ConstraintKind.UNTYPED, "signal peptide")
 
     assert with_requirements([kinase], [signal]).live == [kinase, signal]
 

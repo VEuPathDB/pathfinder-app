@@ -45,7 +45,7 @@ def _retired(thread: ThreadRequirements) -> list[tuple[str, object]]:
 
 _ORGANISM, _OTHER, _COMBINATION = (
     ConstraintKind.ORGANISM,
-    ConstraintKind.OTHER,
+    ConstraintKind.UNTYPED,
     ConstraintKind.COMBINATION,
 )
 

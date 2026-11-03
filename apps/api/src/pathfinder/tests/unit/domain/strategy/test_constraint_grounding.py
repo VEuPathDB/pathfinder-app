@@ -66,7 +66,7 @@ class TestGroundingAgainstTheBuiltSearch:
         )
 
         assert (grounded.status, grounded.realized_value, is_blocking(grounded)) == (
-            ConstraintStatus.GROUNDED,
+            ConstraintStatus.NOT_VERIFIED,
             None,
             False,
         )

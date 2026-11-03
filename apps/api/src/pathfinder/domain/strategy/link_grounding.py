@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import math
+from typing import NamedTuple
+
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintStatus,
+    CountValue,
+    GroundedConstraint,
+    OrthologValue,
+    PropertyValue,
+    TextValue,
+)
+from pathfinder.domain.strategy.linked_values import (
+    NO_LINK,
+    linked_params,
+    linking,
+    not_verified,
+    untyped,
+)
+from pathfinder.domain.strategy.organism_scope import selected_organisms
+from pathfinder.domain.strategy.realized_spec import RealizedSpec
+from pathfinder.domain.strategy.words import words_of
+
+_NO_STEP = "no step of the strategy states it"
+_NO_NUMBER = "no linked parameter or step count holds a number to compare"
+
+
+def _bounds_alike(asked: CountValue, number: float) -> bool:
+    match asked.op:
+        case ">":
+            beside = asked.value + 1
+        case "<":
+            beside = asked.value - 1
+        case _:
+            beside = asked.value
+    whole = asked.value.is_integer()
+    return math.isclose(number, asked.value) or (whole and math.isclose(number, beside))
+
+
+def _met(c: Constraint, param: str, value: str) -> GroundedConstraint:
+    return GroundedConstraint(
+        constraint=c,
+        status=ConstraintStatus.GROUNDED,
+        realized_value=value,
+        realized_param=param,
+    )
+
+
+def _missed(c: Constraint, param: str, value: str, note: str) -> GroundedConstraint:
+    return GroundedConstraint(
+        constraint=c,
+        status=ConstraintStatus.SUBSTITUTED,
+        realized_value=value,
+        realized_param=param,
+        note=note,
+    )
+
+
+class _CountReading(NamedTuple):
+    param: str
+    shown: str
+    met: bool
+    said: str
+
+
+def _count_readings(
+    c: Constraint, asked: CountValue, realized: RealizedSpec
+) -> list[_CountReading]:
+    params = [
+        _CountReading(
+            p.name, p.wire, _bounds_alike(asked, n), f"{p.name} holds {p.wire}"
+        )
+        for p in linked_params(c, realized.criteria)
+        if (n := p.number) is not None
+    ]
+    counts = [
+        _CountReading("", str(n), asked.holds(n), f"the step returns {n}")
+        for k in realized.criteria
+        for link in k.answers
+        if link.requirement == c.id and link.result_size
+        if (n := k.result_count) is not None
+    ]
+    return [*params, *counts]
+
+
+def ground_count(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    match c.value:
+        case CountValue() as asked:
+            pass
+        case _:
+            return untyped(c)
+    readings = _count_readings(c, asked, realized)
+    if not readings:
+        return not_verified(c, "no_value_to_compare", _NO_NUMBER)
+    off = next((r for r in readings if not r.met), None)
+    if off is not None:
+        return _missed(c, off.param, off.shown, f"asked {asked.shown}, {off.said}")
+    return _met(c, readings[0].param, readings[0].shown)
+
+
+def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    match c.value:
+        case OrthologValue() as asked:
+            pass
+        case _:
+            return untyped(c)
+    linked = linking(c, realized.criteria)
+    if not linked:
+        return not_verified(c, "no_step_states_it", _NO_STEP)
+    targets = {
+        organism
+        for k in linked
+        if k.role == "transform"
+        for organism in selected_organisms(k)
+    }
+    if not targets:
+        return not_verified(
+            c,
+            "no_value_to_compare",
+            "no ortholog step that answers it targets an organism",
+        )
+    shown = ", ".join(sorted(targets))
+    if targets == set(asked.organisms):
+        return _met(c, "", shown)
+    note = f"asked orthologs in {', '.join(asked.organisms)}, the transform targets {shown}"
+    return _missed(c, "", shown, note)
+
+
+def _states(asked: TextValue, bound: str) -> bool:
+    if asked.exact:
+        return bound.strip().strip('"').casefold() == asked.phrase.casefold()
+    return set(words_of(asked.phrase)) <= set(words_of(bound))
+
+
+def ground_text(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    match c.value:
+        case TextValue() as asked:
+            pass
+        case _:
+            return untyped(c)
+    if not linking(c, realized.criteria):
+        return not_verified(c, "no_step_states_it", _NO_STEP)
+    params = linked_params(c, realized.criteria)
+    if not params:
+        return not_verified(c, "no_value_to_compare", NO_LINK)
+    off = next((p for p in params if not _states(asked, p.wire)), None)
+    if off is not None:
+        how = "the phrase" if asked.exact else "every word of"
+        note = f"asked {how} '{asked.phrase}', {off.name} holds '{off.wire}'"
+        return _missed(c, off.name, off.wire, note)
+    return _met(c, params[0].name, params[0].wire)
+
+
+def ground_property(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    match c.value:
+        case PropertyValue():
+            pass
+        case _:
+            return untyped(c)
+    linked = linking(c, realized.criteria)
+    if not linked:
+        return not_verified(c, "no_step_states_it", _NO_STEP)
+    title = linked[0].title
+    return GroundedConstraint(
+        constraint=c,
+        status=ConstraintStatus.GROUNDED,
+        realized_value=title,
+        note=f"answered by step '{title}'",
+    )

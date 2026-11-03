@@ -35,7 +35,7 @@ _PICK = "c_pick"
 _ORGANISM = "organism"
 _STATED = [
     Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         label=label,
         requested_value=label,
         source=ConstraintSource.USER_EXPLICIT,
@@ -126,7 +126,7 @@ _H11_STATED = [
         source=ConstraintSource.USER_EXPLICIT,
     ),
     Constraint(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         label="absence of a human counterpart",
         requested_value="gene families with no human counterpart",
         source=ConstraintSource.USER_EXPLICIT,

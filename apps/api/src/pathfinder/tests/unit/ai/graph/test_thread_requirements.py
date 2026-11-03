@@ -30,8 +30,8 @@ def _stated(kind: ConstraintKind, value: str) -> Constraint:
 
 
 _ORGANISM = _stated(ConstraintKind.ORGANISM, "Plasmodium falciparum 3D7")
-_TM = _stated(ConstraintKind.OTHER, "a transmembrane domain")
-_SIGNAL = _stated(ConstraintKind.OTHER, "a predicted apicoplast targeting signal")
+_TM = _stated(ConstraintKind.UNTYPED, "a transmembrane domain")
+_SIGNAL = _stated(ConstraintKind.UNTYPED, "a predicted apicoplast targeting signal")
 # The plasmodb strategy: the TM step is deleted, the PlasmoAP step stays.
 _TM_STEP = Criterion(
     id="step_4dfb1df9",
@@ -176,8 +176,8 @@ def test_a_withdrawn_requirement_retires_on_its_message() -> None:
 
 def test_a_withdrawn_value_the_message_restates_is_replaced_by_it() -> None:
     """The hostdb edit from chromosome 17 to chromosome 19."""
-    chromosome_17 = _stated(ConstraintKind.OTHER, "chromosome 17")
-    chromosome_19 = _stated(ConstraintKind.OTHER, "chromosome 19")
+    chromosome_17 = _stated(ConstraintKind.UNTYPED, "chromosome 17")
+    chromosome_19 = _stated(ConstraintKind.UNTYPED, "chromosome 19")
 
     thread = _recorded(
         [chromosome_17],
@@ -212,7 +212,7 @@ _ASK = "tell me how many have a signal peptide"
 
 
 def test_a_requirement_an_ask_carries_is_recorded() -> None:
-    signal = _stated(ConstraintKind.OTHER, "signal peptide")
+    signal = _stated(ConstraintKind.UNTYPED, "signal peptide")
 
     thread = _recorded(
         [_ORGANISM, _TM],
@@ -243,7 +243,7 @@ def _combination(value: str) -> Constraint:
 
 def test_a_count_question_that_asks_for_a_build_states_its_requirements() -> None:
     message = "How many Plasmodium falciparum 3D7 genes have a signal peptide?"
-    signal = _stated(ConstraintKind.OTHER, "signal peptide")
+    signal = _stated(ConstraintKind.UNTYPED, "signal peptide")
 
     thread = _recorded(
         [],

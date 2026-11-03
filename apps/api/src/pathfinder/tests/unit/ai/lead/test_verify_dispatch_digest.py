@@ -240,7 +240,7 @@ async def test_an_unchecked_requirement_never_fails_the_verdict(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     unchecked = SiteCheck(
-        kind=ConstraintKind.OTHER,
+        kind=ConstraintKind.UNTYPED,
         subject="which organisms have the most singletons",
         status="unchecked",
         evidence="no check reads this requirement on the site",
