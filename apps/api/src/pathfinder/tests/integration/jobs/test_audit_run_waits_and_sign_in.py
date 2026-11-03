@@ -36,6 +36,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     registered,
     sealed,
     short_runs,
+    sign_in_fails_after,
     split_finding,
     unanswered,
     wire_checks,
@@ -347,10 +348,11 @@ async def test_a_deployment_that_cannot_keep_a_sign_in_starts_no_audit(
     assert (untouched.deadline_at, untouched.stages.halted) == (None, None)
 
 
-async def test_three_forbidden_units_in_a_row_halt_as_a_revoked_sign_in(
-    jobs: InMemoryConnector, wired: Checks
+async def test_three_forbidden_units_in_a_row_halt_when_the_sign_in_fails(
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     wired.forbidden = 3
+    sign_in_fails_after(monkeypatch, wired, TOKEN, refusals=3)
     owner = await seed_thread()
     run_id = await create_run(owner=owner, scope=SCOPE)
     with holding(TOKEN):
@@ -373,6 +375,7 @@ async def test_three_forbidden_units_in_a_row_halt_as_a_revoked_sign_in(
     )
     assert (queued(jobs), await sealed(run_id)) == ([], None)
 
+    registered(monkeypatch, TOKEN)
     with holding(TOKEN):
         await start_run(run_id, owner)
     await work_through(jobs)
