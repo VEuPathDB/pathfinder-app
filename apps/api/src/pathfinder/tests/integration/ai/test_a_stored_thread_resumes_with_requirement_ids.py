@@ -65,10 +65,10 @@ async def test_a_thread_an_earlier_build_stored_resumes_with_requirement_ids() -
     assert type(domain) is StrategyDomainState
     ids = {c.requested_value: c.id for c in domain.requirements}
     [retired] = domain.retired_requirements
-    assert (retired.lifecycle.model_dump(), domain.record_roles) == (
-        {"state": "replaced", "by": ids["Plasmodium falciparum 3D7"]},
-        {ids["proteins"]: "through"},
-    )
+    assert retired.lifecycle.model_dump() == {
+        "state": "replaced",
+        "by": ids["Plasmodium falciparum 3D7"],
+    }
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")

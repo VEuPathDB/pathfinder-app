@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Mapping
 
 from veupathdb.domain.strategy import (
     CombineOp,
@@ -10,7 +10,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     walk,
 )
-from veupathdb.wdk import WDKRecordType, WDKSearch
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     get_raw_record_types,
     get_raw_searches,
@@ -138,25 +138,3 @@ async def tree_record_class_refusal(
     if mixed is not None:
         return mixed_combine_refusal(mixed, names, transforms)
     return transform_input_refusal(root, own, transforms, names)
-
-
-async def names_of_every_record_type(site_id: str) -> dict[str, list[str]]:
-    return record_names_of(await get_raw_record_types(site_id))
-
-
-def record_names_of(records: Iterable[WDKRecordType]) -> dict[str, list[str]]:
-    return {
-        record.url_segment: list(
-            dict.fromkeys(
-                name
-                for name in [
-                    record.url_segment,
-                    record.display_name,
-                    record.display_name_plural,
-                    record.short_display_name,
-                ]
-                if name
-            )
-        )
-        for record in records
-    }

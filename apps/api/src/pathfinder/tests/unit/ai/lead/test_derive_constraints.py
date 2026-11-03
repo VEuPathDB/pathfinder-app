@@ -16,6 +16,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ConstraintStatus,
+    DataTypeValue,
     PercentileValue,
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
@@ -33,16 +34,26 @@ _MICROARRAY_SEARCH = (
 _DERISI_PERCENTILE = "GenesByMicroarrayDerisi3D7SmoothedExpressionPercentile"
 _DERISI = "GenesByMicroarrayDerisi"
 _ASSUMPTION_REASON = "the request says trophozoite and this window covers 17-30 hours"
+_RNA_SEQ = DataTypeValue(data="rna_seq")
+
+
+_LINKED = "r_data"
 
 
 def _constraint(
-    kind: ConstraintKind, value: str, source: ConstraintSource
+    kind: ConstraintKind,
+    value: str,
+    source: ConstraintSource,
+    typed: DataTypeValue | None = None,
+    constraint_id: str = _LINKED,
 ) -> Constraint:
     return Constraint(
+        id=constraint_id,
         kind=kind,
         requested_value=value,
         source=source,
         label="data type",
+        value=typed,
     )
 
 
@@ -57,6 +68,7 @@ def _microarray_spec(constraints: list[Constraint]) -> OperationalSpec:
                 text="microarray fold change",
                 search_name=_MICROARRAY_SEARCH,
                 resolved_params=bound({"fold_change": NumberValue(value=2.0)}),
+                answers=[RequirementLink(requirement=_LINKED)],
             ),
         ],
     )
@@ -78,7 +90,7 @@ def _vectorbase_state(spec: OperationalSpec | None = None) -> PipelineState:
 def _state_with_constraint(source: ConstraintSource) -> PipelineState:
     return _vectorbase_state(
         _microarray_spec(
-            [_constraint(ConstraintKind.DATA_TYPE, "RNA-Seq", source)],
+            [_constraint(ConstraintKind.DATA_TYPE, "RNA-Seq", source, _RNA_SEQ)],
         ),
     )
 
@@ -111,6 +123,7 @@ def test_explicit_turn_constraint_overrides_assumed_spec_and_blocks() -> None:
                 ConstraintKind.DATA_TYPE,
                 "RNA-Seq or microarray",
                 ConstraintSource.ASSUMED,
+                constraint_id="r_assumed",
             ),
         ],
     )
@@ -122,6 +135,7 @@ def test_explicit_turn_constraint_overrides_assumed_spec_and_blocks() -> None:
                 ConstraintKind.DATA_TYPE,
                 "RNA-Seq",
                 ConstraintSource.USER_EXPLICIT,
+                _RNA_SEQ,
             ),
         ],
     )

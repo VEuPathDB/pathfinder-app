@@ -26,7 +26,6 @@ from pathfinder.ai.agents.frame_result_checks import (
     hold_an_organism_to_a_step,
     hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,
-    hold_the_record_types_to_a_role,
     hold_the_reports_to_the_refusals,
     hold_the_reports_to_the_requirement_list,
     hold_the_route_to_another_site,
@@ -362,7 +361,6 @@ def build_frame_agent() -> FrameAgent:
     ):
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_reports_to_the_requirement_list)
-    agent.output_validator(hold_the_record_types_to_a_role)
     agent.output_validator(hold_an_organism_to_a_step)
     agent.output_validator(hold_the_questions_to_a_dimension)
     agent.output_validator(hold_the_questions_to_the_draft)

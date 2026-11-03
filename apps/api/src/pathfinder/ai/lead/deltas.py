@@ -22,7 +22,6 @@ from pathfinder.domain.strategy.questions import (
     SlotQuestion,
 )
 from pathfinder.domain.strategy.requirement_reports import (
-    RecordTypeRole,
     ReportedRequirement,
     RequirementReport,
     numbered_requirements,
@@ -54,7 +53,6 @@ PassGapKind = Literal[
     "group_scope_exception_unknown",
     "missing_after_refusal",
     "organism_step_missing",
-    "record_role_missing",
     "record_type_unknown",
     "structure_names_unbound",
 ]
@@ -102,15 +100,6 @@ class FrameResult(CamelModel):
             "stated' in your instructions, that the strategy does not answer as "
             "asked. A requirement a bound search answers as asked is never "
             "listed. Empty when every requirement is answered."
-        ),
-    )
-    record_types: list[RecordTypeRole] = Field(
-        default_factory=list,
-        exclude=True,
-        description=(
-            "One entry for each requirement, from 'Requirements the researcher "
-            "stated' in your instructions, that names a record type: whether "
-            "the result is those records, or the tree passes through them."
         ),
     )
     group_scopes: list[GroupScope] = Field(

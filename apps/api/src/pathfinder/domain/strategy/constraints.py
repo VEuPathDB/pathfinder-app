@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from enum import StrEnum
 from hashlib import sha256
@@ -34,28 +33,10 @@ CONSTRAINT_KINDS = ", ".join(kind.value for kind in ConstraintKind)
 STRATEGY_SCOPES = frozenset({ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE})
 
 
-# The nouns every site counts a gene answer in.
-GENE_RECORD_NOUNS = frozenset({"gene", "genes", "transcript", "transcripts"})
 # The record classes a request for genes is answered by: a genomics site's
 # transcripts, and OrthoMCL's proteins, the gene level that site holds.
 GENE_ANSWERING_CLASSES = frozenset({"transcript", "sequence"})
-# The words a record-type phrase adds to the noun it names.
-_RECORD_QUALIFIERS = frozenset({"record", "records", "level", "data", "type", "types"})
-
-
-def record_noun(text: str) -> str:
-    """The words of the text, less the words that only say it names a record type."""
-    words = re.findall(r"[a-z0-9]+", text.casefold())
-    return " ".join(word for word in words if word not in _RECORD_QUALIFIERS)
-
-
-def qualifies_a_record_noun(text: str) -> bool:
-    """Whether the text adds a content word to a gene record noun, as a gene
-    type does. Such a text names a value of the record, not a record class."""
-    words = record_noun(text).split()
-    return bool(GENE_RECORD_NOUNS.intersection(words)) and any(
-        word not in GENE_RECORD_NOUNS and word not in FILLER_WORDS for word in words
-    )
+_ANSWERED_BY: dict[str, frozenset[str]] = {"gene": GENE_ANSWERING_CLASSES}
 
 
 class ConstraintSource(StrEnum):
@@ -74,6 +55,8 @@ def new_requirement_id() -> str:
     return uuid4().hex[:12]
 
 
+type DataKind = Literal["rna_seq", "microarray"]
+type RecordRole = Literal["answer", "through"]
 type PercentileEnd = Literal["top", "bottom"]
 type FoldDirection = Literal["up", "down", "either"]
 type Statistic = Literal["p_value", "adjusted_p", "fdr", "q_value", "unspecified"]
@@ -115,6 +98,27 @@ class SignificanceValue(CamelModel):
     at_most: Bound
 
 
+class DataTypeValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.DATA_TYPE] = ConstraintKind.DATA_TYPE
+    data: DataKind
+
+
+class RecordTypeValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.RECORD_TYPE] = ConstraintKind.RECORD_TYPE
+    record_class: str = Field(min_length=1)
+    role: RecordRole = "answer"
+
+    @property
+    def answering_classes(self) -> frozenset[str]:
+        return frozenset({self.record_class}) | _ANSWERED_BY.get(
+            self.record_class, frozenset()
+        )
+
+
 class UntypedValue(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -123,7 +127,12 @@ class UntypedValue(CamelModel):
 
 
 RequirementValue = Annotated[
-    PercentileValue | FoldChangeValue | SignificanceValue | UntypedValue,
+    PercentileValue
+    | FoldChangeValue
+    | SignificanceValue
+    | DataTypeValue
+    | RecordTypeValue
+    | UntypedValue,
     Discriminator("kind"),
 ]
 
@@ -140,15 +149,6 @@ class Constraint(CamelModel):
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
     value: RequirementValue | None = None
-
-    @model_validator(mode="after")
-    def _a_value_of_a_record_is_no_record_type(self) -> Constraint:
-        """A record type that qualifies a record noun states a value of it."""
-        if self.kind is ConstraintKind.RECORD_TYPE and qualifies_a_record_noun(
-            self.requested_value
-        ):
-            self.kind = ConstraintKind.OTHER
-        return self
 
     @model_validator(mode="after")
     def _a_value_is_of_the_requirement_s_kind(self) -> Constraint:

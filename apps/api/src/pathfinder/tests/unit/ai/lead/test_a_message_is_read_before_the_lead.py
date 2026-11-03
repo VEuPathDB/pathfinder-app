@@ -18,6 +18,7 @@ from veupathdb_mcp.catalog import DecisionRequest, DecisionResponse
 from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.lead.message_reader import ReaderInput, read_message, reading_guide
 from pathfinder.domain.message_reading import Effect, StatedRequest, Want
+from pathfinder.domain.strategy.constraints import RecordTypeValue, UntypedValue
 
 MESSAGE = "Move it to chromosome 12 and tell me the new count."
 READ = ReaderInput(
@@ -377,3 +378,70 @@ async def test_a_thread_that_holds_nothing_lists_no_requirements() -> None:
     )
 
     assert "## The requirements the conversation holds" not in script.prompts[0]
+
+
+ORTHOMCL = READ.model_copy(
+    update={
+        "message": "Take the ortholog groups, keep their 3D7 proteins, then list the pathways.",
+        "record_classes": {"group": "Ortholog Groups", "sequence": "Proteins"},
+    }
+)
+
+
+def _record_type(quote: str, record_class: str, role: str) -> dict[str, object]:
+    return {
+        "quote": quote,
+        "kind": "record_type",
+        "value": quote,
+        "recordClass": record_class,
+        "role": role,
+    }
+
+
+async def test_only_the_extraction_reads_the_record_classes_the_site_lists() -> None:
+    ask = _Decisions(_answer(("new", 0.95), ("show_records", 0.9)), None)
+    model, script = _request_model({"requirements": []})
+
+    await read_message(
+        ORTHOMCL,
+        model=model,
+        model_id="openai:gpt-5.6-luna",
+        meter=SpendMeter(),
+        ask=ask,
+    )
+
+    listed = "## The record classes the site lists\n- group: Ortholog Groups\n- sequence: Proteins"
+    assert (listed in script.prompts[0], [listed in a.input for a in ask.asked]) == (
+        True,
+        [False, False],
+    )
+
+
+async def test_a_record_class_the_site_does_not_list_is_untyped() -> None:
+    stated = {
+        "requirements": [
+            _record_type("ortholog groups", "group", "answer"),
+            _record_type("3D7 proteins", "sequence", "through"),
+            _record_type("pathways", "pathway", "answer"),
+        ]
+    }
+    ask = _Decisions(_answer(("new", 0.95), ("show_records", 0.9)), None)
+    model, _ = _request_model(stated)
+
+    _, request = await read_message(
+        ORTHOMCL,
+        model=model,
+        model_id="openai:gpt-5.6-luna",
+        meter=SpendMeter(),
+        ask=ask,
+    )
+
+    assert [(r.kind, r.quote, r.typed()) for r in request.requirements] == [
+        ("record_type", "ortholog groups", RecordTypeValue(record_class="group")),
+        (
+            "record_type",
+            "3D7 proteins",
+            RecordTypeValue(record_class="sequence", role="through"),
+        ),
+        ("untyped", "pathways", UntypedValue(text="pathways")),
+    ]

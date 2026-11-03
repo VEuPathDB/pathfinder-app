@@ -25,7 +25,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.orthology_request import OrthologyRequest
 from pathfinder.domain.strategy.readings import ReadValues
-from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.domain.strategy.vocab_picks import PickRead
 from pathfinder.services.strategies.cut_picks import OptionsRead
@@ -214,7 +213,6 @@ class AgentToolState:
     # The requirements the thread states. A dropped criterion holds open the one
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
-    held_record_roles: dict[str, RecordRole] = field(default_factory=dict)
     held_group_scopes: dict[str, GroupScope] = field(default_factory=dict)
     # The searches the site refused to run this pass, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)

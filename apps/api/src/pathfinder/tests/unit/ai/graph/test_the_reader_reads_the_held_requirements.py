@@ -37,8 +37,9 @@ def test_the_reader_is_given_each_held_requirement_under_its_number() -> None:
         domain=StrategyDomainState(requirements=held),
     )
 
-    read = _reader_input(state, lead_deps(state), message)
+    read = _reader_input(state, lead_deps(state), message, {"transcript": "Genes"})
 
+    assert read.record_classes == {"transcript": "Genes"}
     assert read.held == {
         "R1": "fold_change: at least 2-fold",
         "R2": "other: signal peptide",

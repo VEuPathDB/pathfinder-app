@@ -20,7 +20,6 @@ from pathfinder.domain.strategy.question_options import (
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
-from pathfinder.domain.strategy.requirement_reports import RecordRole
 
 type Ids = Mapping[str, str]
 
@@ -53,10 +52,6 @@ def retired_by_id(
     retired: Sequence[RetiredRequirement], ids: Ids
 ) -> list[RetiredRequirement]:
     return [_retired_by_id(r, ids) for r in retired]
-
-
-def roles_by_id(roles: Mapping[str, RecordRole], ids: Ids) -> dict[str, RecordRole]:
-    return {ids.get(key, key): role for key, role in roles.items()}
 
 
 def _binding_by_id(binding: OptionBinding, ids: Ids) -> OptionBinding:

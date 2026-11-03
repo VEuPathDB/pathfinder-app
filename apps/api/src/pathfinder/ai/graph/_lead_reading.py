@@ -18,6 +18,7 @@ from pathfinder.domain.exchanges import exchanges_text
 from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.model_keys import is_mock_deployment, keyed_model
+from pathfinder.services.strategies.record_classes import record_class_names
 
 
 def _words(state: PipelineState, *, new_message: bool) -> str | None:
@@ -56,7 +57,12 @@ def _files(state: PipelineState) -> list[UserContent]:
     )
 
 
-def _reader_input(state: PipelineState, deps: LeadDeps, words: str) -> ReaderInput:
+def _reader_input(
+    state: PipelineState,
+    deps: LeadDeps,
+    words: str,
+    record_classes: dict[str, str],
+) -> ReaderInput:
     strategy, steps = _strategy(deps.runtime.strategy_session.get_graph(None))
     markers = deps.state.turn_markers
     return ReaderInput(
@@ -77,6 +83,7 @@ def _reader_input(state: PipelineState, deps: LeadDeps, words: str) -> ReaderInp
                 deps.state.domain.requirements
             ).items()
         },
+        record_classes=record_classes,
     )
 
 
@@ -97,7 +104,9 @@ async def read_the_words(
     meter = SpendMeter()
     try:
         reading, request = await read_message(
-            _reader_input(state, deps, words),
+            _reader_input(
+                state, deps, words, await record_class_names(deps.runtime.site_id)
+            ),
             files=_files(state) if new_message else [],
             model=keyed_model(model_id),
             model_id=model_id,

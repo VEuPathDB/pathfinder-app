@@ -39,11 +39,12 @@ A requirement is `Constraint` with a typed `value`, a union discriminated by
 `kind`
 ([a requirement carries a typed value of its kind](../decisions/a-requirement-carries-a-typed-value-of-its-kind.md));
 `percentile` (end and share), `fold_change` (cut, scale, direction),
-`significance` (statistic and an upper bound) and `untyped` (text) are built. The
-kinds still to gain a member: `organism` (a site vocabulary entry), `record_type`
-(a WDK `recordClassName`, role `answer` or `through`), `data_type` (`rna_seq`,
-`microarray`), `count` (feature, operator, value), `ortholog` (organisms,
-syntenic), `text` (phrase, exact) and `property` (phrase). No kind states how
+`significance` (statistic and an upper bound), `data_type` (`rna_seq`,
+`microarray`), `record_type` (a record class the site lists, role `answer` or
+`through`) and `untyped` (text) are built. The kinds still to gain a member:
+`organism` (a site vocabulary entry), `count` (feature, operator, value),
+`ortholog` (organisms, syntenic), `text` (phrase, exact) and `property`
+(phrase). No kind states how
 requirements combine: the operators are FRAME's tree, read against the
 researcher's words
 ([operators come from FRAME's tree](../decisions/operators-come-from-frames-tree.md)).
@@ -59,15 +60,11 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-10. Data type (R): against the data marks of the linking criteria.
 11. Organism (R): a vocabulary entry compared by equality in grounding, the
     organism check, FRAME's bind refusal, the organism drop and `gene_record`'s
     `ortholog_organism`; `complete_organisms` becomes gate validation, and a
     non-entry goes to a Decisions choice over the site's entries, asked on a card
     when it does not settle.
-12. Record type (R): equality with `recordClassName`, gene to transcript or
-    sequence by a typed table; `constraints._a_value_of_a_record_is_no_record_type`
-    and `requirement_checks.classes_named` go.
 13. Count, ortholog, text, property and untyped; `other` is removed; the "not
     verified" display (R). `merge_constraints._dimension` and
     `phrasings_the_request_states` read typed fields.
@@ -75,8 +72,7 @@ pass on Luna on QA, and a case that flips is rerun three times per arm.
     and is outdated when a seed value or step is gone; a step name PathFinder made
     is regenerated from the search display name and bound labels, and a name the
     researcher wrote is never rewritten. Not R.
-15. Cleanup: delete `message_states`, `content_words`, `record_noun` and
-    `qualifies_a_record_noun` with their tests; run
+15. Cleanup: delete `message_states` and `content_words` with their tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision
     and the vocabulary convention; regenerate the shared types and update the web
     constraints section.

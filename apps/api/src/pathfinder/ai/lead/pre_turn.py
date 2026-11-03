@@ -127,12 +127,14 @@ def attach_turn_briefing(
     ``answered`` is the tree the thread's spec answered to when the turn
     opened, which the refresh has already brought up to the live one.
     """
+    spec = state.domain.operational_spec
     state.domain.turn_briefing = compose_turn_briefing(
         activity,
         requirements=state.domain.requirements,
         answered=answered,
         live=live_tree(context.strategy_session.get_graph(None)),
         marks=state.domain.data_marks,
+        links={} if spec is None else {c.id: c.answers for c in spec.criteria},
     ).render()
     return state
 

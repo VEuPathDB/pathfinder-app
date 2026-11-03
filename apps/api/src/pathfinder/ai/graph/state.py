@@ -276,7 +276,6 @@ class StrategyDomainState(ThreadRequirements):
         self.operational_spec = None
         self.requirements = []
         self.retired_requirements = []
-        self.record_roles = {}
         self.group_scopes = {}
         self.answered_questions = []
         self.recommendations = []

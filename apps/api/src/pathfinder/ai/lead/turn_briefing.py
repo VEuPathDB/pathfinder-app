@@ -8,6 +8,8 @@ them.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst, walk
 
@@ -19,6 +21,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.expression_handles import shown_wire
+from pathfinder.domain.strategy.operational_spec import RequirementLink
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
@@ -159,6 +162,8 @@ def _analysis_line(drift: AnalysisDrift) -> str:
 
 
 _NO_MARKS = DataMarks()
+type Links = Mapping[str, Sequence[RequirementLink]]
+_NO_LINKS: Links = {}
 
 
 def compose_turn_briefing(
@@ -168,12 +173,14 @@ def compose_turn_briefing(
     answered: StrategyAst | None = None,
     live: StrategyAst | None = None,
     marks: DataMarks = _NO_MARKS,
+    links: Links = _NO_LINKS,
 ) -> TurnBriefing:
     """Turn one thread's activity into the briefing the Lead reads.
 
     ``answered`` is the tree the thread's spec answered to and ``live`` the
     tree the strategy holds now, so what moved is read graph against graph.
-    ``marks`` holds what the site says each step runs on.
+    ``marks`` holds what the site says each step runs on, and ``links`` the
+    requirements each criterion of the thread's spec answers, by step id.
     """
     return TurnBriefing(
         strategy=outside_changes(answered, live),
@@ -184,6 +191,7 @@ def compose_turn_briefing(
             before=answered,
             after=live,
             marks=marks,
+            links=links,
         ),
     )
 
@@ -194,12 +202,13 @@ def _regrounded(
     before: StrategyAst | None,
     after: StrategyAst | None,
     marks: DataMarks,
+    links: Links,
 ) -> list[ConstraintShift]:
     """Requirements whose grounding differs between the two states."""
     if not requirements or before is None or after is None:
         return []
-    was = _statuses(requirements, before, marks)
-    now = _statuses(requirements, after, marks)
+    was = _statuses(requirements, before, marks, links)
+    now = _statuses(requirements, after, marks, links)
     return [
         ConstraintShift(label=requirement.label, before=was[index], after=now[index])
         for index, requirement in enumerate(requirements)
@@ -211,6 +220,7 @@ def _statuses(
     requirements: list[Constraint],
     ast: StrategyAst,
     marks: DataMarks,
+    links: Links,
 ) -> list[ConstraintStatus]:
     nodes = list(walk(ast.root))
     for detached in ast.detached_roots:
@@ -223,7 +233,10 @@ def _statuses(
             RealizedSpec(
                 search_names=[node.search_name for node in nodes],
                 structure=spec.structure,
-                criteria=spec.criteria,
+                criteria=[
+                    c.model_copy(update={"answers": list(links.get(c.id, ()))})
+                    for c in spec.criteria
+                ],
                 marks=marks,
             ),
         )

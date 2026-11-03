@@ -13,7 +13,7 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintStatus
+from pathfinder.domain.strategy.constraints import ConstraintStatus
 from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -28,8 +28,9 @@ from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.user_dataset_doubles import UPLOAD_DATASET
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
+    linking_rna_seq,
     pipeline_state,
-    requirement,
+    rna_seq_requirement,
 )
 
 _PERCENTILE = "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile"
@@ -38,7 +39,7 @@ _PERCENTILE = "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPer
 def _built(criterion: Criterion) -> Any:
     spec = OperationalSpec(
         goal="RNA-Seq genes",
-        criteria=[criterion],
+        criteria=[linking_rna_seq(criterion)],
         structure=SpecStructure(
             root=StructureNode(kind="leaf", criterion_id=criterion.id)
         ),
@@ -46,9 +47,7 @@ def _built(criterion: Criterion) -> Any:
     state = pipeline_state(
         user_prompt="build it", domain=StrategyDomainState(operational_spec=spec)
     )
-    state.domain.requirements = [
-        requirement(ConstraintKind.DATA_TYPE, "RNA-Seq dataset", "RNA-Seq")
-    ]
+    state.domain.requirements = [rna_seq_requirement()]
     return run_context_for(
         lead_deps(state, strategy_session=StrategySession(site_id="plasmodb"))
     )

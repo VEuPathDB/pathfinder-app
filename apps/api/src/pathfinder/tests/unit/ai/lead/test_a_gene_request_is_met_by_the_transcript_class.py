@@ -4,28 +4,34 @@ the result step."""
 
 from __future__ import annotations
 
-import pytest
-
-from pathfinder.domain.requirement_checks import classes_named, record_type_check
+from pathfinder.domain.requirement_checks import record_type_check
 from pathfinder.domain.site_checks import SiteCheck
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
-from pathfinder.services.strategies.record_classes import record_names_of
-from pathfinder.tests._support.organism_reads import TRANSCRIPT
-from pathfinder.tests.unit.ai.lead.conftest import requirement
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    RecordTypeValue,
+)
+
+
+def _record_type(record_class: str | None) -> Constraint:
+    return Constraint(
+        kind=ConstraintKind.RECORD_TYPE,
+        label="record type",
+        requested_value="genes",
+        source=ConstraintSource.USER_EXPLICIT,
+        value=None
+        if record_class is None
+        else RecordTypeValue(record_class=record_class),
+    )
 
 
 def _checked(stated: Constraint, root_class: str) -> SiteCheck:
-    named = classes_named(stated.requested_value, record_names_of([TRANSCRIPT]))
-    return record_type_check(stated, "answer", named, root_class, {root_class})
+    return record_type_check(stated, root_class, {root_class})
 
 
-def _record_type(value: str) -> Constraint:
-    return requirement(ConstraintKind.RECORD_TYPE, "record type", value)
-
-
-@pytest.mark.parametrize("value", ["genes", "gene records", "transcripts"])
-def test_genes_is_met_by_the_transcript_class(value: str) -> None:
-    check = _checked(_record_type(value), "transcript")
+def test_genes_is_met_by_the_transcript_class() -> None:
+    check = _checked(_record_type("gene"), "transcript")
 
     assert (check.status, check.evidence) == (
         "pass",
@@ -34,7 +40,7 @@ def test_genes_is_met_by_the_transcript_class(value: str) -> None:
 
 
 def test_a_class_counted_in_another_noun_fails_the_stated_genes() -> None:
-    check = _checked(_record_type("genes"), "snp")
+    check = _checked(_record_type("gene"), "snp")
 
     assert (check.status, check.evidence) == (
         "fail",
@@ -43,32 +49,18 @@ def test_a_class_counted_in_another_noun_fails_the_stated_genes() -> None:
 
 
 def test_genes_is_met_by_orthomcls_protein_class() -> None:
-    assert _checked(_record_type("genes"), "sequence").status == "pass"
+    assert _checked(_record_type("gene"), "sequence").status == "pass"
 
 
-def test_a_class_the_site_does_not_name_is_unchecked() -> None:
-    check = _checked(_record_type("pathways"), "transcript")
+def test_a_transcript_request_is_not_met_by_the_gene_class() -> None:
+    assert _checked(_record_type("transcript"), "gene").status == "fail"
 
-    assert (check.status, check.evidence) == (
+
+def test_a_record_type_with_no_typed_class_is_unchecked() -> None:
+    check = _checked(_record_type(None), "transcript")
+
+    assert (check.status, check.evidence, check.why_unchecked) == (
         "unchecked",
-        "the site names no record class by these words",
+        "no typed record class to compare",
+        "no_check",
     )
-
-
-def test_a_record_type_value_that_qualifies_a_record_noun_is_recorded_as_other() -> (
-    None
-):
-    stated = requirement(
-        ConstraintKind.RECORD_TYPE, "record type", "protein-coding genes"
-    )
-
-    assert stated.kind is ConstraintKind.OTHER
-
-
-@pytest.mark.parametrize("value", ["genes", "pathways", "Gene-level data type"])
-def test_a_record_type_value_that_names_a_record_class_keeps_its_kind(
-    value: str,
-) -> None:
-    stated = requirement(ConstraintKind.RECORD_TYPE, "record type", value)
-
-    assert stated.kind is ConstraintKind.RECORD_TYPE

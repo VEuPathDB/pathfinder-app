@@ -23,11 +23,12 @@ review on the digest and on the evidence card carries them as `checks`.
 | `combine_counts` | each boolean combine's `estimatedSize` against its inputs': an intersection at most the smaller, a union between the larger and the sum, a minus at most the input it keeps |
 | `result_count` | the root's `estimatedSize`; a root of no record fails |
 | `organism` | the root's `organism` column counted by value over the whole step, against the organisms its WDK-marked organism parameter selects (`extract_output_organisms`); a requirement that names a selected organism carries the same result |
-| `record_type` | the root's `recordClassName`, or every step's for a class the strategy passes through, against the classes the requirement's words name on the site |
+| `record_type` | the root's `recordClassName` for an `answer`, or every step's for a `through`, equal to the requirement's typed record class (`gene` is also answered by `transcript` and `sequence`); with no value, `unchecked` ([a record type's role is read with its class](a-record-types-role-is-read-with-its-class.md)) |
 | `expression_fit` | the first groups of a phyletic step judged against the expression as the site reads it |
 | `tally` | a column tally this turn recorded on a step of the strategy, held as the recorded result |
 | `statistical_threshold`, `fold_change`, `percentile` | the requirement's typed value against the parameter or the analysis cut a linking criterion names (`value_grounding`, `fold_grounding`), whose values `bound_values` holds to the site; with no such link or no value, `unchecked` ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
-| `data_type`, `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site |
+| `data_type` | the requirement's typed data against what the site marks each linking criterion runs on (`DataMarks.run_on`, `constraint_grounding`); with no linking criterion or no value, `unchecked` |
+| `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site |
 | `comparator`, `other` | no deterministic check: `unchecked` |
 
 The verdict is `success` exactly when no check fails, no word a criterion states
@@ -38,9 +39,9 @@ in code.
 
 An `unchecked` check names why in `why_unchecked`. `no_check` is a requirement
 kind or a step property with nothing to compare on the site; it never blocks
-the verdict. A percentile, fold-change or significance requirement that is
-untyped or that no criterion links is unchecked the same way and shown "not
-verified"
+the verdict. A percentile, fold-change, significance or data-type requirement
+that is untyped or that no criterion links, and a record type with no value,
+are unchecked the same way and shown "not verified"
 ([an unlinked requirement is not verified and never blocks](an-unlinked-requirement-is-not-verified-and-never-blocks.md));
 a hard stated requirement its grounding marks ungroundable or substituted fails
 its check (`domain/requirement_checks.py::grounded_check`). `site_unanswered` is a read the site did not answer: the strategy

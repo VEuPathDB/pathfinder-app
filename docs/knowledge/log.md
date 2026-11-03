@@ -2,6 +2,26 @@
 
 ## 2026-11-03
 
+* **A data type and a record type carry typed values.** `DataTypeValue` (`data`:
+  `rna_seq` or `microarray`) is compared with what the site marks each criterion
+  that links it runs on: grounded, substituted by the other assay, ungroundable
+  with no expression data, provisional while a linked analysis waits, and not
+  verified with no link or no value. `RecordTypeValue` (`record_class`, `role`) is
+  compared by equality with the result step's class for an `answer` and with every
+  step's for a `through`; `gene` is also answered by `transcript` and `sequence`.
+  The message reading is given the record classes the site lists and writes both
+  kinds; a class the site does not list stays an untyped requirement with its
+  quote. The role moves from FRAME to the reading: `FrameResult.record_types`, its
+  output validator, `record_roles` on the thread and `held_record_roles` are
+  deleted, and a stored map is ignored on load. The turn briefing regrounds
+  requirements through the spec's links. The RNA-Seq pattern on the value,
+  `classes_named`, `record_noun`, `qualifies_a_record_noun`, `GENE_RECORD_NOUNS`,
+  `names_of_every_record_type`, `record_names_of` and the validator that turned a
+  qualified gene noun into another kind are deleted. Measured on 21 labelled
+  corpus turns, two runs on Luna: 27 of 32 record types and 4 of 4 data types
+  extracted, every typed field of each right. See
+  [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md)
+  and [a record type's role is read with its class](decisions/a-record-types-role-is-read-with-its-class.md).
 * **A requirement carries a typed value of its kind.** `Constraint.value` is a
   `RequirementValue`, a union discriminated by kind (`PercentileValue`,
   `FoldChangeValue`, `SignificanceValue`, `UntypedValue` so far) that a validator

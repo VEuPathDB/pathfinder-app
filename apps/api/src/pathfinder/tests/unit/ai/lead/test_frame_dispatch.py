@@ -22,7 +22,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.question_options import SetValues
 from pathfinder.domain.strategy.questions import SlotQuestion
-from pathfinder.domain.strategy.requirement_reports import RecordTypeRole
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -457,25 +456,3 @@ async def test_a_stop_that_bound_nothing_is_not_dispatched_again(
     assert len(barren_dispatches) == 1
     assert result.disposition == "needs_user"
     assert "no criteria bound" in result.summary
-
-
-async def test_the_role_frame_states_for_a_record_type_is_recorded(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    proteins = requirement(ConstraintKind.RECORD_TYPE, "record type", "protein")
-    delta = FrameResult(
-        disposition="spec_ready",
-        summary="bound one",
-        record_types=[RecordTypeRole(requirement="R1", role="through")],
-    )
-    _stub_stream(monkeypatch, delta, binds=True)
-    deps = _deps()
-    deps.state.domain.requirements = [proteins]
-
-    await run_frame(
-        deps=deps,
-        parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps),
-    )
-
-    assert deps.state.domain.record_roles == {proteins.id: "through"}

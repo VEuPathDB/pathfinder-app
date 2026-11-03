@@ -59,6 +59,7 @@ class ReaderInput(CamelModel):
     files: list[str] = Field(default_factory=list)
     question_open: bool = False
     held: dict[str, str] = Field(default_factory=dict)
+    record_classes: dict[str, str] = Field(default_factory=dict)
 
 
 class ReadingGuide(CamelModel):
@@ -93,7 +94,12 @@ def reading_guide() -> ReadingGuide:
 
 def _held(read: ReaderInput) -> str:
     listed = "\n".join(f"{number}: {text}" for number, text in read.held.items())
-    return f"\n\n## The requirements the conversation holds\n{listed}" if listed else ""
+    held = f"\n\n## The requirements the conversation holds\n{listed}" if listed else ""
+    classes = "\n".join(
+        f"- {name}: {shown}" for name, shown in read.record_classes.items()
+    )
+    listing = f"\n\n## The record classes the site lists\n{classes}" if classes else ""
+    return f"{held}{listing}"
 
 
 def _context(read: ReaderInput, *, latest_first: bool, held: bool = False) -> str:
@@ -281,7 +287,7 @@ async def _stated_request(
     outside = stated.quotes_outside(read.message)
     if outside:
         stated = (await agent.run([*prompt, _quotes_refusal(outside)])).output
-    return stated.within(read.message, read.held)
+    return stated.within(read.message, read.held, read.record_classes)
 
 
 def _settled(reading: MessageReading) -> bool:

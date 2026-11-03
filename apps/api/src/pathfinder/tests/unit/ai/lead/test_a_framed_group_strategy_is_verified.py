@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 from veupathdb.domain.strategy import StepKind, StrategyStep
-from veupathdb.wdk import WDKRecordType, WDKStrategyDetails
+from veupathdb.wdk import WDKStrategyDetails
 
 from pathfinder.ai.lead import evidence_card, sub_agent_tools, verify_checks
 from pathfinder.ai.lead.deltas import VerificationDelta
@@ -14,19 +14,19 @@ from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.site_checks import SiteCheck, SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    RecordTypeValue,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     SpecStructure,
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies import record_classes
 from pathfinder.services.strategies.site_counts import SiteCounts
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests._support.orthomcl_record_classes import (
-    recorded_orthomcl_record_types,
-)
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -45,8 +45,10 @@ _MOST_PLASMODIUM = (
 _PATTERN = "GroupsByPhyleticPattern"
 
 
-def _record_type_requirement(value: str, label: str) -> Constraint:
-    return requirement(ConstraintKind.RECORD_TYPE, label, value)
+def _record_type_requirement(record_class: str, label: str) -> Constraint:
+    return requirement(ConstraintKind.RECORD_TYPE, label, label).model_copy(
+        update={"value": RecordTypeValue(record_class=record_class)}
+    )
 
 
 def _session() -> StrategySession:
@@ -119,16 +121,12 @@ def _details() -> WDKStrategyDetails:
 
 
 async def _verify(monkeypatch: pytest.MonkeyPatch, deps: LeadDeps) -> VerificationDelta:
-    async def _record_types(_site_id: str) -> list[WDKRecordType]:
-        return recorded_orthomcl_record_types()
-
     async def _strategy(_site_id: str, _id: int) -> WDKStrategyDetails:
         return _details()
 
     async def _counts(_site_id: str, _id: int) -> SiteCounts:
         return SiteCounts(root_step_id=_STEP, counts={_STEP: 1088})
 
-    monkeypatch.setattr(record_classes, "get_raw_record_types", _record_types)
     monkeypatch.setattr(verify_checks, "read_site_strategy", _strategy)
     monkeypatch.setattr(evidence_card, "read_step_counts", _counts)
     monkeypatch.setattr(
@@ -150,7 +148,7 @@ async def _verify(monkeypatch: pytest.MonkeyPatch, deps: LeadDeps) -> Verificati
 async def test_a_framed_group_strategy_verifies_with_no_record_type_gap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _framed_deps(_record_type_requirement("ortholog groups", "ortholog groups"))
+    deps = _framed_deps(_record_type_requirement("group", "ortholog groups"))
 
     delta = await _verify(monkeypatch, deps)
 
@@ -170,7 +168,7 @@ async def test_a_framed_group_strategy_verifies_with_no_record_type_gap(
 async def test_a_request_for_proteins_on_a_group_strategy_keeps_its_gap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    proteins = _record_type_requirement("proteins", "proteins")
+    proteins = _record_type_requirement("sequence", "proteins")
     deps = _framed_deps(proteins)
     deps.state.domain.request_messages = ["Which proteins are in these groups?"]
 
