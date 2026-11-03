@@ -2,6 +2,12 @@
 
 ## 2026-11-03
 
+* **The last live check of the refused call and the singleton count is closed.** The
+  all-organism singleton count and the audit follow-up passed live. No saved replay holds a
+  refused `build_strategy`, so the guard is not seen live on a build: `RefusalMemoryToolset`
+  wraps every Lead tool, including `build_strategy`, and its refusal was seen live on other
+  tools.
+
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`
   gives equal forms; a regrouping, a changed count and a changed code stay a
