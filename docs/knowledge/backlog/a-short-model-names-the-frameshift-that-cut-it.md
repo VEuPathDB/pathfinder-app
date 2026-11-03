@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A short model names the frameshift that cut it
-description: The FRAMESHIFT and OTHER_FRAME verdicts, their error types and their facts are written against the unreleased library; what remains is the veupathdb-mcp release, the pin, and the NF54 audit rerun that shows the finding.
+description: The FRAMESHIFT and OTHER_FRAME verdicts, their error types and their facts are written against the unreleased library; what remains is the veupathdb-mcp release, the pin and the live NF54 audit rerun.
 tags: [audit, length, frameshift, assembly, veupathdb-mcp]
 generated: { by: claude-code/opus-5.5, at: 2026-10-31T00:00:00Z }
 status: proposed
@@ -14,7 +14,9 @@ The decision is
 
 ## What remains
 
-1. Release veupathdb-mcp with `FRAMESHIFT` and take the pin.
+1. Release veupathdb-mcp with `FRAMESHIFT`.
+2. Take the pin.
+3. Rerun the NF54 audit live.
 
 ## Done when
 
