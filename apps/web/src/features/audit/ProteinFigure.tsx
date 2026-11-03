@@ -41,15 +41,21 @@ function runText(mark: ProteinMark): string {
     : `${first} to ${mark.last.toLocaleString("en-US")}`;
 }
 
-function kindText(kind: ProteinMarkKind, marks: ProteinMark[]): string {
+function kindText(
+  kind: ProteinMarkKind,
+  marks: ProteinMark[],
+  stopsCut: boolean,
+): string {
   const single = marks.length === 1 && marks[0]?.first === marks[0]?.last;
-  return `${MARK_WORDS[kind]}: ${single ? "residue" : "residues"} ${joinWords(marks.map(runText))}`;
+  return `${MARK_WORDS[kind]}: ${single ? "residue" : "residues"} ${joinWords(marks.map(runText))}${
+    kind === "stop" && stopsCut ? ` (the first ${String(marks.length)})` : ""
+  }`;
 }
 
 function trackText(track: ProteinTrack): string {
   const stated = MARK_KINDS.flatMap((kind) => {
     const marks = track.marks.filter((mark) => mark.kind === kind);
-    return marks.length === 0 ? [] : [kindText(kind, marks)];
+    return marks.length === 0 ? [] : [kindText(kind, marks, track.stopsCut)];
   });
   return [track.summary, ...stated].join("; ");
 }

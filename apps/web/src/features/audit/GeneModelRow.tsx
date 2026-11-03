@@ -1,7 +1,7 @@
 import { FIGURE_COLORS } from "./FigureLegend";
 import type { Box, ModelRow, Track } from "./geneModelTracks";
 import { placeBox } from "./geneModelTracks";
-import { baseText } from "./geneModelWords";
+import { readsText } from "./geneModelWords";
 
 export const FIGURE_WIDTH = 600;
 const ROW = 36;
@@ -96,7 +96,7 @@ function Junction({
         textAnchor="middle"
         fill={FIGURE_COLORS.muted}
       >
-        {`${baseText(junction.reads)} reads`}
+        {readsText(junction.reads)}
       </text>
     </g>
   );
@@ -207,7 +207,7 @@ export function ModelRowDrawing({
           textAnchor="middle"
           fill={FIGURE_COLORS.ink}
         >
-          stop
+          last codon
         </text>
       )}
       {row.junctions.map((junction) => (

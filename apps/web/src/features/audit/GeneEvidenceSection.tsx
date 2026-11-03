@@ -9,6 +9,23 @@ import { joinWords, plural } from "./format";
 import { EVIDENCE_KIND_WORDS } from "./words";
 
 const SMALL_EVALUE = 0.001;
+const PDB_TABLE = "PdbSimilarities";
+const PEPTIDE_TABLE = "MassSpecDownload";
+const SEQEDIT_TABLE = "Seqedits";
+const COMMENT_TABLE = "UserComments";
+const PUBMED_TABLE = "PubMed";
+const NOTE_TABLE = "Notes";
+const EVIDENCE_TABLES: readonly string[] = [
+  "GeneTranscripts",
+  PDB_TABLE,
+  PEPTIDE_TABLE,
+  "AlphaFoldLinkouts",
+  "GeneLinkouts",
+  SEQEDIT_TABLE,
+  COMMENT_TABLE,
+  PUBMED_TABLE,
+  NOTE_TABLE,
+];
 
 function servedName(name: string): string {
   return name.replace(/<[^>]*>/g, "").replaceAll("_", " ");
@@ -50,7 +67,32 @@ function screenText(screen: PhenotypeScreen): string {
   return `${servedName(screen.table)}: ${screen.rows.map(screenRowText).join("; ")}`;
 }
 
+function countText(
+  record: GeneEvidence,
+  table: string,
+  count: number,
+  word: string,
+): string {
+  return record.unserved.includes(table) ? `${word}s not served` : plural(count, word);
+}
+
+function headingText(record: GeneEvidence): string {
+  const counts = [
+    countText(record, PUBMED_TABLE, record.pubmed, "PubMed article"),
+    countText(record, COMMENT_TABLE, record.comments, "comment"),
+    countText(record, NOTE_TABLE, record.notes, "note"),
+  ];
+  return `${record.gene}: ${counts.join(", ")}`;
+}
+
+function noScreenText(record: GeneEvidence): string {
+  return record.unserved.some((table) => !EVIDENCE_TABLES.includes(table))
+    ? "No screen the site served holds a row for this gene, and not every screen was served"
+    : "No phenotype screen holds a row for this gene";
+}
+
 function peptidesText(record: GeneEvidence): string {
+  if (record.unserved.includes(PEPTIDE_TABLE)) return "Mass-spec peptides not served";
   if (record.peptides.length === 0) return "No mass-spec peptide served";
   const spectra = record.peptides.reduce(
     (total, peptide) => total + peptide.spectra,
@@ -71,6 +113,7 @@ function TextList({ items }: { items: string[] }) {
 }
 
 function PdbTable({ record }: { record: GeneEvidence }) {
+  if (record.unserved.includes(PDB_TABLE)) return <p>PDB similarities not served</p>;
   if (record.pdbHits.length === 0) return <p>No PDB similarity served</p>;
   return (
     <table className="w-full text-left">
@@ -109,9 +152,7 @@ function GeneRecord({ record }: { record: GeneEvidence }) {
   );
   return (
     <div className="mt-3 space-y-2 text-xs">
-      <h4 className="font-medium">
-        {`${record.gene}: ${plural(record.pubmed, "PubMed article")}, ${plural(record.comments, "comment")}, ${plural(record.notes, "note")}`}
-      </h4>
+      <h4 className="font-medium">{headingText(record)}</h4>
       <TextList items={record.transcripts.map(transcriptText)} />
       <TextList
         items={record.alphafold.map(
@@ -126,13 +167,15 @@ function GeneRecord({ record }: { record: GeneEvidence }) {
           (link) => `${servedName(link.database)}: ${link.externalId}`,
         )}
       />
-      {record.seqedits.length === 0 ? (
+      {record.unserved.includes(SEQEDIT_TABLE) ? (
+        <p>Sequence edits not served</p>
+      ) : record.seqedits.length === 0 ? (
         <p>No sequence edit served</p>
       ) : (
         <TextList items={record.seqedits.map(seqEditText)} />
       )}
       {screens.length === 0 ? (
-        <p>No phenotype screen holds a row for this gene</p>
+        <p>{noScreenText(record)}</p>
       ) : (
         <TextList items={screens.map(screenText)} />
       )}

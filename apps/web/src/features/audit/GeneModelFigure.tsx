@@ -69,6 +69,7 @@ function TrackDrawing({ track, hatch }: { track: Track; hatch: string }) {
       {track.rows.map((row, index) => (
         <g
           key={row.label}
+          data-row={row.label}
           transform={`translate(0 ${String(rowsHeight(track.rows.slice(0, index)))})`}
         >
           <ModelRowDrawing row={row} window={track.window} hatch={hatch} />
@@ -113,7 +114,7 @@ function legendEntries(rows: ModelRow[], hatch: string): LegendEntry[] {
       ? [{ word: "Merged model's span", fill: "none", stroke: FIGURE_COLORS.ink }]
       : []),
     ...(has((row) => row.stop.length > 0)
-      ? [{ word: "Stop codon", fill: FIGURE_COLORS.flagged }]
+      ? [{ word: "The model's last coded codon", fill: FIGURE_COLORS.flagged }]
       : []),
   ];
 }
@@ -129,34 +130,43 @@ export function GeneModelFigure({
   const tracks = geneModelTracks(models);
   const rows = tracks.flatMap((track) => track.rows);
   return (
-    <figure className="mt-3 text-xs">
-      <svg width="0" height="0" aria-hidden="true" className="absolute">
-        <defs>
-          <pattern
-            id={hatch}
-            width="6"
-            height="6"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <line x1="0" y1="0" x2="0" y2="6" stroke={FIGURE_COLORS.flagged} />
-          </pattern>
-        </defs>
-      </svg>
-      <div className="space-y-3">
-        {tracks.map((track) => (
-          <TrackDrawing key={track.seqid} track={track} hatch={hatch} />
-        ))}
-      </div>
-      <figcaption className="mt-1 text-muted-foreground">
-        <ul className="space-y-0.5">
-          {rows.map((row) => (
-            <li key={row.label}>{rowText(row)}</li>
+    <div className="mt-3 text-xs">
+      <figure>
+        <svg width="0" height="0" aria-hidden="true" className="absolute">
+          <defs>
+            <pattern
+              id={hatch}
+              width="6"
+              height="6"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line x1="0" y1="0" x2="0" y2="6" stroke={FIGURE_COLORS.flagged} />
+            </pattern>
+          </defs>
+        </svg>
+        <div className="space-y-3">
+          {tracks.map((track) => (
+            <TrackDrawing key={track.seqid} track={track} hatch={hatch} />
           ))}
-        </ul>
-        <FigureLegend entries={legendEntries(rows, hatch)} />
-      </figcaption>
-      <ProteinFigure title="Protein lengths of the two models" tracks={proteinTracks} />
-    </figure>
+        </div>
+        <figcaption className="mt-1 text-muted-foreground">
+          <ul className="space-y-0.5">
+            {rows.map((row) => (
+              <li key={row.label}>{rowText(row)}</li>
+            ))}
+          </ul>
+          <FigureLegend entries={legendEntries(rows, hatch)} />
+        </figcaption>
+      </figure>
+      <ProteinFigure
+        title={
+          models.kind === "pseudogene"
+            ? "Coding sequences of the two genes, in codons"
+            : "Protein lengths of the two models"
+        }
+        tracks={proteinTracks}
+      />
+    </div>
   );
 }

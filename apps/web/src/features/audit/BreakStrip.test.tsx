@@ -20,14 +20,14 @@ describe("BreakStrip", () => {
     );
     expect(
       screen.getByRole("img", {
-        name: "Genome after the model's end: stop, G, stop. Reference from its selenocysteine: selenocysteine, G.",
+        name: "Genome after the model's end: stop, G, stop, L, A, G, G, F, K, K, G, N. Reference from its selenocysteine: selenocysteine, G.",
       }),
     ).toBeInTheDocument();
     expect(
       [...container.querySelectorAll('[data-part="residue"]')].map(
         (cell) => cell.textContent,
       ),
-    ).toEqual(["*", "G", "*", "U", "G"]);
+    ).toEqual([..."*G*LAGGFKKGN", "U", "G"]);
   });
 
   it("states a pseudogene call's premature stops by residue", () => {

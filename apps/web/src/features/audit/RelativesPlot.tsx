@@ -1,11 +1,14 @@
 import { FIGURE_COLORS, FigureLegend } from "./FigureLegend";
-import type { RelativesPoints } from "./relativesPoints";
+import type { LegendEntry } from "./FigureLegend";
+import type { RelativesOutcome, RelativesPoints } from "./relativesPoints";
 import { pointLengths, stripX } from "./relativesPoints";
 
 const WIDTH = 600;
 const MARGIN = 10;
-const AXIS = 34;
+const LEAST_AXIS = 34;
+const BELOW_AXIS = 20;
 const DOT = 4;
+const DIAMOND = DOT + 1;
 const STACK = 9;
 
 function residues(length: number): string {
@@ -25,16 +28,15 @@ function statedLabel(points: RelativesPoints): string {
 }
 
 function listedLengths(points: RelativesPoints): [string, number][] {
+  const marked: [string, number | null][] = [
+    ["This model", points.model],
+    ["Reference", points.reference],
+    ["Median of the related genomes", points.median],
+  ];
   return [
-    ...(points.model === null
-      ? []
-      : [["This model", points.model] as [string, number]]),
-    ...(points.reference === null
-      ? []
-      : [["Reference", points.reference] as [string, number]]),
-    ...(points.median === null
-      ? []
-      : [["Median of the related genomes", points.median] as [string, number]]),
+    ...marked.flatMap(([name, length]): [string, number][] =>
+      length === null ? [] : [[name, length]],
+    ),
     ...points.relatives.map((dot): [string, number] => [dot.organism, dot.length]),
   ];
 }
@@ -47,96 +49,117 @@ function stackedDots(points: RelativesPoints): { length: number; rank: number }[
   }));
 }
 
-export function RelativesPlot({ points }: { points: RelativesPoints | null }) {
-  if (points === null) {
-    return (
-      <p className="text-xs text-muted-foreground">{"Relatives' lengths not stored"}</p>
-    );
-  }
+function legendEntries(points: RelativesPoints): LegendEntry[] {
+  return [
+    { word: "Related genome", fill: FIGURE_COLORS.coded },
+    ...(points.model === null
+      ? []
+      : [{ word: "This model", fill: FIGURE_COLORS.flagged }]),
+    ...(points.reference === null
+      ? []
+      : [{ word: "Reference", fill: "none", stroke: FIGURE_COLORS.other }]),
+    ...(points.median === null
+      ? []
+      : [{ word: "Median", fill: "none", stroke: FIGURE_COLORS.ink }]),
+  ];
+}
+
+function Strip({ points }: { points: RelativesPoints }) {
   const lengths = pointLengths(points);
   const at = (length: number) => stripX(length, lengths, WIDTH);
-  const low = Math.min(...lengths);
-  const high = Math.max(...lengths);
+  const dots = stackedDots(points);
+  const highest = Math.max(...dots.map((dot) => dot.rank));
+  const axis = Math.max(LEAST_AXIS, highest * STACK + DOT + 2);
   return (
-    <figure className="mt-3 text-xs">
-      <svg
-        role="img"
-        aria-label={statedLabel(points)}
-        viewBox={`${String(-MARGIN)} 0 ${String(WIDTH + 2 * MARGIN)} 54`}
-        className="w-full"
+    <svg
+      role="img"
+      aria-label={statedLabel(points)}
+      viewBox={`${String(-MARGIN)} 0 ${String(WIDTH + 2 * MARGIN)} ${String(axis + BELOW_AXIS)}`}
+      className="w-full"
+    >
+      <line x1="0" x2={WIDTH} y1={axis} y2={axis} stroke={FIGURE_COLORS.line} />
+      <text x="0" y={axis + 16} fontSize="9" fill={FIGURE_COLORS.muted}>
+        {residues(Math.min(...lengths))}
+      </text>
+      <text
+        x={WIDTH}
+        y={axis + 16}
+        fontSize="9"
+        textAnchor="end"
+        fill={FIGURE_COLORS.muted}
       >
-        <line x1="0" x2={WIDTH} y1={AXIS} y2={AXIS} stroke={FIGURE_COLORS.line} />
-        <text x="0" y="50" fontSize="9" fill={FIGURE_COLORS.muted}>
-          {residues(low)}
-        </text>
-        <text x={WIDTH} y="50" fontSize="9" textAnchor="end" fill={FIGURE_COLORS.muted}>
-          {residues(high)}
-        </text>
-        {points.median === null ? null : (
-          <line
-            data-part="median"
-            x1={at(points.median).toFixed(1)}
-            x2={at(points.median).toFixed(1)}
-            y1="4"
-            y2={AXIS + 6}
-            stroke={FIGURE_COLORS.ink}
-            strokeDasharray="3 2"
-          />
-        )}
-        {stackedDots(points).map(({ length, rank }) => (
-          <circle
-            key={`${String(length)}-${String(rank)}`}
-            data-part="relative"
-            cx={at(length).toFixed(1)}
-            cy={AXIS - rank * STACK}
-            r={DOT}
-            fill={FIGURE_COLORS.coded}
-          />
-        ))}
-        {points.reference === null ? null : (
-          <rect
-            data-part="reference"
-            data-x={at(points.reference).toFixed(1)}
-            x={(at(points.reference) - DOT).toFixed(1)}
-            y={AXIS - DOT}
-            width={2 * DOT}
-            height={2 * DOT}
-            fill="none"
-            stroke={FIGURE_COLORS.other}
-            strokeWidth="2"
-          />
-        )}
-        {points.model === null ? null : (
-          <polygon
-            data-part="model"
-            data-x={at(points.model).toFixed(1)}
-            points={[
-              [at(points.model), AXIS - DOT - 1],
-              [at(points.model) + DOT + 1, AXIS],
-              [at(points.model), AXIS + DOT + 1],
-              [at(points.model) - DOT - 1, AXIS],
-            ]
-              .map(([x, y]) => `${String(x)},${String(y)}`)
-              .join(" ")}
-            fill={FIGURE_COLORS.flagged}
-          />
-        )}
-      </svg>
-      <figcaption className="mt-1 text-muted-foreground">
-        <ul className="space-y-0.5">
-          {listedLengths(points).map(([name, length]) => (
-            <li key={name}>{`${name}: ${residues(length)}`}</li>
-          ))}
-        </ul>
-        <FigureLegend
-          entries={[
-            { word: "Related genome", fill: FIGURE_COLORS.coded },
-            { word: "This model", fill: FIGURE_COLORS.flagged },
-            { word: "Reference", fill: "none", stroke: FIGURE_COLORS.other },
-            { word: "Median", fill: "none", stroke: FIGURE_COLORS.ink },
-          ]}
+        {residues(Math.max(...lengths))}
+      </text>
+      {points.median === null ? null : (
+        <line
+          data-part="median"
+          x1={at(points.median).toFixed(1)}
+          x2={at(points.median).toFixed(1)}
+          y1="4"
+          y2={axis + 6}
+          stroke={FIGURE_COLORS.ink}
+          strokeDasharray="3 2"
         />
-      </figcaption>
-    </figure>
+      )}
+      {dots.map(({ length, rank }) => (
+        <circle
+          key={`${String(length)}-${String(rank)}`}
+          data-part="relative"
+          cx={at(length).toFixed(1)}
+          cy={axis - rank * STACK}
+          r={DOT}
+          fill={FIGURE_COLORS.coded}
+        />
+      ))}
+      {points.reference === null ? null : (
+        <rect
+          data-part="reference"
+          x={(at(points.reference) - DOT).toFixed(1)}
+          y={axis - DOT}
+          width={2 * DOT}
+          height={2 * DOT}
+          fill="none"
+          stroke={FIGURE_COLORS.other}
+          strokeWidth="2"
+        />
+      )}
+      {points.model === null ? null : (
+        <polygon
+          data-part="model"
+          points={[
+            [at(points.model), axis - DIAMOND],
+            [at(points.model) + DIAMOND, axis],
+            [at(points.model), axis + DIAMOND],
+            [at(points.model) - DIAMOND, axis],
+          ]
+            .map(([x = 0, y = 0]) => `${x.toFixed(1)},${String(y)}`)
+            .join(" ")}
+          fill={FIGURE_COLORS.flagged}
+        />
+      )}
+    </svg>
   );
+}
+
+export function RelativesPlot({ outcome }: { outcome: RelativesOutcome }) {
+  switch (outcome.kind) {
+    case "no_row":
+      return null;
+    case "looked":
+      return <p className="text-xs text-muted-foreground">{outcome.reason}</p>;
+    case "plotted":
+      return (
+        <figure className="mt-3 text-xs">
+          <Strip points={outcome.points} />
+          <figcaption className="mt-1 text-muted-foreground">
+            <ul className="space-y-0.5">
+              {listedLengths(outcome.points).map(([name, length]) => (
+                <li key={name}>{`${name}: ${residues(length)}`}</li>
+              ))}
+            </ul>
+            <FigureLegend entries={legendEntries(outcome.points)} />
+          </figcaption>
+        </figure>
+      );
+  }
 }

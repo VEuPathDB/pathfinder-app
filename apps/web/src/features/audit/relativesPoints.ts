@@ -1,4 +1,5 @@
 import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { NoRelatives } from "@pathfinder/shared/generated/types/NoRelatives";
 import type { Relative } from "@pathfinder/shared/generated/types/Relative";
 
 export interface RelativesPoints {
@@ -8,22 +9,44 @@ export interface RelativesPoints {
   median: number | null;
 }
 
+export type RelativesOutcome =
+  | { kind: "no_row" }
+  | { kind: "looked"; reason: string }
+  | { kind: "plotted"; points: RelativesPoints };
+
+const TOO_FEW = "Fewer than two independent related genomes hold the gene.";
+
+const NO_RELATIVES_WORDS: Record<NoRelatives, string> = {
+  RESIDUAL_GROUP: "The ortholog group is a residual group.",
+  PARALOGS: "The related genomes do not hold one copy each.",
+  FEWER_THAN_TWO: TOO_FEW,
+};
+
 function byOrganism(left: Relative, right: Relative): number {
   return left.organism.localeCompare(right.organism);
 }
 
-export function relativesPoints(detail: FindingDetail): RelativesPoints | null {
+export function relativesOutcome(detail: FindingDetail): RelativesOutcome {
   for (const { payload } of detail.evidence) {
     if (payload?.kind === "relatives") {
       const relatives = Object.entries(payload.relativeLengths)
         .map(([organism, length]) => ({ organism, length }))
         .sort(byOrganism);
-      if (relatives.length === 0) return null;
+      if (relatives.length === 0) {
+        const reason =
+          payload.referenceLength === null
+            ? "The gene records hold no length of the reference gene, so no related genome was compared."
+            : TOO_FEW;
+        return { kind: "looked", reason };
+      }
       return {
-        relatives,
-        model: payload.modelLength,
-        reference: payload.referenceLength,
-        median: payload.relativesMedian,
+        kind: "plotted",
+        points: {
+          relatives,
+          model: payload.modelLength,
+          reference: payload.referenceLength,
+          median: payload.relativesMedian,
+        },
       };
     }
     if (
@@ -31,16 +54,28 @@ export function relativesPoints(detail: FindingDetail): RelativesPoints | null {
       payload.confirmation.check === "strain_model"
     ) {
       const { result } = payload.confirmation;
-      if (result.relatives.members.length === 0) return null;
+      const { members, missing, median } = result.relatives;
+      if (members.length === 0) {
+        return {
+          kind: "looked",
+          reason:
+            missing === null
+              ? "The check found no related genome's length."
+              : NO_RELATIVES_WORDS[missing],
+        };
+      }
       return {
-        relatives: [...result.relatives.members].sort(byOrganism),
-        model: result.strainLength,
-        reference: result.referenceLength,
-        median: result.relatives.median,
+        kind: "plotted",
+        points: {
+          relatives: [...members].sort(byOrganism),
+          model: result.strainLength,
+          reference: result.referenceLength,
+          median,
+        },
       };
     }
   }
-  return null;
+  return { kind: "no_row" };
 }
 
 export function pointLengths(points: RelativesPoints): number[] {

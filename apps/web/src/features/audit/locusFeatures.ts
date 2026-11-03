@@ -1,7 +1,7 @@
 import type { MissingGeneAudit } from "@pathfinder/shared/generated/types/MissingGeneAudit";
 
 export interface LocusFeature {
-  kind: "anchor" | "found" | "overlap";
+  kind: "anchor" | "found" | "matched" | "overlap";
   label: string;
   start: number;
   end: number;
@@ -16,7 +16,10 @@ export interface PlacedFeature extends LocusFeature {
 export function locusFeatures(audit: MissingGeneAudit): LocusFeature[] {
   if (audit.anchors === null) return [];
   const { left, right } = audit.anchors;
-  const span = audit.located?.span ?? null;
+  const located = audit.located;
+  const span = located?.span ?? null;
+  const encodes =
+    audit.verdict === "IN_DNA_UNANNOTATED" || audit.verdict === "IN_DNA_OTHER_MODEL";
   return [
     ...[left, right].map((anchor): LocusFeature => ({
       kind: "anchor",
@@ -25,12 +28,14 @@ export function locusFeatures(audit: MissingGeneAudit): LocusFeature[] {
       end: anchor.end,
       strand: anchor.strand,
     })),
-    ...(span === null
+    ...(span === null || located === null
       ? []
       : [
           {
-            kind: "found" as const,
-            label: `Where the DNA encodes ${audit.exampleGene}`,
+            kind: encodes ? ("found" as const) : ("matched" as const),
+            label: encodes
+              ? `Where the DNA encodes ${audit.exampleGene}`
+              : `Windows that match, ${String(located.found)} of ${String(located.windows)}`,
             start: span[0],
             end: span[1],
             strand: null,

@@ -12,6 +12,26 @@ import { confirmationTracks } from "./proteinTracks";
 import { ProteinFigure } from "./ProteinFigure";
 
 describe("ProteinFigure", () => {
+  it("says a truncated stop list holds only the first stops", () => {
+    const stored = pseudogeneConfirmation();
+    render(
+      <ProteinFigure
+        title="The two coding sequences"
+        tracks={confirmationTracks({
+          ...stored,
+          result: {
+            ...stored.result,
+            prematureStops: [163, 200],
+            prematureStopsTruncated: true,
+          },
+        })}
+      />,
+    );
+    expect(screen.getAllByRole("listitem")[1]).toHaveTextContent(
+      "stop codon: residues 163 and 200 (the first 2)",
+    );
+  });
+
   it("draws the strain pair and states it in words", () => {
     const { container } = render(
       <ProteinFigure

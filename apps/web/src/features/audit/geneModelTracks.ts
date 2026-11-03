@@ -5,6 +5,7 @@ import type { ProposedModel } from "@pathfinder/shared/generated/types/ProposedM
 import type { Span } from "@pathfinder/shared/generated/types/Span";
 
 import { percent } from "./format";
+import { boxText } from "./geneModelWords";
 
 export interface Box {
   start: number;
@@ -13,7 +14,6 @@ export interface Box {
 
 export interface ModelRow {
   label: string;
-  proposal: boolean;
   strand: "+" | "-";
   exons: Box[];
   cds: Box[];
@@ -22,7 +22,7 @@ export interface ModelRow {
   codedOnly: Box[];
   unsupported: Box[];
   kept: Box[];
-  junctions: { box: Box; reads: number }[];
+  junctions: { box: Box; reads: number | null }[];
   notes: string[];
   span: Box | null;
   stop: Box[];
@@ -92,7 +92,6 @@ export function changedSpans(
 function emptyRow(label: string, strand: ModelRow["strand"]): ModelRow {
   return {
     label,
-    proposal: false,
     strand,
     exons: [],
     cds: [],
@@ -118,7 +117,7 @@ function modelRow(label: string, model: ModelSpans): ModelRow {
   };
 }
 
-function keptNote(kept: KeptIntron): string {
+function keptEvidence(kept: KeptIntron): string {
   if (kept.outcome === "NONCANONICAL") {
     return `splice-site bases ${kept.motif ?? "not stored"}`;
   }
@@ -129,6 +128,10 @@ function keptNote(kept: KeptIntron): string {
     `median depth ${percent(kept.depthShare)} of the exons', ` +
     `${percent(kept.coveredShare)} of its bases covered (${kept.track ?? "track not stored"})`
   );
+}
+
+function keptNote(kept: KeptIntron): string {
+  return `intron kept as exon at ${boxText(kept)}: ${keptEvidence(kept)}`;
 }
 
 function proposedRow(
@@ -146,7 +149,6 @@ function proposedRow(
         : "Proposed by RNA-seq evidence",
       model.strand,
     ),
-    proposal: true,
     exons,
     cds: boxes(proposed.cds),
     introns: gaps(exons),
@@ -155,7 +157,7 @@ function proposedRow(
     kept: kept.map(({ start, end }) => ({ start, end })),
     junctions: proposed.junctions.map(([start, end], index) => ({
       box: { start, end },
-      reads: proposed.junctionReads[index] ?? 0,
+      reads: proposed.junctionReads[index] ?? null,
     })),
     notes: kept.map(keptNote),
   };
@@ -225,7 +227,7 @@ function selenoproteinRows(models: FindingModels): SequenceRow[] {
       ? {
           seqid: model.seqid,
           row: {
-            ...modelRow(`${model.gene}, stops at its selenocysteine codon`, model),
+            ...modelRow(`Model ${model.gene}`, model),
             stop: boxes(stop.spans),
           },
         }

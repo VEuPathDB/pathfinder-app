@@ -14,6 +14,7 @@ export interface ProteinTrack {
   label: string;
   summary: string;
   length: number;
+  stopsCut: boolean;
   marks: ProteinMark[];
 }
 
@@ -38,9 +39,10 @@ function statedTrack(
   length: number,
   unit: string,
   marks: ProteinMark[],
+  stopsCut = false,
 ): ProteinTrack {
   const summary = `${label}: ${length.toLocaleString("en-US")} ${unit}`;
-  return { label, summary, length, marks };
+  return { label, summary, length, stopsCut, marks };
 }
 
 export function confirmationTracks(
@@ -82,6 +84,7 @@ export function confirmationTracks(
             first: stop,
             last: stop,
           })),
+          result.prematureStopsTruncated === true,
         ),
       ];
     }
@@ -110,6 +113,7 @@ function transcriptTrack(
     label,
     summary: label,
     length,
+    stopsCut: false,
     marks: [
       ...structures.map((model): ProteinMark => ({
         kind: "structure",

@@ -68,6 +68,17 @@ describe("ImpactBreakdown", () => {
   });
 });
 
+describe("an error with no weighing", () => {
+  it("says the run has not weighed it, not that it names no error", () => {
+    const { finding } = sampleDetail("strain_model");
+    render(<ImpactBreakdown finding={{ ...finding, weighing: null, impact: null }} />);
+    expect(
+      screen.getByText("Not weighed: the run has not weighed this error yet."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/only a finding that names an error/)).toBe(null);
+  });
+});
+
 describe("genomeUseText", () => {
   it("reads a model's place in its strain pair", () => {
     const use = {

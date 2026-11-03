@@ -52,9 +52,9 @@ const K13_EXCERPT: GeneEvidence = {
       exonCount: 1,
     },
   ],
-  comments: 0,
-  pubmed: 0,
-  notes: 0,
+  comments: 9,
+  pubmed: 44,
+  notes: 2,
   phenotypes: [],
   unprefixedTables: [],
   unserved: [],
@@ -110,6 +110,28 @@ describe("confirmationTracks", () => {
     ]);
   });
 
+  it("counts only whole codons in a sequence not divisible by three", () => {
+    const stored = pseudogeneConfirmation();
+    const tracks = confirmationTracks({
+      ...stored,
+      result: { ...stored.result, referenceCdsLength: 1385, strainCdsLength: 1384 },
+    });
+    expect(tracks.map((track) => track.length)).toEqual([461, 461]);
+  });
+
+  it("carries that a stop list holds only the first stops", () => {
+    const stored = pseudogeneConfirmation();
+    const tracks = confirmationTracks({
+      ...stored,
+      result: {
+        ...stored.result,
+        prematureStops: [163],
+        prematureStopsTruncated: true,
+      },
+    });
+    expect(tracks.map((track) => track.stopsCut)).toEqual([false, true]);
+  });
+
   it("draws nothing for a check that stores no residue coordinate of both models", () => {
     expect(confirmationTracks(organelleConfirmation())).toEqual([]);
   });
@@ -138,6 +160,24 @@ describe("evidenceTracks", () => {
     const [placed] = placeTracks(tracks, 600);
     expect(placed?.marks[1]?.x).toBeCloseTo(5.785, 3);
     expect(placed?.marks[1]?.width).toBeCloseTo(12.397, 3);
+  });
+
+  it("places a peptide only on the transcript it was read on", () => {
+    const [first, second] = evidenceTracks({
+      ...K13_EXCERPT,
+      alphafold: [],
+      transcripts: [
+        ...K13_EXCERPT.transcripts,
+        {
+          transcriptId: "PF3D7_1343700.2",
+          transcriptType: "mRNA",
+          proteinLength: 726,
+          exonCount: 1,
+        },
+      ],
+    });
+    expect(first?.marks).toHaveLength(2);
+    expect(second?.marks).toEqual([]);
   });
 
   it("leaves out a transcript with no served protein and a structure of another length", () => {
@@ -177,6 +217,7 @@ describe("placeTracks", () => {
           label: "One long protein",
           length: 5000,
           summary: "One long protein: 5,000 residues",
+          stopsCut: false,
           marks: [{ kind: "stop", first: 2500, last: 2500 }],
         },
       ],

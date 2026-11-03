@@ -16,16 +16,18 @@ const MARGIN = 8;
 const FEATURE_COLORS: Record<LocusFeature["kind"], string> = {
   anchor: FIGURE_COLORS.muted,
   found: FIGURE_COLORS.found,
-  overlap: FIGURE_COLORS.other,
+  matched: FIGURE_COLORS.matched,
+  overlap: FIGURE_COLORS.overlap,
 };
 
 const FEATURE_WORDS: Record<LocusFeature["kind"], string> = {
   anchor: "Conserved neighbour",
   found: "Where the DNA encodes the gene",
+  matched: "Windows that match",
   overlap: "Gene model over the span",
 };
 
-const FEATURE_KINDS: LocusFeature["kind"][] = ["anchor", "found", "overlap"];
+const FEATURE_KINDS: LocusFeature["kind"][] = ["anchor", "found", "matched", "overlap"];
 
 function featureText(feature: LocusFeature): string {
   const strand = feature.strand === null ? "" : `, ${feature.strand} strand`;
@@ -68,7 +70,7 @@ function FeatureDrawing({ feature }: { feature: PlacedFeature }) {
 export function LocusFigure({ audit }: { audit: MissingGeneAudit }) {
   const id = useId();
   const features = locusFeatures(audit);
-  if (audit.anchors === null || features.length === 0) return null;
+  if (audit.anchors === null) return null;
   const titleId = `${id}-title`;
   const descId = `${id}-desc`;
   const placed = placeLocus(features, WIDTH);

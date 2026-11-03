@@ -17,7 +17,9 @@ export function ImpactBreakdown({ finding }: { finding: FindingView }) {
           Impact
         </h2>
         <p className="mt-1 text-xs">
-          Not weighed: only a finding that names an error has an impact.
+          {finding.errorType === null
+            ? "Not weighed: only a finding that names an error has an impact."
+            : "Not weighed: the run has not weighed this error yet."}
         </p>
       </section>
     );

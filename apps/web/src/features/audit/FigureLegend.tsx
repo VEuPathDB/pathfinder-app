@@ -5,6 +5,8 @@ export const FIGURE_COLORS = {
   coded: "hsl(var(--chart-1))",
   other: "hsl(var(--chart-2))",
   found: "hsl(var(--chart-positive))",
+  overlap: "hsl(var(--chart-5))",
+  matched: "hsl(var(--chart-3))",
   flagged: "hsl(var(--chart-negative))",
 } as const;
 

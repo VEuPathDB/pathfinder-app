@@ -133,11 +133,92 @@ describe("GeneEvidenceSection", () => {
     );
     expect(screen.getByText("2 mass-spec peptides, 60 spectra")).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", {
+        level: 4,
+        name: "PF3D7_1032400: 2 PubMed articles, comments not served, notes not served",
+      }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText("kind: substitution, length change: 0, location: 120"),
     ).toBeInTheDocument();
     expect(screen.getByText("No PDB similarity served")).toBeInTheDocument();
     expect(
       screen.getByText("Tables the site does not serve: Notes and UserComments"),
+    ).toBeInTheDocument();
+  });
+
+  it("never reads a table the site did not serve as an empty one", () => {
+    const record = pigaRecord();
+    render(
+      <GeneEvidenceSection
+        evidence={{
+          genes: [record.gene],
+          evidence: [
+            {
+              ...record,
+              pubmed: 0,
+              comments: 0,
+              notes: 0,
+              pdbHits: [],
+              peptides: [],
+              alphafold: [],
+              seqedits: [],
+              linkouts: [],
+              transcripts: [],
+              unprefixedTables: [],
+              unserved: [
+                "AlphaFoldLinkouts",
+                "GeneLinkouts",
+                "GeneTranscripts",
+                "MassSpecDownload",
+                "Notes",
+                "PdbSimilarities",
+                "PubMed",
+                "Seqedits",
+                "UserComments",
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", {
+        level: 4,
+        name: "PF3D7_1032400: PubMed articles not served, comments not served, notes not served",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("PDB similarities not served")).toBeInTheDocument();
+    expect(screen.getByText("Mass-spec peptides not served")).toBeInTheDocument();
+    expect(screen.getByText("Sequence edits not served")).toBeInTheDocument();
+    expect(screen.queryByText(/^No /)).toBe(
+      screen.getByText("No phenotype screen holds a row for this gene"),
+    );
+  });
+
+  it("states no phenotype negative when an asked screen was not served", () => {
+    const record = pigaRecord();
+    render(
+      <GeneEvidenceSection
+        evidence={{
+          genes: [record.gene],
+          evidence: [
+            {
+              ...record,
+              unprefixedTables: [],
+              unserved: ["pfal3D7_phenotype_pB_mutagenesis_MIS_MFS_RSRC"],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.queryByText("No phenotype screen holds a row for this gene")).toBe(
+      null,
+    );
+    expect(
+      screen.getByText(
+        "No screen the site served holds a row for this gene, and not every screen was served",
+      ),
     ).toBeInTheDocument();
   });
 
