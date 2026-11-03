@@ -31,7 +31,8 @@ _SYNTENIC = "isSyntenic"
 _NO_STEP = "no step of the strategy states it"
 _NO_NUMBER = "no linked parameter or step count holds a number to compare"
 _UNITS_UNSTATED = (
-    "the two numbers differ by a power of ten and nothing typed states their units"
+    "each differs from the stated number by a power of ten and nothing typed states "
+    "their units"
 )
 
 
@@ -110,13 +111,17 @@ def ground_count(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     readings = _count_readings(c, asked, realized)
     if not readings:
         return not_verified(c, "no_value_to_compare", _NO_NUMBER)
-    off = next((r for r in readings if not r.met), None)
-    if off is not None and off.param and _another_scale(asked, off.number):
-        note = f"asked {asked.shown}, {off.said}: {_UNITS_UNSTATED}"
-        return not_verified(c, "no_value_to_compare", note)
+    unmet = [r for r in readings if not r.met]
+    if not unmet:
+        return _met(c, readings[0].param, readings[0].shown)
+    off = next(
+        (r for r in unmet if not (r.param and _another_scale(asked, r.number))), None
+    )
     if off is not None:
         return _missed(c, off.param, off.shown, f"asked {asked.shown}, {off.said}")
-    return _met(c, readings[0].param, readings[0].shown)
+    said = ", ".join(r.said for r in unmet)
+    note = f"asked {asked.shown}, {said}: {_UNITS_UNSTATED}"
+    return not_verified(c, "no_value_to_compare", note)
 
 
 def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:

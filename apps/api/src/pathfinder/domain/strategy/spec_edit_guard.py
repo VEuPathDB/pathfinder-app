@@ -14,7 +14,8 @@ from veupathdb.domain.strategy import CombineOp, StepKind
 
 from pathfinder.domain.strategy.combination_check import meeting_operator
 from pathfinder.domain.strategy.constraint_grounding import ground_against_spec
-from pathfinder.domain.strategy.constraints import ConstraintSource
+from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.domain.strategy.linked_values import linked_params
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -133,17 +134,23 @@ def new_join_contradiction(
 def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]:
     """The parameter values this criterion holds because the user stated them.
 
-    A value is stated when a requirement the user stated grounds onto it.
+    A value is stated when a requirement the user stated grounds onto it, or when
+    a count the user stated links it, whatever the verdict on that count.
     Every other value is the model's or the search's own, and an edit may
     change it.
     """
+    explicit = [
+        c for c in spec.constraints if c.source is ConstraintSource.USER_EXPLICIT
+    ]
     grounded = {
         (g.realized_param, g.realized_value)
-        for g in ground_against_spec(
-            [c for c in spec.constraints if c.source is ConstraintSource.USER_EXPLICIT],
-            spec,
-        )
+        for g in ground_against_spec(explicit, spec)
         if g.realized_param and g.realized_value
+    } | {
+        (p.name, p.wire)
+        for c in explicit
+        if c.kind is ConstraintKind.COUNT
+        for p in linked_params(c, spec.criteria)
     }
     found: dict[str, str] = {}
     for name, value in criterion.param_values.items():

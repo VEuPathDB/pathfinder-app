@@ -53,8 +53,11 @@ site, and an open end that would cross the stated bound leaves the proposal as i
 **The verdict.** `CountValue` holds a number and no unit, so "under 30 kDa" holds 30
 while its parameter holds 30000. A count is not compared with the end of a range, and
 a linked parameter whose number is a power of ten from the stated number is not
-verified, with that reason. Any other difference stays a miss. A real miss by exactly
-a power of ten reads as not verified, not as a failure.
+verified, with that reason, only when every unmet reading of the count is such a
+parameter. Any other difference stays a miss, beside it or not. A real miss by exactly
+a power of ten reads as not verified, not as a failure. The verdict does not move the
+edit guard: `stated_values` also reads every parameter a stated count links, so a
+rewrite of that value is refused whatever the verdict says.
 
 # The measurement
 

@@ -143,8 +143,9 @@ async def test_a_parameter_a_thousand_times_the_stated_number_is_not_verified(
         True,
         "unchecked",
         (
-            "asked molecular weight < 30, max_molecular_weight holds 30000: the two "
-            "numbers differ by a power of ten and nothing typed states their units"
+            "asked molecular weight < 30, max_molecular_weight holds 30000: each "
+            "differs from the stated number by a power of ten and nothing typed "
+            "states their units"
         ),
         "no_value_to_compare",
     )
