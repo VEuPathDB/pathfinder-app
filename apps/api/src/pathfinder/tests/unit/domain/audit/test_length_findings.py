@@ -121,6 +121,15 @@ def test_a_jump_with_no_pair_past_the_cap_rules_out_a_missed_exon() -> None:
     ) == Classification(error_type="part_in_other_frame", certainty="medium")
 
 
+def test_a_part_with_a_stop_in_it_lowers_a_truncation() -> None:
+    answer = short_audit("G1", reference_gene="R1", verdict="GENOME_ENCODES")
+    assert classify_confirmation(
+        LengthConfirmation(
+            check="gene_length", result=revised(answer, part_open=False, part_stop=900)
+        )
+    ) == Classification(error_type="truncated_model", certainty="medium")
+
+
 def test_a_truncation_with_a_change_further_out_is_medium() -> None:
     assert classify_confirmation(
         _with_changes("GENOME_ENCODES", [FRAMESHIFT])

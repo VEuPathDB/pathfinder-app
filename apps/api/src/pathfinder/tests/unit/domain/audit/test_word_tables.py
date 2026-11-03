@@ -58,7 +58,7 @@ _EXPECTED: list[tuple[CheckName, FindingVerdict, str]] = [
     (
         "gene_length",
         "FRAMESHIFT",
-        "The model follows the genome sequence, whose DNA holds the part the model lacks in another reading frame",
+        "The genome's DNA holds the part the model lacks in another reading frame",
     ),
     (
         "gene_length",
@@ -99,7 +99,7 @@ _EXPECTED: list[tuple[CheckName, FindingVerdict, str]] = [
     (
         "gene_split",
         "FRAMESHIFT",
-        "The model follows the genome sequence, whose DNA holds the part the model lacks in another reading frame",
+        "The genome's DNA holds the part the model lacks in another reading frame",
     ),
     (
         "gene_split",

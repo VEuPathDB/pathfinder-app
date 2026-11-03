@@ -7050,6 +7050,9 @@ components:
           anyOf:
           - $ref: '#/components/schemas/SplicePair'
           - type: 'null'
+        stepsBetween:
+          type: integer
+          title: Stepsbetween
         modelGoesOn:
           type: boolean
           title: Modelgoeson
@@ -7074,6 +7077,10 @@ components:
           type: boolean
           title: Keepsframe
           readOnly: true
+        runExplainsShift:
+          type: boolean
+          title: Runexplainsshift
+          readOnly: true
         countsMatchShift:
           anyOf:
           - type: boolean
@@ -7091,7 +7098,9 @@ components:
       - shift
       - referenceResidues
       - run
+      - stepsBetween
       - keepsFrame
+      - runExplainsShift
       - countsMatchShift
       title: FrameChange
     FusionAudit:
@@ -7450,6 +7459,19 @@ components:
             $ref: '#/components/schemas/FrameChange'
           type: array
           title: Unlistedchanges
+        partOpen:
+          type: boolean
+          title: Partopen
+          default: false
+        partStop:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Partstop
+        nsInPart:
+          type: integer
+          title: Nsinpart
+          default: 0
         code:
           anyOf:
           - $ref: '#/components/schemas/GeneticCode'
@@ -8479,6 +8501,19 @@ components:
             $ref: '#/components/schemas/FrameChange'
           type: array
           title: Unlistedchanges
+        partOpen:
+          type: boolean
+          title: Partopen
+          default: false
+        partStop:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Partstop
+        nsInPart:
+          type: integer
+          title: Nsinpart
+          default: 0
       type: object
       required:
       - verdict

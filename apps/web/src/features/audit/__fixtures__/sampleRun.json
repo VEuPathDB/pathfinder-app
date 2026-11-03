@@ -1539,6 +1539,7 @@
                 "organisms": 10,
                 "referenceGene": "PF3D7_1472100",
                 "verdict": "GENOME_ENCODES",
+                "partOpen": true,
                 "windows": 19,
                 "counts": {
                   "model": 12,
@@ -1590,6 +1591,10 @@
             {
               "label": "Parts of the reference protein",
               "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Model's frame across the part",
+              "value": "Open across every placed window"
             },
             {
               "label": "Unknown bases in the region read",
@@ -1746,6 +1751,10 @@
               "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
             },
             {
+              "label": "Model's frame across the part",
+              "value": "Open across every placed window"
+            },
+            {
               "label": "Unknown bases in the region read",
               "value": "0"
             },
@@ -1875,6 +1884,10 @@
             {
               "label": "Parts of the reference protein",
               "value": "19: 12 in the model, 7 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Model's frame across the part",
+              "value": "Open across every placed window"
             },
             {
               "label": "Unknown bases in the region read",
@@ -2166,6 +2179,7 @@
                 "extra": [],
                 "dna": {
                   "verdict": "GENOME_ENCODES",
+                  "partOpen": true,
                   "windows": 33,
                   "counts": {
                     "weak": 1,
@@ -2256,6 +2270,10 @@
             {
               "label": "Parts of the reference protein",
               "value": "33: 1 matched weakly, 27 in the model, 5 encoded on the same strand outside the model"
+            },
+            {
+              "label": "Model's frame across the part",
+              "value": "Open across every placed window"
             },
             {
               "label": "Unknown bases in the region read",

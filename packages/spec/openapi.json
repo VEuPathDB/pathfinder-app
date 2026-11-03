@@ -10820,6 +10820,10 @@
               }
             ]
           },
+          "stepsBetween": {
+            "type": "integer",
+            "title": "Stepsbetween"
+          },
           "modelGoesOn": {
             "type": "boolean",
             "title": "Modelgoeson",
@@ -10870,6 +10874,11 @@
             "title": "Keepsframe",
             "readOnly": true
           },
+          "runExplainsShift": {
+            "type": "boolean",
+            "title": "Runexplainsshift",
+            "readOnly": true
+          },
           "countsMatchShift": {
             "anyOf": [
               {
@@ -10894,7 +10903,9 @@
           "shift",
           "referenceResidues",
           "run",
+          "stepsBetween",
           "keepsFrame",
+          "runExplainsShift",
           "countsMatchShift"
         ],
         "title": "FrameChange"
@@ -11440,6 +11451,27 @@
             },
             "type": "array",
             "title": "Unlistedchanges"
+          },
+          "partOpen": {
+            "type": "boolean",
+            "title": "Partopen",
+            "default": false
+          },
+          "partStop": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partstop"
+          },
+          "nsInPart": {
+            "type": "integer",
+            "title": "Nsinpart",
+            "default": 0
           },
           "code": {
             "anyOf": [
@@ -12962,6 +12994,27 @@
             },
             "type": "array",
             "title": "Unlistedchanges"
+          },
+          "partOpen": {
+            "type": "boolean",
+            "title": "Partopen",
+            "default": false
+          },
+          "partStop": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partstop"
+          },
+          "nsInPart": {
+            "type": "integer",
+            "title": "Nsinpart",
+            "default": 0
           }
         },
         "type": "object",

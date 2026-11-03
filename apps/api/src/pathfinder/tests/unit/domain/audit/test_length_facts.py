@@ -41,6 +41,7 @@ def test_a_length_check_states_its_group_and_the_parts_it_read() -> None:
             "Parts of the reference protein",
             "19: 12 in the model, 7 encoded on the same strand outside the model",
         ),
+        ("Model's frame across the part", "Open across every placed window"),
         ("Unknown bases in the region read", "0"),
         ("At a contig end", "No"),
         ("Genetic code", "Standard (inferred)"),
@@ -126,6 +127,7 @@ def test_a_strain_model_states_the_residues_it_lacks_and_its_relatives() -> None
                 "1 matched weakly"
             ),
         ),
+        ("Model's frame across the part", "Open across every placed window"),
         ("Unknown bases in the region read", "0"),
         ("At a contig end", "No"),
         (

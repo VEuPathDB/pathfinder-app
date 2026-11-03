@@ -173,6 +173,7 @@ FRAMESHIFT = FrameChange(
     shift=1,
     reference_residues=(529, 538),
     run=RepeatRun(unit="A", bases=29, start=380000, end=380028),
+    steps_between=1,
 )
 
 
@@ -192,6 +193,7 @@ def short_audit(
             "track": "MMMMMMGGGGGGGMMMMMM",
             "ns_in_window": 0,
             "at_contig_edge": at_contig_edge,
+            "part_open": True,
             "genes": [gene],
             "gene_ids": resolved_ids(gene),
             **_group("SHORT", 0.6, 10, reference_gene),

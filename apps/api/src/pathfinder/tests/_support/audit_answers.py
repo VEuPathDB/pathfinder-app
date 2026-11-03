@@ -123,6 +123,7 @@ _RELATIVE_LENGTHS: dict[str, tuple[int, ...]] = {
 }
 _ENCODED = {
     "verdict": "GENOME_ENCODES",
+    "part_open": True,
     "counts": {"model": 27, "genome_same_strand": 5, "weak": 1},
     "track": "MMMMGGGGGw" + "M" * 23,
 }

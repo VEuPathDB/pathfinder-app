@@ -89,8 +89,7 @@ _SELENOPROTEIN: dict[SecVerdict, str] = {
 LENGTH_SENTENCES: dict[LengthVerdict, str] = {
     "GENOME_ENCODES": "The genome's DNA encodes the part the model lacks",
     "FRAMESHIFT": (
-        "The model follows the genome sequence, whose DNA holds the part the model "
-        "lacks in another reading frame"
+        "The genome's DNA holds the part the model lacks in another reading frame"
     ),
     "OTHER_FRAME": (
         "The genome's DNA encodes the part the model lacks, but not as an open "

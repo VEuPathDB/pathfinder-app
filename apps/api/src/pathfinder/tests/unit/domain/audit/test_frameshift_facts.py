@@ -86,7 +86,7 @@ def _calls(
 
 
 def _facts(shift: FrameChange) -> tuple[Fact, ...]:
-    audit = short_audit("G1", reference_gene="R1", verdict="FRAMESHIFT")
+    audit = short_audit("G1", reference_gene="R1", verdict="OTHER_FRAME")
     return length_facts(revised(audit, frame_changes=[shift]))
 
 
@@ -169,6 +169,50 @@ def test_jumps_past_the_cap_are_stated_and_named_unread() -> None:
     assert _value(facts, "Changes past those listed, not read further") == (
         "2: a shift of +98 at GT..AG, a shift of -60 at no splice pair"
     )
+
+
+def _part(**fields: object) -> tuple[Fact, ...]:
+    audit = short_audit("G1", reference_gene="R1", verdict="GENOME_ENCODES")
+    return length_facts(revised(audit, **fields))
+
+
+def test_an_open_part_is_stated() -> None:
+    assert _value(_part(part_open=True), "Model's frame across the part") == (
+        "Open across every placed window"
+    )
+
+
+def test_a_stop_in_the_part_is_stated() -> None:
+    facts = _part(part_open=False, part_stop=12345)
+
+    assert _value(facts, "Model's frame across the part") == "A stop at base 12,345"
+
+
+def test_a_part_in_another_frame_is_stated() -> None:
+    facts = _part(part_open=False)
+
+    assert _value(facts, "Model's frame across the part") == (
+        "Not open across every placed window"
+    )
+
+
+def test_unknown_bases_in_the_part_are_stated() -> None:
+    facts = _part(part_open=False, ns_in_part=1)
+
+    assert _value(facts, "Unknown bases in the part") == "1"
+    assert "Unknown bases in the part" not in [
+        fact.label for fact in _part(part_open=True)
+    ]
+
+
+def test_a_jump_with_no_miscount_states_no_reference_reads() -> None:
+    plain = FRAMESHIFT.model_copy(update={"run": None})
+    labels = [fact.label for fact in _facts(plain)]
+
+    assert "Same run in the reference strain" not in labels
+    assert "Run counts" not in labels
+    assert "Strain's reads at the run" not in labels
+    assert "Run at the change" in labels
 
 
 def test_no_jump_past_the_cap_states_nothing() -> None:
@@ -312,8 +356,7 @@ def test_a_strain_frame_change_states_the_same_facts() -> None:
     facts = strain_facts(strain_frameshift(FRAMESHIFT))
 
     assert _value(facts, "The strain's DNA over the lost part") == (
-        "The model follows the genome sequence, whose DNA holds the part the model lacks "
-        "in another reading frame"
+        "The genome's DNA holds the part the model lacks in another reading frame"
     )
     assert _value(facts, "Run at the change").startswith("29 bases of A")
     assert _value(facts, "Reference protein").startswith("constructed_reference_gene")

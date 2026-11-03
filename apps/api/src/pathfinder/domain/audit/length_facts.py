@@ -220,9 +220,18 @@ def _frame_change(change: FrameChange, gene: str | None) -> tuple[Fact, ...]:
             ),
         ),
         Fact(label="Run at the change", value=_run(change)),
-        Fact(label="Same run in the reference strain", value=_reference_run(change)),
-        Fact(label="Run counts", value=_run_counts(change)),
-        Fact(label="Strain's reads at the run", value=_strain_reads(change)),
+        *(
+            (
+                Fact(
+                    label="Same run in the reference strain",
+                    value=_reference_run(change),
+                ),
+                Fact(label="Run counts", value=_run_counts(change)),
+                Fact(label="Strain's reads at the run", value=_strain_reads(change)),
+            )
+            if change.run_explains_shift
+            else ()
+        ),
     )
 
 
@@ -242,6 +251,27 @@ def _unlisted(changes: list[FrameChange]) -> tuple[Fact, ...]:
     )
 
 
+def _part(check: LengthCheck) -> tuple[Fact, ...]:
+    if check.verdict != "GENOME_ENCODES":
+        return ()
+    stop = check.part_stop
+    frame = (
+        f"A stop at base {stop:,}"
+        if stop is not None
+        else "Open across every placed window"
+        if check.part_open
+        else "Not open across every placed window"
+    )
+    return (
+        Fact(label="Model's frame across the part", value=frame),
+        *(
+            (Fact(label="Unknown bases in the part", value=f"{check.ns_in_part:,}"),)
+            if check.ns_in_part
+            else ()
+        ),
+    )
+
+
 def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
     ns = check.ns_in_window
     return (
@@ -252,6 +282,7 @@ def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
             for fact in _frame_change(shift, reference_gene)
         ),
         *_unlisted(check.unlisted_changes),
+        *_part(check),
         Fact(
             label="Unknown bases in the region read",
             value=NOT_READ if ns is None else f"{ns:,}",

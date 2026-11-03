@@ -458,6 +458,7 @@
                 "organisms": 10,
                 "referenceGene": "PF3D7_1472100",
                 "verdict": "GENOME_ENCODES",
+                "partOpen": true,
                 "windows": 19,
                 "counts": {
                   "model": 12,
@@ -809,6 +810,7 @@
                 "extra": [],
                 "dna": {
                   "verdict": "GENOME_ENCODES",
+                  "partOpen": true,
                   "windows": 33,
                   "counts": {
                     "model": 27,
