@@ -46,11 +46,13 @@
 
 * **A short model cut by a frameshift names the assembly.** `_length` maps the
   library's `FRAMESHIFT` to `assembly_frameshift` at medium certainty, a strain's
+* **A frameshift finding names the sequence and not the cause.** `_length` maps the
+  library's `FRAMESHIFT` to `sequence_frameshift` at medium certainty, a strain's
   `FRAMESHIFT` names the same error, and the finding states the frame change, the run, the
   same run in the reference strain and the site's variant calls with their sources. See
-  [the decision](decisions/a-short-model-is-a-frameshift-in-the-assembly.md). It takes the
-  next veupathdb-mcp release; the card keeps the release, the pin, one recording and the
-  NF54 rerun.
+  [the decision](decisions/a-frameshift-finding-names-the-sequence-and-not-the-cause.md). It
+  takes the next veupathdb-mcp release; the card keeps the release, the pin, one recording
+  and the NF54 rerun.
 * **Requirements are typed data: the last word reader is gone and synteny is
   compared.** `constraints.message_states` is deleted; the deterministic VERIFY
   of the mock model reads a record's organism by its own word test. An

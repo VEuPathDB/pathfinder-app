@@ -161,7 +161,9 @@ def revised[M: BaseModel](model: M, **changes: object) -> M:
 
 
 FRAMESHIFT = Frameshift(
-    source=GenomeSource(site="plasmodb", organism="pfalNF54", seqid="CM019789.1"),
+    source=GenomeSource(
+        site="constructed_site", organism="constructed_genome", seqid="constructed_seq"
+    ),
     strand="-",
     start=380000,
     end=380028,

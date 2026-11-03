@@ -38,7 +38,7 @@ class ErrorTypeWords(BaseModel):
     intact_gene_called_pseudogene: str
     sec_read_as_stop: str
     truncated_model: str
-    assembly_frameshift: str
+    sequence_frameshift: str
     split_model: str
     over_extended_model: str
     fused_model: str

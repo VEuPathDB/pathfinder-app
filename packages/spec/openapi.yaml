@@ -2678,7 +2678,7 @@ paths:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
-            - assembly_frameshift
+            - sequence_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6013,7 +6013,7 @@ components:
           - intact_gene_called_pseudogene
           - sec_read_as_stop
           - truncated_model
-          - assembly_frameshift
+          - sequence_frameshift
           - split_model
           - over_extended_model
           - fused_model
@@ -6063,7 +6063,7 @@ components:
           - intact_gene_called_pseudogene
           - sec_read_as_stop
           - truncated_model
-          - assembly_frameshift
+          - sequence_frameshift
           - split_model
           - over_extended_model
           - fused_model
@@ -6137,9 +6137,9 @@ components:
         truncated_model:
           type: string
           title: Truncated Model
-        assembly_frameshift:
+        sequence_frameshift:
           type: string
-          title: Assembly Frameshift
+          title: Sequence Frameshift
         split_model:
           type: string
           title: Split Model
@@ -6173,7 +6173,7 @@ components:
       - intact_gene_called_pseudogene
       - sec_read_as_stop
       - truncated_model
-      - assembly_frameshift
+      - sequence_frameshift
       - split_model
       - over_extended_model
       - fused_model
@@ -6504,7 +6504,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
-            - assembly_frameshift
+            - sequence_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6756,7 +6756,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
-            - assembly_frameshift
+            - sequence_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6857,7 +6857,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
-            - assembly_frameshift
+            - sequence_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -7030,10 +7030,26 @@ components:
           anyOf:
           - $ref: '#/components/schemas/ReferenceRun'
           - type: 'null'
+        referenceUnread:
+          anyOf:
+          - $ref: '#/components/schemas/ReferenceMiss'
+          - type: 'null'
         variantCalls:
           anyOf:
           - $ref: '#/components/schemas/VariantCalls'
           - type: 'null'
+        variantsUnread:
+          anyOf:
+          - $ref: '#/components/schemas/VariantsUnread'
+          - type: 'null'
+        runCountsEqual:
+          type: boolean
+          title: Runcountsequal
+          readOnly: true
+        readsShowMiscount:
+          type: boolean
+          title: Readsshowmiscount
+          readOnly: true
       type: object
       required:
       - source
@@ -7045,6 +7061,8 @@ components:
       - shift
       - referenceResidues
       - run
+      - runCountsEqual
+      - readsShowMiscount
       title: Frameshift
     FusionAudit:
       properties:
@@ -7395,6 +7413,7 @@ components:
           items:
             $ref: '#/components/schemas/Frameshift'
           type: array
+          maxItems: 2
           title: Frameshifts
         code:
           anyOf:
@@ -7467,7 +7486,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
-            - assembly_frameshift
+            - sequence_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -8416,6 +8435,7 @@ components:
           items:
             $ref: '#/components/schemas/Frameshift'
           type: array
+          maxItems: 2
           title: Frameshifts
       type: object
       required:
@@ -10268,6 +10288,15 @@ components:
       - displayName
       title: RecordTypeResponse
       description: Record type information.
+    ReferenceMiss:
+      type: string
+      enum:
+      - MODEL_UNREAD
+      - WINDOW_TOO_LONG
+      - FLANK_SHORT
+      - FLANK_MISSING
+      - FLANK_REPEATED
+      - EMPTY_SPAN
     ReferenceRun:
       properties:
         gene:
@@ -11637,6 +11666,9 @@ components:
       title: StopCodon
     StrainCall:
       properties:
+        sample:
+          type: string
+          title: Sample
         variant:
           type: string
           title: Variant
@@ -11660,6 +11692,7 @@ components:
           title: Readfrequency
       type: object
       required:
+      - sample
       - variant
       - genotype
       - allele
@@ -13140,11 +13173,13 @@ components:
     VariantAnswer:
       type: string
       enum:
-      - INDEL_CALLED
+      - ALTERNATE_AT_INDEL_SITE
       - NO_INDEL_CALLED
       - NO_VARIANT_CALLED
       - NOT_COVERED
-      - NOT_SAMPLED
+      - NO_SAMPLE_MATCHED
+      - CALL_UNREADABLE
+      - SAMPLES_DISAGREE
     VariantCalls:
       properties:
         site:
@@ -13179,11 +13214,11 @@ components:
             type: string
           type: array
           title: Variants
-        sample:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sample
+        samples:
+          items:
+            type: string
+          type: array
+          title: Samples
         calls:
           items:
             $ref: '#/components/schemas/StrainCall'
@@ -13191,6 +13226,11 @@ components:
           title: Calls
         answer:
           $ref: '#/components/schemas/VariantAnswer'
+        sampleAnswers:
+          additionalProperties:
+            $ref: '#/components/schemas/VariantAnswer'
+          type: object
+          title: Sampleanswers
         homopolymerBases:
           anyOf:
           - type: integer
@@ -13208,12 +13248,20 @@ components:
       - start
       - end
       - variants
-      - sample
+      - samples
       - calls
       - answer
+      - sampleAnswers
       - homopolymerBases
       - determinable
       title: VariantCalls
+    VariantsUnread:
+      type: string
+      enum:
+      - NO_REFERENCE_RUN
+      - NO_VARIANT_SEARCH
+      - SEARCH_REFUSED
+      - TOO_MANY_VARIANTS
     VdiImportStatus:
       type: string
       enum:

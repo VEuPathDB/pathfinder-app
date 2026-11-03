@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A short model names the frameshift that cut it
-description: The frameshift verdict, its error type and its words are written against the unreleased library; what remains is the veupathdb-mcp release, the pin, one recording of the variant search, and the NF54 audit rerun that shows the finding.
+description: The frameshift verdict, its error type and its words are written against the unreleased library; what remains is the veupathdb-mcp release, the pin, one recording of the indel attributes, and the NF54 audit rerun that shows the finding.
 tags: [audit, length, frameshift, assembly, veupathdb-mcp]
 generated: { by: claude-code/opus-5.5, at: 2026-10-31T00:00:00Z }
 status: proposed
@@ -10,14 +10,14 @@ status: proposed
 # A short model names the frameshift that cut it
 
 The decision is
-[a short model is a frameshift in the assembly](../decisions/a-short-model-is-a-frameshift-in-the-assembly.md).
+[a frameshift finding names the sequence and not the cause](../decisions/a-frameshift-finding-names-the-sequence-and-not-the-cause.md).
 
 ## What remains
 
 1. Release veupathdb-mcp with `FRAMESHIFT` and take the pin.
-2. Record one `VariantsByLocation` report and one `VariantStrains` record from QA plasmodb,
-   and replace the library test's reconstructed bodies with them. The test's field names and
-   values come from a saved QA run; no raw body is in the fixtures.
+2. Record a `variation` record with its `indel_*` attributes on QA plasmodb, to learn whether
+   the site serves an indel's length. The `VariantStrains` table does not, so a call is not
+   compared with the shift yet.
 
 ## Done when
 

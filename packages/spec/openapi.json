@@ -4377,7 +4377,7 @@
                     "intact_gene_called_pseudogene",
                     "sec_read_as_stop",
                     "truncated_model",
-                    "assembly_frameshift",
+                    "sequence_frameshift",
                     "split_model",
                     "over_extended_model",
                     "fused_model",
@@ -9307,7 +9307,7 @@
               "intact_gene_called_pseudogene",
               "sec_read_as_stop",
               "truncated_model",
-              "assembly_frameshift",
+              "sequence_frameshift",
               "split_model",
               "over_extended_model",
               "fused_model",
@@ -9367,7 +9367,7 @@
               "intact_gene_called_pseudogene",
               "sec_read_as_stop",
               "truncated_model",
-              "assembly_frameshift",
+              "sequence_frameshift",
               "split_model",
               "over_extended_model",
               "fused_model",
@@ -9470,9 +9470,9 @@
             "type": "string",
             "title": "Truncated Model"
           },
-          "assembly_frameshift": {
+          "sequence_frameshift": {
             "type": "string",
-            "title": "Assembly Frameshift"
+            "title": "Sequence Frameshift"
           },
           "split_model": {
             "type": "string",
@@ -9517,7 +9517,7 @@
           "intact_gene_called_pseudogene",
           "sec_read_as_stop",
           "truncated_model",
-          "assembly_frameshift",
+          "sequence_frameshift",
           "split_model",
           "over_extended_model",
           "fused_model",
@@ -9991,7 +9991,7 @@
                   "intact_gene_called_pseudogene",
                   "sec_read_as_stop",
                   "truncated_model",
-                  "assembly_frameshift",
+                  "sequence_frameshift",
                   "split_model",
                   "over_extended_model",
                   "fused_model",
@@ -10369,7 +10369,7 @@
                   "intact_gene_called_pseudogene",
                   "sec_read_as_stop",
                   "truncated_model",
-                  "assembly_frameshift",
+                  "sequence_frameshift",
                   "split_model",
                   "over_extended_model",
                   "fused_model",
@@ -10527,7 +10527,7 @@
                   "intact_gene_called_pseudogene",
                   "sec_read_as_stop",
                   "truncated_model",
-                  "assembly_frameshift",
+                  "sequence_frameshift",
                   "split_model",
                   "over_extended_model",
                   "fused_model",
@@ -10798,6 +10798,16 @@
               }
             ]
           },
+          "referenceUnread": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceMiss"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "variantCalls": {
             "anyOf": [
               {
@@ -10807,6 +10817,26 @@
                 "type": "null"
               }
             ]
+          },
+          "variantsUnread": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VariantsUnread"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runCountsEqual": {
+            "type": "boolean",
+            "title": "Runcountsequal",
+            "readOnly": true
+          },
+          "readsShowMiscount": {
+            "type": "boolean",
+            "title": "Readsshowmiscount",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -10819,7 +10849,9 @@
           "frameAfter",
           "shift",
           "referenceResidues",
-          "run"
+          "run",
+          "runCountsEqual",
+          "readsShowMiscount"
         ],
         "title": "Frameshift"
       },
@@ -11355,6 +11387,7 @@
               "$ref": "#/components/schemas/Frameshift"
             },
             "type": "array",
+            "maxItems": 2,
             "title": "Frameshifts"
           },
           "code": {
@@ -11449,7 +11482,7 @@
                   "intact_gene_called_pseudogene",
                   "sec_read_as_stop",
                   "truncated_model",
-                  "assembly_frameshift",
+                  "sequence_frameshift",
                   "split_model",
                   "over_extended_model",
                   "fused_model",
@@ -12867,6 +12900,7 @@
               "$ref": "#/components/schemas/Frameshift"
             },
             "type": "array",
+            "maxItems": 2,
             "title": "Frameshifts"
           }
         },
@@ -15584,6 +15618,17 @@
         "title": "RecordTypeResponse",
         "description": "Record type information."
       },
+      "ReferenceMiss": {
+        "type": "string",
+        "enum": [
+          "MODEL_UNREAD",
+          "WINDOW_TOO_LONG",
+          "FLANK_SHORT",
+          "FLANK_MISSING",
+          "FLANK_REPEATED",
+          "EMPTY_SPAN"
+        ]
+      },
       "ReferenceRun": {
         "properties": {
           "gene": {
@@ -17659,6 +17704,10 @@
       },
       "StrainCall": {
         "properties": {
+          "sample": {
+            "type": "string",
+            "title": "Sample"
+          },
           "variant": {
             "type": "string",
             "title": "Variant"
@@ -17703,6 +17752,7 @@
         },
         "type": "object",
         "required": [
+          "sample",
           "variant",
           "genotype",
           "allele",
@@ -20093,11 +20143,13 @@
       "VariantAnswer": {
         "type": "string",
         "enum": [
-          "INDEL_CALLED",
+          "ALTERNATE_AT_INDEL_SITE",
           "NO_INDEL_CALLED",
           "NO_VARIANT_CALLED",
           "NOT_COVERED",
-          "NOT_SAMPLED"
+          "NO_SAMPLE_MATCHED",
+          "CALL_UNREADABLE",
+          "SAMPLES_DISAGREE"
         ]
       },
       "VariantCalls": {
@@ -20144,16 +20196,12 @@
             "type": "array",
             "title": "Variants"
           },
-          "sample": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sample"
+          "samples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Samples"
           },
           "calls": {
             "items": {
@@ -20164,6 +20212,13 @@
           },
           "answer": {
             "$ref": "#/components/schemas/VariantAnswer"
+          },
+          "sampleAnswers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariantAnswer"
+            },
+            "type": "object",
+            "title": "Sampleanswers"
           },
           "homopolymerBases": {
             "anyOf": [
@@ -20190,13 +20245,23 @@
           "start",
           "end",
           "variants",
-          "sample",
+          "samples",
           "calls",
           "answer",
+          "sampleAnswers",
           "homopolymerBases",
           "determinable"
         ],
         "title": "VariantCalls"
+      },
+      "VariantsUnread": {
+        "type": "string",
+        "enum": [
+          "NO_REFERENCE_RUN",
+          "NO_VARIANT_SEARCH",
+          "SEARCH_REFUSED",
+          "TOO_MANY_VARIANTS"
+        ]
       },
       "VdiImportStatus": {
         "type": "string",

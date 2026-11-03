@@ -11,9 +11,11 @@ from veupathdb_mcp.audit import (
     LengthScreen,
     NoRelatives,
     NotRead,
+    ReferenceMiss,
     StrainModelAudit,
     VariantAnswer,
     VariantCalls,
+    VariantsUnread,
     WindowState,
 )
 
@@ -53,20 +55,50 @@ _NOT_READ: dict[NotRead, str] = {
 }
 
 _VARIANT_ANSWERS: dict[VariantAnswer, str] = {
-    "INDEL_CALLED": "The strain's reads carry an indel here, so the change is in the strain",
-    "NO_INDEL_CALLED": (
-        "The strain's reads carry no indel here, so the assembly likely miscounts the run"
+    "ALTERNATE_AT_INDEL_SITE": (
+        "The strain's reads differ from the reference at a site the calls mark as an "
+        "indel. The table does not give the indel's length, so this does not show it is "
+        "this change"
     ),
+    "NO_INDEL_CALLED": "The strain's reads are called as the reference at this place",
     "NO_VARIANT_CALLED": (
-        "No sample has a variant here, so the assembly likely miscounts the run"
+        "No sample has a variant here, and this does not show the strain was sequenced"
     ),
-    "NOT_COVERED": "The strain's reads do not cover this place",
-    "NOT_SAMPLED": "The strain is not among the samples the site sequenced",
+    "NOT_COVERED": "The strain's reads do not cover the indel site",
+    "NO_SAMPLE_MATCHED": "No sample of the site's calls was matched to the strain",
+    "CALL_UNREADABLE": "The strain's call here cannot be read as an indel or as none",
+    "SAMPLES_DISAGREE": "The samples matched to the strain do not agree",
 }
 _UNDETERMINED = (
     "The site's calls hold almost no indel in a run this long, so a missing call does "
     "not show whether the strain's reads carry the change"
 )
+_MISCOUNT = "The assembly likely miscounts the run"
+_EQUAL_COUNTS = (
+    "The run holds as many bases in both strains, which is evidence against a miscount"
+)
+_REFERENCE_MISSES: dict[ReferenceMiss, str] = {
+    "MODEL_UNREAD": "The reference gene's model could not be read",
+    "WINDOW_TOO_LONG": "The reference gene spans more than an audit reads",
+    "FLANK_SHORT": "The bases beside the run are too few to place it in the reference",
+    "FLANK_MISSING": "The reference gene lacks the bases beside the run",
+    "FLANK_REPEATED": (
+        "The bases beside the run repeat in the reference gene, so the run cannot be "
+        "placed"
+    ),
+    "EMPTY_SPAN": "The reference gene holds nothing between the bases beside the run",
+}
+_VARIANTS_UNREAD: dict[VariantsUnread, str] = {
+    "NO_REFERENCE_RUN": "Not read, because the run was not placed in the reference",
+    "NO_VARIANT_SEARCH": "The site serves no variant search",
+    "SEARCH_REFUSED": (
+        "The site refused the variant search for this organism, so the calls are unread"
+    ),
+    "TOO_MANY_VARIANTS": (
+        "More variants lie here than an audit reads, so the finding stands on the DNA "
+        "alone"
+    ),
+}
 
 
 def _parts(check: LengthCheck) -> str:
@@ -80,26 +112,20 @@ def _from_genome(source: GenomeSource) -> str:
     return f"from the {source.site} genome of {source.organism}"
 
 
-def _bases(count: int) -> str:
-    match count:
-        case 1:
-            return "one base more than the reference"
-        case -1:
-            return "one base fewer than the reference"
-        case _ if count > 0:
-            return f"{count} bases more than the reference"
-        case _:
-            return f"{-count} bases fewer than the reference"
-
-
 def _change(shift: Frameshift) -> str:
     strand = "plus" if shift.strand == "+" else "minus"
-    first, last = shift.reference_residues
+    bases = "base" if abs(shift.shift) == 1 else "bases"
     return (
-        f"{shift.source.seqid} bases {shift.start:,} to {shift.end:,} ({strand} strand), "
-        f"frame {shift.frame_before + 1} to frame {shift.frame_after + 1}, "
-        f"{_bases(shift.shift)}, at residues {first} to {last} of the reference protein"
+        f"{shift.source.site} genome {shift.source.organism}, {shift.source.seqid} bases "
+        f"{shift.start:,} to {shift.end:,} ({strand} strand), "
+        f"frame {shift.frame_before + 1} to frame {shift.frame_after + 1}, a shift of "
+        f"{shift.shift:+d} {bases} against the reference protein's spacing"
     )
+
+
+def _reference_protein(shift: Frameshift, gene: str | None) -> str:
+    first, last = shift.reference_residues
+    return f"{known(gene)}, residues {first} to {last}"
 
 
 def _run(shift: Frameshift) -> str:
@@ -114,45 +140,62 @@ def _run(shift: Frameshift) -> str:
 
 def _reference_run(shift: Frameshift) -> str:
     run = shift.reference_run
-    if run is None:
-        return NOT_READ
-    return (
-        f"{run.bases} bases in {run.gene}, {run.source.seqid} {run.start:,} to "
-        f"{run.end:,}, {_from_genome(run.source)}"
-    )
+    if run is not None:
+        return (
+            f"{run.bases} bases in {run.gene}, {run.source.seqid} {run.start:,} to "
+            f"{run.end:,}, {_from_genome(run.source)}"
+        )
+    if shift.reference_unread is not None:
+        return _REFERENCE_MISSES[shift.reference_unread]
+    return "No reference strain was compared"
 
 
-def _strain_reads(calls: VariantCalls | None) -> str:
-    if calls is None:
-        return NOT_READ
-    missing = calls.answer in {"NO_INDEL_CALLED", "NO_VARIANT_CALLED"}
+def _said_of_the_calls(shift: Frameshift, calls: VariantCalls) -> str:
     said = (
         _UNDETERMINED
-        if missing and not calls.determinable
+        if calls.answer == "NO_INDEL_CALLED" and not calls.determinable
         else _VARIANT_ANSWERS[calls.answer]
     )
+    if shift.reads_show_miscount:
+        return f"{said}. {_MISCOUNT}"
+    if shift.run_counts_equal:
+        return f"{said}. {_EQUAL_COUNTS}"
+    return said
+
+
+def _strain_reads(shift: Frameshift) -> str:
+    calls = shift.variant_calls
+    if calls is None:
+        if shift.variants_unread is None:
+            return NOT_READ
+        return _VARIANTS_UNREAD[shift.variants_unread]
     return (
-        f"{said}. {calls.site} {calls.record_type} search {calls.search}, table "
-        f"{calls.table}, sample {known(calls.sample)}, variants {listed(calls.variants)}"
+        f"{_said_of_the_calls(shift, calls)}. {calls.site} {calls.record_type} search "
+        f"{calls.search} for {calls.organism} over {calls.seqid} {calls.start:,} to "
+        f"{calls.end:,}, table {calls.table}, samples {listed(calls.samples)}, variants "
+        f"{listed(calls.variants)}"
     )
 
 
-def _frameshift(shift: Frameshift) -> tuple[Fact, ...]:
+def _frameshift(shift: Frameshift, gene: str | None) -> tuple[Fact, ...]:
     return (
         Fact(label="Frame change", value=_change(shift)),
+        Fact(label="Reference protein", value=_reference_protein(shift, gene)),
         Fact(label="Run at the change", value=_run(shift)),
         Fact(label="Same run in the reference strain", value=_reference_run(shift)),
-        Fact(
-            label="Strain's reads at the run", value=_strain_reads(shift.variant_calls)
-        ),
+        Fact(label="Strain's reads at the run", value=_strain_reads(shift)),
     )
 
 
-def _dna(check: LengthCheck) -> tuple[Fact, ...]:
+def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
     ns = check.ns_in_window
     return (
         Fact(label="Parts of the reference protein", value=_parts(check)),
-        *(fact for shift in check.frameshifts for fact in _frameshift(shift)),
+        *(
+            fact
+            for shift in check.frameshifts
+            for fact in _frameshift(shift, reference_gene)
+        ),
         Fact(
             label="Unknown bases in the region read",
             value=NOT_READ if ns is None else f"{ns:,}",
@@ -181,7 +224,7 @@ def _screen(screen: LengthScreen) -> tuple[Fact, ...]:
 def length_facts(result: GeneLengthAudit) -> tuple[Fact, ...]:
     return (
         *_screen(result),
-        *_dna(result),
+        *_dna(result, result.reference_gene),
         Fact(
             label="Genetic code",
             value=code_text(result.code, inferred=result.code_inferred),
@@ -252,7 +295,7 @@ def _strain_dna(result: StrainModelAudit) -> tuple[Fact, ...]:
             label="The strain's DNA over the lost part",
             value=LENGTH_SENTENCES[result.dna.verdict],
         ),
-        *_dna(result.dna),
+        *_dna(result.dna, result.reference_gene),
     )
 
 

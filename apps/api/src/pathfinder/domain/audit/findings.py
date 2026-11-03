@@ -54,7 +54,7 @@ ErrorType = Literal[
     "intact_gene_called_pseudogene",
     "sec_read_as_stop",
     "truncated_model",
-    "assembly_frameshift",
+    "sequence_frameshift",
     "split_model",
     "over_extended_model",
     "fused_model",
@@ -136,7 +136,7 @@ def _length(confirmation: LengthConfirmation) -> Classification:
         case ("SHORT", "GENOME_ENCODES"):
             return _named("truncated_model", "high")
         case ("SHORT", "FRAMESHIFT"):
-            return _named("assembly_frameshift", "medium")
+            return _named("sequence_frameshift", "medium")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
         case (length_class, "NOT_CHECKED"):
@@ -263,7 +263,7 @@ def _strain(result: StrainModelAudit) -> Classification:
             )
         case "NOT_JUDGED" if result.dna.verdict == "FRAMESHIFT":
             return Classification(
-                error_type="assembly_frameshift",
+                error_type="sequence_frameshift",
                 certainty="medium",
                 model_role="strain",
             )

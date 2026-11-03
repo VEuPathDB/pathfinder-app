@@ -161,11 +161,11 @@ def test_a_strain_answer_names_its_error_by_its_side(
     assert confirmation.verdict == side
 
 
-def test_a_strain_frameshift_names_the_assembly_of_the_strain() -> None:
+def test_a_strain_frameshift_names_the_sequence_of_the_strain() -> None:
     confirmation = StrainConfirmation(result=strain_frameshift(FRAMESHIFT))
 
     assert classify_confirmation(confirmation) == Classification(
-        error_type="assembly_frameshift", certainty="medium", model_role="strain"
+        error_type="sequence_frameshift", certainty="medium", model_role="strain"
     )
     assert confirmation.verdict == "NOT_JUDGED"
 

@@ -20,7 +20,7 @@ from pathfinder.tests._support.audit import (
 
 _TRUNCATED = Classification(error_type="truncated_model", certainty="high")
 _SPLIT = Classification(error_type="split_model", certainty="medium")
-_FRAMESHIFT = Classification(error_type="assembly_frameshift", certainty="medium")
+_FRAMESHIFT = Classification(error_type="sequence_frameshift", certainty="medium")
 _LENGTH_UNREAD = Classification(
     message=(
         "NOT_CHECKED: the ortholog group does not class the gene as short, so the "
