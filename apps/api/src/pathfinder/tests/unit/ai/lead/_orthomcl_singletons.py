@@ -18,6 +18,7 @@ from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     OperationalSpec,
+    RequirementLink,
     SpecStructure,
 )
 
@@ -149,6 +150,7 @@ def _criteria(taxon: NamedTaxon | None) -> list[Criterion]:
             search_name="ByTaxonomy",
             record_class="sequence",
             role="filter",
+            answers=[RequirementLink(requirement=ORGANISM.id)],
             resolved_params={"taxon_type_ahead": taxon_pick(taxon)},
         ),
     ]

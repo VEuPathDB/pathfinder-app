@@ -14,7 +14,11 @@ from veupathdb_mcp.catalog import format_param_info_typed
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    OrganismValue,
+)
 from pathfinder.tests._support.recorded_searches import suite_search
 
 _SIGNAL = "GenesWithSignalPeptide"
@@ -69,7 +73,10 @@ def _flat_search(search_name: str, *organisms: str) -> WDKSearch:
 
 def _organism(requested: str) -> Constraint:
     return Constraint(
-        kind=ConstraintKind.ORGANISM, requested_value=requested, label="organism"
+        kind=ConstraintKind.ORGANISM,
+        requested_value=requested,
+        label="organism",
+        value=OrganismValue(organism=requested),
     )
 
 
@@ -189,6 +196,12 @@ def test_the_replaced_strain_is_refused_in_place_of_the_new_one() -> None:
         _bind(_CRYPTO, [_TU1867], [_UKMEL1])
 
     assert f"the request names '{_TU1867}'" in refused.value.message
+
+
+def test_an_organism_requirement_with_no_entry_names_no_organism() -> None:
+    untyped = _organism(_UKMEL1).model_copy(update={"value": None})
+
+    assert _bind_under(_CRYPTO, [untyped], [_TU1867]) == [_TU1867]
 
 
 def test_a_requirement_of_another_kind_names_no_organism() -> None:

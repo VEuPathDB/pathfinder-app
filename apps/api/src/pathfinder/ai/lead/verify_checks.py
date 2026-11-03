@@ -42,7 +42,6 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     GroundedConstraint,
 )
-from pathfinder.domain.strategy.organism_phrases import names_the_organism
 from pathfinder.domain.strategy.organism_scope import (
     dataset_organisms_of,
     organism_params_of,
@@ -246,9 +245,7 @@ async def _organism_checks(
     carried = False
     for held in asked:
         c = held.constraint
-        names = selected is not None and any(
-            names_the_organism(c.requested_value, organism) for organism in selected
-        )
+        names = selected is not None and c.organism in selected
         carried = carried or names
         checks.append(
             organism_check(c.requested_value, c.id, selected, counted)
@@ -257,7 +254,9 @@ async def _organism_checks(
                 kind=ConstraintKind.ORGANISM,
                 subject=c.requested_value,
                 status="unchecked",
-                evidence="no organism the strategy selects for its result is named so",
+                evidence="no organism the strategy selects for its result is named so"
+                if c.organism is not None
+                else "the requirement holds no organism entry of the site",
                 requirement=c.id,
                 why_unchecked="no_check",
             )

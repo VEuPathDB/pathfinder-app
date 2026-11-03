@@ -119,6 +119,13 @@ class RecordTypeValue(CamelModel):
         )
 
 
+class OrganismValue(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal[ConstraintKind.ORGANISM] = ConstraintKind.ORGANISM
+    organism: str = Field(min_length=1)
+
+
 class UntypedValue(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -132,6 +139,7 @@ RequirementValue = Annotated[
     | SignificanceValue
     | DataTypeValue
     | RecordTypeValue
+    | OrganismValue
     | UntypedValue,
     Discriminator("kind"),
 ]
@@ -149,6 +157,14 @@ class Constraint(CamelModel):
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
     value: RequirementValue | None = None
+
+    @property
+    def organism(self) -> str | None:
+        match self.value:
+            case OrganismValue(organism=organism):
+                return organism
+            case _:
+                return None
 
     @model_validator(mode="after")
     def _a_value_is_of_the_requirement_s_kind(self) -> Constraint:

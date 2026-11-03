@@ -8,6 +8,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     DataTypeValue,
     FoldChangeValue,
+    OrganismValue,
     PercentileValue,
     RecordTypeValue,
     SignificanceValue,
@@ -48,6 +49,11 @@ def _constraint(kind: ConstraintKind, value: object) -> Constraint:
             ConstraintKind.RECORD_TYPE,
             {"kind": "record_type", "recordClass": "group"},
             RecordTypeValue(record_class="group", role="answer"),
+        ),
+        (
+            ConstraintKind.ORGANISM,
+            {"kind": "organism", "organism": "Plasmodium falciparum 3D7"},
+            OrganismValue(organism="Plasmodium falciparum 3D7"),
         ),
         (
             ConstraintKind.OTHER,
@@ -91,6 +97,7 @@ def test_a_requirement_stored_without_a_value_is_untyped() -> None:
         {"kind": "data_type", "data": "chip_seq"},
         {"kind": "record_type", "recordClass": ""},
         {"kind": "record_type", "recordClass": "group", "role": "beside"},
+        {"kind": "organism", "organism": ""},
     ],
 )
 def test_a_value_out_of_its_range_is_refused(value: dict[str, object]) -> None:

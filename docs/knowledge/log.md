@@ -22,6 +22,19 @@
   extracted, every typed field of each right. See
   [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md)
   and [a record type's role is read with its class](decisions/a-record-types-role-is-read-with-its-class.md).
+* **An organism requirement holds a site entry.** `OrganismValue` holds one entry
+  of the site's organism list. The gate binds the entry the researcher's message
+  states whole that the reading's words begin, else one a Decisions choice over
+  the site's entries and a fit predicate settle; otherwise the requirement holds
+  no entry, the next framing pass's card asks which entry the researcher means
+  (`SetOrganism` options), the pass ends `needs_user` and no build runs until it
+  is answered. Grounding, the organism check, FRAME's bind refusal, the organism
+  drop and `gene_record`'s `ortholog_organism` compare the entry by equality; the
+  drop is met by a criterion that links only organism requirements, and a linked
+  taxon pick grounds an organism. `complete_organisms`, `completed_organism`,
+  `names_the_organism`, the fold's text reading and its record-type word read,
+  and the ortholog rows' word match are deleted. See
+  [an organism requirement holds a site entry](decisions/an-organism-requirement-holds-a-site-entry.md).
 * **A requirement carries a typed value of its kind.** `Constraint.value` is a
   `RequirementValue`, a union discriminated by kind (`PercentileValue`,
   `FoldChangeValue`, `SignificanceValue`, `UntypedValue` so far) that a validator

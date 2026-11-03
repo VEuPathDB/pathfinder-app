@@ -51,6 +51,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
 from pathfinder.domain.strategy.named_groups import merged_scopes
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.operator_reading import settled
+from pathfinder.domain.strategy.organism_picks import asks_an_organism
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     numbered_requirements,
@@ -191,9 +192,10 @@ async def run_frame(
     A refused pass raises before the record, so every question the thread holds
     is one the result the Lead is given asks. The card offers to withdraw each
     requirement the researcher stated that no search states, asks the operator
-    of each combine the researcher's words read as another one, and asks no
-    question the researcher answered or whose only option binds a value the
-    spec already holds.
+    of each combine the researcher's words read as another one and the entry of
+    each organism requirement no site entry settles, and asks no question the
+    researcher answered or whose only option binds a value the spec already
+    holds. An operator or an organism the card asks ends the pass ``needs_user``.
     """
     record_the_spec_the_dispatch_found(deps, resume=resume)
     result = await _run_frame(
@@ -214,8 +216,11 @@ async def run_frame(
         asked = questions_for_the_card(deps, result, lacking)
         if domain.operational_spec is not None:
             domain.operational_spec = settled(domain.operational_spec, asked=asked)
-            if domain.operational_spec.asks_an_operator:
-                result = result.model_copy(update={"disposition": "needs_user"})
+        if asks_an_organism(asked) or (
+            domain.operational_spec is not None
+            and domain.operational_spec.asks_an_operator
+        ):
+            result = result.model_copy(update={"disposition": "needs_user"})
         deps.state.domain.record_questions(asked)
         deps.state.turn_markers.unstated_requirements = [c.id for c in lacking]
         domain.name_reading(result.chosen_reading)

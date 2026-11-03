@@ -11,6 +11,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    OrganismValue,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -31,8 +32,13 @@ PEST = "Anopheles gambiae PEST"
 PF = "Plasmodium falciparum 3D7"
 STEPHENSI = "Anopheles stephensi Indian"
 ORGANISMS = (PEST, STEPHENSI, PF, "Plasmodium vivax P01")
-# The words of the transcript record type's display names.
-RECORD_WORDS = ("gene", "genes")
+PEST_ORGANISM = Constraint(
+    kind=ConstraintKind.ORGANISM,
+    requested_value=PEST,
+    label="organism",
+    source=ConstraintSource.USER_EXPLICIT,
+    value=OrganismValue(organism=PEST),
+)
 # The genes of each organism, as the site's organism search counts them.
 PEST_GENES = 13_845
 PF_GENES = 5_720
@@ -43,6 +49,7 @@ def _pest_universe(text: str = f"{PEST} genes") -> Criterion:
     return Criterion(
         id="c_pest",
         text=text,
+        answers=[RequirementLink(requirement=PEST_ORGANISM.id)],
         search_name="GenesByGeneModelChars",
         organism_param="organism_select_none",
         resolved_params=bound(
@@ -155,13 +162,13 @@ def _fold(
         spec,
         tree,
         ORGANISMS,
-        RECORD_WORDS,
+        (PEST_ORGANISM, *requirements),
         _counts(criteria) if counts is None else counts,
         live_step_ids=live,
     ).holding_open(requirements)
 
 
-def test_a_leaf_that_names_only_the_organism_is_dropped_and_met() -> None:
+def test_a_leaf_that_links_only_the_organism_is_dropped_and_met() -> None:
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_pest"), _leaf("c_signal")),
         _pest_universe(),
@@ -173,7 +180,7 @@ def test_a_leaf_that_names_only_the_organism_is_dropped_and_met() -> None:
         ("c_pest", True, "c_signal")
     ]
     assert folded.dropped[0].fate == (
-        f"c_pest ('{PEST} genes') is dropped: it names only the organism {PEST}, "
+        f"c_pest ('{PEST} genes') is dropped: it links only the organism {PEST}, "
         f"which c_signal already runs on, so that organism value meets it."
     )
 
@@ -319,9 +326,14 @@ def test_an_input_of_another_organism_is_kept() -> None:
 
 
 def test_a_leaf_that_states_more_than_the_organism_is_kept() -> None:
+    chromosome = _stated("on chromosome 2L")
     universe = _pest_universe(f"{PEST} genes on chromosome 2L")
     narrowed = universe.model_copy(
         update={
+            "answers": [
+                *universe.answers,
+                RequirementLink(requirement=chromosome.id),
+            ],
             "resolved_params": bound(
                 universe.param_values, defaulted=["gene_or_transcript"]
             ),
@@ -333,6 +345,35 @@ def test_a_leaf_that_states_more_than_the_organism_is_kept() -> None:
         _combine(CombineOp.INTERSECT, _leaf("c_pest"), _leaf("c_signal")),
         narrowed,
         _signal(),
+        requirements=(chromosome,),
+    )
+
+    assert folded.dropped == ()
+
+
+def test_a_leaf_whose_organism_holds_no_entry_is_kept() -> None:
+    untyped = PEST_ORGANISM.model_copy(update={"id": "r_words", "value": None})
+    leaf = _pest_universe().model_copy(
+        update={"answers": [RequirementLink(requirement=untyped.id)]}
+    )
+
+    folded = _fold(
+        _combine(CombineOp.INTERSECT, _leaf("c_pest"), _leaf("c_signal")),
+        leaf,
+        _signal(),
+        counts={},
+        requirements=(untyped,),
+    )
+
+    assert folded.dropped == ()
+
+
+def test_a_leaf_that_links_nothing_is_kept_whatever_its_text_names() -> None:
+    folded = _fold(
+        _combine(CombineOp.INTERSECT, _leaf("c_pest"), _leaf("c_signal")),
+        _pest_universe().model_copy(update={"answers": []}),
+        _signal(),
+        counts={},
     )
 
     assert folded.dropped == ()

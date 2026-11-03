@@ -69,8 +69,8 @@ async def read_gene_record(
 
     Args:
         gene_id: A gene source id on this site, for example 'PF3D7_1133400'.
-        ortholog_organism: An organism whose every ortholog row to read, for
-            example 'Anopheles gambiae PEST'.
+        ortholog_organism: The organism, as the ortholog table names it, whose
+            every row to read, for example 'Anopheles gambiae PEST'.
     """
     found = await read.read_gene_record(
         ctx.deps.site_id, gene_id, ortholog_organism=ortholog_organism
@@ -108,7 +108,8 @@ async def read_sampled_gene_record(
 
     Args:
         gene_id: A gene id the sample returned, for example 'PF3D7_1133400'.
-        ortholog_organism: An organism whose every ortholog row to read.
+        ortholog_organism: The organism, as the ortholog table names it, whose
+            every row to read.
     """
     markers = ctx.deps.turn_markers
     adopted = ctx.deps.verification_scope.controls

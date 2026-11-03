@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.expression_handles import held_readings
 from pathfinder.domain.strategy.linked_values import linked_by_none
 from pathfinder.domain.strategy.operator_questions import operator_questions
+from pathfinder.domain.strategy.organism_picks import organism_questions
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     unanswered_questions,
@@ -84,9 +85,9 @@ def questions_for_the_card(
     deps: LeadDeps, result: FrameResult, lacking: Sequence[Constraint]
 ) -> list[OpenQuestion]:
     """The pass's questions, with one per requirement whose search the site
-    failed to run, a drop offer for each other one no search states and one per
-    combine the researcher's words read as another operator, less those the
-    researcher answered."""
+    failed to run, a drop offer for each other one no search states, one per
+    combine the researcher's words read as another operator and one per organism
+    requirement no site entry settles, less those the researcher answered."""
     domain = deps.state.domain
     refused = [
         (requirement, _display_name(domain, search))
@@ -125,6 +126,7 @@ def questions_for_the_card(
                 domain.computed_comparisons,
             ),
             *operators,
+            *organism_questions(domain.requirements, domain.organism_picks),
         ],
         answered=[q.question for q in domain.answered_questions],
     )

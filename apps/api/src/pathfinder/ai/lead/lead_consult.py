@@ -33,6 +33,7 @@ from pathfinder.domain.strategy.question_options import (
     Keep,
     SaveComputedGroups,
     SetOperator,
+    SetOrganism,
     SetValues,
     TypedOption,
     Withdraw,
@@ -140,6 +141,8 @@ def _apply(
             state.turn_markers.saves_asked.append(handle)
         case SetOperator(criteria=criteria, operator=operator) if spec is not None:
             domain.operational_spec = with_operator(spec, criteria, operator)
+        case SetOrganism(constraint_id=named, organism=organism):
+            domain.name_organism(named, organism)
         case SetValues() | ReadValues() | Keep() | SaveComputedGroups() | SetOperator():
             pass
 

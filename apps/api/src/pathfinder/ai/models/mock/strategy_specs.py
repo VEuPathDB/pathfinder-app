@@ -201,13 +201,15 @@ def cross_organism_spec(values: SiteValues) -> SpecPlan:
 
 
 def organism_universe_spec(values: SiteValues) -> SpecPlan:
-    """The site organism bound alone as a criterion, INTERSECT the signal
-    peptide criterion; the structure fold drops the first."""
+    """The site organism bound alone as a criterion that links the organism
+    requirement, INTERSECT the signal peptide criterion; the structure fold
+    drops the first."""
     universe = CriterionSpec(
         criterion_id="organism_genes",
         text=f"{values.organism} genes",
         search_name=GENE_MODEL,
         values={"organism_select_none": [values.organism]},
+        answers=(values.organism,),
     )
     return _two(
         f"{values.organism} signal peptide genes (mock)",

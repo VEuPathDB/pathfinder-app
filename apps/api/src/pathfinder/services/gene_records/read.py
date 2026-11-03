@@ -15,6 +15,11 @@ from pydantic import (
     field_validator,
 )
 from veupathdb import strip_html_tags
+from veupathdb.domain.parameters import (
+    MAX_NEAREST_ENTRIES,
+    VocabOption,
+    nearest_entries,
+)
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import (
     StrategyAPI,
@@ -24,7 +29,6 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
-from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.record_pages import record_page_url
 
@@ -124,6 +128,7 @@ class GeneRecordSummary(CamelModel):
     ortholog_count: int = 0
     # The organism whose every row ``orthologs`` holds, None for the first rows.
     ortholog_organism: str | None = None
+    nearest_ortholog_organisms: list[str] = Field(default_factory=list)
     expression: ExpressionSummary | None = None
 
     @computed
@@ -132,7 +137,12 @@ class GeneRecordSummary(CamelModel):
         total, shown = self.ortholog_count, len(self.orthologs)
         if self.ortholog_organism is not None:
             if not shown:
-                return f"None of the {total} rows names {self.ortholog_organism}."
+                return (
+                    f"None of the {total} rows is of {self.ortholog_organism}. The "
+                    f"nearest organisms the rows hold: "
+                    f"{', '.join(self.nearest_ortholog_organisms)}; "
+                    f"ortholog_organism takes one of them whole."
+                )
             return (
                 f"Every row of the {total} whose organism is "
                 f"{self.ortholog_organism}: {shown}."
@@ -268,15 +278,25 @@ async def read_gene_record(
 def _shown_orthologs(
     rows: list[_OrthologTableRow], organism: str | None
 ) -> list[OrthologRow]:
-    """Every row whose organism carries the asked one's words, else the first rows."""
+    """Every row of the asked organism, else the first rows."""
     kept = (
         rows[:MAX_ORTHOLOG_ROWS]
         if organism is None
-        else [row for row in rows if message_states(row.organism, organism)]
+        else [row for row in rows if row.organism == organism]
     )
     return [
         OrthologRow(organism=r.organism, gene_id=r.ortho_gene_source_id) for r in kept
     ]
+
+
+def _nearest_organisms(
+    rows: list[_OrthologTableRow], organism: str | None
+) -> list[str]:
+    held = list(dict.fromkeys(row.organism for row in rows))
+    if organism is None or organism in held:
+        return []
+    options = [VocabOption(value=entry, display=entry) for entry in held]
+    return nearest_entries(options, organism, MAX_NEAREST_ENTRIES)
 
 
 async def read_the_gene_record(
@@ -325,5 +345,6 @@ async def read_the_gene_record(
         orthologs=_shown_orthologs(rows, ortholog_organism),
         ortholog_count=len(rows),
         ortholog_organism=ortholog_organism,
+        nearest_ortholog_organisms=_nearest_organisms(rows, ortholog_organism),
         expression=await _expression_of(site_id, gene_id),
     )

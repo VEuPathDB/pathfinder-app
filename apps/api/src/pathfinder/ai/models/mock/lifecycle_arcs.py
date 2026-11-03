@@ -22,7 +22,12 @@ def narrowed_reading(state: PipelineState, words: str) -> UserIntent:
     organism = SiteValues.for_site(state.site_id).organism
     return intent_of(
         IntentClassification.EDIT_STRATEGY,
-        stated("organism", "organism", organism),
+        stated(
+            "organism",
+            "organism",
+            organism,
+            typed={"kind": "organism", "organism": organism},
+        ),
         inferredGoal=_GOAL,
     )
 

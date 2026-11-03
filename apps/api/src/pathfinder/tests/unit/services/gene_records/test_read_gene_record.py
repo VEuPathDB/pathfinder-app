@@ -244,7 +244,24 @@ async def test_an_organism_no_row_names_is_stated_as_absent_from_the_whole_list(
     )
 
     assert found.orthologs == []
-    assert found.orthologs_shown == "None of the 132 rows names Aedes aegypti LVP."
+    assert found.orthologs_shown == (
+        "None of the 132 rows is of Aedes aegypti LVP. The nearest organisms the "
+        "rows hold: Anopheles gambiae PEST, Anopheles species 9, Anopheles "
+        "species 8, Anopheles species 7, Anopheles species 6; ortholog_organism "
+        "takes one of them whole."
+    )
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_organism_that_only_begins_a_row_s_organism_reads_no_row() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Anopheles gambiae"
+    )
+
+    assert found.orthologs == []
+    assert found.nearest_ortholog_organisms[0] == "Anopheles gambiae PEST"
 
 
 @pytest.mark.usefixtures("_no_expression")

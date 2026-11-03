@@ -27,7 +27,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
 )
-from pathfinder.domain.strategy.organism_phrases import stated_organisms
+from pathfinder.domain.strategy.organism_scope import selected_organisms
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 from pathfinder.domain.strategy.value_grounding import (
     UNTYPED,
@@ -157,18 +157,32 @@ def _ground_combination(c: Constraint, realized: RealizedSpec) -> GroundedConstr
     )
 
 
+def _realized_organism(c: Constraint, criterion: Criterion) -> tuple[str, str] | None:
+    param, organism = criterion.organism_param, c.organism
+    if param and organism is not None and organism in selected_organisms(criterion):
+        return (param, organism)
+    if not criterion.links(c.id):
+        return None
+    return next(
+        (
+            (name, held.taxon.name)
+            for name, held in criterion.resolved_params.items()
+            if held.taxon is not None
+        ),
+        None,
+    )
+
+
 def _ground_organism(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     for criterion in realized.criteria:
-        for name, held in criterion.resolved_params.items():
-            if held.taxon is not None and stated_organisms(
-                c.requested_value, [held.taxon.name]
-            ):
-                return GroundedConstraint(
-                    constraint=c,
-                    status=ConstraintStatus.GROUNDED,
-                    realized_value=held.taxon.name,
-                    realized_param=name,
-                )
+        found = _realized_organism(c, criterion)
+        if found is not None:
+            return GroundedConstraint(
+                constraint=c,
+                status=ConstraintStatus.GROUNDED,
+                realized_param=found[0],
+                realized_value=found[1],
+            )
     return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
 
 

@@ -32,7 +32,12 @@ def comparison_sides_reading(state: PipelineState, words: str) -> UserIntent:
     organism = SiteValues.for_site(state.site_id).organism
     return intent_of(
         IntentClassification.FOLLOW_UP_QUESTION,
-        stated("organism", "organism", organism),
+        stated(
+            "organism",
+            "organism",
+            organism,
+            typed={"kind": "organism", "organism": organism},
+        ),
         inferredGoal="[mock] compare the name search with domains",
         isDifferential=True,
         differentialSides=COMPARED_SIDES,

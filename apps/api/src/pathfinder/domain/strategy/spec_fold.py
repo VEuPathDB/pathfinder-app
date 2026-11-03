@@ -21,13 +21,11 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
     structure_criteria,
 )
-from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.organism_scope import (
     organism_params_of,
     universe_key,
 )
 from pathfinder.domain.strategy.orthology import projected_steps
-from pathfinder.domain.strategy.words import words_of
 
 
 class FoldedSpec(CamelModel):
@@ -150,10 +148,10 @@ _HELD_BY_THE_CARRIER = frozenset(
 class OrganismDrop(CamelModel):
     """An INTERSECT input the organism fold removed, and what became of its text.
 
-    ``met`` is true when the text names only the organism, which the carrier's
-    organism value meets; otherwise the binding matched all ``records`` genes
-    of the organism and ``requirements`` are the requirements the dropped
-    criterion links, which stay open.
+    ``met`` is true when the criterion links only organism requirements, which
+    the carrier's organism value meets; otherwise the binding matched all
+    ``records`` genes of the organism and ``requirements`` are the requirements
+    the dropped criterion links, which stay open.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -174,7 +172,7 @@ class OrganismDrop(CamelModel):
         head = f"{self.criterion_id} ('{self.text}') is dropped:"
         if self.met:
             return (
-                f"{head} it names only the organism {named}, which "
+                f"{head} it links only the organism {named}, which "
                 f"{self.carrier_id} already runs on, so that organism value meets it."
             )
         dropped = (
@@ -236,14 +234,14 @@ class _OrganismReading:
         self,
         spec: OperationalSpec,
         organisms: Collection[str],
-        record_words: Collection[str],
+        requirements: Sequence[Constraint],
         universe_counts: Mapping[str, int],
         live_step_ids: Collection[str],
     ) -> None:
         self.by_id = {c.id: c for c in spec.criteria}
         self.marked = organism_params_of(spec.criteria)
         self.organisms = list(organisms)
-        self.record_words = {word.casefold() for word in record_words}
+        self.requirements = {c.id: c for c in requirements}
         self.universe_counts = universe_counts
         self.live = frozenset(live_step_ids)
         self.dropped: list[OrganismDrop] = []
@@ -269,9 +267,9 @@ class _OrganismReading:
         criterion = self.by_id.get(node.named_criterion)
         if criterion is None or criterion.id in self.live:
             return None
-        named = self._named_organism(criterion.text)
-        if named is not None:
-            return _Redundant(organisms=frozenset({named}), records=None)
+        named = self._linked_organisms(criterion)
+        if named:
+            return _Redundant(organisms=named, records=None)
         key = universe_key(criterion, self.organisms)
         if (
             key is None
@@ -280,15 +278,13 @@ class _OrganismReading:
             return None
         return _Redundant(organisms=frozenset(key), records=criterion.result_count)
 
-    def _named_organism(self, text: str) -> str | None:
-        """The one organism entry the text names, when its other words are all
-        words of the record type's display names."""
-        stated = stated_organisms(text, self.organisms)
-        if len(stated) != 1:
-            return None
-        words = words_of(text)
-        rest = words[: stated[0].start] + words[stated[0].end :]
-        return stated[0].entry if set(rest) <= self.record_words else None
+    def _linked_organisms(self, criterion: Criterion) -> frozenset[str]:
+        ids = [link.requirement for link in criterion.answers]
+        held = [self.requirements[i] for i in ids if i in self.requirements]
+        named = [c.organism for c in held]
+        if not ids or len(held) < len(ids) or None in named:
+            return frozenset()
+        return frozenset(entry for entry in named if entry is not None)
 
 
 def intersected_leaves(node: StructureNode) -> frozenset[str]:
@@ -307,15 +303,15 @@ def fold_organism_universe(
     spec: OperationalSpec,
     tree: SpecStructure,
     organisms: Collection[str],
-    record_words: Collection[str],
+    requirements: Sequence[Constraint],
     universe_counts: Mapping[str, int],
     *,
     live_step_ids: Collection[str],
 ) -> FoldedStructure:
     """Drop each INTERSECT input that states only the organism a sibling runs on.
 
-    Such an input is a leaf whose text names one organism entry and words of the
-    record type alone, or whose ``organism_only`` binding counts exactly the
+    Such an input is a leaf that links only organism requirements, each holding
+    a site entry, or whose ``organism_only`` binding counts exactly the
     genes ``universe_counts`` holds for it (keyed by criterion id, one count
     per leaf on its own record type). A leaf of unknown count stays. The tree's only leaf, a
     MINUS input, a transform input and a live step are never dropped.
@@ -323,7 +319,7 @@ def fold_organism_universe(
     reading = _OrganismReading(
         spec,
         organisms,
-        record_words,
+        requirements,
         universe_counts,
         live_step_ids,
     )

@@ -39,6 +39,14 @@ class Keep(CamelModel):
     constraint_id: str
 
 
+class SetOrganism(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["set_organism"] = "set_organism"
+    constraint_id: str
+    organism: str = Field(min_length=1)
+
+
 class SaveComputedGroups(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -56,7 +64,13 @@ class SetOperator(CamelModel):
 
 
 OptionBinding = Annotated[
-    SetValues | ReadValues | Withdraw | Keep | SaveComputedGroups | SetOperator,
+    SetValues
+    | ReadValues
+    | Withdraw
+    | Keep
+    | SetOrganism
+    | SaveComputedGroups
+    | SetOperator,
     Discriminator("kind"),
 ]
 
@@ -106,6 +120,8 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             )
         case Withdraw(constraint_id=key) | Keep(constraint_id=key):
             return (option.binding.kind, key)
+        case SetOrganism(constraint_id=key, organism=organism):
+            return (option.binding.kind, key, organism)
         case SaveComputedGroups(handle=handle, save=save):
             return (option.binding.kind, handle, str(save))
         case SetOperator(criteria=criteria, operator=operator):

@@ -22,7 +22,7 @@ review on the digest and on the evidence card carries them as `checks`.
 | `bound_values` | each step's `searchConfig` against the values the build pushed, in the wire form and the decoded form (`site_changes.values_the_site_holds_otherwise`) |
 | `combine_counts` | each boolean combine's `estimatedSize` against its inputs': an intersection at most the smaller, a union between the larger and the sum, a minus at most the input it keeps |
 | `result_count` | the root's `estimatedSize`; a root of no record fails |
-| `organism` | the root's `organism` column counted by value over the whole step, against the organisms its WDK-marked organism parameter selects (`extract_output_organisms`); a requirement that names a selected organism carries the same result |
+| `organism` | the root's `organism` column counted by value over the whole step, against the organisms its WDK-marked organism parameter selects (`extract_output_organisms`); a requirement whose site entry is a selected organism carries the same result, and one with no entry is `unchecked` ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
 | `record_type` | the root's `recordClassName` for an `answer`, or every step's for a `through`, equal to the requirement's typed record class (`gene` is also answered by `transcript` and `sequence`); with no value, `unchecked` ([a record type's role is read with its class](a-record-types-role-is-read-with-its-class.md)) |
 | `expression_fit` | the first groups of a phyletic step judged against the expression as the site reads it |
 | `tally` | a column tally this turn recorded on a step of the strategy, held as the recorded result |
@@ -98,7 +98,7 @@ check writes it again ([a saved conversation outlives the build that saved it](a
   no check can fail, so a verdict computed from failures alone passes a strategy
   nothing checked. An unanswered read is a typed reason, not a failure, because
   the strategy is not shown wrong either.
-- **Failing an organism requirement whose words name no organism the strategy
+- **Failing an organism requirement whose entry is no organism the strategy
   selects.** An organism a request names can be the target of an ortholog
   pattern and not the organism of the result, so such a requirement is
   `unchecked`.
@@ -110,7 +110,8 @@ bodies, `tests/unit/ai/lead/test_a_verdict_is_computed_from_the_site.py` the
 recorded singleton ranking that passes over an objecting checker, a value the
 site holds otherwise and a strategy read the site did not answer,
 `tests/unit/ai/lead/test_a_second_organism_fails_the_verdict.py`
-a step whose organism column holds a second organism,
+a step whose organism column holds a second organism and an organism
+requirement with no site entry left unchecked,
 `tests/unit/ai/lead/test_a_refused_organism_count.py` a refused organism count
 counted from the records of a small result by gene, left refused on a large
 one and not sent again while the refusal is held, and

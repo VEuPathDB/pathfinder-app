@@ -21,10 +21,12 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    OrganismValue,
     StoredConstraint,
 )
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.organism_picks import OrganismPick, unnamed_organisms
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
@@ -69,6 +71,7 @@ class ThreadRequirements(BaseModel):
     recommendations: list[StoredConstraint] = Field(default_factory=list)
     named_readings: list[ChosenReading] = Field(default_factory=list)
     picked_readings: list[str] = Field(default_factory=list)
+    organism_picks: list[OrganismPick] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _names_each_requirement_by_id(self) -> ThreadRequirements:
@@ -302,6 +305,31 @@ class ThreadRequirements(BaseModel):
             and any(d.links(c.id) for d in deleted)
             and not any(r.links(c.id) for r in remaining)
         )
+
+    def hold_organism_picks(self, picks: Sequence[OrganismPick]) -> None:
+        unnamed = {c.quote for c in unnamed_organisms(self.requirements)}
+        asked = {p.quote for p in picks}
+        self.organism_picks = [
+            p
+            for p in [
+                *(p for p in self.organism_picks if p.quote not in asked),
+                *picks,
+            ]
+            if p.quote in unnamed
+        ]
+
+    def name_organism(self, requirement_id: str, organism: str) -> None:
+        self.requirements = [
+            c.model_copy(
+                update={
+                    "requested_value": organism,
+                    "value": OrganismValue(organism=organism),
+                }
+            )
+            if c.id == requirement_id and c.kind is ConstraintKind.ORGANISM
+            else c
+            for c in self.requirements
+        ]
 
     def recorded_by_id(self, ids: Collection[str]) -> list[Constraint]:
         return [c for c in self._recorded() if c.id in ids]

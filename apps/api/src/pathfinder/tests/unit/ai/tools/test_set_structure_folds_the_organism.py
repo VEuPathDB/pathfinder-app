@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    OrganismValue,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -49,6 +50,13 @@ ANNOTATED = Constraint(
     source=ConstraintSource.USER_EXPLICIT,
 )
 ANNOTATED_GAP = WordGap(word="gene annotation", requirement=ANNOTATED.id)
+PEST_ORGANISM = Constraint(
+    kind=ConstraintKind.ORGANISM,
+    requested_value=PEST,
+    label="organism",
+    source=ConstraintSource.USER_EXPLICIT,
+    value=OrganismValue(organism=PEST),
+)
 ANSWERS_ANNOTATED = [RequirementLink(requirement=ANNOTATED.id)]
 
 
@@ -119,7 +127,7 @@ def _tm() -> Criterion:
 
 
 def _state(*criteria: Criterion) -> AgentToolState:
-    state = AgentToolState(stated_requirements=[ANNOTATED])
+    state = AgentToolState(stated_requirements=[ANNOTATED, PEST_ORGANISM])
     for criterion in criteria:
         state.frame_set_criterion(criterion)
         state.register_search(
@@ -163,11 +171,14 @@ def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
     return agent_run_context(site_id="vectorbase", agent_state=state)
 
 
-async def test_a_leaf_naming_only_the_organism_leaves_the_tree_and_the_criteria(
+async def test_a_leaf_linking_only_the_organism_leaves_the_tree_and_the_criteria(
     site: list[str], universe: list[tuple[str, str, str, tuple[str, ...]]]
 ) -> None:
     del universe
-    state = _state(_pest_universe(f"{PEST} genes"), _signal())
+    organism_only = _pest_universe(f"{PEST} genes").model_copy(
+        update={"answers": [RequirementLink(requirement=PEST_ORGANISM.id)]}
+    )
+    state = _state(organism_only, _signal())
 
     result = returned(
         await set_structure(_ctx(state), root=_intersect()), SetStructureResult
@@ -179,12 +190,12 @@ async def test_a_leaf_naming_only_the_organism_leaves_the_tree_and_the_criteria(
     assert [c.id for c in draft.criteria] == ["c_signal"]
     assert result.criteria_combined == 1
     fate = (
-        f"c_pest ('{PEST} genes') is dropped: it names only the organism {PEST}, "
+        f"c_pest ('{PEST} genes') is dropped: it links only the organism {PEST}, "
         f"which c_signal already runs on, so that organism value meets it."
     )
     assert [d.fate for d in result.dropped] == [fate]
     assert [(d.text, d.reason) for d in draft.dropped] == [(f"{PEST} genes", fate)]
-    assert sorted(site) == ["organisms:vectorbase", "record types:vectorbase"]
+    assert site == ["organisms:vectorbase"]
 
 
 async def test_a_binding_that_matches_every_gene_holds_its_requirement_open(
@@ -262,7 +273,7 @@ async def test_a_tree_with_no_organism_only_input_counts_nothing(
 
     await set_structure(_ctx(state), root=_intersect("c_signal", "c_tm"))
 
-    assert (len(site), universe) == (2, [])
+    assert (site, universe) == (["organisms:vectorbase"], [])
 
 
 async def test_a_tree_with_no_organism_candidate_reads_nothing(

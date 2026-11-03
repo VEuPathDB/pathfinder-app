@@ -8,6 +8,7 @@ from typing import Any
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.models.mock.arc import Reading
+from pathfinder.ai.models.mock.site_values import SiteValues
 
 
 def stated(
@@ -62,6 +63,19 @@ def build_reading(state: PipelineState, words: str) -> UserIntent:
         IntentClassification.EXTEND_STRATEGY
         if holds_a_request(state)
         else IntentClassification.NEW_STRATEGY
+    )
+
+
+def organism_reading(state: PipelineState, words: str) -> UserIntent:
+    organism = SiteValues.for_site(state.site_id).organism
+    return intent_of(
+        build_reading(state, words).classification,
+        stated(
+            "organism",
+            "organism",
+            organism,
+            typed={"kind": "organism", "organism": organism},
+        ),
     )
 
 

@@ -9,6 +9,7 @@ from pathfinder.domain.message_reading import (
     MessageReading,
     StatedDataType,
     StatedFoldChange,
+    StatedOrganism,
     StatedOther,
     StatedPercentile,
     StatedRecordType,
@@ -23,6 +24,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     DataTypeValue,
     FoldChangeValue,
+    OrganismValue,
     PercentileValue,
     RecordTypeValue,
     SignificanceValue,
@@ -122,10 +124,11 @@ def test_each_requirement_is_a_stated_constraint_of_the_old_kind() -> None:
     request = StatedRequest(
         goal="3D7 genes with a signal peptide at adjusted p 0.05",
         requirements=[
-            StatedOther(
+            StatedOrganism(
                 quote="P. falciparum 3D7",
                 kind="organism",
                 value="Plasmodium falciparum 3D7",
+                organism="Plasmodium falciparum 3D7",
             ),
             StatedSignificance(
                 quote="adjusted p <= 0.05",
@@ -202,6 +205,12 @@ def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
             StatedUntyped(
                 quote="from the 2019 study", kind="untyped", value="2019 study"
             ),
+            StatedOrganism(
+                quote="in 3D7",
+                kind="organism",
+                value="Plasmodium falciparum 3D7",
+                organism="Plasmodium falciparum 3D7",
+            ),
             StatedOther(quote="secreted", kind="property", value="secreted"),
             StatedDataType(
                 quote="microarray experiment",
@@ -232,6 +241,10 @@ def test_each_typed_requirement_carries_its_value_onto_the_constraint() -> None:
             SignificanceValue(statistic="p_value", at_most=1e-10),
         ),
         (ConstraintKind.OTHER, UntypedValue(text="2019 study")),
+        (
+            ConstraintKind.ORGANISM,
+            OrganismValue(organism="Plasmodium falciparum 3D7"),
+        ),
         (ConstraintKind.OTHER, None),
         (ConstraintKind.DATA_TYPE, DataTypeValue(data="microarray")),
         (
