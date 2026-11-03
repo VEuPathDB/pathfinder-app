@@ -5,17 +5,15 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 from uuid import UUID
 
-import httpx
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.tasks.app import task_app
 from procrastinate.exceptions import AlreadyEnqueued
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
+from veupathdb.errors import WDKLoginRequiredError
 from veupathdb_mcp.search_line import told_while_waiting
 
 from pathfinder.domain.audit.findings import counts_of
@@ -44,6 +42,7 @@ from pathfinder.services.audit.screen import run_screen_stage
 from pathfinder.services.audit.sign_in import (
     AuditsDisabledError,
     seal_sign_in,
+    sign_in_check,
     signed_in_as_owner,
 )
 from pathfinder.services.audit.tie_break import run_tie_break_stage
@@ -52,7 +51,6 @@ from pathfinder.services.audit.units import (
     SignInNeededError,
     Waits,
 )
-from pathfinder.services.site_errors import unreached
 from pathfinder.services.wdk_identity import require_registered_wdk_login
 
 _BODIES: dict[
@@ -147,9 +145,12 @@ async def start_run(
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         if finished:
+            settled = await repo.settled_units(run_id)
             if await repo.reopen_unreached(run_id) is None:
                 return await _outcome(run)
-            await AuditReviewRepository(session).reopen_review(run_id)
+            await repo.change_stages(
+                run_id, lambda stages: stages.note_retried_from(settled)
+            )
         await repo.set_deadline(run_id, deadline)
         await repo.set_halted(run_id, None)
         await repo.set_token(run_id, kept)
@@ -178,15 +179,32 @@ async def _stored(run_id: UUID) -> AuditRunRecord | None:
         return await AuditRepository(session).stored_run(run_id)
 
 
+async def _holds_reopened_refusals(run_id: UUID) -> bool:
+    async with async_session_factory() as session:
+        return await AuditRepository(session).holds_reopened_refusals(run_id)
+
+
+async def _read_something_new(repo: AuditRepository, run_id: UUID) -> bool:
+    found = await repo.stored_run(run_id)
+    retried_from = None if found is None else found.stages.retried_from
+    if retried_from is None:
+        return True
+    await repo.change_stages(run_id, lambda stages: stages.note_retried_from(None))
+    return await repo.settled_units(run_id) > retried_from
+
+
 async def _set_status(run_id: UUID, status: RunStatus) -> None:
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         await repo.set_status(run_id, status)
+        read_new = False
         if status == "finished":
             await repo.set_token(run_id, None)
-            await AuditReviewRepository(session).reopen_review(run_id)
+            read_new = await _read_something_new(repo, run_id)
+            if read_new:
+                await AuditReviewRepository(session).reopen_review(run_id)
         await session.commit()
-    if status == "finished":
+    if read_new:
         await queue_review(run_id)
 
 
@@ -240,18 +258,6 @@ async def _carry(run: AuditRunRecord, lanes: RunLanes, waits: Waits) -> None:
     await _set_status(run.id, "finished")
 
 
-async def _sign_in_check() -> Literal["held", "refused", "unanswered"]:
-    try:
-        await require_registered_wdk_login()
-    except WDKLoginRequiredError:
-        return "refused"
-    except (httpx.TransportError, ExternalServiceError) as exc:
-        if not unreached(exc):
-            raise
-        return "unanswered"
-    return "held"
-
-
 async def _waited_for_sign_in(
     run: AuditRunRecord, lanes: RunLanes, stage: StageName, job: AuditJob
 ) -> bool:
@@ -275,7 +281,7 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
     if stage is None:
         await _set_status(run.id, "finished")
         return
-    match await _sign_in_check():
+    match await sign_in_check():
         case "refused":
             await _halt(run.id, lanes, stage)
             return
@@ -287,7 +293,11 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
     waits = units.waits_until(job.deadline, first_seconds=job.pause)
     with (
         told_while_waiting(lanes),
-        units.watching_refusals(run.id, run.stages.refusal_streak),
+        units.watching_refusals(
+            run.id,
+            run.stages.refusal_streak,
+            reopened=await _holds_reopened_refusals(run.id),
+        ),
     ):
         try:
             await _carry(run, lanes, waits)

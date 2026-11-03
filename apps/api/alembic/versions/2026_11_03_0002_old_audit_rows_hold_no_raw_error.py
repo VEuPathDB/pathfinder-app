@@ -13,14 +13,18 @@ depends_on: str | Sequence[str] | None = None
 
 _GENERIC = "An internal error occurred"
 _RAW = re.compile(
-    r"https?://|-> HTTP [0-9]+|\A(Data parsing failed:|VEuPathDB service error:)"
+    r"https?://|-> HTTP [0-9]+"
+    r"|\A(Data parsing failed:|VEuPathDB service error:)"
+    r"|\b(api[_-]?key|token|password|secret)="
+    r"|[?&][A-Za-z_][A-Za-z0-9_.-]*="
 )
 _REASON = re.compile(r"(the audit job failed: [A-Za-z_][A-Za-z0-9_]*): .*\Z", re.DOTALL)
-_STAGE_DETAIL = re.compile(r"\A(.*) \(.*\)\Z", re.DOTALL)
+_STAGE_DETAIL = re.compile(r"\A(.*?) \((.*)\)\Z", re.DOTALL)
 _PREFILTER = {
     "pattern": (
         "https?://|-> HTTP [0-9]+|Data parsing failed:|VEuPathDB service error:"
-        "|the audit job failed: "
+        "|the audit job failed: |(api[_-]?key|token|password|secret)="
+        "|[?&][A-Za-z_][A-Za-z0-9_.-]*="
     )
 }
 _LABELS = (
@@ -55,18 +59,23 @@ def clean_text(message: str) -> str:
     for segment in _REASON.sub(rf"\1: {_GENERIC}", message).split("; "):
         label = _label_of(segment)
         if _RAW.search(segment[len(label) :]):
-            kept.append(f"{label}{_GENERIC}")
+            cleaned = f"{label}{_GENERIC}"
+            if not kept or kept[-1] != cleaned:
+                kept.append(cleaned)
             tainted = True
         elif not tainted or label or segment in _WRITTEN:
             kept.append(segment)
     return "; ".join(kept)
 
 
-def _clean_stage_note(note: str) -> str:
-    if not _RAW.search(note):
-        return note
+def clean_stage_note(note: str) -> str:
     detail = _STAGE_DETAIL.match(note)
-    return _GENERIC if detail is None else f"{detail.group(1)} ({_GENERIC})"
+    if detail is None:
+        return clean_text(note)
+    head, inner = detail.groups()
+    if _RAW.search(head):
+        return _GENERIC
+    return f"{head} ({_GENERIC})" if _RAW.search(inner) else note
 
 
 def _clean_units(connection: Connection) -> None:
@@ -105,7 +114,7 @@ def _clean_runs(connection: Connection) -> None:
         match stages:
             case {"stages": list() as held}:
                 for stage in held:
-                    stage["message"] = _clean_stage_note(stage["message"])
+                    stage["message"] = clean_stage_note(stage["message"])
             case _:
                 pass
         connection.execute(

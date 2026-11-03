@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Literal
 from uuid import UUID
 
+import httpx
 import jwt
 from assistant_core.platform.db import async_session_factory
 from cryptography.exceptions import InvalidTag
 from pydantic import SecretStr, ValidationError
 from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.persistence.models import AuditRunRecord
@@ -18,6 +21,8 @@ from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher
+from pathfinder.services.site_errors import unreached
+from pathfinder.services.wdk_identity import require_registered_wdk_login
 
 
 class AuditsDisabledError(AppError):
@@ -67,6 +72,18 @@ async def signed_in_as_owner(run: AuditRunRecord) -> AsyncIterator[None]:
         yield
     finally:
         veupathdb_auth_token_ctx.reset(reset)
+
+
+async def sign_in_check() -> Literal["held", "refused", "unanswered"]:
+    try:
+        await require_registered_wdk_login()
+    except WDKLoginRequiredError:
+        return "refused"
+    except (httpx.TransportError, ExternalServiceError) as exc:
+        if not unreached(exc):
+            raise
+        return "unanswered"
+    return "held"
 
 
 def sign_in_holds() -> bool:

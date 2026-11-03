@@ -147,6 +147,7 @@ def _seeded(url: str) -> dict[str, str]:
         )
         stopped_raw = seed.finding(raw, "failed", f"{STOPPED_MESSAGE}; {_RAW}")
         trailing = seed.finding(raw, "failed", f"{_RAW}; body continues")
+        key_only = seed.finding(raw, "failed", "read failed with api_key=S")
         seed.payload(
             failed,
             {
@@ -192,6 +193,7 @@ def _seeded(url: str) -> dict[str, str]:
             "busco": str(busco),
             "stopped_raw": str(stopped_raw),
             "trailing": str(trailing),
+            "key_only": str(key_only),
             "payload_finding": str(failed),
             "confirmed_raw": str(confirmed_raw),
             "declined_raw": str(declined_raw),
@@ -330,6 +332,7 @@ def test_text_the_code_treats_as_raw_is_cleaned_and_written_parts_kept(
         f"{STOPPED_MESSAGE}; {_GENERIC}"
     )
     assert _finding_message(database, ids["trailing"]) == _GENERIC
+    assert _finding_message(database, ids["key_only"]) == _GENERIC
 
 
 def test_the_text_a_stored_payload_carries_is_cleaned(database: str) -> None:

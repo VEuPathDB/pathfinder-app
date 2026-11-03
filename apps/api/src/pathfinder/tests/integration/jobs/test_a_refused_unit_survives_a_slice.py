@@ -20,6 +20,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     holding,
     queued,
     registered,
+    sign_in_fails_after,
     split_finding,
     unanswered,
     wire_checks,
@@ -62,10 +63,11 @@ async def _first_slice(jobs: InMemoryConnector, wired: Checks) -> tuple[RunOwner
 
 
 async def test_the_third_refusal_across_a_slice_halts_as_sign_in_needed(
-    jobs: InMemoryConnector, wired: Checks
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     owner, run_id = await _first_slice(jobs, wired)
     wired.forbidden = 1
+    sign_in_fails_after(monkeypatch, wired, TOKEN, refusals=3)
 
     await work_through(jobs)
 
@@ -74,12 +76,14 @@ async def test_the_third_refusal_across_a_slice_halts_as_sign_in_needed(
 
 
 async def test_the_flagged_units_read_confirmed_after_a_resume(
-    jobs: InMemoryConnector, wired: Checks
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     owner, run_id = await _first_slice(jobs, wired)
     wired.forbidden = 1
+    sign_in_fails_after(monkeypatch, wired, TOKEN, refusals=3)
     await work_through(jobs)
 
+    registered(monkeypatch, TOKEN)
     await start_run(run_id, owner)
     await work_through(jobs)
 

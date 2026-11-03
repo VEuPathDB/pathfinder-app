@@ -11,9 +11,13 @@
   on `;` finds no field that starts one; every field is quoted. A halted run and a
   failed unit store a fixed sentence from the error's type and status
   (`units.stored_failure`); a tool refusal keeps its words only with nothing chained
-  under it, and the log holds the full error. A unit the site refused for the sign-in
-  carries `refused_by_sign_in`, which a halt and a retry reopen, and the count of
-  refusals in a row is `RunStages.refusal_streak`, so it survives a job slice. The
+  under it, and the log holds the full error. A refusal means sign-in trouble only
+  once the sign-in is shown to fail: three refusals in a row
+  (`RunStages.refusal_streak`, which survives a job slice), or a refusal during a
+  retry, ask it. A sign-in that fails halts the run and reopens the flagged units
+  (`refused_by_sign_in`); one that holds leaves them failed and unflagged and the run
+  goes on; a check with no answer pauses. A retry that reads nothing new keeps the
+  report and queues no review. The
   error-type sections, the filters and each row read one effective type and
   certainty: the review's when it named one, and a rejected finding has neither and
   says what the check said. Migration `2026_11_03_0002` cleans what old rows let it

@@ -29,7 +29,7 @@ from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, StageName
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.errors import AppError, sanitize_error_for_client
 from pathfinder.platform.metrics import RequestTally, counting_wdk_requests
-from pathfinder.services.audit.sign_in import sign_in_holds
+from pathfinder.services.audit.sign_in import sign_in_check, sign_in_holds
 from pathfinder.services.site_errors import SERVER_ERROR, site_status, unreached
 
 logger = get_logger(__name__)
@@ -127,21 +127,48 @@ class SignInNeededError(Exception):
 
 
 class RefusalStreak:
-    def __init__(self, run_id: UUID | None, count: int) -> None:
+    def __init__(self, run_id: UUID | None, count: int, *, reopened: bool) -> None:
         self.run_id = run_id
         self.count = count
+        self.reopened = reopened
 
-    async def settled(self, before: int, *, answered: bool) -> None:
-        if self.count == before and answered:
-            self.count = 0
-        if self.count == before or self.run_id is None:
+    async def _store(self, *, genuine: bool) -> None:
+        if self.run_id is None:
             return
-        count = self.count
+        run_id, count = self.run_id, self.count
         async with async_session_factory() as session:
-            await AuditRepository(session).change_stages(
-                self.run_id, lambda stages: stages.note_refusal_streak(count)
+            repo = AuditRepository(session)
+            if genuine:
+                await repo.clear_refusals(run_id)
+            await repo.change_stages(
+                run_id, lambda stages: stages.note_refusal_streak(count)
             )
             await session.commit()
+
+    async def _ask_the_sign_in(self, waits: Waits) -> None:
+        match await sign_in_check():
+            case "held":
+                self.count = 0
+                await self._store(genuine=True)
+            case "refused":
+                await self._store(genuine=False)
+                raise SignInNeededError
+            case "unanswered":
+                await self._store(genuine=False)
+                pause = waits.first_seconds
+                if waits.clock.now() + timedelta(seconds=pause) < waits.deadline:
+                    raise ContinueLaterError(
+                        seconds=pause,
+                        next_seconds=min(pause * 2, waits.longest_seconds),
+                    )
+
+    async def settled(self, before: int, *, answered: bool, waits: Waits) -> None:
+        if self.count == before and answered:
+            self.count = 0
+        if self.count > before and (self.count >= REVOKED_AFTER or self.reopened):
+            await self._ask_the_sign_in(waits)
+        elif self.count != before:
+            await self._store(genuine=False)
 
 
 _STREAK: ContextVar[RefusalStreak | None] = ContextVar(
@@ -151,9 +178,9 @@ _STREAK: ContextVar[RefusalStreak | None] = ContextVar(
 
 @contextmanager
 def watching_refusals(
-    run_id: UUID | None = None, count: int = 0
+    run_id: UUID | None = None, count: int = 0, *, reopened: bool = False
 ) -> Iterator[RefusalStreak]:
-    streak = RefusalStreak(run_id, count)
+    streak = RefusalStreak(run_id, count, reopened=reopened)
     reset = _STREAK.set(streak)
     try:
         yield streak
@@ -166,8 +193,6 @@ def _note_forbidden(exc: BaseException) -> None:
     if streak is None:
         return
     streak.count += 1
-    if streak.count >= REVOKED_AFTER:
-        raise SignInNeededError from exc
 
 
 class ContinueLaterError(Exception):
@@ -287,7 +312,7 @@ async def in_passes[T](
         if not answered:
             left.append(unit)
         if streak is not None:
-            await streak.settled(refused, answered=answered)
+            await streak.settled(refused, answered=answered, waits=waits)
     pause = waits.first_seconds
     if left and waits.clock.now() + timedelta(seconds=pause) < waits.deadline:
         await on_pause(pause, left)

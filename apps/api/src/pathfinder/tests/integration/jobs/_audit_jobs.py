@@ -95,6 +95,9 @@ class Checks:
         self.pseudogene_crashes = 0
         self.split_failures: list[BaseException] = []
         self.pseudogene_failures: list[BaseException] = []
+        self.refused_genes: set[str] = set()
+        self.unanswered_genes: list[str] = []
+        self.refusals = 0
         self.forbidden = 0
         self.answered_first = 0
         self.evidence_reads: list[str] = []
@@ -105,12 +108,19 @@ class Checks:
             return
         if self.forbidden:
             self.forbidden -= 1
+            self.refusals += 1
             raise refused(403)
 
     async def length(self, site_id: str, gene: str) -> object:
         del site_id
         self.site.tokens.add(veupathdb_auth_token_ctx.get())
         self.asked.append(gene)
+        if gene in self.refused_genes:
+            self.refusals += 1
+            raise refused(403)
+        if gene in self.unanswered_genes:
+            self.unanswered_genes.remove(gene)
+            raise unanswered()
         self._refused()
         return short_audit(gene, reference_gene=f"{SHORT_GROUP}_REL0")
 
@@ -178,6 +188,32 @@ def wire_checks(monkeypatch: pytest.MonkeyPatch) -> Checks:
 def registered(monkeypatch: pytest.MonkeyPatch, *tokens: str) -> None:
     async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
         del oauth_url
+        return VEuPathDBClaims(sub="1248677203", is_guest=token not in tokens)
+
+    monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)
+
+
+def sign_in_fails_after(
+    monkeypatch: pytest.MonkeyPatch, checks: Checks, *tokens: str, refusals: int
+) -> None:
+    async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
+        del oauth_url
+        revoked = checks.refusals >= refusals
+        return VEuPathDBClaims(
+            sub="1248677203", is_guest=revoked or token not in tokens
+        )
+
+    monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)
+
+
+def sign_in_unanswered_after(
+    monkeypatch: pytest.MonkeyPatch, checks: Checks, *tokens: str, refusals: int
+) -> None:
+    async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
+        del oauth_url
+        if checks.refusals >= refusals:
+            msg = "the sign-in check got no answer"
+            raise httpx.ConnectError(msg)
         return VEuPathDBClaims(sub="1248677203", is_guest=token not in tokens)
 
     monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)

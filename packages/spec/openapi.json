@@ -16696,6 +16696,18 @@
             "minimum": 0.0,
             "title": "Refusalstreak",
             "default": 0
+          },
+          "retriedFrom": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retriedfrom"
           }
         },
         "type": "object",

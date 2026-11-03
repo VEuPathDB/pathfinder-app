@@ -377,17 +377,69 @@ def test_an_unauthorized_read_halts_even_on_a_sign_in_that_holds() -> None:
         veupathdb_auth_token_ctx.reset(held)
 
 
-def test_three_forbidden_reads_in_a_row_on_a_valid_sign_in_halt_as_revoked() -> None:
+async def _three_refusals() -> list[str]:
+    async def attempt(unit: str) -> bool:
+        del unit
+        assert failure_status(_answered(403)) == "failed"
+        return True
+
+    return await in_passes(
+        ["a", "b", "c", "d"],
+        attempt,
+        _waits(FakeClock(START), deadline=3600),
+        unread=_Unread(),
+        on_pause=_quiet,
+    )
+
+
+async def test_three_forbidden_reads_ask_the_sign_in_and_a_failed_one_halts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def check() -> str:
+        return "refused"
+
+    monkeypatch.setattr(units, "sign_in_check", check)
     held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
     try:
-        with watching_refusals():
-            assert failure_status(_answered(403)) == "failed"
-            assert failure_status(_answered(403)) == "failed"
-            with pytest.raises(SignInNeededError) as revoked:
-                failure_status(_answered(403))
+        with watching_refusals(), pytest.raises(SignInNeededError):
+            await _three_refusals()
     finally:
         veupathdb_auth_token_ctx.reset(held)
-    assert str(revoked.value) == "sign-in needed"
+
+
+async def test_three_forbidden_reads_under_a_holding_sign_in_go_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[str] = []
+
+    async def check() -> str:
+        asked.append("asked")
+        return "held"
+
+    monkeypatch.setattr(units, "sign_in_check", check)
+    held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
+    try:
+        with watching_refusals() as streak:
+            assert await _three_refusals() == []
+    finally:
+        veupathdb_auth_token_ctx.reset(held)
+    assert (asked, streak.count) == (["asked"], 1)
+
+
+async def test_a_sign_in_check_with_no_answer_pauses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def check() -> str:
+        return "unanswered"
+
+    monkeypatch.setattr(units, "sign_in_check", check)
+    held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
+    try:
+        with watching_refusals(), pytest.raises(ContinueLaterError) as later:
+            await _three_refusals()
+    finally:
+        veupathdb_auth_token_ctx.reset(held)
+    assert later.value.seconds > 0
 
 
 async def test_an_answered_unit_between_forbidden_reads_breaks_the_streak() -> None:
