@@ -10,9 +10,12 @@ status: stable
 
 `domain/audit/findings.py` maps a `SHORT` gene with the verdict `FRAMESHIFT` to
 `sequence_frameshift` at medium certainty. `OTHER_FRAME` maps to `possible_missed_exon` when a
-splice pair sits at every change, else to `part_in_other_frame`, both at medium certainty. Only
-`GENOME_ENCODES`, the missing part in the model's open frame, stays `truncated_model`: high
-certainty with no frame change on the track, medium with changes further out, which are stated.
+splice pair sits at every jump of the track, listed or past the cap, else to `part_in_other_frame`,
+both at medium certainty. Only `GENOME_ENCODES`, the missing part in the model's open frame, stays
+`truncated_model`: high certainty when the reading frame holds, medium otherwise. The reading frame
+holds when every jump keeps the frame with no splice pair. A jump with a pair may be an intron, in
+frame or not, so it lowers the certainty and is stated. A jump that keeps the frame with no pair is
+stated and lowers nothing. A jump past the cap counts the same and is stated by its shift and pair.
 
 `possible_missed_exon` says "may": the missing part lies across a splice pair. A pair is not proof.
 On random sequence, for a stretch of 30 to 300 bases at the library's slack of 6 bases, a pair sits at

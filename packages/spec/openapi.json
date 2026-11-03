@@ -10865,6 +10865,11 @@
               }
             ]
           },
+          "keepsFrame": {
+            "type": "boolean",
+            "title": "Keepsframe",
+            "readOnly": true
+          },
           "countsMatchShift": {
             "anyOf": [
               {
@@ -10889,6 +10894,7 @@
           "shift",
           "referenceResidues",
           "run",
+          "keepsFrame",
           "countsMatchShift"
         ],
         "title": "FrameChange"
@@ -11427,6 +11433,13 @@
             "type": "array",
             "maxItems": 3,
             "title": "Framechanges"
+          },
+          "unlistedChanges": {
+            "items": {
+              "$ref": "#/components/schemas/FrameChange"
+            },
+            "type": "array",
+            "title": "Unlistedchanges"
           },
           "code": {
             "anyOf": [
@@ -12942,6 +12955,13 @@
             "type": "array",
             "maxItems": 3,
             "title": "Framechanges"
+          },
+          "unlistedChanges": {
+            "items": {
+              "$ref": "#/components/schemas/FrameChange"
+            },
+            "type": "array",
+            "title": "Unlistedchanges"
           }
         },
         "type": "object",

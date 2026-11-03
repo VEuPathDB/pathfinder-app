@@ -197,9 +197,18 @@ def _strain_reads(change: FrameChange) -> str:
     return ". ".join(said)
 
 
+def _reading_frame(change: FrameChange) -> str:
+    if not change.keeps_frame:
+        return "The reading frame changes"
+    if change.splice_pair is None:
+        return "The reading frame holds"
+    return "The part lies across a splice pair in the same frame"
+
+
 def _frame_change(change: FrameChange, gene: str | None) -> tuple[Fact, ...]:
     return (
         Fact(label="Frame change", value=_change(change)),
+        Fact(label="Reading frame at the change", value=_reading_frame(change)),
         Fact(label="Reference protein", value=_reference_protein(change, gene)),
         Fact(label="Splice pair at the change", value=_splice_pair(change)),
         Fact(
@@ -217,6 +226,22 @@ def _frame_change(change: FrameChange, gene: str | None) -> tuple[Fact, ...]:
     )
 
 
+def _unlisted(changes: list[FrameChange]) -> tuple[Fact, ...]:
+    if not changes:
+        return ()
+    said = [
+        f"a shift of {change.shift:+d} at "
+        f"{change.splice_pair.motif if change.splice_pair else 'no splice pair'}"
+        for change in changes
+    ]
+    return (
+        Fact(
+            label="Changes past those listed, not read further",
+            value=f"{len(changes)}: {', '.join(said)}",
+        ),
+    )
+
+
 def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
     ns = check.ns_in_window
     return (
@@ -226,6 +251,7 @@ def _dna(check: LengthCheck, reference_gene: str | None) -> tuple[Fact, ...]:
             for shift in check.frame_changes
             for fact in _frame_change(shift, reference_gene)
         ),
+        *_unlisted(check.unlisted_changes),
         Fact(
             label="Unknown bases in the region read",
             value=NOT_READ if ns is None else f"{ns:,}",

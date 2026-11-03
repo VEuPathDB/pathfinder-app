@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from veupathdb_mcp.audit import (
     FrameChange,
     GenomeSource,
@@ -18,6 +19,7 @@ from pathfinder.domain.audit.length_facts import length_facts, strain_facts
 from pathfinder.tests._support.audit import FRAMESHIFT, revised, short_audit
 from pathfinder.tests._support.audit_answers import strain_frameshift
 
+_PAIR = SplicePair(motif="GT..AG", donor=10, acceptor=40)
 _RECORD = "constructed_variant"
 _REFERENCE = ReferenceRun(
     gene="constructed_reference",
@@ -136,6 +138,43 @@ def test_a_splice_pair_at_the_change_is_named_so_a_missed_exon_shows() -> None:
     assert _value(_facts(shift), "Splice pair at the change") == (
         "GT..AG, bases 1,200 to 1,233 of constructed_seq"
     )
+
+
+@pytest.mark.parametrize(
+    ("shift", "pair", "words"),
+    [
+        (3, None, "The reading frame holds"),
+        (108, _PAIR, "The part lies across a splice pair in the same frame"),
+        (1, None, "The reading frame changes"),
+        (116, _PAIR, "The reading frame changes"),
+    ],
+)
+def test_a_jump_states_what_it_does_to_the_frame(
+    shift: int, pair: SplicePair | None, words: str
+) -> None:
+    change = FRAMESHIFT.model_copy(update={"shift": shift, "splice_pair": pair})
+
+    assert _value(_facts(change), "Reading frame at the change") == words
+
+
+def test_jumps_past_the_cap_are_stated_and_named_unread() -> None:
+    audit = short_audit("G1", reference_gene="R1", verdict="FRAMESHIFT")
+    paired = FRAMESHIFT.model_copy(update={"shift": 98, "splice_pair": _PAIR})
+    bare = FRAMESHIFT.model_copy(update={"shift": -60})
+
+    facts = length_facts(
+        revised(audit, frame_changes=[FRAMESHIFT], unlisted_changes=[paired, bare])
+    )
+
+    assert _value(facts, "Changes past those listed, not read further") == (
+        "2: a shift of +98 at GT..AG, a shift of -60 at no splice pair"
+    )
+
+
+def test_no_jump_past_the_cap_states_nothing() -> None:
+    labels = [fact.label for fact in _facts(FRAMESHIFT)]
+
+    assert "Changes past those listed, not read further" not in labels
 
 
 def test_every_change_is_stated() -> None:

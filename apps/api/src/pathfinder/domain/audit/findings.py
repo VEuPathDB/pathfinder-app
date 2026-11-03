@@ -141,7 +141,7 @@ def _short_part(check: LengthCheck) -> tuple[ErrorType, Certainty]:
             else "part_in_other_frame"
         )
         return named, "medium"
-    return "truncated_model", "medium" if check.frame_changes else "high"
+    return "truncated_model", "high" if check.reading_frame_holds else "medium"
 
 
 def _length(confirmation: LengthConfirmation) -> Classification:

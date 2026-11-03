@@ -7070,6 +7070,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/VariantsUnread'
           - type: 'null'
+        keepsFrame:
+          type: boolean
+          title: Keepsframe
+          readOnly: true
         countsMatchShift:
           anyOf:
           - type: boolean
@@ -7087,6 +7091,7 @@ components:
       - shift
       - referenceResidues
       - run
+      - keepsFrame
       - countsMatchShift
       title: FrameChange
     FusionAudit:
@@ -7440,6 +7445,11 @@ components:
           type: array
           maxItems: 3
           title: Framechanges
+        unlistedChanges:
+          items:
+            $ref: '#/components/schemas/FrameChange'
+          type: array
+          title: Unlistedchanges
         code:
           anyOf:
           - $ref: '#/components/schemas/GeneticCode'
@@ -8464,6 +8474,11 @@ components:
           type: array
           maxItems: 3
           title: Framechanges
+        unlistedChanges:
+          items:
+            $ref: '#/components/schemas/FrameChange'
+          type: array
+          title: Unlistedchanges
       type: object
       required:
       - verdict

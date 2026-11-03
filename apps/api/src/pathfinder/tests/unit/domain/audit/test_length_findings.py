@@ -85,6 +85,42 @@ def _with_changes(verdict: str, changes: list[FrameChange]) -> LengthConfirmatio
     )
 
 
+_KEPT = FRAMESHIFT.model_copy(update={"shift": 3})
+_KEPT_AT_A_PAIR = _PAIRED.model_copy(update={"shift": 108})
+
+
+def _with_unlisted(
+    verdict: str, changes: list[FrameChange], unlisted: list[FrameChange]
+) -> LengthConfirmation:
+    answer = short_audit("G1", reference_gene="R1", verdict=verdict)
+    return LengthConfirmation(
+        check="gene_length",
+        result=revised(answer, frame_changes=changes, unlisted_changes=unlisted),
+    )
+
+
+def test_a_jump_that_keeps_the_frame_with_no_pair_leaves_a_truncation_high() -> None:
+    assert classify_confirmation(_with_changes("GENOME_ENCODES", [_KEPT])) == _TRUNCATED
+
+
+def test_a_jump_that_keeps_the_frame_at_a_pair_lowers_a_truncation() -> None:
+    assert classify_confirmation(
+        _with_changes("GENOME_ENCODES", [_KEPT_AT_A_PAIR])
+    ) == Classification(error_type="truncated_model", certainty="medium")
+
+
+def test_a_pair_past_the_cap_lowers_a_truncation() -> None:
+    assert classify_confirmation(
+        _with_unlisted("GENOME_ENCODES", [_KEPT], [_KEPT_AT_A_PAIR])
+    ) == Classification(error_type="truncated_model", certainty="medium")
+
+
+def test_a_jump_with_no_pair_past_the_cap_rules_out_a_missed_exon() -> None:
+    assert classify_confirmation(
+        _with_unlisted("OTHER_FRAME", [_PAIRED], [FRAMESHIFT])
+    ) == Classification(error_type="part_in_other_frame", certainty="medium")
+
+
 def test_a_truncation_with_a_change_further_out_is_medium() -> None:
     assert classify_confirmation(
         _with_changes("GENOME_ENCODES", [FRAMESHIFT])
@@ -101,6 +137,8 @@ def test_a_truncation_with_no_change_is_high() -> None:
         ([_PAIRED], "possible_missed_exon"),
         ([_PAIRED, _PAIRED], "possible_missed_exon"),
         ([_PAIRED, FRAMESHIFT], "part_in_other_frame"),
+        ([_KEPT, _PAIRED, _PAIRED], "part_in_other_frame"),
+        ([_KEPT_AT_A_PAIR, _PAIRED], "possible_missed_exon"),
         ([FRAMESHIFT], "part_in_other_frame"),
         ([], "part_in_other_frame"),
     ],
