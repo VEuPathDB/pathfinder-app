@@ -54,6 +54,7 @@ class _OpenAIError(_Body):
 
     type: str | None = None
     code: str | None = None
+    message: str = ""
 
 
 class _AnthropicDetail(_Body):
@@ -118,6 +119,18 @@ def _google(status: int | None, body: object) -> KeyRefusal | None:
     if status == _FORBIDDEN and error.status == "PERMISSION_DENIED":
         return KeyRefusal.FORBIDDEN
     return None
+
+
+_OPENAI_FLAGGED = "This content was flagged"
+
+
+def flagged_content(provider: KeyableProvider, failure: ProviderFailure) -> bool:
+    if provider != "openai" or failure.status != _BAD_REQUEST:
+        return False
+    error = _OpenAIError.model_validate(failure.body)
+    return error.type == "invalid_request_error" and error.message.startswith(
+        _OPENAI_FLAGGED
+    )
 
 
 def classify_refusal(

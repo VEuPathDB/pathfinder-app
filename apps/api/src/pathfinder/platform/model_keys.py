@@ -14,6 +14,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from assistant_core.errors import ModelDeclinedError
 from assistant_core.models.claude_profiles import ClaudeProvider
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import ModelProvider, PaidBy
@@ -45,6 +46,7 @@ from pathfinder.domain.provider_keys import (
     provider_of,
 )
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.declined import RefusalDetails, declined_text
 from pathfinder.platform.errors import (
     DeploymentKeyRefusedError,
     OwnKeyRequiredError,
@@ -56,6 +58,7 @@ from pathfinder.platform.errors import (
 from pathfinder.platform.key_refusals import (
     PROVIDER_ERRORS,
     classify_refusal,
+    flagged_content,
     provider_failure,
 )
 from pathfinder.platform.model_catalog import deployment_may_pay, get_model_entry
@@ -184,6 +187,13 @@ class GuardedModel(WrapperModel):
         )
         if self._key_provider is not None and refusal is not None:
             return self._refused(self._key_provider, refusal)
+        if self._key_provider is not None and flagged_content(
+            self._key_provider, failure
+        ):
+            return ModelDeclinedError(
+                declined_text(self.model_name, RefusalDetails()),
+                model_id=self.model_name,
+            )
         if failure.status is None:
             return ModelAPIError(
                 self.model_name,
