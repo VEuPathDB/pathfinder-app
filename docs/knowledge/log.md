@@ -6,10 +6,14 @@
   holds the scope, progress, resume or retry, the heat map, rate chart and rate
   table, the gene targets, the headline findings, and the findings with filters in
   the address. `GET /api/v1/audits/{run_id}/findings.csv` writes one row per finding
-  in the page's words, every text cell checked for a formula after NFKC and leading
-  blanks, every field quoted. A halted run stores the exception's type and
-  `sanitize_error_for_client`, and the log holds the full error. The words of an
-  evidence kind and status are served by `/api/v1/audits/words`.
+  in the page's words. Every text cell is checked for a formula after NFKC and
+  leading blanks and after each `;`, tab, CR or LF inside it, so a reader that splits
+  on `;` finds no field that starts one; every field is quoted. A halted run and a
+  failed unit store the exception's type and `sanitize_error_for_client`, and the
+  log holds the full error. Migration `2026_11_03_0002` cleans what the old rows let
+  it identify: the fixed prefix of a halted run or a unit, and `targetFailure` with
+  the findings that repeat it. The words of an evidence kind and status are served by
+  `/api/v1/audits/words`.
 
 * **The last live check of the refused call and the singleton count is closed.** The
   all-organism singleton count and the audit follow-up passed live. No saved replay holds a
