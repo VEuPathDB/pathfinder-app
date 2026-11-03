@@ -21618,6 +21618,28 @@
             "default": "",
             "title": "Words",
             "type": "string"
+          },
+          "publishedMin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedmin"
+          },
+          "publishedMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedmax"
           }
         },
         "required": [

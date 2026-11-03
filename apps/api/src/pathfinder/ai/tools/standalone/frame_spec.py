@@ -314,7 +314,8 @@ async def _bind_the_search(
             ),
         ),
         infos,
-        state.request_messages,
+        state,
+        stated.answers,
     )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     refuse_unknown_names(call, infos)

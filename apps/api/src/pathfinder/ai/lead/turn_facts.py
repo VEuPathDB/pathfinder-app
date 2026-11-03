@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import NamedTuple
 
 from veupathdb.domain.strategy import StrategyStep
 
@@ -38,6 +39,7 @@ from pathfinder.domain.organism_caveat import RecordsOrganismCaveat
 from pathfinder.domain.read_facts import read_fact
 from pathfinder.domain.site_checks import SiteCheckGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.expression_handles import held_readings
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -91,13 +93,18 @@ def _searches_under(steps: Mapping[str, StrategyStep], step_id: str) -> frozense
     return own.union(*(_searches_under(steps, i) for i in step.input_ids()))
 
 
+class _Stated(NamedTuple):
+    said: Sequence[str]
+    requirements: Sequence[Constraint]
+
+
 def _step_fact(
     step: StrategyStep,
     criteria: Mapping[str, Criterion],
     counts: Mapping[str, int | None],
     errors: Mapping[str, str],
     noun: str,
-    said: Sequence[str],
+    stated: _Stated,
 ) -> StepFact:
     criterion = criteria.get(step.id)
     named = step.display_name or (
@@ -110,7 +117,9 @@ def _step_fact(
         count=counts.get(step.id),
         reason=_reason(criterion),
         also_considered=_considered(criterion),
-        parameters=[] if criterion is None else step_parameters(criterion, noun, said),
+        parameters=[]
+        if criterion is None
+        else step_parameters(criterion, noun, stated.said, stated.requirements),
         error=errors.get(step.id, ""),
         record_noun=noun,
     )
@@ -129,11 +138,11 @@ def _built_steps(
     spec: OperationalSpec | None,
     sync: SyncStateProtocol | None,
     outcome: BuildOutcome | None,
-    said: Sequence[str],
+    stated: _Stated,
 ) -> list[StepFact]:
     """The steps under the strategy's root, each after the inputs it reads.
 
-    ``said`` holds the researcher's messages, which state an analysis value.
+    ``stated`` holds what the researcher's messages state of a value.
     """
     root_id = None if graph is None else graph.primary_root_id()
     if graph is None or root_id is None:
@@ -148,7 +157,12 @@ def _built_steps(
     record_types = _record_types(graph)
     return [
         _step_fact(
-            step, criteria, counts, errors, counted_noun(record_types[step.id]), said
+            step,
+            criteria,
+            counts,
+            errors,
+            counted_noun(record_types[step.id]),
+            stated,
         ).model_copy(update={"operator_source": _operator_source(step, graph, spec)})
         for step in graph.steps_in_tree_order(root_id)
     ]
@@ -172,7 +186,7 @@ def _counted_live(
     return with_readings(spec, readings)
 
 
-def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[StepFact]:
+def _draft_steps(spec: OperationalSpec | None, stated: _Stated) -> list[StepFact]:
     """The bound criteria of a spec nothing is built from yet."""
     if spec is None:
         return []
@@ -184,7 +198,7 @@ def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[Step
             count=c.result_count,
             reason=_reason(c),
             also_considered=_considered(c),
-            parameters=step_parameters(c, noun, said),
+            parameters=step_parameters(c, noun, stated.said, stated.requirements),
             record_noun=noun,
         )
         for c in spec.criteria
@@ -319,9 +333,15 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     answered = _counted_live(domain.answered_spec, session.sync_state, readings)
     graph = session.get_graph(None)
     ledger = derive_ledger(state, deps.intent)
-    said = state.researcher_messages()
+    stated = _Stated(state.researcher_messages(), domain.requirements)
     built = with_counts_before(
-        _built_steps(graph, answered, session.sync_state, ledger.build.outcome, said),
+        _built_steps(
+            graph,
+            answered,
+            session.sync_state,
+            ledger.build.outcome,
+            stated,
+        ),
         markers,
     )
     verdict = state.turn_verdict
@@ -337,7 +357,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     gaps = _gaps(deps)
     return TurnFacts(
         record_noun=noun,
-        steps=built or _draft_steps(spec, said),
+        steps=built or _draft_steps(spec, stated),
         draft=not built,
         root_count=built[-1].count if built else None,
         root_count_before=markers.root_count_before() if built else None,

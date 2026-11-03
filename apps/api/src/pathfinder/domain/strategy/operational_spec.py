@@ -75,6 +75,8 @@ class BoundValue(CamelModel):
     taxon: NamedTaxon | None = None
     # A filter value in words, each field by the name the sheet shows.
     words: str = ""
+    published_min: float | None = None
+    published_max: float | None = None
 
     @property
     def unset(self) -> bool:

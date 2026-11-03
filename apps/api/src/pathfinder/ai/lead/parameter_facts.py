@@ -13,11 +13,13 @@ from veupathdb.domain.parameters import (
 
 from pathfinder.ai.lead.analysis_facts import analysis_parameters
 from pathfinder.domain.log2_scale import fold_label
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.expression_handles import is_handle
 from pathfinder.domain.strategy.measurement_clauses import (
     counted_clauses,
     read_pick_clauses,
 )
+from pathfinder.domain.strategy.one_sided import one_sided_notes
 from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
 from pathfinder.domain.strategy.option_labels import option_label
 from pathfinder.domain.strategy.value_binding import plain_value
@@ -69,7 +71,11 @@ def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str
 
 
 def _parameter(
-    criterion: Criterion, name: str, bound: BoundValue, noun: str
+    criterion: Criterion,
+    name: str,
+    bound: BoundValue,
+    noun: str,
+    open_end: Sequence[str],
 ) -> ParameterFact:
     """One bound value's row. A placeholder the site left states no value, so
     it is shown as not set and nothing measures it. A pick a message names by
@@ -90,7 +96,7 @@ def _parameter(
         value=value,
         label=label,
         source=bound.source,
-        notes=_notes(criterion, name, bound, noun),
+        notes=[*_notes(criterion, name, bound, noun), *open_end],
         picks=picks,
         expression=_expression(name, bound),
     )
@@ -104,12 +110,16 @@ def _expression(name: str, bound: BoundValue) -> str:
 
 
 def step_parameters(
-    criterion: Criterion, noun: str, said: Sequence[str]
+    criterion: Criterion,
+    noun: str,
+    said: Sequence[str],
+    requirements: Sequence[Constraint],
 ) -> list[ParameterFact]:
     if criterion.analysis is not None:
         return analysis_parameters(criterion.analysis, said, noun)
+    open_ends = one_sided_notes(criterion, requirements)
     return [
-        _parameter(criterion, name, bound, noun)
+        _parameter(criterion, name, bound, noun, open_ends.get(name, ()))
         for name, bound in criterion.shown_values.items()
     ]
 

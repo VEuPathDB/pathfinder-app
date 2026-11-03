@@ -91,6 +91,7 @@ type Statistic = Literal["p_value", "adjusted_p", "fdr", "q_value", "unspecified
 type Share = Annotated[float, Field(gt=0, le=100)]
 type Bound = Annotated[float, Field(gt=0, le=1)]
 type CountOp = Literal[">=", ">", "<=", "<", "="]
+type RangeSide = Literal["lower", "upper"]
 type Unverified = Literal["untyped", "no_value_to_compare", "no_step_states_it"]
 type _Phrase = Annotated[str, Field(min_length=1)]
 
@@ -101,6 +102,10 @@ class PercentileValue(CamelModel):
     kind: Literal[ConstraintKind.PERCENTILE] = ConstraintKind.PERCENTILE
     end: PercentileEnd
     share: Share
+
+    @property
+    def side(self) -> RangeSide:
+        return "lower" if self.end == "top" else "upper"
 
 
 class FoldChangeValue(CamelModel):
@@ -177,6 +182,16 @@ class CountValue(CamelModel):
                 return number < self.value
             case "=":
                 return number == self.value
+
+    @property
+    def side(self) -> RangeSide | None:
+        match self.op:
+            case ">=" | ">":
+                return "lower"
+            case "<=" | "<":
+                return "upper"
+            case "=":
+                return None
 
     @property
     def shown(self) -> str:
@@ -263,6 +278,14 @@ class Constraint(CamelModel):
         match self.value:
             case OrganismValue(organism=organism):
                 return organism
+            case _:
+                return None
+
+    @property
+    def side(self) -> RangeSide | None:
+        match self.value:
+            case CountValue() | PercentileValue() as bounded:
+                return bounded.side
             case _:
                 return None
 

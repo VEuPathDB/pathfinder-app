@@ -33,7 +33,7 @@ def _criterion(value: str) -> Criterion:
 
 
 def test_the_expression_row_carries_the_expression_and_no_other_row_does() -> None:
-    rows = step_parameters(_criterion(_EXPRESSION), "group", [])
+    rows = step_parameters(_criterion(_EXPRESSION), "group", [], [])
 
     assert [(row.display_name, row.expression) for row in rows] == [
         ("Expression", _EXPRESSION),
@@ -42,6 +42,8 @@ def test_the_expression_row_carries_the_expression_and_no_other_row_does() -> No
 
 
 def test_a_handle_the_step_holds_is_no_expression_to_show() -> None:
-    [row, _] = step_parameters(_criterion(expression_handle(_EXPRESSION)), "group", [])
+    [row, _] = step_parameters(
+        _criterion(expression_handle(_EXPRESSION)), "group", [], []
+    )
 
     assert row.expression == ""

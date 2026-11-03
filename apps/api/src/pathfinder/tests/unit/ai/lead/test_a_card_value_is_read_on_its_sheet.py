@@ -110,7 +110,7 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
     assert spec is not None
     [criterion] = spec.criteria
     bound = criterion.resolved_params["domain_typeahead"]
-    fact = _parameter(criterion, "domain_typeahead", bound, "gene")
+    fact = _parameter(criterion, "domain_typeahead", bound, "gene", ())
     assert (read, fact.value, fact.label) == (
         [[_SEARCH]],
         "PF00069",

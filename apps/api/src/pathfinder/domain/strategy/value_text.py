@@ -14,6 +14,13 @@ class Bounds(BaseModel):
     max: float | str | None = None
 
 
+class NumberEnds(BaseModel):
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    min: float | None = None
+    max: float | None = None
+
+
 _CLAUSE_VALUE: TypeAdapter[Bounds | list[float | str]] = TypeAdapter(
     Bounds | list[float | str]
 )

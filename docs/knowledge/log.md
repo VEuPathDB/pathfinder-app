@@ -26,6 +26,14 @@
   file: a failed job lists three, and its `exception.log` names no cause. See
   [the decision](decisions/a-deseq-comparison-with-no-sample-or-no-replicate-is-refused.md).
   New: why a DESeq job with replicates failed.
+* **A one-sided request uses a published limit or states the default.** A typed
+  requirement states a side through `CountValue.side` and `PercentileValue.side`. A
+  `number-range` parameter binds the end left open at its published limit, else at its
+  default; `GenesByIntronJunctions.percent_max` on QA publishes 1 to 100 under a default
+  of 20 to 100. No typed data pairs two number parameters, so such a step keeps the site
+  defaults and states them under the linked parameter. A count on a range is compared at
+  the end of its side. See
+  [a one-sided request uses a published limit or states the default](decisions/a-one-sided-request-uses-a-published-limit-or-states-the-default.md).
 * **A held phyletic expression is compared by its parsed form.** The value a step
   holds and the value the site holds are one value when `PhyleticExpression.parse`
   gives equal forms; a regrouping, a changed count and a changed code stay a
@@ -360,7 +368,7 @@
   differential-expression jobs failed with no reason
   ([decision](decisions/a-deseq-comparison-with-no-sample-or-no-replicate-is-refused.md)), and "under
   30 kDa" kept a 10 kDa minimum
-  ([backlog](backlog/an-upper-bound-alone-keeps-no-default-lower-bound.md)). QA
+  ([decision](decisions/a-one-sided-request-uses-a-published-limit-or-states-the-default.md)). QA
   answered 500 to POST `.../columns/organism/reports/byValue` in 8 turns, so those
   turns record the organism check as unchecked; one 500 on GET
   `/strategy-lists/public` recovered on the client's retry. 77 turns cost $4.24 on the

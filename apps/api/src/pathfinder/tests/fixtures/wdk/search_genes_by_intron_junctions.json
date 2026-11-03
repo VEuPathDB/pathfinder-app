@@ -1,0 +1,597 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "GET",
+    "url": "https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript/searches/GenesByIntronJunctions",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-11-03",
+    "reads": "WDK-PARAM-005"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find genes that have high confidence novel intron junction spanning RNASequencing reads.",
+      "urlSegment": "GenesByIntronJunctions",
+      "dynamicAttributes": [
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "num_novel-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "# Unannotated Junctions",
+          "name": "num_novel",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_percent_max-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Max % MAI",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "Maximum percentage of intron with the maximum total unique reads in this gene for the novel introns that met search criteria",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "max_percent_max",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_total_unique-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Max Unique Reads",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "Maximum total Unique reads for the novel introns that met search criteria",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "max_total_unique",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_total_isrpm-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Max ISRPM",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "Maximum total ISRPM for the novel introns that met search criteria",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "max_total_isrpm",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [],
+          "truncateTo": 100,
+          "displayName": "Met Search Criteria",
+          "name": "matched_result",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "max_percent_max",
+          "direction": "DESC"
+        },
+        {
+          "attributeName": "max_total_unique",
+          "direction": "DESC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "Unannotated Intron Junctions",
+      "fullName": "GeneQuestions.GenesByIntronJunctions",
+      "description": "This search identifies genes that contain, or are flanked by, unannotated introns \u2013 defined as RNAseq reads that map to discontinuous regions on the same DNA strand as a gene, span canonical splice donor & acceptor motifs, and are not reflected in the reference annotation for that gene.  These introns may suggest incorrect gene model annotation or alternatively-spliced transcripts, and should be carefully reviewed in the genome browser, in the context of additional evidence (abundance in various samples, frequency of splicing relative to flanking exon sequences, etc).  Changes to the gene model can then be made using the Apollo annotation system, if warranted.  Note that clicking on individual introns in the genome browser displays a table providing much relevant information.\n<p/>\n<b>Search Parameters:</b>\n<p/>\n<b>\"Consider 5' & 3' Flanking Sequence up to (bp)\"</b> expands the query beyond annotated gene model boundaries, enabling the identification of up- or down-stream introns that may have been missed in the reference annotation.\n<p/>\n<b>\"Minimum number of unique reads >=\"</b> controls the number of intron-spanning reads (ISRs) that must support an unannotated intron before the gene is returned by the search.  Introns with low abundance relative to the total number of reads mapping to a region may not be biologically significant. \n<p/>\n<b>\"Percent of most abundant intron\"</b> defines unannotated introns in comparison to the most abundant intron (MAI) associated with that gene.  Introns mistakenly omitted from the annotated gene model are likely to be as abundant as correctly annotated introns; alternative splice variants may be observed at ~20-80%, but you may not be interested in rare 'typographical errors' made by the splicing machinery.",
+      "defaultAttributes": [
+        "primary_key",
+        "gene_product",
+        "num_novel",
+        "max_percent_max",
+        "max_total_unique",
+        "max_total_isrpm"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "organism",
+            "min_total_unique",
+            "percent_max",
+            "max_flanking_bp"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "newBuild": "57",
+      "shortDisplayName": "IntronJunctions",
+      "paramNames": [
+        "organism",
+        "min_total_unique",
+        "percent_max",
+        "max_flanking_bp"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByIntronJunctions",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Organism",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 5,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Select organism(s) you wish to query against. Click the [+] to expand taxon groupings.",
+          "visibleHelp": "This search is only available for genomes to which RNA sequencing reads have been mapped.",
+          "depthExpanded": 0,
+          "dependentParams": [],
+          "displayType": "treeBox",
+          "isReadOnly": false,
+          "vocabulary": {
+            "data": {
+              "display": "@@fake@@",
+              "term": "@@fake@@"
+            },
+            "children": [
+              {
+                "data": {
+                  "display": "Hepatocystis",
+                  "term": "Hepatocystis"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Hepatocystis sp. ex Piliocolobus tephrosceles 2019",
+                      "term": "Hepatocystis sp. ex Piliocolobus tephrosceles 2019"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "data": {
+                  "display": "Plasmodium",
+                  "term": "Plasmodium"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Plasmodium berghei",
+                      "term": "Plasmodium berghei"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium berghei ANKA",
+                          "term": "Plasmodium berghei ANKA"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium chabaudi",
+                      "term": "Plasmodium chabaudi"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium chabaudi chabaudi",
+                          "term": "Plasmodium chabaudi chabaudi"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium cynomolgi",
+                      "term": "Plasmodium cynomolgi"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium cynomolgi strain M",
+                          "term": "Plasmodium cynomolgi strain M"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium falciparum",
+                      "term": "Plasmodium falciparum"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium falciparum 3D7",
+                          "term": "Plasmodium falciparum 3D7"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium knowlesi",
+                      "term": "Plasmodium knowlesi"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium knowlesi strain H",
+                          "term": "Plasmodium knowlesi strain H"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium vinckei",
+                      "term": "Plasmodium vinckei"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium vinckei vinckei CY",
+                          "term": "Plasmodium vinckei vinckei CY"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium vivax",
+                      "term": "Plasmodium vivax"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium vivax P01",
+                          "term": "Plasmodium vivax P01"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Plasmodium yoelii",
+                      "term": "Plasmodium yoelii"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Plasmodium yoelii yoelii 17X",
+                          "term": "Plasmodium yoelii yoelii 17X"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Plasmodium yoelii yoelii 17XNL 2023",
+                          "term": "Plasmodium yoelii yoelii 17XNL 2023"
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "allowEmptyValue": false,
+          "name": "organism",
+          "countOnlyLeaves": true,
+          "initialDisplayValue": "[]",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "maxRecommendedMsg": [
+              "<p>\n          <b>Please select five or fewer organisms where possible.</b>\n        </p>\n        <p>\n          Selecting a large number of organisms may impact performance and make results harder to interpret.\n        </p>\n        <p>\n          For the best experience, use <i>My Organism Preferences</i> in the page header to focus on the organisms you care about most.\n        </p>"
+            ],
+            "specificAttribution": [],
+            "organismProperties": [
+              "pruneNodesWithSingleExtendingChild",
+              "showOnlyPreferredOrganisms",
+              "highlightReferenceOrganisms"
+            ],
+            "maxRecommended": [
+              "5"
+            ]
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Minimum number of unique reads >=",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter the minimum number of total unique reads required to consider an intron.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "min_total_unique",
+          "initialDisplayValue": "20",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "max": 100.0,
+          "displayName": "Percent of Most Abundant Intron (MAI)",
+          "increment": 0.01,
+          "isVisible": true,
+          "type": "number-range",
+          "help": "The most abundant intron (MAI; supported by the highest number of intron-spanning reads; ISRs) provides context for the expected observation frequency: introns mistakenly omitted from the gene model are likely to be as abundant as correctly annotated introns; alternative splice variants may be observed at ~20-80%, but you may not be interested in rare 'typographical errors' made by the splicing machinery.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "min": 1.0,
+          "allowEmptyValue": false,
+          "name": "percent_max",
+          "initialDisplayValue": "{\"min\":\"20\",\"max\":\"100\"}",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Consider 5' & 3' Flanking Sequence up to (bp)",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter the maximum number of nucleotides flanking the annotated gene model to explore when looking for unannotated introns.  Search automatically includes the annotated gene model, and only considers putative introns on the same strand.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "max_flanking_bp",
+          "initialDisplayValue": "0",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "P. falciparum",
+          "P. vivax",
+          "P. yoelii",
+          "P. berghei",
+          "P. chabaudi",
+          "P. knowlesi"
+        ],
+        "organism": [
+          "P. falciparum"
+        ],
+        "specificAttribution": []
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

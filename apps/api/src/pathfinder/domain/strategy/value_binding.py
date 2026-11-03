@@ -77,6 +77,8 @@ def _bound(
         number=info.is_number or info.param_kind in _NUMBER_KINDS,
         decimals=shown_decimals(info.default_value),
         words=_filter_words(value, info),
+        published_min=info.min,
+        published_max=info.max,
     )
 
 

@@ -81,7 +81,7 @@ async def _sequence_row(sequence: str) -> list[str]:
     [criterion] = spec.criteria
     return [
         line
-        for fact in step_parameters(criterion, "gene", [])
+        for fact in step_parameters(criterion, "gene", [], [])
         if fact.name == "sequenceId"
         for line in fact.lines()
     ]

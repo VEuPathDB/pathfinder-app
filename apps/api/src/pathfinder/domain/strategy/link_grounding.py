@@ -78,7 +78,7 @@ def _count_readings(
             p.name, p.wire, _bounds_alike(asked, n), f"{p.name} holds {p.wire}"
         )
         for p in linked_params(c, realized.criteria)
-        if (n := p.number) is not None
+        if (n := p.number_at(asked.side)) is not None
     ]
     counts = [
         _CountReading("", str(n), asked.holds(n), f"the step returns {n}")
