@@ -317,7 +317,7 @@
   where 3D7 holds 28, and the rest of the 3D7 protein translates from the NF54 DNA one frame over.
   The manual check left [the remaining audit phases](backlog/the-remaining-audit-phases-are-built.md),
   and the length check gained a card to report such a frameshift itself
-  ([card](backlog/a-short-model-names-the-frameshift-that-cut-it.md)).
+  (card).
 * **Every suggested question was run once on its QA site.** 55 of the 56 suggestions ran
   as written, and 22 rewordings ran (the OrthoMCL single-copy rewording and 21 for
   suggestions that failed), one turn each on the QA sites on Luna, through the worker. A suggestion stays only when its strategy meets every constraint the
