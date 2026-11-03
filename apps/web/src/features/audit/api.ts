@@ -1,19 +1,38 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getAuditRunSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetAuditRunSuspense";
+import {
+  getAuditRunSuspense,
+  getAuditRunSuspenseQueryOptions,
+} from "@pathfinder/shared/generated/hooks/useGetAuditRunSuspense";
+import { listAuditFindingsSuspenseQueryKey } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
 import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
 
 import { buildUrl } from "@/lib/api/http";
 
 export const RUN_POLL_MS = 5_000;
 
-export function runPollInterval(view: AuditRunView | undefined): number | false {
+export function isLiveRun(view: AuditRunView | undefined): boolean {
   const phase = view?.run.phase;
-  return phase === "queued" || phase === "running" ? RUN_POLL_MS : false;
+  return phase === "queued" || phase === "running" || view?.reviewsRunning === true;
+}
+
+export function runPollInterval(view: AuditRunView | undefined): number | false {
+  return isLiveRun(view) ? RUN_POLL_MS : false;
 }
 
 export function auditRunOptions(runId: string) {
+  const generated = getAuditRunSuspenseQueryOptions(runId);
   return queryOptions({
-    ...getAuditRunSuspenseQueryOptions(runId),
+    ...generated,
+    queryFn: async ({ client, signal }) => {
+      const before = client.getQueryData(generated.queryKey);
+      const next = await getAuditRunSuspense(runId, { signal });
+      if (isLiveRun(before) && !isLiveRun(next)) {
+        void client.invalidateQueries({
+          queryKey: listAuditFindingsSuspenseQueryKey(runId),
+        });
+      }
+      return next;
+    },
     refetchInterval: (query) => runPollInterval(query.state.data),
   });
 }

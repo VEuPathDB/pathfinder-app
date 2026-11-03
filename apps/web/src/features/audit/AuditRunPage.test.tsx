@@ -66,7 +66,7 @@ describe("AuditRunPage", () => {
     ]);
     expect(screen.getByLabelText("Source")).toHaveValue("target");
     expect(
-      screen.getByRole("table", { name: "Findings, highest impact first: 3" }),
+      screen.getByRole("table", { name: "Findings, by the screen's impact: 3" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", {

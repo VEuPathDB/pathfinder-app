@@ -95,8 +95,10 @@ def reviews_running(phase: RunPhase, review: ReviewProgress | None) -> bool:
 
 
 def run_action(
-    phase: RunPhase, left: LeftUnits, *, reviews_running: bool
+    phase: RunPhase, left: LeftUnits, *, reviews_running: bool, startable: bool
 ) -> RunAction | None:
+    if not startable:
+        return None
     match phase:
         case "halted":
             return "resume"

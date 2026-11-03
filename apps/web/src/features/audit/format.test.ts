@@ -7,6 +7,7 @@ import {
   dayText,
   impactText,
   joinWords,
+  gapText,
   percent,
   plural,
   rangeText,
@@ -144,6 +145,36 @@ describe("audit formats", () => {
   it("reads a status the API leaves out as none", () => {
     expect(unresolvedText({ failed: 2, total: 2 }, served.unresolved)).toBe(
       "2 (2 where the check failed)",
+    );
+  });
+
+  it("never prints a small share as nothing or a large one as everything", () => {
+    expect(percent(1 / 250)).toBe("<1%");
+    expect(percent(0)).toBe("0%");
+    expect(percent(249 / 250)).toBe(">99%");
+    expect(percent(1)).toBe("100%");
+    expect(percent(0.0051)).toBe("1%");
+    expect(percent(0.9949)).toBe("99%");
+  });
+
+  it("reads a BUSCO gap by what the run knows of the genome", () => {
+    const genome = {
+      organism: "A",
+      role: "audited" as const,
+      status: "collected" as const,
+      geneCount: 1,
+      requests: 0,
+      attempts: 1,
+      stopped: 0,
+      message: null,
+      priority: null,
+      referenceStrain: null,
+    };
+    expect(gapText(genome)).toBe("Not served by the site");
+    expect(gapText({ ...genome, status: "pending" })).toBe("Not read yet");
+    expect(gapText({ ...genome, status: "unread" })).toBe("Not read yet");
+    expect(gapText({ ...genome, message: "genome provenance failed" })).toBe(
+      "Not known: see the note",
     );
   });
 });

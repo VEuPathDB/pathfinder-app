@@ -34,7 +34,7 @@ describe("FindingFilters", () => {
       "Organelle gene split at the circular join",
       "Exon missing from the model",
     ]);
-    expect(optionsOf("Genome with the error")).toEqual([
+    expect(optionsOf("Model's genome")).toEqual([
       "Any",
       "Plasmodium cynomolgi strain M",
       "Plasmodium falciparum Dd2",
@@ -79,5 +79,27 @@ describe("FindingFilters", () => {
     );
     expect(screen.queryByLabelText("Error")).toBe(null);
     expect(screen.getByLabelText("Certainty")).toBeInTheDocument();
+  });
+
+  it("offers the error types the sections name, and no blank genome", () => {
+    const [first] = SAMPLE_RUN.errorTypes;
+    const [row] = SAMPLE_RUN.counts;
+    if (first === undefined || row === undefined) {
+      throw new Error("the sample run holds error types and counts");
+    }
+    render(
+      <FindingFilters
+        view={{
+          ...SAMPLE_RUN,
+          errorTypes: [first],
+          counts: [row, { ...row, genome: "" }],
+        }}
+        words={SAMPLE_WORDS}
+        state={filtersFromSearch(new URLSearchParams())}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(optionsOf("Error")).toEqual(["Any", first.title]);
+    expect(optionsOf("Model's genome")).toEqual(["Any", row.genome]);
   });
 });

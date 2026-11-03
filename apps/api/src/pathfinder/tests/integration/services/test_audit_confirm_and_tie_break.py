@@ -282,15 +282,19 @@ async def test_an_unplaced_target_the_site_does_not_answer_for_stays_unreached(
 
 
 @pytest.mark.parametrize(
-    ("refusal", "status"),
+    ("refusal", "status", "stated"),
     [
-        (ToolError(f"{NF54_PIGA} names no gene of plasmodb"), "declined"),
-        (ToolError(TOO_LARGE), "declined"),
-        (_truncated(), "failed"),
+        (
+            ToolError(f"{NF54_PIGA} names no gene of plasmodb"),
+            "declined",
+            f"{NF54_PIGA} names no gene of plasmodb",
+        ),
+        (ToolError(TOO_LARGE), "declined", TOO_LARGE),
+        (_truncated(), "failed", "the check failed"),
     ],
 )
 async def test_a_refused_check_is_stored_and_the_stage_moves_on(
-    tools: CheckTools, refusal: ToolError, status: str
+    tools: CheckTools, refusal: ToolError, status: str, stated: str
 ) -> None:
     tools.pseudogene_failures.append(refusal)
     run = await run_with(screened(PAIR, SHORT))
@@ -305,7 +309,7 @@ async def test_a_refused_check_is_stored_and_the_stage_moves_on(
         status,
         1,
         1,
-        str(refusal),
+        stated,
     )
     assert evidence == []
     assert found["NF54_SHORT"].status == "confirmed"
@@ -326,10 +330,7 @@ async def test_a_refused_check_is_stored_and_the_stage_moves_on(
         ),
         (
             False,
-            (
-                f"the gene record of {DD2_YIP1} on plasmodb gives no readable "
-                "GeneTranscripts"
-            ),
+            "the check failed",
             1,
             "failed",
         ),

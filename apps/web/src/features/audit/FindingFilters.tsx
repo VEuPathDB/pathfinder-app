@@ -70,10 +70,10 @@ export function FindingFilters({
   onChange: (next: FindingFilterState) => void;
   errorFixed?: boolean;
 }) {
-  const named = new Set(view.counts.map((row) => row.errorType));
-  const errors = Object.values(findingViewErrorTypeEnum)
-    .filter((type) => named.has(type))
-    .map((type) => ({ value: type, label: words.errorTypes[type] }));
+  const errors = view.errorTypes.map((type) => ({
+    value: type.errorType,
+    label: type.title,
+  }));
   const screened = [
     ...view.genomes.filter((g) => g.role === "audited").map((g) => g.organism),
     ...view.targets.genomes.map((row) => row.genome),
@@ -104,9 +104,11 @@ export function FindingFilters({
         }}
       />
       <Filter
-        label="Genome with the error"
+        label="Model's genome"
         value={state.genome}
-        choices={sortedChoices(view.counts.map((row) => row.genome))}
+        choices={sortedChoices(
+          view.counts.flatMap((row) => (row.genome === "" ? [] : [row.genome])),
+        )}
         onChange={(value) => {
           change({ genome: value });
         }}

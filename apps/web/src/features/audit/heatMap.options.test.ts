@@ -27,13 +27,29 @@ describe("the heat map's option", () => {
     expect(nf54?.errors).toEqual(["Intact gene called a pseudogene"]);
   });
 
+  it("names the errors of the sample, not of every finding", () => {
+    const heat = heatCells(
+      {
+        ...SAMPLE_RUN,
+        counts: SAMPLE_RUN.counts.map((row) =>
+          row.genome === "Plasmodium falciparum Dd2"
+            ? { ...row, errorType: "split_model" as const }
+            : row,
+        ),
+      },
+      SAMPLE_WORDS,
+    );
+    const dd2 = heat.cells.find((cell) => cell.genome === 0 && cell.check === 0);
+    expect(dd2?.errors).toEqual(["Model too short"]);
+  });
+
   it("names no error another genome's model holds", () => {
-    const counts = SAMPLE_RUN.counts.map((row) =>
+    const sampleCounts = SAMPLE_RUN.sampleCounts.map((row) =>
       row.errorType === "truncated_model"
         ? { ...row, modelGenome: "Plasmodium falciparum 3D7" }
         : row,
     );
-    const heat = heatCells({ ...SAMPLE_RUN, counts }, SAMPLE_WORDS);
+    const heat = heatCells({ ...SAMPLE_RUN, sampleCounts }, SAMPLE_WORDS);
     const dd2 = heat.cells.find((cell) => cell.genome === 0 && cell.check === 0);
     expect(dd2?.errors).toEqual([]);
   });

@@ -6462,6 +6462,13 @@
             "type": "array",
             "title": "Counts"
           },
+          "sampleCounts": {
+            "items": {
+              "$ref": "#/components/schemas/FindingTally"
+            },
+            "type": "array",
+            "title": "Samplecounts"
+          },
           "rates": {
             "items": {
               "$ref": "#/components/schemas/GenomeRate"
@@ -6587,6 +6594,7 @@
           "unfinished",
           "genomes",
           "counts",
+          "sampleCounts",
           "rates",
           "targets",
           "review",
@@ -9484,6 +9492,24 @@
             "type": "array",
             "title": "Genomes"
           },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pseudogene_call",
+                "selenoprotein_end",
+                "gene_length",
+                "gene_split",
+                "gene_fusion",
+                "strain_model",
+                "missing_gene",
+                "organelle_join",
+                "intron_support"
+              ]
+            },
+            "type": "array",
+            "title": "Checks"
+          },
           "certainty": {
             "type": "string",
             "enum": [
@@ -10852,6 +10878,18 @@
             ],
             "title": "Errortitle",
             "readOnly": true
+          },
+          "effectiveErrorTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectiveerrortitle",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -10880,7 +10918,8 @@
           "check",
           "verdictText",
           "checkTitle",
-          "errorTitle"
+          "errorTitle",
+          "effectiveErrorTitle"
         ],
         "title": "FindingView"
       },
@@ -16304,6 +16343,43 @@
             "type": "string",
             "format": "sentence",
             "title": "Literaturetext"
+          },
+          "errorType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "intact_gene_called_pseudogene",
+                  "sec_read_as_stop",
+                  "truncated_model",
+                  "split_model",
+                  "over_extended_model",
+                  "fused_model",
+                  "missing_gene",
+                  "organelle_split_at_join",
+                  "missing_exon",
+                  "shifted_splice_site",
+                  "spurious_intron",
+                  "unsupported_intron"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortype"
+          },
+          "errorTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortitle",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -16314,7 +16390,8 @@
           "impact",
           "impactReason",
           "literature",
-          "literatureText"
+          "literatureText",
+          "errorTitle"
         ],
         "title": "ReviewLine"
       },

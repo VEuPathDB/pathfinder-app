@@ -71,6 +71,59 @@ describe("RateTable", () => {
         priority: null,
         message: "the BUSCO report of plasmodb is unreadable",
       }),
-    ).toBe("Unknown: the scores read failed");
+    ).toBe("Not known: see the note");
+  });
+
+  it("states the unjudged apart from the unresolved, in the row of its own rate", () => {
+    const [rate] = SAMPLE_RUN.rates;
+    if (rate === undefined) throw new Error("the sample run holds rates");
+    render(
+      <RateTable
+        view={{ ...SAMPLE_RUN, rates: [{ ...rate, unjudged: 2 }] }}
+        words={SAMPLE_WORDS}
+      />,
+    );
+    const cells = within(
+      screen.getByRole("row", { name: /Plasmodium falciparum Dd2/ }),
+    ).getAllByRole("cell");
+    expect(cells[4]).toHaveTextContent(/^2$/);
+    expect(cells[5]).toHaveTextContent(/^3 \(/);
+  });
+
+  it("reads the BUSCO gap of the rate's own genome", () => {
+    const genomes = SAMPLE_RUN.genomes.map((genome) =>
+      genome.organism === "Plasmodium falciparum NF54"
+        ? {
+            ...genome,
+            priority: {
+              organism: genome.organism,
+              protein: { complete: 93, fragmented: 0.1, missing: 6.9, total: 1378 },
+              genome: { complete: 98.4, fragmented: 0.3, missing: 1.3, total: 1378 },
+              lineage: "aconoidasida_odb12",
+              gap: 5.4,
+            },
+          }
+        : genome,
+    );
+    render(<RateTable view={{ ...SAMPLE_RUN, genomes }} words={SAMPLE_WORDS} />);
+    expect(
+      within(screen.getByRole("row", { name: /Plasmodium falciparum NF54/ })).getByText(
+        "5.4 points",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /Plasmodium falciparum Dd2/ })).getByText(
+        "Not served by the site",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says the rate is what the check found, and a review does not change it", () => {
+    render(<RateTable view={SAMPLE_RUN} words={SAMPLE_WORDS} />);
+    expect(
+      screen.getByText(
+        "The share of the checked candidates in the random sample the check found wrong, with its 95% interval. A review does not change it.",
+      ),
+    ).toBeInTheDocument();
   });
 });

@@ -16,7 +16,7 @@ import {
 function cellText(heat: Heat, cell: HeatCell, words: AuditWords): string {
   const check = heat.checks[cell.check];
   const named = `${heat.organisms[cell.genome] ?? ""}, ${check === undefined ? "" : words.checks[check]} ${cell.stated ?? ""}`;
-  return [named, ...cell.errors].join(", ");
+  return [named, cell.share ?? "", ...cell.errors].join(", ");
 }
 
 export function RateHeatMap({

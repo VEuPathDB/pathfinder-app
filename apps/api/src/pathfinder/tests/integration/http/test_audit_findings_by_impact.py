@@ -8,10 +8,12 @@ from uuid import UUID
 import pytest
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
+from sqlalchemy import update
 
 from pathfinder.domain.audit.findings import GeneEvidencePayload
 from pathfinder.domain.audit.rates import Weighing
 from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
+from pathfinder.persistence.models import AuditFinding
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -168,3 +170,38 @@ async def test_findings_filter_by_the_genome_that_screened_them(app: FastAPI) ->
     assert sorted(f["id"] for f in screened["findings"]) == sorted([kept, moved])
     assert [f["screenedGenome"] for f in screened["findings"]] == [NF54, NF54]
     assert unsampled["total"] == 0
+
+
+async def test_findings_of_one_impact_read_in_id_order(app: FastAPI) -> None:
+    owner = await seed_thread()
+    run_id, ids = await _ties(owner)
+    async with client_for(app, owner.user_id) as client:
+        page = (await client.get(f"/api/v1/audits/{run_id}/findings")).json()
+    assert [finding["id"] for finding in page["findings"]] == ids
+
+
+async def _ties(owner: RunOwner) -> tuple[UUID, list[int]]:
+    targets = [
+        SingleGeneTarget(check="gene_length", genes=(f"TIE_{n}",)) for n in range(4)
+    ]
+    run_id = await create_run(
+        owner=owner, scope=AuditScope(site_id="plasmodb", targets=tuple(targets))
+    )
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.add_findings(
+            run_id,
+            [
+                NewFinding(genome=NF54, target=target, sampled=True, status="screened")
+                for target in targets
+            ],
+        )
+        found = await repo.findings(run_id, FindingFilter())
+        for record in reversed(found):
+            await session.execute(
+                update(AuditFinding)
+                .where(AuditFinding.id == record.id)
+                .values(message="moved in the heap")
+            )
+            await session.commit()
+    return run_id, [record.id for record in found]

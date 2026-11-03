@@ -9,7 +9,7 @@ import { gapText, rangeText, rateText, shareText, unresolvedText } from "./forma
 const MEANINGS = [
   [
     "Rate",
-    "The share of the checked candidates in the random sample whose gene model is wrong, with its 95% interval.",
+    "The share of the checked candidates in the random sample the check found wrong, with its 95% interval. A review does not change it.",
   ],
   [
     "Range over every candidate",

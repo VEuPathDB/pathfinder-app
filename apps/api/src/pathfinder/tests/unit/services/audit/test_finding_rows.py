@@ -13,6 +13,7 @@ from pathfinder.domain.audit.findings import (
     EvidencePayload,
     EvidenceStatus,
     GeneEvidencePayload,
+    RelativesEvidence,
 )
 from pathfinder.domain.audit.scope import GenePairTarget
 from pathfinder.domain.audit.verdicts import FindingReview, GeneModelVerdict
@@ -200,6 +201,8 @@ def test_a_cell_a_spreadsheet_would_read_as_a_formula_is_quoted(text: str) -> No
         ("x\n=A1", "x\n'=A1"),
         ("x\t+A1", "x\t'+A1"),
         ("x\r@A1", "x\r'@A1"),
+        ("x\x0b=A1", "x\x0b'=A1"),
+        ("x\x0c-A1", "x\x0c'-A1"),
         ("x; -A1", "x; '-A1"),
         ("x;\u00a0\uff1dA1", "x;\u00a0'\uff1dA1"),
         ("x;\u200b=A1", "x;\u200b'=A1"),
@@ -292,3 +295,33 @@ def test_a_number_the_export_writes_stays_a_number() -> None:
     row = _parsed(csv_line(finding_row(view, [], review)))
     columns = dict(zip(HEADER, row, strict=True))
     assert [columns["Impact"], columns["Impact after review"]] == ["-0.5", "-0.25"]
+
+
+def test_the_evidence_cell_is_guarded() -> None:
+    relatives = RelativesEvidence(
+        reference_gene="x;=A1",
+        reference_length=461,
+        model_length=461,
+        relatives_median=None,
+        relative_lengths={},
+        relatives_tier=None,
+        side=None,
+        reference_organism=None,
+    )
+    row = finding_row(_view(None), [_evidence("relatives", "stored", relatives)], None)
+    assert dict(zip(HEADER, row, strict=True))["Evidence"].startswith(
+        "Reference model: x;'=A1, 461 residues; "
+    )
+
+
+def test_a_retyped_finding_exports_the_error_the_review_named() -> None:
+    review = _review()
+    review = review.model_copy(
+        update={
+            "verdict": review.verdict.model_copy(update={"error_type": "split_model"})
+        }
+    )
+    row = finding_row(_view(review), [], review)
+    assert dict(zip(HEADER, row, strict=True))["Error"] == (
+        "One gene split into two models"
+    )

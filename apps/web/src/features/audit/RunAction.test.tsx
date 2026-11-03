@@ -78,4 +78,18 @@ describe("RunAction", () => {
     const { container } = renderAction({ ...SAMPLE_RUN, action: null });
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("says why a run whose conversation was deleted cannot start again", () => {
+    renderAction({
+      ...SAMPLE_RUN,
+      action: null,
+      run: { ...SAMPLE_RUN.run, conversationId: null },
+    });
+    expect(
+      screen.getByText(
+        "The conversation that started this audit was deleted, so it cannot start again.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBe(null);
+  });
 });

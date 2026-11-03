@@ -1,15 +1,52 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Select
+from sqlalchemy import ColumnElement, Select, exists, func, select
+from sqlalchemy.orm import aliased
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType, FindingStatus
 from pathfinder.domain.audit.scope import CheckName
-from pathfinder.persistence.models import AuditFinding
+from pathfinder.persistence.models import AuditFinding, AuditVerdict
 
-__all__ = ["FindingFilter", "filtered"]
+__all__ = [
+    "FindingFilter",
+    "effective_certainty",
+    "effective_error_type",
+    "filtered",
+    "rejected_by_review",
+]
 
 type _Query = Select[tuple[AuditFinding]]
+
+
+def _reviewed(key: str) -> ColumnElement[str | None]:
+    verdict = aliased(AuditVerdict)
+    return (
+        select(verdict.verdict[key].astext)
+        .where(verdict.finding_id == AuditFinding.id)
+        .correlate(AuditFinding)
+        .scalar_subquery()
+    )
+
+
+def effective_error_type() -> ColumnElement[str | None]:
+    return func.coalesce(_reviewed("errorType"), AuditFinding.error_type)
+
+
+def effective_certainty() -> ColumnElement[str | None]:
+    return func.coalesce(_reviewed("certainty"), AuditFinding.certainty)
+
+
+def rejected_by_review() -> ColumnElement[bool]:
+    verdict = aliased(AuditVerdict)
+    return exists(
+        select(verdict.id)
+        .where(
+            verdict.finding_id == AuditFinding.id,
+            verdict.verdict["verdict"].astext == "no_error",
+        )
+        .correlate(AuditFinding)
+    )
 
 
 class FindingFilter(BaseModel):
@@ -34,7 +71,9 @@ def _by_kind(query: _Query, where: FindingFilter) -> _Query:
     if where.statuses:
         query = query.where(AuditFinding.status.in_(where.statuses))
     if where.error_types:
-        query = query.where(AuditFinding.error_type.in_(where.error_types))
+        query = query.where(
+            effective_error_type().in_(where.error_types), ~rejected_by_review()
+        )
     if where.certainties:
         query = query.where(AuditFinding.certainty.in_(where.certainties))
     if where.named is not None:

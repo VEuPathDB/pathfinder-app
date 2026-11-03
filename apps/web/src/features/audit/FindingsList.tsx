@@ -20,7 +20,7 @@ import { impactText, joinWords } from "./format";
 import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";
 
 export function findingOutcome(finding: FindingView, words: AuditWords): string {
-  if (finding.errorTitle !== null) return finding.errorTitle;
+  if (finding.effectiveErrorTitle !== null) return finding.effectiveErrorTitle;
   if (finding.status !== "confirmed") return words.findingStatuses[finding.status];
   return finding.judged ? "No error found" : "Not judged";
 }
@@ -109,14 +109,14 @@ export function FindingsList({
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <caption className="text-left font-medium">
-            {`Findings, highest impact first: ${String(page.total)}`}
+            {`Findings, by the screen's impact: ${String(page.total)}`}
           </caption>
           <thead>
             <tr>
-              <th scope="col">Impact</th>
+              <th scope="col">Screen impact</th>
               <th scope="col">Finding</th>
               <th scope="col">Genes</th>
-              <th scope="col">Genome with the error</th>
+              <th scope="col">Model&apos;s genome</th>
               <th scope="col">Certainty</th>
               <th scope="col">Source</th>
               <th scope="col">Review</th>

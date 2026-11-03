@@ -47,7 +47,7 @@ describe("FindingsList", () => {
   it("lists the findings by impact with their outcome, genes, genomes, certainty and source", () => {
     renderList(SAMPLE_FINDINGS, "");
     expect(
-      screen.getByRole("table", { name: "Findings, highest impact first: 10" }),
+      screen.getByRole("table", { name: "Findings, by the screen's impact: 10" }),
     ).toBeInTheDocument();
     expect(cells(1)).toEqual([
       "0.5 (reviewed 0.8)",
@@ -113,7 +113,11 @@ describe("the words of a finding", () => {
   });
 
   it("names a clean finding and one the check could not judge", () => {
-    const clean = with_({ errorType: null, errorTitle: null });
+    const clean = with_({
+      errorType: null,
+      errorTitle: null,
+      effectiveErrorTitle: null,
+    });
     expect(findingOutcome(clean, SAMPLE_WORDS)).toBe("No error found");
     expect(findingOutcome({ ...clean, judged: false }, SAMPLE_WORDS)).toBe(
       "Not judged",
@@ -124,6 +128,13 @@ describe("the words of a finding", () => {
     expect(genomeText(with_({ genome: "" }))).toBe("Not placed in a genome");
     expect(genomeText(with_({ genome: "A", screenedGenome: "B" }))).toBe(
       "A (screened in B)",
+    );
+  });
+
+  it("names the error the review named", () => {
+    const retyped = with_({ effectiveErrorTitle: "One gene split into two models" });
+    expect(findingOutcome(retyped, SAMPLE_WORDS)).toBe(
+      "One gene split into two models",
     );
   });
 });

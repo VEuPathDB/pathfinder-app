@@ -331,9 +331,6 @@ async def test_an_unreadable_score_report_settles_the_genome_collected_without_a
         "collected",
         None,
         1,
-        (
-            "BUSCO scores failed: DataParsingError: Data parsing failed: "
-            "the organism report served unreadable BUSCO scores"
-        ),
+        "BUSCO scores failed: DataParsingError: the site's answer could not be read",
     )
     assert (scores.reads, site.genome_reads) == (1, [NF135])

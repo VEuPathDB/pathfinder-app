@@ -210,6 +210,62 @@
         "count": 1
       }
     ],
+    "sampleCounts": [
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "confirmed",
+        "errorType": "truncated_model",
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "confirmed",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 2
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unreached",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unread",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum Dd2",
+        "check": "gene_length",
+        "status": "unsampled",
+        "errorType": null,
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum Dd2",
+        "count": 1
+      },
+      {
+        "genome": "Plasmodium falciparum NF54",
+        "check": "pseudogene_call",
+        "status": "confirmed",
+        "errorType": "intact_gene_called_pseudogene",
+        "judged": true,
+        "modelGenome": "Plasmodium falciparum NF54",
+        "count": 1
+      }
+    ],
     "rates": [
       {
         "genome": "Plasmodium falciparum Dd2",
@@ -425,6 +481,7 @@
         "description": "The site calls the gene a pseudogene, but the genome's DNA encodes the whole protein its reference encodes.",
         "count": 1,
         "genomes": ["Plasmodium falciparum NF54"],
+        "checks": ["pseudogene_call"],
         "certainty": "high",
         "cause": "Sample review: rebuilt through the reference coding sequence, the strain's DNA encodes all 1,386 bases with no stop inside.",
         "confirmedBy": "Sample: the pseudogene check rebuilt the strain's DNA through the reference coding sequence.",
@@ -449,6 +506,7 @@
         "description": "The model's protein is shorter than its orthologs', and the genome's DNA encodes the part it lacks.",
         "count": 1,
         "genomes": ["Plasmodium cynomolgi strain M"],
+        "checks": ["strain_model"],
         "certainty": "high",
         "cause": "Sample review: the strain model lacks reference residues 41 to 100, which the strain's genome encodes.",
         "confirmedBy": "Sample: the strain check read reference residues 41 to 100 in the strain's genome.",
@@ -473,6 +531,7 @@
         "description": "The organelle genome is circular but stored as a line, and the gene is cut where the line ends.",
         "count": 1,
         "genomes": ["Plasmodium falciparum NF54"],
+        "checks": ["organelle_join"],
         "certainty": "high",
         "cause": "Sample review: the reference protein is whole only across the join of CM019798.1.",
         "confirmedBy": "Sample: the organelle check aligned the reference protein across the join of the circular contig.",
@@ -497,6 +556,7 @@
         "description": "RNA-seq reads join an exon the model does not have.",
         "count": 1,
         "genomes": ["Plasmodium cynomolgi strain M"],
+        "checks": ["intron_support"],
         "certainty": "high",
         "cause": "Sample review: RNA-seq junctions of 1,436 and 1,686 reads join the exon 1,381,887 to 1,382,044 the model lacks.",
         "confirmedBy": "Sample: the intron check read the RNA-seq junctions that join the exon the model lacks.",
@@ -644,7 +704,9 @@
           "impact": 0.8,
           "impactReason": "Sample review: the reference gene's record cites two PubMed articles.",
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "intact_gene_called_pseudogene",
+          "errorTitle": "Intact gene called a pseudogene"
         },
         "genes": [
           {
@@ -659,7 +721,8 @@
         "check": "pseudogene_call",
         "verdictText": "The strain's DNA encodes the whole protein, so the pseudogene call is wrong",
         "checkTitle": "Pseudogene calls on intact genes",
-        "errorTitle": "Intact gene called a pseudogene"
+        "errorTitle": "Intact gene called a pseudogene",
+        "effectiveErrorTitle": "Intact gene called a pseudogene"
       },
       {
         "id": 2,
@@ -706,7 +769,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": null,
+          "errorTitle": null
         },
         "genes": [
           {
@@ -717,7 +782,8 @@
         "check": "gene_length",
         "verdictText": "The genome's DNA encodes the part the model lacks",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": "Model too short"
+        "errorTitle": "Model too short",
+        "effectiveErrorTitle": "Model too short"
       },
       {
         "id": 8,
@@ -764,7 +830,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "truncated_model",
+          "errorTitle": "Model too short"
         },
         "genes": [
           {
@@ -779,7 +847,8 @@
         "check": "strain_model",
         "verdictText": "Related genomes match the reference, so the strain model is too short",
         "checkTitle": "Strain model against its reference",
-        "errorTitle": "Model too short"
+        "errorTitle": "Model too short",
+        "effectiveErrorTitle": "Model too short"
       },
       {
         "id": 9,
@@ -828,7 +897,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_found",
-          "literatureText": "No report of it was found"
+          "literatureText": "No report of it was found",
+          "errorType": "organelle_split_at_join",
+          "errorTitle": "Organelle gene split at the circular join"
         },
         "genes": [
           {
@@ -839,7 +910,8 @@
         "check": "organelle_join",
         "verdictText": "The protein is whole only across the join of the circular genome",
         "checkTitle": "Organelle genes at the circular join",
-        "errorTitle": "Organelle gene split at the circular join"
+        "errorTitle": "Organelle gene split at the circular join",
+        "effectiveErrorTitle": "Organelle gene split at the circular join"
       },
       {
         "id": 10,
@@ -886,7 +958,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "missing_exon",
+          "errorTitle": "Exon missing from the model"
         },
         "genes": [
           {
@@ -897,7 +971,8 @@
         "check": "intron_support",
         "verdictText": "RNA-seq reads join an exon the model does not have",
         "checkTitle": "Exon structure against RNA-seq",
-        "errorTitle": "Exon missing from the model"
+        "errorTitle": "Exon missing from the model",
+        "effectiveErrorTitle": "Exon missing from the model"
       },
       {
         "id": 3,
@@ -932,7 +1007,8 @@
         "check": "gene_length",
         "verdictText": "The model is not short against its orthologs",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       {
         "id": 4,
@@ -967,7 +1043,8 @@
         "check": "gene_length",
         "verdictText": "The model is not short against its orthologs",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       {
         "id": 5,
@@ -1002,7 +1079,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       {
         "id": 6,
@@ -1037,7 +1115,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       {
         "id": 7,
@@ -1072,7 +1151,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       }
     ]
   },
@@ -1124,7 +1204,9 @@
           "impact": 0.8,
           "impactReason": "Sample review: the reference gene's record cites two PubMed articles.",
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "intact_gene_called_pseudogene",
+          "errorTitle": "Intact gene called a pseudogene"
         },
         "genes": [
           {
@@ -1139,7 +1221,8 @@
         "check": "pseudogene_call",
         "verdictText": "The strain's DNA encodes the whole protein, so the pseudogene call is wrong",
         "checkTitle": "Pseudogene calls on intact genes",
-        "errorTitle": "Intact gene called a pseudogene"
+        "errorTitle": "Intact gene called a pseudogene",
+        "effectiveErrorTitle": "Intact gene called a pseudogene"
       },
       "evidence": [
         {
@@ -1500,7 +1583,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": null,
+          "errorTitle": null
         },
         "genes": [
           {
@@ -1511,7 +1596,8 @@
         "check": "gene_length",
         "verdictText": "The genome's DNA encodes the part the model lacks",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": "Model too short"
+        "errorTitle": "Model too short",
+        "effectiveErrorTitle": "Model too short"
       },
       "evidence": [
         {
@@ -1683,7 +1769,8 @@
         "check": "gene_length",
         "verdictText": "The model is not short against its orthologs",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       "evidence": [
         {
@@ -1819,7 +1906,8 @@
         "check": "gene_length",
         "verdictText": "The model is not short against its orthologs",
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       "evidence": [
         {
@@ -1955,7 +2043,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       "evidence": [],
       "facts": [],
@@ -2004,7 +2093,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       "evidence": [],
       "facts": [],
@@ -2053,7 +2143,8 @@
         "check": "gene_length",
         "verdictText": null,
         "checkTitle": "Gene length against orthologs",
-        "errorTitle": null
+        "errorTitle": null,
+        "effectiveErrorTitle": null
       },
       "evidence": [],
       "facts": [],
@@ -2114,7 +2205,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "truncated_model",
+          "errorTitle": "Model too short"
         },
         "genes": [
           {
@@ -2129,7 +2222,8 @@
         "check": "strain_model",
         "verdictText": "Related genomes match the reference, so the strain model is too short",
         "checkTitle": "Strain model against its reference",
-        "errorTitle": "Model too short"
+        "errorTitle": "Model too short",
+        "effectiveErrorTitle": "Model too short"
       },
       "evidence": [
         {
@@ -2447,7 +2541,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_found",
-          "literatureText": "No report of it was found"
+          "literatureText": "No report of it was found",
+          "errorType": "organelle_split_at_join",
+          "errorTitle": "Organelle gene split at the circular join"
         },
         "genes": [
           {
@@ -2458,7 +2554,8 @@
         "check": "organelle_join",
         "verdictText": "The protein is whole only across the join of the circular genome",
         "checkTitle": "Organelle genes at the circular join",
-        "errorTitle": "Organelle gene split at the circular join"
+        "errorTitle": "Organelle gene split at the circular join",
+        "effectiveErrorTitle": "Organelle gene split at the circular join"
       },
       "evidence": [
         {
@@ -2603,7 +2700,9 @@
           "impact": null,
           "impactReason": null,
           "literature": "not_searched",
-          "literatureText": "The literature was not searched"
+          "literatureText": "The literature was not searched",
+          "errorType": "missing_exon",
+          "errorTitle": "Exon missing from the model"
         },
         "genes": [
           {
@@ -2614,7 +2713,8 @@
         "check": "intron_support",
         "verdictText": "RNA-seq reads join an exon the model does not have",
         "checkTitle": "Exon structure against RNA-seq",
-        "errorTitle": "Exon missing from the model"
+        "errorTitle": "Exon missing from the model",
+        "effectiveErrorTitle": "Exon missing from the model"
       },
       "evidence": [
         {

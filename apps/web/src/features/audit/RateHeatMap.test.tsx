@@ -24,7 +24,7 @@ describe("RateHeatMap", () => {
     render(<RateHeatMap view={SAMPLE_RUN} words={SAMPLE_WORDS} />);
     expect(screen.getByRole("img")).toHaveAttribute(
       "aria-label",
-      "Error rate by screened genome and check: Plasmodium falciparum Dd2, Gene length against orthologs 33% (6% to 79%), Model too short; Plasmodium falciparum NF54, Pseudogene calls on intact genes 100% (21% to 100%), Intact gene called a pseudogene",
+      "Error rate by screened genome and check: Plasmodium falciparum Dd2, Gene length against orthologs 33% (6% to 79%), 1 of 3, Model too short; Plasmodium falciparum NF54, Pseudogene calls on intact genes 100% (21% to 100%), 1 of 1, Intact gene called a pseudogene",
     );
     await flush();
     expect(setOption).toHaveBeenCalledTimes(1);

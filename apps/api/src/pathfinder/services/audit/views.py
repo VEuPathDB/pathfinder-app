@@ -106,6 +106,7 @@ class AuditRunView(CamelModel):
     unfinished: list[StageName]
     genomes: list[GenomeView]
     counts: list[FindingTally]
+    sample_counts: list[FindingTally]
     rates: list[GenomeRate]
     targets: TargetReport
     review: ReviewProgress | None
@@ -205,12 +206,18 @@ async def run_view(run_id: UUID, user_id: UUID) -> AuditRunView:
         unfinished=list(run.stages.unfinished),
         genomes=[GenomeView.model_validate(genome) for genome in genomes],
         counts=tally,
+        sample_counts=sample,
         rates=genome_rates(sample),
         targets=target_report(_target(finding) for finding in targets),
         review=run.review,
         synthesis=run.synthesis,
         reviewed=reviewed,
-        action=run_action(summary.phase, left, reviews_running=running),
+        action=run_action(
+            summary.phase,
+            left,
+            reviews_running=running,
+            startable=run.conversation_id is not None,
+        ),
         reviews_running=running,
         halt=run.stages.halt_reason,
         left=left,

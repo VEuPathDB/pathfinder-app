@@ -30,12 +30,18 @@ _RAW_REASON = f"the audit job failed: HTTPStatusError: {_RAW}"
 _CLEAN_REASON = f"the audit job failed: HTTPStatusError: {_GENERIC}"
 _WRITTEN = "plasmodb serves no gene row for PF3D7_X"
 _STAGE_NOTE = f"NF54: failed ({_RAW})"
+_WRITTEN_NOTE = "2 candidates in 1 genome, 1 sampled"
+_WIRE = "WDKError: POST /record-types/gene/records -> HTTP 404: <html>body</html>"
+_REFUSED_WORDS = "VEuPathDB service error: the organism is unknown"
 
 
 def _stages(**fields: str | None) -> str:
     return json.dumps(
         {
-            "stages": [{"name": "collect", "finished": False, "message": _STAGE_NOTE}],
+            "stages": [
+                {"name": "collect", "finished": False, "message": _STAGE_NOTE},
+                {"name": "screen", "finished": False, "message": _WRITTEN_NOTE},
+            ],
             "halted": None,
             "targetFailure": None,
             **fields,
@@ -117,6 +123,9 @@ def _seeded(url: str) -> dict[str, str]:
         written = seed.finding(raw, "failed", _WRITTEN)
         unreached = seed.finding(raw, "unreached", _RAW)
         unread = seed.finding(raw, "unread", NOT_READ)
+        unread_raw = seed.finding(raw, "unread", _RAW)
+        wire = seed.finding(raw, "failed", _WIRE)
+        said = seed.finding(raw, "failed", _REFUSED_WORDS)
         placed = seed.finding(targets, "unreached", _RAW)
         seed.evidence(finding, "relatives", "trying", _RAW_REASON)
         seed.evidence(failed, "gene_evidence", "failed", _RAW)
@@ -131,6 +140,9 @@ def _seeded(url: str) -> dict[str, str]:
             "written": str(written),
             "unreached": str(unreached),
             "unread": str(unread),
+            "unread_raw": str(unread_raw),
+            "wire": str(wire),
+            "said": str(said),
             "placed": str(placed),
         }
 
@@ -193,27 +205,54 @@ def test_a_target_failure_and_the_findings_that_repeat_it_are_cleaned(
     assert _run_field(database, ids["raw"], "targetFailure") is None
 
 
-def test_a_row_no_typed_field_marks_as_exception_text_is_left_alone(
+def test_a_failed_or_unreached_row_holding_an_address_or_a_wire_line_is_cleaned(
+    database: str,
+) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    assert _finding_message(database, ids["failed"]) == _GENERIC
+    assert _finding_message(database, ids["unreached"]) == _GENERIC
+    assert _finding_message(database, ids["wire"]) == _GENERIC
+    assert rows(
+        database, "SELECT message FROM audit_genomes WHERE status = 'failed'"
+    ) == [(_GENERIC,)]
+    assert rows(
+        database, "SELECT message FROM audit_evidence WHERE status = 'failed'"
+    ) == [(_GENERIC,)]
+
+
+def test_a_stage_note_holding_an_address_is_cleaned_and_a_written_one_is_kept(
+    database: str,
+) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    ((notes,),) = rows(
+        database,
+        "SELECT jsonb_agg(stage->>'message') "
+        "FROM audit_runs, jsonb_array_elements(stages->'stages') AS stage "
+        "WHERE id = %s",
+        (ids["raw"],),
+    )
+    assert notes == [_GENERIC, _WRITTEN_NOTE]
+    ((names,),) = rows(
+        database,
+        "SELECT jsonb_agg(stage->>'name') "
+        "FROM audit_runs, jsonb_array_elements(stages->'stages') AS stage "
+        "WHERE id = %s",
+        (ids["raw"],),
+    )
+    assert names == ["collect", "screen"]
+
+
+def test_a_sentence_we_wrote_and_a_row_of_no_failed_status_are_left_alone(
     database: str,
 ) -> None:
     ids = _seeded(database)
     command.upgrade(alembic_config(database), REVISION)
     assert _finding_message(database, ids["written"]) == _WRITTEN
-    assert _finding_message(database, ids["failed"]) == _RAW
-    assert _finding_message(database, ids["unreached"]) == _RAW
     assert _finding_message(database, ids["unread"]) == NOT_READ
-    assert rows(
-        database, "SELECT message FROM audit_genomes WHERE status = 'failed'"
-    ) == [(_RAW,)]
-    assert rows(
-        database, "SELECT message FROM audit_evidence WHERE status = 'failed'"
-    ) == [(_RAW,)]
-    ((note,),) = rows(
-        database,
-        "SELECT stages->'stages'->0->>'message' FROM audit_runs WHERE id = %s",
-        (ids["raw"],),
-    )
-    assert note == _STAGE_NOTE
+    assert _finding_message(database, ids["unread_raw"]) == _RAW
+    assert _finding_message(database, ids["said"]) == _REFUSED_WORDS
 
 
 def test_a_second_run_of_the_migration_changes_nothing(database: str) -> None:

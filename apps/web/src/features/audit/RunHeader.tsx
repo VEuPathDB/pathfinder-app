@@ -48,9 +48,8 @@ function GenomeRow({ genome }: { genome: GenomeView }) {
 export function RunHeader({ view, words }: { view: AuditRunView; words: AuditWords }) {
   const requestsId = useId();
   const { run } = view;
-  const examined = view.genomes
-    .filter((genome) => genome.role === "audited")
-    .reduce((sum, genome) => sum + genome.geneCount, 0);
+  const audited = view.genomes.filter((genome) => genome.role === "audited");
+  const examined = audited.reduce((sum, genome) => sum + genome.geneCount, 0);
   return (
     <header>
       <h1 className="text-lg font-semibold">
@@ -70,11 +69,15 @@ export function RunHeader({ view, words }: { view: AuditRunView; words: AuditWor
         </p>
       )}
       <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-        <Term term="Started">{dayText(run.createdAt)}</Term>
+        <Term term={run.phase === "not_started" ? "Created" : "Started"}>
+          {dayText(run.createdAt)}
+        </Term>
         {run.finishedAt === null ? null : (
           <Term term="Finished">{dayText(run.finishedAt)}</Term>
         )}
-        <Term term="Genes examined">{examined.toLocaleString("en-US")}</Term>
+        {audited.length === 0 ? null : (
+          <Term term="Genes examined">{examined.toLocaleString("en-US")}</Term>
+        )}
         <Term term="Checks">
           {joinWords(run.checks.map((check) => words.checks[check]))}
         </Term>

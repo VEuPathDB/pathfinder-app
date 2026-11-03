@@ -9,11 +9,15 @@
   in the page's words. Every text cell is checked for a formula after NFKC and
   leading blanks and after each `;`, tab, CR or LF inside it, so a reader that splits
   on `;` finds no field that starts one; every field is quoted. A halted run and a
-  failed unit store the exception's type and `sanitize_error_for_client`, and the
-  log holds the full error. Migration `2026_11_03_0002` cleans what the old rows let
-  it identify: the fixed prefix of a halted run or a unit, and `targetFailure` with
-  the findings that repeat it. The words of an evidence kind and status are served by
-  `/api/v1/audits/words`.
+  failed unit store a fixed sentence from the error's type and status
+  (`units.stored_failure`); a tool refusal keeps its words only with nothing chained
+  under it, and the log holds the full error. A halt reopens the units it refused by
+  id. The error-type sections and the error filter read one effective type: the
+  review's when it named one, and a rejected finding is in neither. Migration
+  `2026_11_03_0002` cleans what old rows let it identify: the fixed prefix of a
+  halted run or a unit, `targetFailure` with the findings that repeat it, and
+  `failed` or `unreached` units and stage notes that hold an address or a wire line.
+  The words of an evidence kind and status are served by `/api/v1/audits/words`.
 
 * **The last live check of the refused call and the singleton count is closed.** The
   all-organism singleton count and the audit follow-up passed live. No saved replay holds a

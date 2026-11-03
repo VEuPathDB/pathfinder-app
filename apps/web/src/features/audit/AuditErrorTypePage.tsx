@@ -11,7 +11,7 @@ import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { auditErrorTypeUrl, auditRunUrl } from "@/lib/routes";
 
-import { auditRunOptions } from "./api";
+import { auditRunOptions, isLiveRun } from "./api";
 import { FindingFilters } from "./FindingFilters";
 import {
   type FindingFilterState,
@@ -37,12 +37,10 @@ export function AuditErrorTypePage({
   );
 }
 
-function confirmedText(view: AuditRunView, words: AuditWords, type: ErrorTypeView) {
+function confirmedText(words: AuditWords, type: ErrorTypeView) {
   if (type.confirmedBy !== null) return type.confirmedBy;
-  const checks = view.counts
-    .filter((row) => row.errorType === type.errorType)
-    .map((row) => words.checks[row.check]);
-  return `${joinWords([...new Set(checks)])}. ${NOT_SUMMARIZED}.`;
+  const checks = (type.checks ?? []).map((check) => words.checks[check]);
+  return `${joinWords(checks)}. ${NOT_SUMMARIZED}.`;
 }
 
 function ErrorTypePage({ runId, errorType }: { runId: string; errorType: string }) {
@@ -85,7 +83,7 @@ function NamedErrorType({
     const search = searchFromFilters({ ...next, errorType: null });
     router.replace(auditErrorTypeUrl(runId, type.errorType, search), { scroll: false });
   };
-  const live = view.run.phase === "queued" || view.run.phase === "running";
+  const live = isLiveRun(view);
   const search = searchFromFilters(state);
   return (
     <article className="text-sm">
@@ -96,7 +94,7 @@ function NamedErrorType({
       <h2 className="mt-4 text-base font-semibold">Why it happens</h2>
       <p>{type.cause ?? NOT_SUMMARIZED}</p>
       <h2 className="mt-4 text-base font-semibold">How it was confirmed</h2>
-      <p>{confirmedText(view, words, type)}</p>
+      <p>{confirmedText(words, type)}</p>
       <h2 className="mt-4 text-base font-semibold">Every affected gene</h2>
       <FindingFilters
         view={view}

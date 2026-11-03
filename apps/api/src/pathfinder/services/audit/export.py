@@ -1,5 +1,3 @@
-"""One audit run's findings as CSV rows a curator reads in a spreadsheet, in the words of the report page."""
-
 from __future__ import annotations
 
 import csv
@@ -43,7 +41,7 @@ EXPORT_PAGE = MAX_PAGE
 _NUMBER_COLUMNS = frozenset({"Impact", "Impact after review"})
 _FORMULA = frozenset("=+-@")
 _BLANK_CATEGORIES = ("C", "Z")
-_SEPARATORS = frozenset(";\t\r\n")
+_SEPARATORS = frozenset(";\t\r\n\x0b\x0c")
 _QUOTE = '"'
 
 
@@ -115,7 +113,7 @@ def finding_row(
         finding.genome,
         "; ".join(link.gene for link in finding.genes),
         finding.check_title,
-        finding.error_title or "",
+        finding.effective_error_title or "",
         finding.verdict_text or UNCHECKED_SENTENCES[finding.status],
         _number(finding.impact),
         *_review_cells(review),

@@ -116,6 +116,11 @@ class FindingView(CamelModel):
     def error_title(self) -> str | None:
         return None if self.error_type is None else ERROR_TYPE_TITLES[self.error_type]
 
+    @computed
+    def effective_error_title(self) -> str | None:
+        reviewed = None if self.review_line is None else self.review_line.error_title
+        return reviewed or self.error_title
+
 
 class FindingPage(CamelModel):
     model_config = ConfigDict(frozen=True)

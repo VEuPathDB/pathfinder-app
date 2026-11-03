@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from uuid import UUID
 
-from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType
+from pathfinder.domain.audit.scope import CheckName
 from pathfinder.domain.audit.verdicts import (
     ErrorTypeSection,
     FindingReview,
@@ -53,6 +55,11 @@ class ReviewLine(CamelModel):
     impact_reason: Sentence | None
     literature: LiteratureStatus
     literature_text: Sentence
+    error_type: ErrorType | None = None
+
+    @computed
+    def error_title(self) -> str | None:
+        return None if self.error_type is None else ERROR_TYPE_TITLES[self.error_type]
 
 
 class ReviewText(CamelModel):
@@ -96,6 +103,7 @@ class ErrorTypeView(CamelModel):
     description: Sentence
     count: int = Field(ge=0)
     genomes: list[str]
+    checks: list[CheckName] = Field(default_factory=list)
     certainty: Certainty
     cause: Sentence | None
     confirmed_by: Sentence | None
@@ -117,6 +125,7 @@ def review_line(review: FindingReview) -> ReviewLine:
     return ReviewLine(
         verdict=verdict,
         verdict_text=VERDICT_KIND_SENTENCES[verdict],
+        error_type=review.verdict.error_type,
         second_verdict=review.second_verdict,
         impact=review.impact,
         impact_reason=review.impact_reason,
@@ -195,11 +204,23 @@ def finding_lines(records: Iterable[AuditFindingRecord]) -> dict[int, FindingLin
     return {record.id: finding_line(record) for record in records}
 
 
+@dataclass(frozen=True, kw_only=True)
+class _Tallied:
+    count: int
+    genomes: list[str]
+    checks: list[CheckName]
+    certainty: Certainty
+
+
 def error_type_views(
     tally: Iterable[tuple[ErrorType, str, Certainty, int]],
     synthesis: Synthesis | None,
     lines: Mapping[int, FindingLine],
+    checks: Iterable[tuple[ErrorType, CheckName]] = (),
 ) -> list[ErrorTypeView]:
+    named: defaultdict[ErrorType, list[CheckName]] = defaultdict(list)
+    for error_type, check in checks:
+        named[error_type].append(check)
     counts: Counter[ErrorType] = Counter()
     genomes: defaultdict[ErrorType, dict[str, None]] = defaultdict(dict)
     certainties: defaultdict[ErrorType, list[Certainty]] = defaultdict(list)
@@ -213,11 +234,14 @@ def error_type_views(
     return [
         _error_type_view(
             error_type,
-            count=counts[error_type],
-            genomes=list(genomes[error_type]),
-            certainty=max(certainties[error_type], key=_CERTAINTY_RANK.__getitem__),
-            section=sections.get(error_type),
-            lines=lines,
+            _Tallied(
+                count=counts[error_type],
+                genomes=list(genomes[error_type]),
+                checks=named[error_type],
+                certainty=max(certainties[error_type], key=_CERTAINTY_RANK.__getitem__),
+            ),
+            sections.get(error_type),
+            lines,
         )
         for error_type in ERROR_TYPE_TITLES
         if error_type in counts
@@ -226,10 +250,7 @@ def error_type_views(
 
 def _error_type_view(
     error_type: ErrorType,
-    *,
-    count: int,
-    genomes: list[str],
-    certainty: Certainty,
+    tallied: _Tallied,
     section: ErrorTypeSection | None,
     lines: Mapping[int, FindingLine],
 ) -> ErrorTypeView:
@@ -237,9 +258,10 @@ def _error_type_view(
         error_type=error_type,
         title=ERROR_TYPE_TITLES[error_type],
         description=ERROR_TYPE_DESCRIPTIONS[error_type],
-        count=count,
-        genomes=genomes,
-        certainty=certainty,
+        count=tallied.count,
+        genomes=tallied.genomes,
+        checks=tallied.checks,
+        certainty=tallied.certainty,
         cause=None if section is None else section.cause,
         confirmed_by=None if section is None else section.confirmed_by,
         reviewed=[] if section is None else [lines[f] for f in section.finding_ids],
@@ -275,7 +297,9 @@ def _disputed(reviews: Iterable[AuditVerdictRecord]) -> tuple[int, ...]:
 async def review_report(
     session: AsyncSession, run_id: UUID, synthesis: Synthesis | None
 ) -> ReviewReport:
-    tally = await AuditTallyRepository(session).error_type_tally(run_id)
+    tallies = AuditTallyRepository(session)
+    tally = await tallies.error_type_tally(run_id)
+    checks = await tallies.error_type_checks(run_id)
     stored = await AuditReviewRepository(session).of_run(run_id)
     disputed = _disputed(stored)
     named = () if synthesis is None else _named(synthesis)
@@ -286,13 +310,13 @@ async def review_report(
     if synthesis is None:
         reviews = [r.review for r in stored if r.review is not None]
         return ReviewReport(
-            error_types=error_type_views(tally, None, {}),
+            error_types=error_type_views(tally, None, {}, checks),
             headline=[],
             agreement=agreement_view(review_agreement(reviews)) if reviews else None,
             disputed=[lines[f] for f in disputed],
         )
     return ReviewReport(
-        error_types=error_type_views(tally, synthesis, lines),
+        error_types=error_type_views(tally, synthesis, lines, checks),
         headline=[lines[f] for f in synthesis.headline],
         agreement=agreement_view(synthesis.agreement),
         disputed=[lines[f] for f in disputed],

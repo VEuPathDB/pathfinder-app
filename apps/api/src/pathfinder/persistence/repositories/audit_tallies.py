@@ -7,18 +7,28 @@ from collections.abc import Collection
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, case, func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from pathfinder.domain.audit.findings import Certainty, ErrorType, FindingTally
 from pathfinder.domain.audit.run_state import EvidenceTally
-from pathfinder.persistence.models import AuditEvidence, AuditFinding, AuditVerdict
+from pathfinder.domain.audit.scope import CheckName
+from pathfinder.persistence.models import AuditEvidence, AuditFinding
+from pathfinder.persistence.repositories.audit_finding_filter import (
+    effective_certainty,
+    effective_error_type,
+    rejected_by_review,
+)
 
 __all__ = ["AuditTallyRepository"]
 
 _ERROR_TYPE_ROW: TypeAdapter[tuple[ErrorType, str, Certainty, int]] = TypeAdapter(
     tuple[ErrorType, str, Certainty, int]
+)
+
+_ERROR_TYPE_CHECK: TypeAdapter[tuple[ErrorType, CheckName]] = TypeAdapter(
+    tuple[ErrorType, CheckName]
 )
 
 
@@ -76,27 +86,36 @@ class AuditTallyRepository:
     async def error_type_tally(
         self, run_id: UUID
     ) -> list[tuple[ErrorType, str, Certainty, int]]:
-        reviewed_type = AuditVerdict.verdict["errorType"].astext
-        reviewed = reviewed_type.is_not(None)
-        error_type = case((reviewed, reviewed_type), else_=AuditFinding.error_type)
-        certainty = case(
-            (reviewed, AuditVerdict.verdict["certainty"].astext),
-            else_=AuditFinding.certainty,
-        )
-        rejected = AuditVerdict.verdict["verdict"].astext == "no_error"
-        grouped = (error_type, AuditFinding.genome, certainty)
+        error_type = effective_error_type().label("effective_type")
+        certainty = effective_certainty().label("effective_certainty")
+        grouped = ("effective_type", AuditFinding.genome, "effective_certainty")
         found = await self.session.execute(
-            select(*grouped, func.count())
-            .outerjoin(AuditVerdict, AuditVerdict.finding_id == AuditFinding.id)
+            select(error_type, AuditFinding.genome, certainty, func.count())
             .where(
                 AuditFinding.run_id == run_id,
-                error_type.is_not(None),
-                rejected.is_not(True),
+                effective_error_type().is_not(None),
+                ~rejected_by_review(),
             )
             .group_by(*grouped)
             .order_by(*grouped)
         )
         return [_ERROR_TYPE_ROW.validate_python(tuple(row)) for row in found]
+
+    async def error_type_checks(
+        self, run_id: UUID
+    ) -> list[tuple[ErrorType, CheckName]]:
+        error_type = effective_error_type().label("effective_type")
+        found = await self.session.execute(
+            select(error_type, AuditFinding.check_name)
+            .where(
+                AuditFinding.run_id == run_id,
+                effective_error_type().is_not(None),
+                ~rejected_by_review(),
+            )
+            .group_by("effective_type", AuditFinding.check_name)
+            .order_by("effective_type", AuditFinding.check_name)
+        )
+        return [_ERROR_TYPE_CHECK.validate_python(tuple(row)) for row in found]
 
     async def evidence_tally(self, run_id: UUID) -> list[EvidenceTally]:
         found = await self.session.execute(

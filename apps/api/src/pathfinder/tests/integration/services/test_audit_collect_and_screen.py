@@ -109,7 +109,7 @@ async def test_a_truncated_genome_report_raised_as_a_parse_failure_fails_after_o
         "failed",
         0,
         1,
-        "DataParsingError: Data parsing failed: WDK GenesByTaxon report served 10 records of a total of 12",
+        "DataParsingError: the site's answer could not be read",
     )
     assert site.genome_reads.count("Plasmodium relative2 X") == 1
 

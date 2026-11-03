@@ -4024,6 +4024,11 @@ components:
             $ref: '#/components/schemas/FindingTally'
           type: array
           title: Counts
+        sampleCounts:
+          items:
+            $ref: '#/components/schemas/FindingTally'
+          type: array
+          title: Samplecounts
         rates:
           items:
             $ref: '#/components/schemas/GenomeRate'
@@ -4097,6 +4102,7 @@ components:
       - unfinished
       - genomes
       - counts
+      - sampleCounts
       - rates
       - targets
       - review
@@ -6142,6 +6148,21 @@ components:
             type: string
           type: array
           title: Genomes
+        checks:
+          items:
+            type: string
+            enum:
+            - pseudogene_call
+            - selenoprotein_end
+            - gene_length
+            - gene_split
+            - gene_fusion
+            - strain_model
+            - missing_gene
+            - organelle_join
+            - intron_support
+          type: array
+          title: Checks
         certainty:
           type: string
           enum:
@@ -7069,6 +7090,12 @@ components:
           - type: 'null'
           title: Errortitle
           readOnly: true
+        effectiveErrorTitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Effectiveerrortitle
+          readOnly: true
       type: object
       required:
       - id
@@ -7096,6 +7123,7 @@ components:
       - verdictText
       - checkTitle
       - errorTitle
+      - effectiveErrorTitle
       title: FindingView
     ForkConversationRequest:
       properties:
@@ -10748,6 +10776,30 @@ components:
           type: string
           format: sentence
           title: Literaturetext
+        errorType:
+          anyOf:
+          - type: string
+            enum:
+            - intact_gene_called_pseudogene
+            - sec_read_as_stop
+            - truncated_model
+            - split_model
+            - over_extended_model
+            - fused_model
+            - missing_gene
+            - organelle_split_at_join
+            - missing_exon
+            - shifted_splice_site
+            - spurious_intron
+            - unsupported_intron
+          - type: 'null'
+          title: Errortype
+        errorTitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Errortitle
+          readOnly: true
       type: object
       required:
       - verdict
@@ -10757,6 +10809,7 @@ components:
       - impactReason
       - literature
       - literatureText
+      - errorTitle
       title: ReviewLine
     ReviewProgress:
       properties:

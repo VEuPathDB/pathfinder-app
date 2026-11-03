@@ -46,6 +46,33 @@ def upgrade() -> None:
         "to_jsonb('An internal error occurred'::text)) "
         "WHERE jsonb_typeof(stages->'targetFailure') = 'string'"
     )
+    op.execute(
+        "UPDATE audit_genomes SET message = 'An internal error occurred' "
+        "WHERE status IN ('failed', 'unreached') "
+        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+    )
+    op.execute(
+        "UPDATE audit_findings SET message = 'An internal error occurred' "
+        "WHERE status IN ('failed', 'unreached') "
+        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+    )
+    op.execute(
+        "UPDATE audit_evidence SET message = 'An internal error occurred' "
+        "WHERE status IN ('failed', 'unreached') "
+        "AND message ~ '(https?://|-> HTTP [0-9]+)'"
+    )
+    op.execute(
+        "UPDATE audit_runs SET stages = jsonb_set(stages, '{stages}', ("
+        "SELECT jsonb_agg(CASE "
+        "WHEN stage->>'message' ~ '(https?://|-> HTTP [0-9]+)' "
+        "THEN jsonb_set(stage, '{message}', "
+        "to_jsonb('An internal error occurred'::text)) "
+        "ELSE stage END ORDER BY place) "
+        "FROM jsonb_array_elements(stages->'stages') "
+        "WITH ORDINALITY AS held(stage, place))) "
+        "WHERE EXISTS (SELECT 1 FROM jsonb_array_elements(stages->'stages') AS stage "
+        "WHERE stage->>'message' ~ '(https?://|-> HTTP [0-9]+)')"
+    )
 
 
 def downgrade() -> None:

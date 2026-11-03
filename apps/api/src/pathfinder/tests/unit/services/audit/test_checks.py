@@ -261,7 +261,7 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
                 ),
             ),
             "failed",
-            "WDK GeneByLocusTag report served 10 records of a total of 12",
+            "the check failed",
         ),
     ],
 )
@@ -311,13 +311,7 @@ async def test_the_library_refuses_a_strain_gene_its_site_does_not_flag() -> Non
 async def test_a_gene_record_with_no_transcript_table_is_failed() -> None:
     with yip1_records(readable=False) as report:
         found = await confirm_target(SITE, UNFLAGGED_STRAIN)
-    assert found == UnitFailure(
-        status="failed",
-        message=(
-            f"the gene record of {DD2_YIP1} on plasmodb gives no readable "
-            "GeneTranscripts"
-        ),
-    )
+    assert found == UnitFailure(status="failed", message="the check failed")
     assert report.call_count == 1
 
 
@@ -392,6 +386,7 @@ _GENOME_CHECKS: dict[str, GeneTarget] = {
         check="organelle_join", genes=(CYTB,), organism=NF54, sequence_id=NF54_MITO
     ),
 }
+_UPSTREAM = "https://qa.plasmodb.org/plasmo.qa/service/answer?api_key=held"
 _HALF_THE_CIRCLE = (
     "the reference codes 376 residues, 1128 bases, more than half of the "
     "2000-base circle; a turn by half cannot place it whole"
@@ -403,9 +398,9 @@ _HALF_THE_CIRCLE = (
     ("error", "status", "stated"),
     [
         (
-            _caused(_HALF_THE_CIRCLE, ValueError(_HALF_THE_CIRCLE)),
+            _caused(f"read failed: {_UPSTREAM}", ValueError(_UPSTREAM)),
             "failed",
-            _HALF_THE_CIRCLE,
+            "the check failed",
         ),
         (
             _caused("VEuPathDB service error", WDKError("upstream failed", status=502)),
@@ -457,3 +452,39 @@ async def test_a_genome_check_refused_for_sign_in_halts_the_run(
     monkeypatch.setattr(checks, tool, refusing)
     with pytest.raises(SignInNeededError, match="sign-in needed"):
         await confirm_target("plasmodb", _GENOME_CHECKS[tool])
+
+
+async def test_a_tool_error_chained_only_by_context_is_not_declined(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def tool(site_id: str, gene: str) -> object:
+        del site_id, gene
+        error = ToolError(f"read failed: {_UPSTREAM}")
+        error.__context__ = httpx.ConnectError(f"no route to {_UPSTREAM}")
+        raise error
+
+    monkeypatch.setattr(checks, "audit_gene_length", tool)
+    found = await confirm_target(
+        "plasmodb", SingleGeneTarget(check="gene_length", genes=("X",))
+    )
+    assert found == UnitFailure(
+        status="unreached", message="plasmodb did not answer the audit reads"
+    )
+
+
+async def test_a_refusal_the_library_raises_from_none_is_declined_in_its_words(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def tool(site_id: str, gene: str) -> object:
+        del site_id, gene
+        try:
+            int(_HALF_THE_CIRCLE)
+        except ValueError:
+            raise ToolError(_HALF_THE_CIRCLE) from None
+        return None
+
+    monkeypatch.setattr(checks, "audit_gene_length", tool)
+    found = await confirm_target(
+        "plasmodb", SingleGeneTarget(check="gene_length", genes=("X",))
+    )
+    assert found == DeclinedCheck(message=_HALF_THE_CIRCLE)

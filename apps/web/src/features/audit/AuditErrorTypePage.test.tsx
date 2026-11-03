@@ -59,7 +59,7 @@ describe("AuditErrorTypePage", () => {
       screen.getByText(/Sample review: RNA-seq junctions of 1,436 and 1,686 reads/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("table", { name: "Findings, highest impact first: 1" }),
+      screen.getByRole("table", { name: "Findings, by the screen's impact: 1" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -95,6 +95,39 @@ describe("AuditErrorTypePage", () => {
     renderErrorType("fused_model");
     expect(
       await screen.findByText("This audit names no such error."),
+    ).toBeInTheDocument();
+  });
+
+  it("says how a reviewed error type was confirmed from its own checks", async () => {
+    const { queryClient, Wrapper } = createTestWrapper();
+    const errorTypes = SAMPLE_RUN.errorTypes.map((type) => ({
+      ...type,
+      confirmedBy: null,
+      cause: null,
+      checks: ["gene_fusion" as const],
+    }));
+    queryClient.setQueryData(auditRunOptions(SAMPLE_RUN_ID).queryKey, {
+      ...SAMPLE_RUN,
+      errorTypes,
+    });
+    queryClient.setQueryData(auditWordsOptions().queryKey, SAMPLE_WORDS);
+    queryClient.setQueryData(
+      listAuditFindingsSuspenseQueryOptions(
+        SAMPLE_RUN_ID,
+        findingQuery({
+          ...filtersFromSearch(new URLSearchParams()),
+          errorType: "missing_exon",
+        }),
+      ).queryKey,
+      { ...SAMPLE_FINDINGS, total: 0, findings: [] },
+    );
+    render(<AuditErrorTypePage runId={SAMPLE_RUN_ID} errorType="missing_exon" />, {
+      wrapper: Wrapper,
+    });
+    expect(
+      await screen.findByText(
+        "Neighbouring genes fused into one model. Not summarized yet.",
+      ),
     ).toBeInTheDocument();
   });
 });

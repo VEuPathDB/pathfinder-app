@@ -17,7 +17,10 @@ function roundHalfEven(value: number): number {
 }
 
 export function percent(share: number): string {
-  return `${String(roundHalfEven(share * 100))}%`;
+  const rounded = roundHalfEven(share * 100);
+  if (rounded === 0 && share > 0) return "<1%";
+  if (rounded === 100 && share < 1) return ">99%";
+  return `${String(rounded)}%`;
 }
 
 export function shareText(bounds: RateBounds): string {
@@ -68,7 +71,6 @@ export function unresolvedText(unresolved: Unresolved, words: UnresolvedWords): 
 
 export function gapText(genome: GenomeView): string {
   if (genome.priority !== null) return `${String(genome.priority.gap)} points`;
-  return genome.message === null
-    ? "Not served by the site"
-    : "Unknown: the scores read failed";
+  if (genome.message !== null) return "Not known: see the note";
+  return genome.status === "collected" ? "Not served by the site" : "Not read yet";
 }

@@ -33,7 +33,7 @@ function errorTitles(
   genome: string,
   check: CheckKey,
 ): string[] {
-  const titles = view.counts.flatMap((row) =>
+  const titles = view.sampleCounts.flatMap((row) =>
     row.genome === genome &&
     row.check === check &&
     row.modelGenome === genome &&

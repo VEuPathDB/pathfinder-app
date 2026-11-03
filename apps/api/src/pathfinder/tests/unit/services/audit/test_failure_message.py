@@ -13,7 +13,6 @@ from veupathdb.errors import (
     ExternalServiceError,
     ValidationError,
     WDKError,
-    validate_response,
 )
 from veupathdb.jbrowse import JBrowseError
 from veupathdb.wdk import wdk_failure
@@ -101,10 +100,6 @@ def test_a_tool_error_over_a_site_failure_states_a_fixed_sentence(
             "ExternalServiceError: the site answered 503",
         ),
         (JBrowseError("GET", _URL, 503), "JBrowseError: the site answered 503"),
-        (
-            DataParsingError("served 10 records of 12"),
-            "DataParsingError: Data parsing failed: served 10 records of 12",
-        ),
     ],
 )
 def test_a_site_refusal_states_its_type_and_status(
@@ -113,14 +108,11 @@ def test_a_site_refusal_states_its_type_and_status(
     assert failure_message(error, _SITE) == stated
 
 
-def test_a_parsing_failure_over_a_validation_error_quotes_no_input() -> None:
-    class _Row(pydantic.BaseModel):
-        count: int
-
-    with pytest.raises(DataParsingError) as raised:
-        validate_response(_Row, {"count": _SECRET}, "answer")
-    assert _SECRET in str(raised.value)
-    assert failure_message(raised.value, _SITE) == (
+@pytest.mark.parametrize("cause", [None, "pydantic"])
+def test_a_parsing_failure_always_states_the_fixed_sentence(cause: str | None) -> None:
+    error = DataParsingError(f"Unexpected answer: {_SECRET}")
+    error.__cause__ = None if cause is None else _validation_error()
+    assert failure_message(error, _SITE) == (
         "DataParsingError: the site's answer could not be read"
     )
 
@@ -151,22 +143,68 @@ def test_a_tool_refusal_with_no_cause_keeps_its_words() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "cause",
-    [ValueError("half the circle"), DataParsingError("served 10 records of 12")],
-)
-def test_a_tool_refusal_over_a_written_verdict_keeps_its_words(
-    cause: Exception,
-) -> None:
-    refused = ToolError("the check takes one gene")
-    refused.__cause__ = cause
-    assert failure_message(refused, _SITE) == "the check takes one gene"
+def _parsed() -> int:
+    return int(_SECRET)
+
+
+def _raised_from_none() -> None:
+    try:
+        _parsed()
+    except ValueError:
+        msg = "half the circle"
+        raise ToolError(msg) from None
+
+
+def test_a_tool_refusal_raised_from_none_keeps_its_words() -> None:
+    with pytest.raises(ToolError) as refused:
+        _raised_from_none()
+    assert isinstance(refused.value.__context__, ValueError)
+    assert failure_message(refused.value, _SITE) == "half the circle"
+
+
+def test_a_tool_error_over_a_value_error_states_the_check_failed() -> None:
+    refused = ToolError(f"read failed: {_URL}")
+    refused.__cause__ = ValueError(f"upstream said {_URL}")
+    assert failure_message(refused, _SITE) == "the check failed"
+
+
+def test_a_tool_error_over_a_parsing_failure_states_the_check_failed() -> None:
+    refused = ToolError("served 10 records of 12")
+    refused.__cause__ = DataParsingError("served 10 records of 12")
+    assert failure_message(refused, _SITE) == "the check failed"
 
 
 def test_a_tool_error_over_a_validation_error_quotes_no_input() -> None:
     refused = ToolError(f"read failed: {_SECRET}")
     refused.__cause__ = _validation_error()
-    assert failure_message(refused, _SITE) == "the audit reads on plasmodb failed"
+    assert failure_message(refused, _SITE) == "the check failed"
+
+
+def test_a_context_chain_with_no_cause_states_the_site_sentence() -> None:
+    refused = ToolError(f"read failed: {_URL}")
+    refused.__context__ = httpx.ConnectError(f"no route to {_URL}")
+    assert refused.__cause__ is None
+    assert failure_message(refused, _SITE) == (
+        "plasmodb did not answer the audit reads"
+    )
+
+
+def test_a_status_deep_in_the_chain_names_the_site_sentence() -> None:
+    middle = ValueError("wrapped")
+    middle.__cause__ = _wdk_body(404)
+    refused = ToolError(f"read failed: {_URL}")
+    refused.__cause__ = middle
+    assert failure_message(refused, _SITE) == "plasmodb answered 404 to the audit reads"
+
+
+def test_a_tool_error_in_a_chain_that_loops_still_states_a_sentence() -> None:
+    first = ValueError("one")
+    second = ValueError("two")
+    first.__cause__ = second
+    second.__cause__ = first
+    refused = ToolError("x")
+    refused.__cause__ = first
+    assert failure_message(refused, _SITE) == "the check failed"
 
 
 def test_the_sql_of_a_database_error_is_not_stored() -> None:
@@ -216,15 +254,4 @@ async def test_a_gene_list_read_that_fails_holds_only_its_type(
     )
     assert await screen._target_rows(run, ["PF3D7_X"]) == UnitFailure(
         status="failed", message=f"HTTPStatusError: {_GENERIC}"
-    )
-
-
-def test_a_parsing_failure_that_names_its_own_sentence_keeps_it() -> None:
-    written = DataParsingError("the gene record gives no readable GeneTranscripts")
-    written.__cause__ = _validation_error()
-    assert failure_message(written, _SITE) == f"DataParsingError: {written}"
-    refused = ToolError("the gene record gives no readable GeneTranscripts")
-    refused.__cause__ = written
-    assert failure_message(refused, _SITE) == (
-        "the gene record gives no readable GeneTranscripts"
     )

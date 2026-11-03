@@ -58,7 +58,7 @@ describe("TargetReport", () => {
         "0",
       ],
     ]);
-    expect(screen.queryByText(/never placed/)).toBe(null);
+    expect(screen.queryByText(/not placed/)).toBe(null);
   });
 
   it("names the targets the site did not place", () => {
@@ -70,7 +70,7 @@ describe("TargetReport", () => {
     );
     expect(
       screen.getByText(
-        "2 targets never placed in a genome: the site did not resolve their genes.",
+        "2 targets not placed in a genome: the run holds no genome for their genes.",
       ),
     ).toBeInTheDocument();
   });

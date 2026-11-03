@@ -6,13 +6,14 @@ import type { GenomeRate } from "@pathfinder/shared/generated/types/GenomeRate";
 import type { ChartTokens } from "@/lib/components/charts/chartTheme";
 import { UNRESOLVED_SERIES_COLOR } from "@/lib/components/charts/unresolved";
 
-import { percent } from "./format";
+import { percent, shareText } from "./format";
 
 export interface RateRow {
   label: string;
   rate: number;
   low: number;
   high: number;
+  share: string;
 }
 
 export function rateRows(rates: readonly GenomeRate[], checks: CheckWords): RateRow[] {
@@ -25,13 +26,14 @@ export function rateRows(rates: readonly GenomeRate[], checks: CheckWords): Rate
             rate: row.bounds.rate,
             low: row.bounds.low,
             high: row.bounds.high,
+            share: shareText(row.bounds),
           },
         ],
   );
 }
 
 export function rateRowText(row: RateRow): string {
-  return `${percent(row.rate)} (${percent(row.low)} to ${percent(row.high)})`;
+  return `${percent(row.rate)} (${percent(row.low)} to ${percent(row.high)}), ${row.share}`;
 }
 
 export function buildRateOption(

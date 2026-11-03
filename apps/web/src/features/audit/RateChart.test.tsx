@@ -24,7 +24,7 @@ describe("RateChart", () => {
     render(<RateChart rates={SAMPLE_RUN.rates} checks={SAMPLE_WORDS.checks} />);
     expect(screen.getByRole("img")).toHaveAttribute(
       "aria-label",
-      "Error rate with its 95% interval: Plasmodium falciparum Dd2: Gene length against orthologs 33% (6% to 79%); Plasmodium falciparum NF54: Pseudogene calls on intact genes 100% (21% to 100%)",
+      "Error rate with its 95% interval: Plasmodium falciparum Dd2: Gene length against orthologs 33% (6% to 79%), 1 of 3; Plasmodium falciparum NF54: Pseudogene calls on intact genes 100% (21% to 100%), 1 of 1",
     );
     await flush();
     expect(setOption).toHaveBeenCalledTimes(1);

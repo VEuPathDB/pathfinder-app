@@ -43,7 +43,13 @@ export function RunAction({ view }: { view: AuditRunView }) {
     },
   });
   const action = view.action;
-  if (action === null) return null;
+  if (action === null) {
+    return view.run.conversationId === null ? (
+      <p className="my-3 text-xs text-muted-foreground">
+        The conversation that started this audit was deleted, so it cannot start again.
+      </p>
+    ) : null;
+  }
   return (
     <div className="my-3 flex items-center gap-3">
       <Button

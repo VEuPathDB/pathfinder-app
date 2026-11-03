@@ -81,13 +81,13 @@ def test_a_halted_run_offers_resume_and_a_finished_one_with_units_left_offers_re
     none_left = LeftUnits(genomes=0, findings=0, evidence=0)
     one_left = LeftUnits(genomes=0, findings=0, evidence=1)
     assert [
-        run_action("halted", none_left, reviews_running=False),
-        run_action("finished", one_left, reviews_running=False),
-        run_action("finished", none_left, reviews_running=False),
-        run_action("running", one_left, reviews_running=False),
-        run_action("queued", none_left, reviews_running=False),
-        run_action("not_started", none_left, reviews_running=False),
-        run_action("finished", one_left, reviews_running=True),
+        run_action("halted", none_left, reviews_running=False, startable=True),
+        run_action("finished", one_left, reviews_running=False, startable=True),
+        run_action("finished", none_left, reviews_running=False, startable=True),
+        run_action("running", one_left, reviews_running=False, startable=True),
+        run_action("queued", none_left, reviews_running=False, startable=True),
+        run_action("not_started", none_left, reviews_running=False, startable=True),
+        run_action("finished", one_left, reviews_running=True, startable=True),
     ] == ["resume", "retry", None, None, None, None, None]
 
 
@@ -109,3 +109,11 @@ def test_a_halt_names_its_kind_and_keeps_its_detail() -> None:
     assert RunStages().halt(FAILED).halt_reason == RunHalt(
         kind="task_failed", detail=FAILED
     )
+
+
+def test_a_run_whose_conversation_was_deleted_offers_no_start() -> None:
+    left = LeftUnits(genomes=0, findings=1, evidence=0)
+    assert [
+        run_action("halted", left, reviews_running=False, startable=False),
+        run_action("finished", left, reviews_running=False, startable=False),
+    ] == [None, None]

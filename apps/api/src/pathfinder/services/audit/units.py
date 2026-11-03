@@ -35,6 +35,7 @@ from pathfinder.services.site_errors import SERVER_ERROR, site_status, unreached
 logger = get_logger(__name__)
 _FORBIDDEN = 403
 _UNIT_FAILED = "An audit unit failed"
+_CHECK_FAILED = "the check failed"
 FIRST_WAIT_SECONDS = 30.0
 LONGEST_WAIT_SECONDS = 900.0
 SLICE_SECONDS = 1800.0
@@ -45,40 +46,51 @@ UNIT_FAILURES = (httpx.HTTPError, VEuPathDBError, ToolError, pydantic.Validation
 REVOKED_AFTER = 3
 
 
-def _written_by_us(exc: BaseException | None) -> bool:
-    match exc:
-        case DataParsingError(__cause__=pydantic.ValidationError() as cause):
-            return str(cause) not in str(exc)
-        case (
-            ValidationError()
-            | SiteNotFoundError()
-            | WDKLoginRequiredError()
-            | DataParsingError()
-            | AppError()
-        ):
-            return True
-        case _:
-            return False
+def _next_link(exc: BaseException) -> BaseException | None:
+    if exc.__cause__ is not None:
+        return exc.__cause__
+    return None if exc.__suppress_context__ else exc.__context__
 
 
-def _site_sentence(site_id: str, cause: BaseException) -> str:
-    read = f"{site_id} answered {{}} to the audit reads"
-    match cause:
-        case VEuPathDBError(__cause__=httpx.HTTPStatusError(response=response)):
-            return read.format(response.status_code)
-        case VEuPathDBError(__cause__=httpx.HTTPError()) | httpx.TransportError():
-            return f"{site_id} did not answer the audit reads"
-        case DataParsingError() | pydantic.ValidationError():
-            return f"the audit reads on {site_id} failed"
-        case httpx.HTTPStatusError() | VEuPathDBError():
-            return read.format(site_status(cause))
-        case _:
-            return f"the audit reads on {site_id} failed"
+def chained(exc: BaseException) -> list[BaseException]:
+    links: list[BaseException] = []
+    seen = {id(exc)}
+    link = _next_link(exc)
+    while link is not None and id(link) not in seen:
+        links.append(link)
+        seen.add(id(link))
+        link = _next_link(link)
+    return links
+
+
+def _site_sentence(site_id: str, links: Sequence[BaseException]) -> str:
+    answered = f"{site_id} answered {{}} to the audit reads"
+    status: int | None = None
+    for link in links:
+        match link:
+            case httpx.HTTPStatusError(response=response):
+                return answered.format(response.status_code)
+            case httpx.HTTPError():
+                return f"{site_id} did not answer the audit reads"
+            case DataParsingError():
+                pass
+            case VEuPathDBError():
+                status = status or site_status(link)
+            case _:
+                pass
+    return _CHECK_FAILED if status is None else answered.format(status)
 
 
 def _refusal_sentence(exc: VEuPathDBError[StrEnum]) -> str:
     kind = type(exc).__name__
     match exc:
+        case (
+            ValidationError()
+            | SiteNotFoundError()
+            | WDKLoginRequiredError()
+            | AppError()
+        ):
+            return f"{kind}: {exc}"
         case DataParsingError():
             return f"{kind}: the site's answer could not be read"
         case _:
@@ -91,26 +103,11 @@ def _refusal_sentence(exc: VEuPathDBError[StrEnum]) -> str:
             return f"{kind}: the site {answer}"
 
 
-def _keeps_its_words(cause: BaseException) -> bool:
-    match cause:
-        case pydantic.ValidationError():
-            return False
-        case ValueError():
-            return True
-        case _:
-            return _written_by_us(cause)
-
-
 def stored_failure(exc: BaseException, site_id: str) -> str:
     match exc:
-        case ToolError(__cause__=BaseException() as cause) if not _keeps_its_words(
-            cause
-        ):
-            return _site_sentence(site_id, cause)
         case ToolError():
-            return str(exc)
-        case VEuPathDBError() if _written_by_us(exc):
-            return f"{type(exc).__name__}: {exc}"
+            links = chained(exc)
+            return _site_sentence(site_id, links) if links else str(exc)
         case VEuPathDBError():
             return _refusal_sentence(exc)
         case _:
@@ -212,7 +209,7 @@ def signed_out(exc: BaseException | None) -> bool:
 def _judged(exc: BaseException) -> BaseException | None:
     match exc:
         case ToolError():
-            return exc.__cause__
+            return next(iter(chained(exc)), None)
         case _:
             return exc
 

@@ -120,10 +120,7 @@ async def test_a_tie_break_read_the_site_cannot_parse_is_stored_failed(
         1,
         1,
     )
-    assert failed.message == (
-        "DataParsingError: Data parsing failed: plasmodb serves no gene row for PF3D7_0000100, "
-        "named in the orthologs of NF54_SHORT"
-    )
+    assert failed.message == "DataParsingError: the site's answer could not be read"
     assert (stored.status, stored.payload) == (
         "stored",
         RelativesEvidence(

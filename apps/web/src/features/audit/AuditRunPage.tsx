@@ -8,7 +8,7 @@ import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { auditRunUrl, auditsUrl } from "@/lib/routes";
 
-import { auditRunOptions } from "./api";
+import { auditRunOptions, isLiveRun } from "./api";
 import { DownloadFindings } from "./DownloadFindings";
 import { FindingFilters } from "./FindingFilters";
 import {
@@ -40,7 +40,7 @@ function RunPage({ runId }: { runId: string }) {
   const router = useRouter();
   const state = filtersFromSearch(new URLSearchParams(useSearchParams().toString()));
   const search = searchFromFilters(state);
-  const live = view.run.phase === "queued" || view.run.phase === "running";
+  const live = isLiveRun(view);
   const go = (next: FindingFilterState) => {
     router.replace(auditRunUrl(runId, searchFromFilters(next)), { scroll: false });
   };

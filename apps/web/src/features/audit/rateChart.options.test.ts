@@ -39,7 +39,7 @@ describe("the rate chart's option", () => {
       formatter: (params: { dataIndex: number }[]) => string;
     };
     expect(tooltip.formatter([{ dataIndex: 0 }])).toBe(
-      "&lt;b&gt;genome&lt;/b&gt;<br/>33% (6% to 79%)",
+      "&lt;b&gt;genome&lt;/b&gt;<br/>33% (6% to 79%), 1 of 3",
     );
   });
 

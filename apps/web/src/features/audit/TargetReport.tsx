@@ -55,7 +55,7 @@ export function TargetReport({
       </div>
       {report.unplaced > 0 ? (
         <p className="mt-2">
-          {`${plural(report.unplaced, "target")} never placed in a genome: the site did not resolve their genes.`}
+          {`${plural(report.unplaced, "target")} not placed in a genome: the run holds no genome for their genes.`}
         </p>
       ) : null}
     </section>

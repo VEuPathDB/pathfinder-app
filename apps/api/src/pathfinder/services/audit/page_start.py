@@ -29,12 +29,12 @@ async def start_from_page(
     view = await run_view(run_id, user_id)
     if view.reviews_running:
         raise AuditNotStartableError(_REVIEWS_RUNNING)
+    if view.run.conversation_id is None:
+        raise AuditNotStartableError(_DELETED)
     if view.action != action:
         raise AuditNotStartableError(_OFFERED[view.action])
     if await working(run_id):
         raise AuditNotStartableError(_WORKING)
-    if view.run.conversation_id is None:
-        raise AuditNotStartableError(_DELETED)
     owner = RunOwner(user_id=user_id, conversation_id=view.run.conversation_id)
     await start_run(run_id, owner, retry_unreached=action == "retry")
     return await run_view(run_id, user_id)

@@ -76,4 +76,28 @@ describe("RunHeader", () => {
     expect(screen.queryByRole("link")).toBe(null);
     expect(screen.queryByText(/^Release/)).toBe(null);
   });
+
+  it("names the day of a run never started as its creation", () => {
+    render(
+      <RunHeader
+        view={{ ...SAMPLE_RUN, run: { ...SAMPLE_RUN.run, phase: "not_started" } }}
+        words={SAMPLE_WORDS}
+      />,
+    );
+    expect(screen.getByText("Created")).toBeInTheDocument();
+    expect(screen.queryByText("Started")).toBe(null);
+  });
+
+  it("states no genes examined on a run of gene targets alone", () => {
+    render(
+      <RunHeader
+        view={{
+          ...SAMPLE_RUN,
+          genomes: SAMPLE_RUN.genomes.filter((genome) => genome.role !== "audited"),
+        }}
+        words={SAMPLE_WORDS}
+      />,
+    );
+    expect(screen.queryByText("Genes examined")).toBe(null);
+  });
 });

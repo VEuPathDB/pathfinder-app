@@ -74,6 +74,7 @@ def _view() -> AuditRunView:
         unfinished=[],
         genomes=[],
         counts=[],
+        sample_counts=[],
         rates=[],
         targets=TargetReport(genomes=[], unplaced=0),
         review=None,
