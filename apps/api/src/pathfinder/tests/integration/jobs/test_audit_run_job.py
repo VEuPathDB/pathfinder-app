@@ -210,7 +210,9 @@ async def test_a_run_whose_job_crashed_resumes_under_the_same_lock(
         await work(jobs, queued(jobs)[0])
     stopped = await owned_run(run_id, owner)
     assert (stopped.status, stopped.stages.next_stage) == ("running", "confirm")
-    assert stopped.stages.halted == "the audit job failed: RuntimeError: a library bug"
+    assert stopped.stages.halted == (
+        "the audit job failed: RuntimeError: An internal error occurred"
+    )
     assert (await run_view(run_id, owner.user_id)).stages.halted == (
         stopped.stages.halted
     )
@@ -267,7 +269,7 @@ async def test_a_unit_a_job_stops_on_three_times_is_failed(
     assert (piga.status, piga.stopped, piga.message) == (
         "failed",
         3,
-        f"{STOPPED_MESSAGE}; the audit job failed: RuntimeError: a library bug",
+        f"{STOPPED_MESSAGE}; the audit job failed: RuntimeError: An internal error occurred",
     )
     assert wired.asked.count(NF54_PIGA) == 3
     assert (await owned_run(run_id, owner)).status == "finished"

@@ -199,7 +199,7 @@ async def test_a_unit_the_job_stopped_on_keeps_why_while_it_waits_to_be_read_aga
         )
     assert (piga.status, piga.message) == (
         "trying",
-        "the audit job failed: RuntimeError: a library bug",
+        "the audit job failed: RuntimeError: An internal error occurred",
     )
 
 

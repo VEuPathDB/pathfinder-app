@@ -2,6 +2,15 @@
 
 ## 2026-11-03
 
+* **The audit run, error-type and finding pages read a stored run.** The run page
+  holds the scope, progress, resume or retry, the heat map, rate chart and rate
+  table, the gene targets, the headline findings, and the findings with filters in
+  the address. `GET /api/v1/audits/{run_id}/findings.csv` writes one row per finding
+  in the page's words, every text cell checked for a formula after NFKC and leading
+  blanks, every field quoted. A halted run stores the exception's type and
+  `sanitize_error_for_client`, and the log holds the full error. The words of an
+  evidence kind and status are served by `/api/v1/audits/words`.
+
 * **The last live check of the refused call and the singleton count is closed.** The
   all-organism singleton count and the audit follow-up passed live. No saved replay holds a
   refused `build_strategy`, so the guard is not seen live on a build: `RefusalMemoryToolset`

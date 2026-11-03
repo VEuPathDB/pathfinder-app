@@ -10,6 +10,7 @@ from uuid import UUID
 
 import httpx
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.logging import get_logger
 from assistant_core.tasks.app import task_app
 from procrastinate.exceptions import AlreadyEnqueued
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,6 +27,7 @@ from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
 from pathfinder.services.audit import units
 from pathfinder.services.audit.collect import run_collect_stage
@@ -208,8 +210,15 @@ async def _halt(
     await lanes.say(stage, SIGN_IN_NEEDED)
 
 
+logger = get_logger(__name__)
+_STOPPED_ON_AN_ERROR = "An audit run stopped on an error"
+
+
 async def _failed(run_id: UUID, error: Exception) -> None:
-    reason = f"the audit job failed: {type(error).__name__}: {error}"
+    with log_ids_scope(LogIds(run_id=run_id)):
+        logger.error(_STOPPED_ON_AN_ERROR, exc_info=error)
+    safe = sanitize_error_for_client(error)
+    reason = f"the audit job failed: {type(error).__name__}: {safe}"
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         await repo.note_on_trying(run_id, reason)

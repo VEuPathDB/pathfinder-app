@@ -118,7 +118,7 @@ describe("StageProgress", () => {
   });
 
   it("keeps the error of a task that failed behind a disclosure", async () => {
-    const detail = "the audit job failed: KeyError: 'PF3D7_1032400'";
+    const detail = "the audit job failed: KeyError: An internal error occurred";
     show(stopped({ kind: "task_failed", detail }));
     expect(
       screen.getByText(

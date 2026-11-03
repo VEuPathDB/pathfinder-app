@@ -27,7 +27,7 @@ from pathfinder.domain.audit.verdicts import ReviewProgress, ReviewStatus
 
 NF54 = "Plasmodium falciparum NF54"
 DEADLINE = datetime(2026, 10, 21, 18, 0, tzinfo=UTC)
-FAILED = "the audit job failed: KeyError: 'PF3D7_1032400'"
+FAILED = "the audit job failed: KeyError: An internal error occurred"
 
 
 def _finding(status: str, count: int) -> FindingTally:
