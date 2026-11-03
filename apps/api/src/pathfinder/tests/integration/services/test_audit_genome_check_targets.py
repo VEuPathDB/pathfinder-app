@@ -226,8 +226,7 @@ async def test_a_reference_genome_the_site_does_not_answer_leaves_the_finding_un
         del site_id, strain_gene, reference_gene
         return strain("REFERENCE_LONG")
 
-    refused = "connection refused"
-    reads = GeneReads(httpx.ConnectError(refused))
+    reads = GeneReads(httpx.ConnectError("connection refused"))
     monkeypatch.setattr(checks, "audit_strain_model", strain_model)
     monkeypatch.setattr(confirm, "record_rows", reads.named_rows)
     run = await run_with(
@@ -239,7 +238,7 @@ async def test_a_reference_genome_the_site_does_not_answer_leaves_the_finding_un
         STRAIN_M,
         "unreached",
         None,
-        refused,
+        "ConnectError: An internal error occurred",
     )
 
 

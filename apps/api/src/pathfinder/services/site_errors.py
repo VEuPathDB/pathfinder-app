@@ -7,7 +7,7 @@ from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.jbrowse import JBrowseError
 from veupathdb.wdk import SiteInfo, list_sites
 
-_SERVER_ERROR = 500
+SERVER_ERROR = 500
 
 
 def site_status(exc: BaseException | None) -> int | None:
@@ -40,7 +40,7 @@ def unreached(exc: BaseException | None) -> bool:
             return False
         case _:
             status = site_status(exc)
-            return status is not None and status >= _SERVER_ERROR
+            return status is not None and status >= SERVER_ERROR
 
 
 class SiteDidNotAnswerError(Exception):

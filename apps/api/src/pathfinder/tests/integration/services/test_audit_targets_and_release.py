@@ -82,7 +82,7 @@ async def test_a_target_unanswered_at_the_deadline_is_stored_unreached(
     site.target_failures.append(httpx.ConnectError("connection refused"))
     run_id = await _screened_targets(await seed_thread(), seconds=10)
     assert await _target_findings(run_id) == [
-        ("", "unreached", True, "connection refused")
+        ("", "unreached", True, "ConnectError: An internal error occurred")
     ]
 
 
@@ -210,7 +210,9 @@ async def test_a_release_read_that_never_answers_spends_none_of_the_genome_waits
     assert site.genome_reads.count("Plasmodium relative1 X") == 8
     assert site.release_reads == 2
     assert (await owned_run(run_id, owner)).release is None
-    assert lane.messages[-1] == "release unknown: connection refused"
+    assert (
+        lane.messages[-1] == "release unknown: ConnectError: An internal error occurred"
+    )
     assert (await genome_states(run_id))["Plasmodium relative1 X"][0] == "unreached"
 
 

@@ -111,7 +111,9 @@ async def _target_rows(
     try:
         return await read_gene_list(run.site_id, genes)
     except UNIT_FAILURES as exc:
-        return UnitFailure(status=failure_status(exc), message=failure_message(exc))
+        return UnitFailure(
+            status=failure_status(exc), message=failure_message(exc, run.site_id)
+        )
 
 
 async def _counted(run_id: UUID, requests: int) -> None:

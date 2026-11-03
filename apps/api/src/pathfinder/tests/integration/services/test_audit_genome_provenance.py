@@ -145,7 +145,7 @@ async def test_an_unanswered_organism_report_leaves_the_genome_unreached_until_r
         "unreached",
         None,
         1,
-        "genome provenance unreached: connection refused",
+        "genome provenance unreached: ConnectError: An internal error occurred",
     )
     assert site.genome_reads == []
     async with async_session_factory() as session:

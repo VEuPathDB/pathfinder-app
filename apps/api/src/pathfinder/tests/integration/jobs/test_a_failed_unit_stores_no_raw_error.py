@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from uuid import UUID
 
 import httpx
@@ -9,15 +10,19 @@ import pytest
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
+from veupathdb_mcp.tools import audit_pseudogene_call
 
+from pathfinder.domain.audit.stages import StageName
+from pathfinder.persistence.models import AuditFindingRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import AuditFindingRepository
 from pathfinder.platform.config import get_settings
-from pathfinder.services.audit import collect, weighing
+from pathfinder.services.audit import checks, collect, weighing
 from pathfinder.services.audit.job import start_run
 from pathfinder.services.audit.runs import RunOwner, create_run, owned_run
 from pathfinder.tests._support.audit import NF54_PIGA, seed_thread
+from pathfinder.tests._support.audit_wire import gene_records_answering
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests._support.rendered_logs import rendered_logs
 from pathfinder.tests.integration.http.conftest import client_for
@@ -25,8 +30,10 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     SCOPE,
     TOKEN,
     holding,
+    queued,
     registered,
     wire_checks,
+    work,
     work_through,
 )
 
@@ -195,3 +202,90 @@ async def test_the_full_error_of_a_unit_stays_in_the_log_with_the_run_bound(
     (line,) = [entry for entry in logs.lines() if entry["event"] == _LOG_EVENT]
     assert line["run_id"] == str(run_id)
     assert _SECRET in str(line["exception"])
+
+
+_BODY = "java.lang.NullPointerException at org.gusdb.wdk.Secret"
+
+
+def _spied_stage_lines(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    lines: list[str] = []
+    kept = AuditRepository.record_progress
+
+    async def spied(
+        self: AuditRepository,
+        run_id: UUID,
+        stage: StageName,
+        *,
+        done: int,
+        total: int,
+        message: str,
+    ) -> None:
+        lines.append(message)
+        await kept(self, run_id, stage, done=done, total=total, message=message)
+
+    monkeypatch.setattr(AuditRepository, "record_progress", spied)
+    return lines
+
+
+async def _target(run_id: UUID) -> AuditFindingRecord:
+    async with async_session_factory() as session:
+        (found,) = await AuditFindingRepository(session).findings(
+            run_id, FindingFilter(checks=("pseudogene_call",))
+        )
+    return found
+
+
+async def _shown(
+    app: FastAPI, owner: RunOwner, run_id: UUID, finding_id: int
+) -> list[httpx.Response]:
+    async with client_for(app, owner.user_id) as client:
+        return [
+            await client.get(f"/api/v1/audits/{run_id}"),
+            await client.get(f"/api/v1/audits/{run_id}/findings"),
+            await client.get(f"/api/v1/audits/{run_id}/findings/{finding_id}"),
+        ]
+
+
+async def test_a_read_the_site_refused_shows_a_fixed_sentence_everywhere(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch, app: FastAPI
+) -> None:
+    wire_checks(monkeypatch)
+    monkeypatch.setattr(checks, "audit_pseudogene_call", audit_pseudogene_call)
+    lines = _spied_stage_lines(monkeypatch)
+    with gene_records_answering(httpx.Response(422, text=f"<html>{_BODY}</html>")):
+        owner, run_id = await _finished_run(jobs)
+    stated = "plasmodb answered 422 to the audit reads"
+    found = await _target(run_id)
+    assert (found.status, found.message) == ("failed", stated)
+    responses = await _shown(app, owner, run_id, found.id)
+    assert [r.status_code for r in responses] == [200, 200, 200]
+    assert responses[2].json()["finding"]["message"] == stated
+    for response in responses:
+        assert [
+            t for t in (_BODY, "record-types", "HTTP 422") if t in response.text
+        ] == []
+    assert [t for t in lines if _BODY in t or "HTTP 422" in t] == []
+    assert [t for t in lines if stated in t] != []
+
+
+async def test_a_read_the_site_never_answered_shows_a_fixed_sentence_everywhere(
+    jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch, app: FastAPI
+) -> None:
+    wire_checks(monkeypatch)
+    monkeypatch.setattr(checks, "audit_pseudogene_call", audit_pseudogene_call)
+    lines = _spied_stage_lines(monkeypatch)
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    await start_run(run_id, owner)
+    with gene_records_answering(httpx.ConnectError(f"no route to {_URL}")):
+        await work(jobs, queued(jobs)[0])
+        (later,) = queued(jobs)
+        later["args"]["payload"]["deadline"] = datetime.now(UTC).isoformat()
+        await work_through(jobs)
+    stated = "plasmodb did not answer the audit reads"
+    found = await _target(run_id)
+    assert (found.status, found.message) == ("unreached", stated)
+    responses = await _shown(app, owner, run_id, found.id)
+    for response in responses:
+        assert [t for t in (_SECRET, "service/answer") if t in response.text] == []
+    assert [t for t in lines if _SECRET in t] == []

@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.exc import ProgrammingError
-from veupathdb.errors import ExternalServiceError
+from veupathdb.errors import ValidationError
 
 from pathfinder.platform.config import get_settings
 from pathfinder.services.audit import job
@@ -105,10 +105,10 @@ async def test_a_raw_error_reaches_neither_the_row_nor_the_route(
 async def test_a_refusal_keeps_its_words(
     jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch, app: FastAPI
 ) -> None:
-    error = ExternalServiceError("PlasmoDB", "the site refused the search")
+    error = ValidationError(title="Search refused", detail="the organism is unknown")
     stored, response = await _fail_with(jobs, monkeypatch, error, app)
-    reason = f"the audit job failed: ExternalServiceError: {error}"
-    assert "the site refused the search" in str(error)
+    reason = f"the audit job failed: ValidationError: {error}"
+    assert "the organism is unknown" in str(error)
     assert stored == reason
     assert response.json()["halt"]["detail"] == reason
 

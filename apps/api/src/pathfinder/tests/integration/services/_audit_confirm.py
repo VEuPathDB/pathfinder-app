@@ -58,7 +58,7 @@ TYPICAL = SingleGeneTarget(check="gene_length", genes=("NF54_TYPICAL",))
 SPLIT = GenePairTarget(check="gene_split", genes=("NF54_B", "NF54_A"))
 REFERENCE = "OG7_0000001_REL0"
 OTHER_REFERENCE = "OG7_0000001_REL1"
-UNANSWERED = "plasmodb did not answer the audit reads: ConnectError connection refused"
+UNANSWERED = "plasmodb did not answer the audit reads"
 ROWS = [
     gene_row("NF54_SHORT", NF54, 200),
     gene_row("NF54_SHORT2", NF54, 190, start=50000),
@@ -84,7 +84,7 @@ def _requested() -> None:
 
 
 def unanswered() -> ToolError:
-    error = ToolError(UNANSWERED)
+    error = ToolError(f"{UNANSWERED}: ConnectError connection refused")
     error.__cause__ = httpx.ConnectError("connection refused")
     return error
 

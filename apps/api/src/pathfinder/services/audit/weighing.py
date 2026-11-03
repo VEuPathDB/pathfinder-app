@@ -113,5 +113,7 @@ async def read_genes(
         try:
             read.append(await audit_gene_evidence(site_id, gene))
         except UNIT_FAILURES as exc:
-            return UnitFailure(status=failure_status(exc), message=failure_message(exc))
+            return UnitFailure(
+                status=failure_status(exc), message=failure_message(exc, site_id)
+            )
     return GeneEvidencePayload(genes=tuple(genes), evidence=tuple(read))

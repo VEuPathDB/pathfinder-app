@@ -131,5 +131,5 @@ async def confirm_target(
                 return DeclinedCheck(message=str(exc))
             case _:
                 return UnitFailure(
-                    status=failure_status(exc), message=failure_message(exc)
+                    status=failure_status(exc), message=failure_message(exc, site_id)
                 )

@@ -21,7 +21,11 @@ from veupathdb_mcp.audit import (
 )
 
 from pathfinder.persistence.models import AuditGenomeState, AuditRunRecord
-from pathfinder.persistence.repositories.audit import AuditRepository, CollectedGenome
+from pathfinder.persistence.repositories.audit import (
+    AuditRepository,
+    CollectedGenome,
+)
+from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.platform.metrics import counting_wdk_requests
 from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
@@ -55,7 +59,7 @@ async def _read_release(run: AuditRunRecord) -> str | None:
     if failure is None:
         return None
     halt_when_signed_out(failure)
-    return failure_message(failure)
+    return failure_message(failure, run.site_id)
 
 
 class _Scores:
@@ -67,7 +71,9 @@ class _Scores:
         try:
             return await genome_priorities(self.site_id)
         except UNIT_FAILURES as exc:
-            return UnitFailure(status=failure_status(exc), message=failure_message(exc))
+            return UnitFailure(
+                status=failure_status(exc), message=failure_message(exc, self.site_id)
+            )
 
     async def of(self, state: AuditGenomeState) -> GenomePriority | UnitFailure | None:
         if state.role != "audited" or state.priority is not None:
@@ -90,7 +96,9 @@ class _Provenances:
         try:
             return await organism_report(self.site_id, GENOME_ATTRIBUTES)
         except UNIT_FAILURES as exc:
-            return UnitFailure(status=failure_status(exc), message=failure_message(exc))
+            return UnitFailure(
+                status=failure_status(exc), message=failure_message(exc, self.site_id)
+            )
 
     def _served(self, answer: WDKAnswer, organism: str) -> bool | UnitFailure:
         try:
@@ -191,7 +199,7 @@ async def _read_genome(
                 organism,
                 tally.count,
                 status=failure_status(exc),
-                message=failure_message(exc),
+                message=failure_message(exc, run.site_id),
             )
     return served.genome(organism, tally.count, status="collected", genes=rows)
 
@@ -257,7 +265,14 @@ async def run_collect_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) 
             await session.commit()
         await lane.update(done=done, total=total, message=not_read(len(left), "genome"))
 
-    await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)
+    await in_passes(
+        pending,
+        attempt,
+        waits,
+        unread=unread,
+        on_pause=pausing,
+        refused_as=lambda state: RefusedUnits(genomes=(state.organism,)),
+    )
     if not known and waits.clock.now() < waits.deadline:
         unknown = await _read_release(run)
     if unknown is not None:

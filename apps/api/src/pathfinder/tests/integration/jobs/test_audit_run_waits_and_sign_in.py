@@ -160,7 +160,10 @@ async def test_a_continuation_picked_up_after_the_deadline_reads_nothing(
     done = await outcome(run_id, owner)
     assert (done.phase, done.counts.unreached) == ("finished", 1)
     split = await split_finding(run_id)
-    assert (split.attempts, split.message) == (1, str(unanswered()))
+    assert (split.attempts, split.message) == (
+        1,
+        "plasmodb did not answer the audit reads",
+    )
 
 
 @pytest.mark.parametrize("token", [None, "token-guest"])
@@ -228,7 +231,7 @@ async def test_a_forbidden_read_on_a_valid_sign_in_fails_only_its_unit(
     assert (split.status, split.stopped, split.message) == (
         "failed",
         0,
-        str(_refused(403)),
+        "plasmodb answered 403 to the audit reads",
     )
 
 

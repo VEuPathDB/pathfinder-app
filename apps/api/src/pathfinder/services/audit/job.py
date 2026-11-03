@@ -24,6 +24,7 @@ from pathfinder.domain.audit.scope import AuditScope
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED, RunStatus, StageName
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.persistence.repositories.audit_reviews import AuditReviewRepository
 from pathfinder.persistence.repositories.audit_tallies import AuditTallyRepository
 from pathfinder.platform.config import get_settings
@@ -197,7 +198,7 @@ async def _finish_stage(run_id: UUID, stage: StageName) -> None:
 
 
 async def _halt(
-    run_id: UUID, lanes: RunLanes, stage: StageName, forbidden: tuple[str, ...] = ()
+    run_id: UUID, lanes: RunLanes, stage: StageName, forbidden: RefusedUnits
 ) -> None:
     async with async_session_factory() as session:
         repo = AuditRepository(session)
@@ -213,10 +214,11 @@ logger = get_logger(__name__)
 _STOPPED_ON_AN_ERROR = "An audit run stopped on an error"
 
 
-async def _failed(run_id: UUID, error: Exception) -> None:
+async def _failed(run: AuditRunRecord, error: Exception) -> None:
+    run_id = run.id
     with log_ids_scope(LogIds(run_id=run_id)):
         logger.error(_STOPPED_ON_AN_ERROR, exc_info=error)
-    reason = f"the audit job failed: {units.stored_failure(error)}"
+    reason = f"the audit job failed: {units.stored_failure(error, run.site_id)}"
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         await repo.note_on_trying(run_id, reason)
@@ -278,7 +280,7 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
         return
     match await _sign_in_check():
         case "refused":
-            await _halt(run.id, lanes, stage)
+            await _halt(run.id, lanes, stage, RefusedUnits())
             return
         case "unanswered" if await _waited_for_sign_in(run, lanes, stage, job):
             return
@@ -317,7 +319,7 @@ async def carry_run(job: AuditJob) -> None:
                 async with signed_in_as_owner(run):
                     await _carry_signed_in(run, job)
         except Exception as error:
-            await _failed(run.id, error)
+            await _failed(run, error)
             raise
 
 

@@ -277,7 +277,7 @@ async def test_an_unplaced_target_the_site_does_not_answer_for_stays_unreached(
         "",
         "unreached",
         1,
-        "connection refused",
+        "ConnectError: An internal error occurred",
     )
 
 

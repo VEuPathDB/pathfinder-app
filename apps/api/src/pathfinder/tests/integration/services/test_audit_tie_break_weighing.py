@@ -21,12 +21,15 @@ from pathfinder.domain.audit.findings import (
 )
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
 from pathfinder.persistence.models import AuditRunRecord
-from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.persistence.repositories.audit import (
+    AuditRepository,
+)
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
     NewFinding,
     SettledFinding,
 )
+from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.services.audit import confirm, tie_break
 from pathfinder.services.audit.runs import create_run, owned_run
 from pathfinder.services.audit.views import run_view
@@ -154,7 +157,10 @@ async def test_a_gene_evidence_read_answered_late_weighs_the_finding_again(
     await carried(confirm.run_confirm_stage, run, RecordedLane(), seconds=3600)
     await carried(tie_break.run_tie_break_stage, run, RecordedLane(), seconds=10)
     read = (await weighed_of(run.id, "gene_evidence"))["NF54_SHORT"]
-    assert (read.status, read.message) == ("unreached", "connection refused")
+    assert (read.status, read.message) == (
+        "unreached",
+        "ConnectError: An internal error occurred",
+    )
     assert (await findings_of(run.id))["NF54_SHORT"].impact == 0.25
     await carried(tie_break.run_tie_break_stage, run, RecordedLane(), seconds=3600)
     read = (await weighed_of(run.id, "gene_evidence"))["NF54_SHORT"]
@@ -310,7 +316,8 @@ async def test_a_halt_reopened_tie_break_that_moves_the_error_reads_the_moved_ge
         assert refused.message is not None
         async with async_session_factory() as session:
             reopened = await AuditRepository(session).reopen_refused(
-                run.id, [refused.message]
+                run.id,
+                RefusedUnits(evidence=((refused.finding_id, refused.kind),)),
             )
             await session.commit()
         assert reopened == "tie_break"

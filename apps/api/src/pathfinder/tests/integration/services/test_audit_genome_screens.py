@@ -258,8 +258,8 @@ async def test_an_unanswered_score_read_leaves_the_genomes_unreached_until_a_lat
     assert scores.reads == 2
     assert site.genome_reads == [NF135, NF54]
     assert lane.messages[:3] == [
-        f"{NF135}: unreached (BUSCO scores unreached: connection refused)",
-        f"{NF54}: unreached (BUSCO scores unreached: connection refused)",
+        f"{NF135}: unreached (BUSCO scores unreached: ConnectError: An internal error occurred)",
+        f"{NF54}: unreached (BUSCO scores unreached: ConnectError: An internal error occurred)",
         "waiting 30 s for plasmodb, 2 genomes unanswered",
     ]
 
@@ -281,7 +281,7 @@ async def test_a_score_read_the_deadline_cut_off_is_listed_and_retried(
         "unreached",
         None,
         1,
-        "BUSCO scores unreached: connection refused",
+        "BUSCO scores unreached: ConnectError: An internal error occurred",
     )
     async with async_session_factory() as session:
         assert await AuditRepository(session).reopen_unreached(run_id) == "collect"
@@ -332,7 +332,7 @@ async def test_an_unreadable_score_report_settles_the_genome_collected_without_a
         None,
         1,
         (
-            "BUSCO scores failed: Data parsing failed: "
+            "BUSCO scores failed: DataParsingError: Data parsing failed: "
             "the organism report served unreadable BUSCO scores"
         ),
     )

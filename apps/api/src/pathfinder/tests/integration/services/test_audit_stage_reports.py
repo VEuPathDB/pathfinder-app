@@ -107,9 +107,7 @@ async def test_a_refused_release_read_is_counted_on_collect_each_time(
     run_id = await _collect(owner, lane)
     assert site.release_reads == 2
     assert (await _stage_requests(run_id, owner))["collect"] == 12
-    assert lane.messages[-1] == (
-        "release unknown: VEuPathDB service error: no service root"
-    )
+    assert lane.messages[-1] == ("release unknown: WDKError: the site refused with 404")
 
 
 async def test_the_collect_lane_says_each_pause_and_what_it_waits_for(
@@ -122,7 +120,7 @@ async def test_the_collect_lane_says_each_pause_and_what_it_waits_for(
     await _collect(await seed_thread(), lane)
     assert lane.messages[10:] == [
         "waiting 30 s for plasmodb, 1 genome unanswered",
-        "Plasmodium relative1 X: unreached (connection refused)",
+        "Plasmodium relative1 X: unreached (ConnectError: An internal error occurred)",
         "waiting 60 s for plasmodb, 1 genome unanswered",
         "Plasmodium relative1 X: 2 genes",
     ]
@@ -138,9 +136,9 @@ async def test_each_unanswered_target_pass_is_counted_on_screen_and_reported(
     assert (await _stage_requests(run_id, owner))["screen"] == 3
     assert len(site.list_reads) == 3
     assert lane.messages == [
-        "plasmodb: gene targets unreached (connection refused)",
+        "plasmodb: gene targets unreached (ConnectError: An internal error occurred)",
         "waiting 30 s for plasmodb, gene targets unanswered",
-        "plasmodb: gene targets unreached (connection refused)",
+        "plasmodb: gene targets unreached (ConnectError: An internal error occurred)",
         "waiting 60 s for plasmodb, gene targets unanswered",
         SUMMARY,
     ]
@@ -158,6 +156,6 @@ async def test_a_refused_target_read_reports_its_reason(site: FakeSite) -> None:
     assert (finding.genome, finding.status, finding.message) == ("", "screened", None)
     assert (await _stage_requests(run_id, owner))["screen"] == 1
     assert lane.messages == [
-        "plasmodb: gene targets failed (VEuPathDB service error: bad locus tag)",
+        "plasmodb: gene targets failed (WDKError: the site refused with 422)",
         SUMMARY,
     ]

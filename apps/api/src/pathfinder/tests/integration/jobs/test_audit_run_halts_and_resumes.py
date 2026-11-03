@@ -43,6 +43,7 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
     audit_jobs,
     holding,
     queued,
+    refused,
     registered,
     sealed,
     short_runs,
@@ -119,6 +120,56 @@ async def test_a_halt_that_refused_units_of_a_finished_stage_reads_them_again(
         0,
         0,
         3,
+    )
+
+
+async def test_a_halt_reopens_only_the_units_it_refused(
+    jobs: InMemoryConnector, wired: Checks
+) -> None:
+    wired.split_failures = [refused(404)]
+    wired.answered_first = 2
+    wired.forbidden = 3
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    with holding(TOKEN):
+        await start_run(run_id, owner)
+    await work_through(jobs)
+    assert (await owned_run(run_id, owner)).stages.halted == SIGN_IN_NEEDED
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        (split,) = await repo.findings(run_id, FindingFilter(checks=("gene_split",)))
+        (piga,) = await repo.findings(
+            run_id, FindingFilter(checks=("pseudogene_call",))
+        )
+    assert (split.status, split.attempts) == ("failed", 1)
+    assert piga.status == "screened"
+
+
+async def test_a_resume_that_halts_again_reads_its_units_again(
+    jobs: InMemoryConnector, wired: Checks
+) -> None:
+    owner = await seed_thread()
+    run_id = await create_run(owner=owner, scope=SCOPE)
+    wired.answered_first = 1
+    wired.forbidden = 3
+    with holding(TOKEN):
+        await start_run(run_id, owner)
+    await work_through(jobs)
+    assert (await owned_run(run_id, owner)).stages.halted == SIGN_IN_NEEDED
+    wired.forbidden = 3
+    with holding(TOKEN):
+        await start_run(run_id, owner)
+    await work_through(jobs)
+    assert (await owned_run(run_id, owner)).stages.halted == SIGN_IN_NEEDED
+    with holding(TOKEN):
+        await start_run(run_id, owner)
+    await work_through(jobs)
+    done = await outcome(run_id, owner)
+    assert (done.phase, done.halted, done.counts.failed, done.counts.screened) == (
+        "finished",
+        None,
+        0,
+        0,
     )
 
 

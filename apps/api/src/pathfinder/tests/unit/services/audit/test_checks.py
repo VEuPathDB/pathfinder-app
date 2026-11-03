@@ -225,7 +225,7 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
 
 
 @pytest.mark.parametrize(
-    ("error", "status"),
+    ("error", "status", "stated"),
     [
         (
             _caused(
@@ -233,10 +233,12 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
                 httpx.ConnectError("refused"),
             ),
             "unreached",
+            "plasmodb did not answer the audit reads",
         ),
         (
             _caused("VEuPathDB service error", WDKError("upstream failed", status=502)),
             "unreached",
+            "plasmodb answered 502 to the audit reads",
         ),
         (
             _caused(
@@ -244,8 +246,13 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
                 JBrowseError("GET", "https://qa.plasmodb.org/x", 503),
             ),
             "unreached",
+            "plasmodb answered 503 to the audit reads",
         ),
-        (_caused("gene not found", WDKError("gene not found", status=404)), "failed"),
+        (
+            _caused("gene not found", WDKError("gene not found", status=404)),
+            "failed",
+            "plasmodb answered 404 to the audit reads",
+        ),
         (
             _caused(
                 "WDK GeneByLocusTag report served 10 records of a total of 12",
@@ -254,6 +261,7 @@ async def test_an_organelle_target_calls_the_tool_organism_contig_reference(
                 ),
             ),
             "failed",
+            "WDK GeneByLocusTag report served 10 records of a total of 12",
         ),
     ],
 )
@@ -261,6 +269,7 @@ async def test_a_tool_error_is_failed_or_unreached(
     monkeypatch: pytest.MonkeyPatch,
     error: ToolError,
     status: Literal["failed", "unreached"],
+    stated: str,
 ) -> None:
     async def tool(site_id: str, gene: str) -> object:
         raise error
@@ -269,7 +278,7 @@ async def test_a_tool_error_is_failed_or_unreached(
     found = await confirm_target(
         "plasmodb", SingleGeneTarget(check="gene_length", genes=("NOT_A_GENE",))
     )
-    assert found == UnitFailure(status=status, message=str(error))
+    assert found == UnitFailure(status=status, message=stated)
 
 
 async def test_a_tool_error_with_no_site_error_under_it_is_declined(
@@ -391,12 +400,17 @@ _HALF_THE_CIRCLE = (
 
 @pytest.mark.parametrize("tool", list(_GENOME_CHECKS))
 @pytest.mark.parametrize(
-    ("error", "status"),
+    ("error", "status", "stated"),
     [
-        (_caused(_HALF_THE_CIRCLE, ValueError(_HALF_THE_CIRCLE)), "failed"),
+        (
+            _caused(_HALF_THE_CIRCLE, ValueError(_HALF_THE_CIRCLE)),
+            "failed",
+            _HALF_THE_CIRCLE,
+        ),
         (
             _caused("VEuPathDB service error", WDKError("upstream failed", status=502)),
             "unreached",
+            "plasmodb answered 502 to the audit reads",
         ),
     ],
 )
@@ -405,6 +419,7 @@ async def test_a_refused_genome_check_is_failed_or_unreached(
     tool: str,
     error: ToolError,
     status: Literal["failed", "unreached"],
+    stated: str,
 ) -> None:
     async def refusing(*args: str) -> object:
         del args
@@ -412,7 +427,7 @@ async def test_a_refused_genome_check_is_failed_or_unreached(
 
     monkeypatch.setattr(checks, tool, refusing)
     found = await confirm_target("plasmodb", _GENOME_CHECKS[tool])
-    assert found == UnitFailure(status=status, message=str(error))
+    assert found == UnitFailure(status=status, message=stated)
 
 
 @pytest.mark.parametrize("tool", list(_GENOME_CHECKS))

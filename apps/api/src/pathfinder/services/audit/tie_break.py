@@ -36,6 +36,7 @@ from pathfinder.persistence.repositories.audit_finding_filter import FindingFilt
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
 )
+from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.persistence.repositories.audit_weighings import AuditWeighingRepository
 from pathfinder.services.audit.checks import UnitFailure
 from pathfinder.services.audit.progress import StageLane, not_read, waiting
@@ -222,7 +223,7 @@ async def _read_relatives(
                 rows = await record_rows(site_id, named)
             except UNIT_FAILURES as exc:
                 return UnitFailure(
-                    status=failure_status(exc), message=failure_message(exc)
+                    status=failure_status(exc), message=failure_message(exc, site_id)
                 )
             return relatives_evidence(reference_gene, genes, rows, group.members)
 
@@ -346,7 +347,16 @@ async def run_tie_break_stage(
             done=done, total=total, message=not_read(len(left), "finding")
         )
 
-    left = await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)
+    left = await in_passes(
+        pending,
+        attempt,
+        waits,
+        unread=unread,
+        on_pause=pausing,
+        refused_as=lambda unit: RefusedUnits(
+            evidence=((unit.finding.id, _kind(unit)),)
+        ),
+    )
     held = [unit.finding.id for unit in left if _kind(unit) == "gene_evidence"]
     async with async_session_factory() as session:
         reset = await AuditWeighingRepository(session).reset_readings(run.id)

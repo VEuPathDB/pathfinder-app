@@ -103,3 +103,21 @@ def yip1_records(*, readable: bool = True) -> Iterator[respx.Route]:
             )
     finally:
         veupathdb_auth_token_ctx.reset(token)
+
+
+@contextmanager
+def gene_records_answering(answer: httpx.Response | Exception) -> Iterator[respx.Route]:
+    service = get_site(SITE).service_url
+    with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
+        router.get(f"{get_site(SITE).web_base_url}/app").mock(
+            return_value=httpx.Response(200)
+        )
+        router.get(f"{service}/users/current").mock(
+            return_value=httpx.Response(200, json={"id": _USER, "isGuest": False})
+        )
+        route = router.post(f"{service}/record-types/gene/records")
+        match answer:
+            case httpx.Response():
+                yield route.mock(return_value=answer)
+            case _:
+                yield route.mock(side_effect=answer)

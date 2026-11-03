@@ -121,7 +121,7 @@ async def test_a_tie_break_read_the_site_cannot_parse_is_stored_failed(
         1,
     )
     assert failed.message == (
-        "Data parsing failed: plasmodb serves no gene row for PF3D7_0000100, "
+        "DataParsingError: Data parsing failed: plasmodb serves no gene row for PF3D7_0000100, "
         "named in the orthologs of NF54_SHORT"
     )
     assert (stored.status, stored.payload) == (
@@ -161,7 +161,7 @@ async def test_a_tie_break_read_the_site_answers_late_is_waited_for(
         (
             0,
             2,
-            "Gene length against orthologs, NF54_SHORT: unreached (connection refused)",
+            "Gene length against orthologs, NF54_SHORT: unreached (ConnectError: An internal error occurred)",
         ),
         (0, 2, "waiting 30 s for plasmodb, 2 findings unanswered"),
         (1, 2, "Gene length against orthologs, NF54_SHORT: stored"),
@@ -184,7 +184,7 @@ async def test_a_tie_break_read_unanswered_at_the_deadline_is_read_on_the_next_r
         "unreached",
         None,
         1,
-        "connection refused",
+        "ConnectError: An internal error occurred",
     )
     await carried(tie_break.run_tie_break_stage, run, RecordedLane(), seconds=3600)
     weighed = (await weighed_of(run.id))["NF54_SHORT"]

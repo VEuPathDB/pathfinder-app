@@ -20,6 +20,7 @@ from veupathdb.errors import (
 from veupathdb.jbrowse import GenomeIndexError, JBrowseError, TrackReadError
 
 from pathfinder.domain.audit.stages import SIGN_IN_NEEDED
+from pathfinder.persistence.repositories.audit_reopen import RefusedUnits
 from pathfinder.services.audit import units
 from pathfinder.services.audit.units import (
     FIRST_WAIT_SECONDS,
@@ -29,7 +30,6 @@ from pathfinder.services.audit.units import (
     Waits,
     failure_status,
     in_passes,
-    stored_failure,
     waits_until,
     watching_refusals,
 )
@@ -388,8 +388,7 @@ def test_three_forbidden_reads_in_a_row_on_a_valid_sign_in_halt_as_revoked() -> 
                 failure_status(_answered(403))
     finally:
         veupathdb_auth_token_ctx.reset(held)
-    assert revoked.value.forbidden == (stored_failure(_answered(403)),) * 3
-    assert revoked.value.forbidden[0] == "HTTPStatusError: An internal error occurred"
+    assert revoked.value.forbidden == RefusedUnits()
 
 
 async def test_an_answered_unit_between_forbidden_reads_breaks_the_streak() -> None:
@@ -415,3 +414,29 @@ async def test_an_answered_unit_between_forbidden_reads_breaks_the_streak() -> N
     finally:
         veupathdb_auth_token_ctx.reset(held)
     assert left == []
+
+
+async def test_a_streak_carries_the_units_it_refused() -> None:
+    held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
+    outcomes = iter([True, False, False, False])
+
+    async def attempt(unit: str) -> bool:
+        del unit
+        if next(outcomes):
+            return True
+        assert failure_status(_answered(403)) == "failed"
+        return True
+
+    try:
+        with watching_refusals(), pytest.raises(SignInNeededError) as revoked:
+            await in_passes(
+                ["a", "b", "c", "d"],
+                attempt,
+                _waits(FakeClock(START), deadline=3600),
+                unread=_Unread(),
+                on_pause=_quiet,
+                refused_as=lambda unit: RefusedUnits(genomes=(unit,)),
+            )
+    finally:
+        veupathdb_auth_token_ctx.reset(held)
+    assert revoked.value.forbidden == RefusedUnits(genomes=("b", "c"))

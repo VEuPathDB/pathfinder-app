@@ -12,7 +12,6 @@ from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from sqlalchemy import ColumnElement, Select, case, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, defer
 from veupathdb_mcp.audit import GeneRow, GenomePriority
 
@@ -27,6 +26,7 @@ from pathfinder.persistence.models import (
     AuditRun,
     AuditRunRecord,
 )
+from pathfinder.persistence.repositories.audit_reopen import AuditReopening
 from pathfinder.persistence.rows import rows_changed
 
 __all__ = [
@@ -37,6 +37,7 @@ __all__ = [
     "stopped_message",
 ]
 
+
 STOPPED_MESSAGE = f"the worker stopped during this unit {MAX_STOPS} times"
 
 
@@ -46,7 +47,6 @@ def stopped_message(message: InstrumentedAttribute[str | None]) -> ColumnElement
 
 _GENES = TypeAdapter(list[GeneRow])
 _OPEN = ("pending", "unreached", "unread")
-_RETRIED = ("unreached", "unread")
 
 
 def _stages(stages: RunStages) -> JSONObject:
@@ -90,10 +90,7 @@ class CollectedGenome(BaseModel):
     reference_strain: bool | None = None
 
 
-class AuditRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
-
+class AuditRepository(AuditReopening):
     async def create_run(
         self, *, user_id: UUID, conversation_id: UUID, scope: AuditScope, seed: int
     ) -> UUID:
@@ -141,18 +138,6 @@ class AuditRepository:
             .order_by(AuditRun.created_at.desc(), AuditRun.id)
         )
         return [AuditRunRecord.model_validate(run) for run in found]
-
-    async def _locked(self, run_id: UUID) -> AuditRun:
-        run = await self.session.scalar(
-            select(AuditRun)
-            .where(AuditRun.id == run_id)
-            .with_for_update()
-            .execution_options(populate_existing=True)
-        )
-        if run is None:
-            msg = f"no audit run {run_id}"
-            raise LookupError(msg)
-        return run
 
     async def set_status(self, run_id: UUID, status: RunStatus) -> None:
         run = await self._locked(run_id)
@@ -257,77 +242,6 @@ class AuditRepository:
                 AuditEvidence.status == "trying", AuditEvidence.finding_id.in_(in_run)
             )
             .values(message=message)
-        )
-
-    async def _reopen(
-        self,
-        run_id: UUID,
-        genomes: ColumnElement[bool],
-        findings: ColumnElement[bool],
-        evidence: ColumnElement[bool],
-    ) -> StageName | None:
-        in_run = select(AuditFinding.id).where(AuditFinding.run_id == run_id)
-        reopened: list[tuple[StageName, int]] = [
-            (
-                "collect",
-                rows_changed(
-                    await self.session.execute(
-                        update(AuditGenome)
-                        .where(AuditGenome.run_id == run_id, genomes)
-                        .values(status="pending", message=None)
-                    )
-                ),
-            ),
-            (
-                "confirm",
-                rows_changed(
-                    await self.session.execute(
-                        update(AuditFinding)
-                        .where(AuditFinding.run_id == run_id, findings)
-                        .values(status="screened", message=None)
-                    )
-                ),
-            ),
-            (
-                "tie_break",
-                rows_changed(
-                    await self.session.execute(
-                        update(AuditEvidence)
-                        .where(AuditEvidence.finding_id.in_(in_run), evidence)
-                        .values(status="pending", message=None)
-                    )
-                ),
-            ),
-        ]
-        first: StageName | None = next(
-            (stage for stage, count in reopened if count), None
-        )
-        if first is not None:
-            run = await self._locked(run_id)
-            run.stages = _stages(RunStages.model_validate(run.stages).reopen(first))
-            run.status = "running"
-            run.finished_at = None
-            await self.session.flush()
-        return first
-
-    async def reopen_refused(
-        self, run_id: UUID, messages: Sequence[str]
-    ) -> StageName | None:
-        if not messages:
-            return None
-        return await self._reopen(
-            run_id,
-            (AuditGenome.status == "failed") & AuditGenome.message.in_(messages),
-            (AuditFinding.status == "failed") & AuditFinding.message.in_(messages),
-            (AuditEvidence.status == "failed") & AuditEvidence.message.in_(messages),
-        )
-
-    async def reopen_unreached(self, run_id: UUID) -> StageName | None:
-        return await self._reopen(
-            run_id,
-            AuditGenome.status.in_(_RETRIED),
-            AuditFinding.status.in_(_RETRIED),
-            AuditEvidence.status.in_(_RETRIED),
         )
 
     async def add_genomes(
