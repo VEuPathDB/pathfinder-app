@@ -8,7 +8,7 @@ import type {
 import type { ImportanceSourceEnumKey } from "@pathfinder/shared/generated/types/Importance";
 import type { StageRecordNameEnumKey } from "@pathfinder/shared/generated/types/StageRecord";
 
-export type Origin = "sample" | "unsampled" | "target";
+import type { Origin } from "./findingFilters";
 
 export const CERTAINTY_WORDS: Record<FindingViewCertaintyEnumKey, string> = {
   high: "High certainty",

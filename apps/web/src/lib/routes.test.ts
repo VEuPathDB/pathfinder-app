@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  auditErrorTypeUrl,
   auditFindingUrl,
   auditRunUrl,
   auditsUrl,
@@ -55,6 +56,12 @@ describe("route builders", () => {
     expect(auditRunUrl("0a1b")).toBe("/audits/0a1b");
     expect(auditRunUrl("0a1b", "?origin=target")).toBe("/audits/0a1b?origin=target");
     expect(auditFindingUrl("0a1b", 7)).toBe("/audits/0a1b/findings/7");
+    expect(auditErrorTypeUrl("0a1b", "missing_exon")).toBe(
+      "/audits/0a1b/errors/missing_exon",
+    );
+    expect(auditErrorTypeUrl("0a1b", "missing_exon", "?certainty=high")).toBe(
+      "/audits/0a1b/errors/missing_exon?certainty=high",
+    );
     expect(auditFindingUrl("0a1b", 7, "?check=gene_length")).toBe(
       "/audits/0a1b/findings/7?check=gene_length",
     );

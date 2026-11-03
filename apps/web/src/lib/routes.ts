@@ -69,6 +69,14 @@ export function auditRunUrl(runId: string, search = ""): string {
   return `${auditsUrl()}/${runId}${search}`;
 }
 
+export function auditErrorTypeUrl(
+  runId: string,
+  errorType: string,
+  search = "",
+): string {
+  return `${auditRunUrl(runId)}/errors/${errorType}${search}`;
+}
+
 export function auditFindingUrl(runId: string, findingId: number, search = ""): string {
   return `${auditRunUrl(runId)}/findings/${String(findingId)}${search}`;
 }
