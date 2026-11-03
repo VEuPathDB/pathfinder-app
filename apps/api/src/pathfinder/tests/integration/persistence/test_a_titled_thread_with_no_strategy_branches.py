@@ -71,4 +71,4 @@ async def test_a_thread_titled_before_any_build_branches_with_no_strategy(
         source = await session.get(ConversationStrategy, conversation_id)
         branched = await session.get(ConversationStrategy, fork_id)
     assert source is not None
-    assert (source.generated_name_steps, branched, push.seen) == ([], None, [])
+    assert (source.generated_name_seed, branched, push.seen) == ({}, None, [])

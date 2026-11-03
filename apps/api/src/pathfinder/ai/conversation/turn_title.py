@@ -8,7 +8,6 @@ from uuid import UUID
 from assistant_core.conversation.event_writer import ChatWriter
 from assistant_core.graph.stream_events import conversation_title_event
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.services.conversations.turns import (
     TitleGenerator,
@@ -29,7 +28,6 @@ async def write_turn_name(
     conversation_id: UUID,
     writer: ChatWriter,
     *,
-    start: StrategyAst | None,
     title_for: TitleGenerator,
 ) -> None:
     """Write the thread's first title, or the name its edits outdated anew."""
@@ -39,9 +37,7 @@ async def write_turn_name(
         return
     try:
         renamed = await asyncio.wait_for(
-            rename_if_edits_outdated_it(
-                conversation_id, start=start, title_for=title_for
-            ),
+            rename_if_edits_outdated_it(conversation_id, title_for=title_for),
             TITLE_WAIT_SECONDS,
         )
     except TimeoutError:

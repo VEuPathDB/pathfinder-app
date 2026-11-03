@@ -8,8 +8,10 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import Conversation
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
+from pathfinder.domain.strategy.generated_name import NameSeed
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
@@ -21,13 +23,19 @@ from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.types import GeneSet
 
 WDK_ID = 330679883
+ORGANISM = "Plasmodium falciparum 3D7"
+SEED = {"step_a": {"organism": MultiPickValue(values=[ORGANISM]).to_wire()}}
 
 
 def ast_named(name: str | None) -> dict[str, Any]:
     return StrategyAst(
         record_type="transcript",
         name=name,
-        root=StrategyStepNode(id="step_a", search_name="GenesByTaxon"),
+        root=StrategyStepNode(
+            id="step_a",
+            search_name="GenesByTaxon",
+            parameters={"organism": MultiPickValue(values=[ORGANISM])},
+        ),
     ).model_dump(by_alias=True, exclude_none=True, mode="json")
 
 
@@ -70,9 +78,9 @@ class Threads:
             self.strategy = self.strategy.model_copy(
                 update={"wdk_strategy_id": upd.wdk_strategy_id}
             )
-        if upd.generated_name_steps_set:
+        if upd.generated_name_seed_set:
             self.strategy = self.strategy.model_copy(
-                update={"generated_name_steps": upd.generated_name_steps}
+                update={"generated_name_seed": upd.generated_name_seed}
             )
 
     @property
@@ -85,7 +93,7 @@ def thread_row(
     name: str = "",
     ast_name: str | None = "New Conversation",
     gene_set_id: str | None = None,
-    generated_name_steps: list[str] | None = None,
+    generated_name_seed: NameSeed | None = None,
 ) -> Threads:
     now = datetime.now(UTC)
     conversation = Conversation(
@@ -101,7 +109,7 @@ def thread_row(
         strategy_ast=ast_named(ast_name),
         gene_set_id=gene_set_id,
         gene_set_auto_imported=gene_set_id is not None,
-        generated_name_steps=generated_name_steps,
+        generated_name_seed=generated_name_seed,
     )
     return Threads(conversation=conversation, strategy=strategy)
 

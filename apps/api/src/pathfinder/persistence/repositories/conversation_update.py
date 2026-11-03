@@ -7,6 +7,8 @@ from typing import Any
 
 from veupathdb.domain.strategy import StrategyAst
 
+from pathfinder.domain.strategy.generated_name import NameSeed
+
 __all__ = ["ConversationUpdate", "collect_strategy_values"]
 
 
@@ -34,8 +36,8 @@ class ConversationUpdate:
     gene_set_id_set: bool = False
     gene_set_auto_imported: bool | None = None
     imported_saved_strategy_ids: list[int] | None = None
-    generated_name_steps: list[str] | None = None
-    generated_name_steps_set: bool = False
+    generated_name_seed: NameSeed | None = None
+    generated_name_seed_set: bool = False
     touch_updated_at: bool = True
 
 
@@ -51,7 +53,7 @@ _FLAGGED_FIELDS: tuple[tuple[str, str], ...] = (
     ("estimated_size_set", "estimated_size"),
     ("gene_set_id_set", "gene_set_id"),
     ("is_saved_set", "is_saved"),
-    ("generated_name_steps_set", "generated_name_steps"),
+    ("generated_name_seed_set", "generated_name_seed"),
 )
 
 

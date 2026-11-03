@@ -20,7 +20,7 @@ from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from veupathdb.wdk import get_strategy_api
 
-from pathfinder.domain.strategy.generated_name import named_steps
+from pathfinder.domain.strategy.generated_name import NameSeed, name_seed
 from pathfinder.domain.strategy.revision import parse_strategy_ast
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import ConversationStrategyView
@@ -126,12 +126,12 @@ async def name_the_thread(
     conversation_id: UUID,
     name: str,
     *,
-    generated_over: list[str] | None,
+    generated_over: NameSeed | None,
 ) -> NamedThread | None:
     """Write the name on the thread, its stored strategy and its imported set.
 
-    ``generated_over`` is None for a name a person chose, or the steps a
-    generated name covers. The store can adjust the name to keep it unique, so
+    ``generated_over`` is None for a name a person chose, or the seed of a
+    generated name: the wire value of each parameter of each step it covers. The store can adjust the name to keep it unique, so
     the copies take the name it stored. The caller holds the strategy lock.
     """
     found = await threads.get_with_strategy(conversation_id)
@@ -141,8 +141,8 @@ async def name_the_thread(
     previous = conversation.name
     written = ConversationUpdate(
         name=name,
-        generated_name_steps=generated_over,
-        generated_name_steps_set=generated_over != strategy.generated_name_steps,
+        generated_name_seed=generated_over,
+        generated_name_seed_set=generated_over != strategy.generated_name_seed,
     )
     await threads.update_conversation(conversation_id, written)
     stored = written.name or name
@@ -262,7 +262,7 @@ async def name_if_unnamed(
 ) -> TitleWrite:
     """Give an unnamed thread ``title`` on the thread and its local copies.
 
-    The title records the steps the strategy holds. A named thread whose
+    The title records the seed of the steps the strategy holds. A named thread whose
     stored strategy carries another name takes the thread's name back onto its
     strategy. The caller sends the name to WDK.
     """
@@ -275,7 +275,7 @@ async def name_if_unnamed(
         if title is None:
             return TitleWrite(written=False)
         named = await name_the_thread(
-            threads, conversation_id, title, generated_over=named_steps(ast)
+            threads, conversation_id, title, generated_over=name_seed(ast)
         )
         return TitleWrite(written=True, named=named)
     if ast is None or ast.name == conversation.name:
@@ -284,6 +284,6 @@ async def name_if_unnamed(
         threads,
         conversation_id,
         conversation.name,
-        generated_over=strategy.generated_name_steps,
+        generated_over=strategy.generated_name_seed,
     )
     return TitleWrite(written=False, named=named)

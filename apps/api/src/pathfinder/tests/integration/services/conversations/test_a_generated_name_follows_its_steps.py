@@ -1,5 +1,5 @@
-"""A generated strategy name is generated anew when an edit takes away what it
-names, and a name a person chose is never touched."""
+"""A generated strategy name is generated anew when an edit moves its seed, and a
+name a person chose is never touched."""
 
 from __future__ import annotations
 
@@ -34,13 +34,13 @@ from pathfinder.services.conversations import turns
 from pathfinder.services.conversations.turns import (
     name_conversation_if_unnamed,
     rename_if_edits_outdated_it,
-    turn_start_strategy,
 )
 from pathfinder.services.strategies.naming import rename_strategy_everywhere
 
 GENERATED = "Naegleria fowleri Peptidase Genes With Signal Peptides"
 REGENERATED = "Naegleria fowleri Genes With Signal Peptides"
 ORGANISM = "Naegleria fowleri ATCC 30863"
+ORGANISM_WIRE = MultiPickValue(values=[ORGANISM]).to_wire()
 TEXTS = {
     "step_peptidase": "peptidase genes",
     "step_signal": "genes with signal peptides",
@@ -147,13 +147,10 @@ async def test_deleting_a_step_the_name_names_generates_the_name_anew(
     conversation = await _thread(db_session)
     await _write(conversation.id, _both())
     await name_conversation_if_unnamed(conversation.id, title=GENERATED)
-    start = await turn_start_strategy(conversation.id)
     await _write(conversation.id, _signal_only())
     titles = _Titles()
 
-    renamed = await rename_if_edits_outdated_it(
-        conversation.id, start=start, title_for=titles
-    )
+    renamed = await rename_if_edits_outdated_it(conversation.id, title_for=titles)
 
     name, strategy = await _stored(conversation.id)
     assert titles.seeds == [f"{ORGANISM}: genes with signal peptides"]
@@ -162,7 +159,7 @@ async def test_deleting_a_step_the_name_names_generates_the_name_anew(
         REGENERATED,
         REGENERATED,
     )
-    assert strategy.generated_name_steps == ["step_signal"]
+    assert strategy.generated_name_seed == {"step_signal": {"organism": ORGANISM_WIRE}}
 
 
 async def test_a_name_a_person_chose_is_never_generated_anew(
@@ -174,35 +171,32 @@ async def test_a_name_a_person_chose_is_never_generated_anew(
     await rename_strategy_everywhere(
         conversation.id, "My Peptidase Picks", session_factory=async_session_factory
     )
-    start = await turn_start_strategy(conversation.id)
     await _write(conversation.id, _signal_only())
     titles = _Titles()
 
-    renamed = await rename_if_edits_outdated_it(
-        conversation.id, start=start, title_for=titles
-    )
+    renamed = await rename_if_edits_outdated_it(conversation.id, title_for=titles)
 
     name, strategy = await _stored(conversation.id)
     assert (renamed, name, titles.seeds) == (None, "My Peptidase Picks", [])
-    assert strategy.generated_name_steps is None
+    assert strategy.generated_name_seed is None
 
 
-async def test_an_edit_that_keeps_the_named_steps_asks_for_no_title(
+async def test_an_edit_that_keeps_the_seed_asks_for_no_title(
     db_session: AsyncSession,
 ) -> None:
     conversation = await _thread(db_session)
     await _write(conversation.id, _both())
     await name_conversation_if_unnamed(conversation.id, title=GENERATED)
-    start = await turn_start_strategy(conversation.id)
     titles = _Titles()
 
-    renamed = await rename_if_edits_outdated_it(
-        conversation.id, start=start, title_for=titles
-    )
+    renamed = await rename_if_edits_outdated_it(conversation.id, title_for=titles)
 
     name, strategy = await _stored(conversation.id)
     assert (renamed, name, titles.seeds) == (None, GENERATED, [])
-    assert strategy.generated_name_steps == ["step_peptidase", "step_signal"]
+    assert strategy.generated_name_seed == {
+        "step_peptidase": {"organism": ORGANISM_WIRE},
+        "step_signal": {"organism": ORGANISM_WIRE},
+    }
 
 
 async def test_a_title_written_before_the_build_covers_the_steps_it_built(
@@ -216,11 +210,38 @@ async def test_a_title_written_before_the_build_covers_the_steps_it_built(
     await _write(conversation.id, _both())
     titles = _Titles()
 
-    renamed = await rename_if_edits_outdated_it(
-        conversation.id, start=None, title_for=titles
-    )
+    renamed = await rename_if_edits_outdated_it(conversation.id, title_for=titles)
 
     _, built = await _stored(conversation.id)
-    assert (snapshots, unbuilt.generated_name_steps) == (False, [])
+    assert (snapshots, unbuilt.generated_name_seed) == (False, {})
     assert (renamed, titles.seeds) == (None, [])
-    assert built.generated_name_steps == ["step_peptidase", "step_signal"]
+    assert built.generated_name_seed == {
+        "step_peptidase": {"organism": ORGANISM_WIRE},
+        "step_signal": {"organism": ORGANISM_WIRE},
+    }
+
+
+async def test_a_moved_seed_value_generates_the_name_anew(
+    db_session: AsyncSession,
+) -> None:
+    conversation = await _thread(db_session)
+    await _write(conversation.id, _both())
+    await name_conversation_if_unnamed(conversation.id, title=GENERATED)
+    moved = _both()
+    assert moved.root.secondary_input is not None
+    moved.root.secondary_input.parameters = {
+        "organism": MultiPickValue(values=["Naegleria gruberi"])
+    }
+    await _write(conversation.id, moved)
+    titles = _Titles()
+
+    renamed = await rename_if_edits_outdated_it(conversation.id, title_for=titles)
+
+    name, strategy = await _stored(conversation.id)
+    assert (renamed, name) == (REGENERATED, REGENERATED)
+    assert strategy.generated_name_seed == {
+        "step_peptidase": {"organism": ORGANISM_WIRE},
+        "step_signal": {
+            "organism": MultiPickValue(values=["Naegleria gruberi"]).to_wire()
+        },
+    }

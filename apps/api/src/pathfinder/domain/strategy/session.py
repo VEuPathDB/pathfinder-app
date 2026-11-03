@@ -45,16 +45,31 @@ class StrategyGraph:
         self.roots: set[str] = set()
         self.history: list[StrategyHistoryEntry] = []
         self.last_step_id: str | None = None
-        # The researcher's words, the search choice and the analysis kind of
-        # each step, keyed by step id.
+        # The researcher's words, the search choice, the analysis kind and the
+        # name PathFinder gave each step, keyed by step id.
         self.words = StepWords()
         # The searches whose catalog read failed. Each turn builds its own graph,
         # so this holds for one turn, and it is never stored.
         self.unreadable_searches: set[str] = set()
 
     def note_words(self, newer: StepWords) -> None:
-        """Take the words for the steps the graph holds, and forget the rest."""
-        self.words = self.words.noted(newer, self.steps)
+        """Take the words for the steps the graph holds, and forget the rest.
+
+        A step that carries the name PathFinder gave it takes the newer name,
+        less the label of any value the step no longer holds.
+        """
+        titles = {
+            step_id: title.kept(self.steps[step_id].parameters)
+            for step_id, title in newer.titles.items()
+            if step_id in self.steps
+        }
+        for step_id, title in titles.items():
+            step = self.steps[step_id]
+            if self.words.generated(step_id, step.display_name):
+                step.display_name = title.name
+        self.words = self.words.noted(
+            newer.model_copy(update={"titles": titles}), self.steps
+        )
 
     def analysis_kind_of(self, step_id: str) -> AnalysisKind | None:
         """The step's kind, when it was read for the search the step runs now."""

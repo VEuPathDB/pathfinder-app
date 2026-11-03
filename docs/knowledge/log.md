@@ -28,6 +28,21 @@
   [a requirement carries a typed value of its kind](decisions/a-requirement-carries-a-typed-value-of-its-kind.md)
   and
   [an unlinked requirement is not verified and never blocks](decisions/an-unlinked-requirement-is-not-verified-and-never-blocks.md).
+* **A generated name follows its seed; a name a person wrote stays.** The strategy
+  row's `generated_name_seed` (alembic `2026_11_03_0001`, which drops
+  `generated_name_steps`) holds the wire value of each parameter of each step a
+  generated strategy name covers, and `domain/strategy/generated_name.py::name_outdated`
+  compares it with the stored strategy: a seed step gone or a seed value moved
+  generates the name anew at the turn end, so the turn-start strategy is no longer
+  read. A criterion titles its step by the search's display name and the bound
+  values' vocabulary labels (`Criterion.step_title`, `StepTitle`), the strategy's
+  metadata stores it per step (`StepWords.titles`), and a step whose name equals its
+  stored title takes the newer title, less the label of a value it no longer holds.
+  A step named by a person, a model or the site, or stored with no title, keeps its
+  name, a rebound search included. `name_restating` and `states_the_wire_form`, which
+  read a name's words against the wire values, are gone
+  ([a generated name follows the seed it was written over](decisions/a-generated-name-follows-the-steps-it-names.md)).
+
 * **A request the provider flags is declined, not failed.** OpenAI answers some
   ordinary research messages with a 400 `invalid_request_error` whose message says
   the content was flagged (seen on a Cryptosporidium ortholog request, once in two

@@ -18,6 +18,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
+from pathfinder.domain.strategy.step_naming import criterion_title
 
 # Swapping a combine's operands mirrors the operator that is not symmetric.
 _MIRRORED_OPERATORS = {
@@ -106,7 +107,7 @@ def _node_to_step(
         step = StrategyStepNode(
             search_name=crit.search_name,
             parameters=crit.step_parameters,
-            display_name=crit.title,
+            display_name=criterion_title(crit).name,
         )
         minted[crit.id] = step.id
         return step
@@ -115,7 +116,7 @@ def _node_to_step(
         step = StrategyStepNode(
             search_name=crit.search_name,
             parameters=crit.step_parameters,
-            display_name=crit.title,
+            display_name=criterion_title(crit).name,
             primary_input=_node_to_step(node.inputs[0], by_id, minted),
         )
         minted[crit.id] = step.id

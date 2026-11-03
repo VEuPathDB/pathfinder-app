@@ -1,66 +1,69 @@
-"""The words a step's name carries about the values the step asks for."""
+"""The name PathFinder gives a step: what runs, and the labels of the values it binds."""
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 
-from veupathdb.domain.parameters import ParamValue, to_wire
+from pydantic import ConfigDict, Field
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.model import CamelModel
+
+from pathfinder.domain.strategy.operational_spec import Criterion
+
+__all__ = ["StepTitle", "TitleLabel", "criterion_title"]
+
+LABELS_LENGTH = 60
 
 
-def _stated(text: str, wire: str) -> list[str]:
-    """Every place these words carry this value, alone and not inside a word."""
-    return re.findall(rf"(?<!\w){re.escape(wire)}(?!\w)", text)
+class TitleLabel(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    param: str
+    wire: str
+    label: str
 
 
-def states_the_wire_form(text: str, wire: str) -> bool:
-    """Whether these words carry this value, on its own and not inside a word."""
-    return bool(_stated(text, wire))
+class StepTitle(CamelModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    head: str
+    labels: list[TitleLabel] = Field(default_factory=list)
+
+    @property
+    def name(self) -> str:
+        shown = ", ".join(label.label for label in self.labels)
+        if not shown:
+            return self.head
+        if len(shown) > LABELS_LENGTH:
+            cut = shown[: LABELS_LENGTH + 1]
+            boundary = cut.rfind(" ")
+            shown = f"{cut[:boundary] if boundary > 0 else cut[:LABELS_LENGTH]}..."
+        return f"{self.head}: {shown}"
+
+    def kept(self, parameters: Mapping[str, ParamValue]) -> StepTitle:
+        return self.model_copy(
+            update={
+                "labels": [
+                    label
+                    for label in self.labels
+                    if (value := parameters.get(label.param)) is not None
+                    and value.to_wire() == label.wire
+                ]
+            }
+        )
 
 
-def _moved_values(
-    name: str,
-    *,
-    before: Mapping[str, ParamValue],
-    after: Mapping[str, ParamValue],
-) -> dict[str, str]:
-    """The value each moved parameter leaves behind, by the words it wrote.
-
-    A literal the name carries twice identifies no parameter, and neither does
-    one two parameters moved apart, so both are left out.
-    """
-    found: dict[str, str] = {}
-    ambiguous: set[str] = set()
-    for parameter, value in after.items():
-        held = before.get(parameter)
-        if held is None:
-            continue
-        was, holds = to_wire(held), to_wire(value)
-        if not was or was == holds or len(_stated(name, was)) != 1:
-            continue
-        if found.setdefault(was, holds) != holds:
-            ambiguous.add(was)
-    return {was: holds for was, holds in found.items() if was not in ambiguous}
-
-
-def name_restating(
-    name: str,
-    *,
-    before: Mapping[str, ParamValue],
-    after: Mapping[str, ParamValue],
-) -> str:
-    """The name with every value the write moved restated.
-
-    One pass over the name the write found, so a value this rewrite states is
-    never read as a value the step held. A name that states no moved value is
-    the name it was.
-    """
-    moved = _moved_values(name, before=before, after=after)
-    if not moved:
-        return name
-    alternatives = "|".join(
-        re.escape(was) for was in sorted(moved, key=len, reverse=True)
-    )
-    return re.sub(
-        rf"(?<!\w)({alternatives})(?!\w)", lambda found: moved[found.group()], name
+def criterion_title(criterion: Criterion) -> StepTitle:
+    """What runs, else the researcher's words, with the labels of the values the
+    criterion binds."""
+    return StepTitle(
+        head=criterion.search_display_name or criterion.text[:60],
+        labels=[
+            TitleLabel(param=name, wire=bound.value.to_wire(), label=bound.label)
+            for name, bound in criterion.resolved_params.items()
+            if bound.label
+            and bound.visible
+            and not bound.unset
+            and name != criterion.organism_param
+        ],
     )

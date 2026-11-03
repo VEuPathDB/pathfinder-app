@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations import GraphOperation, ReplaceSubtreeOp
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_naming import criterion_title
 
 __all__ = [
     "COPY_UNSTATED",
@@ -74,7 +75,7 @@ def node_for(criterion: Criterion) -> StrategyStepNode:
         id=criterion.id,
         search_name=criterion.search_name,
         parameters=criterion.step_parameters,
-        display_name=criterion.title,
+        display_name=criterion_title(criterion).name,
     )
 
 

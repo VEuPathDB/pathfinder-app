@@ -67,6 +67,7 @@ from pathfinder.domain.audit.verdicts import (
     VerdictOrigin,
 )
 from pathfinder.domain.message_rating import Rating, WithheldCase
+from pathfinder.domain.strategy.generated_name import NameSeed
 
 
 def saved_in_column(table: str) -> Mapped[UUID | None]:
@@ -252,9 +253,11 @@ class ConversationStrategy(Base):
         nullable=False,
         default=list,
     )
-    # Null when a person chose the thread's name. A list when the name is
-    # generated: the steps the strategy held when the name was written.
-    generated_name_steps: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
+    # Null when a person chose the thread's name. When the name is generated:
+    # the wire value of each parameter of each step it was written over.
+    generated_name_seed: Mapped[dict[str, dict[str, str]] | None] = mapped_column(
+        JSONB, nullable=True
+    )
 
 
 class ConversationStrategyView(BaseModel):
@@ -276,7 +279,7 @@ class ConversationStrategyView(BaseModel):
     gene_set_id: str | None = None
     gene_set_auto_imported: bool = False
     imported_saved_strategy_ids: list[int] = Field(default_factory=list)
-    generated_name_steps: list[str] | None = None
+    generated_name_seed: NameSeed | None = None
 
 
 class PersistedStrategyGraph(CamelModel):

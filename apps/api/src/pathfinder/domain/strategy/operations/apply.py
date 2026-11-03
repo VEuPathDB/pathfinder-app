@@ -46,7 +46,7 @@ from pathfinder.domain.strategy.operations.types import (
     WireInputOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.step_naming import name_restating
+from pathfinder.domain.strategy.step_words import StepWords
 
 
 def apply_operation(graph: StrategyGraph, op: GraphOperation) -> ApplyResult:
@@ -192,12 +192,10 @@ def _apply_replace_strategy(graph: StrategyGraph, op: ReplaceStrategyOp) -> Appl
 
 def _apply_update_params(graph: StrategyGraph, op: UpdateStepParamsOp) -> ApplyResult:
     target = _require(graph, op.step_id, "step")
-    written = {**target.parameters, **op.parameters}
-    if target.display_name:
-        target.display_name = name_restating(
-            target.display_name, before=target.parameters, after=written
-        )
-    target.parameters = written
+    target.parameters = {**target.parameters, **op.parameters}
+    held = graph.words.titles.get(op.step_id)
+    if held is not None:
+        graph.note_words(StepWords(titles={op.step_id: held}))
     return ApplyResult(description=f"Updated parameters of {op.step_id}")
 
 

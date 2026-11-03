@@ -215,7 +215,7 @@ class ConversationRepository:
                 set_=values,
             ),
         )
-        if values.keys() - {"generated_name_steps"}:
+        if values.keys() - {"generated_name_seed"}:
             await self._record_revision(conversation_id)
 
     async def _record_revision(self, conversation_id: UUID) -> None:

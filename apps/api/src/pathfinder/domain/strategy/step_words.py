@@ -13,6 +13,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     RequirementLink,
 )
+from pathfinder.domain.strategy.step_naming import StepTitle, criterion_title
 from pathfinder.domain.strategy.step_rationale import ChosenRationale, StepRationale
 
 __all__ = [
@@ -43,10 +44,10 @@ class StampedKind(CamelModel):
 
 class StepWords(CamelModel):
     """The metadata a stored strategy carries per step id: the researcher's
-    words, why the step runs its search, and which plugin reads the analysis
-    document an EDA step carries.
+    words, why the step runs its search, which plugin reads the analysis
+    document an EDA step carries, and the name PathFinder gave the step.
 
-    A stored kind or reason that does not parse is absent.
+    A stored kind, reason or name that does not parse is absent.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -55,6 +56,7 @@ class StepWords(CamelModel):
     analysis_kinds: dict[str, OnErrorOmit[StampedKind]] = Field(default_factory=dict)
     rationales: dict[str, OnErrorOmit[ChosenRationale]] = Field(default_factory=dict)
     answers: dict[str, list[RequirementLink]] = Field(default_factory=dict)
+    titles: dict[str, OnErrorOmit[StepTitle]] = Field(default_factory=dict)
 
     @classmethod
     def of(cls, ast: StrategyAst) -> StepWords:
@@ -67,7 +69,12 @@ class StepWords(CamelModel):
             or self.analysis_kinds
             or self.rationales
             or self.answers
+            or self.titles
         )
+
+    def generated(self, step_id: str, name: str | None) -> bool:
+        held = self.titles.get(step_id)
+        return held is not None and held.name == name
 
     def kind_of(self, step_id: str, search_name: str | None) -> AnalysisKind | None:
         """The step's kind, when it was read for the search the step runs."""
@@ -93,6 +100,7 @@ class StepWords(CamelModel):
         spoken = newer.criterion_texts.keys() | newer.rationales.keys()
         texts = self.criterion_texts | newer.criterion_texts
         kinds = self.analysis_kinds | newer.analysis_kinds
+        titles = self.titles | newer.titles
         kept = {s: r for s, r in self.rationales.items() if s not in spoken}
         rationales = kept | newer.rationales
         answers = {
@@ -103,6 +111,7 @@ class StepWords(CamelModel):
             analysis_kinds={s: k for s, k in kinds.items() if s in held},
             rationales={s: r for s, r in rationales.items() if s in held},
             answers={s: a for s, a in answers.items() if s in held},
+            titles={s: t for s, t in titles.items() if s in held},
         )
 
 
@@ -121,7 +130,8 @@ class AddedSearch(CamelModel):
 def step_words(
     spec: OperationalSpec, step_id_by_criterion: Mapping[str, str] | None = None
 ) -> StepWords:
-    """The words and the reason of every criterion that runs a search, by step id.
+    """The words, the reason and the step name of every criterion that runs a
+    search, by step id.
 
     A criterion id is its step id once the strategy is built; a build names
     the step each criterion minted.
@@ -136,6 +146,7 @@ def step_words(
             if c.rationale is not None
         },
         answers={minted.get(c.id, c.id): c.answers for c in searched if c.answers},
+        titles={minted.get(c.id, c.id): criterion_title(c) for c in searched},
     )
 
 

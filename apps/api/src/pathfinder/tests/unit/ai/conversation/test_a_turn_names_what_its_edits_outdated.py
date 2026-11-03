@@ -8,7 +8,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.conversation import turn_title
 
@@ -35,10 +34,8 @@ class _Renames:
     failure: Exception | None = None
     calls: list[UUID] = field(default_factory=list)
 
-    async def __call__(
-        self, conversation_id: UUID, *, start: StrategyAst | None, title_for: object
-    ) -> str | None:
-        del start, title_for
+    async def __call__(self, conversation_id: UUID, *, title_for: object) -> str | None:
+        del title_for
         self.calls.append(conversation_id)
         if self.failure is not None:
             raise self.failure
@@ -76,7 +73,6 @@ async def _name(writer: _Writer, *, with_title: bool = True) -> None:
         asyncio.create_task(_title()) if with_title else None,
         writer.conversation_id,
         writer,
-        start=None,
         title_for=_no_title,
     )
 

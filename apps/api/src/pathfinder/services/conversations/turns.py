@@ -11,9 +11,10 @@ from assistant_core.platform.db import DBSessionFactory, async_session_factory
 from veupathdb.domain.strategy import StrategyAst, extract_output_organisms, walk
 
 from pathfinder.domain.strategy.generated_name import (
+    NameSeed,
     name_outdated,
     name_seed,
-    named_steps,
+    title_text,
 )
 from pathfinder.domain.strategy.revision import parse_strategy_ast
 from pathfinder.persistence.models import ConversationStrategyView
@@ -37,7 +38,7 @@ LOCK_WAIT_SECONDS = 10
 """The longest a title waits on the thread's strategy lock and its writes."""
 
 TitleGenerator = Callable[[str], Awaitable[str]]
-"""Generates a thread title from a seed text. The AI layer supplies it."""
+"""Generates a thread title from a text. The AI layer supplies it."""
 
 
 async def load_conversation(conversation_id: UUID) -> Conversation | None:
@@ -67,13 +68,6 @@ async def name_conversation_if_unnamed(
     return title_write.written
 
 
-async def turn_start_strategy(conversation_id: UUID) -> StrategyAst | None:
-    """The strategy the thread holds as the turn opens."""
-    async with async_session_factory() as session:
-        strategy = await ConversationRepository(session).get_strategy(conversation_id)
-    return parse_strategy_ast(strategy.strategy_ast)
-
-
 async def _organisms(site_id: str, now: StrategyAst | None) -> set[str]:
     """The organisms the strategy's result is scoped to, as the catalog marks them."""
     if now is None:
@@ -85,28 +79,28 @@ async def _organisms(site_id: str, now: StrategyAst | None) -> set[str]:
     return extract_output_organisms(now.root, marks) or set()
 
 
-async def _mark(conversation_id: UUID, *, held: list[str], covers: list[str]) -> None:
-    """Record the steps a generated name covers, while the thread holds ``held``."""
+async def _mark(conversation_id: UUID, *, held: NameSeed, covers: NameSeed) -> None:
+    """Record the seed a generated name covers, while the thread holds ``held``."""
     async with asyncio.timeout(LOCK_WAIT_SECONDS):
         async with strategy_write_lock(
             conversation_id, async_session_factory
         ) as locked:
             threads = ConversationRepository(locked)
             strategy = await threads.get_strategy(conversation_id)
-            if strategy.generated_name_steps != held:
+            if strategy.generated_name_seed != held:
                 return
             await threads.update_conversation(
                 conversation_id,
                 ConversationUpdate(
-                    generated_name_steps=covers,
-                    generated_name_steps_set=True,
+                    generated_name_seed=covers,
+                    generated_name_seed_set=True,
                     touch_updated_at=False,
                 ),
             )
 
 
 async def _rename(
-    conversation_id: UUID, *, held: list[str], title: str
+    conversation_id: UUID, *, held: NameSeed, title: str
 ) -> NamedThread | None:
     """Write ``title`` as a generated name, while the thread holds ``held``."""
     async with asyncio.timeout(LOCK_WAIT_SECONDS):
@@ -115,48 +109,44 @@ async def _rename(
         ) as locked:
             threads = ConversationRepository(locked)
             strategy = await threads.get_strategy(conversation_id)
-            if strategy.generated_name_steps != held:
+            if strategy.generated_name_seed != held:
                 return None
             return await name_the_thread(
                 threads,
                 conversation_id,
                 title,
-                generated_over=named_steps(parse_strategy_ast(strategy.strategy_ast)),
+                generated_over=name_seed(parse_strategy_ast(strategy.strategy_ast)),
             )
 
 
-async def _seed_of_a_new_name(
+async def _text_of_a_new_name(
     conversation: Conversation,
     strategy: ConversationStrategyView,
-    held: list[str],
-    start: StrategyAst | None,
+    held: NameSeed,
 ) -> str:
-    """The seed of a new name, or empty when the name stands.
+    """The text a new name is generated from, or empty when the name stands.
 
-    A name written before any step takes the steps built after it.
+    A name written before any step takes the seed of the steps built after it.
     """
     now = parse_strategy_ast(strategy.strategy_ast)
     if not held:
-        if covers := named_steps(now):
+        if covers := name_seed(now):
             await _mark(conversation.id, held=held, covers=covers)
         return ""
-    if not name_outdated(conversation.name, held, start=start, now=now):
+    if not name_outdated(held, now):
         return ""
-    seed = name_seed(now, await _organisms(conversation.site_id, now))
-    if not seed:
-        await _mark(conversation.id, held=held, covers=[])
-    return seed
+    text = title_text(now, await _organisms(conversation.site_id, now))
+    if not text:
+        await _mark(conversation.id, held=held, covers={})
+    return text
 
 
 async def rename_if_edits_outdated_it(
-    conversation_id: UUID,
-    *,
-    start: StrategyAst | None,
-    title_for: TitleGenerator,
+    conversation_id: UUID, *, title_for: TitleGenerator
 ) -> str | None:
-    """Generate the thread's name anew when an edit outdated it.
+    """Generate the thread's name anew when an edit outdated its seed.
 
-    Only a generated name changes, and its seed is the steps left, never a
+    Only a generated name changes, and its text is the steps left, never a
     message. Returns the stored name, or None when the name stands.
     """
     async with async_session_factory() as session:
@@ -164,11 +154,11 @@ async def rename_if_edits_outdated_it(
     if found is None:
         return None
     conversation, strategy = found
-    held = strategy.generated_name_steps
+    held = strategy.generated_name_seed
     if held is None:
         return None
-    seed = await _seed_of_a_new_name(conversation, strategy, held, start)
-    title = await title_for(seed) if seed else ""
+    text = await _text_of_a_new_name(conversation, strategy, held)
+    title = await title_for(text) if text else ""
     named = await _rename(conversation_id, held=held, title=title) if title else None
     if named is None:
         return None
