@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { auditRunSummaryPhaseEnum } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import {
-  evidenceViewKindEnum,
-  evidenceViewStatusEnum,
-} from "@pathfinder/shared/generated/types/EvidenceView";
 import { findingViewCertaintyEnum } from "@pathfinder/shared/generated/types/FindingView";
 import { genomeUseSourceEnum } from "@pathfinder/shared/generated/types/GenomeUse";
 import {
@@ -25,27 +21,19 @@ describe("audit words", () => {
         (key) => words.GENOME_STATUS_WORDS[key],
       ),
       ...Object.values(genomeViewRoleEnum).map((key) => words.ROLE_WORDS[key]),
-      ...Object.values(evidenceViewStatusEnum).map(
-        (key) => words.EVIDENCE_STATUS_WORDS[key],
-      ),
-      ...Object.values(evidenceViewKindEnum).map(
-        (key) => words.EVIDENCE_KIND_WORDS[key],
-      ),
       ...Object.values(stageRecordNameEnum).map((key) => words.STAGE_WORDS[key]),
       ...Object.values(importanceSourceEnum).map((key) => words.IMPORTANCE_WORDS[key]),
       ...Object.values(genomeUseSourceEnum).map((key) => words.USE_WORDS[key]),
       ...Object.values(auditRunSummaryPhaseEnum).map((key) => words.PHASE_WORDS[key]),
       ...Object.values(words.ORIGIN_WORDS),
     ];
-    expect(phrases.length).toBe(39);
+    expect(phrases.length).toBe(30);
     for (const phrase of phrases) expect(phrase).toMatch(/^[^_]+$/);
   });
 
   it("holds no table the API serves", () => {
     expect(Object.keys(words).sort()).toEqual([
       "CERTAINTY_WORDS",
-      "EVIDENCE_KIND_WORDS",
-      "EVIDENCE_STATUS_WORDS",
       "GENOME_STATUS_WORDS",
       "IMPORTANCE_WORDS",
       "ORIGIN_WORDS",
@@ -76,22 +64,6 @@ describe("audit words", () => {
     expect(words.ROLE_WORDS).toEqual({
       audited: "Audited",
       comparison: "Compared against",
-    });
-  });
-
-  it("names a piece of evidence's status and kind", () => {
-    expect(words.EVIDENCE_STATUS_WORDS).toEqual({
-      pending: "Waiting to be read",
-      trying: "Being read",
-      stored: "Read",
-      failed: "Could not be read",
-      unreached: "The site did not answer",
-      unread: "Not read before the run's deadline",
-    });
-    expect(words.EVIDENCE_KIND_WORDS).toEqual({
-      confirmation: "What the genome's DNA shows",
-      relatives: "Lengths in related genomes",
-      gene_evidence: "What the site's gene records hold",
     });
   });
 

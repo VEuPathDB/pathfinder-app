@@ -11,6 +11,8 @@ from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_DESCRIPTIONS,
     ERROR_TYPE_TITLES,
+    EVIDENCE_KIND_TITLES,
+    EVIDENCE_STATUS_SENTENCES,
     HALT_SENTENCES,
     LITERATURE_SENTENCES,
     REVIEW_STATUS_SENTENCES,
@@ -47,6 +49,8 @@ async def test_the_words_route_serves_every_table_entry_for_entry() -> None:
         "verdictKinds": VERDICT_KIND_SENTENCES,
         "literature": LITERATURE_SENTENCES,
         "reviewStatuses": REVIEW_STATUS_SENTENCES,
+        "evidenceKinds": EVIDENCE_KIND_TITLES,
+        "evidenceStatuses": EVIDENCE_STATUS_SENTENCES,
     }
 
 

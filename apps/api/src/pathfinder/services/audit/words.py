@@ -7,6 +7,8 @@ from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_DESCRIPTIONS,
     ERROR_TYPE_TITLES,
+    EVIDENCE_KIND_TITLES,
+    EVIDENCE_STATUS_SENTENCES,
     HALT_SENTENCES,
     LITERATURE_SENTENCES,
     REVIEW_STATUS_SENTENCES,
@@ -109,6 +111,25 @@ class ReviewStatusWords(BaseModel):
     stopped: str
 
 
+class EvidenceKindWords(BaseModel):
+    model_config = _TABLE
+
+    confirmation: str
+    relatives: str
+    gene_evidence: str
+
+
+class EvidenceStatusWords(BaseModel):
+    model_config = _TABLE
+
+    pending: str
+    trying: str
+    stored: str
+    failed: str
+    unreached: str
+    unread: str
+
+
 class AuditWords(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -121,6 +142,8 @@ class AuditWords(CamelModel):
     verdict_kinds: VerdictKindWords
     literature: LiteratureWords
     review_statuses: ReviewStatusWords
+    evidence_kinds: EvidenceKindWords
+    evidence_statuses: EvidenceStatusWords
 
 
 AUDIT_WORDS = AuditWords(
@@ -133,4 +156,6 @@ AUDIT_WORDS = AuditWords(
     verdict_kinds=VerdictKindWords.model_validate(VERDICT_KIND_SENTENCES),
     literature=LiteratureWords.model_validate(LITERATURE_SENTENCES),
     review_statuses=ReviewStatusWords.model_validate(REVIEW_STATUS_SENTENCES),
+    evidence_kinds=EvidenceKindWords.model_validate(EVIDENCE_KIND_TITLES),
+    evidence_statuses=EvidenceStatusWords.model_validate(EVIDENCE_STATUS_SENTENCES),
 )

@@ -82,5 +82,18 @@
     "reviewing": "Reviewing findings",
     "synthesized": "Reviewed and summarized",
     "stopped": "Reviews stopped"
+  },
+  "evidenceKinds": {
+    "confirmation": "What the genome's DNA shows",
+    "relatives": "Lengths in related genomes",
+    "gene_evidence": "What the site's gene records hold"
+  },
+  "evidenceStatuses": {
+    "pending": "Waiting to be read",
+    "trying": "Being read",
+    "stored": "Read",
+    "failed": "Could not be read",
+    "unreached": "The site did not answer",
+    "unread": "Not read before the run's deadline"
   }
 }

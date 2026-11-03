@@ -1,8 +1,4 @@
 import type { AuditRunSummaryPhaseEnumKey } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import type {
-  EvidenceViewKindEnumKey,
-  EvidenceViewStatusEnumKey,
-} from "@pathfinder/shared/generated/types/EvidenceView";
 import type { FindingViewCertaintyEnumKey } from "@pathfinder/shared/generated/types/FindingView";
 import type { GenomeUseSourceEnumKey } from "@pathfinder/shared/generated/types/GenomeUse";
 import type {
@@ -27,21 +23,6 @@ export const GENOME_STATUS_WORDS: Record<GenomeViewStatusEnumKey, string> = {
   failed: "Could not be read",
   unreached: "The site did not answer",
   unread: "Not read before the run's deadline",
-};
-
-export const EVIDENCE_STATUS_WORDS: Record<EvidenceViewStatusEnumKey, string> = {
-  pending: "Waiting to be read",
-  trying: "Being read",
-  stored: "Read",
-  failed: "Could not be read",
-  unreached: "The site did not answer",
-  unread: "Not read before the run's deadline",
-};
-
-export const EVIDENCE_KIND_WORDS: Record<EvidenceViewKindEnumKey, string> = {
-  confirmation: "What the genome's DNA shows",
-  relatives: "Lengths in related genomes",
-  gene_evidence: "What the site's gene records hold",
 };
 
 export const STAGE_WORDS: Record<StageRecordNameEnumKey, string> = {

@@ -4500,6 +4500,75 @@
         }
       }
     },
+    "/api/v1/audits/{run_id}/findings.csv": {
+      "get": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "One audit run's findings as CSV, one row per finding.",
+        "operationId": "download_audit_findings_api_v1_audits__run_id__findings_csv_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The findings as CSV.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audits/{run_id}/findings/{finding_id}": {
       "get": {
         "tags": [
@@ -6686,6 +6755,12 @@
           },
           "reviewStatuses": {
             "$ref": "#/components/schemas/ReviewStatusWords"
+          },
+          "evidenceKinds": {
+            "$ref": "#/components/schemas/EvidenceKindWords"
+          },
+          "evidenceStatuses": {
+            "$ref": "#/components/schemas/EvidenceStatusWords"
           }
         },
         "type": "object",
@@ -6698,7 +6773,9 @@
           "halts",
           "verdictKinds",
           "literature",
-          "reviewStatuses"
+          "reviewStatuses",
+          "evidenceKinds",
+          "evidenceStatuses"
         ],
         "title": "AuditWords"
       },
@@ -9604,6 +9681,69 @@
           "facts"
         ],
         "title": "EvidenceFacts"
+      },
+      "EvidenceKindWords": {
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "title": "Confirmation"
+          },
+          "relatives": {
+            "type": "string",
+            "title": "Relatives"
+          },
+          "gene_evidence": {
+            "type": "string",
+            "title": "Gene Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmation",
+          "relatives",
+          "gene_evidence"
+        ],
+        "title": "EvidenceKindWords"
+      },
+      "EvidenceStatusWords": {
+        "properties": {
+          "pending": {
+            "type": "string",
+            "title": "Pending"
+          },
+          "trying": {
+            "type": "string",
+            "title": "Trying"
+          },
+          "stored": {
+            "type": "string",
+            "title": "Stored"
+          },
+          "failed": {
+            "type": "string",
+            "title": "Failed"
+          },
+          "unreached": {
+            "type": "string",
+            "title": "Unreached"
+          },
+          "unread": {
+            "type": "string",
+            "title": "Unread"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "pending",
+          "trying",
+          "stored",
+          "failed",
+          "unreached",
+          "unread"
+        ],
+        "title": "EvidenceStatusWords"
       },
       "EvidenceTally": {
         "properties": {

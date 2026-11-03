@@ -17,7 +17,13 @@ from veupathdb_mcp.audit import (
 )
 
 from pathfinder.domain.audit.confirmations import FindingVerdict
-from pathfinder.domain.audit.findings import ErrorType, FindingStatus, UnresolvedStatus
+from pathfinder.domain.audit.findings import (
+    ErrorType,
+    EvidenceKind,
+    EvidenceStatus,
+    FindingStatus,
+    UnresolvedStatus,
+)
 from pathfinder.domain.audit.scope import CheckName, GeneTarget
 from pathfinder.domain.audit.stages import HaltKind
 from pathfinder.domain.audit.verdicts import (
@@ -319,6 +325,21 @@ UNRESOLVED_WORDS: dict[UnresolvedStatus, str] = {
     "declined": "that the check does not take",
     "unreached": "where the site did not answer",
     "unread": "not read before the run's deadline",
+}
+
+EVIDENCE_KIND_TITLES: dict[EvidenceKind, str] = {
+    "confirmation": "What the genome's DNA shows",
+    "relatives": "Lengths in related genomes",
+    "gene_evidence": "What the site's gene records hold",
+}
+
+EVIDENCE_STATUS_SENTENCES: dict[EvidenceStatus, str] = {
+    "pending": "Waiting to be read",
+    "trying": "Being read",
+    "stored": "Read",
+    "failed": "Could not be read",
+    "unreached": "The site did not answer",
+    "unread": "Not read before the run's deadline",
 }
 
 HALT_SENTENCES: dict[HaltKind, str] = {

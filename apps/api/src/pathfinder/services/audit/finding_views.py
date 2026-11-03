@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Collection, Iterable
+from dataclasses import dataclass
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
@@ -32,7 +34,11 @@ from pathfinder.domain.audit.words import (
     verdict_sentence,
 )
 from pathfinder.domain.statistic_facts import Identifier, Sentence
-from pathfinder.persistence.models import AuditEvidenceRecord, AuditFindingRecord
+from pathfinder.persistence.models import (
+    AuditEvidenceRecord,
+    AuditFindingRecord,
+    AuditRunRecord,
+)
 from pathfinder.persistence.repositories.audit_finding_filter import FindingFilter
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
@@ -242,6 +248,32 @@ def _views(
             from_target=record.target.key in target_keys,
         )
         for record in found
+    ]
+
+
+@dataclass(frozen=True)
+class StoredFinding:
+    finding: FindingView
+    evidence: tuple[AuditEvidenceRecord, ...]
+    review: FindingReview | None
+
+
+async def stored_findings(
+    run: AuditRunRecord, *, offset: int, limit: int
+) -> list[StoredFinding]:
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        found = await repo.findings(
+            run.id, FindingFilter(), offset=offset, limit=limit, by_impact=True
+        )
+        evidence = await repo.evidence(run.id, [record.id for record in found])
+    held: defaultdict[int, list[AuditEvidenceRecord]] = defaultdict(list)
+    for record in evidence:
+        held[record.finding_id].append(record)
+    views = _views(run.site_id, found, evidence, {t.key for t in run.scope.targets})
+    return [
+        StoredFinding(finding=view, evidence=tuple(held[view.id]), review=record.review)
+        for view, record in zip(views, found, strict=True)
     ]
 
 

@@ -4,6 +4,8 @@ from pathfinder.domain.audit.words import (
     CHECK_TITLES,
     ERROR_TYPE_DESCRIPTIONS,
     ERROR_TYPE_TITLES,
+    EVIDENCE_KIND_TITLES,
+    EVIDENCE_STATUS_SENTENCES,
     HALT_SENTENCES,
     LITERATURE_SENTENCES,
     REVIEW_STATUS_SENTENCES,
@@ -127,4 +129,20 @@ def test_the_unresolved_words_table_reads_its_exact_words() -> None:
         "declined": "that the check does not take",
         "unreached": "where the site did not answer",
         "unread": "not read before the run's deadline",
+    }
+
+
+def test_the_evidence_tables_read_their_exact_words() -> None:
+    assert EVIDENCE_KIND_TITLES == {
+        "confirmation": "What the genome's DNA shows",
+        "relatives": "Lengths in related genomes",
+        "gene_evidence": "What the site's gene records hold",
+    }
+    assert EVIDENCE_STATUS_SENTENCES == {
+        "pending": "Waiting to be read",
+        "trying": "Being read",
+        "stored": "Read",
+        "failed": "Could not be read",
+        "unreached": "The site did not answer",
+        "unread": "Not read before the run's deadline",
     }
