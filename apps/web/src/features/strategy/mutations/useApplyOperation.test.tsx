@@ -370,4 +370,75 @@ describe("useApplyOperation", () => {
 
     expect(useStrategyStore.getState().undoStack).toEqual([kept]);
   });
+
+  describe("the redo stack", () => {
+    const WAITING = [
+      [{ op: "replace" as const, path: ["strategy", "name"], value: "x" }],
+    ];
+
+    function renderApply(initial: Strategy) {
+      const harness = makeQueryHarness(initial);
+      useStrategyStore.setState({ redoStack: WAITING });
+      return renderHook(() => useApplyOperation("strategy-1"), {
+        wrapper: harness.wrapper,
+      }).result;
+    }
+
+    it("survives a refused edit", async () => {
+      const result = renderApply(makeStrategy([step({ id: "a", displayName: "A" })]));
+      applyOperationEndpointMock.mockRejectedValueOnce(refusedEdit());
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(rename("Renamed"))).rejects.toThrow();
+      });
+
+      expect(useStrategyStore.getState().redoStack).toEqual(WAITING);
+    });
+
+    it("survives two queued edits that are both refused", async () => {
+      const result = renderApply(makeStrategy([step({ id: "a", displayName: "A" })]));
+      applyOperationEndpointMock
+        .mockRejectedValueOnce(refusedEdit())
+        .mockRejectedValueOnce(refusedEdit());
+
+      await act(async () => {
+        await Promise.allSettled([
+          result.current.mutateAsync(rename("First")),
+          result.current.mutateAsync(rename("Second")),
+        ]);
+      });
+
+      expect(useStrategyStore.getState().redoStack).toEqual(WAITING);
+    });
+
+    it("stays cleared when a refused edit is followed by an applied one", async () => {
+      const result = renderApply(makeStrategy([step({ id: "a", displayName: "A" })]));
+      applyOperationEndpointMock
+        .mockRejectedValueOnce(refusedEdit())
+        .mockResolvedValueOnce(
+          makeStrategy([step({ id: "a", displayName: "Second" })]),
+        );
+
+      await act(async () => {
+        await Promise.allSettled([
+          result.current.mutateAsync(rename("First")),
+          result.current.mutateAsync(rename("Second")),
+        ]);
+      });
+
+      expect(useStrategyStore.getState().redoStack).toEqual([]);
+    });
+
+    it("stays cleared after an applied edit", async () => {
+      const initial = makeStrategy([step({ id: "a", displayName: "A" })]);
+      const result = renderApply(initial);
+      applyOperationEndpointMock.mockResolvedValueOnce(initial);
+
+      await act(async () => {
+        await result.current.mutateAsync(rename("Renamed"));
+      });
+
+      expect(useStrategyStore.getState().redoStack).toEqual([]);
+    });
+  });
 });

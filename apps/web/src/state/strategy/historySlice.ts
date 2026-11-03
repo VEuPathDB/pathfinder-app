@@ -7,6 +7,7 @@ import type { HistorySlice, HistorySnapshot, StrategyState } from "./types";
 enablePatches();
 
 const MAX_HISTORY = 50;
+const REDO_CLEARED_BY = new WeakMap<Patch[], Patch[][]>();
 
 function trimStack(stack: Patch[][]): Patch[][] {
   while (stack.length > MAX_HISTORY) {
@@ -35,6 +36,7 @@ export const createHistorySlice: StateCreator<
     if (prev.strategy === null) return null;
     const inverse = inversePatchesBetween(prev, { strategy: current });
     if (inverse.length === 0) return null;
+    REDO_CLEARED_BY.set(inverse, get().redoStack);
     set((state) => ({
       undoStack: trimStack([...state.undoStack, inverse]),
       redoStack: [],
@@ -43,9 +45,18 @@ export const createHistorySlice: StateCreator<
   },
 
   dropSnapshot: (inverse) => {
-    set((state) => ({
-      undoStack: state.undoStack.filter((entry) => entry !== inverse),
-    }));
+    const { undoStack } = get();
+    const at = undoStack.indexOf(inverse);
+    if (at === -1) return;
+    const remaining = undoStack.filter((entry) => entry !== inverse);
+    const cleared = REDO_CLEARED_BY.get(inverse) ?? [];
+    const above = undoStack[at + 1];
+    if (above === undefined) {
+      set({ undoStack: remaining, redoStack: cleared });
+      return;
+    }
+    REDO_CLEARED_BY.set(above, cleared);
+    set({ undoStack: remaining });
   },
 
   undo: (current) => {

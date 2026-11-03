@@ -58,6 +58,20 @@ describe("state/strategy/historySlice (TQ-cache aware: pure patch logic)", () =>
     expect(undoStack[0]?.length).toBeGreaterThan(0);
   });
 
+  it("dropSnapshot keeps the redo entry of an edit already undone", () => {
+    const store = useStrategyStore.getState();
+    const prev = makeStrategy([step({ id: "s1", displayName: "Search 1" })]);
+    const next = rename(prev, "s1", "Renamed");
+    const pushed = store.pushSnapshot({ strategy: prev }, next);
+    store.undo(next);
+    const { redoStack } = useStrategyStore.getState();
+    expect(redoStack).toHaveLength(1);
+
+    store.dropSnapshot(pushed ?? []);
+
+    expect(useStrategyStore.getState().redoStack).toEqual(redoStack);
+  });
+
   it("pushSnapshot is a no-op when prev.strategy is null", () => {
     const { pushSnapshot } = useStrategyStore.getState();
     const next = makeStrategy([
