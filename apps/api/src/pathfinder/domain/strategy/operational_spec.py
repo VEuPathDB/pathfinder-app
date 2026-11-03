@@ -388,11 +388,6 @@ class Criterion(CamelModel):
         return self.param_values
 
     @property
-    def title(self) -> str:
-        """The name the step carries: what runs, else the researcher's words."""
-        return self.search_display_name or self.text[:60]
-
-    @property
     def step_rationale(self) -> StepRationale | None:
         """Why the step runs what it runs: its analysis, else the search choice."""
         if self.analysis is not None:

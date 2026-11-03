@@ -1,73 +1,91 @@
 ---
 type: Decision
-title: A generated strategy name follows the steps it names
-description: The strategy row records whether the thread's name is generated and which steps it covers; the turn end generates the name anew from the steps left when a covered step is gone or a value the name states moved, and never touches a name a person chose. Renaming on every edit and never renaming were rejected.
+title: A generated name follows the seed it was written over
+description: A generated strategy name records its seed, the wire value of each parameter of each step it covers, and is generated anew when a seed step is gone or a seed value moved; a step name PathFinder made records the search and the labels it was made from, and is made again when a value moves. A name a person wrote is never rewritten. Reading the name's words against the wire values, renaming on every edit and never renaming were rejected.
 tags: [naming, strategy-graph, persistence]
-generated: { by: claude-code/opus-5, at: 2026-10-04T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
 ---
 
 # What was decided
 
 **The strategy row records where the name came from.**
-`conversation_strategies.generated_name_steps` is null when a person chose the
-thread's name. A list means the name is generated, and the list holds the steps
-it covers: every step of the strategy but a combine
-(`domain/strategy/generated_name.py::named_steps`). Every write through
+`conversation_strategies.generated_name_seed` is null when a person chose the
+thread's name. A map means the name is generated, and the map is its seed: for
+every step of the strategy but a combine, the wire value of each parameter
+(`domain/strategy/generated_name.py::name_seed`). Every write through
 `services/strategies/naming.py::name_the_thread` states the origin in
-`generated_over`. `name_if_unnamed` records the steps when it writes the first
-title; `rename_strategy_everywhere` (the sidebar rename and the agent's
-`rename_strategy`) and `name_the_thread_as_the_graph` (`UpdateStrategyMetaOp`)
-clear the record. A write of the record alone appends no strategy snapshot,
-because it is not strategy state.
+`generated_over`. `name_if_unnamed` records the seed when it writes the first
+title; `rename_strategy_everywhere` (the sidebar rename, an imported saved
+strategy's own name and the agent's `rename_strategy`) and
+`name_the_thread_as_the_graph` (`UpdateStrategyMetaOp`) clear it. A write of the
+seed alone appends no strategy snapshot, because it is not strategy state.
 
 **The turn end keeps a generated name true.**
 `ai/conversation/turn_title.py::write_turn_name` writes the first title, or,
 when the turn wrote none, calls
-`services/conversations/turns.py::rename_if_edits_outdated_it` with the strategy
-the turn opened on (`turn_start_strategy`). A generated name is outdated when a
-step it covers is gone, or when a covered step no longer holds a value the name
-states as a whole word, in any case; a multi-pick value counts each term it
-dropped (`name_outdated`). The new name comes from the title model, seeded by
-`name_seed`: the organisms the catalog marks for the result, then the criterion
-text of each step left (its label when it has none). The turn's message never
-seeds it, because for an edit it is the edit instruction. The name is written
-through `name_the_thread` under the thread's strategy lock, only while the
-record is the one the check read, so a rename by a person during the title call
-wins. `put_the_name_on_wdk` then sends it to WDK, the turn writes it as
-`data-conversation-title`, and the record takes the steps the strategy holds.
-The check and the title call share the 15 s ceiling of the first title
-(`TITLE_WAIT_SECONDS`).
+`services/conversations/turns.py::rename_if_edits_outdated_it`. A generated
+name is outdated exactly when a seed step is gone or holds another wire value
+than its seed for a seed parameter (`name_outdated`). A step or a parameter
+added beside the seed does not outdate it. The check compares the stored seed
+with the stored strategy, so an edit made on the canvas between turns counts at
+the next turn end. The new name comes from the title model, given
+`title_text`: the organisms the catalog marks for the result, then the
+criterion text of each step left (its label when it has none). The turn's
+message is never that text, because for an edit it is the edit instruction. The
+name is written through `name_the_thread` under the thread's strategy lock,
+only while the seed is the one the check read, so a rename by a person during
+the title call wins. `put_the_name_on_wdk` then sends it to WDK, the turn
+writes it as `data-conversation-title`, and the row takes the seed of the
+strategy it now holds. The check and the title call share the 15 s ceiling of
+the first title (`TITLE_WAIT_SECONDS`).
 
 **A name written before any step covers the first build.** The `/begin` title,
 or the title of a first turn that only asked a question, is a generated name
-over no steps. The first turn end that finds steps records them, with no title
-call. A strategy that loses every step keeps its name and records no steps, so
-the next build is covered again.
+over an empty seed. The first turn end that finds steps records their seed,
+with no title call. A strategy that loses every step keeps its name and records
+an empty seed, so the next build is covered again.
 
-No title call is made unless a covered step is gone or a stated value moved.
+**A step name PathFinder made follows the values it labels.** A criterion
+titles its step by the search's display name and the site's vocabulary labels
+of the values it binds, which the binding pass reads
+(`Criterion.step_title`; `domain/strategy/step_naming.py::StepTitle`). A label
+counts when the value is shown, is not the site's initial value or prompt, and
+is not the organism parameter, which the strategy name carries; the labels are
+cut on a word at 60 code points. `StepWords.titles` stores that title per step
+id in the strategy's metadata. A step whose name equals its stored title is
+PathFinder's: `StrategyGraph.note_words` gives it the newer title, and a
+parameter write (`_apply_update_params`) gives it its own title less the label
+of every value it no longer holds (`StepTitle.kept`). A step whose name is not
+its stored title, because a person renamed it, a model wrote it, the site holds
+another, or it was stored with no title, keeps its name. A rebound search keeps
+a researcher's name too.
 
 # Gaps accepted
 
-- A canvas edit outside a turn does not regenerate the name when it lands. A
-  covered step it deleted is found at the end of the next turn, because that
-  check reads the record; a value it moved is not, because that check compares
-  the start and the end of the turn.
-- A branch or a copy of a thread carries no record, so its name ("X (branch)",
+- A branch or a copy of a thread carries no seed, so its name ("X (branch)",
   "Copy of X") is never generated anew.
-- A moved value counts only when the name states its stored form whole. A name
-  that says "Chromosome 1" is outdated by a move off "1" and not by a move off
-  "01"; an organism term with a strain is not stated by a name that gives the
-  species alone.
+- A name stored before its seed or its step title was recorded reads as a
+  person's and is never rewritten; the migration `2026_11_03_0001` drops the
+  older step list rather than guess wire values for it.
+- A value written outside the spec (the canvas, BUILD's `update_leaf_params`)
+  takes its label out of a step name, and the next spec pass that binds it puts
+  the fresh label back.
+- A seed value that moves to an equal reading in another wire form ("01" to
+  "1") still generates the name anew.
 
 # What was rejected
+
+**Reading the name's words against the wire values.** A strategy name was
+outdated when it carried a moved value as a whole word, and a step name had
+each moved value replaced where its words carried it. Both read model-written
+text: a name that states a value another way ("Chromosome 1" for "01", a species
+for a strain) was missed, and a value the name carried twice or one two
+parameters shared could not be placed. The seed and the stored title are typed
+and compared for equality.
 
 **Rename on every edit.** A researcher's own edits churn the name, and each one
 costs a title call.
 
 **Never rename.** The name states a filter the strategy no longer applies, and
 it travels to WDK and to the gene set the thread imported.
-
-**Reading a deleted step from the turn's start and end alone.** A covered step a
-canvas edit deleted stays in the record for good under that rule, so the name is
-never generated anew; reading the record finds the step at the next turn end.

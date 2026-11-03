@@ -52,10 +52,7 @@ from pathfinder.ai.conversation.turn_failure import (
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
 from pathfinder.ai.conversation.turn_title import write_turn_name
 from pathfinder.platform.log_ids import LogIds, log_ids_scope
-from pathfinder.services.conversations.turns import (
-    load_conversation,
-    turn_start_strategy,
-)
+from pathfinder.services.conversations.turns import load_conversation
 from pathfinder.services.search_waits import researcher_search_turn
 
 logger = get_logger(__name__)
@@ -211,7 +208,6 @@ async def _run_turn_with_context(
     turn_message_id = writer.turn_id
     async with turn_closed_on_failure(writer):
         turn_token = await spec.turn_prologue(body.conversation_id)
-        start_strategy = await turn_start_strategy(body.conversation_id)
         start_event_id = await writer.write(
             StartChunk(message_id=str(turn_message_id)).model_dump(
                 by_alias=True,
@@ -273,7 +269,6 @@ async def _run_turn_with_context(
         title_task,
         body.conversation_id,
         writer,
-        start=start_strategy,
         title_for=partial(
             charged_conversation_title,
             mock_model=spec.build_mock_model,

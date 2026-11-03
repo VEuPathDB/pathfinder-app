@@ -292,9 +292,6 @@ def _change_op(
         update={
             "search_name": after.search_name,
             "parameters": _restated_params(graph, change, after),
-            # A step that keeps its search keeps its name; a new search is
-            # titled by what now runs.
-            "display_name": after.title if change.rebound_search else live.display_name,
         }
     )
     return ReplaceSubtreeOp(step_id=after.id, subtree=subtree)

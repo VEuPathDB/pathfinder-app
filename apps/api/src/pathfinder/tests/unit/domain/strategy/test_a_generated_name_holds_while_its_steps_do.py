@@ -1,4 +1,4 @@
-"""A generated strategy name holds while the steps and values it states hold."""
+"""A generated strategy name holds while every step and value of its seed holds."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from veupathdb.domain.strategy import (
 from pathfinder.domain.strategy.generated_name import (
     name_outdated,
     name_seed,
-    named_steps,
+    title_text,
 )
 
-NAME = "Naegleria fowleri Peptidase Genes With Signal Peptides"
 ORGANISM = "Naegleria fowleri ATCC 30863"
+ORGANISM_WIRE = MultiPickValue(values=[ORGANISM]).to_wire()
 
 
 def _peptidase() -> StrategyStepNode:
@@ -65,98 +65,79 @@ def _signal_only() -> StrategyAst:
     )
 
 
-def _on_chromosome(chromosome: str) -> StrategyAst:
+def _on_chromosome(chromosome: str, *, end: str | None = None) -> StrategyAst:
+    parameters = {
+        "chromosomeOptional": SinglePickValue(value=chromosome),
+        "start_point": StringValue(value="1"),
+    }
+    if end is not None:
+        parameters["end_point"] = StringValue(value=end)
     return StrategyAst(
         record_type="transcript",
         root=StrategyStepNode(
-            id="step_location",
-            search_name="GenesByLocation",
-            parameters={
-                "chromosomeOptional": SinglePickValue(value=chromosome),
-                "start_point": StringValue(value="1"),
-            },
+            id="step_location", search_name="GenesByLocation", parameters=parameters
         ),
     )
 
 
-MARKED = ["step_peptidase", "step_signal"]
+SEED = {
+    "step_peptidase": {"organism": ORGANISM_WIRE},
+    "step_signal": {"organism": ORGANISM_WIRE},
+}
 
 
-def test_the_name_covers_every_step_but_a_combine() -> None:
-    assert named_steps(_both()) == MARKED
-    assert named_steps(None) == []
+def test_the_seed_holds_the_wire_value_of_every_step_but_a_combine() -> None:
+    assert name_seed(_both()) == SEED
+    assert name_seed(None) == {}
 
 
-def test_a_deleted_marked_step_outdates_the_name() -> None:
-    assert name_outdated(NAME, MARKED, start=_both(), now=_signal_only()) is True
+def test_a_deleted_seed_step_outdates_the_name() -> None:
+    assert name_outdated(SEED, _signal_only()) is True
 
 
-def test_a_marked_step_gone_before_the_turn_outdates_the_name() -> None:
-    assert name_outdated(NAME, MARKED, start=_signal_only(), now=_signal_only()) is True
+def test_a_strategy_that_keeps_its_seed_keeps_the_name() -> None:
+    assert name_outdated(SEED, _both()) is False
 
 
-def test_a_strategy_that_keeps_its_marked_steps_keeps_the_name() -> None:
-    assert name_outdated(NAME, MARKED, start=_both(), now=_both()) is False
+def test_a_deleted_step_outside_the_seed_keeps_the_name() -> None:
+    assert name_outdated({"step_signal": SEED["step_signal"]}, _signal_only()) is False
 
 
-def test_a_deleted_step_the_name_was_not_written_over_keeps_it() -> None:
-    assert (
-        name_outdated(NAME, ["step_signal"], start=_both(), now=_signal_only()) is False
-    )
+def test_any_moved_seed_value_outdates_the_name() -> None:
+    assert name_outdated(name_seed(_on_chromosome("01")), _on_chromosome("02")) is True
 
 
-def test_a_moved_value_the_name_states_outdates_it() -> None:
-    name = "Fusarium graminearum P450 Genes on Chromosome 1"
+def test_a_seed_value_the_step_no_longer_holds_outdates_the_name() -> None:
+    seed = name_seed(_on_chromosome("1", end="900"))
 
-    assert (
-        name_outdated(
-            name, ["step_location"], start=_on_chromosome("1"), now=_on_chromosome("2")
-        )
-        is True
-    )
+    assert name_outdated(seed, _on_chromosome("1")) is True
 
 
-def test_a_moved_value_the_name_does_not_state_keeps_it() -> None:
-    name = "Fusarium graminearum P450 Genes on Chromosome 1"
+def test_a_value_added_beside_the_seed_keeps_the_name() -> None:
+    seed = name_seed(_on_chromosome("1"))
 
-    assert (
-        name_outdated(
-            name,
-            ["step_location"],
-            start=_on_chromosome("01"),
-            now=_on_chromosome("02"),
-        )
-        is False
-    )
+    assert name_outdated(seed, _on_chromosome("1", end="900")) is False
 
 
-def test_a_dropped_pick_the_name_states_in_another_case_outdates_it() -> None:
-    start = _both(_signal("naegleria fowleri"))
-    now = _both(_signal("Naegleria gruberi"))
+def test_a_value_moved_on_a_step_outside_the_seed_keeps_the_name() -> None:
+    seed = {"step_peptidase": SEED["step_peptidase"]}
 
-    assert name_outdated(NAME, MARKED, start=start, now=now) is True
-
-
-def test_a_value_moved_on_an_unmarked_step_keeps_the_name() -> None:
-    start = _both(_signal("Naegleria fowleri"))
-    now = _both(_signal("Naegleria gruberi"))
-
-    assert name_outdated(NAME, ["step_peptidase"], start=start, now=now) is False
+    assert name_outdated(seed, _both(_signal("Naegleria gruberi"))) is False
 
 
-def test_the_seed_is_the_organisms_and_the_words_of_the_steps_left() -> None:
-    assert name_seed(_signal_only(), [ORGANISM]) == (
+def test_the_title_text_is_the_organisms_and_the_words_of_the_steps_left() -> None:
+    assert title_text(_signal_only(), [ORGANISM]) == (
         f"{ORGANISM}: genes with signal peptides"
     )
 
 
-def test_a_step_with_no_words_is_seeded_by_its_label() -> None:
-    assert name_seed(_on_chromosome("2")) == "GenesByLocation"
+def test_a_step_with_no_words_is_titled_by_its_label() -> None:
+    assert title_text(_on_chromosome("2")) == "GenesByLocation"
 
 
-def test_the_seed_joins_the_words_of_every_step_once() -> None:
-    assert name_seed(_both()) == "peptidase genes; genes with signal peptides"
+def test_the_title_text_joins_the_words_of_every_step_once() -> None:
+    assert title_text(_both()) == "peptidase genes; genes with signal peptides"
 
 
-def test_a_strategy_with_no_step_seeds_nothing() -> None:
-    assert name_seed(None, [ORGANISM]) == ""
+def test_a_strategy_with_no_step_has_no_title_text() -> None:
+    assert title_text(None, [ORGANISM]) == ""

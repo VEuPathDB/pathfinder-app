@@ -63,10 +63,6 @@ Each step is test first and runs every gate. A step marked R changes classifier
 or FRAME behaviour, so before it is pushed the eval cases that passed before must
 pass on Luna on QA, and a case that flips is rerun three times per arm.
 
-14. Names: a generated name stores its seed (step id to parameter and wire value)
-    and is outdated when a seed value or step is gone; a step name PathFinder made
-    is regenerated from the search display name and bound labels, and a name the
-    researcher wrote is never rewritten. Not R.
 15. Cleanup: delete `message_states` with its tests; run
     vulture; update the verdict's kind table, the requirement lifecycle decision
     and the vocabulary convention; regenerate the shared types and update the web

@@ -1,4 +1,4 @@
-"""A generated name records the steps it was written over; a chosen name records none."""
+"""A generated name records the seed it was written over; a chosen name records none."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     session_with,
 )
 from pathfinder.tests.unit.services.strategies._thread_names import (
+    SEED,
     Sets,
     Threads,
     thread_row,
@@ -59,40 +60,40 @@ def _serve(monkeypatch: pytest.MonkeyPatch, threads: Threads) -> None:
     monkeypatch.setattr(naming, "ConversationRepository", lambda _session: threads)
 
 
-async def test_the_first_title_records_the_steps_it_names(
+async def test_the_first_title_records_the_seed_it_names(
     api: StubAPI, sets: Sets
 ) -> None:
     threads = thread_row()
 
     await name_if_unnamed(threads, threads.conversation.id, title=_TITLE)
 
-    assert threads.strategy.generated_name_steps == ["step_a"]
+    assert threads.strategy.generated_name_seed == SEED
 
 
 async def test_putting_the_name_back_keeps_the_record(api: StubAPI, sets: Sets) -> None:
     threads = thread_row(
-        name="Kinase Hunt", ast_name="New Conversation", generated_name_steps=[]
+        name="Kinase Hunt", ast_name="New Conversation", generated_name_seed={}
     )
 
     await name_if_unnamed(threads, threads.conversation.id, title=_TITLE)
 
-    assert (threads.ast_name, threads.strategy.generated_name_steps) == (
+    assert (threads.ast_name, threads.strategy.generated_name_seed) == (
         "Kinase Hunt",
-        [],
+        {},
     )
 
 
 async def test_a_rename_by_a_person_clears_the_record(
     monkeypatch: pytest.MonkeyPatch, api: StubAPI, sets: Sets
 ) -> None:
-    threads = thread_row(name="Kinase Hunt", generated_name_steps=["step_a"])
+    threads = thread_row(name="Kinase Hunt", generated_name_seed=SEED)
     _serve(monkeypatch, threads)
 
     await rename_strategy_everywhere(
         threads.conversation.id, _TITLE, session_factory=async_session_factory
     )
 
-    assert (threads.conversation.name, threads.strategy.generated_name_steps) == (
+    assert (threads.conversation.name, threads.strategy.generated_name_seed) == (
         _TITLE,
         None,
     )
@@ -103,7 +104,7 @@ async def test_a_graph_rename_clears_the_record(
 ) -> None:
     install_stub_api(monkeypatch)
     threads = thread_row(
-        name="Kinase Hunt", ast_name="Kinase Hunt", generated_name_steps=["step_a"]
+        name="Kinase Hunt", ast_name="Kinase Hunt", generated_name_seed=SEED
     )
 
     @asynccontextmanager
@@ -128,7 +129,7 @@ async def test_a_graph_rename_clears_the_record(
         op=UpdateStrategyMetaOp(name=_TITLE),
     )
 
-    assert (threads.conversation.name, threads.strategy.generated_name_steps) == (
+    assert (threads.conversation.name, threads.strategy.generated_name_seed) == (
         _TITLE,
         None,
     )

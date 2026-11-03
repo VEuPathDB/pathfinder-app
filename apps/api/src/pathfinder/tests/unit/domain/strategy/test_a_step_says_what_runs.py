@@ -12,6 +12,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.operations import AddLeafOp, ReplaceSubtreeOp
+from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
@@ -124,14 +125,33 @@ def test_a_restated_step_keeps_the_name_a_researcher_gave_it() -> None:
     assert _restated_title(after, "My proteases") == "My proteases"
 
 
-def test_a_rebound_step_takes_the_name_of_its_new_search() -> None:
-    after = spec_of(three_step_root())
+def _rebound(after: OperationalSpec) -> OperationalSpec:
     text = next(c for c in after.criteria if c.id == "step_text")
     text.search_name = "GenesByExportPrediction"
     text.search_display_name = "Exported Protein"
     text.resolved_params = bound({"organism": MultiPickValue(values=["Plasmodium"])})
+    return after
 
-    assert _restated_title(after, "My proteases") == "Exported Protein"
+
+def test_a_rebound_step_keeps_the_name_a_researcher_gave_it() -> None:
+    after = _rebound(spec_of(three_step_root()))
+
+    assert _restated_title(after, "My proteases") == "My proteases"
+
+
+def test_a_rebound_step_pathfinder_named_takes_the_name_of_its_new_search() -> None:
+    root = three_step_root()
+    before = spec_of(root)
+    graph = graph_of(root)
+    graph.note_words(step_words(before))
+    graph.steps["step_text"].display_name = graph.words.titles["step_text"].name
+    after = _rebound(before.model_copy(deep=True))
+
+    for op in plan(before, after, graph):
+        apply_operation(graph, op)
+    graph.note_words(step_words(after))
+
+    assert graph.steps["step_text"].display_name == "Exported Protein"
 
 
 def test_the_graph_carries_the_researchers_words_through_its_ast() -> None:

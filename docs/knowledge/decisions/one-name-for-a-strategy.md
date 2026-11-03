@@ -25,7 +25,7 @@ title (`name_conversation_if_unnamed`, from the turn and from `/begin`) does the
 same through `name_if_unnamed`. A graph edit that renames (`UpdateStrategyMetaOp`) writes the thread
 through `name_the_thread_as_the_graph`, and its push sends the name to WDK.
 Every write states whether the name is generated, and the turn end generates a
-generated name anew when an edit takes away what it names
+generated name anew when an edit moves the seed it was written over
 ([a-generated-name-follows-the-steps-it-names](a-generated-name-follows-the-steps-it-names.md)).
 
 **WDK is written after the lock.** The thread's strategy lock covers the
