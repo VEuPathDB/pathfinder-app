@@ -88,6 +88,10 @@ _SELENOPROTEIN: dict[SecVerdict, str] = {
 }
 LENGTH_SENTENCES: dict[LengthVerdict, str] = {
     "GENOME_ENCODES": "The genome's DNA encodes the part the model lacks",
+    "FRAMESHIFT": (
+        "The model follows the assembly, whose DNA holds the part the model lacks "
+        "in another reading frame"
+    ),
     "ASSEMBLY": (
         "The part the model lacks falls in an assembly gap or at a contig end"
     ),
@@ -192,6 +196,7 @@ ERROR_TYPE_TITLES: dict[ErrorType, str] = {
     "intact_gene_called_pseudogene": "Intact gene called a pseudogene",
     "sec_read_as_stop": "Selenocysteine codon read as a stop",
     "truncated_model": "Model too short",
+    "assembly_frameshift": "Frameshift in the assembly",
     "split_model": "One gene split into two models",
     "over_extended_model": "Model too long",
     "fused_model": "Two genes fused into one model",
@@ -215,6 +220,10 @@ ERROR_TYPE_DESCRIPTIONS: dict[ErrorType, str] = {
     "truncated_model": (
         "The model's protein is shorter than its orthologs', and the genome's DNA "
         "encodes the part it lacks."
+    ),
+    "assembly_frameshift": (
+        "The model follows the assembly to a stop, and the part it lacks lies close "
+        "by in another reading frame of the same DNA."
     ),
     "split_model": (
         "Two neighbouring models are parts of one protein, in order on one strand."

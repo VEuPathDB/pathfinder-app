@@ -20,6 +20,7 @@ from pathfinder.tests._support.audit import (
 
 _TRUNCATED = Classification(error_type="truncated_model", certainty="high")
 _SPLIT = Classification(error_type="split_model", certainty="medium")
+_FRAMESHIFT = Classification(error_type="assembly_frameshift", certainty="medium")
 _LENGTH_UNREAD = Classification(
     message=(
         "NOT_CHECKED: the ortholog group does not class the gene as short, so the "
@@ -46,6 +47,7 @@ _SPLIT_UNREAD = Classification(
 )
 _LENGTH_ERRORS = {
     ("SHORT", "GENOME_ENCODES"): _TRUNCATED,
+    ("SHORT", "FRAMESHIFT"): _FRAMESHIFT,
     ("SPLIT", "SPLIT_CONFIRMED"): _SPLIT,
 }
 _GAPPED_SPLIT = GeneLengthAudit.model_validate(
@@ -80,6 +82,13 @@ def _length_answer(length_class: str, verdict: str) -> GeneLengthAudit:
                 check="gene_length", result=short_audit("G1", reference_gene="R1")
             ),
             _TRUNCATED,
+        ),
+        (
+            LengthConfirmation(
+                check="gene_length",
+                result=short_audit("G1", reference_gene="R1", verdict="FRAMESHIFT"),
+            ),
+            _FRAMESHIFT,
         ),
         (
             LengthConfirmation(
@@ -165,7 +174,9 @@ def test_a_length_answer_names_its_error(
 @pytest.mark.parametrize(
     ("length_class", "verdict"), list(product(_LENGTH_CLASSES, _LENGTH_VERDICTS))
 )
-def test_only_two_length_answers_name_an_error(length_class: str, verdict: str) -> None:
+def test_only_three_length_answers_name_an_error(
+    length_class: str, verdict: str
+) -> None:
     answer = _length_answer(length_class, verdict)
     check = "gene_split" if len(answer.genes) == 2 else "gene_length"
     named = classify_confirmation(LengthConfirmation(check=check, result=answer))

@@ -8,6 +8,8 @@ from pathfinder.domain.audit.length_facts import (
     _NO_RELATIVES,
     _NOT_READ,
     _PARTS,
+    _UNDETERMINED,
+    _VARIANT_ANSWERS,
 )
 
 
@@ -39,6 +41,20 @@ def test_the_parts_table_reads_its_exact_words() -> None:
         "part1": "in the first model",
         "part2": "in the second model",
     }
+
+
+def test_the_variant_answers_table_reads_its_exact_words() -> None:
+    assert _VARIANT_ANSWERS == {
+        "INDEL_CALLED": "The strain's reads carry an indel here, so the change is in the strain",
+        "NO_INDEL_CALLED": "The strain's reads carry no indel here, so the assembly likely miscounts the run",
+        "NO_VARIANT_CALLED": "No sample has a variant here, so the assembly likely miscounts the run",
+        "NOT_COVERED": "The strain's reads do not cover this place",
+        "NOT_SAMPLED": "The strain is not among the samples the site sequenced",
+    }
+    assert _UNDETERMINED == (
+        "The site's calls hold almost no indel in a run this long, so a missing call "
+        "does not show whether the strain's reads carry the change"
+    )
 
 
 def test_the_tiers_table_reads_its_exact_words() -> None:

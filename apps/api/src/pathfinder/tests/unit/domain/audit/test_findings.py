@@ -77,6 +77,7 @@ def test_every_library_verdict_has_a_named_answer() -> None:
     assert set(_LENGTH_CLASSES) == {"SHORT", "LONG", "TYPICAL", "SPLIT", "UNQUALIFIED"}
     assert set(_LENGTH_VERDICTS) == {
         "GENOME_ENCODES",
+        "FRAMESHIFT",
         "ASSEMBLY",
         "ABSENT",
         "NOT_SHORT",

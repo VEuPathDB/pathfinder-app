@@ -3,13 +3,17 @@ from __future__ import annotations
 from typing import Literal
 
 from veupathdb_mcp.audit import (
+    Frameshift,
     GeneFusionAudit,
     GeneLengthAudit,
+    GenomeSource,
     LengthCheck,
     LengthScreen,
     NoRelatives,
     NotRead,
     StrainModelAudit,
+    VariantAnswer,
+    VariantCalls,
     WindowState,
 )
 
@@ -48,6 +52,22 @@ _NOT_READ: dict[NotRead, str] = {
     "PARALOG_IN_WINDOW": "A paralog lies in the region the check reads",
 }
 
+_VARIANT_ANSWERS: dict[VariantAnswer, str] = {
+    "INDEL_CALLED": "The strain's reads carry an indel here, so the change is in the strain",
+    "NO_INDEL_CALLED": (
+        "The strain's reads carry no indel here, so the assembly likely miscounts the run"
+    ),
+    "NO_VARIANT_CALLED": (
+        "No sample has a variant here, so the assembly likely miscounts the run"
+    ),
+    "NOT_COVERED": "The strain's reads do not cover this place",
+    "NOT_SAMPLED": "The strain is not among the samples the site sequenced",
+}
+_UNDETERMINED = (
+    "The site's calls hold almost no indel in a run this long, so a missing call does "
+    "not show whether the strain's reads carry the change"
+)
+
 
 def _parts(check: LengthCheck) -> str:
     if check.windows == 0:
@@ -56,10 +76,83 @@ def _parts(check: LengthCheck) -> str:
     return f"{check.windows:,}: {', '.join(counted)}"
 
 
+def _from_genome(source: GenomeSource) -> str:
+    return f"from the {source.site} genome of {source.organism}"
+
+
+def _bases(count: int) -> str:
+    match count:
+        case 1:
+            return "one base more than the reference"
+        case -1:
+            return "one base fewer than the reference"
+        case _ if count > 0:
+            return f"{count} bases more than the reference"
+        case _:
+            return f"{-count} bases fewer than the reference"
+
+
+def _change(shift: Frameshift) -> str:
+    strand = "plus" if shift.strand == "+" else "minus"
+    first, last = shift.reference_residues
+    return (
+        f"{shift.source.seqid} bases {shift.start:,} to {shift.end:,} ({strand} strand), "
+        f"frame {shift.frame_before + 1} to frame {shift.frame_after + 1}, "
+        f"{_bases(shift.shift)}, at residues {first} to {last} of the reference protein"
+    )
+
+
+def _run(shift: Frameshift) -> str:
+    run = shift.run
+    if run is None:
+        return NONE
+    return (
+        f"{run.bases} bases of {run.unit}, {shift.source.seqid} {run.start:,} to "
+        f"{run.end:,}, {_from_genome(shift.source)}"
+    )
+
+
+def _reference_run(shift: Frameshift) -> str:
+    run = shift.reference_run
+    if run is None:
+        return NOT_READ
+    return (
+        f"{run.bases} bases in {run.gene}, {run.source.seqid} {run.start:,} to "
+        f"{run.end:,}, {_from_genome(run.source)}"
+    )
+
+
+def _strain_reads(calls: VariantCalls | None) -> str:
+    if calls is None:
+        return NOT_READ
+    missing = calls.answer in {"NO_INDEL_CALLED", "NO_VARIANT_CALLED"}
+    said = (
+        _UNDETERMINED
+        if missing and not calls.determinable
+        else _VARIANT_ANSWERS[calls.answer]
+    )
+    return (
+        f"{said}. {calls.site} {calls.record_type} search {calls.search}, table "
+        f"{calls.table}, sample {known(calls.sample)}, variants {listed(calls.variants)}"
+    )
+
+
+def _frameshift(shift: Frameshift) -> tuple[Fact, ...]:
+    return (
+        Fact(label="Frame change", value=_change(shift)),
+        Fact(label="Run at the change", value=_run(shift)),
+        Fact(label="Same run in the reference strain", value=_reference_run(shift)),
+        Fact(
+            label="Strain's reads at the run", value=_strain_reads(shift.variant_calls)
+        ),
+    )
+
+
 def _dna(check: LengthCheck) -> tuple[Fact, ...]:
     ns = check.ns_in_window
     return (
         Fact(label="Parts of the reference protein", value=_parts(check)),
+        *(fact for shift in check.frameshifts for fact in _frameshift(shift)),
         Fact(
             label="Unknown bases in the region read",
             value=NOT_READ if ns is None else f"{ns:,}",

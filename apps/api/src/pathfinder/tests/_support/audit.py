@@ -16,11 +16,14 @@ from pydantic import BaseModel, ConfigDict
 from veupathdb import get_observer, set_observer
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb_mcp.audit import (
+    Frameshift,
     GeneId,
     GeneLengthAudit,
     GeneRow,
     GeneticCode,
+    GenomeSource,
     PseudogeneCallAudit,
+    RepeatRun,
     SelenoproteinEndAudit,
 )
 
@@ -157,6 +160,19 @@ def revised[M: BaseModel](model: M, **changes: object) -> M:
     return type(model).model_validate({**model.model_dump(), **changes})
 
 
+FRAMESHIFT = Frameshift(
+    source=GenomeSource(site="plasmodb", organism="pfalNF54", seqid="CM019789.1"),
+    strand="-",
+    start=380000,
+    end=380028,
+    frame_before=0,
+    frame_after=1,
+    shift=1,
+    reference_residues=(529, 538),
+    run=RepeatRun(unit="A", bases=29, start=380000, end=380028),
+)
+
+
 def short_audit(
     gene: str,
     *,
@@ -167,6 +183,7 @@ def short_audit(
     return GeneLengthAudit.model_validate(
         {
             "verdict": verdict,
+            "frameshifts": [FRAMESHIFT] if verdict == "FRAMESHIFT" else [],
             "windows": 19,
             "counts": {"model": 12, "genome_same_strand": 7},
             "track": "MMMMMMGGGGGGGMMMMMM",

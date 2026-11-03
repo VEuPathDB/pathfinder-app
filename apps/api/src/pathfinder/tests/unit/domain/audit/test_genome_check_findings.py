@@ -29,7 +29,7 @@ from pathfinder.domain.audit.findings import (
     EvidencePayload,
     classify_confirmation,
 )
-from pathfinder.tests._support.audit import gene_row
+from pathfinder.tests._support.audit import FRAMESHIFT, gene_row
 from pathfinder.tests._support.audit_answers import (
     GT1,
     fusion,
@@ -37,6 +37,7 @@ from pathfinder.tests._support.audit_answers import (
     not_long,
     organelle,
     strain,
+    strain_frameshift,
     unread_strain,
 )
 
@@ -158,6 +159,15 @@ def test_a_strain_answer_names_its_error_by_its_side(
     confirmation = StrainConfirmation(result=strain(side))
     assert classify_confirmation(confirmation) == expected
     assert confirmation.verdict == side
+
+
+def test_a_strain_frameshift_names_the_assembly_of_the_strain() -> None:
+    confirmation = StrainConfirmation(result=strain_frameshift(FRAMESHIFT))
+
+    assert classify_confirmation(confirmation) == Classification(
+        error_type="assembly_frameshift", certainty="medium", model_role="strain"
+    )
+    assert confirmation.verdict == "NOT_JUDGED"
 
 
 @pytest.mark.parametrize(

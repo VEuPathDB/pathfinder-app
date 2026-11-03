@@ -2678,6 +2678,7 @@ paths:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - assembly_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6012,6 +6013,7 @@ components:
           - intact_gene_called_pseudogene
           - sec_read_as_stop
           - truncated_model
+          - assembly_frameshift
           - split_model
           - over_extended_model
           - fused_model
@@ -6061,6 +6063,7 @@ components:
           - intact_gene_called_pseudogene
           - sec_read_as_stop
           - truncated_model
+          - assembly_frameshift
           - split_model
           - over_extended_model
           - fused_model
@@ -6134,6 +6137,9 @@ components:
         truncated_model:
           type: string
           title: Truncated Model
+        assembly_frameshift:
+          type: string
+          title: Assembly Frameshift
         split_model:
           type: string
           title: Split Model
@@ -6167,6 +6173,7 @@ components:
       - intact_gene_called_pseudogene
       - sec_read_as_stop
       - truncated_model
+      - assembly_frameshift
       - split_model
       - over_extended_model
       - fused_model
@@ -6497,6 +6504,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - assembly_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6748,6 +6756,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - assembly_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6848,6 +6857,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - assembly_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -6983,6 +6993,59 @@ components:
       required:
       - fromMessageId
       title: ForkConversationRequest
+    Frameshift:
+      properties:
+        source:
+          $ref: '#/components/schemas/GenomeSource'
+        strand:
+          $ref: '#/components/schemas/Strand'
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        frameBefore:
+          type: integer
+          title: Framebefore
+        frameAfter:
+          type: integer
+          title: Frameafter
+        shift:
+          type: integer
+          title: Shift
+        referenceResidues:
+          prefixItems:
+          - type: integer
+          - type: integer
+          type: array
+          maxItems: 2
+          minItems: 2
+          title: Referenceresidues
+        run:
+          anyOf:
+          - $ref: '#/components/schemas/RepeatRun'
+          - type: 'null'
+        referenceRun:
+          anyOf:
+          - $ref: '#/components/schemas/ReferenceRun'
+          - type: 'null'
+        variantCalls:
+          anyOf:
+          - $ref: '#/components/schemas/VariantCalls'
+          - type: 'null'
+      type: object
+      required:
+      - source
+      - strand
+      - start
+      - end
+      - frameBefore
+      - frameAfter
+      - shift
+      - referenceResidues
+      - run
+      title: Frameshift
     FusionAudit:
       properties:
         extra:
@@ -7328,6 +7391,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Atcontigedge
+        frameshifts:
+          items:
+            $ref: '#/components/schemas/Frameshift'
+          type: array
+          title: Frameshifts
         code:
           anyOf:
           - $ref: '#/components/schemas/GeneticCode'
@@ -7399,6 +7467,7 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - assembly_frameshift
             - split_model
             - over_extended_model
             - fused_model
@@ -7754,6 +7823,23 @@ components:
       - unresolvedByStatus
       - unresolved
       title: GenomeRate
+    GenomeSource:
+      properties:
+        site:
+          type: string
+          title: Site
+        organism:
+          type: string
+          title: Organism
+        seqid:
+          type: string
+          title: Seqid
+      type: object
+      required:
+      - site
+      - organism
+      - seqid
+      title: GenomeSource
     GenomeUse:
       properties:
         genome:
@@ -8326,6 +8412,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Atcontigedge
+        frameshifts:
+          items:
+            $ref: '#/components/schemas/Frameshift'
+          type: array
+          title: Frameshifts
       type: object
       required:
       - verdict
@@ -8362,6 +8453,7 @@ components:
       type: string
       enum:
       - GENOME_ENCODES
+      - FRAMESHIFT
       - ASSEMBLY
       - ABSENT
       - NOT_SHORT
@@ -10176,6 +10268,33 @@ components:
       - displayName
       title: RecordTypeResponse
       description: Record type information.
+    ReferenceRun:
+      properties:
+        gene:
+          type: string
+          title: Gene
+        source:
+          $ref: '#/components/schemas/GenomeSource'
+        strand:
+          $ref: '#/components/schemas/Strand'
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        bases:
+          type: integer
+          title: Bases
+      type: object
+      required:
+      - gene
+      - source
+      - strand
+      - start
+      - end
+      - bases
+      title: ReferenceRun
     Relative:
       properties:
         organism:
@@ -10248,6 +10367,27 @@ components:
       - side
       - referenceOrganism
       title: RelativesEvidence
+    RepeatRun:
+      properties:
+        unit:
+          type: string
+          title: Unit
+        bases:
+          type: integer
+          title: Bases
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+      type: object
+      required:
+      - unit
+      - bases
+      - start
+      - end
+      title: RepeatRun
     ReplaceStrategyOp:
       properties:
         kind:
@@ -11495,6 +11635,37 @@ components:
       - seqid
       - spans
       title: StopCodon
+    StrainCall:
+      properties:
+        variant:
+          type: string
+          title: Variant
+        genotype:
+          type: string
+          title: Genotype
+        allele:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Allele
+        depth:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Depth
+        readFrequency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Readfrequency
+      type: object
+      required:
+      - variant
+      - genotype
+      - allele
+      - depth
+      - readFrequency
+      title: StrainCall
     StrainConfirmation:
       properties:
         check:
@@ -12966,6 +13137,83 @@ components:
       - isValid
       title: ValidationResult
       description: Single validation result with normalized values.
+    VariantAnswer:
+      type: string
+      enum:
+      - INDEL_CALLED
+      - NO_INDEL_CALLED
+      - NO_VARIANT_CALLED
+      - NOT_COVERED
+      - NOT_SAMPLED
+    VariantCalls:
+      properties:
+        site:
+          type: string
+          title: Site
+        recordType:
+          type: string
+          title: Recordtype
+          default: variation
+        search:
+          type: string
+          title: Search
+          default: VariantsByLocation
+        table:
+          type: string
+          title: Table
+          default: VariantStrains
+        organism:
+          type: string
+          title: Organism
+        seqid:
+          type: string
+          title: Seqid
+        start:
+          type: integer
+          title: Start
+        end:
+          type: integer
+          title: End
+        variants:
+          items:
+            type: string
+          type: array
+          title: Variants
+        sample:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sample
+        calls:
+          items:
+            $ref: '#/components/schemas/StrainCall'
+          type: array
+          title: Calls
+        answer:
+          $ref: '#/components/schemas/VariantAnswer'
+        homopolymerBases:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Homopolymerbases
+        determinable:
+          type: boolean
+          title: Determinable
+          readOnly: true
+      type: object
+      required:
+      - site
+      - organism
+      - seqid
+      - start
+      - end
+      - variants
+      - sample
+      - calls
+      - answer
+      - homopolymerBases
+      - determinable
+      title: VariantCalls
     VdiImportStatus:
       type: string
       enum:

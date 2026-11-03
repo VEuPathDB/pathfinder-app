@@ -54,6 +54,7 @@ ErrorType = Literal[
     "intact_gene_called_pseudogene",
     "sec_read_as_stop",
     "truncated_model",
+    "assembly_frameshift",
     "split_model",
     "over_extended_model",
     "fused_model",
@@ -134,6 +135,8 @@ def _length(confirmation: LengthConfirmation) -> Classification:
     match (result.length_class, result.verdict):
         case ("SHORT", "GENOME_ENCODES"):
             return _named("truncated_model", "high")
+        case ("SHORT", "FRAMESHIFT"):
+            return _named("assembly_frameshift", "medium")
         case ("SPLIT", "SPLIT_CONFIRMED"):
             return _named("split_model", "medium")
         case (length_class, "NOT_CHECKED"):
@@ -257,6 +260,12 @@ def _strain(result: StrainModelAudit) -> Classification:
                 "NO_RELATIVES",
                 f"the ortholog group has no independent relatives "
                 f"({result.relatives.missing}) to judge which side is wrong",
+            )
+        case "NOT_JUDGED" if result.dna.verdict == "FRAMESHIFT":
+            return Classification(
+                error_type="assembly_frameshift",
+                certainty="medium",
+                model_role="strain",
             )
         case "NOT_JUDGED":
             return _unjudged("NOT_JUDGED", _unread_strain(result))

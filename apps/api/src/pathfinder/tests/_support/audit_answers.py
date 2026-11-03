@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from veupathdb_mcp.audit import (
+    Frameshift,
     FusionVerdict,
     GeneFusionAudit,
     GeneticCode,
@@ -171,6 +172,30 @@ def strain(
             "nearby_paralogs": [],
             "side": side,
             "relatives": _strain_relatives(side),
+            "code": GeneticCode.STANDARD,
+            "code_inferred": True,
+        }
+    )
+
+
+def strain_frameshift(shift: Frameshift) -> StrainModelAudit:
+    return StrainModelAudit.model_validate(
+        {
+            **_PKAC_PAIR,
+            "models": PKAC_STRAIN_MODELS,
+            "lost": [(41, 100)],
+            "dna": {
+                **_ENCODED,
+                "verdict": "FRAMESHIFT",
+                "frameshifts": [shift],
+                "windows": 33,
+                "ns_in_window": 0,
+                "at_contig_edge": False,
+            },
+            "not_read": None,
+            "nearby_paralogs": [],
+            "side": "NOT_JUDGED",
+            "relatives": _strain_relatives("NOT_JUDGED"),
             "code": GeneticCode.STANDARD,
             "code_inferred": True,
         }
