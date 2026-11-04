@@ -16,6 +16,10 @@
 
 ## 2026-11-03
 
+* **Dependencies with a published fix are raised.** next 16.4.1, vitest 5 with vite as a direct
+  dependency, dompurify, undici, zod, fast-uri, ip-address, qs and fastmcp-slim. `glob` and
+  `minimatch` hold a resolution, because eslint and cacache still ask for an older range.
+  langgraph waits for an assistant-core release.
 * **The backlog is ranked again.** A wrong count goes first: an ortholog in a genus, then a
   sample shown again. A suggested prompt moves after testers, because all 49 have a passing
   run and what is left is how a biologist adds one.
