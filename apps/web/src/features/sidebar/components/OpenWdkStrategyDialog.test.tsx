@@ -199,7 +199,7 @@ describe("the VEuPathDB strategy import dialog", () => {
     );
 
     expect(screen.getByTestId("open-wdk-strategy-notice")).toHaveTextContent(
-      "That link names a ToxoDB strategy. Switch to ToxoDB to open it.",
+      "That link names a ToxoDB strategy. Open it on the ToxoDB website.",
     );
     expect(screen.getByTestId("open-wdk-strategy-confirm")).toBeDisabled();
     expect(mockOpenStrategy.mock.calls).toEqual([]);

@@ -7,7 +7,6 @@ import type { SiteResponse } from "@pathfinder/shared";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";
-import { chatRoot } from "@/lib/routes";
 import { SiteUnavailableNotice } from "./SiteUnavailableNotice";
 
 function site(over: Partial<SiteResponse>): SiteResponse {
@@ -51,7 +50,7 @@ function draw(siteId: string, rows: SiteResponse[] | undefined) {
 afterEach(cleanup);
 
 describe("SiteUnavailableNotice", () => {
-  it("names the site, says what happened, and links every site that is available", () => {
+  it("names the site, says what happened, and offers no other site", () => {
     draw("veupathdb", [PORTAL_DOWN, site({ id: "toxodb", displayName: "ToxoDB" })]);
 
     expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
@@ -60,22 +59,17 @@ describe("SiteUnavailableNotice", () => {
         "PathFinder cannot use this site right now: the site did not answer in time. It keeps trying every minute, so this may clear on its own.",
       ),
     ).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: "ToxoDB" });
-    expect(link.getAttribute("href")).toBe(chatRoot());
+    expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
-  it("does not link the site that is down", () => {
-    draw("veupathdb", [PORTAL_DOWN, site({ id: "toxodb", displayName: "ToxoDB" })]);
-
-    expect(
-      screen.queryByRole("link", { name: /VEuPathDB Portal/ }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("names the site by its short name and offers no link when the site list is not loaded", () => {
+  it("names the site by its short name when the site list is not loaded", () => {
     draw("veupathdb", undefined);
 
     expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
-    expect(screen.queryAllByRole("link")).toEqual([]);
+    expect(
+      screen.getByText(
+        "PathFinder cannot use this site right now. It keeps trying every minute, so this may clear on its own.",
+      ),
+    ).toBeInTheDocument();
   });
 });

@@ -30,7 +30,7 @@ never read.
 | The researcher's free text on an answer or an offer | comment | add a note, researcher's note | all | "Note" is the notes panel's word, and this text is not a note the assistant keeps. |
 | A memory about a saved gene set, one kind of memory | gene set memory | gene set note | all | Notes belong to one conversation and memories to every conversation; a memory kind called "notes" joins the two. |
 | One exchange between the researcher and the assistant | conversation | chat, thread, future session | all | The sidebar, the route and the API say conversation; thread is the runtime's word. |
-| One VEuPathDB site, such as PlasmoDB | site | database | all | The site menu, every route and the availability refusal say site. |
+| One VEuPathDB site, such as PlasmoDB | site | database | all | Every route and the availability refusal say site. |
 | A VEuPathDB search strategy | strategy | pipeline, search tree, graph, plan AST, invalid plan | researcher | VEuPathDB's word; graph is the canvas code's word, and plan is the operational spec, which is a different thing. |
 | One step of a strategy | step | node, leaf | researcher | VEuPathDB's word. The model's structure tools take `leaf` and node kinds, so the model's text keeps them. |
 | One search of the plan, before it is a step | search | criterion, criteria | researcher | The plan is shown as a plan of searches; criterion is the model's word for it. |
@@ -45,7 +45,7 @@ never read.
 | A question the assistant asks before it builds | question | consult | researcher | Consult is the tool's name. |
 | The assistant the researcher talks to | assistant | agent | researcher | The composer and the empty states say assistant; agent is the code's word. |
 | The models a conversation runs on, set in the Model tab of Settings | model | engine, orchestrator | researcher | The Settings tab is called Model; no tab is called AI Engine, and orchestrator is the code's word for the Lead. |
-| A site PathFinder cannot reach now | couldn't reach | not responding | researcher | The site menu, the rail trigger and the notice say "Couldn't reach" and the site's short name. |
+| A site PathFinder cannot reach now | couldn't reach | not responding | researcher | The notice says "Couldn't reach" and the site's short name. |
 | A conversation the researcher deleted, restorable from the sidebar | recently deleted | dismissed | researcher | The sidebar's list is called Recently deleted; dismissed is the column's name in the code. |
 
 # Exemptions
@@ -68,7 +68,7 @@ property (`data.siteId`). This table reads the web app only.
 
 | Identifier | Name | Reason |
 |---|---|---|
-| `siteId` | `siteShortName(siteId)` | A site's id is `plasmodb`; a researcher reads the site as PlasmoDB. The long form, PlasmoDB (Plasmodium), names a site only in the site menu, where the organism tells the sites apart. |
+| `siteId` | `siteShortName(siteId)` | A site's id is `plasmodb`; a researcher reads the site as PlasmoDB. The long form, PlasmoDB (Plasmodium), names a site only in the notice for a conversation of another site. |
 
 # Two names, two concepts
 

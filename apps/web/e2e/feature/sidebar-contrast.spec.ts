@@ -1,6 +1,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 
 import { test, expect } from "../fixtures/test";
+import { expectCurrentSite, frameOnSite } from "../pages/navigation";
 
 /**
  * Feature: the active conversation row reads on the other site palettes, and a
@@ -18,10 +19,10 @@ for (const siteId of ["veupathdb", "fungidb", "toxodb"]) {
     {
       tag: "@named-site",
     },
-    async ({ page, chatPage, sidebarPage, sitePicker }) => {
+    async ({ page, chatPage, sidebarPage }) => {
+      await frameOnSite(page, siteId);
       await chatPage.goto();
-      await sitePicker.selectSite(siteId);
-      await sitePicker.expectCurrentSite(siteId);
+      await expectCurrentSite(page, siteId);
       await chatPage.send("first conversation");
       await chatPage.expectAssistantMessage(/\[mock\]/);
       await sidebarPage.expectAtLeastOneConversation();

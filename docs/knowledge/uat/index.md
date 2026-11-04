@@ -263,7 +263,7 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 
 | Rule | Flows |
 |---|---|
-| WDK-MAP-001, eleven parameter kinds | S9 (string), S5 (input step), S1 (single pick), F2 and S9 step 3 (multi-pick tree) |
+| WDK-MAP-001, eleven parameter kinds | S9 (string), S5 (input step), S1 (single pick), S9 step 3 (multi-pick tree) |
 | WDK-MAP-002, only a value reaches the wire | S9, R2 |
 | WDK-MAP-003, the nested tree only at the WDK boundary | V1 step 7, S7, S8 |
 | WDK-MAP-004, a tool reaches WDK through a served function | code only |

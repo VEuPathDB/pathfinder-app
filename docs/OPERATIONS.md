@@ -234,7 +234,7 @@ never back.
 
 ## Troubleshooting
 
-**A site shows as unavailable** ("Couldn't reach" in the site menu, 503 `SITE_UNAVAILABLE` on its
+**A site shows as unavailable** ("Couldn't reach" in the notice on its website, 503 `SITE_UNAVAILABLE` on its
 routes). Its catalog did not load inside its 30 s budget. `/health/ready` lists it under
 `degraded`, and the api retries it every 60 s with no action needed. The api log names it:
 `journalctl -u pathfinder-api@dev | grep 'Site catalog did not load'`. The deployment holds no

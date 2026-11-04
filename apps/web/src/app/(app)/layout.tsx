@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AppNavRail } from "@/app/components/AppNavRail";
@@ -29,7 +29,7 @@ import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
 import { RailFoot } from "@/lib/components/RailFoot";
-import { chatRoot, conversationIdFromPath, isChatPath } from "@/lib/routes";
+import { conversationIdFromPath, isChatPath } from "@/lib/routes";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -45,23 +45,18 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 }
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const conversationId = conversationIdFromPath(pathname);
-  const { siteId: selectedSite, locked, conversationSite } = useCurrentSite();
-  const elsewhereSite =
-    locked !== undefined && conversationSite !== locked.id ? conversationSite : null;
+  const { siteId: selectedSite, conversationSite } = useCurrentSite();
+  const elsewhereSite = conversationSite !== selectedSite ? conversationSite : null;
 
   // Mirror the resolved site into the session store, where readers outside
-  // the route read it, and let a conversation opened on a website with a
-  // picker become the picked site. A microtask keeps the cross-store write
-  // out of render.
+  // the route read it. A microtask keeps the cross-store write out of render.
   const [syncedSite, setSyncedSite] = useState<string | null>(null);
   if (syncedSite !== selectedSite) {
     setSyncedSite(selectedSite);
     queueMicrotask(() => {
       useSessionStore.setState({ selectedSite });
-      if (locked === undefined) useSessionStore.getState().setPickedSite(selectedSite);
     });
   }
 
@@ -82,10 +77,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       ? { duration: 0 }
       : { type: "spring", stiffness: 380, damping: 36 },
   });
-
-  const handleSiteChange = () => {
-    router.push(chatRoot());
-  };
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
   if (access.kind === "pending") return <LoadingScreen />;
@@ -114,8 +105,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
         <AppNavRail
           siteId={selectedSite}
-          siteSwitchable={locked === undefined}
-          onSiteChange={handleSiteChange}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}
         />

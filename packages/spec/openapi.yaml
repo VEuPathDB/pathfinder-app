@@ -10008,14 +10008,12 @@ components:
       - $ref: '#/components/schemas/ExportRequested'
       - $ref: '#/components/schemas/TurnUndone'
       - $ref: '#/components/schemas/AssistantRegenerated'
-      - $ref: '#/components/schemas/SiteSwitched'
       discriminator:
         propertyName: event
         mapping:
           assistant_regenerated: '#/components/schemas/AssistantRegenerated'
           card_answered: '#/components/schemas/CardAnswered'
           export_requested: '#/components/schemas/ExportRequested'
-          site_switched: '#/components/schemas/SiteSwitched'
           strategy_opened: '#/components/schemas/StrategyOpened'
           turn_undone: '#/components/schemas/TurnUndone'
     ProposedModel:
@@ -11477,31 +11475,6 @@ components:
       - available
       title: SiteResponse
       description: VEuPathDB site information, with what this process can reach of it.
-    SiteSwitched:
-      properties:
-        conversationId:
-          anyOf:
-          - type: string
-            format: uuid
-          - type: 'null'
-          title: Conversationid
-        event:
-          type: string
-          const: site_switched
-          title: Event
-        fromSite:
-          type: string
-          title: Fromsite
-        toSite:
-          type: string
-          title: Tosite
-      type: object
-      required:
-      - event
-      - fromSite
-      - toSite
-      title: SiteSwitched
-      description: A move from one VEuPathDB site to another.
     SourceDocumentUIPart:
       properties:
         type:

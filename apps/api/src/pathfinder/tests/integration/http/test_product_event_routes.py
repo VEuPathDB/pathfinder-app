@@ -94,7 +94,7 @@ async def test_an_unset_field_is_left_out_of_the_event(
     [
         {"event": "card_answered", "toolName": "propose_changes"},
         {"event": "message_rated", "messageId": "m1"},
-        {"event": "site_switched", "fromSite": "plasmodb", "toSite": 7},
+        {"event": "strategy_opened", "siteId": 7},
     ],
 )
 async def test_a_malformed_event_is_422_and_records_nothing(

@@ -132,12 +132,8 @@ for (const journey of JOURNEYS) {
         chatPage,
         page,
         apiClient,
-        sitePicker,
       }) => {
-        await chatPage.goto();
-        await sitePicker.selectSite(journey.siteId);
-        await sitePicker.expectCurrentSite(journey.siteId);
-        await chatPage.newChat(journey.siteId);
+        await chatPage.startOn(journey.siteId);
         const id = chatPage.lastStrategyId ?? "";
 
         for (const round of journey.rounds) {

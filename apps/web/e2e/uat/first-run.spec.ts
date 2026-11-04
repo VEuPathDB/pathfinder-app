@@ -58,7 +58,7 @@ import {
 import { signInAsWdkAccount } from "../fixtures/website-login";
 import { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
-import { gotoOnSite, openConversationId } from "../pages/navigation";
+import { expectCurrentSite, gotoOnSite, openConversationId } from "../pages/navigation";
 import { SidebarPage } from "../pages/sidebar.page";
 
 const S1_TEXT = (organism: string) =>
@@ -313,7 +313,7 @@ test.describe("First run and navigation", () => {
     await context.close();
   });
 
-  test("F3 - A site that is down", async ({ page, apiClient, sitePicker, siteId }) => {
+  test("F3 - A site that is down", async ({ page, apiClient, siteId }) => {
     const ready = await apiClient.get("health/ready");
     expect(ready.status()).toBe(200);
     const readiness = (await ready.json()) as ReadinessResponse;
@@ -330,71 +330,44 @@ test.describe("First run and navigation", () => {
 
     await page.goto("./");
     await expect(page).toHaveURL(`${BASE_URL}/conversation`, { timeout: 60_000 });
-    await sitePicker.expectCurrentSite("veupathdb");
+    await expectCurrentSite(page, siteId);
 
     const down = siteId === "toxodb" ? "plasmodb" : "toxodb";
-    const downRow = rows.find((row) => row.id === down);
-    if (downRow === undefined) throw new Error(`the api lists no site ${down}`);
     const reason = "the site did not answer in time";
     await page.route(
       (url) => url.pathname === "/pathfinder/api/v1/sites",
       async (route) => {
         const response = await route.fetch();
         const listed = (await response.json()) as SiteResponse[];
+        const { origin } = new URL(route.request().url());
         await route.fulfill({
           response,
           json: listed.map((row) =>
             row.id === down
-              ? { ...row, available: false, unavailableReason: reason }
+              ? {
+                  ...row,
+                  siteOrigin: origin,
+                  available: false,
+                  unavailableReason: reason,
+                }
               : row,
           ),
         });
       },
     );
-    await gotoOnSite(page, siteId, "conversation");
-    await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
-
-    const switcher = page.getByRole("button", { name: "Switch site" });
-    await switcher.click();
-    const item = page.getByTestId(`site-menu-item-${down}`);
-    await expect(item).toHaveAttribute(
-      "aria-label",
-      `Couldn't reach ${downRow.displayName}`,
-    );
-    await expect(page.getByTestId(`site-degraded-${down}`)).toHaveText(
-      "Couldn't reach",
-    );
-    await item.click();
+    await page.goto("conversation");
     await expect(page).toHaveURL(`${BASE_URL}/conversation`);
-    await sitePicker.expectCurrentSite(down);
 
     const notice = page.getByTestId("site-unavailable-notice");
     await expect(notice).toContainText(`Couldn't reach ${siteShortName(down)}`);
     await expect(notice).toContainText(
       `PathFinder cannot use this site right now: ${reason}. It keeps trying every minute, so this may clear on its own.`,
     );
-    await expect(notice).toContainText("Try another site:");
-    const alternatives = rows.filter((row) => row.available && row.id !== down);
-    await expect(notice.getByRole("link")).toHaveCount(alternatives.length);
-    for (const row of alternatives) {
-      await expect(
-        notice.getByRole("link", { name: row.displayName, exact: true }),
-      ).toBeVisible();
-    }
-    await expect(switcher).toBeVisible();
+    await expect(notice.getByRole("link")).toHaveCount(0);
     await expect(page.getByTestId("conversations-new-button")).toBeVisible();
-    await expect(page.getByTestId("site-trigger-degraded")).toHaveAttribute(
-      "aria-label",
-      `Couldn't reach ${siteShortName(down)}`,
-    );
-    await switcher.hover();
-    await expect(page.getByRole("tooltip")).toContainText(
-      `Couldn't reach ${siteShortName(down)}`,
-    );
 
-    await sitePicker.selectSite(siteId);
+    await gotoOnSite(page, siteId, "conversation");
     await expect(notice).toHaveCount(0);
-    await expect(page.getByTestId("site-trigger-degraded")).toHaveCount(0);
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
   });
 
@@ -438,10 +411,9 @@ test.describe("First run and navigation", () => {
   });
 });
 
-test.describe("Site menu", { tag: "@named-site" }, () => {
-  test("F2 - Site menu", async ({
+test.describe("The website is the site", { tag: "@named-site" }, () => {
+  test("F2 - The website is the site", async ({
     page,
-    sitePicker,
     sidebarPage,
     apiClient,
     siteId,
@@ -449,37 +421,26 @@ test.describe("Site menu", { tag: "@named-site" }, () => {
     const other = siteId === "toxodb" ? "plasmodb" : "toxodb";
     const home = await namedConversation(apiClient, siteId, "UAT F2 home");
     const away = await namedConversation(apiClient, other, "UAT F2 away");
-    const sitesResp = await apiClient.get("api/v1/sites");
-    expect(sitesResp.status()).toBe(200);
-    const rows = (await sitesResp.json()) as SiteResponse[];
 
     await gotoOnSite(page, siteId, "conversation");
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
     await sidebarPage.refresh();
     await expect(sidebarPage.item(home)).toBeVisible({ timeout: 30_000 });
+    await expect(sidebarPage.item(away)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Switch site" })).toHaveCount(0);
 
-    const switcher = page.getByRole("button", { name: "Switch site" });
-    await switcher.hover();
-    await expect(page.getByRole("tooltip")).toContainText("Switch site");
-    await switcher.click();
-    const menu = page.getByRole("menu");
-    await expect(menu.getByText("Component sites", { exact: true })).toBeVisible();
-    await expect(menu.getByText("Portal", { exact: true })).toBeVisible();
-    for (const row of rows) {
-      await expect(page.getByTestId(`site-menu-item-${row.id}`)).toContainText(
-        row.displayName,
-      );
-    }
-    await expect(menu.locator('[data-testid^="site-degraded-"]')).toHaveCount(0);
-    await page.keyboard.press("Escape");
+    await page.goto(`conversation/${away}`);
+    const notice = page.getByTestId("conversation-elsewhere-notice");
+    await expect(notice).toBeVisible({ timeout: 30_000 });
+    await expect(notice.getByRole("link")).toHaveAttribute(
+      "href",
+      new RegExp(`/conversation/${away}$`),
+    );
 
-    await sitePicker.selectSite(other);
+    await gotoOnSite(page, other, "conversation");
+    await sidebarPage.refresh();
     await expect(sidebarPage.item(away)).toBeVisible({ timeout: 30_000 });
     await expect(sidebarPage.item(home)).toHaveCount(0);
-
-    await sitePicker.selectSite(siteId);
-    await expect(sidebarPage.item(home)).toBeVisible({ timeout: 30_000 });
-    await expect(sidebarPage.item(away)).toHaveCount(0);
   });
 });
 

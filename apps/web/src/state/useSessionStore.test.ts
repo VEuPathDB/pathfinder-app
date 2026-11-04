@@ -8,7 +8,6 @@ import { useSessionStore } from "./useSessionStore";
 beforeEach(() => {
   useSessionStore.setState({
     selectedSite: "veupathdb",
-    pickedSite: "veupathdb",
     pendingUserSubmission: null,
     chatResetCounter: 0,
     createdConversationId: null,
@@ -27,22 +26,9 @@ describe("state/useSessionStore", () => {
     expect(useSessionStore.getState()).toBe(before);
   });
 
-  it("setPickedSite records the site picked on a website that offers the picker", () => {
-    useSessionStore.getState().setPickedSite("toxodb");
-    expect(useSessionStore.getState().pickedSite).toBe("toxodb");
-  });
-
-  it("setPickedSite is a no-op for the site already picked", () => {
-    const before = useSessionStore.getState();
-    before.setPickedSite("veupathdb");
-    expect(useSessionStore.getState()).toBe(before);
-  });
-
-  it("persists only the picked site", () => {
+  it("keeps nothing in the browser's storage", () => {
     useSessionStore.getState().setSelectedSite("plasmodb");
-    useSessionStore.getState().setPickedSite("toxodb");
-    const stored = window.localStorage.getItem("pathfinder-session-20260625") ?? "{}";
-    expect(JSON.parse(stored).state).toEqual({ pickedSite: "toxodb" });
+    expect(window.localStorage.getItem("pathfinder-session-20260625")).toBe(null);
   });
 
   it("setPendingUserSubmission carries the conversation and the text", () => {

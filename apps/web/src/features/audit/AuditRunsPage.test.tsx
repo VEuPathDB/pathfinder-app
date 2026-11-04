@@ -49,7 +49,7 @@ function renderWith(runs: AuditRunSummary[]) {
     runs,
   );
   queryClient.setQueryData(auditWordsOptions().queryKey, served);
-  return render(<AuditRunsPage lockedSite={null} />, { wrapper: Wrapper });
+  return render(<AuditRunsPage onlySite={null} />, { wrapper: Wrapper });
 }
 
 function serveRuns(runs: AuditRunSummary[]): string[] {
@@ -67,9 +67,9 @@ function serveRuns(runs: AuditRunSummary[]): string[] {
   return asked;
 }
 
-function renderServed(lockedSite: string | null) {
+function renderServed(onlySite: string | null) {
   const { Wrapper } = createTestWrapper();
-  return render(<AuditRunsPage lockedSite={lockedSite} />, { wrapper: Wrapper });
+  return render(<AuditRunsPage onlySite={onlySite} />, { wrapper: Wrapper });
 }
 
 describe("AuditRunsPage", () => {
@@ -139,7 +139,7 @@ describe("AuditRunsPage", () => {
     expect(asked).toEqual([RUNS_URL]);
   });
 
-  it("lists only the locked site's audits, with no site column", async () => {
+  it("lists only one site's audits, with no site column", async () => {
     const asked = serveRuns([HALTED, SAMPLE_RUN.run]);
     renderServed("toxodb");
     expect(await screen.findByRole("table")).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe("AuditRunsPage", () => {
     ).toEqual(["Started", "What it examines", "Checks", "Status"]);
   });
 
-  it("says the locked site has no audits yet", async () => {
+  it("says one site has no audits yet", async () => {
     const asked = serveRuns([SAMPLE_RUN.run]);
     renderServed("toxodb");
     expect(

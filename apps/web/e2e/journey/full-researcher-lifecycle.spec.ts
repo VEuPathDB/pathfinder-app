@@ -1,6 +1,6 @@
 /**
  * The researcher's lifecycle on the project's site: two chat rounds, a build and
- * its gene set, a switch to another site that holds none of it, the settings,
+ * its gene set, another site's website that holds none of it, the settings,
  * and a last round after which the gene set is unchanged. Only the model is
  * mocked.
  */
@@ -13,6 +13,7 @@ import type { ApiClient } from "../fixtures/api-client";
 import { LAYOUTS } from "../fixtures/arc-layouts";
 import { expectBuild } from "../fixtures/build-checks";
 import { readConversation, siteOrganism } from "../fixtures/site-reads";
+import { expectCurrentSite, gotoOnSite } from "../pages/navigation";
 
 async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
   const resp = await api.get(`api/v1/gene-sets?siteId=${siteId}`);
@@ -26,7 +27,6 @@ test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
   test("chat, build, gene set, another site, settings and a last round", async ({
     chatPage,
     sidebarPage,
-    sitePicker,
     settingsPage,
     page,
     apiClient,
@@ -35,9 +35,7 @@ test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
     const organism = siteOrganism(siteId);
     const otherSite = siteId === "toxodb" ? "plasmodb" : "toxodb";
 
-    await chatPage.goto();
-    await sitePicker.selectSite(siteId);
-    await chatPage.newChat(siteId);
+    await chatPage.startOn(siteId);
 
     await chatPage.sendTurn(
       `find drug resistance genes in ${organism}`,
@@ -71,12 +69,13 @@ test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
     );
     expect(builtSet?.geneCount ?? 0).toBeGreaterThan(0);
 
-    await sitePicker.selectSite(otherSite);
-    await sitePicker.expectCurrentSite(otherSite);
+    await gotoOnSite(page, otherSite, "conversation");
+    await expectCurrentSite(page, otherSite);
     expect(await geneSetsOn(apiClient, otherSite)).toEqual([]);
 
-    await sitePicker.selectSite(siteId);
-    await sitePicker.expectCurrentSite(siteId);
+    await gotoOnSite(page, siteId, "conversation");
+    await expectCurrentSite(page, siteId);
+    await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await settingsPage.open();
     await settingsPage.expectAllTabsVisible();
     await settingsPage.openTab("Data");

@@ -87,9 +87,9 @@ def test_an_event_sent_inside_a_request_span_is_a_root_of_its_own(
 def test_an_event_without_a_thread_names_only_its_user(sdk: _Sdk) -> None:
     record_product_event(
         ProductEvent(
-            name="site_switched",
+            name="strategy_opened",
             user_id=_USER,
-            attributes={"from_site": "plasmodb", "to_site": "toxodb"},
+            attributes={"site_id": "plasmodb"},
         ),
     )
 

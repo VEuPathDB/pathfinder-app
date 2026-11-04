@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import type { SiteResponse } from "@pathfinder/shared";
+import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";
@@ -30,6 +31,17 @@ function renderWith(sites: SiteResponse[]) {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryDefaults(sitesOptions().queryKey, { staleTime: Infinity });
   queryClient.setQueryData(sitesOptions().queryKey, sites);
+  queryClient.setQueryDefaults(systemConfigQueryOptions().queryKey, {
+    staleTime: Infinity,
+  });
+  queryClient.setQueryData(systemConfigQueryOptions().queryKey, {
+    chatProvider: "mock",
+    llmConfigured: true,
+    providers: { openai: false, anthropic: false, google: false, ollama: false },
+    siteId: "toxodb",
+    siteSignInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
+    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+  });
   return render(<HelpRoute />, { wrapper: Wrapper });
 }
 
@@ -38,7 +50,7 @@ afterEach(() => {
 });
 
 describe("HelpRoute", () => {
-  it("shows no site switch on a component site's website", () => {
+  it("names the component site whose website it is on", () => {
     const { container } = renderWith([
       site("veupathdb", "https://muharram.veupathdb.org", true),
       site("plasmodb", window.location.origin),
@@ -48,14 +60,19 @@ describe("HelpRoute", () => {
     expect(container).not.toHaveTextContent("Switch site");
   });
 
-  it("names Switch site on the portal's website", () => {
-    renderWith([
+  it("names the portal on the portal's website, and offers no site", () => {
+    const { container } = renderWith([
       site("veupathdb", window.location.origin, true),
       site("plasmodb", "https://muharram.plasmodb.org"),
     ]);
 
-    expect(
-      screen.getByText(/choose Switch site at the bottom of the left bar/),
-    ).toBeVisible();
+    expect(screen.getByText(/Here, PathFinder works on VEuPathDB\./)).toBeVisible();
+    expect(container).not.toHaveTextContent("Switch site");
+  });
+
+  it("names the configured site on a host no site names", () => {
+    renderWith([site("plasmodb", "https://muharram.plasmodb.org")]);
+
+    expect(screen.getByText(/Here, PathFinder works on ToxoDB\./)).toBeVisible();
   });
 });

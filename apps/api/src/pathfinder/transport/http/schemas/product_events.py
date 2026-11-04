@@ -48,20 +48,7 @@ class AssistantRegenerated(_ThreadEvent):
     message_id: str
 
 
-class SiteSwitched(_ThreadEvent):
-    """A move from one VEuPathDB site to another."""
-
-    event: Literal["site_switched"]
-    from_site: str
-    to_site: str
-
-
 type ProductEventRequest = Annotated[
-    CardAnswered
-    | StrategyOpened
-    | ExportRequested
-    | TurnUndone
-    | AssistantRegenerated
-    | SiteSwitched,
+    CardAnswered | StrategyOpened | ExportRequested | TurnUndone | AssistantRegenerated,
     Field(discriminator="event"),
 ]

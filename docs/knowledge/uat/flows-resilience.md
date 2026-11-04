@@ -18,7 +18,7 @@ R1 and R4 need the deployment operator; agree a window before the run. Each flow
 | 1 | Operator | Restart the api with one site's base URL pointed at a host that does not answer (a sites override through `VEUPATHDB_SITES_CONFIG`), leave the other sites as they are | Within `SITE_PRELOAD_TIMEOUT_SECONDS` (30 s) that site's catalog fails |
 | 2 | `GET <api-url>/health/ready` | Read | HTTP 200, `status: "healthy"`, `notReady: []`, `degraded: ["<site>"]`, the site's catalog `{"ready": false, "error": "the site did not answer in time"}` (or `"the site could not be reached"`) |
 | 3 | `GET <api-url>/api/v1/sites` | Read | That site `available: false` with the same `unavailableReason`; every other site `available: true` |
-| 4 | App | F3 steps 2 and 3 | `Couldn't reach` in the menu; the notice in the content area |
+| 4 | App | F3 step 2 | The notice in the content area |
 | 5 | App, a conversation on another site | Send the S1 prompt | It runs normally |
 | 6 | Operator | Restore the site | Within `SITE_RETRY_INTERVAL_SECONDS` (60 s) plus one load the site is `available: true`; the notice clears without a reload |
 
@@ -79,7 +79,7 @@ Signing in is the website's own page, so a slow login is the website's. PathFind
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Signed in, while the page's site answers the account read slowly | Reload PathFinder | Still signed in: the read answers on another site. No signed-out panel |
-| 2 | Signed in, while no site answers the account read | Reload PathFinder | Not the signed-out panel: the rail and the sidebar stay, and the content area shows `Couldn't reach <site name>` with the F3 step 3 text |
+| 2 | Signed in, while no site answers the account read | Reload PathFinder | Not the signed-out panel: the rail and the sidebar stay, and the content area shows `Couldn't reach <site name>` with the F3 step 2 text |
 | 3 | Same, once a site answers again | Wait, no reload | Within a minute the notice goes and the page shows again, still signed in |
 
 Not measured: an operator cannot slow the account read without also failing the site's catalog, which is R1. Expected: measure when a site is slow on its own.

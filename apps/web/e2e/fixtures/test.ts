@@ -9,7 +9,7 @@ import {
 import { ChatPage } from "../pages/chat.page";
 import { SidebarPage } from "../pages/sidebar.page";
 import { GraphPage } from "../pages/graph.page";
-import { SitePickerComponent } from "../pages/site-picker.page";
+import { frameOnSite } from "../pages/navigation";
 import { SettingsPage } from "../pages/settings.page";
 import { wdkTestToken } from "./wdk-account";
 import { BASE_PATH } from "@/lib/basePath";
@@ -22,7 +22,6 @@ type TestFixtures = {
   chatPage: ChatPage;
   sidebarPage: SidebarPage;
   graphPage: GraphPage;
-  sitePicker: SitePickerComponent;
   settingsPage: SettingsPage;
   apiClient: ApiClient;
 };
@@ -127,16 +126,17 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(new ChatPage(page));
   },
 
+  page: async ({ page, siteId }, use) => {
+    await frameOnSite(page, siteId);
+    await use(page);
+  },
+
   sidebarPage: async ({ page }, use) => {
     await use(new SidebarPage(page));
   },
 
   graphPage: async ({ page }, use) => {
     await use(new GraphPage(page));
-  },
-
-  sitePicker: async ({ page }, use) => {
-    await use(new SitePickerComponent(page));
   },
 
   settingsPage: async ({ page }, use) => {

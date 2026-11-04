@@ -30,20 +30,12 @@ async function allGeneSets(apiClient: ApiClient): Promise<GeneSet[]> {
 }
 
 test.describe("User data purge across sites", { tag: "@named-site" }, () => {
-  test("purge ALL data deletes across all sites", async ({
-    chatPage,
-    apiClient,
-    sitePicker,
-  }) => {
-    await chatPage.goto();
-
-    await sitePicker.selectSite("plasmodb");
-    await chatPage.newChat("plasmodb");
+  test("purge ALL data deletes across all sites", async ({ chatPage, apiClient }) => {
+    await chatPage.startOn("plasmodb");
     await chatPage.send("plasmodb data");
     await chatPage.expectAssistantMessage(/\[mock\]/);
 
-    await sitePicker.selectSite("toxodb");
-    await chatPage.newChat("toxodb");
+    await chatPage.startOn("toxodb");
     await chatPage.send("toxodb data");
     await chatPage.expectAssistantMessage(/\[mock\]/);
 

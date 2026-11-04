@@ -3,10 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const pushMock = vi.fn();
 const address = vi.hoisted(() => ({ query: "", path: "/conversation" }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(address.query),
   usePathname: () => address.path,
 }));
@@ -21,6 +20,7 @@ vi.mock("@/features/sites/hooks/useSiteTheme", () => ({
 vi.mock("@/app/hooks/useSystemConfig", () => ({
   useSystemConfig: () => ({
     setupRequired: false,
+    siteId: "plasmodb",
     siteSignInUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
     sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
     retry: vi.fn(),
@@ -58,14 +58,13 @@ import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { strategyQueryOptions } from "@/lib/api/strategy";
 import { createTestWrapper } from "@/lib/query/testing";
 import { makeStrategy } from "@/lib/types/fixtures";
-import { chatRoot } from "@/lib/routes";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import AppShellLayout from "./layout";
 
 beforeEach(() => {
-  useSessionStore.setState({ selectedSite: "plasmodb", pickedSite: "plasmodb" });
+  useSessionStore.setState({ selectedSite: "plasmodb" });
 });
 
 function siteRow(over: Partial<SiteResponse>): SiteResponse {
@@ -112,36 +111,11 @@ function holdUnseededReads() {
   );
 }
 
-describe("AppShellLayout site switch", () => {
+describe("AppShellLayout site", () => {
   beforeEach(holdUnseededReads);
   afterEach(() => {
     cleanup();
-    pushMock.mockReset();
     vi.unstubAllGlobals();
-  });
-
-  it("sends a site change to that site's chat root", async () => {
-    const { queryClient, Wrapper } = createTestWrapper();
-    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
-      signedIn: true,
-    });
-    queryClient.setQueryData(sitesOptions().queryKey, [
-      AVAILABLE_PLASMODB,
-      AVAILABLE_TOXODB,
-    ]);
-
-    render(
-      <Wrapper>
-        <AppShellLayout>
-          <div />
-        </AppShellLayout>
-      </Wrapper>,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: "Switch site" }));
-    await userEvent.click(await screen.findByTestId("site-menu-item-toxodb"));
-    expect(pushMock.mock.calls).toEqual([[chatRoot()]]);
-    expect(useSessionStore.getState().pickedSite).toBe("toxodb");
   });
 
   it("mirrors the site it works on into the session store", async () => {
@@ -374,17 +348,17 @@ describe("AppShellLayout framed by the website page", () => {
 describe("AppShellLayout on a site that does not answer", () => {
   afterEach(() => {
     cleanup();
-    pushMock.mockReset();
   });
 
   function draw(siteId: string) {
-    useSessionStore.setState({ pickedSite: siteId });
     const { queryClient, Wrapper } = createTestWrapper();
     queryClient.setQueryData(authStatusOptions(siteId).queryKey, { signedIn: true });
-    queryClient.setQueryData(sitesOptions().queryKey, [
-      PORTAL_DOWN,
-      AVAILABLE_PLASMODB,
-    ]);
+    queryClient.setQueryData(
+      sitesOptions().queryKey,
+      [PORTAL_DOWN, AVAILABLE_PLASMODB].map((row) =>
+        row.id === siteId ? { ...row, siteOrigin: window.location.origin } : row,
+      ),
+    );
     return render(
       <Wrapper>
         <AppShellLayout>
@@ -394,20 +368,18 @@ describe("AppShellLayout on a site that does not answer", () => {
     );
   }
 
-  it("keeps the nav rail with its marker and replaces the content with the notice", () => {
+  it("keeps the nav rail and replaces the content with the notice", () => {
     draw("veupathdb");
 
-    expect(screen.getByLabelText("Couldn't reach VEuPathDB")).toBeInTheDocument();
-    expect(screen.getByTestId("site-trigger-degraded")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(screen.getByTestId("site-unavailable-notice")).toBeInTheDocument();
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
   });
 
-  it("draws neither the marker nor the notice on a site that answers", () => {
+  it("draws no notice on a site that answers", () => {
     draw("plasmodb");
 
-    expect(screen.getByLabelText("Switch site")).toBeInTheDocument();
-    expect(screen.queryByTestId("site-trigger-degraded")).not.toBeInTheDocument();
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
   });
@@ -470,11 +442,10 @@ describe("AppShellLayout when the sign-in status is refused", () => {
     await drawWithoutStatus();
 
     expect(await screen.findByTestId("site-unavailable-notice")).toBeInTheDocument();
-    expect(screen.getByLabelText("Switch site")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Conversation" })).toBeInTheDocument();
     expect(screen.getByTestId("conversation-sidebar")).toBeInTheDocument();
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
     expect(screen.queryByText("Application error")).not.toBeInTheDocument();
-    expect(screen.queryByText("Try another site:")).not.toBeInTheDocument();
   });
 
   it("keeps the application error for a 500", async () => {
@@ -506,7 +477,7 @@ describe("AppShellLayout when the sign-in status is refused", () => {
   });
 });
 
-describe("AppShellLayout on a component site's own website", () => {
+describe("AppShellLayout on a site's own website", () => {
   beforeEach(holdUnseededReads);
   afterEach(() => {
     cleanup();
@@ -514,14 +485,18 @@ describe("AppShellLayout on a component site's own website", () => {
     vi.unstubAllGlobals();
   });
 
-  function drawLocked(conversation: { id: string; siteId: string } | null) {
-    useSessionStore.setState({ pickedSite: "toxodb" });
+  const PORTAL = { ...PORTAL_DOWN, available: true, unavailableReason: null };
+
+  function drawOn(
+    hosted: SiteResponse,
+    conversation: { id: string; siteId: string } | null,
+  ) {
     const { queryClient, Wrapper } = createTestWrapper();
-    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+    queryClient.setQueryData(authStatusOptions(hosted.id).queryKey, {
       signedIn: true,
     });
     queryClient.setQueryData(sitesOptions().queryKey, [
-      siteRow({ id: "plasmodb", siteOrigin: window.location.origin }),
+      { ...hosted, siteOrigin: window.location.origin },
       AVAILABLE_TOXODB,
     ]);
     if (conversation !== null) {
@@ -540,19 +515,28 @@ describe("AppShellLayout on a component site's own website", () => {
     );
   }
 
-  it("works on that site and offers no site switch", async () => {
-    drawLocked(null);
+  it("works on a component site and offers no site", async () => {
+    drawOn(AVAILABLE_PLASMODB, null);
 
     expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
     await waitFor(() =>
       expect(useSessionStore.getState().selectedSite).toBe("plasmodb"),
     );
-    expect(useSessionStore.getState().pickedSite).toBe("toxodb");
+  });
+
+  it("works on the portal on the portal's website and offers no site", async () => {
+    drawOn(PORTAL, null);
+
+    expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
+    await waitFor(() =>
+      expect(useSessionStore.getState().selectedSite).toBe("veupathdb"),
+    );
   });
 
   it("sends a conversation of another site to that site's website", async () => {
-    drawLocked({ id: "c-toxo", siteId: "toxodb" });
+    drawOn(AVAILABLE_PLASMODB, { id: "c-toxo", siteId: "toxodb" });
 
     expect(
       await screen.findByText("This conversation is on ToxoDB (Toxoplasma)."),
@@ -562,5 +546,45 @@ describe("AppShellLayout on a component site's own website", () => {
       "https://qa.toxodb.org/toxo.qa/app/pathfinder/conversation/c-toxo",
     );
     expect(screen.queryByTestId("routed-content")).toBe(null);
+  });
+
+  it("stays the portal and shows the notice for a conversation of another site", async () => {
+    drawOn(PORTAL, { id: "c-toxo", siteId: "toxodb" });
+
+    expect(
+      await screen.findByText("This conversation is on ToxoDB (Toxoplasma)."),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open it on ToxoDB" })).toHaveAttribute(
+      "href",
+      "https://qa.toxodb.org/toxo.qa/app/pathfinder/conversation/c-toxo",
+    );
+    expect(screen.queryByTestId("routed-content")).toBe(null);
+    await waitFor(() =>
+      expect(useSessionStore.getState().selectedSite).toBe("veupathdb"),
+    );
+  });
+
+  it("works on the configured site on a host no site names", async () => {
+    useSessionStore.setState({ selectedSite: "toxodb" });
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+      signedIn: true,
+    });
+    queryClient.setQueryData(sitesOptions().queryKey, [
+      AVAILABLE_PLASMODB,
+      AVAILABLE_TOXODB,
+    ]);
+    render(
+      <Wrapper>
+        <AppShellLayout>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>,
+    );
+
+    expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(useSessionStore.getState().selectedSite).toBe("plasmodb"),
+    );
   });
 });

@@ -1,15 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { SiteResponse } from "@pathfinder/shared";
+import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/conversation" }));
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";
-import { useSessionStore } from "@/state/useSessionStore";
 
 import { useCurrentSite } from "./useCurrentSite";
 
@@ -33,31 +33,45 @@ function currentSiteWith(sites: SiteResponse[]) {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryDefaults(sitesOptions().queryKey, { staleTime: Infinity });
   queryClient.setQueryData(sitesOptions().queryKey, sites);
-  const { siteId, locked } = renderHook(() => useCurrentSite(), { wrapper: Wrapper })
-    .result.current;
-  return { siteId, lockedTo: locked?.id ?? null };
+  queryClient.setQueryDefaults(systemConfigQueryOptions().queryKey, {
+    staleTime: Infinity,
+  });
+  queryClient.setQueryData(systemConfigQueryOptions().queryKey, {
+    chatProvider: "mock",
+    llmConfigured: true,
+    providers: { openai: false, anthropic: false, google: false, ollama: false },
+    siteId: "toxodb",
+    siteSignInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
+    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+  });
+  return renderHook(() => useCurrentSite(), { wrapper: Wrapper }).result.current;
 }
 
-beforeEach(() => {
-  useSessionStore.setState({ pickedSite: "toxodb" });
-});
-
 describe("useCurrentSite", () => {
-  it("is locked to the component site whose website frames PathFinder", () => {
+  it("is the component site whose website frames PathFinder", () => {
     expect(
       currentSiteWith([
         site("veupathdb", "https://muharram.veupathdb.org", true),
         site("plasmodb", window.location.origin),
       ]),
-    ).toEqual({ siteId: "plasmodb", lockedTo: "plasmodb" });
+    ).toEqual({ siteId: "plasmodb", isPortal: false, conversationSite: null });
   });
 
-  it("is the picked site on the portal's website", () => {
+  it("is the portal on the portal's website", () => {
     expect(
       currentSiteWith([
         site("veupathdb", window.location.origin, true),
         site("plasmodb", "https://muharram.plasmodb.org"),
       ]),
-    ).toEqual({ siteId: "toxodb", lockedTo: null });
+    ).toEqual({ siteId: "veupathdb", isPortal: true, conversationSite: null });
+  });
+
+  it("is the deployment's configured site on a host no site names", () => {
+    expect(
+      currentSiteWith([
+        site("veupathdb", "https://muharram.veupathdb.org", true),
+        site("toxodb", "https://muharram.toxodb.org"),
+      ]),
+    ).toEqual({ siteId: "toxodb", isPortal: false, conversationSite: null });
   });
 });

@@ -4,7 +4,7 @@ import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/Sy
 import { BASE_URL, test, expect } from "../fixtures/test";
 import { availableSiteId } from "../fixtures/available-site";
 import { listConversations } from "../fixtures/api-client";
-import { currentSiteId, gotoOnSite } from "../pages/navigation";
+import { currentSiteId, expectCurrentSite, gotoOnSite } from "../pages/navigation";
 
 const SIGNED_OUT_STATUS = { signedIn: false };
 
@@ -78,7 +78,6 @@ test.describe("Auth", () => {
   test("authenticated state shows full UI with working API access", async ({
     chatPage,
     page,
-    sitePicker,
     settingsPage,
     apiClient,
     siteId,
@@ -88,7 +87,7 @@ test.describe("Auth", () => {
     // UI: Signed in - no login modal, composer visible
     await expectSignedIn(page);
 
-    await sitePicker.expectCurrentSite("veupathdb");
+    await expectCurrentSite(page, siteId);
 
     // UI: Settings accessible with all tabs
     await settingsPage.open();

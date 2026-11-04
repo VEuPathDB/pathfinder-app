@@ -317,7 +317,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       .getByTestId("open-wdk-strategy-input")
       .fill(`${otherHost}/app/workspace/strategies/214626640`);
     await expect(dialog.getByTestId("open-wdk-strategy-notice")).toHaveText(
-      `That link names a ${otherName} strategy. Switch to ${otherName} to open it.`,
+      `That link names a ${otherName} strategy. Open it on the ${otherName} website.`,
     );
     await expect(dialog.getByTestId("open-wdk-strategy-confirm")).toBeDisabled();
     await dialog.getByTestId("open-wdk-strategy-input").fill("");

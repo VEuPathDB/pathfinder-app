@@ -14,10 +14,10 @@ import { auditRunUrl } from "@/lib/routes";
 import { dayText, scopeText } from "./format";
 import { PHASE_WORDS } from "./words";
 
-export function AuditRunsPage({ lockedSite }: { lockedSite: string | null }) {
+export function AuditRunsPage({ onlySite }: { onlySite: string | null }) {
   return (
     <QueryBoundary>
-      <RunsList lockedSite={lockedSite} />
+      <RunsList onlySite={onlySite} />
     </QueryBoundary>
   );
 }
@@ -52,14 +52,14 @@ function RunRow({
   );
 }
 
-function emptyText(lockedSite: string | null): string {
-  const where = lockedSite === null ? "" : ` on ${siteShortName(lockedSite)}`;
+function emptyText(onlySite: string | null): string {
+  const where = onlySite === null ? "" : ` on ${siteShortName(onlySite)}`;
   return `No audits${where} yet. Ask the audit assistant in a conversation to audit a genome.`;
 }
 
-function RunsList({ lockedSite }: { lockedSite: string | null }) {
+function RunsList({ onlySite }: { onlySite: string | null }) {
   const { data: runs } = useSuspenseQuery(
-    listAuditRunsSuspenseQueryOptions({ siteId: lockedSite }),
+    listAuditRunsSuspenseQueryOptions({ siteId: onlySite }),
   );
   const { data: words } = useSuspenseQuery(auditWordsOptions());
   return (
@@ -74,7 +74,7 @@ function RunsList({ lockedSite }: { lockedSite: string | null }) {
       <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
         {runs.length === 0 ? (
           <p className="rounded border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            {emptyText(lockedSite)}
+            {emptyText(onlySite)}
           </p>
         ) : (
           <table className="w-full text-left text-sm">
@@ -82,7 +82,7 @@ function RunsList({ lockedSite }: { lockedSite: string | null }) {
             <thead>
               <tr>
                 <th scope="col">Started</th>
-                {lockedSite === null ? <th scope="col">Site</th> : null}
+                {onlySite === null ? <th scope="col">Site</th> : null}
                 <th scope="col">What it examines</th>
                 <th scope="col">Checks</th>
                 <th scope="col">Status</th>
@@ -94,7 +94,7 @@ function RunsList({ lockedSite }: { lockedSite: string | null }) {
                   key={run.id}
                   run={run}
                   checks={words.checks}
-                  showSite={lockedSite === null}
+                  showSite={onlySite === null}
                 />
               ))}
             </tbody>

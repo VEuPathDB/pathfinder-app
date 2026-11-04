@@ -42,7 +42,7 @@ export class ChatPage {
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
   }
 
-  /** Pick the site, open the draft chat route and a fresh conversation on it. */
+  /** Open the draft chat route on the site's website and a fresh conversation on it. */
   async startOn(siteId: string) {
     await gotoOnSite(this.page, siteId, "conversation");
     await expect(this.composer).toBeVisible({ timeout: 60_000 });

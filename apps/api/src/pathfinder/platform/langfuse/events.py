@@ -21,7 +21,6 @@ ProductEventName = Literal[
     "turn_undone",
     "assistant_regenerated",
     "conversation_created",
-    "site_switched",
 ]
 
 

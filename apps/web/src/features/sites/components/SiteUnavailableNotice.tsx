@@ -1,23 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { siteShortName } from "@pathfinder/shared";
 import { AlertTriangle } from "lucide-react";
 
 import { sitesOptions } from "@/lib/api/sites";
-import { chatRoot } from "@/lib/routes";
 
 /**
- * Says PathFinder cannot reach a site, repeats the reason the api gives for it,
- * and links every site that does answer.
+ * Says PathFinder cannot reach a site and repeats the reason the api gives for it.
  */
 export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
   const { data: sites } = useQuery(sitesOptions());
-  const rows = sites ?? [];
-  const site = rows.find((row) => row.id === siteId);
+  const site = sites?.find((row) => row.id === siteId);
   const reason = site?.unavailableReason ?? null;
-  const alternatives = rows.filter((row) => row.available && row.id !== siteId);
 
   return (
     <div
@@ -34,20 +29,6 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
           ? `PathFinder cannot use this site right now: ${reason}. It keeps trying every minute, so this may clear on its own.`
           : "PathFinder cannot use this site right now. It keeps trying every minute, so this may clear on its own."}
       </p>
-      {alternatives.length > 0 && (
-        <>
-          <p className="mt-4 text-xs font-medium text-foreground">Try another site:</p>
-          <ul className="mt-2 space-y-1 text-xs">
-            {alternatives.map((row) => (
-              <li key={row.id}>
-                <Link href={chatRoot()} className="text-primary hover:underline">
-                  {row.displayName}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
     </div>
   );
 }

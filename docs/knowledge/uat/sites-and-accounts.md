@@ -11,7 +11,7 @@ status: draft
 
 ## The five sites
 
-| Site id | Name in the site menu | Service base | Why it is in UAT |
+| Site id | Display name | Service base | Why it is in UAT |
 |---|---|---|---|
 | `veupathdb` | `VEuPathDB Portal (All organisms)` | `https://veupathdb.org/veupathdb/service` | The entry site; the only site where one strategy holds two genera (cross-genus orthology). |
 | `plasmodb` | `PlasmoDB (Plasmodium)` | `https://plasmodb.org/plasmo/service` | The site the corpus, the seeds and the e2e suite measure first; most flows are specified here. |

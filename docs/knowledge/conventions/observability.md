@@ -68,7 +68,7 @@ UI opens the trace in Langfuse.
 | What a researcher thought of an answer | the `rating` score (1, -1, 0 when cleared) on the turn's trace |
 
 The product events are `card_answered`, `strategy_opened`, `export_requested`,
-`turn_undone`, `assistant_regenerated` and `site_switched`, sent by the web through
+`turn_undone` and `assistant_regenerated`, sent by the web through
 `POST /api/v1/product-events`, and `conversation_created`, recorded by the server
 when a thread's first message creates it.
 

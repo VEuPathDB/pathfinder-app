@@ -186,7 +186,7 @@ interface SiteName {
   name: string;
 }
 
-/** The site's short name, which every surface but the site menu shows. */
+/** The site's short name. */
 export function siteShortName(siteId: string): string {
   const site = VEUPATHDB_SITES.find((s) => s.id === siteId);
   return site?.name ?? siteId;

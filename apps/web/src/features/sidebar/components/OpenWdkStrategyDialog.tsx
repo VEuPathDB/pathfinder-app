@@ -61,7 +61,7 @@ function entryNotice(read: WdkStrategyEntry): string | null {
   if (read.kind !== "otherSite") return null;
   if (read.siteId === null) return `PathFinder has no site at ${read.host}.`;
   const other = siteShortName(read.siteId);
-  return `That link names a ${other} strategy. Switch to ${other} to open it.`;
+  return `That link names a ${other} strategy. Open it on the ${other} website.`;
 }
 
 export function OpenWdkStrategyDialog({

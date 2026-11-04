@@ -1,7 +1,7 @@
 ---
 type: TestPlan
 title: UAT flows - first run and navigation
-description: Sign-in, the site menu, a site that is down, the conversation list, a new conversation, rename, delete, branch, revert, reload in the middle of a turn, closing the tab during a background task, and two accounts kept apart.
+description: Sign-in, the website as the site, a site that is down, the conversation list, a new conversation, rename, delete, branch, revert, reload in the middle of a turn, closing the tab during a background task, and two accounts kept apart.
 tags: [uat, flows, navigation, conversations, isolation]
 generated: { by: claude-code/opus-5.5, at: 2026-09-24T00:00:00Z }
 status: draft
@@ -17,19 +17,18 @@ Run on each site in [sites and accounts](sites-and-accounts.md) unless the flow 
 |---|---|---|---|
 | 1 | Browser, profile of account A, signed out of the website | Open `<pathfinder-url>` | The app is replaced by one panel: `PathFinder`, `VEuPathDB Strategy Builder` (CSS), `Sign in to VEuPathDB to build and manage search strategies.`, link `Sign in to VEuPathDB`. No dialog, no email or password field. |
 | 2 | Signed-out panel | `Sign in to VEuPathDB` | The website's login page opens in the whole window, its `destination` the page you were on: the website page that shows PathFinder, or PathFinder itself when opened alone. |
-| 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and PathFinder shows `/conversation` on the site whose website it is on: that site alone on a component site's website, with no site switcher, or the picked site on the portal's website. |
+| 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and PathFinder shows `/conversation` on the site whose website it is on, with no site control. |
 | 4 | First signed-in visit | Read the notice | Dialog `Your data in PathFinder` with seven points, link `Read the full statement` (opens a new tab), checkbox `Let PathFinder learn from my strategies` ticked, button `Continue`. Escape does not close it. Click `Continue`. It does not appear again after a reload. |
 | 5 | Website header | Log out of the website, then reload PathFinder | Back to step 1's panel. |
 | 6 | Signed-out panel | Sign in again through the link | After sign-in the conversation list is unchanged. |
 
-## F2 - Site menu - core
+## F2 - The website is the site - core
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Nav rail | Hover the site icon | Tooltip `Switch site`. |
-| 2 | Nav rail, `Switch site` | Click | Menu with `COMPONENT SITES` (CSS) and `PORTAL` (CSS) groups; items read `PlasmoDB (Plasmodium)`, `VectorBase (Vectors)`, `ToxoDB (Toxoplasma)`, `FungiDB (Fungi)`, `VEuPathDB Portal (All organisms)`. No item carries `Couldn't reach`. |
-| 3 | Site menu | Pick `ToxoDB (Toxoplasma)` | URL `/toxodb/conversation`; the conversation list shows only toxodb conversations. |
-| 4 | Site menu | Pick the site you started on | The list returns to that site's conversations. |
+| 1 | Nav rail | Read it on a component site's website and on the portal's | No site control on either. The conversation list shows only that website's site. |
+| 2 | Address bar | On the portal's website, open a conversation of a component site | `This conversation is on <display name>.` and a link `Open it on <site name>` to that site's website. The site stays the portal. |
+| 3 | Notice | Follow the link | The conversation opens on that site's website. |
 
 ## F3 - A site that is down
 
@@ -38,11 +37,8 @@ Needs the deployment operator (see `R1` in [resilience flows](flows-resilience.m
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Operator | Make one site's catalog fail to load (R1, step 1) | `GET /api/v1/sites` answers that site with `available: false` and an `unavailableReason`. |
-| 2 | Nav rail | Open `Switch site` | The site's item reads `Couldn't reach` with a warning glyph. |
-| 3 | Site menu | Pick that site | The rail and the sidebar stay; the content area shows `Couldn't reach <site name>` and `PathFinder cannot use this site right now: <reason>. It keeps trying every minute, so this may clear on its own.`, then `Try another site:` and one link per site that answers. The rail's site icon carries the warning glyph, tooltip `Couldn't reach <site name>`. |
-| 4 | Operator | Restore the site | Within 60 s, without a reload, the marker and the notice go away. |
-
-`CLAUDE.md` calls this marker "Not responding"; the code renders `Couldn't reach`. Test `Couldn't reach`.
+| 2 | That site's website | Open PathFinder | The rail and the sidebar stay; the content area shows `Couldn't reach <site name>` and `PathFinder cannot use this site right now: <reason>. It keeps trying every minute, so this may clear on its own.`, and links no other site. |
+| 3 | Operator | Restore the site | Within 60 s, without a reload, the notice goes away. |
 
 ## F4 - The conversation list - core
 

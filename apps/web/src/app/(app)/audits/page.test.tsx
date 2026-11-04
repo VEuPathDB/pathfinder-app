@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import type { SiteResponse } from "@pathfinder/shared";
+import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/audits" }));
 
@@ -33,7 +34,10 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
   };
 }
 
-async function askedOn(sites: SiteResponse[]): Promise<string[]> {
+async function askedOn(
+  sites: SiteResponse[],
+  configuredSite = "veupathdb",
+): Promise<string[]> {
   const asked: string[] = [];
   server.use(
     http.get(`${RUNS_URL}/words`, () => HttpResponse.json(served)),
@@ -45,13 +49,24 @@ async function askedOn(sites: SiteResponse[]): Promise<string[]> {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryDefaults(sitesOptions().queryKey, { staleTime: Infinity });
   queryClient.setQueryData(sitesOptions().queryKey, sites);
+  queryClient.setQueryDefaults(systemConfigQueryOptions().queryKey, {
+    staleTime: Infinity,
+  });
+  queryClient.setQueryData(systemConfigQueryOptions().queryKey, {
+    chatProvider: "mock",
+    llmConfigured: true,
+    providers: { openai: false, anthropic: false, google: false, ollama: false },
+    siteId: configuredSite,
+    siteSignInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
+    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+  });
   render(<Page />, { wrapper: Wrapper });
   await screen.findByText(/^No audits/);
   return asked;
 }
 
 describe("the audits page", () => {
-  it("asks for the locked site's audits on a component site's website", async () => {
+  it("asks for that site's audits on a component site's website", async () => {
     expect(
       await askedOn([
         site("veupathdb", "https://muharram.veupathdb.org", true),
@@ -77,5 +92,17 @@ describe("the audits page", () => {
         "No audits yet. Ask the audit assistant in a conversation to audit a genome.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("asks for the configured site's audits on a host no site names", async () => {
+    expect(
+      await askedOn(
+        [
+          site("veupathdb", "https://muharram.veupathdb.org", true),
+          site("toxodb", "https://muharram.toxodb.org"),
+        ],
+        "toxodb",
+      ),
+    ).toEqual([`${RUNS_URL}?siteId=toxodb`]);
   });
 });

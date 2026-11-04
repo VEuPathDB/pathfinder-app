@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A site that is down is down on its own
-description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, named in the reply of a turn it ended, marked in the site selection, read for a WDK identity only while it answers, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
+description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, named in the reply of a turn it ended, read for a WDK identity only while it answers, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
 tags: [infra, startup, availability, transport, health]
 generated: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
@@ -80,12 +80,10 @@ any catalog or WDK call. `POST /api/v1/chat` carries its site in the body, so
 `tests/unit/transport/test_site_gate_route_table.py` names every gated route and
 every route that reaches a site without the gate, with the reason.
 
-**The site selection warns.** `SiteResponse` carries `available` and
-`unavailableReason`, computed from the readiness state at request time. The nav
-rail's site menu keeps a degraded site selectable, since the researcher's saved
-work is local, and marks it "Couldn't reach"; the trigger carries the same mark
-when the current site is degraded. The sites query refetches every 60 s, matching
-the retry, so a recovered site clears its mark without a reload.
+**The site list warns.** `SiteResponse` carries `available` and
+`unavailableReason`, computed from the readiness state at request time. The sites
+query refetches every 60 s, matching the retry, so a recovered site clears its
+notice without a reload.
 
 **A WDK identity is read on a site that answers.** The identity gate turns a
 request's token into the internal user by asking a site for `/users/current`,
@@ -113,20 +111,18 @@ that carries a site id spells it `siteId`, on the wire as well as in a path
 template, which is what lets one dependency bind it.
 
 **A degraded site is never swapped for another.** The site a page works on is
-the website that frames PathFinder, or the site picked where the website offers a
-picker ([the site comes from the website](the-site-comes-from-the-website-that-frames-pathfinder.md)),
+the website that frames PathFinder
+([the site comes from the website](the-site-comes-from-the-website-that-frames-pathfinder.md)),
 so no entry point chooses a site for the researcher. A degraded current site
-shows its notice in the shell, which links every site that answers.
+shows its notice in the shell.
 
 **A degraded site keeps its shell; only its VEuPathDB-backed content is
 refused.** `SiteAvailabilityGate` renders inside the app shell
 (`app/(app)/layout.tsx`), around the routed content and below the nav rail, so a degraded current site
-still draws the rail with its site switcher and its "Not
-responding" marker, and the conversations list and saved gene sets - this
+still draws the rail, and the conversations list and saved gene sets - this
 deployment's own rows, which the api serves for a degraded site - stay
-reachable. The notice takes the content area: the site's display name, the
-error class, and a link to every site that answers, re-rendered to the app by
-the 60 s refetch. The shell draws no signed-out notice on a degraded site,
+reachable. The notice takes the content area: the site's short name and the
+error class, re-rendered to the app by the 60 s refetch. The shell draws no signed-out notice on a degraded site,
 because a site that answers nothing cannot authenticate anyone: the site notice
 takes the content area in its place. Both shells
 read the site through `app/hooks/useSiteAccess.ts`, which reports the site down

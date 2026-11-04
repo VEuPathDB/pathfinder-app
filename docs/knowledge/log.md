@@ -2,6 +2,12 @@
 
 ## 2026-11-04
 
+* **PathFinder offers no site.** The site switcher, the stored picked site and the
+  `site_switched` event are gone. Every website, the portal's included, is its own site, a
+  conversation of another site opens the notice on every website, and a host no site names
+  uses the `siteId` of `GET /health/config`. The notice for a site that is down no longer
+  links other sites. See
+  [the decision](decisions/the-site-comes-from-the-website-that-frames-pathfinder.md).
 * **A required genome list is asked from its counts.** A settled `GenesByOrthologPattern`
   criterion that requires two genomes or more asks one card when its at-least-one count
   differs from its bound count. "All" settles it. "At least one" builds left MINUS right

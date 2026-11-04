@@ -25,18 +25,16 @@ describe("recordProductEvent", () => {
     );
 
     recordProductEvent({
-      event: "site_switched",
-      fromSite: "plasmodb",
-      toSite: "toxodb",
+      event: "turn_undone",
+      messageId: "m1",
       conversationId: CONVERSATION_ID,
     });
 
     await vi.waitFor(() => {
       expect(bodies).toEqual([
         {
-          event: "site_switched",
-          fromSite: "plasmodb",
-          toSite: "toxodb",
+          event: "turn_undone",
+          messageId: "m1",
           conversationId: CONVERSATION_ID,
         },
       ]);

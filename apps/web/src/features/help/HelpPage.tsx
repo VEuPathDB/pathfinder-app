@@ -1,34 +1,11 @@
 import { siteShortName } from "@pathfinder/shared";
 
 import { yourDataUrl } from "@/lib/routes";
-import type { SiteFrame } from "@/lib/sites/currentSite";
 
 import { InfoList, InfoPage, InfoSection, InternalLink } from "./InfoPage";
 import { SettingsTabLink } from "./SettingsTabLink";
 
-function SiteChoice({ site }: { site: SiteFrame }) {
-  switch (site.kind) {
-    case "locked":
-      return (
-        <p>
-          Here, PathFinder works on {siteShortName(site.siteId)}. If you open a
-          conversation that you started on another site, PathFinder gives you a link to
-          open it on that site.
-        </p>
-      );
-    case "switchable":
-      return (
-        <p>
-          To start a conversation on another site, choose Switch site at the bottom of
-          the left bar and pick the site.
-        </p>
-      );
-    case "unknown":
-      return null;
-  }
-}
-
-export function HelpPage({ site }: { site: SiteFrame }) {
+export function HelpPage({ siteId }: { siteId: string | null }) {
   return (
     <InfoPage title="Help">
       <InfoSection id="what" title="What PathFinder does">
@@ -63,17 +40,23 @@ export function HelpPage({ site }: { site: SiteFrame }) {
         </InfoList>
       </InfoSection>
 
-      <InfoSection id="sign-in" title="Signing in and choosing a site">
+      <InfoSection id="sign-in" title="Signing in and your site">
         <p>
           You sign in with your VEuPathDB account, on the VEuPathDB website. PathFinder
           does not work unless you are signed in.
         </p>
         <p>
-          PathFinder works on one site at a time: the VEuPathDB portal or a component
-          site such as PlasmoDB or ToxoDB. Each conversation stays on the site where you
-          started it.
+          PathFinder works on the site whose website you are on: the VEuPathDB portal or
+          a component site such as PlasmoDB or ToxoDB. Each conversation stays on the
+          site where you started it.
         </p>
-        <SiteChoice site={site} />
+        {siteId !== null && (
+          <p>
+            Here, PathFinder works on {siteShortName(siteId)}. If you open a
+            conversation that you started on another site, PathFinder gives you a link
+            to open it on that site.
+          </p>
+        )}
       </InfoSection>
 
       <InfoSection id="conversation" title="How a conversation works">

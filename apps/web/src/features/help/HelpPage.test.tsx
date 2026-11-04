@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import type { SiteFrame } from "@/lib/sites/currentSite";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { HelpPage } from "./HelpPage";
@@ -17,7 +16,7 @@ afterEach(() => {
 
 const HEADINGS = [
   "What PathFinder does",
-  "Signing in and choosing a site",
+  "Signing in and your site",
   "How a conversation works",
   "What to check",
   "Memory",
@@ -27,10 +26,6 @@ const HEADINGS = [
   "Your data",
 ];
 
-const LOCKED: SiteFrame = { kind: "locked", siteId: "plasmodb" };
-const SWITCHABLE: SiteFrame = { kind: "switchable" };
-const UNKNOWN: SiteFrame = { kind: "unknown" };
-
 function section(container: HTMLElement, id: string): HTMLElement {
   const found = container.querySelector<HTMLElement>(`section#${id}`);
   if (found === null) throw new Error(`no section ${id}`);
@@ -39,7 +34,7 @@ function section(container: HTMLElement, id: string): HTMLElement {
 
 describe("HelpPage", () => {
   it("shows its title and every section heading, in order", () => {
-    render(<HelpPage site={LOCKED} />);
+    render(<HelpPage siteId="plasmodb" />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Help" })).toBeVisible();
     expect(
@@ -48,7 +43,7 @@ describe("HelpPage", () => {
   });
 
   it("names what PathFinder can do beyond building a strategy", () => {
-    const { container } = render(<HelpPage site={LOCKED} />);
+    const { container } = render(<HelpPage siteId="plasmodb" />);
 
     expect(
       [...section(container, "what").querySelectorAll("li")].map(
@@ -63,8 +58,8 @@ describe("HelpPage", () => {
     ]);
   });
 
-  it("names the site a component site's website locks, and no site switch", () => {
-    const { container } = render(<HelpPage site={LOCKED} />);
+  it("names the site it works on, and no site switch", () => {
+    const { container } = render(<HelpPage siteId="plasmodb" />);
 
     expect(section(container, "sign-in")).toHaveTextContent(
       "Here, PathFinder works on PlasmoDB.",
@@ -72,26 +67,17 @@ describe("HelpPage", () => {
     expect(container).not.toHaveTextContent("Switch site");
   });
 
-  it("names Switch site where the website offers it", () => {
-    const { container } = render(<HelpPage site={SWITCHABLE} />);
-
-    expect(section(container, "sign-in")).toHaveTextContent(
-      "To start a conversation on another site, choose Switch site at the bottom of the left bar and pick the site.",
-    );
-  });
-
-  it("names neither the site nor the switch before the site is known", () => {
-    const { container } = render(<HelpPage site={UNKNOWN} />);
+  it("names no site before the site is known", () => {
+    const { container } = render(<HelpPage siteId={null} />);
 
     expect(section(container, "sign-in")).toHaveTextContent(
       "Each conversation stays on the site where you started it.",
     );
-    expect(container).not.toHaveTextContent("Switch site");
     expect(container).not.toHaveTextContent("Here, PathFinder works on");
   });
 
   it("names the answers each card waits for and the stop control", () => {
-    const { container } = render(<HelpPage site={LOCKED} />);
+    const { container } = render(<HelpPage siteId="plasmodb" />);
 
     const conversation = section(container, "conversation");
     expect(conversation).toHaveTextContent("choose Yes or No");
@@ -102,7 +88,7 @@ describe("HelpPage", () => {
   });
 
   it("links to the data statement from its own section", () => {
-    render(<HelpPage site={LOCKED} />);
+    render(<HelpPage siteId="plasmodb" />);
 
     expect(
       screen.getByRole("link", { name: "Your data in PathFinder" }),
@@ -110,7 +96,7 @@ describe("HelpPage", () => {
   });
 
   it("links a declined request to the section that explains it", () => {
-    render(<HelpPage site={LOCKED} />);
+    render(<HelpPage siteId="plasmodb" />);
 
     expect(
       screen.getByRole("link", { name: "what PathFinder does when a model declines" }),
@@ -118,7 +104,7 @@ describe("HelpPage", () => {
   });
 
   it("leads back to the app", () => {
-    render(<HelpPage site={LOCKED} />);
+    render(<HelpPage siteId="plasmodb" />);
 
     expect(screen.getByRole("link", { name: "Back to PathFinder" })).toHaveAttribute(
       "href",
@@ -132,7 +118,7 @@ describe("HelpPage", () => {
     ["Provider keys", "keys"],
   ] as const)("opens Settings on the %s tab from its mention", async (name, tab) => {
     useSettingsModalStore.setState({ isOpen: false, tab: "advanced" });
-    render(<HelpPage site={LOCKED} />);
+    render(<HelpPage siteId="plasmodb" />);
 
     const link = screen.getByRole("link", { name });
     expect(link).toHaveAttribute("href", "/conversation");
@@ -142,7 +128,7 @@ describe("HelpPage", () => {
   });
 
   it("names Settings as the only way to the model", () => {
-    const { container } = render(<HelpPage site={LOCKED} />);
+    const { container } = render(<HelpPage siteId="plasmodb" />);
 
     expect(section(container, "models")).toHaveTextContent(
       "To change it, open Settings and the Model tab.",

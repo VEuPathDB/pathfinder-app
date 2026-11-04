@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteResponse } from "@pathfinder/shared";
 
-import { currentSiteId, lockedSite, siteFrame } from "./currentSite";
+import { currentSiteId } from "./currentSite";
 
 function site(id: string, origin: string, isPortal = false): SiteResponse {
   return {
@@ -24,95 +24,24 @@ const PLASMO = site("plasmodb", "https://muharram.plasmodb.org");
 const TOXO = site("toxodb", "https://q2.toxodb.org");
 const SITES = [PORTAL, PLASMO, TOXO];
 
-describe("lockedSite", () => {
-  it("is the component site whose website is at the page's origin", () => {
-    expect(lockedSite(SITES, "https://muharram.plasmodb.org")?.id).toBe("plasmodb");
-  });
-
-  it("is no site on the portal's website", () => {
-    expect(lockedSite(SITES, "https://muharram.veupathdb.org")?.id).toBe(undefined);
-  });
-
-  it("is no site on a host no site names", () => {
-    expect(lockedSite(SITES, "http://localhost:3000")?.id).toBe(undefined);
-  });
-
-  it("is no site before the page's origin is known", () => {
-    expect(lockedSite(SITES, null)?.id).toBe(undefined);
-  });
-});
-
 describe("currentSiteId", () => {
-  it("is the locked site, whatever is picked or open", () => {
-    expect(
-      currentSiteId({
-        sites: SITES,
-        origin: "https://muharram.plasmodb.org",
-        picked: "veupathdb",
-        conversationSite: "toxodb",
-      }),
-    ).toBe("plasmodb");
+  it("is the component site whose website is at the page's origin", () => {
+    expect(currentSiteId(SITES, "https://muharram.plasmodb.org", "veupathdb")).toBe(
+      "plasmodb",
+    );
   });
 
-  it("is the open conversation's site on the portal's website", () => {
-    expect(
-      currentSiteId({
-        sites: SITES,
-        origin: "https://muharram.veupathdb.org",
-        picked: "veupathdb",
-        conversationSite: "toxodb",
-      }),
-    ).toBe("toxodb");
+  it("is the portal on the portal's website", () => {
+    expect(currentSiteId(SITES, "https://muharram.veupathdb.org", "toxodb")).toBe(
+      "veupathdb",
+    );
   });
 
-  it("is the picked site on the portal's website with no conversation open", () => {
-    expect(
-      currentSiteId({
-        sites: SITES,
-        origin: "https://muharram.veupathdb.org",
-        picked: "toxodb",
-        conversationSite: null,
-      }),
-    ).toBe("toxodb");
+  it("is the configured site on a host no site names", () => {
+    expect(currentSiteId(SITES, "http://localhost:3000", "toxodb")).toBe("toxodb");
   });
 
-  it("is the picked site on a host no site names", () => {
-    expect(
-      currentSiteId({
-        sites: SITES,
-        origin: "http://localhost:3000",
-        picked: "plasmodb",
-        conversationSite: null,
-      }),
-    ).toBe("plasmodb");
-  });
-});
-
-describe("siteFrame", () => {
-  it("locks to the component site whose website is at the page's origin", () => {
-    expect(siteFrame(SITES, "https://muharram.plasmodb.org")).toEqual({
-      kind: "locked",
-      siteId: "plasmodb",
-    });
-  });
-
-  it("offers the switch on the portal's website", () => {
-    expect(siteFrame(SITES, "https://muharram.veupathdb.org")).toEqual({
-      kind: "switchable",
-    });
-  });
-
-  it("offers the switch on a host no site names", () => {
-    expect(siteFrame(SITES, "http://localhost:3000")).toEqual({ kind: "switchable" });
-  });
-
-  it("is unknown before the sites are read", () => {
-    expect(siteFrame(undefined, "https://muharram.plasmodb.org")).toEqual({
-      kind: "unknown",
-    });
-  });
-
-  it("is unknown before the page's origin is known", () => {
-    expect(siteFrame(SITES, null)).toEqual({ kind: "unknown" });
+  it("is the configured site before the page's origin is known", () => {
+    expect(currentSiteId(SITES, null, "toxodb")).toBe("toxodb");
   });
 });

@@ -1,4 +1,7 @@
-import type { Page } from "@playwright/test";
+import { type Page, expect } from "@playwright/test";
+import type { SiteResponse } from "@pathfinder/shared";
+
+import { BASE_PATH } from "@/lib/basePath";
 
 /**
  * Wall clock one route change needs. The dev server compiles a route the
@@ -37,35 +40,48 @@ export async function waitForDraftChatRoute(page: Page) {
   });
 }
 
-const SESSION_STORE_KEY = "pathfinder-session-20260625";
-const STORAGE_RESET_MARKER = "pf-local-reset-20260625";
-
-export async function gotoOnSite(page: Page, siteId: string, path: string) {
-  const pick = await page.addInitScript(
-    ({ site, sessionKey, resetMarker }) => {
-      window.localStorage.setItem(resetMarker, "1");
-      window.localStorage.setItem(
-        sessionKey,
-        JSON.stringify({ state: { pickedSite: site }, version: 0 }),
-      );
+/** Make the page's origin the website of `siteId`, as a site's own website does. */
+export async function frameOnSite(page: Page, siteId: string) {
+  await page.route(
+    (url) => url.pathname === `${BASE_PATH}/api/v1/sites`,
+    async (route) => {
+      const response = await route.fetch();
+      const sites = (await response.json()) as SiteResponse[];
+      const { origin } = new URL(route.request().url());
+      await route.fulfill({
+        response,
+        json: sites.map((site) =>
+          site.id === siteId ? { ...site, siteOrigin: origin } : site,
+        ),
+      });
     },
-    { site: siteId, sessionKey: SESSION_STORE_KEY, resetMarker: STORAGE_RESET_MARKER },
   );
-  await page.goto(path);
-  await pick.dispose();
 }
 
+export async function gotoOnSite(page: Page, siteId: string, path: string) {
+  await frameOnSite(page, siteId);
+  await page.goto(path);
+}
+
+/** The site the app works on: the site at the page's origin, else the configured site. */
 export async function currentSiteId(page: Page): Promise<string> {
-  const stored = await page.evaluate(
-    (key) => window.localStorage.getItem(key),
-    SESSION_STORE_KEY,
-  );
-  if (stored === null) {
-    throw new Error("the app has stored no picked site");
-  }
-  const { state } = JSON.parse(stored) as { state: { pickedSite?: string } };
-  if (state.pickedSite === undefined || state.pickedSite === "") {
-    throw new Error("the stored session names no picked site");
-  }
-  return state.pickedSite;
+  return page.evaluate(async (basePath) => {
+    const sites = (await (await fetch(`${basePath}/api/v1/sites`)).json()) as {
+      id: string;
+      siteOrigin: string;
+    }[];
+    const config = (await (await fetch(`${basePath}/health/config`)).json()) as {
+      siteId: string;
+    };
+    return (
+      sites.find((site) => site.siteOrigin === window.location.origin)?.id ??
+      config.siteId
+    );
+  }, BASE_PATH);
+}
+
+export async function expectCurrentSite(page: Page, siteId: string) {
+  await expect
+    .poll(() => currentSiteId(page), { timeout: ROUTE_TIMEOUT_MS })
+    .toBe(siteId);
 }
