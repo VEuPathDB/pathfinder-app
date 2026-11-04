@@ -5,7 +5,10 @@ import { DISTINCT_CHART_TOKENS } from "@/lib/components/charts/__fixtures__/char
 import { SAMPLE_RUN, SAMPLE_WORDS } from "./__fixtures__/sampleRun";
 import { buildHeatOption, heatCells } from "./heatMap.options";
 
-type HeatSeries = { type: string; data: [number, number, number | null][] };
+type HeatSeries = {
+  type: string;
+  data: { value: [number, number, number | null]; label: { color: string } }[];
+};
 type Tooltip = { formatter: (params: { dataIndex: number }) => string };
 
 describe("the heat map's option", () => {
@@ -59,7 +62,7 @@ describe("the heat map's option", () => {
     const option = buildHeatOption(heat, SAMPLE_WORDS, DISTINCT_CHART_TOKENS);
     const [series] = option.series as HeatSeries[];
     expect(series?.type).toBe("heatmap");
-    expect(series?.data.map(([check, genome]) => [check, genome])).toEqual(
+    expect(series?.data.map(({ value: [check, genome] }) => [check, genome])).toEqual(
       heat.cells.map((cell) => [cell.check, cell.genome]),
     );
     const tooltip = option.tooltip as Tooltip;
@@ -75,5 +78,21 @@ describe("the heat map's option", () => {
     expect(at(0, 1)).toBe(
       "Plasmodium falciparum Dd2<br/>Pseudogene calls on intact genes<br/>No judged finding",
     );
+  });
+});
+
+describe("the label of a heat map cell", () => {
+  it("stays readable on a cell of any shade", () => {
+    const tokens = { ...DISTINCT_CHART_TOKENS };
+    const heat = heatCells(SAMPLE_RUN, SAMPLE_WORDS);
+    const option = buildHeatOption(heat, SAMPLE_WORDS, tokens);
+    const [series] = option.series as HeatSeries[];
+    expect(series?.data.map((cell) => [cell.value[2], cell.label.color])).toEqual(
+      heat.cells.map((cell) => [
+        cell.value,
+        cell.value !== null && cell.value > 0.5 ? tokens.card : tokens.foreground,
+      ]),
+    );
+    expect(heat.cells.map((cell) => cell.value)).toContain(1);
   });
 });

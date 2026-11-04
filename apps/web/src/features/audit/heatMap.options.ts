@@ -87,6 +87,8 @@ function cellTooltip(heat: Heat, cell: HeatCell, words: AuditWords): string {
   return lines.join("<br/>");
 }
 
+const DARK_CELL_FROM = 0.5;
+
 export function buildHeatOption(
   heat: Heat,
   words: AuditWords,
@@ -126,7 +128,12 @@ export function buildHeatOption(
             return cell?.value == null ? "" : percent(cell.value);
           },
         },
-        data: heat.cells.map((cell) => [cell.check, cell.genome, cell.value]),
+        data: heat.cells.map((cell) => ({
+          value: [cell.check, cell.genome, cell.value],
+          label: {
+            color: (cell.value ?? 0) > DARK_CELL_FROM ? tokens.card : tokens.foreground,
+          },
+        })),
       },
     ],
   };
