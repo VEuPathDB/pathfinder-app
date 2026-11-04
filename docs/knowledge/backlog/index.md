@@ -9,12 +9,12 @@ what left.
 
 ### Before testers: a tester would hit it
 
-1. [A suggested prompt is measured before it ships](a-suggested-prompt-is-measured-before-it-ships.md) ([#24](https://github.com/VEuPathDB/pathfinder-app/issues/24)) - every offered suggestion has one recorded passing run; let biologists propose candidates in a reviewable file, each offered only after its recorded run meets the stated expectation.
+1. [An ortholog in a genus means any of its genomes](an-ortholog-in-a-genus-means-any-of-its-genomes.md) - "an ortholog in Plasmodium" bound all 61 Plasmodium genomes as required (501 Cryptosporidium genes); an ortholog in any genome of a clade needs a union or a phyletic expression, measured on QA.
 2. [A sample shown again is the same records](a-sample-shown-again-is-the-same-records.md) - asked for the same sample of five genes again, the Lead reads the first five ids of the step instead of the five it showed; show it again from what the thread recorded.
-3. [An ortholog in a genus means any of its genomes](an-ortholog-in-a-genus-means-any-of-its-genomes.md) - "an ortholog in Plasmodium" bound all 61 Plasmodium genomes as required (501 Cryptosporidium genes); an ortholog in any genome of a clade needs a union or a phyletic expression, measured on QA.
 
 ### After testers
 
+3. [A suggested prompt is measured before it ships](a-suggested-prompt-is-measured-before-it-ships.md) ([#24](https://github.com/VEuPathDB/pathfinder-app/issues/24)) - every offered suggestion has one recorded passing run; let biologists propose candidates in a reviewable file, each offered only after its recorded run meets the stated expectation.
 4. [Typed requirements are measured](typed-requirements-are-measured.md) - every requirement decision reads typed data, but no gold set holds the typed fields and no replay of the saved runs reports the typed accuracy, the untyped share and the share of quotes no message holds; build the gold set with a pass threshold and run the replay.
 5. [A count per species groups the genome codes of each species](a-count-per-species-groups-the-genome-codes.md) ([#15](https://github.com/VEuPathDB/pathfinder-app/issues/15)) - asked to aggregate a per-genome tally to species, an edit bound a phyletic filter every species must meet and emptied the result; count the result step by genome code and sum each species' codes from the site's taxonomy.
 6. [A copy-number comparison between clades is built in bands](a-copy-number-comparison-between-clades-is-built-in-bands.md) ([#17](https://github.com/VEuPathDB/pathfinder-app/issues/17)) - "more genes per genome in Toxoplasma than Plasmodium" is refused although `build_phyletic_expression` writes a clade-average comparison; guide the Lead to that pattern, offer it in the question and state the clade-average caveat.

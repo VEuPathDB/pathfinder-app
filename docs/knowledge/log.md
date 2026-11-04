@@ -16,6 +16,9 @@
 
 ## 2026-11-03
 
+* **The backlog is ranked again.** A wrong count goes first: an ortholog in a genus, then a
+  sample shown again. A suggested prompt moves after testers, because all 49 have a passing
+  run and what is left is how a biologist adds one.
 * **A chart color can be blended.** `hslFromTriple` writes commas, because the chart library
   splits a color on them and paints a blend of any other spelling black. The audit heat map
   blends two tokens, and its cells now show their shade and their percentage.
