@@ -26,6 +26,8 @@
 
 ## 2026-11-03
 
+* **A species list is never a vocabulary pick.** Its codes come from the site's tree, so a doubted
+  pick on it asks nothing and no card reduces a list to one genome.
 * **Each call of a run gets the model's own reasoning back.** PathFinder takes assistant-core
   0.3.0b17, with langgraph 1.2.14. See
   [the decision](decisions/reasoning-items-go-back-with-their-ids.md).

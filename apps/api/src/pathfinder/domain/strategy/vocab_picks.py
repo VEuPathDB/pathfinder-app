@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from functools import reduce
 
 from pydantic import ConfigDict, Field
-from veupathdb.domain.parameters import VocabOption
+from veupathdb.domain.parameters import PHYLETIC_LIST_PARAMS, VocabOption
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import VocabPick
 
@@ -31,6 +31,11 @@ class PickRead(CamelModel):
     kept: list[VocabOption] = Field(default_factory=list)
 
     def note(self) -> str:
+        if self.param_name in PHYLETIC_LIST_PARAMS:
+            return (
+                "A species list is bound from its genome and clade codes, so this "
+                "read settles nothing and is not asked of the researcher."
+            )
         if self.pick.value is None:
             return (
                 f"No entry this read kept states {self.requirement!r}, so a "
@@ -117,6 +122,7 @@ def _unsettled(criterion: Criterion, picks: Sequence[PickRead]) -> list[PickRead
         for read in picks
         if read.search_name == criterion.search_name
         and not read.pick.settled
+        and read.param_name not in PHYLETIC_LIST_PARAMS
         and (bound := criterion.resolved_params.get(read.param_name)) is not None
         and bound.source == "chosen"
     ]
