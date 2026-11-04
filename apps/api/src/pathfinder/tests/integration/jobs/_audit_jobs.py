@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 from uuid import UUID
@@ -16,7 +16,7 @@ from fastmcp.exceptions import ToolError
 from procrastinate.testing import InMemoryConnector
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKError
-from veupathdb.wdk import VEuPathDBClaims
+from veupathdb.wdk import VEuPathDBClaims, WDKUserInfo
 from veupathdb_mcp.audit import GroupMember, OrthologGroup
 
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
@@ -28,12 +28,14 @@ from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
 )
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import SiteUnavailableError
 from pathfinder.services import wdk_identity
 from pathfinder.services.audit import (
     checks,
     collect,
     confirm,
     screen,
+    sign_in,
     tie_break,
     weighing,
 )
@@ -185,38 +187,58 @@ def wire_checks(monkeypatch: pytest.MonkeyPatch) -> Checks:
     return fakes
 
 
+_SITE = "plasmodb"
+_NO_ANSWER = "the sign-in check got no answer"
+_REGISTERED_USER = WDKUserInfo.model_validate(
+    {"id": 1, "email": "reader@example.org", "isGuest": False}
+)
+
+
+def _site_answers(
+    monkeypatch: pytest.MonkeyPatch,
+    answer: Callable[[str | None], WDKUserInfo | None],
+) -> None:
+    async def _read(site_id: str) -> WDKUserInfo | None:
+        del site_id
+        return answer(veupathdb_auth_token_ctx.get())
+
+    monkeypatch.setattr(sign_in, "current_user_on_a_site_that_answers", _read)
+
+
+def _named(token: str | None, tokens: tuple[str, ...]) -> WDKUserInfo | None:
+    return _REGISTERED_USER if token in tokens else None
+
+
 def registered(monkeypatch: pytest.MonkeyPatch, *tokens: str) -> None:
     async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
         del oauth_url
         return VEuPathDBClaims(sub="1248677203", is_guest=token not in tokens)
 
     monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)
+    _site_answers(monkeypatch, lambda token: _named(token, tokens))
 
 
 def sign_in_fails_after(
     monkeypatch: pytest.MonkeyPatch, checks: Checks, *tokens: str, refusals: int
 ) -> None:
-    async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
-        del oauth_url
-        revoked = checks.refusals >= refusals
-        return VEuPathDBClaims(
-            sub="1248677203", is_guest=revoked or token not in tokens
-        )
-
-    monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)
+    registered(monkeypatch, *tokens)
+    _site_answers(
+        monkeypatch,
+        lambda token: None if checks.refusals >= refusals else _named(token, tokens),
+    )
 
 
 def sign_in_unanswered_after(
     monkeypatch: pytest.MonkeyPatch, checks: Checks, *tokens: str, refusals: int
 ) -> None:
-    async def _claims(token: str, oauth_url: str) -> VEuPathDBClaims | None:
-        del oauth_url
-        if checks.refusals >= refusals:
-            msg = "the sign-in check got no answer"
-            raise httpx.ConnectError(msg)
-        return VEuPathDBClaims(sub="1248677203", is_guest=token not in tokens)
+    registered(monkeypatch, *tokens)
 
-    monkeypatch.setattr(wdk_identity, "validate_oauth_token", _claims)
+    def _answer(token: str | None) -> WDKUserInfo | None:
+        if checks.refusals >= refusals:
+            raise SiteUnavailableError(_SITE, _NO_ANSWER)
+        return _named(token, tokens)
+
+    _site_answers(monkeypatch, _answer)
 
 
 def short_runs(monkeypatch: pytest.MonkeyPatch) -> None:

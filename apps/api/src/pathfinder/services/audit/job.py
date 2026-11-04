@@ -294,7 +294,7 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
     if stage is None:
         await _set_status(run.id, "finished")
         return
-    match await sign_in_check():
+    match await sign_in_check(run.site_id):
         case "refused":
             await _halt(run.id, lanes, stage)
             return
@@ -310,6 +310,7 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
     with (
         told_while_waiting(lanes),
         units.watching_refusals(
+            run.site_id,
             run.id,
             run.stages.refusal_streak,
             reopened=await _holds_reopened_refusals(run.id),

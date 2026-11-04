@@ -19,10 +19,13 @@ from veupathdb.wdk import VEuPathDBClaims
 from pathfinder.persistence.models import AuditRunRecord
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import AppError, ErrorCode
+from pathfinder.platform.errors import AppError, ErrorCode, SiteUnavailableError
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher
 from pathfinder.services.site_errors import unreached
-from pathfinder.services.wdk_identity import require_registered_wdk_login
+from pathfinder.services.wdk_identity import (
+    current_user_on_a_site_that_answers,
+    require_registered_wdk_login,
+)
 
 
 class AuditsDisabledError(AppError):
@@ -74,16 +77,19 @@ async def signed_in_as_owner(run: AuditRunRecord) -> AsyncIterator[None]:
         veupathdb_auth_token_ctx.reset(reset)
 
 
-async def sign_in_check() -> Literal["held", "refused", "unanswered"]:
+async def sign_in_check(site_id: str) -> Literal["held", "refused", "unanswered"]:
     try:
         await require_registered_wdk_login()
+        user = await current_user_on_a_site_that_answers(site_id)
     except WDKLoginRequiredError:
         return "refused"
+    except SiteUnavailableError:
+        return "unanswered"
     except (httpx.TransportError, ExternalServiceError) as exc:
         if not unreached(exc):
             raise
         return "unanswered"
-    return "held"
+    return "refused" if user is None or user.is_guest else "held"
 
 
 def sign_in_holds() -> bool:

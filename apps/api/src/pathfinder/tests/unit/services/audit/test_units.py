@@ -395,13 +395,14 @@ async def _three_refusals() -> list[str]:
 async def test_three_forbidden_reads_ask_the_sign_in_and_a_failed_one_halts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def check() -> str:
+    async def check(site_id: str) -> str:
+        del site_id
         return "refused"
 
     monkeypatch.setattr(units, "sign_in_check", check)
     held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
     try:
-        with watching_refusals(), pytest.raises(SignInNeededError):
+        with watching_refusals("plasmodb"), pytest.raises(SignInNeededError):
             await _three_refusals()
     finally:
         veupathdb_auth_token_ctx.reset(held)
@@ -412,14 +413,15 @@ async def test_three_forbidden_reads_under_a_holding_sign_in_go_on(
 ) -> None:
     asked: list[str] = []
 
-    async def check() -> str:
+    async def check(site_id: str) -> str:
+        del site_id
         asked.append("asked")
         return "held"
 
     monkeypatch.setattr(units, "sign_in_check", check)
     held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
     try:
-        with watching_refusals() as streak:
+        with watching_refusals("plasmodb") as streak:
             assert await _three_refusals() == []
     finally:
         veupathdb_auth_token_ctx.reset(held)
@@ -429,13 +431,14 @@ async def test_three_forbidden_reads_under_a_holding_sign_in_go_on(
 async def test_a_sign_in_check_with_no_answer_pauses(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def check() -> str:
+    async def check(site_id: str) -> str:
+        del site_id
         return "unanswered"
 
     monkeypatch.setattr(units, "sign_in_check", check)
     held = veupathdb_auth_token_ctx.set(veupathdb_token(_KEY))
     try:
-        with watching_refusals(), pytest.raises(ContinueLaterError) as later:
+        with watching_refusals("plasmodb"), pytest.raises(ContinueLaterError) as later:
             await _three_refusals()
     finally:
         veupathdb_auth_token_ctx.reset(held)
@@ -454,7 +457,7 @@ async def test_an_answered_unit_between_forbidden_reads_breaks_the_streak() -> N
         return True
 
     try:
-        with watching_refusals():
+        with watching_refusals("plasmodb"):
             left = await in_passes(
                 ["a", "b", "c", "d", "e"],
                 attempt,

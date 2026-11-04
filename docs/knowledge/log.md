@@ -21,7 +21,9 @@
   under it, and the log holds the full error. A refusal means sign-in trouble only
   once the sign-in is shown to fail: three refusals in a row
   (`RunStages.refusal_streak`, which survives a job slice), or a refusal during a
-  retry, ask it. A sign-in that fails halts the run and reopens the flagged units
+  retry, ask it. The check verifies the token and then asks the site
+  (`GET /users/current`, uncached), so a token the site stopped accepting reads as failed.
+  A sign-in that fails halts the run and reopens the flagged units
   (`refused_by_sign_in`); one that holds leaves them failed and unflagged and the run
   goes on; a check with no answer pauses, and a sign-in that holds when the run resumes
   clears the flags and the streak. A retry that reads nothing new and remodels no

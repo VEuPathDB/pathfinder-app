@@ -127,7 +127,10 @@ class SignInNeededError(Exception):
 
 
 class RefusalStreak:
-    def __init__(self, run_id: UUID | None, count: int, *, reopened: bool) -> None:
+    def __init__(
+        self, site_id: str, run_id: UUID | None, count: int, *, reopened: bool
+    ) -> None:
+        self.site_id = site_id
         self.run_id = run_id
         self.count = count
         self.reopened = reopened
@@ -149,7 +152,7 @@ class RefusalStreak:
             await session.commit()
 
     async def _ask_the_sign_in(self, waits: Waits) -> None:
-        match await sign_in_check():
+        match await sign_in_check(self.site_id):
             case "held":
                 self.count = 0
                 await self._store(genuine=True)
@@ -181,9 +184,9 @@ _STREAK: ContextVar[RefusalStreak | None] = ContextVar(
 
 @contextmanager
 def watching_refusals(
-    run_id: UUID | None = None, count: int = 0, *, reopened: bool = False
+    site_id: str, run_id: UUID | None = None, count: int = 0, *, reopened: bool = False
 ) -> Iterator[RefusalStreak]:
-    streak = RefusalStreak(run_id, count, reopened=reopened)
+    streak = RefusalStreak(site_id, run_id, count, reopened=reopened)
     reset = _STREAK.set(streak)
     try:
         yield streak
