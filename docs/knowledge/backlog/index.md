@@ -9,8 +9,8 @@ what left.
 
 ### Before testers: a tester would hit it
 
-1. [An ortholog in a genus means any of its genomes](an-ortholog-in-a-genus-means-any-of-its-genomes.md) - "an ortholog in Plasmodium" bound all 61 Plasmodium genomes as required (501 Cryptosporidium genes); an ortholog in any genome of a clade needs a union or a phyletic expression, measured on QA.
-2. [A sample shown again is the same records](a-sample-shown-again-is-the-same-records.md) - asked for the same sample of five genes again, the Lead reads the first five ids of the step instead of the five it showed; show it again from what the thread recorded.
+1. [A sample shown again is the same records](a-sample-shown-again-is-the-same-records.md) - asked for the same sample of five genes again, the Lead reads the first five ids of the step instead of the five it showed; show it again from what the thread recorded.
+2. [A count the steps imply is stated](a-count-the-steps-imply-is-stated.md) - asked how many genes a filter removed, the Lead usually points at the step counts instead of answering 627 (680 minus 53); the facts part states what a combine step removed, measured by repeating the case.
 
 ### After testers
 

@@ -13,6 +13,10 @@
   differs from its bound count. "All" settles it. "At least one" builds left MINUS right
   with no model in between. See
   [the decision](decisions/a-required-genome-list-is-asked-from-its-counts.md).
+* **Removed from the backlog: an ortholog in a genus.** The card that a required genome list
+  asks covers it.
+* **Added to the backlog: a count the steps imply is stated.** See
+  [the item](backlog/a-count-the-steps-imply-is-stated.md).
 * **The finding page's head states its certainty, source and request count.** The certainty
   is the one the findings table shows, and a finding with none shows no line. The source uses
   the table's words. The count adds the finding's stored site requests to those of its evidence
@@ -444,7 +448,7 @@
   veupathdb-mcp changes the backlog item named. Genome, not species: the clade holds
   139 genomes of 74 species. Most rewordings name one genome on each side of an
   ortholog question, because a genus was bound as every genome of the genus
-  ([backlog](backlog/an-ortholog-in-a-genus-means-any-of-its-genomes.md)). Four
+  ([decision](decisions/a-required-genome-list-is-asked-from-its-counts.md)). Four
   differential-expression jobs failed with no reason
   ([decision](decisions/a-deseq-comparison-with-no-sample-or-no-replicate-is-refused.md)), and "under
   30 kDa" kept a 10 kDa minimum
