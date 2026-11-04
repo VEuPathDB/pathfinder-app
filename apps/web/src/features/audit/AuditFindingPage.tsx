@@ -15,11 +15,13 @@ import { auditRunUrl } from "@/lib/routes";
 
 import { auditRunOptions } from "./api";
 import { ConfirmationSection, GeneModelsSection } from "./ConfirmationSection";
-import { findingOutcome, genomeText } from "./FindingsList";
+import { findingOrigin, findingOutcome, genomeText } from "./FindingsList";
+import { findingRequestsText } from "./format";
 import { GeneEvidenceSection } from "./GeneEvidenceSection";
 import { ImpactBreakdown } from "./ImpactBreakdown";
 import { RelativesSection } from "./RelativesSection";
 import { ReviewSection } from "./ReviewSection";
+import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";
 
 const LINK = "text-primary underline-offset-2 hover:underline";
 
@@ -100,6 +102,7 @@ function FindingPage({ runId, findingId }: { runId: string; findingId: number })
   const { finding } = detail;
   const site = siteShortName(detail.siteId);
   const unjudged = finding.status === "confirmed" && !finding.judged;
+  const requests = findingRequestsText(detail);
   return (
     <div className="h-full overflow-auto px-6 py-4">
       <nav className="mb-3 text-sm">
@@ -116,6 +119,13 @@ function FindingPage({ runId, findingId }: { runId: string; findingId: number })
         <p className="mt-1 text-sm">The check could not judge this candidate.</p>
       ) : null}
       <p className="mt-1 text-sm">{genomeText(finding)}</p>
+      <ul aria-label="About this finding" className="mt-1 flex flex-wrap gap-3 text-sm">
+        {finding.effectiveCertainty === null ? null : (
+          <li>{CERTAINTY_WORDS[finding.effectiveCertainty]}</li>
+        )}
+        <li>{`Source: ${ORIGIN_WORDS[findingOrigin(finding)]}`}</li>
+        {requests === null ? null : <li>{requests}</li>}
+      </ul>
       <ul className="mt-2 flex flex-wrap gap-3 text-sm">
         {detail.genes.map((link) => (
           <li key={link.gene}>

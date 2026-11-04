@@ -3,8 +3,10 @@ import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
 
 import served from "../../../../../packages/spec/audit_words.json";
 
+import { SAMPLE_DETAILS } from "./__fixtures__/sampleRun";
 import {
   dayText,
+  findingRequestsText,
   impactText,
   joinWords,
   gapText,
@@ -176,5 +178,75 @@ describe("audit formats", () => {
     expect(gapText({ ...genome, message: "genome provenance failed" })).toBe(
       "Not known: see the note",
     );
+  });
+});
+
+describe("findingRequestsText", () => {
+  const finding = SAMPLE_DETAILS[0]?.finding;
+  if (finding === undefined) throw new Error("the sample run holds no finding");
+  const row = {
+    kind: "gene_evidence" as const,
+    status: "stored" as const,
+    payload: null,
+    requests: 4,
+    attempts: 1,
+    stopped: 0,
+    message: null,
+  };
+
+  it("adds the confirmation's requests and each evidence row's requests", () => {
+    expect(findingRequestsText({ finding, evidence: [row] })).toBe("10 site requests");
+  });
+
+  it("counts one request in the singular", () => {
+    expect(
+      findingRequestsText({ finding: { ...finding, requests: 1 }, evidence: [] }),
+    ).toBe("1 site request");
+  });
+
+  it("states a stored zero for an attempt that settled", () => {
+    expect(
+      findingRequestsText({ finding: { ...finding, requests: 0 }, evidence: [] }),
+    ).toBe("0 site requests");
+  });
+
+  it("states no count for a finding that was never tried", () => {
+    expect(
+      findingRequestsText({
+        finding: { ...finding, status: "unread", requests: 0, attempts: 0 },
+        evidence: [],
+      }),
+    ).toBe(null);
+  });
+
+  it("states a floor when an attempt stopped before it stored its count", () => {
+    expect(
+      findingRequestsText({
+        finding,
+        evidence: [{ ...row, attempts: 2, stopped: 1 }],
+      }),
+    ).toBe("At least 10 site requests");
+  });
+
+  it("states a floor while a row is still being tried", () => {
+    expect(
+      findingRequestsText({
+        finding: { ...finding, status: "trying", attempts: 2 },
+        evidence: [],
+      }),
+    ).toBe("At least 6 site requests");
+  });
+
+  it.each([
+    [{ status: "trying" as const, attempts: 1, stopped: 0 }],
+    [{ status: "screened" as const, attempts: 1, stopped: 1 }],
+    [{ status: "failed" as const, attempts: 3, stopped: 3 }],
+  ])("states no count when no stored count exists: %j", (state) => {
+    expect(
+      findingRequestsText({
+        finding: { ...finding, ...state, requests: 0 },
+        evidence: [],
+      }),
+    ).toBe(null);
   });
 });

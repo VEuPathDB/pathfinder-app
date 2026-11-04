@@ -1,4 +1,5 @@
 import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
+import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
 import type { GenomeView } from "@pathfinder/shared/generated/types/GenomeView";
 import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
 import type { Unresolved } from "@pathfinder/shared/generated/types/Unresolved";
@@ -37,6 +38,19 @@ export function rangeText(bounds: RateBounds): string {
 
 export function plural(count: number, word: string, many = `${word}s`): string {
   return `${count.toLocaleString("en-US")} ${count === 1 ? word : many}`;
+}
+
+export function findingRequestsText({
+  finding,
+  evidence,
+}: Pick<FindingDetail, "finding" | "evidence">): string | null {
+  const rows = [finding, ...evidence];
+  const total = rows.reduce((sum, row) => sum + row.requests, 0);
+  const uncounted = rows.some((row) => row.stopped > 0 || row.status === "trying");
+  const settled = rows.some((row) => row.attempts > row.stopped);
+  if (total === 0 && (uncounted || !settled)) return null;
+  const counted = plural(total, "site request");
+  return uncounted ? `At least ${counted}` : counted;
 }
 
 export function joinWords(items: readonly string[]): string {

@@ -126,6 +126,29 @@ describe("AuditFindingPage", () => {
     );
   });
 
+  it.each([
+    [0, "1", ["High certainty", "Source: Random sample", "6 site requests"]],
+    [7, "8", ["High certainty", "Source: Your gene target", "0 site requests"]],
+    [1, "2", ["Source: Random sample", "0 site requests"]],
+    [2, "3", ["Source: Random sample", "0 site requests"]],
+    [4, "5", ["Source: Random sample"]],
+    [5, "6", ["Source: Random sample"]],
+    [6, "7", ["Source: Not in the random sample"]],
+  ])(
+    "states only what sample finding %i stores in its head",
+    async (index, id, stated) => {
+      const detail = SAMPLE_DETAILS[index];
+      if (detail === undefined) throw new Error(`no sample finding ${id}`);
+      renderFinding(detail, id);
+      const head = await screen.findByRole("list", { name: "About this finding" });
+      expect(
+        within(head)
+          .getAllByRole("listitem")
+          .map((item) => item.textContent),
+      ).toEqual(stated);
+    },
+  );
+
   it("names a finding the deadline left unread and shows no evidence for it", async () => {
     renderFinding(SAMPLE_DETAILS[4], "5");
     expect(

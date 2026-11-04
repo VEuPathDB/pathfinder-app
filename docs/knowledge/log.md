@@ -2,6 +2,11 @@
 
 ## 2026-11-04
 
+* **The finding page's head states its certainty, source and request count.** The certainty
+  is the one the findings table shows, and a finding with none shows no line. The source uses
+  the table's words. The count adds the finding's stored site requests to those of its evidence
+  rows. A finding with no count stored shows no count, and a count that misses a stopped or
+  running attempt reads "At least".
 * **The finding page draws what a finding stores.** A "Gene models" section holds the
   gene-model figure with the protein tracks under it, or says no model is stored. The
   confirmation holds the protein figure when no gene-model figure carries its tracks,
