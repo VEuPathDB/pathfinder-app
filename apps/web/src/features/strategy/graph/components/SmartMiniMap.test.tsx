@@ -63,22 +63,22 @@ describe("SmartMiniMap", () => {
   it("paints each node kind with its resolved kind token", () => {
     setTokens();
     expect(minimapNodeColor({ data: { step: { kind: "search" } } })).toBe(
-      "hsl(160 60% 45%)",
+      "hsl(160, 60%, 45%)",
     );
     expect(minimapNodeColor({ data: { step: { kind: "combine" } } })).toBe(
-      "hsl(200 80% 55%)",
+      "hsl(200, 80%, 55%)",
     );
     expect(minimapNodeColor({ data: { step: { kind: "transform" } } })).toBe(
-      "hsl(270 60% 55%)",
+      "hsl(270, 60%, 55%)",
     );
   });
 
   it("falls back to the muted-foreground token for an unknown kind", () => {
     setTokens();
     expect(minimapNodeColor({ data: { step: { kind: "mystery" } } })).toBe(
-      "hsl(215 16% 40%)",
+      "hsl(215, 16%, 40%)",
     );
-    expect(minimapNodeColor({})).toBe("hsl(215 16% 40%)");
+    expect(minimapNodeColor({})).toBe("hsl(215, 16%, 40%)");
   });
 
   it("paints currentColor when the stylesheet defines nothing", () => {

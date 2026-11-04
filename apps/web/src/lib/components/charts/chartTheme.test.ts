@@ -44,20 +44,20 @@ describe("readChartTokens", () => {
     const tokens = readChartTokens();
 
     expect(tokens.series).toEqual([
-      "hsl(210 90% 70%)",
-      "hsl(160 55% 58%)",
-      "hsl(30 85% 62%)",
-      "hsl(355 80% 70%)",
-      "hsl(272 70% 74%)",
-      "hsl(190 70% 60%)",
+      "hsl(210, 90%, 70%)",
+      "hsl(160, 55%, 58%)",
+      "hsl(30, 85%, 62%)",
+      "hsl(355, 80%, 70%)",
+      "hsl(272, 70%, 74%)",
+      "hsl(190, 70%, 60%)",
     ]);
-    expect(tokens.positive).toBe("hsl(160 55% 58%)");
-    expect(tokens.negative).toBe("hsl(355 80% 70%)");
-    expect(tokens.foreground).toBe("hsl(210 20% 92%)");
-    expect(tokens.mutedForeground).toBe("hsl(215 15% 65%)");
-    expect(tokens.border).toBe("hsl(215 20% 22%)");
-    expect(tokens.card).toBe("hsl(215 25% 12%)");
-    expect(tokens.background).toBe("hsl(215 28% 9%)");
+    expect(tokens.positive).toBe("hsl(160, 55%, 58%)");
+    expect(tokens.negative).toBe("hsl(355, 80%, 70%)");
+    expect(tokens.foreground).toBe("hsl(210, 20%, 92%)");
+    expect(tokens.mutedForeground).toBe("hsl(215, 15%, 65%)");
+    expect(tokens.border).toBe("hsl(215, 20%, 22%)");
+    expect(tokens.card).toBe("hsl(215, 25%, 12%)");
+    expect(tokens.background).toBe("hsl(215, 28%, 9%)");
   });
 
   it("paints the unresolved neutral, not a second copy of the light palette", () => {
@@ -88,7 +88,7 @@ describe("readChartTokens", () => {
   it("wraps a bare HSL triple from the document in hsl()", () => {
     document.documentElement.style.setProperty("--chart-positive", "160 65% 33%");
     const tokens = readChartTokens();
-    expect(tokens.positive).toBe("hsl(160 65% 33%)");
+    expect(tokens.positive).toBe("hsl(160, 65%, 33%)");
     document.documentElement.style.removeProperty("--chart-positive");
   });
 });

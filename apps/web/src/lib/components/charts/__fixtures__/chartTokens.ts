@@ -1,3 +1,5 @@
+import { hslFromTriple } from "@/lib/color/hsl";
+
 import type { ChartTokens } from "../chartTheme";
 
 /**
@@ -22,14 +24,14 @@ const INK_TRIPLES = {
 };
 
 export const DISTINCT_CHART_TOKENS: ChartTokens = {
-  series: SERIES_TRIPLES.map((triple) => `hsl(${triple})`),
-  positive: "hsl(160 65% 33%)",
-  negative: "hsl(355 70% 45%)",
-  foreground: `hsl(${INK_TRIPLES.foreground})`,
-  mutedForeground: `hsl(${INK_TRIPLES.mutedForeground})`,
-  border: `hsl(${INK_TRIPLES.border})`,
-  card: `hsl(${INK_TRIPLES.card})`,
-  background: `hsl(${INK_TRIPLES.background})`,
+  series: SERIES_TRIPLES.map(hslFromTriple),
+  positive: hslFromTriple("160 65% 33%"),
+  negative: hslFromTriple("355 70% 45%"),
+  foreground: hslFromTriple(INK_TRIPLES.foreground),
+  mutedForeground: hslFromTriple(INK_TRIPLES.mutedForeground),
+  border: hslFromTriple(INK_TRIPLES.border),
+  card: hslFromTriple(INK_TRIPLES.card),
+  background: hslFromTriple(INK_TRIPLES.background),
 };
 
 const DOCUMENT_TOKENS: Record<string, string> = {

@@ -45,8 +45,8 @@ Minimum expression percentile 80 is above Maximum expression percentile 10. If t
 
 No bound moves: the site's default stays, as this decision holds. WDK does not refuse
 this request. `StringParam.validateValue` checks that a number parses and reads no
-other parameter, so both values reach the search's query, and what the query returns
-is not measured here. A `number-range` cannot reach this state: `NumberRangeValue`
+other parameter, so both values reach the search's query, and the query answers 200
+with 0 records (see the measurement). A `number-range` cannot reach this state: `NumberRangeValue`
 refuses a minimum above its maximum, `NumberRangeParam.validateValue` refuses it on the
 site, and an open end that would cross the stated bound leaves the proposal as it is.
 
@@ -73,6 +73,14 @@ with published limits: `GenesByIntronJunctions.percent_max`, a `number-range` wi
 The two bounds of a pair share the group `empty` with every other parameter of the
 search, and `GenesByNgsSnps` holds three such pairs in one group. Only their names and
 display names relate them.
+
+A pair that crosses returns nothing on QA PlasmoDB. On the DeRisi HB3 smoothed percentile
+search, min 80 and max 100 hold 958 genes, min 0 and max 10 hold 446, and min 80 and max
+10 hold 0. Molecular weight 10000 to 50000 holds 2,420 and 10000 to 5000 holds 0;
+isoelectric point 6 to 10 holds 2,687 and 10 to 6 holds 0; exon count 2 to 20 holds 2,435
+and 20 to 2 holds 0. Four turns on Luna asked for one side of such a pair, twice the 10th
+percentile, a weight under 5 kDa and an isoelectric point below 5, and none built a crossed
+pair: FRAME bound the other end to 0 each time, and the ledger marks it assumed.
 
 # What was rejected
 

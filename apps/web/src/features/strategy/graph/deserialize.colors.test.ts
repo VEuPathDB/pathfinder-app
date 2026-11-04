@@ -32,17 +32,17 @@ describe("readEdgeColors", () => {
   it("resolves the four canvas tokens on the document", () => {
     setTokens();
     expect(readEdgeColors()).toEqual({
-      border: "hsl(212 20% 89%)",
-      foreground: "hsl(215 42% 12%)",
-      card: "hsl(0 0% 100%)",
-      mutedForeground: "hsl(215 16% 40%)",
+      border: "hsl(212, 20%, 89%)",
+      foreground: "hsl(215, 42%, 12%)",
+      card: "hsl(0, 0%, 100%)",
+      mutedForeground: "hsl(215, 16%, 40%)",
     });
   });
 
   it("follows the ground the document is on", () => {
     setTokens();
     document.documentElement.style.setProperty("--border", "215 20% 22%");
-    expect(readEdgeColors().border).toBe("hsl(215 20% 22%)");
+    expect(readEdgeColors().border).toBe("hsl(215, 20%, 22%)");
   });
 
   it("inherits the surrounding ink when the stylesheet defines nothing", () => {
@@ -67,18 +67,18 @@ describe("deserializeStrategyToGraph edge paint", () => {
     const primary = edges.find((e) => e.id === "a-c-primary");
     const secondary = edges.find((e) => e.id === "b-c-secondary");
 
-    expect(primary?.style).toEqual({ stroke: "hsl(212 20% 89%)", strokeWidth: 2 });
+    expect(primary?.style).toEqual({ stroke: "hsl(212, 20%, 89%)", strokeWidth: 2 });
     expect(primary?.labelStyle).toEqual({
       fontSize: 11,
       fontWeight: 700,
-      fill: "hsl(215 42% 12%)",
+      fill: "hsl(215, 42%, 12%)",
     });
     expect(primary?.labelBgStyle).toEqual({
-      fill: "hsl(0 0% 100%)",
-      stroke: "hsl(212 20% 89%)",
+      fill: "hsl(0, 0%, 100%)",
+      stroke: "hsl(212, 20%, 89%)",
       strokeWidth: 1,
     });
-    expect(secondary?.style).toEqual({ stroke: "hsl(215 16% 40%)", strokeWidth: 2 });
+    expect(secondary?.style).toEqual({ stroke: "hsl(215, 16%, 40%)", strokeWidth: 2 });
     expect(JSON.stringify(edges)).not.toMatch(/#[0-9a-fA-F]{3,8}/);
   });
 });

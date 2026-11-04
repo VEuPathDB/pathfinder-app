@@ -2,6 +2,13 @@
 
 ## 2026-11-03
 
+* **A chart color can be blended.** `hslFromTriple` writes commas, because the chart library
+  splits a color on them and paints a blend of any other spelling black. The audit heat map
+  blends two tokens, and its cells now show their shade and their percentage.
+* **A crossed pair of number parameters is measured.** The site answers 200 with 0 records.
+  Four turns did not build one. See
+  [the decision](decisions/a-one-sided-request-uses-a-published-limit-or-states-the-default.md).
+
 * **The audit run, error-type and finding pages read a stored run.** The run page
   holds the scope, progress, resume or retry, the heat map, rate chart and rate
   table, the gene targets, the headline findings, and the findings with filters in
