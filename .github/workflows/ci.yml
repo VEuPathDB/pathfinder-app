@@ -114,7 +114,7 @@ jobs:
         if: ${{ github.ref_type == 'tag' }}
         run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
       - name: Check the checker
-        run: node --test scripts/check-release.test.mjs
+        run: node --test scripts/check-release.test.mjs scripts/release.test.mjs
 
   check-wdk-rules:
     name: Check WDK rules

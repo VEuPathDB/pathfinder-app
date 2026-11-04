@@ -32,6 +32,8 @@
 
 ## 2026-11-03
 
+* **A build moves up the ladder through the tagger.** `scripts/release.mjs` bumps, tags and
+  promotes. See [the decision](decisions/one-build-moves-up-the-ladder.md).
 * **A species list is never a vocabulary pick.** Its codes come from the site's tree, so a doubted
   pick on it asks nothing and no card reduces a list to one genome.
 * **Each call of a run gets the model's own reasoning back.** PathFinder takes assistant-core
