@@ -1,12 +1,15 @@
-import { useId } from "react";
+import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
+import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
+import type { Fact } from "@pathfinder/shared/generated/types/Fact";
 import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
-import type { GeneEvidencePayload } from "@pathfinder/shared/generated/types/GeneEvidencePayload";
 import type { GeneTranscript } from "@pathfinder/shared/generated/types/GeneTranscript";
 import type { PhenotypeScreen } from "@pathfinder/shared/generated/types/PhenotypeScreen";
 import type { SeqEdit } from "@pathfinder/shared/generated/types/SeqEdit";
 
 import { joinWords, plural } from "./format";
-import { EVIDENCE_KIND_WORDS } from "./words";
+import { ProteinFigure } from "./ProteinFigure";
+import { evidenceTracks } from "./proteinTracks";
+import { EvidenceRegion } from "./RelativesSection";
 
 const SMALL_EVALUE = 0.001;
 const PDB_TABLE = "PdbSimilarities";
@@ -15,17 +18,6 @@ const SEQEDIT_TABLE = "Seqedits";
 const COMMENT_TABLE = "UserComments";
 const PUBMED_TABLE = "PubMed";
 const NOTE_TABLE = "Notes";
-const EVIDENCE_TABLES: readonly string[] = [
-  "GeneTranscripts",
-  PDB_TABLE,
-  PEPTIDE_TABLE,
-  "AlphaFoldLinkouts",
-  "GeneLinkouts",
-  SEQEDIT_TABLE,
-  COMMENT_TABLE,
-  PUBMED_TABLE,
-  NOTE_TABLE,
-];
 
 function servedName(name: string): string {
   return name.replace(/<[^>]*>/g, "").replaceAll("_", " ");
@@ -85,8 +77,8 @@ function headingText(record: GeneEvidence): string {
   return `${record.gene}: ${counts.join(", ")}`;
 }
 
-function noScreenText(record: GeneEvidence): string {
-  return record.unserved.some((table) => !EVIDENCE_TABLES.includes(table))
+function noScreenText(record: GeneEvidence, evidenceTables: string[]): string {
+  return record.unserved.some((table) => !evidenceTables.includes(table))
     ? "No screen the site served holds a row for this gene, and not every screen was served"
     : "No phenotype screen holds a row for this gene";
 }
@@ -146,7 +138,13 @@ function PdbTable({ record }: { record: GeneEvidence }) {
   );
 }
 
-function GeneRecord({ record }: { record: GeneEvidence }) {
+function GeneRecord({
+  record,
+  evidenceTables,
+}: {
+  record: GeneEvidence;
+  evidenceTables: string[];
+}) {
   const screens = [...record.phenotypes, ...record.unprefixedTables].filter(
     (screen) => screen.rows.length > 0,
   );
@@ -154,6 +152,10 @@ function GeneRecord({ record }: { record: GeneEvidence }) {
     <div className="mt-3 space-y-2 text-xs">
       <h4 className="font-medium">{headingText(record)}</h4>
       <TextList items={record.transcripts.map(transcriptText)} />
+      <ProteinFigure
+        title={`Protein lengths of the transcripts of ${record.gene}`}
+        tracks={evidenceTracks(record)}
+      />
       <TextList
         items={record.alphafold.map(
           (model) =>
@@ -175,7 +177,7 @@ function GeneRecord({ record }: { record: GeneEvidence }) {
         <TextList items={record.seqedits.map(seqEditText)} />
       )}
       {screens.length === 0 ? (
-        <p>{noScreenText(record)}</p>
+        <p>{noScreenText(record, evidenceTables)}</p>
       ) : (
         <TextList items={screens.map(screenText)} />
       )}
@@ -186,16 +188,32 @@ function GeneRecord({ record }: { record: GeneEvidence }) {
   );
 }
 
-export function GeneEvidenceSection({ evidence }: { evidence: GeneEvidencePayload }) {
-  const headingId = useId();
+export function GeneEvidenceSection({
+  evidence,
+  facts,
+  words,
+}: {
+  evidence: EvidenceView;
+  facts: readonly Fact[];
+  words: AuditWords;
+}) {
+  const { payload } = evidence;
   return (
-    <section aria-labelledby={headingId} className="mt-4">
-      <h3 id={headingId} className="text-sm font-semibold">
-        {EVIDENCE_KIND_WORDS.gene_evidence}
-      </h3>
-      {evidence.evidence.map((record) => (
-        <GeneRecord key={record.gene} record={record} />
-      ))}
-    </section>
+    <EvidenceRegion
+      evidence={evidence}
+      facts={facts}
+      words={words}
+      figures={
+        payload?.kind === "gene_evidence"
+          ? payload.evidence.map((record) => (
+              <GeneRecord
+                key={record.gene}
+                record={record}
+                evidenceTables={words.evidenceTables}
+              />
+            ))
+          : null
+      }
+    />
   );
 }

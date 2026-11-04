@@ -16,7 +16,12 @@ import {
   RPT6_MODELS,
 } from "./__fixtures__/recordedModels";
 import { sampleDetail } from "./__fixtures__/sampleRun";
-import { changedSpans, geneModelTracks, placeBox } from "./geneModelTracks";
+import {
+  changedSpans,
+  drawableModels,
+  geneModelTracks,
+  placeBox,
+} from "./geneModelTracks";
 
 describe("geneModelTracks", () => {
   it("lays the PKAC model over the one the RNA-seq junctions propose", () => {
@@ -232,6 +237,35 @@ describe("geneModelTracks", () => {
         (row) => row.label,
       ),
     ).toEqual(["Reference PcyM_0736700"]);
+  });
+});
+
+describe("drawableModels", () => {
+  it("keeps stored models that hold a span and drops a row that holds none", () => {
+    const [first] = PKAC_MODELS.annotated;
+    if (first === undefined) throw new Error("the PKAC models hold a model");
+    const models = {
+      kind: "length" as const,
+      annotated: [{ ...first, exons: [], cds: [] }, first],
+    };
+    expect(drawableModels(models)).toBe(models);
+    expect(geneModelTracks(models)[0]?.rows.map((row) => row.exons.length)).toEqual([
+      first.exons.length,
+    ]);
+    expect(geneModelTracks(models)[0]?.window).toEqual([1381622, 1383462]);
+  });
+
+  it("reads models with no span, and no models, as nothing to draw", () => {
+    const [first] = PKAC_MODELS.annotated;
+    if (first === undefined) throw new Error("the PKAC models hold a model");
+    expect(drawableModels(null)).toBe(null);
+    expect(drawableModels({ kind: "length", annotated: [] })).toBe(null);
+    expect(
+      drawableModels({
+        kind: "length",
+        annotated: [{ ...first, exons: [], cds: [] }],
+      }),
+    ).toBe(null);
   });
 });
 

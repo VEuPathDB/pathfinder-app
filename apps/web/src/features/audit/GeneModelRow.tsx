@@ -48,6 +48,7 @@ function BoxPart({ part, box, window, top, height, ...paint }: BoxPartProps) {
 
 function StrandArrow({ row, window }: { row: ModelRow; window: Track["window"] }) {
   const ends = [...row.exons, ...(row.span === null ? [] : [row.span])];
+  if (ends.length === 0) return null;
   const [low, high] = [
     Math.min(...ends.map((box) => box.start)),
     Math.max(...ends.map((box) => box.end)),

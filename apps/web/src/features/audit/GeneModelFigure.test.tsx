@@ -265,4 +265,17 @@ describe("GeneModelFigure", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /Protein lengths/ })).toBe(null);
   });
+
+  it("draws a coded part with no exon and no strand arrow for it", () => {
+    const [first] = PKAC_MODELS.annotated;
+    if (first === undefined) throw new Error("the PKAC models hold a model");
+    const { container } = render(
+      <GeneModelFigure
+        models={{ kind: "length", annotated: [{ ...first, exons: [] }] }}
+        proteinTracks={[]}
+      />,
+    );
+    expect(parts(container, "cds")).toHaveLength(first.cds.length);
+    expect(parts(container, "strand")).toHaveLength(0);
+  });
 });

@@ -57,7 +57,7 @@ export function placeLocus(
 ): { window: [number, number]; features: PlacedFeature[] } {
   const low = Math.min(...features.map((feature) => feature.start));
   const high = Math.max(...features.map((feature) => feature.end));
-  const scale = width / (high - low);
+  const scale = width / Math.max(1, high - low);
   return {
     window: [low, high],
     features: features.map((feature) => ({

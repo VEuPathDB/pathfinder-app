@@ -1,9 +1,6 @@
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
+import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
 import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { NoRelatives } from "@pathfinder/shared/generated/types/NoRelatives";
 import type { Relative } from "@pathfinder/shared/generated/types/Relative";
-
-import { EVIDENCE_STATUS_WORDS } from "./words";
 
 export interface RelativesPoints {
   relatives: Relative[];
@@ -14,36 +11,19 @@ export interface RelativesPoints {
 
 export type RelativesOutcome =
   | { kind: "no_row" }
-  | { kind: "not_read"; words: string }
   | { kind: "looked"; reason: string }
   | { kind: "plotted"; points: RelativesPoints };
-
-const TOO_FEW =
-  "Fewer than two genomes of other species in this genus, and fewer than two in other genera, have a length for the gene.";
-
-const NO_RELATIVES_WORDS: Record<NoRelatives, string> = {
-  RESIDUAL_GROUP: "The ortholog group is a residual group.",
-  PARALOGS: "The related genomes do not hold one copy each.",
-  FEWER_THAN_TWO: TOO_FEW,
-};
-
-function unreadWords(row: EvidenceView): string {
-  const words = EVIDENCE_STATUS_WORDS[row.status];
-  return row.status === "failed" && row.message !== null
-    ? `${words}: ${row.message}`
-    : words;
-}
 
 function byOrganism(left: Relative, right: Relative): number {
   return left.organism.localeCompare(right.organism);
 }
 
-export function relativesOutcome(detail: FindingDetail): RelativesOutcome {
-  for (const row of detail.evidence) {
-    const { payload } = row;
-    if (row.kind === "relatives" && payload === null) {
-      return { kind: "not_read", words: unreadWords(row) };
-    }
+export function relativesOutcome(
+  detail: FindingDetail,
+  words: AuditWords,
+): RelativesOutcome {
+  for (const { status, payload } of detail.evidence) {
+    if (status !== "stored") continue;
     if (payload?.kind === "relatives") {
       const relatives = Object.entries(payload.relativeLengths)
         .map(([organism, length]) => ({ organism, length }))
@@ -52,7 +32,7 @@ export function relativesOutcome(detail: FindingDetail): RelativesOutcome {
         const reason =
           payload.referenceOrganism === null
             ? "The gene records hold no row of the reference gene, so no related genome was compared."
-            : TOO_FEW;
+            : words.noRelatives.FEWER_THAN_TWO;
         return { kind: "looked", reason };
       }
       return {
@@ -72,8 +52,9 @@ export function relativesOutcome(detail: FindingDetail): RelativesOutcome {
       const { result } = payload.confirmation;
       const { members, missing, median } = result.relatives;
       if (missing !== null) {
-        return { kind: "looked", reason: NO_RELATIVES_WORDS[missing] };
+        return { kind: "looked", reason: words.noRelatives[missing] };
       }
+      if (members.length === 0) return { kind: "no_row" };
       return {
         kind: "plotted",
         points: {

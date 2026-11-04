@@ -145,8 +145,6 @@ export function RelativesPlot({ outcome }: { outcome: RelativesOutcome }) {
   switch (outcome.kind) {
     case "no_row":
       return null;
-    case "not_read":
-      return <p className="text-xs text-muted-foreground">{outcome.words}</p>;
     case "looked":
       return <p className="text-xs text-muted-foreground">{outcome.reason}</p>;
     case "plotted":

@@ -1,23 +1,29 @@
 "use client";
 
 import { useId } from "react";
+import type { ReactNode } from "react";
 import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
 import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
 import type { Fact } from "@pathfinder/shared/generated/types/Fact";
+import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
 
 import { EvidenceNote } from "./EvidenceNote";
 import { FactList } from "./FactList";
+import { RelativesPlot } from "./RelativesPlot";
+import { relativesOutcome } from "./relativesPoints";
 
 export function EvidenceRegion({
   evidence,
   facts,
   words,
   lead = null,
+  figures = null,
 }: {
   evidence: EvidenceView;
   facts: readonly Fact[];
   words: AuditWords;
   lead?: string | null;
+  figures?: ReactNode;
 }) {
   const headingId = useId();
   return (
@@ -28,6 +34,7 @@ export function EvidenceRegion({
       {evidence.status === "stored" ? (
         <>
           {lead === null ? null : <p className="mt-1 text-sm">{lead}</p>}
+          {figures}
           <FactList facts={facts} />
         </>
       ) : (
@@ -38,13 +45,22 @@ export function EvidenceRegion({
 }
 
 export function RelativesSection({
+  detail,
   evidence,
   facts,
   words,
 }: {
+  detail: FindingDetail;
   evidence: EvidenceView;
   facts: readonly Fact[];
   words: AuditWords;
 }) {
-  return <EvidenceRegion evidence={evidence} facts={facts} words={words} />;
+  return (
+    <EvidenceRegion
+      evidence={evidence}
+      facts={facts}
+      words={words}
+      figures={<RelativesPlot outcome={relativesOutcome(detail, words)} />}
+    />
+  );
 }

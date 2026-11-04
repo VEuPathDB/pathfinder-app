@@ -1,4 +1,5 @@
 import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
+import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
 import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
 import type { GeneTranscript } from "@pathfinder/shared/generated/types/GeneTranscript";
 
@@ -97,6 +98,20 @@ export function confirmationTracks(
     case "selenoprotein_end":
       return [];
   }
+}
+
+export function findingTracks(detail: FindingDetail): ProteinTrack[] {
+  return detail.evidence.flatMap(({ status, payload }) =>
+    status === "stored" && payload?.kind === "confirmation"
+      ? confirmationTracks(payload.confirmation)
+      : [],
+  );
+}
+
+export function tracksTitle(inCodons: boolean): string {
+  return inCodons
+    ? "Coding sequences of the two genes, in codons"
+    : "Protein lengths of the two models";
 }
 
 function transcriptTrack(

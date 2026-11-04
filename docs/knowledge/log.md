@@ -1,5 +1,19 @@
 # Log
 
+## 2026-11-04
+
+* **The finding page draws what a finding stores.** A "Gene models" section holds the
+  gene-model figure with the protein tracks under it, or says no model is stored. The
+  confirmation holds the protein figure when no gene-model figure carries its tracks,
+  the residues of a break, the locus of a missing gene and a strain's relatives. The
+  relatives section holds the plot of a length finding, the gene records hold a figure
+  of their transcripts, and the impact states how it was weighed. A figure draws only
+  from a stored row; a row that is not stored shows its note, and a payload with no
+  span to draw shows no figure. The facts stay under each figure.
+  `/api/v1/audits/words` also serves `noRelatives`, sentences made from the clauses the
+  strain facts read (`NO_RELATIVES_CLAUSES`), and `evidenceTables`, the library's
+  `EVIDENCE_TABLES`, which tells an unserved screen from an unserved evidence table.
+
 ## 2026-11-03
 
 * **A chart color can be blended.** `hslFromTriple` writes commas, because the chart library

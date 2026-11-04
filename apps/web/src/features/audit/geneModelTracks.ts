@@ -255,13 +255,17 @@ function sequenceRows(models: FindingModels): SequenceRow[] {
   }
 }
 
-function windowOf(rows: ModelRow[]): [number, number] {
-  const all = rows.flatMap((row) => [
+function drawnBoxes(row: ModelRow): Box[] {
+  return [
     ...row.exons,
     ...row.cds,
     ...row.stop,
     ...(row.span === null ? [] : [row.span]),
-  ]);
+  ];
+}
+
+function windowOf(rows: ModelRow[]): [number, number] {
+  const all = rows.flatMap(drawnBoxes);
   return [
     Math.min(...all.map((box) => box.start)),
     Math.max(...all.map((box) => box.end)),
@@ -269,12 +273,16 @@ function windowOf(rows: ModelRow[]): [number, number] {
 }
 
 export function geneModelTracks(models: FindingModels): Track[] {
-  const placed = sequenceRows(models);
+  const placed = sequenceRows(models).filter(({ row }) => drawnBoxes(row).length > 0);
   const seqids = [...new Set(placed.map((entry) => entry.seqid))];
   return seqids.map((seqid) => {
     const rows = placed.filter((entry) => entry.seqid === seqid).map(({ row }) => row);
     return { seqid, window: windowOf(rows), rows };
   });
+}
+
+export function drawableModels(models: FindingModels | null): FindingModels | null {
+  return models !== null && geneModelTracks(models).length > 0 ? models : null;
 }
 
 export function placeBox(

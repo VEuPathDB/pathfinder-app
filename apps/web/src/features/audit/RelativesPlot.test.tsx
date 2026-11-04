@@ -13,8 +13,8 @@ import {
   RELATIVES_OWN_SPECIES_ONLY,
   RELATIVES_REFERENCE_NO_LENGTH,
 } from "./__fixtures__/derivedAudits";
-import { sampleDetail } from "./__fixtures__/sampleRun";
-import type { RelativesPoints } from "./relativesPoints";
+import { SAMPLE_WORDS, sampleDetail } from "./__fixtures__/sampleRun";
+import type { RelativesOutcome, RelativesPoints } from "./relativesPoints";
 import { relativesOutcome, stripX } from "./relativesPoints";
 import { RelativesPlot } from "./RelativesPlot";
 
@@ -50,6 +50,10 @@ function lengthDetailWith(relativeLengths: Record<string, number>): FindingDetai
 const TOO_FEW =
   "Fewer than two genomes of other species in this genus, and fewer than two in other genera, have a length for the gene.";
 
+function outcomeOf(detail: FindingDetail): RelativesOutcome {
+  return relativesOutcome(detail, SAMPLE_WORDS);
+}
+
 function storedRow(payload: RelativesEvidence): EvidenceView {
   return {
     kind: "relatives",
@@ -68,7 +72,7 @@ function detailWithRow(row: EvidenceView): FindingDetail {
 }
 
 function plotted(detail: FindingDetail): RelativesPoints {
-  const outcome = relativesOutcome(detail);
+  const outcome = outcomeOf(detail);
   if (outcome.kind !== "plotted") throw new Error("the finding stores lengths to plot");
   return outcome.points;
 }
@@ -109,9 +113,7 @@ function strainDetailWith(
 
 describe("relativesOutcome", () => {
   it("reads the real tie-break result of one relative in each tier as too few", () => {
-    expect(
-      relativesOutcome(detailWithRow(storedRow(RELATIVES_ONE_IN_EACH_TIER))),
-    ).toEqual({
+    expect(outcomeOf(detailWithRow(storedRow(RELATIVES_ONE_IN_EACH_TIER)))).toEqual({
       kind: "looked",
       reason: TOO_FEW,
     });
@@ -119,50 +121,73 @@ describe("relativesOutcome", () => {
 
   it("reads a gene held only by the reference's own species as too few", () => {
     expect(RELATIVES_OWN_SPECIES_ONLY.relativeLengths).toEqual({});
-    expect(
-      relativesOutcome(detailWithRow(storedRow(RELATIVES_OWN_SPECIES_ONLY))),
-    ).toEqual({ kind: "looked", reason: TOO_FEW });
+    expect(outcomeOf(detailWithRow(storedRow(RELATIVES_OWN_SPECIES_ONLY)))).toEqual({
+      kind: "looked",
+      reason: TOO_FEW,
+    });
   });
 
   it("blames the reference only when its row is absent", () => {
-    expect(
-      relativesOutcome(detailWithRow(storedRow(RELATIVES_REFERENCE_NO_LENGTH))),
-    ).toEqual({ kind: "looked", reason: TOO_FEW });
-    expect(
-      relativesOutcome(detailWithRow(storedRow(RELATIVES_NO_REFERENCE_ROW))),
-    ).toEqual({
+    expect(outcomeOf(detailWithRow(storedRow(RELATIVES_REFERENCE_NO_LENGTH)))).toEqual({
+      kind: "looked",
+      reason: TOO_FEW,
+    });
+    expect(outcomeOf(detailWithRow(storedRow(RELATIVES_NO_REFERENCE_ROW)))).toEqual({
       kind: "looked",
       reason:
         "The gene records hold no row of the reference gene, so no related genome was compared.",
     });
   });
 
-  it("says a relatives row the run could not read was not read, with why", () => {
-    const failed = relativesOutcome(
-      detailWithRow({
-        ...storedRow(RELATIVES_ONE_IN_EACH_TIER),
-        status: "failed",
-        payload: null,
-        message: "the group of TGGT1_257090 is unreadable",
-      }),
-    );
-    expect(failed).toEqual({
-      kind: "not_read",
-      words: "Could not be read: the group of TGGT1_257090 is unreadable",
-    });
-    render(<RelativesPlot outcome={failed} />);
+  it("reads nothing to plot from a row that is not stored", () => {
     expect(
-      screen.getByText("Could not be read: the group of TGGT1_257090 is unreadable"),
-    ).toBeInTheDocument();
+      outcomeOf(
+        detailWithRow({
+          ...storedRow(RELATIVES_ONE_IN_EACH_TIER),
+          status: "failed",
+          payload: null,
+          message: "the group of TGGT1_257090 is unreadable",
+        }),
+      ),
+    ).toEqual({ kind: "no_row" });
     expect(
-      relativesOutcome(
+      outcomeOf(
         detailWithRow({
           ...storedRow(RELATIVES_ONE_IN_EACH_TIER),
           status: "unread",
-          payload: null,
         }),
       ),
-    ).toEqual({ kind: "not_read", words: "Not read before the run's deadline" });
+    ).toEqual({ kind: "no_row" });
+  });
+
+  it("plots nothing for a strain check that stores no relative and no reason", () => {
+    const detail = strainDetailWith([], "PARALOGS");
+    expect(
+      outcomeOf({
+        ...detail,
+        evidence: detail.evidence.map((evidence) =>
+          evidence.payload?.kind === "confirmation" &&
+          evidence.payload.confirmation.check === "strain_model"
+            ? {
+                ...evidence,
+                payload: {
+                  ...evidence.payload,
+                  confirmation: {
+                    ...evidence.payload.confirmation,
+                    result: {
+                      ...evidence.payload.confirmation.result,
+                      relatives: {
+                        ...evidence.payload.confirmation.result.relatives,
+                        missing: null,
+                      },
+                    },
+                  },
+                },
+              }
+            : evidence,
+        ),
+      }),
+    ).toEqual({ kind: "no_row" });
   });
 
   it("plots the relatives a length finding stored, with the model, the reference and the median", () => {
@@ -184,7 +209,7 @@ describe("relativesOutcome", () => {
   });
 
   it("states that a length finding looked and found too few relatives", () => {
-    const outcome = relativesOutcome(lengthDetailWith({}));
+    const outcome = outcomeOf(lengthDetailWith({}));
     expect(outcome).toEqual({
       kind: "looked",
       reason: TOO_FEW,
@@ -200,7 +225,7 @@ describe("relativesOutcome", () => {
         strainDetailWith([], "PARALOGS"),
         strainDetailWith([], "FEWER_THAN_TWO"),
         strainDetailWith([], "RESIDUAL_GROUP"),
-      ].map(relativesOutcome),
+      ].map(outcomeOf),
     ).toEqual([
       { kind: "looked", reason: "The related genomes do not hold one copy each." },
       { kind: "looked", reason: TOO_FEW },
@@ -221,9 +246,9 @@ describe("relativesOutcome", () => {
   });
 
   it("shows nothing for a finding with no relatives row", () => {
-    const organelle = relativesOutcome(sampleDetail("organelle_join"));
+    const organelle = outcomeOf(sampleDetail("organelle_join"));
     expect(organelle).toEqual({ kind: "no_row" });
-    expect(relativesOutcome(sampleDetail("gene_length"))).toEqual({ kind: "no_row" });
+    expect(outcomeOf(sampleDetail("gene_length"))).toEqual({ kind: "no_row" });
     const { container } = render(<RelativesPlot outcome={organelle} />);
     expect(container).toBeEmptyDOMElement();
   });

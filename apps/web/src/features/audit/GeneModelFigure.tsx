@@ -9,6 +9,7 @@ import { geneModelTracks } from "./geneModelTracks";
 import { baseText, rowText } from "./geneModelWords";
 import { ProteinFigure } from "./ProteinFigure";
 import type { ProteinTrack } from "./proteinTracks";
+import { tracksTitle } from "./proteinTracks";
 
 const SCALE_ROOM = 20;
 const MARGIN = 8;
@@ -160,11 +161,7 @@ export function GeneModelFigure({
         </figcaption>
       </figure>
       <ProteinFigure
-        title={
-          models.kind === "pseudogene"
-            ? "Coding sequences of the two genes, in codons"
-            : "Protein lengths of the two models"
-        }
+        title={tracksTitle(models.kind === "pseudogene")}
         tracks={proteinTracks}
       />
     </div>

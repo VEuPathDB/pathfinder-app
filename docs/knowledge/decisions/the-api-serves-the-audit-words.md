@@ -27,9 +27,12 @@ import. `packages/spec/audit_words.json` is the body the route serves. An api
 test holds it equal to the route, and the web tests read it as the response.
 
 **What the web keeps.** `features/audit/words.ts` holds words only for values
-with no backend table: certainty, a genome's and a piece of evidence's status,
-the evidence kinds, the stages, the genome roles, the run phases, the
+with no backend table: certainty, a genome's status, the stages, the genome roles, the run phases, the
 importance and use sources, and where a finding came from.
+
+**One list with the words.** `AuditWords.evidenceTables` is the library's
+`EVIDENCE_TABLES`. The web reads it to tell an unserved screen from an unserved
+evidence table, and it keeps no copy of the list.
 
 # Rejected
 

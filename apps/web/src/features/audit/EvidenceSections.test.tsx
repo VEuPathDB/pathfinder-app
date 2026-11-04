@@ -34,7 +34,7 @@ describe("the evidence sections", () => {
     const detail = sampleDetail("strain_model");
     render(
       <ConfirmationSection
-        finding={detail.finding}
+        detail={detail}
         evidence={evidenceOf(detail, "confirmation")}
         facts={factsOf(detail, "confirmation")}
         words={SAMPLE_WORDS}
@@ -79,6 +79,7 @@ describe("the evidence sections", () => {
     const detail = sampleDetail("strain_model");
     render(
       <RelativesSection
+        detail={detail}
         evidence={{ ...evidenceOf(detail, "gene_evidence"), kind: "relatives" }}
         facts={FACTS}
         words={SAMPLE_WORDS}
@@ -89,7 +90,8 @@ describe("the evidence sections", () => {
   });
 
   it("renders the facts it is given, in order, and the relatives under their heading", () => {
-    const stored = evidenceOf(sampleDetail("strain_model"), "confirmation");
+    const detail = sampleDetail("strain_model");
+    const stored = evidenceOf(detail, "confirmation");
     render(<FactList facts={FACTS} />);
     expect(
       [...document.querySelectorAll("dt")].map((term) => [
@@ -103,6 +105,7 @@ describe("the evidence sections", () => {
     cleanup();
     render(
       <RelativesSection
+        detail={detail}
         evidence={{ ...stored, kind: "relatives" }}
         facts={FACTS}
         words={SAMPLE_WORDS}
@@ -117,14 +120,21 @@ describe("the evidence sections", () => {
     const detail = sampleDetail("strain_model");
     render(
       <ConfirmationSection
-        finding={{ ...detail.finding, verdictText: null }}
+        detail={{
+          ...detail,
+          models: null,
+          finding: { ...detail.finding, verdictText: null },
+        }}
         evidence={evidenceOf(detail, "confirmation")}
         facts={FACTS}
         words={SAMPLE_WORDS}
       />,
     );
-    expect(screen.getByRole("region")).toHaveTextContent(
-      "What the genome's DNA showsThis model110 residues",
+    const region = screen.getByRole("region");
+    expect(region).toHaveTextContent(/^What the genome's DNA shows/);
+    expect(region).toHaveTextContent("This model110 residues");
+    expect(region).not.toHaveTextContent(
+      "Related genomes match the reference, so the strain model is too short",
     );
   });
 });

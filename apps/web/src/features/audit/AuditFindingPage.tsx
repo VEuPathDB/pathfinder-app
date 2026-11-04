@@ -14,9 +14,11 @@ import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { auditRunUrl } from "@/lib/routes";
 
 import { auditRunOptions } from "./api";
-import { ConfirmationSection } from "./ConfirmationSection";
+import { ConfirmationSection, GeneModelsSection } from "./ConfirmationSection";
 import { findingOutcome, genomeText } from "./FindingsList";
-import { EvidenceRegion, RelativesSection } from "./RelativesSection";
+import { GeneEvidenceSection } from "./GeneEvidenceSection";
+import { ImpactBreakdown } from "./ImpactBreakdown";
+import { RelativesSection } from "./RelativesSection";
 import { ReviewSection } from "./ReviewSection";
 
 const LINK = "text-primary underline-offset-2 hover:underline";
@@ -57,7 +59,7 @@ function Evidence({ detail, words }: { detail: FindingDetail; words: AuditWords 
             return (
               <ConfirmationSection
                 key={evidence.kind}
-                finding={detail.finding}
+                detail={detail}
                 evidence={evidence}
                 facts={facts}
                 words={words}
@@ -67,6 +69,7 @@ function Evidence({ detail, words }: { detail: FindingDetail; words: AuditWords 
             return (
               <RelativesSection
                 key={evidence.kind}
+                detail={detail}
                 evidence={evidence}
                 facts={facts}
                 words={words}
@@ -74,7 +77,7 @@ function Evidence({ detail, words }: { detail: FindingDetail; words: AuditWords 
             );
           case "gene_evidence":
             return (
-              <EvidenceRegion
+              <GeneEvidenceSection
                 key={evidence.kind}
                 evidence={evidence}
                 facts={facts}
@@ -128,12 +131,14 @@ function FindingPage({ runId, findingId }: { runId: string; findingId: number })
           </li>
         ))}
       </ul>
+      <ImpactBreakdown finding={finding} />
       <ReviewSection
         detail={detail}
         agreement={view.agreement}
         reviewState={view.reviewState}
         words={words}
       />
+      <GeneModelsSection detail={detail} />
       <Evidence detail={detail} words={words} />
     </div>
   );

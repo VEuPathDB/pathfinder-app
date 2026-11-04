@@ -156,4 +156,15 @@ describe("the locus of a missing gene", () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("places features that share one base at the window's start", () => {
+    const anchor = {
+      kind: "anchor" as const,
+      label: "TGGT1_257070",
+      start: 4153116,
+      end: 4153116,
+      strand: "+" as const,
+    };
+    expect(placeLocus([anchor], 600).features[0]).toMatchObject({ x: 0, width: 1 });
+  });
 });
