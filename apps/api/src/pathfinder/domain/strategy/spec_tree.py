@@ -69,6 +69,9 @@ def renumber_criteria(
     renumbered = spec.model_copy(deep=True)
     for criterion in renumbered.criteria:
         criterion.id = step_id_by_criterion.get(criterion.id, criterion.id)
+        criterion.absence_of = step_id_by_criterion.get(
+            criterion.absence_of, criterion.absence_of
+        )
     for slot in renumbered.open_slots:
         slot.criterion_id = step_id_by_criterion.get(
             slot.criterion_id, slot.criterion_id

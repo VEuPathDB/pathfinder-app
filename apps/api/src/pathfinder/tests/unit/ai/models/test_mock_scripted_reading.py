@@ -36,6 +36,7 @@ BUILDS = [
     "sweep",
     "organism-universe",
     "radio-off-domain",
+    "ortholog-in-a-group",
     "text-beside-organism",
     "odorant-lookup",
     "muris-phrase",

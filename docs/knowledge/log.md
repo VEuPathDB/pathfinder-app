@@ -2,6 +2,11 @@
 
 ## 2026-11-04
 
+* **A required genome list is asked from its counts.** A settled `GenesByOrthologPattern`
+  criterion that requires two genomes or more asks one card when its at-least-one count
+  differs from its bound count. "All" settles it. "At least one" builds left MINUS right
+  with no model in between. See
+  [the decision](decisions/a-required-genome-list-is-asked-from-its-counts.md).
 * **The finding page's head states its certainty, source and request count.** The certainty
   is the one the findings table shows, and a finding with none shows no line. The source uses
   the table's words. The count adds the finding's stored site requests to those of its evidence

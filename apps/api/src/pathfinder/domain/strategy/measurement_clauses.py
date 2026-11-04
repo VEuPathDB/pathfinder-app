@@ -22,6 +22,8 @@ _SET_BY: dict[ValueSource, str] = {
 
 
 _NOT_MEASURED = "not measured"
+_OTHER_NOT_READ = "count not read within the budget"
+_STRAIN_KINDS = frozenset({"any_strain", "all_strains"})
 # A pick of more values than this is named by its size: the row shows it whole.
 _NAMED_WHOLE = 3
 
@@ -135,13 +137,38 @@ def _clause(criterion: Criterion, m: Measurement, noun: str) -> str:
             return f"{name} with an ortholog in {m.reading}: {_records(m.count, noun)}"
 
 
+def _read_by_a_group(criterion: Criterion, m: Measurement) -> bool:
+    return criterion.genome_group is not None and m.kind in _STRAIN_KINDS
+
+
+def _strain_count(criterion: Criterion, kind: str) -> int | None:
+    return next((m.count for m in criterion.measurements if m.kind == kind), None)
+
+
+def genome_reading_clauses(criterion: Criterion, *, noun: str) -> list[str]:
+    group = criterion.genome_group
+    if group is None:
+        return []
+    one = _strain_count(criterion, "any_strain")
+    whole = _strain_count(criterion, "all_strains")
+    built, other = (one, whole) if group.at_least_one else (whole, one)
+    head = f"Built as {group.built_words}"
+    said = head if built is None else f"{head}: {counted(built, noun)}"
+    tail = _OTHER_NOT_READ if other is None else f"{other:,}"
+    return [f"{said}; {group.other_words}: {tail}"]
+
+
 def measurement_clauses(criterion: Criterion, *, noun: str) -> list[str]:
     """One clause per measurement of a value the criterion still binds, its
-    counts in ``noun``."""
+    counts in ``noun``, and the clause of its genome reading."""
     return [
-        _clause(criterion, m, noun)
-        for m in criterion.measurements
-        if m.param in criterion.resolved_params
+        *genome_reading_clauses(criterion, noun=noun),
+        *(
+            _clause(criterion, m, noun)
+            for m in criterion.measurements
+            if m.param in criterion.resolved_params
+            and not _read_by_a_group(criterion, m)
+        ),
     ]
 
 
@@ -175,5 +202,6 @@ def counted_clauses(criterion: Criterion, param: str, *, noun: str) -> list[str]
         _clause(criterion, m, noun)
         for m in held
         if m.kind not in _SHOWN_ELSEWHERE
+        and not _read_by_a_group(criterion, m)
         and not (counted and m.kind == "not_measurable")
     ]

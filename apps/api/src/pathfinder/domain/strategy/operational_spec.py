@@ -10,6 +10,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.genome_group import GenomeGroup
 from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
 from pathfinder.domain.strategy.operator_reads import OperatorReading
@@ -313,6 +314,8 @@ class Criterion(CamelModel):
     # Words of the text that narrow it and that no search the binding pass read
     # can state. Each is reported unmet until a search states it.
     accepted_reading: AcceptedReading | None = None
+    genome_group: GenomeGroup | None = None
+    absence_of: str = ""
 
     @property
     def bound(self) -> bool:

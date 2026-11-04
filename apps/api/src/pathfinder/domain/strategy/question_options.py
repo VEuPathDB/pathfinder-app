@@ -7,6 +7,7 @@ from pydantic import ConfigDict, Discriminator, Field
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.genome_group import GenomeGroup
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.words import words_of
 
@@ -63,6 +64,14 @@ class SetOperator(CamelModel):
     operator: CombineOp
 
 
+class ReadGenomes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["read_genomes"] = "read_genomes"
+    criterion_id: str
+    group: GenomeGroup
+
+
 OptionBinding = Annotated[
     SetValues
     | ReadValues
@@ -70,7 +79,8 @@ OptionBinding = Annotated[
     | Keep
     | SetOrganism
     | SaveComputedGroups
-    | SetOperator,
+    | SetOperator
+    | ReadGenomes,
     Discriminator("kind"),
 ]
 
@@ -136,3 +146,5 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             return (option.binding.kind, handle, str(save))
         case SetOperator(criteria=criteria, operator=operator):
             return (option.binding.kind, *sorted(criteria), operator.value)
+        case ReadGenomes(criterion_id=criterion_id, group=group):
+            return (option.binding.kind, criterion_id, group.reading)

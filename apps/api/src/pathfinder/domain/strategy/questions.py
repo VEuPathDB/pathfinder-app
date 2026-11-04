@@ -160,6 +160,9 @@ class SlotQuestion(AskedQuestion):
     readings: list[Reading] = Field(default_factory=list)
     requirements: list[str] = Field(default_factory=list)
     labels: Annotated[dict[str, str], OmittedFromInput] = Field(default_factory=dict)
+    typed_options: Annotated[list[TypedOption], OmittedFromInput] = Field(
+        default_factory=list, exclude=True
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -233,6 +236,13 @@ class SlotQuestion(AskedQuestion):
         and holds the counts measured at the offered values; ``noun`` is what
         the site counts the record type in.
         """
+        if self.typed_options:
+            return OpenQuestion(
+                question=self.question,
+                dimension=self.dimension,
+                criterion_id=self.criterion_id,
+                options=self.typed_options,
+            )
         if not self.names_a_slot:
             return (
                 super()

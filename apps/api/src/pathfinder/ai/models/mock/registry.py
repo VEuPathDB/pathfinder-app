@@ -62,6 +62,7 @@ from pathfinder.ai.models.mock.eda_arc import (
 )
 from pathfinder.ai.models.mock.facts_arcs import list_ids
 from pathfinder.ai.models.mock.frame_arcs import spec_frame
+from pathfinder.ai.models.mock.genome_group_arcs import ortholog_in_a_group_spec
 from pathfinder.ai.models.mock.lead_flow import (
     build_journey,
     build_when_framed,
@@ -265,6 +266,7 @@ ARCS: dict[str, Arc] = {
         spec_frame(strategy_specs.organism_universe_spec), reading=organism_reading
     ),
     "radio-off-domain": _built(spec_frame(unset_value_arcs.radio_off_domain_spec)),
+    "ortholog-in-a-group": _built(spec_frame(ortholog_in_a_group_spec)),
     "text-beside-organism": _built(
         spec_frame(unset_value_arcs.text_beside_organism_spec)
     ),

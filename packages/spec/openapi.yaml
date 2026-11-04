@@ -15567,6 +15567,14 @@ components:
           anyOf:
           - $ref: '#/components/schemas/AcceptedReading'
           - type: 'null'
+        genomeGroup:
+          anyOf:
+          - $ref: '#/components/schemas/GenomeGroup'
+          - type: 'null'
+        absenceOf:
+          default: ''
+          title: Absenceof
+          type: string
       required:
       - id
       - text
@@ -16574,6 +16582,25 @@ components:
       - geneCount
       - siteId
       title: GeneSet
+      type: object
+    GenomeGroup:
+      properties:
+        reading:
+          enum:
+          - at_least_one
+          - all
+          title: Reading
+          type: string
+        genomes:
+          items:
+            type: string
+          minItems: 2
+          title: Genomes
+          type: array
+      required:
+      - reading
+      - genomes
+      title: GenomeGroup
       type: object
     GraphCleared:
       description: Sentinel indicating the strategy graph was cleared.

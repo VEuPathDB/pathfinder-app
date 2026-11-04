@@ -160,6 +160,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "operator-card",
             "organism-universe",
             "radio-off-domain",
+            "ortholog-in-a-group",
             "text-beside-organism",
             "read-again",
             "count-comparison",

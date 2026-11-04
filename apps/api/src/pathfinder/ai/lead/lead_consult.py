@@ -30,9 +30,11 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.expression_handles import shown_wire
+from pathfinder.domain.strategy.genome_group_steps import spec_read_on_genomes
 from pathfinder.domain.strategy.operator_reading import with_operator
 from pathfinder.domain.strategy.question_options import (
     Keep,
+    ReadGenomes,
     SaveComputedGroups,
     SetOperator,
     SetOrganism,
@@ -149,7 +151,16 @@ def _apply(
             domain.operational_spec = with_operator(spec, criteria, operator)
         case SetOrganism(constraint_id=named, organism=organism):
             domain.name_organism(named, organism)
-        case SetValues() | ReadValues() | Keep() | SaveComputedGroups() | SetOperator():
+        case ReadGenomes(criterion_id=criterion, group=group) if spec is not None:
+            domain.operational_spec = spec_read_on_genomes(spec, criterion, group)
+        case (
+            SetValues()
+            | ReadValues()
+            | Keep()
+            | SaveComputedGroups()
+            | SetOperator()
+            | ReadGenomes()
+        ):
             pass
 
 

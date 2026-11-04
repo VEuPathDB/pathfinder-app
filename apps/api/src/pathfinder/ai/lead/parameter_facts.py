@@ -15,8 +15,10 @@ from pathfinder.ai.lead.analysis_facts import analysis_parameters
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.expression_handles import is_handle
+from pathfinder.domain.strategy.genome_group import INCLUDED_SPECIES
 from pathfinder.domain.strategy.measurement_clauses import (
     counted_clauses,
+    genome_reading_clauses,
     read_pick_clauses,
 )
 from pathfinder.domain.strategy.one_sided import one_sided_notes
@@ -90,13 +92,16 @@ def _parameter(
             source=bound.source,
         )
     value, label, picks = _shown(criterion, name, bound)
+    reading = (
+        genome_reading_clauses(criterion, noun=noun) if name == INCLUDED_SPECIES else []
+    )
     return ParameterFact(
         name=name,
         display_name=shown,
         value=value,
         label=label,
         source=bound.source,
-        notes=[*_notes(criterion, name, bound, noun), *open_end],
+        notes=[*reading, *_notes(criterion, name, bound, noun), *open_end],
         picks=picks,
         expression=_expression(name, bound),
     )

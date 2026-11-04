@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import CombineOp, extract_output_organisms
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.genome_group_steps import spec_with_group_steps
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -64,19 +65,32 @@ def fold_option_criteria(
     strategy already answers to, which is how a value the carrier only
     inherited is told from one this pass stated for it.
     """
-    answered = answered_values or {}
+    folded = _options_folded(spec, live_step_ids, answered_values or {})
+    return folded.model_copy(update={"spec": spec_with_group_steps(folded.spec)})
+
+
+def _options_folded(
+    spec: OperationalSpec,
+    live_step_ids: Collection[str],
+    answered: Mapping[str, Mapping[str, str]],
+) -> FoldedSpec:
     named = structure_criteria(spec.structure)
     answers_to_a_step = named | frozenset(live_step_ids)
     if all(c.id in answers_to_a_step for c in spec.criteria):
         return FoldedSpec(spec=spec)
     folded = spec.model_copy(deep=True)
     # An analysis states its own document, so it carries no option and is none.
-    carriers = [c for c in folded.criteria if c.id in named and c.analysis is None]
+    carriers = [
+        c
+        for c in folded.criteria
+        if c.id in named and c.analysis is None and not c.absence_of
+    ]
     absorbed: set[str] = set()
     unplaced: list[str] = []
     for option in folded.criteria:
         if (
             option.id in answers_to_a_step
+            or option.absence_of
             or not option.search_name
             or option.open_params
             or option.analysis is not None

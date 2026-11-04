@@ -220,7 +220,10 @@ def _narrowing(criterion: Criterion) -> list[ValueCaveat]:
     found: list[ValueCaveat] = []
     for m in criterion.measurements:
         bound = criterion.resolved_params.get(m.param)
-        if bound is None:
+        if bound is None or (
+            criterion.genome_group is not None
+            and m.kind in ("any_strain", "all_strains")
+        ):
             continue
         match bound.source:
             case "default" | "chosen" as source:

@@ -15,6 +15,9 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.ast_diff import StepChange, nodes_of
+from pathfinder.domain.strategy.genome_group_steps import (
+    spec_with_unstated_groups_retired,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -91,6 +94,7 @@ def criterion_rebound(
             "record_class": None,
             "saved_strategy_ref": None,
             "analysis": None,
+            "genome_group": None,
             "resolved_params": bind_values(
                 sheet_bound(node.parameters, sheet), "held", sheet or ()
             ),
@@ -131,7 +135,9 @@ def spec_replaying(
             shape_moved=changes.structure_moved,
             may_leave_out=may_leave_out,
         )
-    return criteria_listed_under(replayed, reading.listed)
+    return criteria_listed_under(
+        spec_with_unstated_groups_retired(replayed), reading.listed
+    )
 
 
 def steps_the_replay_reads(

@@ -12,6 +12,9 @@ from pathfinder.ai.agents.unserved import UnservedSearch
 from pathfinder.domain.strategy.computed_groups import HeldComparison
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
+from pathfinder.domain.strategy.genome_group_steps import (
+    criterion_keeping_its_reading,
+)
 from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import (
@@ -305,8 +308,14 @@ class AgentToolState:
         """Hold a copy of the criterion, so a later count or measurement recorded
         here never changes the caller's object."""
         spec = self.operational_spec_draft
+        held = next((c for c in spec.criteria if c.id == criterion.id), None)
+        kept = (
+            criterion
+            if held is None
+            else criterion_keeping_its_reading(held, criterion)
+        )
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
-        spec.criteria.append(criterion.model_copy(deep=True))
+        spec.criteria.append(kept.model_copy(deep=True))
         self.open_sheets.pop(criterion.id, None)
 
     def frame_record_count(
