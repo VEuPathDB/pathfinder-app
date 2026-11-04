@@ -95,5 +95,21 @@
     "failed": "Could not be read",
     "unreached": "The site did not answer",
     "unread": "Not read before the run's deadline"
-  }
+  },
+  "noRelatives": {
+    "RESIDUAL_GROUP": "The ortholog group is a residual group.",
+    "PARALOGS": "The related genomes do not hold one copy each.",
+    "FEWER_THAN_TWO": "Fewer than two genomes of other species in this genus, and fewer than two in other genera, have a length for the gene."
+  },
+  "evidenceTables": [
+    "GeneTranscripts",
+    "PdbSimilarities",
+    "MassSpecDownload",
+    "AlphaFoldLinkouts",
+    "GeneLinkouts",
+    "Seqedits",
+    "UserComments",
+    "PubMed",
+    "Notes"
+  ]
 }

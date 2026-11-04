@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 from fastapi import FastAPI
+from veupathdb_mcp.audit import EVIDENCE_TABLES
 
 from pathfinder.domain.audit.words import (
     CHECK_TITLES,
@@ -15,6 +16,7 @@ from pathfinder.domain.audit.words import (
     EVIDENCE_STATUS_SENTENCES,
     HALT_SENTENCES,
     LITERATURE_SENTENCES,
+    NO_RELATIVES_SENTENCES,
     REVIEW_STATUS_SENTENCES,
     UNCHECKED_SENTENCES,
     UNRESOLVED_WORDS,
@@ -51,6 +53,8 @@ async def test_the_words_route_serves_every_table_entry_for_entry() -> None:
         "reviewStatuses": REVIEW_STATUS_SENTENCES,
         "evidenceKinds": EVIDENCE_KIND_TITLES,
         "evidenceStatuses": EVIDENCE_STATUS_SENTENCES,
+        "noRelatives": NO_RELATIVES_SENTENCES,
+        "evidenceTables": list(EVIDENCE_TABLES),
     }
 
 

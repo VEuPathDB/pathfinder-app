@@ -10,6 +10,7 @@ from veupathdb_mcp.audit import (
     LengthClass,
     LengthVerdict,
     MissingVerdict,
+    NoRelatives,
     OrganelleVerdict,
     PseudogeneVerdict,
     SecVerdict,
@@ -340,6 +341,20 @@ EVIDENCE_STATUS_SENTENCES: dict[EvidenceStatus, str] = {
     "failed": "Could not be read",
     "unreached": "The site did not answer",
     "unread": "Not read before the run's deadline",
+}
+
+NO_RELATIVES_CLAUSES: dict[NoRelatives, str] = {
+    "RESIDUAL_GROUP": "the ortholog group is a residual group",
+    "PARALOGS": "the related genomes do not hold one copy each",
+    "FEWER_THAN_TWO": (
+        "fewer than two genomes of other species in this genus, and fewer than two "
+        "in other genera, have a length for the gene"
+    ),
+}
+
+NO_RELATIVES_SENTENCES: dict[NoRelatives, str] = {
+    kind: f"{clause[0].upper()}{clause[1:]}."
+    for kind, clause in NO_RELATIVES_CLAUSES.items()
 }
 
 HALT_SENTENCES: dict[HaltKind, str] = {

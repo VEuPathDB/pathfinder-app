@@ -9,7 +9,6 @@ from veupathdb_mcp.audit import (
     GenomeSource,
     LengthCheck,
     LengthScreen,
-    NoRelatives,
     NotRead,
     ReferenceMiss,
     StrainCall,
@@ -32,7 +31,7 @@ from pathfinder.domain.audit.facts import (
     runs_text,
     unread_facts,
 )
-from pathfinder.domain.audit.words import LENGTH_SENTENCES
+from pathfinder.domain.audit.words import LENGTH_SENTENCES, NO_RELATIVES_CLAUSES
 
 _PARTS: dict[WindowState | Literal["part1", "part2"], str] = {
     "model": "in the model",
@@ -42,14 +41,6 @@ _PARTS: dict[WindowState | Literal["part1", "part2"], str] = {
     "weak": "matched weakly",
     "part1": "in the first model",
     "part2": "in the second model",
-}
-_NO_RELATIVES: dict[NoRelatives, str] = {
-    "RESIDUAL_GROUP": "the ortholog group is a residual group",
-    "PARALOGS": "the related genomes do not hold one copy each",
-    "FEWER_THAN_TWO": (
-        "fewer than two genomes of other species in this genus, and fewer than two "
-        "in other genera, have a length for the gene"
-    ),
 }
 _NOT_READ: dict[NotRead, str] = {
     "NO_LOST_RUN": "The strain protein lacks no run of the reference protein",
@@ -369,7 +360,7 @@ def _relatives(result: StrainModelAudit) -> str:
     relatives = result.relatives
     if not relatives.members:
         missing = relatives.missing
-        return NONE if missing is None else f"{NONE}: {_NO_RELATIVES[missing]}"
+        return NONE if missing is None else f"{NONE}: {NO_RELATIVES_CLAUSES[missing]}"
     return listed([f"{m.organism} ({residues(m.length)})" for m in relatives.members])
 
 

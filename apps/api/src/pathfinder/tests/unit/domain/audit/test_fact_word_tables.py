@@ -7,13 +7,13 @@ from pathfinder.domain.audit.intron_facts import _ACROSS_GAP, _OUTCOMES
 from pathfinder.domain.audit.length_facts import (
     _CALLS_SAY_LITTLE,
     _NO_RECORD,
-    _NO_RELATIVES,
     _NO_SAMPLE,
     _NOT_READ,
     _PARTS,
     _REFERENCE_MISSES,
     _VARIANTS_UNREAD,
 )
+from pathfinder.domain.audit.words import NO_RELATIVES_CLAUSES, NO_RELATIVES_SENTENCES
 
 
 def test_the_codes_table_reads_its_exact_words() -> None:
@@ -77,12 +77,23 @@ def test_the_tiers_table_reads_its_exact_words() -> None:
 
 
 def test_the_no_relatives_table_reads_its_exact_words() -> None:
-    assert _NO_RELATIVES == {
+    assert NO_RELATIVES_CLAUSES == {
         "RESIDUAL_GROUP": "the ortholog group is a residual group",
         "PARALOGS": "the related genomes do not hold one copy each",
         "FEWER_THAN_TWO": (
             "fewer than two genomes of other species in this genus, and fewer than two "
             "in other genera, have a length for the gene"
+        ),
+    }
+
+
+def test_each_no_relatives_sentence_is_its_clause_as_a_sentence() -> None:
+    assert NO_RELATIVES_SENTENCES == {
+        "RESIDUAL_GROUP": "The ortholog group is a residual group.",
+        "PARALOGS": "The related genomes do not hold one copy each.",
+        "FEWER_THAN_TWO": (
+            "Fewer than two genomes of other species in this genus, and fewer than two "
+            "in other genera, have a length for the gene."
         ),
     }
 

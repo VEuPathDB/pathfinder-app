@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict
+from veupathdb_mcp.audit import EVIDENCE_TABLES
 
 from pathfinder.domain.audit.words import (
     CHECK_TITLES,
@@ -11,6 +12,7 @@ from pathfinder.domain.audit.words import (
     EVIDENCE_STATUS_SENTENCES,
     HALT_SENTENCES,
     LITERATURE_SENTENCES,
+    NO_RELATIVES_SENTENCES,
     REVIEW_STATUS_SENTENCES,
     UNCHECKED_SENTENCES,
     UNRESOLVED_WORDS,
@@ -130,6 +132,14 @@ class EvidenceStatusWords(BaseModel):
     unread: str
 
 
+class NoRelativesWords(BaseModel):
+    model_config = _TABLE
+
+    RESIDUAL_GROUP: str
+    PARALOGS: str
+    FEWER_THAN_TWO: str
+
+
 class AuditWords(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -144,6 +154,8 @@ class AuditWords(CamelModel):
     review_statuses: ReviewStatusWords
     evidence_kinds: EvidenceKindWords
     evidence_statuses: EvidenceStatusWords
+    no_relatives: NoRelativesWords
+    evidence_tables: tuple[str, ...]
 
 
 AUDIT_WORDS = AuditWords(
@@ -158,4 +170,6 @@ AUDIT_WORDS = AuditWords(
     review_statuses=ReviewStatusWords.model_validate(REVIEW_STATUS_SENTENCES),
     evidence_kinds=EvidenceKindWords.model_validate(EVIDENCE_KIND_TITLES),
     evidence_statuses=EvidenceStatusWords.model_validate(EVIDENCE_STATUS_SENTENCES),
+    no_relatives=NoRelativesWords.model_validate(NO_RELATIVES_SENTENCES),
+    evidence_tables=EVIDENCE_TABLES,
 )

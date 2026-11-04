@@ -5,7 +5,7 @@ from __future__ import annotations
 from veupathdb_mcp.audit import GeneRow, GroupMember, strain_relatives, tie_break
 
 from pathfinder.domain.audit.findings import RelativesEvidence
-from pathfinder.domain.audit.length_facts import _NO_RELATIVES
+from pathfinder.domain.audit.words import NO_RELATIVES_CLAUSES
 from pathfinder.services.audit.tie_break import relatives_evidence
 from pathfinder.services.audit.units import UnitFailure
 from pathfinder.tests._support.audit import gene_row
@@ -51,7 +51,7 @@ def test_one_relative_in_each_tier_is_too_few() -> None:
         reference, strain, [GroupMember.of_row(row) for row in ONE_IN_EACH_TIER]
     )
     assert found.missing == "FEWER_THAN_TWO"
-    assert _NO_RELATIVES[found.missing] == (
+    assert NO_RELATIVES_CLAUSES[found.missing] == (
         "fewer than two genomes of other species in this genus, and fewer than two "
         "in other genera, have a length for the gene"
     )
@@ -74,7 +74,7 @@ def test_a_gene_held_only_by_the_reference_species_is_too_few() -> None:
     )
     assert found.missing == "FEWER_THAN_TWO"
     assert found.members == []
-    assert _NO_RELATIVES[found.missing] == (
+    assert NO_RELATIVES_CLAUSES[found.missing] == (
         "fewer than two genomes of other species in this genus, and fewer than two "
         "in other genera, have a length for the gene"
     )

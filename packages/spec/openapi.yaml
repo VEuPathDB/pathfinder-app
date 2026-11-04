@@ -4229,6 +4229,13 @@ components:
           $ref: '#/components/schemas/EvidenceKindWords'
         evidenceStatuses:
           $ref: '#/components/schemas/EvidenceStatusWords'
+        noRelatives:
+          $ref: '#/components/schemas/NoRelativesWords'
+        evidenceTables:
+          items:
+            type: string
+          type: array
+          title: Evidencetables
       type: object
       required:
       - checks
@@ -4242,6 +4249,8 @@ components:
       - reviewStatuses
       - evidenceKinds
       - evidenceStatuses
+      - noRelatives
+      - evidenceTables
       title: AuditWords
     AuthStatusResponse:
       properties:
@@ -9309,6 +9318,24 @@ components:
       - RESIDUAL_GROUP
       - PARALOGS
       - FEWER_THAN_TWO
+    NoRelativesWords:
+      properties:
+        RESIDUAL_GROUP:
+          type: string
+          title: Residual Group
+        PARALOGS:
+          type: string
+          title: Paralogs
+        FEWER_THAN_TWO:
+          type: string
+          title: Fewer Than Two
+      additionalProperties: false
+      type: object
+      required:
+      - RESIDUAL_GROUP
+      - PARALOGS
+      - FEWER_THAN_TWO
+      title: NoRelativesWords
     NotRead:
       type: string
       enum:
