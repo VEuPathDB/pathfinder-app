@@ -86,7 +86,8 @@
       "halted": null,
       "targetFailure": null,
       "refusalStreak": 0,
-      "retriedFrom": null
+      "retriedFrom": null,
+      "signInUnanswered": false
     },
     "requests": 21,
     "storeReads": 45,

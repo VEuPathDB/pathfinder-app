@@ -96,6 +96,14 @@ def _clean_runs(connection: Connection) -> None:
         ),
         {"generic": _GENERIC},
     )
+    connection.execute(
+        text(
+            "UPDATE audit_runs SET stages = jsonb_set("
+            "stages, '{targetFailure}', to_jsonb(CAST(:generic AS text))) "
+            "WHERE stages->>'targetFailure' IS NOT NULL"
+        ),
+        {"generic": _GENERIC},
+    )
     rows = connection.execute(
         text("SELECT id, stages FROM audit_runs WHERE stages::text ~ :pattern"),
         _PREFILTER,
@@ -104,11 +112,6 @@ def _clean_runs(connection: Connection) -> None:
         match stages:
             case {"halted": str() as halted}:
                 stages["halted"] = _REASON.sub(rf"\1: {_GENERIC}", halted, count=1)
-            case _:
-                pass
-        match stages:
-            case {"targetFailure": str()}:
-                stages["targetFailure"] = _GENERIC
             case _:
                 pass
         match stages:

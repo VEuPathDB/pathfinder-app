@@ -28,6 +28,7 @@ _RAW = f"Bad gateway for https://qa.plasmodb.org/answer?{_SECRET}"
 _RAW_SQL = "(ProgrammingError)\nSELECT token\nFROM audit_runs"
 _RAW_REASON = f"the audit job failed: HTTPStatusError: {_RAW}"
 _CLEAN_REASON = f"the audit job failed: HTTPStatusError: {_GENERIC}"
+_CLEAN_TARGET = "the audit job stopped: a text no pattern names"
 _WRITTEN = "plasmodb serves no gene row for PF3D7_X"
 _STAGE_NOTE = f"NF54: failed ({_RAW})"
 _WRITTEN_NOTE = "2 candidates in 1 genome, 1 sampled"
@@ -171,6 +172,8 @@ def _seeded(url: str) -> dict[str, str]:
         seed.genome(raw, "collected", f"BUSCO scores failed: {_RAW}")
         seed.genome(raw, "unread", _RAW)
         placed = seed.finding(targets, "unreached", _RAW)
+        clean_target = seed.run(targetFailure=_CLEAN_TARGET)
+        clean_placed = seed.finding(clean_target, "unreached", _CLEAN_TARGET)
         seed.evidence(finding, "relatives", "trying", _RAW_REASON)
         seed.evidence(failed, "gene_evidence", "failed", _RAW)
         seed.evidence(failed, "relatives", "unread", _RAW)
@@ -179,6 +182,7 @@ def _seeded(url: str) -> dict[str, str]:
             "multi_line": multi_line,
             "signed_out": signed_out,
             "targets": targets,
+            "clean_target": clean_target,
             "finding": str(finding),
             "stopped": str(stopped),
             "failed": str(failed),
@@ -201,6 +205,7 @@ def _seeded(url: str) -> dict[str, str]:
             "confirmed_said": str(confirmed_said),
             "declined_said": str(declined_said),
             "placed": str(placed),
+            "clean_placed": str(clean_placed),
         }
 
 
@@ -250,6 +255,15 @@ def test_a_reason_the_failed_job_wrote_keeps_its_type_and_loses_its_text(
     assert rows(
         database, "SELECT message FROM audit_evidence WHERE status = 'trying'"
     ) == [(_CLEAN_REASON,)]
+
+
+def test_any_target_failure_and_the_findings_that_repeat_it_are_cleaned(
+    database: str,
+) -> None:
+    ids = _seeded(database)
+    command.upgrade(alembic_config(database), REVISION)
+    assert _run_field(database, ids["clean_target"], "targetFailure") == _GENERIC
+    assert _finding_message(database, ids["clean_placed"]) == _GENERIC
 
 
 def test_a_target_failure_and_the_findings_that_repeat_it_are_cleaned(

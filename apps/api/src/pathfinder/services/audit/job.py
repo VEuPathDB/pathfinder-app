@@ -184,6 +184,19 @@ async def _holds_reopened_refusals(run_id: UUID) -> bool:
         return await AuditRepository(session).holds_reopened_refusals(run_id)
 
 
+async def _clear_unanswered_refusals(run_id: UUID) -> None:
+    async with async_session_factory() as session:
+        repo = AuditRepository(session)
+        await repo.clear_refusals(run_id)
+        await repo.change_stages(
+            run_id,
+            lambda stages: stages.note_refusal_streak(0).note_sign_in_unanswered(
+                unanswered=False
+            ),
+        )
+        await session.commit()
+
+
 async def _read_something_new(repo: AuditRepository, run_id: UUID) -> bool:
     found = await repo.stored_run(run_id)
     retried_from = None if found is None else found.stages.retried_from
@@ -287,6 +300,9 @@ async def _carry_signed_in(run: AuditRunRecord, job: AuditJob) -> None:
             return
         case "unanswered" if await _waited_for_sign_in(run, lanes, stage, job):
             return
+        case "held" if run.stages.sign_in_unanswered:
+            await _clear_unanswered_refusals(run.id)
+            run = await _stored(run.id) or run
         case _:
             pass
     await _set_status(run.id, "running")

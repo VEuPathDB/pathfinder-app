@@ -89,7 +89,8 @@ async def test_a_retry_of_units_refused_under_a_holding_sign_in_terminates(
         "retry",
         3,
     )
-    synthesis = (await owned_run(run_id, owner)).synthesis
+    reviewed = await owned_run(run_id, owner)
+    synthesis, review = reviewed.synthesis, reviewed.review
     assert synthesis is not None
 
     await start_run(run_id, owner, retry_unreached=True)
@@ -108,7 +109,7 @@ async def test_a_retry_of_units_refused_under_a_holding_sign_in_terminates(
     )
     stored = await owned_run(run_id, owner)
     assert stored.synthesis == synthesis
-    assert stored.review == (await owned_run(run_id, owner)).review
+    assert stored.review == review
     assert stored.review is not None
     assert stored.review.status == "synthesized"
     assert queued(jobs) == []
@@ -217,3 +218,47 @@ async def test_a_retry_that_reads_something_new_runs_the_review_again(
     assert read.review is not None
     assert (read.synthesis, read.review.status) == (None, "waiting")
     assert await _messages(run_id) == {}
+
+
+async def test_a_sign_in_that_holds_after_a_pause_clears_the_flags(
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wired.refused_genes = {GENES[0], GENES[1], GENES[2]}
+    sign_in_unanswered_after(monkeypatch, wired, TOKEN, refusals=3)
+    owner, run_id = await _run(jobs)
+    await work(jobs, queued(jobs)[0])
+    paused = await owned_run(run_id, owner)
+    assert paused.stages.sign_in_unanswered is True
+
+    registered(monkeypatch, TOKEN)
+    await work_through(jobs)
+
+    stored = await owned_run(run_id, owner)
+    view = await run_view(run_id, owner.user_id)
+    assert (
+        stored.stages.refusal_streak,
+        stored.stages.sign_in_unanswered,
+        stored.stages.halted,
+    ) == (0, False, None)
+    assert (view.run.phase, view.left.refused) == ("finished", 0)
+
+
+async def test_a_sign_in_that_holds_after_a_paused_retry_clears_the_flag(
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wired.refused_genes = {GENES[0]}
+    owner, run_id = await _run(jobs)
+    await work_through(jobs)
+    await work_reviews(jobs)
+    assert (await run_view(run_id, owner.user_id)).left.refused == 1
+
+    sign_in_unanswered_after(monkeypatch, wired, TOKEN, refusals=2)
+    await start_run(run_id, owner, retry_unreached=True)
+    await work(jobs, queued(jobs)[0])
+    assert (await owned_run(run_id, owner)).stages.sign_in_unanswered is True
+
+    registered(monkeypatch, TOKEN)
+    await work_through(jobs)
+
+    view = await run_view(run_id, owner.user_id)
+    assert (view.run.phase, view.left.refused) == ("finished", 0)

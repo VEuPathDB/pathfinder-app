@@ -132,7 +132,7 @@ class RefusalStreak:
         self.count = count
         self.reopened = reopened
 
-    async def _store(self, *, genuine: bool) -> None:
+    async def _store(self, *, genuine: bool, unanswered: bool = False) -> None:
         if self.run_id is None:
             return
         run_id, count = self.run_id, self.count
@@ -141,7 +141,10 @@ class RefusalStreak:
             if genuine:
                 await repo.clear_refusals(run_id)
             await repo.change_stages(
-                run_id, lambda stages: stages.note_refusal_streak(count)
+                run_id,
+                lambda stages: stages.note_refusal_streak(
+                    count
+                ).note_sign_in_unanswered(unanswered=unanswered),
             )
             await session.commit()
 
@@ -154,7 +157,7 @@ class RefusalStreak:
                 await self._store(genuine=False)
                 raise SignInNeededError
             case "unanswered":
-                await self._store(genuine=False)
+                await self._store(genuine=False, unanswered=True)
                 pause = waits.first_seconds
                 if waits.clock.now() + timedelta(seconds=pause) < waits.deadline:
                     raise ContinueLaterError(
@@ -188,7 +191,7 @@ def watching_refusals(
         _STREAK.reset(reset)
 
 
-def _note_forbidden(exc: BaseException) -> None:
+def _note_forbidden() -> None:
     streak = _STREAK.get()
     if streak is None:
         return
@@ -252,7 +255,7 @@ def halt_when_signed_out(exc: BaseException) -> None:
     if signed_out(judged):
         raise SignInNeededError from exc
     if site_status(judged) == _FORBIDDEN:
-        _note_forbidden(exc)
+        _note_forbidden()
 
 
 def failure_status(exc: BaseException) -> Literal["failed", "unreached"]:

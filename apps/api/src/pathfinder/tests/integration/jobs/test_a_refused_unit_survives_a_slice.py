@@ -141,8 +141,9 @@ async def test_a_finished_run_holding_flagged_units_offers_a_retry_that_reads_th
 
 
 async def test_an_answer_between_refusals_keeps_a_slice_from_halting(
-    jobs: InMemoryConnector, wired: Checks
+    jobs: InMemoryConnector, wired: Checks, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    sign_in_fails_after(monkeypatch, wired, TOKEN, refusals=3)
     wired.forbidden = 1
     wired.answered_first = 0
     owner = await seed_thread()

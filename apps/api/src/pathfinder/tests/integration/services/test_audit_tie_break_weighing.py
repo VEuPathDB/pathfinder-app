@@ -330,3 +330,35 @@ async def test_a_halt_reopened_tie_break_that_moves_the_error_reads_the_moved_ge
     assert finding.weighing is not None
     assert (finding.error_type, finding.impact) == ("over_extended_model", 0.3)
     assert finding.weighing.importance.source == "cited"
+
+
+async def _retried_stage(run: AuditRunRecord, tools: CheckTools) -> int | None:
+    del tools
+    await carried(confirm.run_confirm_stage, run, RecordedLane(), seconds=3600)
+    async with async_session_factory() as session:
+        await AuditRepository(session).change_stages(
+            run.id, lambda stages: stages.note_retried_from(1)
+        )
+        await session.commit()
+    await carried(tie_break.run_tie_break_stage, run, RecordedLane(), seconds=3600)
+    async with async_session_factory() as session:
+        stored = await AuditRepository(session).stored_run(run.id)
+    assert stored is not None
+    return stored.stages.retried_from
+
+
+async def test_a_remodel_during_a_retry_counts_as_something_new(
+    tools: CheckTools,
+) -> None:
+    tools.ortholog_rows = REFERENCE_LONG_ROWS
+    run = await run_with(screened(SHORT))
+    retried_from = await _retried_stage(run, tools)
+    finding = (await findings_of(run.id))["NF54_SHORT"]
+    assert (finding.error_type, retried_from) == ("over_extended_model", None)
+
+
+async def test_a_retry_with_no_remodel_keeps_its_settled_count(
+    tools: CheckTools,
+) -> None:
+    run = await run_with(screened(SHORT))
+    assert await _retried_stage(run, tools) == 1

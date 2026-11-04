@@ -47,6 +47,7 @@ class RunStages(CamelModel):
     target_failure: Sentence | None = None
     refusal_streak: int = Field(default=0, ge=0)
     retried_from: int | None = Field(default=None, ge=0)
+    sign_in_unanswered: bool = False
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
@@ -127,6 +128,9 @@ class RunStages(CamelModel):
 
     def note_retried_from(self, settled: int | None) -> RunStages:
         return self._with(retried_from=settled)
+
+    def note_sign_in_unanswered(self, *, unanswered: bool) -> RunStages:
+        return self._with(sign_in_unanswered=unanswered)
 
     def note_refusal_streak(self, count: int) -> RunStages:
         return self._with(refusal_streak=count)

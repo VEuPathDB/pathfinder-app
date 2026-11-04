@@ -16,8 +16,9 @@
   (`RunStages.refusal_streak`, which survives a job slice), or a refusal during a
   retry, ask it. A sign-in that fails halts the run and reopens the flagged units
   (`refused_by_sign_in`); one that holds leaves them failed and unflagged and the run
-  goes on; a check with no answer pauses. A retry that reads nothing new keeps the
-  report and queues no review. The
+  goes on; a check with no answer pauses, and a sign-in that holds when the run resumes
+  clears the flags and the streak. A retry that reads nothing new and remodels no
+  finding keeps the report and queues no review. The
   error-type sections, the filters and each row read one effective type and
   certainty: the review's when it named one, and a rejected finding has neither and
   says what the check said. Migration `2026_11_03_0002` cleans what old rows let it

@@ -7097,6 +7097,9 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - sequence_frameshift
+            - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -10827,6 +10830,9 @@ components:
             - intact_gene_called_pseudogene
             - sec_read_as_stop
             - truncated_model
+            - sequence_frameshift
+            - part_in_other_frame
+            - possible_missed_exon
             - split_model
             - over_extended_model
             - fused_model
@@ -11028,6 +11034,10 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Retriedfrom
+        signInUnanswered:
+          type: boolean
+          title: Signinunanswered
+          default: false
       type: object
       title: RunStages
     SaveSubstrategyRequest:

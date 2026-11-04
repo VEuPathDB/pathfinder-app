@@ -236,15 +236,16 @@ async def _read(run: AuditRunRecord, unit: _Unit) -> _Read:
 
 async def _remodel(
     repo: AuditWeighingRepository, finding: AuditFindingRecord, read: _Read
-) -> None:
+) -> bool:
     match read:
         case RelativesEvidence(side=side, reference_organism=str() as organism):
             remodeled = remodeled_by_side(finding.error_type, side)
         case _:
-            return
+            return False
     if remodeled is None or remodeled.error_type is None or remodeled.certainty is None:
-        return
+        return False
     await repo.remodel(finding.id, remodeled.error_type, remodeled.certainty, organism)
+    return True
 
 
 async def _reweigh(
@@ -274,7 +275,11 @@ async def _store(run: AuditRunRecord, unit: _Unit, read: _Read, requests: int) -
                 )
             case _:
                 await repo.save_evidence(finding_id, read, requests=requests)
-                await _remodel(AuditWeighingRepository(session), unit.finding, read)
+                weighing = AuditWeighingRepository(session)
+                if await _remodel(weighing, unit.finding, read):
+                    await AuditRepository(session).change_stages(
+                        run.id, lambda stages: stages.note_retried_from(None)
+                    )
         await AuditRepository(session).count_requests(run.id, "tie_break", requests)
         await session.commit()
 
