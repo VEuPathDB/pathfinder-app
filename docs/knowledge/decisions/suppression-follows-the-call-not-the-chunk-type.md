@@ -16,7 +16,7 @@ Reported on branching, reverting, cancelling, and at random in long runs.
 It is thrown by the **Vercel AI SDK client**, in `ai/dist/index.mjs`, when a
 tool output names a call the client never saw announced. It never reaches a
 backend log, which is why it read for so long as a silent provider rejection --
-and why [no-openai-item-ids](no-openai-item-ids.md) misattributed it to OpenAI.
+and why an earlier decision misattributed it to OpenAI.
 
 # The cause
 
