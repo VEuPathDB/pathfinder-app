@@ -38,6 +38,8 @@ Named as in the [backlog](../backlog/index.md) on 2026-10-05; the list moves as 
 
 | Item | What a runner sees | Flow |
 |---|---|---|
+| A phrase in an OR search stays a phrase | Broadening a text step with OR may run the phrase as separate words and state a far larger count (279 genes where 86 is right). | U5 |
+| A domain comparison finds the site's entry | Asked to compare with an InterPro or Pfam search, the assistant may ask for an accession the site lists |  |
 | A message that commands a change is an edit when it also asks a question | "Change X to Y. How does the count change?" may get an answer and no edit; "apply it" makes the edit | S9 to S12 |
 | A dependent pick's label is the vocabulary it was bound under | The site-default count of a dependent pick (an InterPro domain under an organism) may read the published default instead of the bound parents | U8, UA-plasmodb |
 

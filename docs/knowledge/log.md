@@ -14,6 +14,8 @@
   the signal peptide alone with the GPI anchor withdrawn. A text match is not a prediction.
 * **A count of a step's column names genes.** The byValue report on a transcript step counts genes,
   so `count_step_by_column` now labels its total as genes.
+* **Two backlog items were added and the version is 0.9.0b2.** A phrase in an OR search stays a
+  phrase, to fix before prod live, and a domain comparison finds the site's entry.
 
 ## 2026-11-04
 
