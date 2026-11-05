@@ -243,6 +243,7 @@ def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         gene_sets, "list_stored_gene_sets", AsyncMock(return_value=[saved])
     )
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
 
 
 @pytest.mark.usefixtures("_exportable_gene_set")

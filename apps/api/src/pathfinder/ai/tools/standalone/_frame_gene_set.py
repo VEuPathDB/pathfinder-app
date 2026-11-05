@@ -16,6 +16,7 @@ from pathfinder.ai.tools.standalone._frame_result import (
 from pathfinder.ai.tools.standalone._frame_roles import (
     refuse_a_transform_on_a_saved_input,
 )
+from pathfinder.ai.tools.standalone.gene_set_models import LISTING_PAGE
 from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
 from pathfinder.services.evidence.gene_sets import list_stored_gene_sets
 from pathfinder.services.gene_sets.homes import ID_LIST_SEARCHES, site_kind
@@ -101,9 +102,11 @@ def _unresolved_message(reference: str, listed: list[GeneSet]) -> str:
             f"{reference!r} names no gene set: the user has no saved gene set "
             "with genes on this site. Ask the user which genes to start from."
         )
-    names = ", ".join(f"{gs.name!r}" for gs in listed)
+    names = ", ".join(f"{gs.name!r}" for gs in listed[:LISTING_PAGE])
+    rest = len(listed) - LISTING_PAGE
+    more = f" and {rest} more that list_gene_sets reads" if rest > 0 else ""
     return (
         f"{reference!r} names none of the user's gene sets with genes on this "
-        f"site: {names}. Call set_criterion again with one of those names, or "
+        f"site: {names}{more}. Call set_criterion again with one of those names, or "
         "ask the user which one they mean."
     )

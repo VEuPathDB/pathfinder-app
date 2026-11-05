@@ -3,6 +3,7 @@ site it was saved on and the count of its genes the viewing site holds."""
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -50,6 +51,7 @@ async def test_the_listing_sends_a_card_of_every_set_and_its_genes_here(
         return [_PROTEINS, _KINASES]
 
     monkeypatch.setattr(gene_sets, "list_stored_gene_sets", _listed)
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
     ctx = agent_run_context(site_id="plasmodb")
     ctx.deps.conversation_id = _THIS
 

@@ -26,6 +26,9 @@ status: stable
   site's `bla` placeholder or another account's id is refused with the uploads by name and value,
   and an account with no gene-list upload is told to upload one on the site
   (`_frame_proposals.refuse_unmatched_values`).
+- **The listing names the uploads.** `list_gene_sets` returns the offers of every search that reads
+  the `genelist` type beside the saved sets, one page at a time, so a name no saved set holds is
+  not read as a missing list (`user_dataset_searches.py::uploaded_gene_lists`).
 - **An EDA-backed upload is exported on its own search.** `GenesByDESeqUserDataset` and
   `GenesByPhenotypeUserDataset` carry `eda_analysis_spec`, so FRAME keeps them as the analysis
   workflow's criteria (see [an EDA analysis is a criterion of the spec](an-eda-analysis-is-a-criterion-of-the-spec.md)).
@@ -67,6 +70,7 @@ computed (a swapped comparison counted 16 down-regulated genes in 13 s, from `no
 `services/strategies/user_dataset_searches.py`, pinned by
 `tests/unit/services/strategies/test_a_user_dataset_search_reads_the_researchers_upload.py` (recorded
 sheets of both sites), `tests/unit/ai/tools/test_a_user_dataset_proposal_names_the_researchers_upload.py`,
+`tests/unit/ai/tools/test_a_listing_names_the_researchers_uploaded_lists.py`,
 `tests/unit/services/eda/test_an_upload_exports_on_its_user_dataset_search.py`,
 `tests/unit/ai/tools/test_the_agents_export_of_an_upload_runs_its_user_dataset_search.py`, and the live checks
 `tests/integration/strategies/test_wdk_user_dataset_searches.py`. The flows are

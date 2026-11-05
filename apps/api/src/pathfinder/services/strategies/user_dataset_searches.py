@@ -27,6 +27,7 @@ from veupathdb_mcp.catalog import (
 )
 
 USER_DATASET_TYPE_PROPERTY = "userDatasetType"
+GENE_LIST_TYPE = "genelist"
 
 # Every user-dataset search is a gene search, listed under transcripts.
 _RECORD_TYPE = "transcript"
@@ -165,6 +166,19 @@ async def user_dataset_offers(site_id: str, search_name: str) -> list[UserDatase
     if dataset_parameter(definition) is None:
         return []
     return offers_for(definition, await owned_uploads(site_id))
+
+
+async def uploaded_gene_lists(site_id: str) -> list[UserDatasetOffer]:
+    listed = await get_raw_searches(site_id, _RECORD_TYPE)
+    readers = [s for s in listed if GENE_LIST_TYPE in user_dataset_types(s)]
+    if not readers:
+        return []
+    uploads = await owned_uploads(site_id)
+    definitions = [
+        await read_search_definition(site_id, _RECORD_TYPE, reader.url_segment)
+        for reader in readers
+    ]
+    return [offer for found in definitions for offer in offers_for(found, uploads)]
 
 
 async def user_dataset_export_search(

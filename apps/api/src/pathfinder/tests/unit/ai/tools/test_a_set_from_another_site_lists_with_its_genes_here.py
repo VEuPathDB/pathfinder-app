@@ -4,6 +4,7 @@ the count of its genes PlasmoDB holds."""
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -41,6 +42,7 @@ async def test_a_set_from_orthomcl_lists_its_site_and_the_genes_here(
         return [_PROTEINS]
 
     monkeypatch.setattr(gene_sets, "list_stored_gene_sets", _listed)
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
 
     listed = returned(
         await gene_sets.list_gene_sets(agent_run_context()), GeneSetListResponse
@@ -83,6 +85,7 @@ async def test_a_set_of_no_record_type_counts_the_sites_genes(
         return [replace(_PROTEINS, site_id=site_id)]
 
     monkeypatch.setattr(gene_sets, "list_stored_gene_sets", _listed)
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
 
     listed = returned(
         await gene_sets.list_gene_sets(agent_run_context(site_id=site_id)),

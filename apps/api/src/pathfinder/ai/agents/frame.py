@@ -92,7 +92,10 @@ Procedure:
    - no `search_name`, no `params`. The listing names every set with genes on this site,
    with the site it was saved on and how many of its genes this site holds; a set saved
    on OrthoMCL or the portal starts from those genes alone. The rest of the spec combines
-   with it. If no set matches what the user named, ask which one, listing the names.
+   with it. The listing's `uploadedLists` are the lists the user uploaded to the site: when
+   one is the list the user named, bind its `searchName` with its `parameter` set to its
+   `value`, as any other search. Read `nextOffset` before you decide a name is not listed.
+   If no set or uploaded list matches what the user named, ask which one, listing the names.
 2. For EACH other property, in this order:
    a. `search_for_searches(query)` to find the real WDK search. Bind a search only if its
       summary states what the criterion asks. When no search on the site states it, do not

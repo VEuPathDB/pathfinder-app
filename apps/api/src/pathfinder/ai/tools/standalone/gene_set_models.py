@@ -29,6 +29,9 @@ class WdkProvenance(BaseModel):
         return "strategy" if self.wdk_step_id is not None else "paste"
 
 
+LISTING_PAGE = 25
+
+
 class GeneSetCreatedSummary(CamelModel):
     """Summary of a created gene set."""
 
@@ -63,8 +66,17 @@ class GeneSetListItem(CamelModel):
     out_of_date: OutOfDate | None = None
 
 
-class GeneSetListResponse(CamelModel):
-    """Response listing gene sets."""
+class UploadedGeneList(CamelModel):
+    name: str
+    value: str
+    search_name: str
+    parameter: str
 
+
+class GeneSetListResponse(CamelModel):
     gene_sets: list[GeneSetListItem] = Field(default_factory=list)
     total_sets: int = 0
+    uploaded_lists: list[UploadedGeneList] = Field(default_factory=list)
+    total_uploaded_lists: int = 0
+    uploads_unread: bool = False
+    next_offset: int | None = None

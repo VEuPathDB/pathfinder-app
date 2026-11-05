@@ -7,6 +7,7 @@ never tells the one this conversation saved from another.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -69,6 +70,7 @@ async def test_the_gene_sets_this_conversation_saved_come_first_and_marked(
         return list(_ACCOUNT_GENE_SETS)
 
     monkeypatch.setattr(gene_sets, "list_stored_gene_sets", _listed)
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
     ctx = agent_run_context()
     ctx.deps.conversation_id = _THIS
 

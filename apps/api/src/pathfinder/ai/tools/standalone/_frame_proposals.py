@@ -51,6 +51,7 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     tree_tops,
 )
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
+from pathfinder.ai.tools.standalone.gene_set_models import LISTING_PAGE
 from pathfinder.services.strategies.parameter_rules import site_fixed
 from pathfinder.services.strategies.user_dataset_searches import (
     dataset_parameter,
@@ -293,10 +294,14 @@ async def _refuse_an_upload_the_researcher_lacks(
         case str() as value if value in {offer.value for offer in offers}:
             return parameter.name
         case _:
-            uploads = ", ".join(f"{o.upload_name!r} ({o.value})" for o in offers)
+            uploads = ", ".join(
+                f"{o.upload_name!r} ({o.value})" for o in offers[:LISTING_PAGE]
+            )
+            rest = len(offers) - LISTING_PAGE
+            more = f" and {rest} more that list_gene_sets reads" if rest > 0 else ""
             msg = (
                 f"{parameter.name} on {call.search_name} picks one of the "
-                f"researcher's own uploads: {uploads}. Pass the value of the upload "
+                f"researcher's own uploads: {uploads}{more}. Pass the value of the upload "
                 f"the request refers to; nothing was recorded."
             )
             raise ModelRetry(msg)

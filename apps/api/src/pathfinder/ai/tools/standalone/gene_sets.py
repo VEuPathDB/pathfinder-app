@@ -2,25 +2,30 @@
 
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import uuid4
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.logging import get_logger
+from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.strategy import StepKind
-from veupathdb.errors import ValidationError
+from veupathdb.errors import ValidationError, WDKError
+from veupathdb.wdk.vdi.client import VdiServiceError
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.stream_part_payloads import ListedGeneSet, ListedGeneSets
 from pathfinder.ai.tools.standalone._saved_here import saved_here
 from pathfinder.ai.tools.standalone.gene_set_models import (
+    LISTING_PAGE,
     GeneSetCreatedResponse,
     GeneSetCreatedSummary,
     GeneSetListItem,
     GeneSetListResponse,
+    UploadedGeneList,
     WdkProvenance,
 )
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
@@ -47,6 +52,7 @@ from pathfinder.services.gene_sets.step_genes import (
     visible_parameter_names,
 )
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.strategies.user_dataset_searches import uploaded_gene_lists
 
 logger = get_logger(__name__)
 
@@ -271,18 +277,45 @@ def _or(names: list[str]) -> str:
     return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} or {names[-1]}"
 
 
+async def _uploaded_lists(site_id: str) -> tuple[list[UploadedGeneList], bool]:
+    try:
+        offers = await uploaded_gene_lists(site_id)
+    except VdiServiceError, WDKError:
+        logger.warning("Uploaded gene lists not read", site_id=site_id, exc_info=True)
+        return [], True
+    return [
+        UploadedGeneList(
+            name=offer.upload_name,
+            value=offer.value,
+            search_name=offer.search_name,
+            parameter=offer.parameter,
+        )
+        for offer in offers
+    ], False
+
+
 async def list_gene_sets(
     ctx: RunContext[AgentDeps],
+    offset: Annotated[int, Field(ge=0)] = 0,
 ) -> ToolReturn[GeneSetListResponse]:
-    """List the gene sets the user saved that hold genes of this site.
+    """List the user's saved gene sets and uploaded lists on this site.
+
+    A call returns one page of each. ``nextOffset`` is the ``offset`` that reads
+    the next page; it is null on the last page. No row holds a set's genes.
 
     The sets this conversation saved come first, each marked ``savedHere``.
     Every row names its gene count, source and id, the site it was saved on,
     and how many of its genes this site holds: a set saved on OrthoMCL or the
     portal lists here with this site's genes alone. ``outOfDate`` names why a
     set no longer holds its strategy's result.
+
+    ``uploadedLists`` are the lists the user uploaded to the site. Each names the
+    ``searchName`` that reads it, and the ``parameter`` and ``value`` that select
+    it. ``uploadsUnread`` true means the site did not answer, so an upload missing
+    from the page may still exist.
     """
     deps = ctx.deps
+    uploaded, unread = await _uploaded_lists(deps.site_id)
     stored = await list_stored_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
     kind = site_kind(deps.site_id)
     rows = [
@@ -319,9 +352,18 @@ async def list_gene_sets(
             for row in ordered
         ],
     )
+    end = offset + LISTING_PAGE
     return with_summary(
-        GeneSetListResponse(gene_sets=ordered, total_sets=len(rows)),
-        f"{count_noun(len(rows), 'gene set')}, {here} saved in this conversation",
+        GeneSetListResponse(
+            gene_sets=ordered[offset:end],
+            total_sets=len(rows),
+            uploaded_lists=uploaded[offset:end],
+            total_uploaded_lists=len(uploaded),
+            uploads_unread=unread,
+            next_offset=end if end < max(len(rows), len(uploaded)) else None,
+        ),
+        f"{count_noun(len(rows), 'gene set')}, {here} saved in this conversation, "
+        f"{count_noun(len(uploaded), 'uploaded list')}",
         ctx=ctx,
-        extra=[gene_set_list_chunk(listed)],
+        extra=[gene_set_list_chunk(listed)] if offset == 0 else [],
     )

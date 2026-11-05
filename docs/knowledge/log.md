@@ -3,9 +3,13 @@
 ## 2026-11-05
 
 * **The corpus was measured on 6ead931b8 with the real embedder, through the worker.** 105 of
-  123 cases passed. Two more runs of the 18 failures passed 7 of them both times. Three
-  backlog items were added: an uploaded gene list is found on the site, a count before an edit
-  is read from the facts, and a term the researcher already allowed is used.
+  123 cases passed. Two more runs of the 18 failures passed 7 of them both times. Two backlog
+  items were added: a count before an edit is read from the facts, and a term the researcher
+  already allowed is used.
+* **The gene set listing names the researcher's uploaded gene lists.** `list_gene_sets` returns
+  them beside the saved sets, one page of 25 of each at a time, and no row holds a set's genes.
+  When the site does not answer, the listing keeps the saved sets and says the uploads were not
+  read. See [the decision](decisions/a-user-dataset-request-is-a-site-search.md).
 
 ## 2026-11-04
 
