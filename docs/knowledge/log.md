@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-05
+
+* **The corpus was measured on 6ead931b8 with the real embedder, through the worker.** 105 of
+  123 cases passed. Two more runs of the 18 failures passed 7 of them both times. Three
+  backlog items were added: an uploaded gene list is found on the site, a count before an edit
+  is read from the facts, and a term the researcher already allowed is used.
+
 ## 2026-11-04
 
 * **PathFinder offers no site.** The site switcher, the stored picked site and the
