@@ -99,8 +99,8 @@ async def test_a_step_is_counted_through_the_tool_server(
         ("Plasmodium falciparum HB3", 7),
     ]
     assert (tally.title, tally.record_noun, tally.total, tally.distinct) == (
-        "Transcripts by Organism",
-        "transcript",
+        "Genes by Organism",
+        "gene",
         840,
         3,
     )
@@ -123,7 +123,7 @@ async def test_the_counts_of_a_step_are_lines_of_the_turns_facts(
     [tally] = ctx.deps.state.turn_markers.tallies
     lines = tally.lines()
     assert (lines[1:3], "Plasmodium falciparum IT: 21" in lines) == (
-        ["In all: 840 transcripts", "Values: 3"],
+        ["In all: 840 genes", "Values: 3"],
         True,
     )
 
@@ -141,7 +141,7 @@ async def test_an_unknown_column_goes_back_naming_the_countable_columns(
         await count_step_by_column(ctx, TM_STEP, "organsim")
 
     assert str(refused.value) == (
-        f"transcript records of step {TM_STEP} cannot be counted by organsim: it "
+        f"gene records of step {TM_STEP} cannot be counted by organsim: it "
         "is not a column of the step. The columns it can be counted by: "
         "gene_type, organism, tm_count."
     )

@@ -12,6 +12,8 @@
   read. See [the decision](decisions/a-user-dataset-request-is-a-site-search.md).
 * **A term no search states is dropped, not stood in for.** `uat-dry-c-piroplasmadb` now expects
   the signal peptide alone with the GPI anchor withdrawn. A text match is not a prediction.
+* **A count of a step's column names genes.** The byValue report on a transcript step counts genes,
+  so `count_step_by_column` now labels its total as genes.
 
 ## 2026-11-04
 

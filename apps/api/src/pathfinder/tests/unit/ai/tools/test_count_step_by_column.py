@@ -244,7 +244,7 @@ def _transcripts() -> StrategySession:
     return session
 
 
-async def test_a_transcript_step_is_counted_in_transcripts(ran: _Ran) -> None:
+async def test_a_transcript_step_is_counted_in_genes(ran: _Ran) -> None:
     ctx = lead_run_context(site_id="plasmodb", strategy_session=_transcripts())
 
     await count_step_by_column(ctx, 441031663, "organism", top=5)
@@ -252,7 +252,7 @@ async def test_a_transcript_step_is_counted_in_transcripts(ran: _Ran) -> None:
     ((step, column),) = ran.asked
     assert (step.record_type, step.record_noun, column, ran.tops) == (
         "transcript",
-        "transcript",
+        "gene",
         "organism",
         [5],
     )

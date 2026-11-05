@@ -21,7 +21,7 @@ from veupathdb_mcp.wdk import (
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._step_read import graph_step_id, read_as
 from pathfinder.ai.tools.standalone.column_tally import tally_line
-from pathfinder.ai.tools.standalone.graph_helpers import record_noun
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.column_reach import ColumnReach, TransformReach
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment.column_tally import (
@@ -202,7 +202,7 @@ async def count_step_by_column(
                 wdk_step_id=wdk_step_id,
                 record_type=record_type,
                 search_name=own_search or "",
-                record_noun=record_noun(record_type),
+                record_noun=counted_noun(record_type),
                 step_url=step_url,
                 refused=frozenset(refused),
             ),
