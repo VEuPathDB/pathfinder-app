@@ -10,6 +10,8 @@
   them beside the saved sets, one page of 25 of each at a time, and no row holds a set's genes.
   When the site does not answer, the listing keeps the saved sets and says the uploads were not
   read. See [the decision](decisions/a-user-dataset-request-is-a-site-search.md).
+* **A term no search states is dropped, not stood in for.** `uat-dry-c-piroplasmadb` now expects
+  the signal peptide alone with the GPI anchor withdrawn. A text match is not a prediction.
 
 ## 2026-11-04
 

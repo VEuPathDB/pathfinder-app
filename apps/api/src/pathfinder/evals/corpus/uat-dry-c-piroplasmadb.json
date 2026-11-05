@@ -5,34 +5,37 @@
   ],
   "siteId": "piroplasmadb",
   "assistantId": "pathfinder",
-  "rationale": "The organism row that a text step and the signal peptide step both answer is not held to the records, so no organism gap stands while every sampled record is Cytauxzoon felis strain Winnie; the GPI anchor stand-in row holds no gap on records judged unclear. A card label is never a requirement, so no facts part names 'Specify an alternative evidence type' as a gap.",
+  "rationale": "No search on the site states a predicted GPI anchor, so the card asks to drop it and the strategy keeps the signal peptide alone. The facts show the anchor as withdrawn; no text step stands in, because a text match is not a prediction. The organism row holds no gap on records judged unclear.",
   "expected": {
     "buildsStrategy": true,
-    "structure": null,
+    "structure": "GenesWithSignalPeptide",
     "recordType": "transcript",
-    "stepCount": null,
+    "stepCount": 1,
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [],
+    "replyMentions": [
+      "GPI anchor",
+      "is withdrawn"
+    ],
     "replyOmits": [],
     "countsInGenes": true,
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],
-    "rootOperator": "UNION",
+    "rootOperator": null,
     "finalCountBelowEveryInput": null,
     "passedChecks": null,
     "failedChecks": 0,
     "unexpressedRequirements": null,
     "turnReplyMentions": {},
-    "turnReplyOmits": {
-      "0": [
-        "'Specify an alternative evidence type'"
-      ]
-    },
+    "turnReplyOmits": {},
     "assumedStated": 0,
-    "rootCount": null,
+    "rootCount": {
+      "count": 288,
+      "build": "71",
+      "measuredOn": "2026-11-05"
+    },
     "endsOn": "none"
   },
   "provenance": {
@@ -42,7 +45,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#uc-piroplasmadb",
-    "curatorNote": "One message naming a GPI anchor or a signal peptide; no search states the anchor, so the card offers a stand-in and the accepted stand-in joins the signal peptide under UNION with the anchor requirement retired. The stand-in's search is the card's pick, so the case pins the operator and not the tree."
+    "curatorNote": "One message naming a GPI anchor or a signal peptide; no search states the anchor, so the card offers to drop it and the accepted drop leaves the signal peptide as one step with the anchor withdrawn."
   },
   "effort": "medium",
   "gates": {
@@ -53,15 +56,7 @@
         "turn": 0,
         "accept": true,
         "picks": [
-          "Specify an alternative evidence type"
-        ]
-      },
-      {
-        "card": "consult_user",
-        "turn": 0,
-        "accept": true,
-        "picks": [
-          "Use a text search for GPI anchor in the gene product descriptions as the stand-in and keep it OR with the signal peptide"
+          "Drop predicted GPI anchor"
         ]
       }
     ]

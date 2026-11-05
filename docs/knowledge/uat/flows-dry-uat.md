@@ -141,15 +141,14 @@ Recorded from the third dry UAT; counts read on 2026-09-30.
 |---|---|---|---|
 | 1 | New conversation | Send `Plasmodium knowlesi strain H genes with a Plasmodium-specific domain that have no ortholog in Homo sapiens.` | `InterPro Domain` (144) AND `Orthology Phylogenetic Profile` excluding `hsap` (2,795) = 142; Free Text `N/A` shows as the site default; Excluded Species `hsap (Homo sapiens REF)` shows as stated; no row says a sampled record does not show the organism or the domain |
 
-## UC-piroplasmadb - An organism a text step shares is not held to the records - piroplasmadb
+## UC-piroplasmadb - A term no search states is dropped, not stood in for - piroplasmadb
 
-Recorded from the third dry UAT; counts read on 2026-09-30.
+Recorded from the third dry UAT; counts read on 2026-11-05.
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation | Send `Cytauxzoon felis Winnie genes with a predicted GPI anchor or a signal peptide.` | No GPI search on the site; a card offers the signal peptide alone or another evidence type; `Predicted Signal Peptide` 288 |
-| 2 | Card | Pick `Specify an alternative evidence type` | A free-text card asks which evidence stands in |
-| 3 | Card | Answer `Use a text search for GPI anchor in the gene product descriptions as the stand-in and keep it OR with the signal peptide` | `Text` "GPI anchor" in the product (1) UNION `Predicted Signal Peptide` (288) = 289; document_type `gene` shows as the site default; no gap for `Cytauxzoon felis Winnie`, since every sampled record is that organism |
+| 1 | New conversation | Send `Cytauxzoon felis Winnie genes with a predicted GPI anchor or a signal peptide.` | No GPI search on the site; a card asks to drop `predicted GPI anchor` or keep it |
+| 2 | Card | Pick `Drop predicted GPI anchor` | `Predicted Signal Peptide` 288, one step and no text stand-in; the facts show `predicted GPI anchor` as withdrawn; no gap for `Cytauxzoon felis Winnie`, since every sampled record is that organism |
 
 ## UA-toxodb - A step the turn created has no count before it - toxodb
 

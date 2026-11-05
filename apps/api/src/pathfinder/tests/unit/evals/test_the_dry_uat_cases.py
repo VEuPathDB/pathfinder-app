@@ -321,23 +321,20 @@ def test_the_knowlesi_case_holds_no_records_gap_and_the_stated_exclusion() -> No
     ) == (False, "consult", None, {}, None, [], None)
 
 
-_GPI_ANSWER = (
-    "Use a text search for GPI anchor in the gene product descriptions as the "
-    "stand-in and keep it OR with the signal peptide"
-)
-
-
-def test_the_winnie_case_holds_no_organism_gap_on_unclear_records() -> None:
+def test_the_winnie_case_drops_the_anchor_no_search_states() -> None:
     case = _BY_NAME["uat-dry-c-piroplasmadb"]
     expected = case.expected
 
     assert (len(case.turns), case.gates.answers) == (
         1,
-        [_picks(0, "Specify an alternative evidence type"), _picks(0, _GPI_ANSWER)],
+        [_picks(0, "Drop predicted GPI anchor")],
     )
     assert (
         expected.structure,
+        expected.step_count,
+        expected.root_operator,
         expected.failed_checks,
         expected.reply_mentions,
-        expected.root_count,
-    ) == (None, 0, [], None)
+    ) == ("GenesWithSignalPeptide", 1, None, 0, ["GPI anchor", "is withdrawn"])
+    assert expected.root_count is not None
+    assert expected.root_count.count == 288

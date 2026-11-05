@@ -36,9 +36,3 @@ def test_the_widen_card_offers_nothing_that_cannot_move_the_count() -> None:
     assert "'0' is withdrawn" in expected.turn_reply_omits[1]
     assert expected.root_count is not None
     assert expected.root_count.count == 421
-
-
-def test_the_winnie_case_names_no_card_label_as_a_gap() -> None:
-    expected = _BY_NAME["uat-dry-c-piroplasmadb"].expected
-
-    assert expected.turn_reply_omits == {0: ["'Specify an alternative evidence type'"]}
