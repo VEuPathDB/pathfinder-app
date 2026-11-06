@@ -15,6 +15,7 @@ from pydantic import Field
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import SiteNotFoundError
 
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     strategy_revision,
@@ -78,6 +79,7 @@ class ConversationResponse(CamelModel):
     parent_conversation_id: UUID | None = Field(default=None)
     parent_message_id: UUID | None = Field(default=None)
     strategy_revision: str = Field(default="")
+    mode: ThreadMode | None = None
 
 
 def _compute_wdk_url(
@@ -138,6 +140,7 @@ def build_conversation_response(
     conversation: Conversation,
     strategy: ConversationStrategyView,
     *,
+    mode: ThreadMode,
     total_tokens: int = 0,
     total_cost_usd: Decimal | None = None,
 ) -> ConversationResponse:
@@ -169,6 +172,7 @@ def build_conversation_response(
         parent_conversation_id=conversation.parent_conversation_id,
         parent_message_id=conversation.parent_message_id,
         strategy_revision=strategy_revision(payload),
+        mode=mode,
     )
 
 

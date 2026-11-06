@@ -53,6 +53,7 @@ from pathfinder.services.conversations.surgery_commit import (
     SurgeryMade,
     commit_or_release,
 )
+from pathfinder.services.conversations.thread_mode import thread_mode_of
 from pathfinder.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
@@ -133,7 +134,12 @@ class ConversationService:
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title="Strategy not found",
             )
-        return build_conversation_response(*refreshed)
+        conversation, strategy = refreshed
+        return build_conversation_response(
+            conversation,
+            strategy,
+            mode=await thread_mode_of(self._session, conversation.id),
+        )
 
     async def get_detail(
         self, conversation_id: UUID, user_id: UUID
@@ -154,6 +160,7 @@ class ConversationService:
         return build_conversation_response(
             conversation,
             strategy,
+            mode=await thread_mode_of(self._session, conversation.id),
             total_tokens=total_tokens,
             total_cost_usd=total_cost,
         )
@@ -187,7 +194,11 @@ class ConversationService:
         updated, strategy = found
         if patch.is_saved_set and strategy.wdk_strategy_id:
             await sync_is_saved_to_wdk(conversation=updated, strategy=strategy)
-        return build_conversation_response(updated, strategy)
+        return build_conversation_response(
+            updated,
+            strategy,
+            mode=await thread_mode_of(self._session, updated.id),
+        )
 
     async def fork(
         self,

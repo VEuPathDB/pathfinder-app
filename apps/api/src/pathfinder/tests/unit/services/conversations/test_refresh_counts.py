@@ -19,6 +19,7 @@ from assistant_core.persistence.models import Conversation
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb.wdk import WDKStrategyDetails
 
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import ConversationRepository
@@ -172,7 +173,11 @@ def _install(
             ),
         )
 
+    async def _no_mode_kept(*_args: Any, **_kwargs: Any) -> ThreadMode:
+        return "auto"
+
     monkeypatch.setattr(strategy_ops, "get_owned_thread", _owned)
+    monkeypatch.setattr(strategy_ops, "thread_mode_of", _no_mode_kept)
     monkeypatch.setattr(strategy_ops, "strategy_write_lock", _lock)
     monkeypatch.setattr(strategy_ops, "ConversationRepository", lambda _session: repo)
     monkeypatch.setattr(strategy_ops, "persist_strategy_ast_to_conversation", _persist)

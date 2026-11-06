@@ -67,6 +67,7 @@ from pathfinder.domain.audit.verdicts import (
     VerdictOrigin,
 )
 from pathfinder.domain.message_rating import Rating, WithheldCase
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.strategy.generated_name import NameSeed
 
 
@@ -403,6 +404,22 @@ class ConversationAnalysis(Base):
         Boolean, nullable=False, server_default="false"
     )
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ConversationMode(Base):
+    __tablename__ = "conversation_modes"
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    mode: Mapped[ThreadMode] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,

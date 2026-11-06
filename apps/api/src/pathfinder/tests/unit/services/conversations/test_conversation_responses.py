@@ -93,19 +93,37 @@ def test_both_dtos_report_the_same_revision() -> None:
     thread = _thread(_ast())
     expected = strategy_revision(_ast())
     assert build_conversation_summary(*thread).strategy_revision == expected
-    assert build_conversation_response(*thread).strategy_revision == expected
+    assert (
+        build_conversation_response(*thread, mode="auto").strategy_revision == expected
+    )
+
+
+def test_the_detail_carries_the_threads_mode_and_the_summary_none() -> None:
+    thread = _thread(_ast())
+    assert (
+        build_conversation_response(*thread, mode="explore").mode,
+        build_conversation_summary(*thread).mode,
+    ) == ("explore", None)
 
 
 def test_editing_a_parameter_moves_the_revision() -> None:
-    before = build_conversation_response(*_thread(_ast("1"))).strategy_revision
-    after = build_conversation_response(*_thread(_ast("2"))).strategy_revision
+    before = build_conversation_response(
+        *_thread(_ast("1")), mode="auto"
+    ).strategy_revision
+    after = build_conversation_response(
+        *_thread(_ast("2")), mode="auto"
+    ).strategy_revision
     assert before != after
 
 
 def test_the_response_says_who_created_the_veupathdb_strategy() -> None:
     """The delete modal names whose strategy it removes, so the DTO carries it."""
-    built_here = build_conversation_response(*_thread(_ast(), created_here=True))
-    opened_here = build_conversation_response(*_thread(_ast(), created_here=False))
+    built_here = build_conversation_response(
+        *_thread(_ast(), created_here=True), mode="auto"
+    )
+    opened_here = build_conversation_response(
+        *_thread(_ast(), created_here=False), mode="auto"
+    )
 
     assert built_here.wdk_strategy_created_here is True
     assert opened_here.wdk_strategy_created_here is False
@@ -120,7 +138,7 @@ def test_both_dtos_open_the_result_list_of_the_pushed_root() -> None:
     )
 
     assert (
-        build_conversation_response(*thread).wdk_url,
+        build_conversation_response(*thread, mode="auto").wdk_url,
         build_conversation_summary(*thread).wdk_url,
     ) == (url, url)
 
@@ -128,6 +146,6 @@ def test_both_dtos_open_the_result_list_of_the_pushed_root() -> None:
 def test_a_strategy_whose_root_is_not_pushed_opens_its_page() -> None:
     thread = _thread(_ast(), wdk_strategy_id=214647970)
 
-    assert build_conversation_response(*thread).wdk_url == (
+    assert build_conversation_response(*thread, mode="auto").wdk_url == (
         "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/214647970"
     )

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.services.conversations.thread_mode import copy_thread_mode
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,11 @@ async def duplicate_conversation(
                 strategy_ast=copied_ast,
             ),
         )
+    await copy_thread_mode(
+        session,
+        source_conversation_id=conversation_id,
+        target_conversation_id=new_conv.id,
+    )
     for row in await msg_repo.list_messages_for_conversation(conversation_id):
         await msg_repo.insert_message(
             message_id=uuid4(),

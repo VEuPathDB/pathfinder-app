@@ -99,6 +99,7 @@ def order(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     monkeypatch.setattr(dispatcher, "latest_turn_boundary", boundary)
     monkeypatch.setattr(dispatcher, "require_a_free_turn", nothing)
     monkeypatch.setattr(dispatcher, "scan_user_input", nothing)
+    monkeypatch.setattr(dispatcher, "keep_thread_mode", nothing)
     monkeypatch.setattr(dispatcher, "defer_chat_turn", deferred)
     monkeypatch.setattr(dispatcher, "hold_thread", held)
     monkeypatch.setattr(dispatcher, "refuse_a_thread_of_another_caller", owned)

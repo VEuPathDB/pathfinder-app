@@ -15,6 +15,7 @@ from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, 
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
 from veupathdb_mcp.wdk import WireStep
 
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.strategy.operations import (
     GraphOperation,
 )
@@ -257,7 +258,11 @@ def install_the_site(monkeypatch: pytest.MonkeyPatch, site: dict[str, Any]) -> R
             ),
         )
 
+    async def _no_mode_kept(*_args: Any, **_kwargs: Any) -> ThreadMode:
+        return "auto"
+
     monkeypatch.setattr(strategy_ops, "get_owned_thread", _owned)
+    monkeypatch.setattr(strategy_ops, "thread_mode_of", _no_mode_kept)
     monkeypatch.setattr(strategy_ops, "strategy_write_lock", _lock)
     monkeypatch.setattr(strategy_ops, "refuse_an_edit_on_a_busy_thread", _settled)
     monkeypatch.setattr(strategy_ops, "ConversationRepository", lambda _s: repo)

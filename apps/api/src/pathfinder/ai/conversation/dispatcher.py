@@ -27,6 +27,7 @@ from pathfinder.services.conversations.begin import (
     refuse_a_thread_of_another_caller,
 )
 from pathfinder.services.conversations.thread_lock import hold_thread
+from pathfinder.services.conversations.thread_mode import keep_thread_mode
 from pathfinder.services.conversations.turn_slots import require_a_free_turn
 
 
@@ -106,6 +107,9 @@ async def _enqueue_turn(
             conversation_id=body.conversation_id,
             role="user",
             metadata={"siteId": body.site_id, "mode": body.mode},
+        )
+        await keep_thread_mode(
+            session, conversation_id=body.conversation_id, mode=body.mode
         )
         await session.commit()
 

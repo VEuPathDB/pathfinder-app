@@ -7782,6 +7782,16 @@
             "type": "string",
             "title": "Strategyrevision",
             "default": ""
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThreadMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

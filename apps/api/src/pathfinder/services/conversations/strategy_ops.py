@@ -43,6 +43,7 @@ from pathfinder.services.conversations.responses import (
 from pathfinder.services.conversations.thread_busy import (
     refuse_an_edit_on_a_busy_thread,
 )
+from pathfinder.services.conversations.thread_mode import thread_mode_of
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.dataset_sources import save_dataset_sources
@@ -220,7 +221,12 @@ async def apply_operation(
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title="Strategy not found after commit",
             )
-        return build_conversation_response(*refreshed)
+        conversation, strategy = refreshed
+        return build_conversation_response(
+            conversation,
+            strategy,
+            mode=await thread_mode_of(locked, conversation.id),
+        )
 
 
 async def refresh_counts(
@@ -288,7 +294,12 @@ async def refresh_counts(
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title="Strategy not found after the count refresh",
             )
-        return build_conversation_response(*refreshed)
+        conversation, strategy = refreshed
+        return build_conversation_response(
+            conversation,
+            strategy,
+            mode=await thread_mode_of(locked, conversation.id),
+        )
 
 
 async def save_substrategy(

@@ -24,6 +24,7 @@ from pathfinder.services.conversations.thread_busy import (
     ThreadBusy,
     claim_settled_thread,
 )
+from pathfinder.services.conversations.thread_mode import copy_thread_mode
 from pathfinder.services.eda.thread_surgery import (
     branch_thread_binding,
     delete_released_document,
@@ -122,6 +123,11 @@ async def fork_conversation(
     )
     session.add(fork)
     await session.flush()
+    await copy_thread_mode(
+        session,
+        source_conversation_id=source_conversation_id,
+        target_conversation_id=new_conv_id,
+    )
 
     # Notes copy first so the id map is ready when the chunk copy rewrites
     # tool-call payloads. Checkpoint blobs keep the source note ids.
