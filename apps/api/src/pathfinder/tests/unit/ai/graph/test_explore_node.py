@@ -39,7 +39,7 @@ def doubles(monkeypatch: pytest.MonkeyPatch) -> ExploreDoubles:
     return install_explore_doubles(monkeypatch)
 
 
-async def test_an_explore_turn_ends_on_the_readings_card_for_the_lead(
+async def test_an_explore_turn_parks_the_readings_card_under_the_readings_phase(
     doubles: ExploreDoubles,
 ) -> None:
     command = await run_explore(explore_state(EXPLORE_PROMPT))

@@ -231,7 +231,7 @@ def test_a_task_still_running_leaves_a_fresh_turn() -> None:
     assert (turn.prompt, turn.answered) == (EXPLORE_PROMPT, None)
 
 
-def test_a_readings_card_parks_for_the_lead() -> None:
+def test_a_readings_card_parks_under_the_readings_phase() -> None:
     deps = deps_of(state(user_prompt=EXPLORE_PROMPT))
 
     park = explore_park(

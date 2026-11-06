@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An open card docks on the composer
-description: A card that waits on the researcher draws above the composer input, one at a time, and the thread keeps only the record of an answered card. Typed words answer the current question of a docked consult as its free-text answer; under any other card they are sent as the next message, which the Lead already reads as the answer. A decline that carries the typed words as its reason was rejected.
+description: A card that waits on the researcher draws above the composer input, one at a time, and the thread keeps only the record of an answered card. Typed words answer the current question of a docked consult as its note only when that question takes notes; under a consult question with allowNotes false, such as the readings card, and under any other card they are sent as the next message and the card closes. A decline that carries the typed words as its reason was rejected.
 tags: [frontend, approvals, consult, composer]
 generated: { by: claude-code/opus-5, at: 2026-11-02T00:00:00Z }
 status: stable
@@ -20,12 +20,14 @@ one reader of that rule.
   the call sits (`ConsultRecord`, the decided proposal and separation cards, the decision line of
   `ApprovalCard`). A reloaded thread derives both from the replayed parts.
 - **Typed words under a consult.** The input stays enabled and asks for the researcher's own
-  answer. The words become the `note` of the current question with no option picked, and the
-  dock moves to the next open question; once every question holds an answer, the card is
-  submitted through `handleConsultSubmit`. Words that start with a slash are a command, not an
-  answer, and go to the commands as they do with no card open. The api takes a note-only answer to any question kind:
-  `_answer_requirement` states the note as the requirement when no label is picked
-  (`apps/api/src/pathfinder/ai/lead/lead_consult.py`).
+  answer. When the current question takes notes, the words become its `note` with no option
+  picked, and the dock moves to the next open question; once every question holds an answer,
+  the card is submitted through `handleConsultSubmit`. The api takes a note-only answer to any
+  question kind: `_answer_requirement` states the note as the requirement when no label is
+  picked (`apps/api/src/pathfinder/ai/lead/lead_consult.py`). When the current question has
+  `allowNotes` false, as on Explore's readings card, the words are sent as the next message and
+  the card closes (`takesTypedNotes` in `content/parts/consultDraft.ts`). Words that start with
+  a slash are a command, not an answer, and go to the commands as they do with no card open.
 - **Typed words under any other card.** They are sent as the next message. `answer_to_the_offer`
   (`apps/api/src/pathfinder/ai/graph/_lead_offers.py`) reads a typed approval phrase as a yes,
   and declines the card on any other words and hands them to the Lead as its next user prompt.

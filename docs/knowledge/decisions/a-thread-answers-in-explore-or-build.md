@@ -73,8 +73,8 @@ either toolset later does not reach Explore. The research tool source (literatur
 search, with no tool that writes) is admitted whole.
 `test_explore_holds_no_tool_that_writes_the_strategy` pins the 19 static tool names; the
 research source's tools are served at run time and are not in that set. An Explore turn runs
-under the Lead's per-turn token budget, `lead_usage_limits()`, and reuses the Lead's stop
-replies and its model usage part.
+under the Lead's per-turn limits, `lead_usage_limits()` (requests, tool calls and tokens), and
+reuses the Lead's stop replies and its model usage part.
 
 **The explore role.** `explore` is a role in every tier. `EXPLORE_MODELS`
 (`platform/model_catalog.py`) maps each provider to its explore model: GPT-6.1 Terra on
