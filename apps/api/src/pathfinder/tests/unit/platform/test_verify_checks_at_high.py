@@ -37,4 +37,5 @@ def test_the_default_tier_runs_every_role_on_the_default_model() -> None:
         "frame": ("openai:gpt-5.6-luna", "medium"),
         "execution": ("openai:gpt-5.6-luna", "medium"),
         "verification": ("openai:gpt-5.6-luna", "high"),
+        "explore": ("openai:gpt-6.1-terra", "medium"),
     }

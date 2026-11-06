@@ -29,7 +29,9 @@ EXPECTED_ASSISTANTS: frozenset[str] = frozenset(
 EXPECTED_PROVIDERS: frozenset[str] = frozenset({"anthropic", "openai", "google"})
 EXPECTED_TIERS: frozenset[str] = frozenset({"default", "quality", "balanced", "fast"})
 EXPECTED_ROLES: dict[str, frozenset[str]] = {
-    PATHFINDER_ASSISTANT_ID: frozenset({"lead", "frame", "execution", "verification"}),
+    PATHFINDER_ASSISTANT_ID: frozenset(
+        {"lead", "frame", "execution", "verification", "explore"}
+    ),
     AUDIT_ASSISTANT_ID: frozenset({"auditor", "audit_review"}),
 }
 VALID_REASONING_EFFORTS: frozenset[str] = frozenset({"low", "medium", "high"})

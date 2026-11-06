@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import EXPLORE_MODELS
 from pathfinder.tests._support.models import (
     OPENAI_SMALL,
     OPENAI_STANDARD,
@@ -52,5 +53,7 @@ async def test_the_route_answers_one_model_under_a_uniform_tier(
     monkeypatch.setattr(settings, "default_tier", "fast", raising=False)
 
     body = await _body()
+    defaults = body["phaseDefaults"]
 
-    assert set(body["phaseDefaults"].values()) == {OPENAI_SMALL}
+    assert defaults.pop("explore") == EXPLORE_MODELS["openai"]
+    assert set(defaults.values()) == {OPENAI_SMALL}

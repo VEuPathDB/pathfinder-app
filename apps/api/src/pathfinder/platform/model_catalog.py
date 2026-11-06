@@ -1,7 +1,9 @@
 """The catalog of selectable LLM models, the one module that names a model id."""
 
+from collections.abc import Mapping
 from datetime import date
 from functools import lru_cache
+from types import MappingProxyType
 from typing import Final
 
 import yaml
@@ -9,16 +11,19 @@ from assistant_core.platform.types import ModelProvider
 from assistant_core.pricing import install_model_prices
 from pydantic import BaseModel, ConfigDict
 
+from pathfinder.domain.provider_keys import KeyableProvider
 from pathfinder.platform.model_entry import (
     CatalogMeter,
     LongPromptPrices,
     ModelEntry,
+    require_catalogued,
     validate_lineup,
 )
 from pathfinder.platform.paths import REPO_ROOT
 
 __all__ = [
     "DEFAULT_MODEL_ID",
+    "EXPLORE_MODELS",
     "PRICES_AS_OF",
     "context_window_for",
     "deployment_may_pay",
@@ -237,6 +242,17 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             rank="small",
             context_size=128_000,
         ),
+    )
+)
+
+EXPLORE_MODELS: Final[Mapping[KeyableProvider, str]] = MappingProxyType(
+    require_catalogued(
+        {
+            "openai": "openai:gpt-6.1-terra",
+            "anthropic": "anthropic:claude-opus-5-5",
+            "google": "google:gemini-4-argon",
+        },
+        _CLOUD_MODELS,
     )
 )
 

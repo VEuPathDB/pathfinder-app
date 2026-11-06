@@ -57,7 +57,10 @@ def test_the_auditor_runs_on_the_lead_model_and_the_review_on_the_build_model(
 
 def test_no_audit_role_is_a_known_role() -> None:
     assert AUDIT_ROLES.isdisjoint(KNOWN_ROLES)
-    assert frozenset({"lead", "frame", "execution", "verification"}) == KNOWN_ROLES
+    assert (
+        frozenset({"lead", "frame", "execution", "verification", "explore"})
+        == KNOWN_ROLES
+    )
 
 
 @pytest.mark.parametrize("role", sorted(AUDIT_ROLES))

@@ -1,6 +1,7 @@
 """The shape of one catalog entry, its prices, and the rules a provider's lineup keeps."""
 
 from collections import Counter
+from collections.abc import Mapping
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -17,6 +18,7 @@ __all__ = [
     "ModelEntry",
     "ModelRank",
     "TierRank",
+    "require_catalogued",
     "validate_lineup",
 ]
 
@@ -157,3 +159,14 @@ def validate_lineup(entries: tuple[ModelEntry, ...]) -> tuple[ModelEntry, ...]:
             msg = f"{provider!r}: the deployment pays for {fault}"
             raise ValueError(msg)
     return entries
+
+
+def require_catalogued[K: str](
+    models: Mapping[K, str], entries: tuple[ModelEntry, ...]
+) -> Mapping[K, str]:
+    ids = {e.id for e in entries}
+    missing = sorted(set(models.values()) - ids)
+    if missing:
+        msg = f"models the catalog lacks: {missing}"
+        raise ValueError(msg)
+    return models

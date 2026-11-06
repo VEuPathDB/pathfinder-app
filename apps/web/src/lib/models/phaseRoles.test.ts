@@ -18,11 +18,13 @@ describe("phase role metadata", () => {
       execution: "Building",
       verification: "Checking",
       recover_failed_steps: "Repairing",
+      explore: "Exploring",
     });
   });
 
   it("describes every role a researcher picks a model for", () => {
     expect(Object.keys(PICKABLE_ROLE_DESCRIPTIONS).sort()).toEqual([
+      "explore",
       "frame",
       "lead",
       "verification",
@@ -32,6 +34,9 @@ describe("phase role metadata", () => {
     }
     expect(phaseDescription("verification")).toBe(
       "Checks the built strategy and reports what it found.",
+    );
+    expect(phaseDescription("explore")).toBe(
+      "Talks a research question through and proposes readings the site can build.",
     );
   });
 

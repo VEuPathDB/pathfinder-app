@@ -30,6 +30,7 @@ const pathfinder = (
     frame: thinker,
     execution: worker,
     verification: worker,
+    explore: thinker,
   },
 });
 
@@ -94,6 +95,7 @@ describe("rolesForAssistant", () => {
       "lead",
       "frame",
       "verification",
+      "explore",
     ]);
     expect(rolesForAssistant(PRESETS, "helper", "openai")).toEqual(["lead"]);
   });
@@ -167,11 +169,13 @@ describe("applyTierPreset", () => {
         lead: OPENAI_FLAGSHIP.id,
         frame: OPENAI_FLAGSHIP.id,
         verification: DEFAULT_MODEL.id,
+        explore: OPENAI_FLAGSHIP.id,
       },
       reasoning: {
         lead: "high",
         frame: "high",
         verification: "medium",
+        explore: "high",
       },
     });
   });
@@ -236,11 +240,13 @@ describe("deriveActiveTier", () => {
       lead: OPENAI_FLAGSHIP.id,
       frame: OPENAI_FLAGSHIP.id,
       verification: DEFAULT_MODEL.id,
+      explore: OPENAI_FLAGSHIP.id,
     };
     const reasoning = {
       lead: "high" as const,
       frame: "high" as const,
       verification: "medium" as const,
+      explore: "high" as const,
     };
     expect(
       deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),

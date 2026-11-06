@@ -9,6 +9,7 @@ export const PHASE_LABELS: Record<string, string> = {
   execution: "Building",
   verification: "Checking",
   recover_failed_steps: "Repairing",
+  explore: "Exploring",
 };
 
 export function phaseLabel(phase: string): string {
@@ -21,6 +22,8 @@ export const PICKABLE_ROLE_DESCRIPTIONS = {
   lead: "Talks with you and decides what happens next.",
   frame: "Turns your question into a plan of searches and fills in their settings.",
   verification: "Checks the built strategy and reports what it found.",
+  explore:
+    "Talks a research question through and proposes readings the site can build.",
 } as const;
 
 export type PickableRole = keyof typeof PICKABLE_ROLE_DESCRIPTIONS;

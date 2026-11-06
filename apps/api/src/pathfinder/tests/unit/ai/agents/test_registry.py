@@ -46,7 +46,9 @@ CORE_MODULES: tuple[ModuleType, ...] = (
     _turn_helpers,
 )
 
-ROLE_NAMES: frozenset[str] = frozenset({"lead", "frame", "execution", "verification"})
+ROLE_NAMES: frozenset[str] = frozenset(
+    {"lead", "frame", "execution", "verification", "explore"}
+)
 
 
 @pytest.mark.parametrize("module", CORE_MODULES, ids=lambda m: m.__name__)
