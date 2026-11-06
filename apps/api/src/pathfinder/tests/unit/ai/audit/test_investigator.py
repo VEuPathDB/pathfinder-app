@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.models.scripted import retry_prompt_parts
+from assistant_core.models.scripted import retried_returns
 from pydantic_ai import Agent, ModelRetry, RunContext, Tool
 from pydantic_ai.messages import (
     ModelMessage,
@@ -188,7 +188,7 @@ def _storing(monkeypatch: pytest.MonkeyPatch, module: object) -> Stored:
 
 
 def _retries(messages: list[ModelMessage]) -> list[str]:
-    return [str(part.content) for part in retry_prompt_parts(messages)]
+    return [str(part.content) for part in retried_returns(messages)]
 
 
 def _output(info: AgentInfo, args: dict[str, Any]) -> ModelResponse:

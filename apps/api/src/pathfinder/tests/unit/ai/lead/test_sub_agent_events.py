@@ -8,7 +8,6 @@ from assistant_core.graph.stream_events import tool_summary_event
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
 )
@@ -67,10 +66,11 @@ def test_string_retry_surfaces_real_message() -> None:
     collector = _forward(
         _call("set_criterion", "c1"),
         FunctionToolResultEvent(
-            part=RetryPromptPart(
+            part=ToolReturnPart(
                 content=_RETRY_TEXT,
                 tool_name="set_criterion",
                 tool_call_id="c1",
+                outcome="retried",
             ),
         ),
     )
@@ -84,17 +84,18 @@ def test_structured_validation_retry_is_rendered() -> None:
     collector = _forward(
         _call("build_plan", "c2"),
         FunctionToolResultEvent(
-            part=RetryPromptPart(
+            part=ToolReturnPart(
                 content=[
                     {
                         "type": "missing",
-                        "loc": ("steps", 0, "search_name"),
+                        "loc": ["steps", 0, "search_name"],
                         "msg": "Field required",
                         "input": {},
                     },
                 ],
                 tool_name="build_plan",
                 tool_call_id="c2",
+                outcome="retried",
             ),
         ),
     )
@@ -109,7 +110,7 @@ def test_structured_validation_retry_is_rendered() -> None:
 
 
 def _drive_part(
-    part: ToolReturnPart | RetryPromptPart,
+    part: ToolReturnPart,
     tool_name: str = "get_search_overview",
 ) -> list[str]:
     return _states(
@@ -164,10 +165,11 @@ def test_a_call_that_failed_without_running_renders_as_failed() -> None:
 
 def test_a_call_handed_back_to_the_model_renders_as_corrected() -> None:
     assert _drive_part(
-        RetryPromptPart(
+        ToolReturnPart(
             content="search_name is not a known search",
             tool_name="get_search_overview",
             tool_call_id="c1",
+            outcome="retried",
         ),
     ) == ["corrected"]
 

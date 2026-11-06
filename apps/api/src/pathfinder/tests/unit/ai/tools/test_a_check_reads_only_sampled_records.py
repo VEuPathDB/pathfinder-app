@@ -8,7 +8,6 @@ from pydantic_ai import Agent, Tool, ToolFailed
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -242,7 +241,7 @@ async def test_a_re_read_fails_without_spending_a_retry(asked: list[str]) -> Non
         part
         for message in result.all_messages()
         for part in message.parts
-        if isinstance(part, ToolReturnPart | RetryPromptPart)
+        if isinstance(part, ToolReturnPart)
     ]
     assert asked == [_EIGHT[0]]
     assert [

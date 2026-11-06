@@ -12,11 +12,12 @@ from pydantic_ai.exceptions import (
     UnexpectedModelBehavior,
     UsageLimitExceeded,
 )
-from pydantic_ai.messages import FunctionToolResultEvent, RetryPromptPart
+from pydantic_ai.messages import FunctionToolResultEvent
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.agents.unserved import SearchNotServedError
+from pathfinder.ai.capabilities.error_classification import RETRY_DETAILS
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_progress import record_stopped_usage
@@ -48,15 +49,14 @@ def refusal_of(event: FunctionToolResultEvent) -> ToolRefusal | None:
     dump stay out of what a reply quotes.
     """
     part = event.part
-    if not isinstance(part, RetryPromptPart) or part.tool_name is None:
+    if part.outcome != "retried":
         return None
-    content = part.content
-    return ToolRefusal(
-        tool_name=part.tool_name,
-        text=content
-        if isinstance(content, str)
-        else "; ".join(detail["msg"] for detail in content),
-    )
+    match part.content:
+        case str() as said:
+            text = said
+        case details:
+            text = "; ".join(d.msg for d in RETRY_DETAILS.validate_python(details))
+    return ToolRefusal(tool_name=part.tool_name, text=text)
 
 
 _OUTPUT_RETRIES_SPENT = "Exceeded maximum output retries ("

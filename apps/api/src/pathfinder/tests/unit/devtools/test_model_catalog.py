@@ -33,8 +33,10 @@ from pathfinder.devtools.model_catalog import (
 from pathfinder.domain.provider_keys import KeyableProvider
 from pathfinder.platform.model_catalog import (
     PRICES_AS_OF,
-    ModelEntry,
     get_model_catalog,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
 )
 from pathfinder.tests._support.models import DEFAULT_MODEL
 
@@ -79,7 +81,12 @@ def test_served_models_of_a_catalog_family_are_reported() -> None:
 
     drift = compare(catalog, "openai", _served("openai"))
 
-    assert drift.not_in_catalog == ["gpt-6-astra", "gpt-6-sol"]
+    assert drift.not_in_catalog == [
+        "gpt-6-astra",
+        "gpt-6-sol",
+        "gpt-6.1-sol",
+        "gpt-6.1-terra",
+    ]
 
 
 def test_a_snapshot_of_a_catalog_alias_is_not_reported_as_new() -> None:

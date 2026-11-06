@@ -45,7 +45,7 @@ class _Properties(BaseModel):
 
 _EXPECTED_VALUES: dict[str, list[str]] = {
     "ModelProvider": ["openai", "anthropic", "google", "ollama", "mock"],
-    "ModelRank": ["flagship", "standard", "small"],
+    "ModelRank": ["flagship", "standard", "small", "unranked"],
     "ReasoningEffort": ["none", "low", "medium", "high", "xhigh", "max"],
     "Rating": ["like", "dislike"],
     "SiteRead": ["read", "not_answered", "not_read"],

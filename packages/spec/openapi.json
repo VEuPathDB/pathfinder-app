@@ -14087,7 +14087,8 @@
         "enum": [
           "flagship",
           "standard",
-          "small"
+          "small",
+          "unranked"
         ]
       },
       "ModelSpans": {

@@ -51,7 +51,7 @@ _SMALLEST: dict[KeyableProvider, str] = {
 }
 _KEY_HEADER: dict[KeyableProvider, tuple[str, str]] = {
     "openai": ("authorization", f"Bearer {_USER_KEY}"),
-    "anthropic": ("x-api-key", _USER_KEY),
+    "anthropic": ("authorization", f"Bearer {_USER_KEY}"),
     "google": ("x-goog-api-key", _USER_KEY),
 }
 

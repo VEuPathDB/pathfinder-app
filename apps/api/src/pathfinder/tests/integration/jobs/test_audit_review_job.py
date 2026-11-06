@@ -11,7 +11,7 @@ import pytest
 from assistant_core import quota
 from assistant_core.capabilities.tool_result_screen import WITHHELD
 from assistant_core.models.scripted import (
-    retry_prompt_parts,
+    retried_returns,
     terminal_call,
     user_texts,
 )
@@ -19,7 +19,7 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import PaidBy
 from procrastinate.testing import InMemoryConnector
 from pydantic import SecretStr
-from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
@@ -206,11 +206,11 @@ async def test_a_review_cites_only_the_finding_and_its_stored_evidence(
 ) -> None:
     _, run_id, stored = await finished_run({1: high(1)})
     finding_id = stored[gene(1)]
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retry_prompt_parts(messages))
+        retries.extend(retried_returns(messages))
         cite = finding_cite(finding_id) if retries else "audit_gene_length:EXA_0003"
         return ModelResponse(
             parts=[

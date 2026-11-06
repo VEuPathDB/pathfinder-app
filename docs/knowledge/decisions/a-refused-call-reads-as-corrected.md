@@ -14,7 +14,7 @@ so. Protocol 2.2.0 lets a failed call's `data-tool-summary` carry `status: "corr
 (`assistant_core/PROTOCOL.md`, section 6.3), and two producers write it:
 
 - **Every model retry.** The runtime's event stream writes the summary after each
-  `RetryPromptPart`, with the reason as its line. No tool here, in `veupathdb_mcp` or in
+  tool result whose `outcome` is `retried`, with the reason as its line. No tool here, in `veupathdb_mcp` or in
   the runtime turns a site or network error into `ModelRetry`, so a retry is always the
   model's call handed back.
 - **Every guardrail that refuses a call without spending a retry.** It raises

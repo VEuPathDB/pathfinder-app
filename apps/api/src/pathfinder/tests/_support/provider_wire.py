@@ -37,6 +37,9 @@ from pathfinder.domain.provider_keys import KeyableProvider
 ANSWER_TEXT = "Plasmodium kinases answered."
 
 
+_LONG_DECODE_SECONDS = 1200
+
+
 class _Requested(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -230,7 +233,8 @@ class ProviderWire:
 
     def build(self, name: KeyableProvider, key: SecretStr) -> Provider[Any]:
         client = httpx2.AsyncClient(
-            transport=httpx2.MockTransport(lambda request: self._answer(name, request))
+            transport=httpx2.MockTransport(lambda request: self._answer(name, request)),
+            timeout=_LONG_DECODE_SECONDS,
         )
         secret = key.get_secret_value()
         match name:

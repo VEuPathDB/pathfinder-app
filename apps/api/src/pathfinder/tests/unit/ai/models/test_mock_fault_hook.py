@@ -10,8 +10,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
     UserPromptPart,
 )
 
@@ -83,8 +83,11 @@ def test_a_refusal_the_run_carries_twice_counts_once(
     )
     wrong = scripted_call("read_ledger_section", _WRONG)
     call_id = f"fault_{wrong.tool_call_id}"
-    refusal = RetryPromptPart(
-        content="refused", tool_name="read_ledger_section", tool_call_id=call_id
+    refusal = ToolReturnPart(
+        content="refused",
+        tool_name="read_ledger_section",
+        tool_call_id=call_id,
+        outcome="retried",
     )
     history: list[ModelMessage] = [
         ModelRequest(parts=[UserPromptPart(content="[[arc:recap]][[fault:twice]]")]),

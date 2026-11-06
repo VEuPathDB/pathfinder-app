@@ -8,7 +8,12 @@ from pydantic import ConfigDict
 
 from pathfinder.assistants.registry import installed_phase_defaults
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
+from pathfinder.platform.model_catalog import (
+    get_model_catalog,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
+)
 from pathfinder.platform.model_keys import is_mock_deployment
 
 

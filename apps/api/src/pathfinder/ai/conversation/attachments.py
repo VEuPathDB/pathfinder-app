@@ -13,7 +13,12 @@ from pathfinder.platform.attachment_errors import (
     AttachmentNotReadableError,
     AttachmentTooLargeError,
 )
-from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
+from pathfinder.platform.model_catalog import (
+    get_model_catalog,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
+)
 
 _MIB = 1024 * 1024
 MAX_FILE_BYTES = 10 * _MIB

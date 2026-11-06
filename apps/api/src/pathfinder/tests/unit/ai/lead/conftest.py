@@ -12,8 +12,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from pydantic_ai.settings import ToolOrOutput
@@ -331,9 +331,9 @@ class RetryRecordingScript:
             request = messages[-1]
             if isinstance(request, ModelRequest):
                 self.retries.extend(
-                    part.model_response()
+                    part.model_response_str(wrap_if_error=False)
                     for part in request.parts
-                    if isinstance(part, RetryPromptPart)
+                    if isinstance(part, ToolReturnPart) and part.outcome == "retried"
                 )
             return ModelResponse(parts=[self._part])
 

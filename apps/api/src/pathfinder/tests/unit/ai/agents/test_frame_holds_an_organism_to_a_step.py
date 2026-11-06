@@ -4,8 +4,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -48,7 +48,9 @@ async def _run(
         last = messages[-1]
         assert isinstance(last, ModelRequest)
         told.extend(
-            str(p.content) for p in last.parts if isinstance(p, RetryPromptPart)
+            str(p.content)
+            for p in last.parts
+            if isinstance(p, ToolReturnPart) and p.outcome == "retried"
         )
         return ModelResponse(parts=[ToolCallPart("final_result", _READY)])
 

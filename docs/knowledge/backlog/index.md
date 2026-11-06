@@ -49,6 +49,7 @@ what left.
 32. [Parallel browser test workers act as one user](parallel-browser-test-workers-act-as-one-user.md) - Every Playwright worker carries the account's website login, which names the account's own PathFinder user ahead of the dev login, so two workers of a shard share one user's rows; give each worker its own user or run one worker per stack.
 33. [A card offers the whole binding of a class](a-card-offers-the-whole-binding-of-a-class.md) - when FRAME bound several entries for a requirement naming a class, an unsettled pick's card offers only single entries and may recommend one; add one option holding everything FRAME bound, with its measured count, only if a re-measure shows it matters.
 34. [Why a DESeq job with replicates failed](why-a-deseq-job-with-replicates-failed.md) - a hostdb DESeq job with 4 and 31 samples failed and the job's files hold no R message; nothing waits on this. Reproduce it from the subset, or ask the team that owns the service.
+35. [Gemini 4 Argon's price changes on 2026-12-01](gemini-4-argons-price-changes-on-2026-12-01.md) - the catalog shows Argon's introductory 2.00 / 0.10 / 10.00 per MTok; from 2026-12-01 Google charges 4.00 / 0.20 / 20.00, which the price snapshot already meters, so edit the entry and `PRICES_AS_OF` on that day.
 
 ## Known and accepted
 

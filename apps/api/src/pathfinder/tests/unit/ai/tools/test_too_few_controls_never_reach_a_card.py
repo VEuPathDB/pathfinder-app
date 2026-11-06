@@ -7,8 +7,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb_mcp.separation import TooFewControls
@@ -44,11 +44,11 @@ def _run_call(negatives: list[str]) -> ToolCallPart:
 
 def _refusals(messages: list[ModelMessage]) -> list[str]:
     return [
-        part.model_response()
+        part.model_response_str(wrap_if_error=False)
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, RetryPromptPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
     ]
 
 

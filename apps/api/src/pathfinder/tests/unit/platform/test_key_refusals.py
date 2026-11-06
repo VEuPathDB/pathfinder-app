@@ -203,7 +203,7 @@ def test_one_provider_body_does_not_classify_another_provider() -> None:
     ] == [None, KeyRefusal.INVALID]
 
 
-async def test_a_streamed_case_records_the_body_and_no_status(
+async def test_a_streamed_case_records_the_body_and_the_status_of_the_same_refusal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     allow_requests_to_the_wire(monkeypatch)
@@ -215,7 +215,7 @@ async def test_a_streamed_case_records_the_body_and_no_status(
     recorded = await record_case(case, build=wire.build)
 
     assert (recorded.status, recorded.body, recorded.provenance) == (
-        None,
+        429,
         load_refusal("openai-no-credit-stream").body,
         "recorded",
     )

@@ -18,8 +18,8 @@ from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import ToolDefinition
@@ -142,10 +142,10 @@ def _calls_then_answers(
 
 def _retry_messages(messages: list[ModelMessage]) -> list[str]:
     return [
-        part.model_response()
+        part.model_response_str(wrap_if_error=False)
         for message in messages
         for part in message.parts
-        if isinstance(part, RetryPromptPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
     ]
 
 

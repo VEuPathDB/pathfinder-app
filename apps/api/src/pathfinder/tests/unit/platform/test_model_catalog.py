@@ -17,12 +17,15 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.platform.model_catalog import (
     DEFAULT_MODEL_ID,
     PRICES_AS_OF,
-    ModelEntry,
+    context_window_for,
     deployment_may_pay,
     get_model_catalog,
     get_model_entry,
     get_smallest_model,
     provider_default,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
     validate_lineup,
 )
 
@@ -84,6 +87,25 @@ def test_a_lineup_that_breaks_a_rule_is_refused(
         validate_lineup(_lineup(*specs))
 
 
+def test_unranked_entries_beside_a_full_lineup_are_kept() -> None:
+    lineup = _lineup(
+        ("big", "flagship", False),
+        ("mid", "standard", True),
+        ("tiny", "small", False),
+        ("newer", "unranked", False),
+        ("dearer", "unranked", False),
+    )
+
+    assert validate_lineup(lineup) == lineup
+
+
+def test_an_unranked_entry_is_never_the_provider_default() -> None:
+    with pytest.raises(ValueError, match="is never its provider"):
+        ModelEntry.entry(
+            id="openai:newer", name="newer", rank="unranked", is_provider_default=True
+        )
+
+
 def test_the_default_model_is_the_openai_default_entry() -> None:
     assert provider_default("openai").id == DEFAULT_MODEL_ID
     assert DEFAULT_MODEL_ID == "openai:gpt-5.6-luna"
@@ -102,6 +124,10 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
         "google:gemini-3.1-pro-preview": "flagship",
         "google:gemini-3.8-flash": "standard",
         "google:gemini-3.5-flash-lite": "small",
+        "anthropic:claude-fable-5-1": "unranked",
+        "openai:gpt-6.1-sol": "unranked",
+        "openai:gpt-6.1-terra": "unranked",
+        "google:gemini-4-argon": "unranked",
     }
 
 
@@ -117,6 +143,10 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
         ("google:gemini-3.1-pro-preview", (2.00, 0.20, 12.00)),
         ("google:gemini-3.8-flash", (0.75, 0.075, 3.75)),
         ("google:gemini-3.5-flash-lite", (0.30, 0.03, 2.50)),
+        ("anthropic:claude-fable-5-1", (10.00, 0.25, 50.00)),
+        ("openai:gpt-6.1-sol", (2.00, 0.10, 10.00)),
+        ("openai:gpt-6.1-terra", (1.00, 0.05, 5.00)),
+        ("google:gemini-4-argon", (2.00, 0.10, 10.00)),
     ],
 )
 def test_an_entry_records_the_price_its_provider_publishes(
@@ -240,6 +270,10 @@ def test_the_deployment_pays_for_haiku_and_only_a_researchers_key_for_the_rest()
         "google:gemini-3.1-pro-preview": True,
         "google:gemini-3.8-flash": True,
         "google:gemini-3.5-flash-lite": True,
+        "anthropic:claude-fable-5-1": False,
+        "openai:gpt-6.1-sol": True,
+        "openai:gpt-6.1-terra": True,
+        "google:gemini-4-argon": True,
     }
 
 
@@ -296,6 +330,36 @@ def test_a_haiku_prompt_over_100k_tokens_pays_the_long_prompt_prices() -> None:
     )
 
     assert cost == Decimal("0.08")
+
+
+@pytest.mark.parametrize(
+    ("model_name", "cost"),
+    [("gpt-6.1-terra", Decimal("0.615")), ("gpt-6.1-sol", Decimal("1.23"))],
+)
+def test_an_openai_prompt_over_272k_tokens_pays_the_long_prompt_prices(
+    model_name: str, cost: Decimal
+) -> None:
+    assert (
+        cost_for_run(
+            usage=RunUsage(input_tokens=300_000, output_tokens=2_000),
+            model_name=model_name,
+            provider_name="openai",
+            provider_url="https://api.openai.com/v1",
+        )
+        == cost
+    )
+
+
+@pytest.mark.parametrize(
+    ("model_id", "window"),
+    [
+        ("openai:gpt-6.1-sol", 1_050_000),
+        ("openai:gpt-6.1-terra", 1_050_000),
+        ("google:gemini-4-argon", 1_048_576),
+    ],
+)
+def test_a_new_entry_holds_its_published_window(model_id: str, window: int) -> None:
+    assert context_window_for(model_id) == window
 
 
 @pytest.mark.parametrize(

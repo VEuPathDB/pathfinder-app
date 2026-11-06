@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,6 +11,7 @@ from pathfinder.devtools.inspector import (
     render_anomalies,
     render_diff,
     render_failures,
+    render_llm,
     render_tool,
 )
 
@@ -148,3 +150,34 @@ def test_render_diff_flags_divergence(tmp_path: Path) -> None:
     run_b = cap.flush()
     out = render_diff(run_a, run_b)
     assert "create_plan" in out
+
+
+def test_render_llm_names_each_retry(tmp_path: Path) -> None:
+    (tmp_path / "llm").mkdir()
+    request = {
+        "model": "openai:gpt-5.6-luna",
+        "messages": [
+            {
+                "parts": [
+                    {
+                        "part_kind": "tool-return",
+                        "tool_name": "set_criterion",
+                        "content": "Name another search.",
+                        "outcome": "retried",
+                    },
+                    {
+                        "part_kind": "retry-feedback",
+                        "content": "Please return text.",
+                    },
+                ]
+            }
+        ],
+    }
+    (tmp_path / "llm" / "01-frame-request.json").write_text(json.dumps(request))
+
+    lines = render_llm(tmp_path, None).splitlines()
+
+    assert lines[1:] == [
+        "  [retry set_criterion] Name another search.",
+        "  [retry] Please return text.",
+    ]

@@ -23,7 +23,7 @@ PNG and one PDF on each, and read the PDF's word back
 otherwise. Every OpenAI and Google entry, Haiku 5.5, the mock and each local
 model say `True`; Sonnet 5.5 and Opus 5.5 do not. A model id the catalog does
 not hold is not one the deployment pays for
-(`model_catalog.deployment_may_pay`). `validate_lineup` holds one default and
+(`model_catalog.deployment_may_pay`). `validate_lineup` (`model_entry.py`) holds one default and
 one small entry per provider both in its whole lineup and in the part the
 deployment pays for, so the default of a provider is always one the deployment
 runs.

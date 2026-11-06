@@ -11,8 +11,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import RunContext
@@ -390,7 +390,7 @@ async def test_frame_retries_inside_its_own_run() -> None:
             for message in messages
             if isinstance(message, ModelRequest)
             for part in message.parts
-            if isinstance(part, RetryPromptPart)
+            if isinstance(part, ToolReturnPart) and part.outcome == "retried"
         )
         options = [] if told else [_FILTER_VALUE, _FILTER_LABEL]
         part = _final({**asked, "options": options})

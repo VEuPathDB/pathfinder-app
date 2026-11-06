@@ -39,8 +39,10 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.key_refusals import classify_refusal
 from pathfinder.platform.model_catalog import (
     PRICES_AS_OF,
-    ModelEntry,
     get_model_catalog,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
 )
 from pathfinder.platform.model_keys import build_provider
 

@@ -14,7 +14,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -380,11 +379,12 @@ def play(
             if call.tool_name == "final_result" and refusal is None:
                 break
             messages.append(ModelResponse(parts=[call]))
-            reply: RetryPromptPart | ToolReturnPart = (
-                RetryPromptPart(
+            reply: ToolReturnPart = (
+                ToolReturnPart(
                     content=refusal,
                     tool_name=call.tool_name,
                     tool_call_id=call.tool_call_id,
+                    outcome="retried",
                 )
                 if refusal is not None
                 else ToolReturnPart(

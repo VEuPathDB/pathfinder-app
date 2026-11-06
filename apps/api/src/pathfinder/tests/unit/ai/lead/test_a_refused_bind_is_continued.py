@@ -83,7 +83,9 @@ async def bind_transmembrane(ctx: RunContext[AgentDeps]) -> str:
 
 def _bound_transmembrane(messages: list[ModelMessage]) -> bool:
     return any(
-        isinstance(part, ToolReturnPart) and part.tool_name == "bind_transmembrane"
+        isinstance(part, ToolReturnPart)
+        and part.tool_name == "bind_transmembrane"
+        and part.outcome == "success"
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts

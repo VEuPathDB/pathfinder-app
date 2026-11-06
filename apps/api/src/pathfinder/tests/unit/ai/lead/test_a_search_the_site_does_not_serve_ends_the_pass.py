@@ -8,7 +8,6 @@ import pytest
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
 )
@@ -86,8 +85,7 @@ def _call(
 
 def _answers(messages: list[ModelMessage]) -> int:
     return sum(
-        isinstance(part, ToolReturnPart | RetryPromptPart)
-        and part.tool_name == "set_criterion"
+        isinstance(part, ToolReturnPart) and part.tool_name == "set_criterion"
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts

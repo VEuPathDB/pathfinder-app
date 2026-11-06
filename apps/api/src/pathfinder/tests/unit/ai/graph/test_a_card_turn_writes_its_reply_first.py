@@ -8,8 +8,8 @@ import pytest
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 
 from pathfinder.ai.graph import _lead_model
@@ -102,11 +102,11 @@ async def test_an_empty_reply_is_refused_before_any_card(
 
     assert len(seen) == 2
     refusals = [
-        part.model_response()
+        part.model_response_str(wrap_if_error=False)
         for message in seen[1]
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, RetryPromptPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
     ]
     assert len(refusals) == 1
     assert "reply" in refusals[0]

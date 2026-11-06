@@ -13,7 +13,6 @@ from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -72,21 +71,18 @@ def _reading() -> ReadOnceToolset[_Deps]:
     )
 
 
-type _Answer = ToolReturnPart | RetryPromptPart
-
-
 async def _run(
     calls: list[tuple[str, dict[str, str]]],
     toolset: ReadOnceToolset[_Deps] | None = None,
-) -> tuple[_Deps, list[_Answer]]:
+) -> tuple[_Deps, list[ToolReturnPart]]:
     deps = _Deps()
     agent = Agent(_scripted(calls), deps_type=_Deps, toolsets=[toolset or _reading()])
     result = await agent.run("show me the five genes", deps=deps)
-    parts: list[_Answer] = [
+    parts: list[ToolReturnPart] = [
         part
         for message in result.all_messages()
         for part in message.parts
-        if isinstance(part, ToolReturnPart | RetryPromptPart)
+        if isinstance(part, ToolReturnPart)
     ]
     return deps, parts
 

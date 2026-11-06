@@ -137,6 +137,7 @@ class _MessagePart(BaseModel):
     part_kind: str = ""
     tool_call_id: str = ""
     content: Any = None
+    outcome: str = "success"
 
 
 class _CapturedMessage(BaseModel):
@@ -158,7 +159,7 @@ class CapturedModelRequest(BaseModel):
             part.tool_call_id: part.content
             for message in self.messages
             for part in message.parts
-            if part.part_kind == "tool-return"
+            if part.part_kind == "tool-return" and part.outcome != "retried"
         }
 
 

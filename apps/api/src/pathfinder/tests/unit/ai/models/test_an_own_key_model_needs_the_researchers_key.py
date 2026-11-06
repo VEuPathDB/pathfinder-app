@@ -100,7 +100,7 @@ async def test_the_researchers_anthropic_key_runs_an_own_key_model(
         with pytest.raises(ProviderKeyRefusedError):
             await one_generation(model)
 
-    assert [h["x-api-key"] for h in wire.sent_headers()] == [_USER_KEY]
+    assert [h["authorization"] for h in wire.sent_headers()] == [f"Bearer {_USER_KEY}"]
 
 
 async def test_the_deployment_runs_haiku_on_its_own_key() -> None:
@@ -112,7 +112,9 @@ async def test_the_deployment_runs_haiku_on_its_own_key() -> None:
         with pytest.raises(DeploymentKeyRefusedError):
             await one_generation(model)
 
-    assert [h["x-api-key"] for h in wire.sent_headers()] == [_DEPLOYMENT_KEY]
+    assert [h["authorization"] for h in wire.sent_headers()] == [
+        f"Bearer {_DEPLOYMENT_KEY}"
+    ]
 
 
 @pytest.mark.parametrize("model_id", [OPUS, SONNET, "openai:not-in-the-catalog"])

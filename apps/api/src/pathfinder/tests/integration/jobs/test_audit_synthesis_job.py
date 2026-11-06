@@ -7,13 +7,13 @@ from uuid import UUID
 
 import pytest
 from assistant_core import quota
-from assistant_core.models.scripted import retry_prompt_parts, terminal_call
+from assistant_core.models.scripted import retried_returns, terminal_call
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import PaidBy
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
@@ -192,13 +192,13 @@ async def test_the_synthesis_carries_the_review_agreement(
         stored,
         {1: ("error", "error"), 2: ("error", "error"), 3: ("error", "no_error")},
     )
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     ids = list(stored.values())
     written = "80% of the findings were kept"
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retry_prompt_parts(messages))
+        retries.extend(retried_returns(messages))
         summary = written
         section = {
             "errorType": "truncated_model",

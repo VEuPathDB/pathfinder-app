@@ -174,6 +174,26 @@ def test_a_failed_dispatch_shows_its_error_text() -> None:
     assert _summarize_sub_agent_result("verify_strategy", result) == "The run stopped."
 
 
+def test_a_retried_dispatch_shows_its_feedback() -> None:
+    result = ToolReturnPart(
+        tool_name="frame_problem",
+        content="Name the organism.",
+        tool_call_id="c1",
+        outcome="retried",
+    )
+    assert _summarize_sub_agent_result("frame_problem", result) == "Name the organism."
+
+
+def test_a_dispatch_retried_on_its_arguments_says_so() -> None:
+    result = ToolReturnPart(
+        tool_name="frame_problem",
+        content=[{"type": "missing", "loc": ["reason"], "msg": "Field required"}],
+        tool_call_id="c1",
+        outcome="retried",
+    )
+    assert _summarize_sub_agent_result("frame_problem", result) == "retry requested"
+
+
 def test_suppresses_dispatch_input_start_before_call_event_records_id() -> None:
     # The raw tool-input-start chunk for a sub-agent dispatch is emitted from
     # the model's part events, BEFORE the FunctionToolCallEvent that records

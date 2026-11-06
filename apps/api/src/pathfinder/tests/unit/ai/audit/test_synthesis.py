@@ -5,8 +5,8 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from assistant_core.models.scripted import retry_prompt_parts, terminal_call, user_texts
-from pydantic_ai.messages import ModelMessage, ModelResponse, RetryPromptPart
+from assistant_core.models.scripted import retried_returns, terminal_call, user_texts
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import RunUsage
 
@@ -146,12 +146,12 @@ _RIGHT = _draft([_section(_TRUNCATED, 1, 2)], [1, 2])
 
 def _first_then(
     wrong: dict[str, Any],
-    retries: list[RetryPromptPart],
+    retries: list[ToolReturnPart],
     right: dict[str, Any] = _RIGHT,
 ) -> FunctionModel:
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retry_prompt_parts(messages))
+        retries.extend(retried_returns(messages))
         return ModelResponse(parts=[terminal_call(right if retries else wrong)])
 
     return FunctionModel(answer)
@@ -196,7 +196,7 @@ def test_a_kept_finding_with_no_stored_impact_row_fails() -> None:
 
 
 async def test_a_section_naming_a_rejected_finding_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [_stored(1), _stored(2), _stored(3, "no_error")]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 3)], [1])
 
@@ -210,7 +210,7 @@ async def test_a_section_naming_a_rejected_finding_is_retried() -> None:
 
 
 async def test_a_section_of_another_error_type_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [_stored(1), _stored(2, error_type=_SPLIT)]
     wrong = _draft([_section(_TRUNCATED, 1, 2)], [1, 2])
     right = _draft([_section(_TRUNCATED, 1), _section(_SPLIT, 2)], [1, 2])
@@ -225,7 +225,7 @@ async def test_a_section_of_another_error_type_is_retried() -> None:
 
 
 async def test_a_headline_out_of_impact_order_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [_stored(1), _stored(2), _stored(3)]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 3)], [2, 1, 3])
     right = _draft([_section(_TRUNCATED, 1, 2, 3)], [1, 3, 2])
@@ -239,7 +239,7 @@ async def test_a_headline_out_of_impact_order_is_retried() -> None:
 
 
 async def test_the_headline_orders_by_the_reviews_impact_and_none_last() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [_stored(1, impact=0.1), _stored(2), _stored(5)]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 5)], [1, 5, 2])
     right = _draft([_section(_TRUNCATED, 1, 2, 5)], [2, 1, 5])
@@ -256,7 +256,7 @@ async def test_the_headline_orders_by_the_reviews_impact_and_none_last() -> None
 async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
     headline: list[int],
 ) -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [_stored(1, impact=0.5), _stored(2)]
     right = _draft([_section(_TRUNCATED, 1, 2)], headline)
 
@@ -266,7 +266,7 @@ async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
 
 
 async def test_a_summary_in_words_is_stored_as_written() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     summary = (
         "The kept errors lie in one genome, and the independent reviews agreed "
         "on most of the sampled findings."
@@ -279,7 +279,7 @@ async def test_a_summary_in_words_is_stored_as_written() -> None:
 
 
 async def test_the_agreement_is_computed_from_the_reviews() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     reviews = [
         _stored(1, second="error"),
         _stored(2, second="no_error"),

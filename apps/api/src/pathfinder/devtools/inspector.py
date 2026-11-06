@@ -108,11 +108,12 @@ def render_tree(run_dir: Path) -> str:
 def _part_line(part: dict[str, Any]) -> str | None:
     content = str(part.get("content", ""))
     tool = part.get("tool_name") or ""
+    returned = "retry" if part.get("outcome") == "retried" else "tool-return"
     formatters = {
         "system-prompt": lambda: f"  [system] {content[:1500]}",
         "user-prompt": lambda: f"  [user] {content[:800]}",
-        "tool-return": lambda: f"  [tool-return {tool}] {content[:800]}",
-        "retry-prompt": lambda: f"  [retry {tool}] {content[:800]}",
+        "tool-return": lambda: f"  [{returned} {tool}] {content[:800]}",
+        "retry-feedback": lambda: f"  [retry] {content[:800]}",
         "text": lambda: f"  [text] {content[:800]}",
         "thinking": lambda: f"  [thinking] {content[:400]}",
         "tool-call": lambda: (

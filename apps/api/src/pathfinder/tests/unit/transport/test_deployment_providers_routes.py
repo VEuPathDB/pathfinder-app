@@ -56,6 +56,7 @@ async def test_the_mock_deployment_offers_every_model_it_may_pay_for() -> None:
 
     enabled = {m["id"]: m["enabled"] for m in body["models"]}
     assert {model_id for model_id, on in enabled.items() if not on} == {
+        "anthropic:claude-fable-5-1",
         "anthropic:claude-opus-5-5",
         "anthropic:claude-sonnet-5-5",
     }

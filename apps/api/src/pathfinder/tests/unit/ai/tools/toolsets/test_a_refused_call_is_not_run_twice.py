@@ -11,7 +11,6 @@ from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -54,10 +53,9 @@ def _scripted(calls: list[tuple[str, dict[str, int]]]) -> FunctionModel:
     return FunctionModel(respond)
 
 
-type _Answer = ToolReturnPart | RetryPromptPart
-
-
-async def _run(calls: list[tuple[str, dict[str, int]]]) -> tuple[_Deps, list[_Answer]]:
+async def _run(
+    calls: list[tuple[str, dict[str, int]]],
+) -> tuple[_Deps, list[ToolReturnPart]]:
     deps = _Deps()
     agent = Agent(
         _scripted(calls),
@@ -69,11 +67,11 @@ async def _run(calls: list[tuple[str, dict[str, int]]]) -> tuple[_Deps, list[_An
         ],
     )
     result = await agent.run("sample the step", deps=deps)
-    parts: list[_Answer] = [
+    parts: list[ToolReturnPart] = [
         part
         for message in result.all_messages()
         for part in message.parts
-        if isinstance(part, ToolReturnPart | RetryPromptPart)
+        if isinstance(part, ToolReturnPart)
     ]
     return deps, parts
 
@@ -86,9 +84,7 @@ async def test_the_same_refused_call_fails_without_running() -> None:
 
     assert deps.runs == [1000]
     first, second = parts
-    assert isinstance(first, RetryPromptPart)
-    assert isinstance(second, ToolReturnPart)
-    assert second.outcome == "failed"
+    assert (first.outcome, second.outcome) == ("retried", "failed")
     assert second.content == (
         f"{_REFUSAL} This call was refused before with these arguments, and only "
         "reads ran since, so it did not run again."
@@ -100,11 +96,7 @@ async def test_a_third_identical_call_is_the_refusal_again() -> None:
     deps, parts = await _run([("_sample", {"limit": 1000})] * 3)
 
     assert deps.runs == [1000]
-    assert [type(p).__name__ for p in parts] == [
-        "RetryPromptPart",
-        "ToolReturnPart",
-        "RetryPromptPart",
-    ]
+    assert [p.outcome for p in parts] == ["retried", "failed", "retried"]
 
 
 @pytest.mark.asyncio
@@ -118,11 +110,7 @@ async def test_a_call_that_ran_in_between_lets_the_same_call_run_again() -> None
     )
 
     assert deps.runs == [1000, 1000]
-    assert [type(p).__name__ for p in parts] == [
-        "RetryPromptPart",
-        "ToolReturnPart",
-        "RetryPromptPart",
-    ]
+    assert [p.outcome for p in parts] == ["retried", "success", "retried"]
 
 
 @pytest.mark.asyncio
@@ -145,9 +133,8 @@ async def test_a_refusal_is_held_while_other_refusals_come_between() -> None:
 
     assert deps.runs == [1000, 500]
     first, second, third = parts
-    assert [type(first).__name__, type(second).__name__] == [
-        "RetryPromptPart",
-        "RetryPromptPart",
+    assert [first.outcome, second.outcome, third.outcome] == [
+        "retried",
+        "retried",
+        "failed",
     ]
-    assert isinstance(third, ToolReturnPart)
-    assert third.outcome == "failed"

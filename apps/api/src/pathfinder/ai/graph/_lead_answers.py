@@ -15,7 +15,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolReturnPart,
 )
 from pydantic_ai.tools import DeferredToolApprovalResult, ToolDenied
@@ -110,7 +109,7 @@ def _settled_call_ids(history: list[ModelMessage]) -> set[str]:
         if not isinstance(message, ModelRequest):
             continue
         for part in message.parts:
-            if isinstance(part, ToolReturnPart | RetryPromptPart) and part.tool_call_id:
+            if isinstance(part, ToolReturnPart) and part.tool_call_id:
                 settled.add(part.tool_call_id)
     return settled
 

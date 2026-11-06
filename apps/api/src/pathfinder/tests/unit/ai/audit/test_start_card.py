@@ -12,9 +12,9 @@ from pydantic_ai.capabilities import HandleDeferredToolCalls
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import DeferredToolResults, RunContext, ToolDenied
@@ -197,7 +197,7 @@ async def test_a_changed_scope_draws_no_card() -> None:
         part
         for message in result.all_messages()
         for part in message.parts
-        if isinstance(part, RetryPromptPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
     ]
     assert result.output == "no audit"
     assert written == []

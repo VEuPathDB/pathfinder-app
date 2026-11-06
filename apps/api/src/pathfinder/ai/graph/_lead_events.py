@@ -13,10 +13,10 @@ from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import BaseModel, TypeAdapter
 from pydantic_ai.messages import (
+    ERROR_OUTCOMES,
     AgentStreamEvent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
-    RetryPromptPart,
     ToolReturnPart,
 )
 from pydantic_ai.ui.vercel_ai.response_types import (
@@ -195,20 +195,19 @@ def _summarize_sub_agent_result(tool_name: str, result: ToolReturnPart) -> str:
 
     A call that did not succeed carries the text that says why, not a delta.
     """
-    if result.outcome != "success":
-        return _truncate_summary(str(result.content))
-    return _SUMMARY_BY_TOOL[tool_name](result.content)
+    match result:
+        case ToolReturnPart(outcome="success"):
+            return _SUMMARY_BY_TOOL[tool_name](result.content)
+        case ToolReturnPart(content=str() as said):
+            return _truncate_summary(said)
+        case ToolReturnPart(outcome="retried"):
+            return "retry requested"
+    return _truncate_summary(str(result.content))
 
 
-def sub_agent_result_failed(result: ToolReturnPart | RetryPromptPart) -> bool:
-    """Report whether a sub-agent dispatch failed.
-
-    A ``RetryPromptPart`` is a re-run request. pydantic-ai closes an
-    interrupted call with a ``ToolReturnPart`` whose outcome is ``failed``.
-    """
-    if isinstance(result, RetryPromptPart):
-        return True
-    return result.outcome == "failed"
+def sub_agent_result_failed(result: ToolReturnPart) -> bool:
+    """Report whether a sub-agent dispatch failed."""
+    return result.outcome in ERROR_OUTCOMES
 
 
 def handle_sub_agent_event(
@@ -246,15 +245,7 @@ def handle_sub_agent_event(
         if result_tool_name is None:
             return
         result = event.part
-        if isinstance(result, RetryPromptPart):
-            content = result.content
-            summary = (
-                _truncate_summary(content)
-                if isinstance(content, str)
-                else "retry requested"
-            )
-        else:
-            summary = _summarize_sub_agent_result(result_tool_name, result)
+        summary = _summarize_sub_agent_result(result_tool_name, result)
         failed = sub_agent_result_failed(result)
         spent = sub_agent_usage.get(event.tool_call_id, SubAgentCallUsage())
         emit_chunk(

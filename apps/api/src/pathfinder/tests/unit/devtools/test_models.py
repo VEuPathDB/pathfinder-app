@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathfinder.devtools.models import (
+    CapturedModelRequest,
     Chunk,
     SubAgentStepData,
     decode_errors,
@@ -131,3 +132,30 @@ def test_a_thinking_step_carries_no_tool_name() -> None:
 
     assert data.tool_name == ""
     assert data.kind == "text"
+
+
+def test_a_retried_call_returned_nothing_the_capture_reads() -> None:
+    request = CapturedModelRequest.model_validate(
+        {
+            "messages": [
+                {
+                    "parts": [
+                        {
+                            "part_kind": "tool-return",
+                            "tool_call_id": "c1",
+                            "content": "Name another search.",
+                            "outcome": "retried",
+                        },
+                        {
+                            "part_kind": "tool-return",
+                            "tool_call_id": "c2",
+                            "content": {"count": 132},
+                            "outcome": "success",
+                        },
+                    ]
+                }
+            ]
+        }
+    )
+
+    assert request.tool_returns() == {"c2": {"count": 132}}

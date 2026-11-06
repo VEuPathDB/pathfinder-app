@@ -13,7 +13,6 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelRequestPart,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -131,16 +130,17 @@ async def _framed(monkeypatch: pytest.MonkeyPatch) -> AgentToolState:
             break
         messages.append(ModelResponse(parts=[call]))
         try:
-            reply: ToolReturnPart | RetryPromptPart = ToolReturnPart(
+            reply: ToolReturnPart = ToolReturnPart(
                 tool_name=call.tool_name,
                 content=await _answer(state, call),
                 tool_call_id=call.tool_call_id,
             )
         except ModelRetry as refused:
-            reply = RetryPromptPart(
+            reply = ToolReturnPart(
                 content=refused.message,
                 tool_name=call.tool_name,
                 tool_call_id=call.tool_call_id,
+                outcome="retried",
             )
         parts = [reply]
     return state

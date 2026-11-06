@@ -61,6 +61,13 @@ for the Claude models:
 | `google:gemini-3.1-pro-preview` | accepted (200) | accepted (200) | yes |
 | `google:gemini-3.8-flash` | accepted (200) | accepted (200) | yes |
 | `google:gemini-3.5-flash-lite` | accepted (200) | accepted (200) | yes |
+| `openai:gpt-6.1-terra` (2026-11-06) | accepted (200) | accepted (200) | yes |
+
+`anthropic:claude-fable-5-1`, `openai:gpt-6.1-sol` and `google:gemini-4-argon`
+are not measured yet. Their flags follow each provider's documentation: Anthropic
+lists image input and PDF support for Fable 5.1, OpenAI lists image input for
+GPT-6.1 Sol and PDF input for every model with vision, and Google lists image
+and PDF input for Gemini 4 Argon.
 
 The mock and every local model read no file.
 

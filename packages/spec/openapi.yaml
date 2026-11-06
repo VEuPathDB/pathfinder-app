@@ -9264,6 +9264,7 @@ components:
       - flagship
       - standard
       - small
+      - unranked
     ModelSpans:
       properties:
         gene:

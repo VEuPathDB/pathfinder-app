@@ -10,8 +10,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb.domain.parameters import ParamValue, PhyleticExpression
@@ -64,7 +64,11 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
         del info
         last = messages[-1]
         assert isinstance(last, ModelRequest)
-        retries = [p for p in last.parts if isinstance(p, RetryPromptPart)]
+        retries = [
+            p
+            for p in last.parts
+            if isinstance(p, ToolReturnPart) and p.outcome == "retried"
+        ]
         told.extend(str(p.content) for p in retries)
         number = "R1" if retries else "R4"
         return ModelResponse(parts=[ToolCallPart("final_result", _reports(number))])
@@ -176,7 +180,9 @@ async def _run(
         last = messages[-1]
         assert isinstance(last, ModelRequest)
         told.extend(
-            str(p.content) for p in last.parts if isinstance(p, RetryPromptPart)
+            str(p.content)
+            for p in last.parts
+            if isinstance(p, ToolReturnPart) and p.outcome == "retried"
         )
         return ModelResponse(
             parts=[

@@ -11,7 +11,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -52,10 +51,12 @@ def _lead(calls: list[str]) -> FunctionModel:
         del info
         last = messages[-1]
         assert isinstance(last, ModelRequest)
-        if any(isinstance(p, ToolReturnPart) for p in last.parts):
+        if any(
+            isinstance(p, ToolReturnPart) and p.outcome != "retried" for p in last.parts
+        ):
             return ModelResponse(parts=[TextPart("The fold change could not be set.")])
         assert all(
-            isinstance(p, RetryPromptPart)
+            isinstance(p, ToolReturnPart) and p.outcome == "retried"
             for p in last.parts
             if p.part_kind != "user-prompt"
         )
@@ -88,7 +89,7 @@ async def test_the_fourth_refused_pass_ends_the_edit_with_its_reason(
         for m in run.all_messages()
         if isinstance(m, ModelRequest)
         for p in m.parts
-        if isinstance(p, ToolReturnPart)
+        if isinstance(p, ToolReturnPart) and p.outcome != "retried"
     ]
     assert len(calls) == 4
     assert returned == [

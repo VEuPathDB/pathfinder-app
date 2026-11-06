@@ -11,8 +11,8 @@ from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
@@ -289,7 +289,9 @@ async def test_yes_on_a_thread_with_no_strategy_asks_the_lead_to_build(
         for message in calls[-1]
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, RetryPromptPart) and part.tool_call_id == CALL_ID
+        if isinstance(part, ToolReturnPart)
+        and part.outcome == "retried"
+        and part.tool_call_id == CALL_ID
     ]
     assert len(retries) == 1
     assert "frame_problem" in retries[0]

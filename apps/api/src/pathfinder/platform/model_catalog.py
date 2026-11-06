@@ -1,32 +1,25 @@
 """The catalog of selectable LLM models, the one module that names a model id."""
 
-from collections import Counter
 from datetime import date
-from decimal import Decimal
 from functools import lru_cache
-from typing import Any, Final, Literal
+from typing import Final
 
 import yaml
-from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ModelProvider
-from assistant_core.pricing import (
-    HostModelPrice,
-    LongPrompt,
-    TokenPrices,
-    install_model_prices,
-)
-from pydantic import BaseModel, ConfigDict, model_validator
+from assistant_core.pricing import install_model_prices
+from pydantic import BaseModel, ConfigDict
 
-from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
+from pathfinder.platform.model_entry import (
+    CatalogMeter,
+    LongPromptPrices,
+    ModelEntry,
+    validate_lineup,
+)
 from pathfinder.platform.paths import REPO_ROOT
 
 __all__ = [
     "DEFAULT_MODEL_ID",
     "PRICES_AS_OF",
-    "CatalogMeter",
-    "LongPromptPrices",
-    "ModelEntry",
-    "ModelRank",
     "context_window_for",
     "deployment_may_pay",
     "get_model_catalog",
@@ -34,137 +27,7 @@ __all__ = [
     "get_smallest_model",
     "install_catalog_prices",
     "provider_default",
-    "validate_lineup",
 ]
-
-# The place a model holds in its provider's lineup; the tiers are derived from it.
-type ModelRank = Literal["flagship", "standard", "small"]
-
-
-def _mtok(price: float) -> Decimal:
-    return Decimal(str(price))
-
-
-class LongPromptPrices(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    above_tokens: int
-    input_price: float
-    cached_input_price: float
-    cache_write_price: float
-    output_price: float
-
-    def token_prices(self) -> TokenPrices:
-        return TokenPrices(
-            input_mtok=_mtok(self.input_price),
-            cache_read_mtok=_mtok(self.cached_input_price),
-            cache_write_mtok=_mtok(self.cache_write_price),
-            output_mtok=_mtok(self.output_price),
-        )
-
-
-class CatalogMeter(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    cache_write_price: float
-    long_prompt: LongPromptPrices | None = None
-
-
-class ModelEntry(CamelModel):
-    """One model in the catalog.
-
-    The ID holds the provider and the model name, joined by a colon.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    name: str
-    description: str = ""
-    supports_reasoning: bool = False
-    # Each flag is a measurement: the provider was sent one PNG and one PDF.
-    supports_images: bool = False
-    supports_documents: bool = False
-    context_size: int = 0
-    input_price: float = 0.0
-    cached_input_price: float = 0.0
-    output_price: float = 0.0
-    rank: ModelRank
-    is_provider_default: bool = False
-    deployment_may_pay: bool = False
-    meter: CatalogMeter | None = None
-    provider: ModelProvider
-    model_name: str
-
-    @model_validator(mode="before")
-    @classmethod
-    def _derive_from_id(cls, data: Any) -> Any:
-        if (
-            isinstance(data, dict)
-            and isinstance(data.get("id"), str)
-            and ":" in data["id"]
-        ):
-            provider, model_name = data["id"].split(":", 1)
-            data.setdefault("provider", provider)
-            data.setdefault("model_name", model_name)
-        return data
-
-    @classmethod
-    def entry(cls, **kwargs: Any) -> "ModelEntry":
-        """Build an entry from keyword arguments, through the validator."""
-        return cls.model_validate(kwargs)
-
-    def host_price(self) -> HostModelPrice | None:
-        if self.meter is None:
-            return None
-        long = self.meter.long_prompt
-        return HostModelPrice(
-            provider=self.provider,
-            model=self.model_name,
-            prices=TokenPrices(
-                input_mtok=_mtok(self.input_price),
-                cache_read_mtok=_mtok(self.cached_input_price),
-                cache_write_mtok=_mtok(self.meter.cache_write_price),
-                output_mtok=_mtok(self.output_price),
-            ),
-            long_prompt=None
-            if long is None
-            else LongPrompt(above_tokens=long.above_tokens, prices=long.token_prices()),
-        )
-
-
-def _lineup_fault(held: list[ModelEntry]) -> str | None:
-    defaults = sum(e.is_provider_default for e in held)
-    ranks = Counter(e.rank for e in held)
-    twice = [rank for rank, n in ranks.items() if n > 1]
-    if defaults == 1 and ranks["small"] == 1 and not twice:
-        return None
-    return f"{defaults} default and {ranks['small']} small entries" + "".join(
-        f", rank {rank!r} twice" for rank in twice
-    )
-
-
-def validate_lineup(entries: tuple[ModelEntry, ...]) -> tuple[ModelEntry, ...]:
-    """Return ``entries`` when each cloud provider in them holds one default
-    entry, one small entry and at most one entry per rank, both in its whole
-    lineup and in the part of it the deployment pays for.
-
-    :raises ValueError: If a provider breaks one of these rules.
-    """
-    for provider in KEYABLE_PROVIDERS:
-        held = [e for e in entries if e.provider == provider]
-        if not held:
-            continue
-        fault = _lineup_fault(held)
-        if fault is not None:
-            msg = f"{provider!r} lineup holds {fault}"
-            raise ValueError(msg)
-        fault = _lineup_fault([e for e in held if e.deployment_may_pay])
-        if fault is not None:
-            msg = f"{provider!r}: the deployment pays for {fault}"
-            raise ValueError(msg)
-    return entries
-
 
 _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
     (
@@ -210,6 +73,34 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             input_price=0.20,
             cached_input_price=0.02,
             output_price=1.20,
+        ),
+        ModelEntry.entry(
+            id="openai:gpt-6.1-sol",
+            deployment_may_pay=True,
+            name="GPT-6.1 Sol",
+            description="OpenAI reasoning model for complex work - 1.05M context",
+            rank="unranked",
+            supports_reasoning=True,
+            supports_images=True,
+            supports_documents=True,
+            context_size=1_050_000,
+            input_price=2.00,
+            cached_input_price=0.10,
+            output_price=10.00,
+        ),
+        ModelEntry.entry(
+            id="openai:gpt-6.1-terra",
+            deployment_may_pay=True,
+            name="GPT-6.1 Terra",
+            description="Fast, efficient OpenAI reasoning model - 1.05M context",
+            rank="unranked",
+            supports_reasoning=True,
+            supports_images=True,
+            supports_documents=True,
+            context_size=1_050_000,
+            input_price=1.00,
+            cached_input_price=0.05,
+            output_price=5.00,
         ),
         ModelEntry.entry(
             id="anthropic:claude-opus-5-5",
@@ -267,6 +158,21 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             ),
         ),
         ModelEntry.entry(
+            id="anthropic:claude-fable-5-1",
+            name="Claude Fable 5.1",
+            description="Anthropic's deepest reasoning model - 1M context",
+            rank="unranked",
+            deployment_may_pay=False,
+            supports_reasoning=True,
+            supports_images=True,
+            supports_documents=True,
+            context_size=1_000_000,
+            input_price=10.00,
+            cached_input_price=0.25,
+            output_price=50.00,
+            meter=CatalogMeter(cache_write_price=12.50),
+        ),
+        ModelEntry.entry(
             id="google:gemini-3.1-pro-preview",
             deployment_may_pay=True,
             name="Gemini 3.1 Pro",
@@ -310,6 +216,20 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             output_price=2.50,
         ),
         ModelEntry.entry(
+            id="google:gemini-4-argon",
+            deployment_may_pay=True,
+            name="Gemini 4 Argon",
+            description="Google frontier reasoning model - 1M context",
+            rank="unranked",
+            supports_reasoning=True,
+            supports_images=True,
+            supports_documents=True,
+            context_size=1_048_576,
+            input_price=2.00,
+            cached_input_price=0.10,
+            output_price=10.00,
+        ),
+        ModelEntry.entry(
             id="mock:deterministic",
             deployment_may_pay=True,
             name="Mock (deterministic)",
@@ -321,7 +241,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
 )
 
 # The day the prices above were last checked against each provider's page.
-PRICES_AS_OF: Final = date(2026, 10, 8)
+PRICES_AS_OF: Final = date(2026, 11, 6)
 
 
 class _OllamaYamlItem(BaseModel):

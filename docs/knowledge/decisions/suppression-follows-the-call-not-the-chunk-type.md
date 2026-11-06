@@ -41,11 +41,11 @@ Two things, because fixing only the first would have traded a crash for a lie.
    holds the approval chunks, which must reach the user or the turn waits on a
    question nobody sees.
 
-2. **`sub_agent_result_failed` reads both failure shapes.** The card previously
-   showed "failed" only for a `RetryPromptPart`. An interrupted run produces a
-   `ToolReturnPart(outcome="failed")`, so suppressing its chunk would have
-   rendered an interrupted sub-agent as **completed** -- a false success, worse
-   than the crash it replaced.
+2. **`sub_agent_result_failed` reads both failure outcomes.** A dispatch whose
+   `ToolReturnPart` has `outcome` `failed` (an interrupted run) or `retried` (a
+   call handed back to the Lead) shows "failed". Reading only one of them
+   would render the other as **completed** -- a false success, worse than the
+   crash it replaced.
 
 # What keeps it fixed
 

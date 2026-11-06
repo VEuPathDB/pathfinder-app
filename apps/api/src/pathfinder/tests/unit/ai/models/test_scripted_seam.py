@@ -17,7 +17,7 @@ from assistant_core.models.scripted import (
     ScriptedModel,
     detect_role,
     next_unmade_call,
-    retry_prompt_parts,
+    retried_returns,
     scripted_call,
 )
 from pydantic import TypeAdapter
@@ -25,7 +25,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
 )
@@ -135,16 +134,19 @@ def test_the_retry_parts_are_the_ones_a_tool_refused_on() -> None:
         ModelRequest(
             parts=[
                 ToolReturnPart(tool_name="kept", content="ok", tool_call_id="k1"),
-                RetryPromptPart(
-                    content="refused", tool_name="refused_tool", tool_call_id="r1"
+                ToolReturnPart(
+                    content="refused",
+                    tool_name="refused_tool",
+                    tool_call_id="r1",
+                    outcome="retried",
                 ),
             ]
         ),
     ]
-    parts = retry_prompt_parts(messages)
+    parts = retried_returns(messages)
 
     assert [p.tool_name for p in parts] == ["refused_tool"]
-    assert "refused" in parts[0].model_response()
+    assert "refused" in parts[0].model_response_str(wrap_if_error=False)
 
 
 def test_the_product_script_declares_its_five_roles() -> None:

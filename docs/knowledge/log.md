@@ -1,5 +1,28 @@
 # Log
 
+## 2026-11-06
+
+* **A catalog entry may be unranked.** An unranked entry is offered for any role and no tier
+  resolves to it, so Claude Fable 5.1 joins the catalog and every tier and the default resolve
+  as before. The prices of every entry were read again on the providers' pages and
+  `PRICES_AS_OF` is 2026-11-06. See
+  [the decision](decisions/a-model-a-role-picks-need-not-hold-a-rank.md).
+* **pydantic-ai is 2.59.0 and genai-prices is 0.2.1.** In pydantic-ai 2.59, a billing error
+  inside an OpenAI stream carries the status the same error has before the stream, 429.
+* **pydantic-ai is 2.66.0, anthropic is 2.6.0 and assistant-core is 0.3.0b18.** From 2.60, a
+  tool retry is the call's own `ToolReturnPart` with `outcome="retried"` and an output retry is a
+  `RetryFeedbackPart`; `RetryPromptPart` is deprecated. The runtime and PathFinder read the
+  outcome: a retried call still reads as corrected on its step, a retried sub-agent dispatch
+  shows failed, and `retried_returns` replaces `retry_prompt_parts`. A stored history that holds
+  the old part loads as the new parts. anthropic 2.6 sends an API key as
+  `Authorization: Bearer`, not `x-api-key`.
+* **GPT-6.1 Sol, GPT-6.1 Terra and Gemini 4 Argon join the catalog as unranked entries.** Every
+  tier and the default resolve as before. The deployment may pay for all three. Terra's image
+  and PDF flags were measured with the probe; Sol's and Argon's follow each provider's
+  documentation. The price snapshot meters all three, Argon's price change of 2026-12-01
+  included; the catalog's own Argon prices change by hand on that day. `ModelEntry` and the
+  lineup rules moved to `platform/model_entry.py`.
+
 ## 2026-11-05
 
 * **The corpus was measured on 6ead931b8 with the real embedder, through the worker.** 105 of

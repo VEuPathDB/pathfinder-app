@@ -15,12 +15,11 @@ from pydantic_ai.exceptions import (
     UnexpectedModelBehavior,
     UsageLimitExceeded,
 )
-from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.models import Model, infer_model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
-from pydantic_core import ErrorDetails, ValidationError
+from pydantic_core import ValidationError
 
 from pathfinder.ai.audit.charges import charge_run
 from pathfinder.ai.audit.deps import AuditDeps
@@ -36,6 +35,10 @@ from pathfinder.ai.audit.synthesis import (
     synthesize,
 )
 from pathfinder.ai.audit.verdict_tool import unheld_cites_message
+from pathfinder.ai.capabilities.error_classification import (
+    RETRY_DETAILS,
+    RetryDetail,
+)
 from pathfinder.ai.capabilities.screened_sources import screened_sources
 from pathfinder.domain.audit.verdicts import (
     MAX_CAUSE,
@@ -80,25 +83,27 @@ SYNTHESIS_STOPPED = (
 )
 
 
-def _plain_error(error: ErrorDetails) -> str:
-    where = ".".join(map(str, error["loc"]))
-    return f"{where}: {error['msg']}" if where else error["msg"]
+def _plain_error(error: RetryDetail) -> str:
+    where = ".".join(map(str, error.loc))
+    return f"{where}: {error.msg}" if where else error.msg
 
 
-def _plain(content: str | list[ErrorDetails]) -> str:
+def _plain(content: object) -> str:
     match content:
-        case str():
-            return content
+        case str() as said:
+            return said
         case errors:
-            return "; ".join(map(_plain_error, errors))
+            return "; ".join(map(_plain_error, RETRY_DETAILS.validate_python(errors)))
 
 
 def _out_of_retries(cause: BaseException | None) -> str:
     match cause:
         case ToolRetryError(tool_retry=part):
             refusal = _plain(part.content)
-        case ModelRetry() | ValidationError():
-            refusal = _plain(RetryPromptPart.from_error(cause).content)
+        case ModelRetry(message=said):
+            refusal = said
+        case ValidationError():
+            refusal = _plain(cause.errors(include_url=False, include_context=False))
         case _:
             return OUT_OF_RETRIES
     return shorten(f"{OUT_OF_RETRIES} The last refusal: {refusal}", MAX_CAUSE)

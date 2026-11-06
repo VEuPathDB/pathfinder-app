@@ -9,8 +9,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -143,9 +143,9 @@ def test_the_lead_sets_the_field_the_refusal_names() -> None:
         request = messages[-1]
         if isinstance(request, ModelRequest):
             told.extend(
-                p.model_response()
+                p.model_response_str(wrap_if_error=False)
                 for p in request.parts
-                if isinstance(p, RetryPromptPart)
+                if isinstance(p, ToolReturnPart) and p.outcome == "retried"
             )
         args = {"prose": _STATES_WHY}
         why = {"unverifiedReason": _WHY} if told else {}

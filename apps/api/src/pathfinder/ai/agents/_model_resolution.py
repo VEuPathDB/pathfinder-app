@@ -4,9 +4,11 @@ from assistant_core.platform.types import ModelProvider
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_catalog import (
-    ModelEntry,
     get_model_entry,
     get_smallest_model,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
 )
 from pathfinder.platform.pinned_model import pinned_model
 

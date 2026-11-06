@@ -30,7 +30,7 @@ from __future__ import annotations
 import inspect
 
 from pydantic import BaseModel
-from pydantic_ai.messages import RetryPromptPart, ToolReturnPart
+from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.ui.vercel_ai import response_types
 from pydantic_ai.ui.vercel_ai.response_types import (
     TextDeltaChunk,
@@ -169,12 +169,7 @@ def test_approval_chunks_are_exempt_so_the_user_can_answer() -> None:
 
 
 class TestTheCardTellsTheTruth:
-    """Suppressing the orphan chunk must not turn a crash into a false success.
-
-    pydantic-ai closes an interrupted tool call with
-    ``ToolReturnPart(outcome="failed")``, not a ``RetryPromptPart``. Reading
-    only the retry case rendered an interrupted sub-agent as "completed".
-    """
+    """A call that did not produce its result is a failure on the card."""
 
     def test_an_interrupted_call_is_a_failure(self) -> None:
         interrupted = ToolReturnPart(
@@ -195,7 +190,12 @@ class TestTheCardTellsTheTruth:
 
         assert not sub_agent_result_failed(done)
 
-    def test_a_retry_prompt_is_a_failure(self) -> None:
-        retry = RetryPromptPart(content="try again", tool_call_id=_CALL_ID)
+    def test_a_retried_call_is_a_failure(self) -> None:
+        retry = ToolReturnPart(
+            tool_name="frame_problem",
+            content="try again",
+            tool_call_id=_CALL_ID,
+            outcome="retried",
+        )
 
         assert sub_agent_result_failed(retry)

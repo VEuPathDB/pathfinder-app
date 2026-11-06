@@ -12,8 +12,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import RunContext
@@ -217,7 +217,9 @@ async def test_verify_answering_the_unread_gene_every_time_ends_on_its_review() 
         last = messages[-1]
         assert isinstance(last, ModelRequest)
         told.extend(
-            str(p.content) for p in last.parts if isinstance(p, RetryPromptPart)
+            str(p.content)
+            for p in last.parts
+            if isinstance(p, ToolReturnPart) and p.outcome == "retried"
         )
         return ModelResponse(parts=[ToolCallPart("final_result", answer)])
 

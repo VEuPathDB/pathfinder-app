@@ -9,8 +9,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -24,18 +24,18 @@ _EMPTY_INTERSECT: dict[str, Any] = {
 }
 
 
-def _retries(messages: list[ModelMessage]) -> list[RetryPromptPart]:
+def _retries(messages: list[ModelMessage]) -> list[ToolReturnPart]:
     return [
         part
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, RetryPromptPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
     ]
 
 
 async def test_an_intersect_of_nothing_is_answered_with_the_combine_shape() -> None:
-    seen: list[RetryPromptPart] = []
+    seen: list[ToolReturnPart] = []
 
     def _model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
@@ -74,5 +74,4 @@ async def test_an_intersect_of_nothing_is_answered_with_the_combine_shape() -> N
     (error,) = retry.content
     assert error["msg"].startswith('Value error, a combine is {"kind": "combine"')
     assert error["msg"].endswith("with no criterion left, there is no tree to set.")
-    assert "Fix the errors and try again." in retry.model_response()
     assert deps.agent_state.operational_spec_draft.structure is None

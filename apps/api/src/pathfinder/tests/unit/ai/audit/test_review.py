@@ -4,15 +4,15 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from assistant_core.models.scripted import retry_prompt_parts, terminal_call
+from assistant_core.models.scripted import retried_returns, terminal_call
 from assistant_core.models.settings import build_model_settings
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ThinkingPart,
     ToolCallPart,
+    ToolReturnPart,
     UserPromptPart,
 )
 from pydantic_ai.models import Model
@@ -33,6 +33,7 @@ from pathfinder.ai.audit.review import (
     review_finding,
     review_settings,
 )
+from pathfinder.ai.capabilities.error_classification import RETRY_DETAILS
 from pathfinder.domain.audit.check_facts import evidence_facts
 from pathfinder.domain.audit.findings import RelativesEvidence
 from pathfinder.domain.audit.models import FindingModels
@@ -147,10 +148,10 @@ def _review(**changed: Any) -> dict[str, Any]:
     }
 
 
-def _first_then(wrong: dict[str, Any], retries: list[RetryPromptPart]) -> FunctionModel:
+def _first_then(wrong: dict[str, Any], retries: list[ToolReturnPart]) -> FunctionModel:
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retry_prompt_parts(messages))
+        retries.extend(retried_returns(messages))
         return ModelResponse(parts=[terminal_call(_review() if retries else wrong)])
 
     return FunctionModel(answer)
@@ -209,7 +210,7 @@ def test_a_review_holds_the_finding_and_its_stored_evidence_only() -> None:
 
 
 async def test_a_review_naming_a_source_it_did_not_retrieve_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     model = _first_then(_review(alreadyKnown="known", knownFrom=[_DOI]), retries)
     research = AuditRetrievalToolset(
         FunctionToolset([literature_search]).prefixed("research")
@@ -222,7 +223,7 @@ async def test_a_review_naming_a_source_it_did_not_retrieve_is_retried() -> None
 
 
 async def test_a_verdict_on_a_gene_outside_the_target_is_retried() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     model = _first_then(_review(verdict={"genes": ["EXA_0009"]}), retries)
 
     found, _ = await _reviewed(model)
@@ -292,7 +293,7 @@ async def test_a_review_with_a_source_open_is_offered_the_literature_fields() ->
 
 
 async def test_a_review_claiming_known_with_no_source_open_is_refused() -> None:
-    retries: list[RetryPromptPart] = []
+    retries: list[ToolReturnPart] = []
     model = _first_then(
         _review(alreadyKnown="known", knownFrom=[finding_cite(7)]), retries
     )
@@ -303,7 +304,7 @@ async def test_a_review_claiming_known_with_no_source_open_is_refused() -> None:
         case str() as refusal:
             pytest.fail(refusal)
         case errors:
-            refused = [(e["loc"], e["msg"]) for e in errors]
+            refused = [(d.loc, d.msg) for d in RETRY_DETAILS.validate_python(errors)]
     unsearched = (
         "Value error, no literature source is open for this review, so it "
         "states nothing about the literature"

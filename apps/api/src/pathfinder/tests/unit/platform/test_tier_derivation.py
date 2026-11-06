@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 from assistant_core.platform.types import ModelProvider, ReasoningEffort, TierName
 
-from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
+from pathfinder.platform.model_catalog import (
+    get_model_catalog,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
+)
 from pathfinder.platform.tiers import derive_tiers
 
 type Table = dict[
@@ -137,6 +142,29 @@ def test_a_missing_rank_takes_the_next_one_down() -> None:
         "default": (("openai:big", "medium"), ("openai:big", "medium")),
         "fast": (("openai:tiny", "low"), ("openai:tiny", "low")),
     }
+
+
+def test_an_unranked_entry_takes_no_slot_in_any_tier() -> None:
+    ranked = (
+        ModelEntry.entry(
+            id="openai:big",
+            name="Big",
+            rank="flagship",
+            is_provider_default=True,
+            deployment_may_pay=True,
+        ),
+        ModelEntry.entry(
+            id="openai:tiny", name="Tiny", rank="small", deployment_may_pay=True
+        ),
+    )
+    unranked = (
+        ModelEntry.entry(
+            id="openai:newer", name="Newer", rank="unranked", deployment_may_pay=True
+        ),
+        ModelEntry.entry(id="openai:dearer", name="Dearer", rank="unranked"),
+    )
+
+    assert _table("openai", (*unranked, *ranked)) == _table("openai", ranked)
 
 
 def test_a_provider_without_a_default_entry_is_refused() -> None:

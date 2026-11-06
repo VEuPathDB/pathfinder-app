@@ -20,10 +20,12 @@ from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import (
-    ModelEntry,
-    ModelRank,
     get_model_catalog,
     provider_default,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
+    TierRank,
     validate_lineup,
 )
 
@@ -75,10 +77,10 @@ class _Tier:
     worker: PhaseTierConfig
 
 
-type _Pick = Literal[ModelRank, "default"]
+type _Pick = Literal[TierRank, "default"]
 type _Slot = tuple[_Pick, ReasoningEffort]
 
-_RANKS_DOWN: tuple[ModelRank, ...] = ("flagship", "standard", "small")
+_RANKS_DOWN: tuple[TierRank, ...] = ("flagship", "standard", "small")
 
 # The thinker slot, then the worker slot, of each tier.
 _SHAPES: dict[TierName, tuple[_Slot, _Slot]] = {

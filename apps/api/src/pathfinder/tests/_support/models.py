@@ -6,9 +6,11 @@ from assistant_core.platform.types import ModelProvider
 
 from pathfinder.platform.model_catalog import (
     DEFAULT_MODEL_ID,
-    ModelRank,
     get_model_catalog,
     get_model_entry,
+)
+from pathfinder.platform.model_entry import (
+    ModelRank,
 )
 
 

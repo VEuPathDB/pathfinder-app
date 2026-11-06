@@ -285,8 +285,8 @@ def _answers_the_card(message: ModelMessage) -> bool:
 
 def _returns_the_card(part: object) -> bool:
     match part:
-        case ToolReturnPart(tool_name=name):
-            return name == CONSULT
+        case ToolReturnPart(tool_name=name, outcome=outcome):
+            return name == CONSULT and outcome != "retried"
         case _:
             return False
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 
 import httpx
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 from veupathdb.errors import VEuPathDBError, WDKError
 
 _PERMANENT_PHRASES = (
@@ -22,6 +23,16 @@ _MAX_ARG_VALUE_CHARS = 120
 
 # The character limit for the whole rendered argument string.
 _MAX_ARGS_TOTAL_CHARS = 300
+
+
+class RetryDetail(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    loc: tuple[str | int, ...] = ()
+    msg: str
+
+
+RETRY_DETAILS = TypeAdapter(list[RetryDetail])
 
 
 class ErrorCategory(StrEnum):

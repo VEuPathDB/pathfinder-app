@@ -19,7 +19,12 @@ from pathfinder.platform.attachment_errors import (
     AttachmentTooLargeError,
 )
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.platform.model_catalog import ModelEntry, get_model_entry
+from pathfinder.platform.model_catalog import (
+    get_model_entry,
+)
+from pathfinder.platform.model_entry import (
+    ModelEntry,
+)
 from pathfinder.tests._support.models import DEFAULT_MODEL
 
 _MIB = 1024 * 1024

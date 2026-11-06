@@ -10,7 +10,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -65,7 +64,12 @@ def _refused(tool: str, content: str, call_id: str) -> list[ModelMessage]:
         ),
         ModelRequest(
             parts=[
-                RetryPromptPart(content=content, tool_name=tool, tool_call_id=call_id)
+                ToolReturnPart(
+                    content=content,
+                    tool_name=tool,
+                    tool_call_id=call_id,
+                    outcome="retried",
+                )
             ]
         ),
     ]

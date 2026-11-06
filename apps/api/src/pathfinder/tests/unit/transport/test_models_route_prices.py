@@ -16,7 +16,10 @@ from assistant_core.pricing import lookup_per_mtok_prices
 from fastapi import FastAPI
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.model_catalog import CatalogMeter, ModelEntry
+from pathfinder.platform.model_entry import (
+    CatalogMeter,
+    ModelEntry,
+)
 from pathfinder.transport.http.routers import models
 from pathfinder.transport.http.routers.models import router
 

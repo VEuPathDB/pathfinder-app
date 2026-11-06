@@ -83,7 +83,7 @@ def _openai(status: int | None, body: object) -> KeyRefusal | None:
     error = _OpenAIError.model_validate(body)
     if status == _UNAUTHORIZED and error.code == "invalid_api_key":
         return KeyRefusal.INVALID
-    # A billing error inside a stream carries the body and no status.
+    # A billing error inside a stream carries the body, with or without a status.
     if status in {_TOO_MANY_REQUESTS, None} and (
         error.type == _OPENAI_QUOTA or error.code in _OPENAI_BILLING_CODES
     ):

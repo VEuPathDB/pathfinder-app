@@ -10,11 +10,15 @@ status: stable
 # Where the lineup lives
 
 `apps/api/src/pathfinder/platform/model_catalog.py` is the one module that names a
-model id. Each `ModelEntry` carries its prices, its two measured attachment
-flags and its `rank` in its provider's lineup: `flagship`, `standard` or
-`small`. Each cloud provider holds one `is_provider_default` entry, one
-`small` entry and at most one entry per rank; `validate_lineup` refuses any
-other lineup at import. `DEFAULT_MODEL_ID` is the OpenAI default entry, and
+model id. Each `ModelEntry` (`platform/model_entry.py`, beside the lineup rules)
+carries its prices, its two measured attachment
+flags and its `rank` in its provider's lineup: `flagship`, `standard`,
+`small` or `unranked`. Each cloud provider holds one `is_provider_default`
+entry, one `small` entry and at most one entry per tier rank; `validate_lineup`
+refuses any other lineup at import. An `unranked` entry is offered for a pick,
+is never a default and is never in a tier
+([the decision](../decisions/a-model-a-role-picks-need-not-hold-a-rank.md)), so a
+new model joins as `unranked` unless it is meant to move a tier. `DEFAULT_MODEL_ID` is the OpenAI default entry, and
 every role's compile-time model and the injection judge read it.
 
 `platform/tiers.py::derive_tiers` reads the ranks. Each tier names a model for

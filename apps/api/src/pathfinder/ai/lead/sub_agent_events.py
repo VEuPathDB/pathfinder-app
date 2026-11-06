@@ -23,7 +23,6 @@ from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartEndEvent,
-    RetryPromptPart,
     TextPart,
     ThinkingPart,
     ToolCallPart,
@@ -64,9 +63,9 @@ def _short(s: str, *, limit: int = 280) -> str:
 _RESULT_JSON_LIMIT = 16_000
 
 
-def _result_json(result: ToolReturnPart | RetryPromptPart) -> JsonValue | None:
+def _result_json(result: ToolReturnPart) -> JsonValue | None:
     """The completed step's return in JSON form, or None when it cannot be serialised."""
-    if not isinstance(result, ToolReturnPart):
+    if result.outcome == "retried":
         return None
     try:
         value: JsonValue = tool_return_ta.dump_python(result.content, mode="json")
@@ -89,25 +88,23 @@ def _summarize_tool_result(content: object) -> str:
         return _short(str(content), limit=_RESULT_LIMIT)
 
 
-def _result_summary(result: ToolReturnPart | RetryPromptPart) -> str:
+def _result_summary(result: ToolReturnPart) -> str:
     """One-line rendering of an inner tool's result."""
-    if isinstance(result, RetryPromptPart):
-        content = result.content
+    if result.outcome == "retried":
         return _short(
-            content if isinstance(content, str) else result.model_response(),
-            limit=_RESULT_LIMIT,
+            result.model_response_str(wrap_if_error=False), limit=_RESULT_LIMIT
         )
     return _summarize_tool_result(result.content)
 
 
 def _step_state(
-    result: ToolReturnPart | RetryPromptPart, *, refused: bool
+    result: ToolReturnPart, *, refused: bool
 ) -> Literal["completed", "failed", "corrected", "denied"]:
     """Terminal state of one inner tool call. A denial is the user's decision,
     not a failure; a call handed back to the model, or refused as sent, is
     corrected; a call that failed without running is a failure."""
     match result:
-        case RetryPromptPart():
+        case ToolReturnPart(outcome="retried"):
             return "corrected"
         case ToolReturnPart(outcome="failed"):
             return "corrected" if refused else "failed"
@@ -185,11 +182,7 @@ def _forward_inner_event(
         if tool_name is None:
             return
         result = event.part
-        inner = (
-            _read_tool_metadata(result.metadata)
-            if isinstance(result, ToolReturnPart)
-            else _InnerMetadata(summary=None, forwarded=[])
-        )
+        inner = _read_tool_metadata(result.metadata)
         _emit_step(
             writer,
             SubAgentStepPayload(
@@ -258,7 +251,7 @@ def _close_answered_approval(
     if event.tool_call_id not in answered:
         return
     result = event.part
-    if isinstance(result, ToolReturnPart) and result.outcome == "denied":
+    if result.outcome == "denied":
         emit_chunk(writer, ToolOutputDeniedChunk(tool_call_id=event.tool_call_id))
         return
     emit_chunk(
