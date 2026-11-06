@@ -20,6 +20,7 @@ from pathfinder.ai.agents.execution import _EXECUTION_INSTRUCTIONS
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
 from pathfinder.ai.agents.vocabulary import USER_FACING_VOCABULARY
+from pathfinder.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 
 _PATHFINDER = Path(__file__).resolve().parents[2]
@@ -326,13 +327,14 @@ def test_the_rule_names_the_words_and_their_replacements() -> None:
         ("frame", _FRAME_INSTRUCTIONS),
         ("execution", _EXECUTION_INSTRUCTIONS),
         ("verification", _VERIFICATION_INSTRUCTIONS),
+        ("explore", EXPLORE_INSTRUCTIONS),
     ],
 )
 def test_every_agent_that_writes_for_a_reader_carries_the_rule(
     role: str,
     instructions: str,
 ) -> None:
-    """Recovery runs on the execution agent, so four surfaces cover five roles."""
+    """Recovery runs on the execution agent, so five surfaces cover six roles."""
     assert USER_FACING_VOCABULARY in instructions, role
 
 

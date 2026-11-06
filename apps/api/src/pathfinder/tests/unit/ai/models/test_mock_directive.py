@@ -126,6 +126,8 @@ def test_the_registry_holds_every_named_arc() -> None:
             "count-question",
             "gene-question",
             "consult",
+            "explore",
+            "explore-no-reading",
             "no-search-states-it",
             "cross-organism",
             "zero-then-relax",

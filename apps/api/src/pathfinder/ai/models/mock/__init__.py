@@ -17,7 +17,7 @@ from assistant_core.models.scripted import (
     terminal_call,
     user_texts,
 )
-from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
 from pathfinder.ai.audit.mock_investigation import (
@@ -48,6 +48,7 @@ _ROLES: tuple[RoleMarkers, ...] = (
             }
         ),
     ),
+    RoleMarkers(role="explore", markers=frozenset({"propose_readings"})),
     RoleMarkers(role="frame", markers=frozenset({"set_criterion", "set_structure"})),
     RoleMarkers(role="verification", markers=frozenset({"run_control_tests_on_step"})),
     RoleMarkers(
@@ -89,6 +90,10 @@ def role_script(role: Role) -> Script:
     return script
 
 
+def explore_script(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
+    return arc_named(turn_directive(messages).arc).explore(messages)
+
+
 def _unmarked(messages: list[ModelMessage]) -> ToolCallPart:
     """The script for a step whose tool list names no role.
 
@@ -107,6 +112,7 @@ PATHFINDER_SCRIPT = ScriptedModel(
             role: role_script(role)
             for role in ("lead", "frame", "verification", "execution")
         },
+        "explore": explore_script,
         INVESTIGATOR: investigator_script,
     },
     unknown=_unmarked,

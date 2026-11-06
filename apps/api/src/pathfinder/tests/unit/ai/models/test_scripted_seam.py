@@ -149,9 +149,10 @@ def test_the_retry_parts_are_the_ones_a_tool_refused_on() -> None:
     assert "refused" in parts[0].model_response_str(wrap_if_error=False)
 
 
-def test_the_product_script_declares_its_five_roles() -> None:
+def test_the_product_script_declares_its_six_roles() -> None:
     assert [entry.role for entry in PATHFINDER_SCRIPT.roles] == [
         "lead",
+        "explore",
         "frame",
         "verification",
         "execution",

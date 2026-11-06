@@ -17,6 +17,7 @@ GENE_MODEL = "GenesByGeneModelChars"
 TM_DOMAINS = "GenesByTransmembraneDomains"
 ORTHOLOGS = "GenesByOrthologs"
 GO_TERM = "GenesByGoTerm"
+GENE_TYPE = "GenesByGeneType"
 GO_CONCEPT = "structural constituent of ribosome"
 
 # The transmembrane ranges the standard flows state.
@@ -155,7 +156,7 @@ def count_spec(values: SiteValues) -> SpecPlan:
     crit = CriterionSpec(
         criterion_id="gene_type",
         text=f"protein-coding genes of {values.organism}",
-        search_name="GenesByGeneType",
+        search_name=GENE_TYPE,
         role="seed",
         values={"organism": [values.organism]},
     )

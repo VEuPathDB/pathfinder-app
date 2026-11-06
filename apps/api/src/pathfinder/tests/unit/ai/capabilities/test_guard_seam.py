@@ -18,6 +18,7 @@ from assistant_core.capabilities.repetition_guard import (
     ToolRepetitionGuard,
 )
 from assistant_core.graph.runtime import AssistantDeps
+from pydantic_ai import Agent
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
@@ -30,6 +31,7 @@ from pathfinder.ai.agents.tool_vocabulary import (
 )
 from pathfinder.ai.capabilities import resilience
 from pathfinder.ai.capabilities.resilience import ToolResilience
+from pathfinder.ai.explore.explore_agent import build_explore_agent
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import TurnMarkers
@@ -65,8 +67,8 @@ def _served_tool_names() -> set[str]:
 
 
 def _offered_tool_names() -> set[str]:
-    """Every tool name the Lead or one of the sub-agents can call."""
-    agents = [build_lead_agent()]
+    """Every tool name the Lead, Explore or one of the sub-agents can call."""
+    agents: list[Agent[Any, Any]] = [build_lead_agent(), build_explore_agent()]
     agents.extend(build() for build in BUILD_SUB_AGENT_BY_ROLE.values())
     registered = {
         name

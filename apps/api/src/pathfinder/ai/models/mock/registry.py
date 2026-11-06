@@ -60,6 +60,11 @@ from pathfinder.ai.models.mock.eda_arc import (
     eda_compare_no_step,
     eda_other_site,
 )
+from pathfinder.ai.models.mock.explore_arc import (
+    EXPLORE_ARC,
+    explore_readings,
+    no_reading,
+)
 from pathfinder.ai.models.mock.facts_arcs import list_ids
 from pathfinder.ai.models.mock.frame_arcs import spec_frame
 from pathfinder.ai.models.mock.genome_group_arcs import ortholog_in_a_group_spec
@@ -262,6 +267,10 @@ ARCS: dict[str, Arc] = {
     ),
     "rename": _arc(EDIT, lead(edit_arcs.rename)),
     "echo": _arc(QUESTION, lead(prose_arcs.echo)),
+    EXPLORE_ARC: replace(_built(default_frame), explore=explore_readings),
+    "explore-no-reading": replace(
+        _arc(QUESTION, lead(prose_arcs.echo)), explore=no_reading
+    ),
     "organism-universe": _built(
         spec_frame(strategy_specs.organism_universe_spec), reading=organism_reading
     ),

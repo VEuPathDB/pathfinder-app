@@ -20,6 +20,8 @@ from pathfinder.ai.agents.verification import (
     _VERIFICATION_INSTRUCTIONS,
     build_verification_agent,
 )
+from pathfinder.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
+from pathfinder.ai.explore.explore_agent import build_explore_agent
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.toolsets.verification import build_toolset
@@ -108,6 +110,7 @@ _TOOL_NAME_TOKENS = frozenset(
         "read_gene_record",
         "read_ledger_section",
         "recover_failed_steps",
+        "propose_readings",
         "verify_strategy",
         # Available in every phase
         "remember",
@@ -141,6 +144,7 @@ _SURFACES: dict[str, tuple[Callable[[], Agent[Any, Any]], str]] = {
     "execution": (build_execution_agent, _EXECUTION_INSTRUCTIONS),
     "verification": (build_verification_agent, _VERIFICATION_INSTRUCTIONS),
     "lead": (build_lead_agent, LEAD_INSTRUCTIONS),
+    "explore": (build_explore_agent, EXPLORE_INSTRUCTIONS),
 }
 
 
@@ -167,7 +171,9 @@ def test_the_research_reads_are_served_and_not_registered() -> None:
     assert _SOURCE_TOOL_NAMES & _all_registered_names() == set()
 
 
-@pytest.mark.parametrize("role", ["frame", "execution", "verification", "lead"])
+@pytest.mark.parametrize(
+    "role", ["frame", "execution", "verification", "lead", "explore"]
+)
 def test_every_instructed_tool_is_callable_by_its_agent(role: str) -> None:
     build, instructions = _SURFACES[role]
     instructed = _instructed_tool_names(instructions)

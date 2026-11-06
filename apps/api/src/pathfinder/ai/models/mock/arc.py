@@ -7,7 +7,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
-from pydantic_ai.messages import ModelMessage, ToolCallPart
+from assistant_core.models.scripted import scripted_text
+from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 from veupathdb_mcp.catalog import DecisionRequest, DecisionResponse, DecisionsTransport
 
 from pathfinder.ai.graph.state import PipelineState
@@ -16,13 +17,24 @@ from pathfinder.ai.lead.intent import UserIntent
 Role = Literal["lead", "frame", "verification", "execution"]
 
 Script = Callable[[list[ModelMessage]], ToolCallPart]
+ExploreScript = Callable[[list[ModelMessage]], ToolCallPart | TextPart]
 Sequence = Callable[[list[ModelMessage]], list[ToolCallPart]]
 Reading = Callable[[PipelineState, str], UserIntent]
+
+EXPLORE_ECHO = (
+    "[mock] This answers in Explore mode and proposes no reading. Switch to "
+    "Build and I will make it a strategy."
+)
 
 
 async def no_decision(request: DecisionRequest) -> DecisionResponse | None:
     del request
     return None
+
+
+def explore_echo(messages: list[ModelMessage]) -> TextPart:
+    del messages
+    return scripted_text(EXPLORE_ECHO)
 
 
 def history_free[T](build: Callable[[], T]) -> Callable[[list[ModelMessage]], T]:
@@ -46,6 +58,7 @@ class Arc:
     verification: Script
     execution: Script
     operators: DecisionsTransport = no_decision
+    explore: ExploreScript = explore_echo
 
     def script(self, role: Role) -> Script:
         match role:

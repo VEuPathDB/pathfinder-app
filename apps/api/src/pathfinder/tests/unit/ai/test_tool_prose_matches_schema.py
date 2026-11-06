@@ -18,6 +18,7 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.verification import build_verification_agent
+from pathfinder.ai.explore.explore_agent import build_explore_agent
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 
@@ -48,6 +49,7 @@ def _function_tools(agent: Agent[Any, Any]) -> dict[str, Tool[Any]]:
 def _inventory() -> dict[str, Tool[Any]]:
     found: dict[str, Tool[Any]] = {}
     for build in (
+        build_explore_agent,
         build_lead_agent,
         build_frame_agent,
         build_execution_agent,

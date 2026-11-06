@@ -59,6 +59,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "read_control_set",
         "compare_search_variants",
         "count_search",
+        "propose_readings",
         "count_by_column",
         "count_step_by_column",
         "step_columns",
