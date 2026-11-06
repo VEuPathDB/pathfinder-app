@@ -25,6 +25,8 @@ from pathfinder.ai.models.mock.explore_arc import (
     EXPLORE_ARC,
     FIRST_LABEL,
     NO_READING,
+    ONE_READING,
+    ONE_READING_ARC,
     SECOND_LABEL,
 )
 from pathfinder.ai.models.mock.registry import ARCS
@@ -70,7 +72,7 @@ def _explore(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
 
 
 def test_the_explore_arc_is_registered_under_its_name() -> None:
-    assert {EXPLORE_ARC, "explore-no-reading"} <= set(ARCS)
+    assert {EXPLORE_ARC, ONE_READING_ARC, "explore-no-reading"} <= set(ARCS)
 
 
 @pytest.mark.parametrize(
@@ -116,6 +118,26 @@ def test_a_stated_preference_is_remembered_before_the_card(prompt: str) -> None:
 )
 def test_a_reply_with_no_reading_is_text(prompt: str) -> None:
     assert _TEXT.validate_python(_explore(_asked(prompt))).content == NO_READING
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    ["Which genes carry a signal peptide? [[arc:explore-one-reading]]"],
+    indirect=True,
+)
+def test_the_one_reading_arc_counts_it_then_names_build(prompt: str) -> None:
+    messages = _asked(prompt)
+
+    counted = _CALL.validate_python(_explore(messages))
+    readings = counted.args_as_dict()["readings"]
+    reply = _TEXT.validate_python(_explore(_after(messages, counted)))
+
+    assert counted.tool_name == "propose_readings"
+    assert [(r["label"], r["search_name"]) for r in readings] == [
+        (FIRST_LABEL, SIGNAL_PEPTIDE)
+    ]
+    assert reply.content == ONE_READING
+    assert "Build" in ONE_READING
 
 
 @pytest.mark.parametrize("prompt", ["What does this search read?"], indirect=True)

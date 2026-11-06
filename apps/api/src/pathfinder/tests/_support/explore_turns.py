@@ -39,6 +39,7 @@ PREFERENCE_PROMPT = (
     "I prefer SignalP 6.0. Which genes carry a signal peptide? [[arc:explore]]"
 )
 NO_READING_PROMPT = "What is known about this family? [[arc:explore-no-reading]]"
+ONE_READING_PROMPT = "Which genes carry a signal peptide? [[arc:explore-one-reading]]"
 _SIGNAL_PEPTIDE_SEED = "PF3D7 Signal Peptide Genes"
 
 

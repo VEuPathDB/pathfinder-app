@@ -63,7 +63,11 @@ from pathfinder.ai.graph._lead_turn import memory_index, retrieve_memories
 from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.graph.stream_events import facts_event, recalled_memories_event
+from pathfinder.ai.graph.stream_events import (
+    facts_event,
+    recalled_memories_event,
+    turn_route_event,
+)
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -223,6 +227,8 @@ async def _run_explore_turn(
     context = runtime.context
     turn = explore_turn_for(state)
     fresh = turn.answered is None
+    if not fresh:
+        emit_chunk(writer, turn_route_event("explore"))
     memories = (
         await _recalled(state, runtime, writer)
         if fresh

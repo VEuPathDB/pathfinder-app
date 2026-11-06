@@ -62,8 +62,10 @@ from pathfinder.ai.models.mock.eda_arc import (
 )
 from pathfinder.ai.models.mock.explore_arc import (
     EXPLORE_ARC,
+    ONE_READING_ARC,
     explore_readings,
     no_reading,
+    one_reading,
 )
 from pathfinder.ai.models.mock.facts_arcs import list_ids
 from pathfinder.ai.models.mock.frame_arcs import spec_frame
@@ -271,6 +273,7 @@ ARCS: dict[str, Arc] = {
     "explore-no-reading": replace(
         _arc(QUESTION, lead(prose_arcs.echo)), explore=no_reading
     ),
+    ONE_READING_ARC: replace(_built(default_frame), explore=one_reading),
     "organism-universe": _built(
         spec_frame(strategy_specs.organism_universe_spec), reading=organism_reading
     ),

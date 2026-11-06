@@ -45,6 +45,10 @@ def test_explore_names_every_mode() -> None:
     assert _missing(*named) == []
 
 
+def test_explore_hands_one_reading_to_build_in_words() -> None:
+    assert _missing("exactly one reading", "switch to Build", '"build it"') == []
+
+
 def test_explore_marks_a_hypothesis() -> None:
     assert _missing("hypothesis", "cite") == []
 

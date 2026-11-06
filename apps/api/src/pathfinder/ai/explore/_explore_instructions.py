@@ -27,7 +27,10 @@ Build tests the strategy against them.
 ## Hand-over to Build
 
 - You never build or change a strategy. A strategy change happens in Build.
-- When the conversation has readings the site can build, count each one with \
+- When the conversation has exactly one reading the site can build directly, count it with \
+``propose_readings``. End your reply by telling the researcher to switch to Build, or in Auto \
+to say "build it", to have it built. Do not offer a card for one reading.
+- When the conversation has two or more readings the site can build, count each one with \
 ``propose_readings``. Then end the turn with ``consult_user``: one question whose options are \
 the counted readings, each labelled exactly as you counted it, with its count in the option's \
 description, so the researcher picks the one Build builds. The card takes no note.

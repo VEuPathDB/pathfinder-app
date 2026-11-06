@@ -178,12 +178,12 @@ def test_the_mock_deployment_runs_the_mock_model(
     assert (resolved.model_id, resolved.reasoning_effort) == ("mock:explore", None)
 
 
-def test_a_readings_count_takes_two_readings_at_least() -> None:
+def test_a_readings_count_takes_one_reading_at_least() -> None:
     schema = _explore_tools().tools["propose_readings"].function_schema.json_schema
 
     assert (schema["required"], schema["properties"]["readings"]["minItems"]) == (
         ["readings"],
-        2,
+        1,
     )
 
 

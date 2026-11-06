@@ -7,9 +7,12 @@ import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.ai.models.mock.explore_arc import ONE_READING
+from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     NO_READING_PROMPT,
+    ONE_READING_PROMPT,
     PREFERENCE_PROMPT,
     serve_recorded_readings,
 )
@@ -115,8 +118,28 @@ async def test_an_answered_explore_card_resumes_explore(
         connector=in_memory_jobs,
         body=approve_card(cid, asked, mode="build"),
     )
-    assert (routes(chunks), approval_tool_names(chunks)) == ([], ["consult_user"])
+    assert (routes(chunks), approval_tool_names(chunks)) == (
+        ["explore"],
+        ["consult_user"],
+    )
     assert (await turn_modes(cid))[-1] == ("assistant", "explore")
+
+
+async def test_one_buildable_reading_ends_on_words_that_name_build(
+    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+) -> None:
+    cid = uuid4()
+    chunks = await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt=ONE_READING_PROMPT,
+        conversation_id=cid,
+    )
+    said = "".join(str(c["delta"]) for c in chunks if c["type"] == "text-delta")
+    assert (routes(chunks), approval_tool_names(chunks)) == (["explore"], [])
+    assert said == plain_markdown(ONE_READING)
+    assert [(await checkpointed(cid)).pending_approval] == [None]
 
 
 async def test_existing_build_arcs_route_to_build_in_auto(

@@ -26,22 +26,23 @@ _COUNT: TypeAdapter[SearchCount] = TypeAdapter(SearchCount)
 
 async def propose_readings(
     ctx: RunContext[LeadDeps],
-    readings: Annotated[list[VariantInput], Field(min_length=2)],
+    readings: Annotated[list[VariantInput], Field(min_length=1)],
 ) -> ToolReturn[list[SearchCount]]:
     """Count the genes each reading the site can build returns. Read-only.
 
     A reading is one catalog search with its parameter values and a short
     ``label``, one way the site can state what the researcher asks. Each
     search runs as an anonymous WDK report, so no step is added and the
-    strategy keeps its root and its count. Offer the counted readings on one
-    ``consult_user`` card, each option labelled exactly as counted here, so
-    the researcher picks the reading the strategy builds.
+    strategy keeps its root and its count. Offer two or more counted readings
+    on one ``consult_user`` card, each option labelled exactly as counted
+    here, so the researcher picks the reading the strategy builds. One
+    counted reading takes no card.
 
     A search name the catalog does not list is refused with the searches the
     catalog lookup finds for it.
 
     Args:
-        readings: Two readings at least, each a search, its parameter values
+        readings: One reading at least, each a search, its parameter values
             and a short ``label`` the card shows.
     """
     counted = [

@@ -34,10 +34,10 @@ import { useStrategyStore } from "@/state/strategy/store";
 
 import { conversationCursors } from "../api/assistantClient";
 import { beginConversation } from "../api/beginConversation";
+import { threadModeFor } from "../composer/threadMode";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
-import { threadModeFor } from "../composer/threadMode";
 import { createDurableTransport } from "./durableTransport";
 import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
 import { useReaderModel } from "./useReaderModel";

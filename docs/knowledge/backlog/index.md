@@ -15,7 +15,7 @@ what left.
 4. [A count before an edit is read from the facts](a-count-before-an-edit-is-read-from-the-facts.md) - the Lead says the count before a deletion was not retained while the facts beside the reply show 22 before and 74 after; read it from the same record.
 5. [A term the researcher already allowed is used](a-term-the-researcher-already-allowed-is-used.md) - told to use an obsolete GO term if it is the only fit, the assistant still asks which term; a value the message allows settles the pick.
 6. [A domain comparison finds the site's entry](a-domain-comparison-finds-the-sites-entry.md) - asked to compare a name search with a domain search, the Lead asks for an accession the site already lists
-7. [A typed reply over the readings card keeps its readings](a-typed-reply-over-the-readings-card-keeps-its-readings.md) - a typed reply over Explore's readings card that the message reader classes `new_strategy` on a thread with no step sets the request aside, and the card's named readings go with it; reproduce it in a recorded run first.
+7. [A typed reply over the readings card keeps its readings](a-typed-reply-over-the-readings-card-keeps-its-readings.md) - words typed over Explore's readings card go to the Lead's typed-reply path at the API, which can set the request aside with its named readings, and become a card answer with a note in the web, which picks no reading; record a run of each path and decide whether the web sends them as a new message.
 
 ### After testers
 

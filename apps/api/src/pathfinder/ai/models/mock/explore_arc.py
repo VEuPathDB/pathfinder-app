@@ -4,7 +4,9 @@ import re
 from typing import Any, Final
 
 from assistant_core.models.scripted import (
+    called_tool_parts,
     current_scope_id,
+    current_turn,
     next_unmade_call,
     scripted_call,
     scripted_text,
@@ -17,6 +19,7 @@ from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
 EXPLORE_ARC: Final = "explore"
+ONE_READING_ARC: Final = "explore-one-reading"
 FIRST_LABEL = "Genes with a predicted signal peptide"
 SECOND_LABEL = "Every protein-coding gene"
 READINGS_QUESTION = "Which reading should the strategy build?"
@@ -31,6 +34,11 @@ NO_READING = (
     "[mock] The site holds no search that states this as asked, so I propose "
     "no reading. My hypothesis is that the literature names it under another "
     "term; switch to Build when you want a strategy."
+)
+ONE_READING = (
+    "[mock] The site's signal peptide search states this as asked, and the "
+    "facts beside this reply show the genes it counts. Switch to Build, or "
+    'say "build it" in Auto, to have it built.'
 )
 _PREFERENCE = re.compile(r"\bprefer", re.IGNORECASE)
 
@@ -96,6 +104,15 @@ def _kept_preference() -> list[ToolCallPart]:
             },
         )
     ]
+
+
+def one_reading(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
+    counted = called_tool_parts(current_turn(messages))
+    if any(call.tool_name == "propose_readings" for call in counted):
+        return scripted_text(ONE_READING)
+    organism = SiteValues.for_site(current_scope_id.get()).organism
+    [first, _] = _readings(organism)["readings"]
+    return scripted_call("propose_readings", {"readings": [first]})
 
 
 def explore_readings(messages: list[ModelMessage]) -> ToolCallPart:

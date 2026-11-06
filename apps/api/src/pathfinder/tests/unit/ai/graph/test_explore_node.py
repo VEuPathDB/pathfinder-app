@@ -10,6 +10,7 @@ from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.models.mock.explore_arc import (
     FIRST_LABEL,
     NO_READING,
+    ONE_READING,
     READINGS_REPLY,
     SECOND_LABEL,
 )
@@ -19,6 +20,7 @@ from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
+    ONE_READING_PROMPT,
     PREFERENCE_PROMPT,
     ExploreDoubles,
     chunks_of,
@@ -135,3 +137,51 @@ async def test_an_answered_preference_resumes_explore_to_the_readings_card(
     assert domain_of(resumed).exchanges[-1].said == "yes"
     assert domain_of(resumed).reading_labels() == [FIRST_LABEL, SECOND_LABEL]
     assert doubles.replies()[-1] == plain_markdown(READINGS_REPLY)
+
+
+async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
+    doubles: ExploreDoubles,
+) -> None:
+    command = await run_explore(explore_state(ONE_READING_PROMPT))
+
+    [facts] = doubles.of_type("data-facts")
+    [comparison] = facts["data"]["comparisons"]
+    assert [(v["label"], v["geneCount"]) for v in comparison["variants"]] == [
+        (FIRST_LABEL, seed_count())
+    ]
+    assert "pending_approval" not in update_of(command)
+    assert doubles.of_type("tool-approval-request") == []
+    assert doubles.replies() == [plain_markdown(ONE_READING)]
+    assert domain_of(command).named_readings == []
+    assert domain_of(command).exchanges[-1].card == ""
+
+
+async def test_a_fresh_explore_turn_leaves_its_mark_to_the_route_node(
+    doubles: ExploreDoubles,
+) -> None:
+    await run_explore(explore_state(NO_READING_PROMPT))
+
+    assert doubles.of_type("data-turn-route") == []
+
+
+async def test_an_answered_explore_card_marks_its_reply_explore(
+    doubles: ExploreDoubles,
+) -> None:
+    first = explore_state(PREFERENCE_PROMPT)
+    parked = await run_explore(first)
+    card: PendingApproval = update_of(parked)["pending_approval"]
+    answered = first.model_copy(
+        update={
+            "domain": domain_of(parked),
+            "pending_approval": card,
+            "approval_responses": {
+                card.tool_call_id: ToolApprovalResponded(id="a-1", approved=True)
+            },
+        }
+    )
+
+    await run_explore(answered)
+
+    assert [c["data"]["route"] for c in doubles.of_type("data-turn-route")] == [
+        "explore"
+    ]

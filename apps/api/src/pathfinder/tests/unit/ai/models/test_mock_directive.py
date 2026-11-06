@@ -128,6 +128,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "consult",
             "explore",
             "explore-no-reading",
+            "explore-one-reading",
             "no-search-states-it",
             "cross-organism",
             "zero-then-relax",

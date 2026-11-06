@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A thread answers in Explore or Build
-description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore hands a reading to Build on a consult card parked for the Lead, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
+description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore tells the researcher to switch to Build for one buildable reading and offers two or more on a consult card parked for the Lead, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
 tags: [modes, explore, router, decisions, lead, graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-06T00:00:00Z }
 status: stable
@@ -12,7 +12,9 @@ status: stable
 **One graph, two agents.** PathFinder's graph is `route -> lead | explore -> finalize_turn`
 (`ai/graph/builder.py`). The route node (`ai/graph/route_node.py::route_turn_node`) picks the
 agent, writes the route into the turn state's `mode`, and on a fresh turn emits a
-`data-turn-route` part, which the web reads to mark a reply "Explore". The Lead node and its
+`data-turn-route` part, which the web reads to mark a reply "Explore". On a resumed turn the
+Explore node emits the part itself (`ai/graph/explore_node.py`), so every reply Explore wrote
+carries the mark. The Lead node and its
 toolsets are unchanged. The Lead's instructions gain one line, `LEAD_MODE_LINE`, that names the
 three modes. `finalize_turn` runs after either agent. Explore runs no check, so it writes no
 case memory.
@@ -27,10 +29,13 @@ A branch or a copy opens on the source thread's mode, and a revert keeps it.
 **Who answers a turn.** The route node decides in this order:
 
 1. A resume goes to the agent that parked the call (`parked_route`): a completion turn that
-   carries the parked durable call's answer, and an answer to the parked card. A typed message
-   over a card the Lead parked also goes to the Lead, which reads it on its own typed-reply
-   path. A typed message over a card Explore parked (a preference to remember, a sweep) is a new
-   turn: it routes by the mode, and the card is cleared.
+   carries the parked durable call's answer, and an answer to the parked card. At the API, a
+   typed message over a card the Lead parked also goes to the Lead, which reads it on its own
+   typed-reply path. A typed message over a card Explore parked (a preference to remember, a
+   sweep) is a new turn: it routes by the mode, and the card is cleared. The web sends no such
+   typed message over a consult card: it turns the typed words into an answer to the card, with
+   the words as its note (see
+   [the backlog card](../backlog/a-typed-reply-over-the-readings-card-keeps-its-readings.md)).
 2. Mode `explore` goes to Explore and mode `build` to the Lead.
 3. In Auto, a turn with no words goes to the Lead, and the router decides every other turn.
 
@@ -40,7 +45,8 @@ choice question, `build` or `explore`. The request holds the measured instructio
 `strategy_line` (the step count, the final step's title and its count) and the last 4,000 of
 the message. The turn goes to Build only when the build probability is at least
 `BUILD_PROBABILITY_FLOOR`, 0.65. A refusal, an error, a key refusal or 5 seconds without an
-answer routes to Explore, which suggests Build when the request is buildable. A mock
+answer routes to Explore. For a request with one buildable reading, Explore tells the
+researcher to switch to Build, and for two or more it offers the readings card. A mock
 deployment routes by the `[[arc:<name>]]` token (`ai/models/mock/route.py`): an arc whose name
 starts with `explore` goes to Explore.
 
@@ -57,12 +63,15 @@ consequences:
 A researcher who wants Build then picks Build. A database error on that read fails the turn.
 
 **Explore.** `ai/explore/explore_agent.py` runs on `LeadDeps`, so Explore shares the thread's
-exchanges, the stated words, the memory store and the site with the Lead. Its tool set is an
-allowlist, and none of its tools writes the strategy: the catalog reads, gene records, the
-live strategy state, the gene set listing, the memories, the EDA reads and analyses, the
-parameter sweep, the research tool source, `propose_readings` (counts a reading without a
-step) and `consult_user`. `test_explore_holds_no_tool_that_writes_the_strategy` pins the
-exact set. It runs under `lead_usage_limits()` and reuses the Lead's stop replies and its
+exchanges, the stated words, the memory store and the site with the Lead. None of its tools
+writes the strategy. Its own toolset holds the catalog reads, gene records, the live strategy
+state, the gene set listing, the memories, `propose_readings` (counts readings without a step)
+and `consult_user`. From the EDA and sweep toolsets it takes only the names in an allowlist
+(`_SHARED_TOOLS`): the EDA reads and analyses and the parameter sweep, so a tool added to
+either toolset later does not reach Explore. The research tool source (literature and web
+search, with no tool that writes) is admitted whole.
+`test_explore_holds_no_tool_that_writes_the_strategy` pins the 19 static tool names; the
+research source's tools are served at run time and are not in that set. It runs under `lead_usage_limits()` and reuses the Lead's stop replies and its
 model usage part.
 
 **The explore role.** `explore` is a role in every tier. `EXPLORE_MODELS`
@@ -75,8 +84,10 @@ is no fallback for a provider the map lacks: a new provider fails at import unti
 line. The role is kept off the Settings picker for now, but a request may still override it
 like any role.
 
-**The hand-over.** When Explore has buildable readings, it counts two or more with
-`propose_readings` and ends on `consult_user`. Its validator (`ai/explore/readings_card.py`)
+**The hand-over.** When the conversation has exactly one reading the site can build
+directly, Explore counts it with `propose_readings` and ends its reply by telling the
+researcher to switch to Build (or, in Auto, to say "build it"); no card parks. When it has two
+or more, Explore counts them with `propose_readings` and ends on `consult_user`. Its validator (`ai/explore/readings_card.py`)
 admits only one untyped question whose options are counted readings, with no note and no
 replaced requirement. The card parks under the Lead's phase, so a pick resumes in Build. When
 the card parks, `hand_over_reading` records its labels as one named reading. The Lead's
@@ -89,7 +100,9 @@ and never writes `requirements`, `operational_spec` or `original_request`.
 The router was measured on 178 real messages (168 build, 10 explore), 3 runs each, on
 2026-11-06. It scored 93.3 percent with identical answers across runs, at 0.14 s median and
 about $0.00005 a turn. At the 0.65 floor, 19 of 168 build messages detour through Explore and
-9 of 10 explore messages are caught. A detour costs one Explore reply that suggests Build. A
+9 of 10 explore messages are caught. A detour costs one Explore reply. For a request with
+one buildable reading, that reply tells the researcher to switch to Build; for two or more,
+it offers the readings card, and a pick builds the reading. A
 missed concept question costs a strategy built from words no search states.
 
 The measurement used context text built by hand from recorded runs. Production sends

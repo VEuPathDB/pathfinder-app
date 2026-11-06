@@ -1,4 +1,4 @@
-import type { ThreadMode } from "@/lib/threadModes";
+import type { ThreadMode } from "@pathfinder/shared/generated/types/ThreadMode";
 
 import { createStore } from "./middleware";
 

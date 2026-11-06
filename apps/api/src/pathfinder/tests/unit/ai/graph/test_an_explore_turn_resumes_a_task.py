@@ -53,6 +53,28 @@ async def test_a_finished_reduction_resumes_explore_and_keeps_its_statistic(
     assert domain.request_messages == []
 
 
+async def test_a_finished_task_marks_its_reply_explore(
+    doubles: ExploreDoubles,
+) -> None:
+    task = uuid4()
+    parked = parked_durable(
+        NO_READING_PROMPT, tool_name=EDA_PCA.tool_name, task=task, args={}
+    )
+    state = explore_state(
+        NO_READING_PROMPT,
+        pending_durable_call=parked,
+        durable_result=DurableTaskResult(
+            task_id=task, status="success", result=PCA_RESULT
+        ),
+    )
+
+    await run_explore(state)
+
+    assert [c["data"]["route"] for c in doubles.of_type("data-turn-route")] == [
+        "explore"
+    ]
+
+
 async def test_a_finished_sweep_files_its_control_runs(
     doubles: ExploreDoubles,
 ) -> None:

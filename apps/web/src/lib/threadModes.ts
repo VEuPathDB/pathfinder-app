@@ -1,6 +1,4 @@
-export const THREAD_MODES = ["auto", "explore", "build"] as const;
-
-export type ThreadMode = (typeof THREAD_MODES)[number];
+import type { ThreadMode } from "@pathfinder/shared/generated/types/ThreadMode";
 
 export const THREAD_MODE_LABELS: Record<ThreadMode, string> = {
   auto: "Auto",

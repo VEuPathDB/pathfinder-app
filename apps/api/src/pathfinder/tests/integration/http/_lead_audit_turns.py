@@ -5,17 +5,14 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
-from langchain_core.runnables import RunnableConfig
 from procrastinate.testing import InMemoryConnector
 from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import turn_contract
-from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.audit.confirmations import PseudogeneConfirmation
 from pathfinder.domain.audit.findings import ConfirmationEvidence
 from pathfinder.domain.audit.scope import AuditScope, GenePairTarget
@@ -25,13 +22,12 @@ from pathfinder.persistence.repositories.audit_findings import (
     NewFinding,
     SettledFinding,
 )
-from pathfinder.platform.config import get_settings
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.tests._support.audit_planning import STRAINS
 from pathfinder.tests._support.read_text import as_read
 from pathfinder.tests.integration.chat._helpers import (
     chat_turn_jobs,
+    checkpointed,
     parse_sse_body,
     run_deferred_chat_turns,
     wait_until_chat_turn_deferred,
@@ -129,11 +125,7 @@ def summaries(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 async def domain_of(thread: UUID) -> StrategyDomainState:
-    spec = get_assistant_registry().resolve(PATHFINDER_ASSISTANT_ID)
-    config: RunnableConfig = {"configurable": {"thread_id": str(thread)}}
-    async with lifespan_checkpointer(get_settings().database_url) as saver:
-        snapshot = await spec.build_graph(saver).aget_state(config)
-    return StrategyDomainState.model_validate(snapshot.values["domain"])
+    return (await checkpointed(thread)).domain
 
 
 async def stored_finding(owner: RunOwner) -> int:
