@@ -144,6 +144,12 @@ def test_the_strategy_is_clipped_to_its_last_1500_characters() -> None:
     ) == ("s" * 1500)
 
 
+def test_the_message_is_clipped_to_its_last_4000_characters() -> None:
+    req = route_request("a" * 500 + "m" * 4000, conversation="c", strategy="s")
+    latest = req.input.split("\n\n## The researcher's latest message\n", 1)[1]
+    assert latest == "m" * 4000
+
+
 def test_an_empty_strategy_reads_empty() -> None:
     assert strategy_line(StrategySession(site_id="plasmodb")) == "(empty)"
 

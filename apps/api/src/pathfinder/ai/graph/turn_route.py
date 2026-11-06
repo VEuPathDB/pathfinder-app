@@ -45,6 +45,7 @@ ROUTE_EXPLORE: Final = (
 
 _CONVERSATION_CHARS: Final = 2500
 _STRATEGY_CHARS: Final = 1500
+_MESSAGE_CHARS: Final = 4000
 
 
 def route_request(message: str, *, conversation: str, strategy: str) -> DecisionRequest:
@@ -56,7 +57,7 @@ def route_request(message: str, *, conversation: str, strategy: str) -> Decision
             + "\n\n## The strategy now\n"
             + (strategy[-_STRATEGY_CHARS:] or "(empty)")
             + "\n\n## The researcher's latest message\n"
-            + message
+            + message[-_MESSAGE_CHARS:]
         ),
         questions=[
             ChoiceQuestion(

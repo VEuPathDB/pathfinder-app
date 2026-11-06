@@ -27,6 +27,7 @@ from pathfinder.ai.graph.turn_route import (
 from pathfinder.ai.models.mock.route import scripted_route
 from pathfinder.domain.modes import TurnRoute, route_of_parked_phase
 from pathfinder.platform.model_keys import is_mock_deployment
+from pathfinder.services.turn_payment import spent_deployment_budget
 
 type _Agent = Literal["lead", "explore"]
 
@@ -42,8 +43,14 @@ def parked_route(state: PipelineState) -> TurnRoute | None:
     return None
 
 
-def _service() -> DecisionsTransport | None:
-    return ask_the_service if the_deployment_decides() else None
+async def _service(
+    state: PipelineState, runtime: Runtime[Context]
+) -> DecisionsTransport | None:
+    if not the_deployment_decides():
+        return None
+    async with runtime.context.db_session_factory() as session:
+        spent = await spent_deployment_budget(session, state.user_id)
+    return ask_the_service if spent is None else None
 
 
 async def _picked_route(
@@ -53,7 +60,11 @@ async def _picked_route(
         return "explore"
     if state.mode == "build" or not state.user_prompt:
         return "build"
-    ask = scripted_route(state.user_prompt) if is_mock_deployment() else _service()
+    ask = (
+        scripted_route(state.user_prompt)
+        if is_mock_deployment()
+        else await _service(state, runtime)
+    )
     if ask is None:
         return "explore"
 

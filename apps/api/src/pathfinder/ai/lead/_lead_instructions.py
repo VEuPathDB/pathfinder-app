@@ -2,6 +2,8 @@
 that module under the per-file line cap. Prose only; no logic.
 """
 
+from typing import Final
+
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.lead._lead_audit_instructions import AUDIT_RULES
 from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
@@ -365,4 +367,14 @@ and the Ledger. Plain markdown.
 
 """
 
-LEAD_INSTRUCTIONS = with_vocabulary(_OPENING + _SWEEP_RULE + AUDIT_RULES + _CLOSING)
+LEAD_MODE_LINE: Final = (
+    "You answer in Build mode. PathFinder also has Explore mode, which talks a research "
+    "question through, reads the literature and proposes readings the site can build, and "
+    "Auto, which picks a mode per message. When the researcher wants to reason about the "
+    "biology before anything is built, say they can switch to Explore with the mode switch "
+    "beside Send.\n"
+)
+
+LEAD_INSTRUCTIONS = with_vocabulary(
+    _OPENING + _SWEEP_RULE + AUDIT_RULES + _CLOSING + LEAD_MODE_LINE
+)

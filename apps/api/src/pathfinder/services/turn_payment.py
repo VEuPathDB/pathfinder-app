@@ -27,10 +27,17 @@ async def turn_payment(
     payers = require_payers(model_ids, await key_statuses(session, user_id))
     if PaidBy.DEPLOYMENT not in payers.values():
         return TurnPayment(payers=payers, budget=None)
+    return TurnPayment(
+        payers=payers, budget=await spent_deployment_budget(session, user_id)
+    )
+
+
+async def spent_deployment_budget(
+    session: AsyncSession, user_id: UUID
+) -> QuotaStatus | None:
     status_now = await quota.get_current(
         session,
         user_id,
         limit_usd=await effective_monthly_limit_usd(session, user_id),
     )
-    used = status_now.used_usd >= status_now.limit_usd
-    return TurnPayment(payers=payers, budget=status_now if used else None)
+    return status_now if status_now.used_usd >= status_now.limit_usd else None

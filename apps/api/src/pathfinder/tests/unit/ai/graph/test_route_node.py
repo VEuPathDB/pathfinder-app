@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -13,8 +15,10 @@ from assistant_core.graph.turn_state import (
     PendingDurableCall,
 )
 from assistant_core.platform.types import PaidBy
+from assistant_core.quota import QuotaStatus
 from langgraph.runtime import Runtime
 from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.catalog import (
     DecisionRequest,
     DecisionsTransport,
@@ -42,6 +46,13 @@ RECORDED_INPUT_TOKENS = 711
 DEPLOYMENT_KEY = "sk-deployment-route-key"
 RESEARCHER_KEY = "sk-researcher-route-key"
 TASK = uuid4()
+SPENT = QuotaStatus(
+    used_usd=Decimal("2.000000"),
+    limit_usd=Decimal("2.0"),
+    total_tokens=900,
+    percent=1.0,
+    resets_at=datetime(2026, 11, 1, tzinfo=UTC),
+)
 
 
 @dataclass
@@ -78,14 +89,28 @@ def refusing_decisions(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(route_node, "decided_route", _refuse)
 
 
+@dataclass
+class _Budget:
+    spent: QuotaStatus | None = None
+    read_for: list[UUID] = field(default_factory=list)
+
+
 @pytest.fixture
-def live_deployment(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def live_deployment(monkeypatch: pytest.MonkeyPatch) -> Iterator[_Budget]:
     install_catalog_prices()
     settings = get_settings()
     monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", DEPLOYMENT_KEY)
+    budget = _Budget()
+
+    async def _spent(session: AsyncSession, user_id: UUID) -> QuotaStatus | None:
+        del session
+        budget.read_for.append(user_id)
+        return budget.spent
+
+    monkeypatch.setattr(route_node, "spent_deployment_budget", _spent)
     use_decisions_transport(send_decision)
-    yield
+    yield budget
     use_decisions_transport(post_decision)
 
 
@@ -119,7 +144,7 @@ def state(mode: str = "auto", user_prompt: str = "", **fields: Any) -> PipelineS
 
 
 def runtime() -> Runtime[Context]:
-    return Runtime(context=turn_runtime())
+    return Runtime(context=turn_runtime(db_session_factory=AsyncSession))
 
 
 def approval(*, phase: str, tool_name: str = "remember") -> PendingApproval:
@@ -227,9 +252,8 @@ async def test_a_resume_writes_no_route_part(turn: _Turn) -> None:
     assert (update_of(command)["mode"], turn.chunks()) == ("build", [])
 
 
-@pytest.mark.usefixtures("live_deployment")
 async def test_the_router_runs_on_the_deployments_key_and_is_charged(
-    turn: _Turn,
+    turn: _Turn, live_deployment: _Budget
 ) -> None:
     wire = DecisionsWire(_routed_build())
     asked = state("auto", "Count the genes with a signal peptide", turn_total_tokens=0)
@@ -244,6 +268,21 @@ async def test_the_router_runs_on_the_deployments_key_and_is_charged(
         (user, [(s.tokens, s.paid_by) for s in spent]) for user, spent in turn.charged
     ] == [(asked.user_id, [(RECORDED_INPUT_TOKENS, PaidBy.DEPLOYMENT)])]
     assert turn.chunks()[-1]["type"] == "data-turn-usage"
+    assert live_deployment.read_for == [asked.user_id]
+
+
+async def test_a_spent_monthly_allowance_explores_without_asking(
+    turn: _Turn, live_deployment: _Budget
+) -> None:
+    live_deployment.spent = SPENT
+    wire = DecisionsWire(_routed_build())
+    asked = state("auto", "Count the genes with a signal peptide")
+    with attach_keyring(ProviderKeyring(), build=wire.build):
+        command = await route_turn_node(asked, runtime())
+    assert (command.goto, wire.sent) == ("explore", [])
+    assert [s for _, spent in turn.charged for s in spent] == []
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "explore"}}]
+    assert live_deployment.read_for == [asked.user_id]
 
 
 @pytest.mark.usefixtures("live_deployment")
