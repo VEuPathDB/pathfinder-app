@@ -5109,15 +5109,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@veupathdb/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.9.0b2":
-  version: 0.9.0-beta.1
-  resolution: "@veupathdb/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40veupathdb%2Fassistant-client&commit=af9927216f43ccbcb5b07cff15b858c02bbd8806"
+"@veupathdb/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.9.0b3":
+  version: 0.9.0-beta.2
+  resolution: "@veupathdb/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40veupathdb%2Fassistant-client&commit=bd126f38d0788561beccf2f1228eefa163300424"
   peerDependencies:
     ai: ">=7.0.0 <8"
   peerDependenciesMeta:
     ai:
       optional: true
-  checksum: 10/870076a4cdde3c880a8a01bfc966173a2e490731d6e9ef243b9394cafd7c3099a6233f5cb6fab6df7846f1732e7b51ca7ac5d4b21fc37323b4f1ad1314255314
+  checksum: 10/fa3152abe214c858eec0eb6866065bf128161445e457d3c6b921a136d47e009fb1f29ae3d796e9d9183d65a73ab5281b8884558d1b99efed8eeee78a61a7e075
   languageName: node
   linkType: hard
 
@@ -11070,7 +11070,7 @@ __metadata:
     "@types/node": "npm:^26.4.0"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.5"
-    "@veupathdb/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.9.0b2"
+    "@veupathdb/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.9.0b3"
     "@vitest/coverage-v8": "npm:^5.0.5"
     "@xyflow/react": "npm:^12.11.6"
     ai: "npm:7.0.87"
