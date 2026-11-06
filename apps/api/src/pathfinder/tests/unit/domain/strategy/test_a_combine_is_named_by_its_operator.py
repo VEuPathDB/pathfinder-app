@@ -254,7 +254,7 @@ def test_every_unnamed_combine_is_named() -> None:
         ),
     ]
 
-    name_the_combines(steps)
+    name_the_combines({step.id: step for step in steps})
 
     assert [step.display_name for step in steps] == [
         None,

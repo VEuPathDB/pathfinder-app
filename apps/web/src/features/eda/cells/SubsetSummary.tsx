@@ -4,7 +4,7 @@ import { useEdaStore } from "@/state/eda";
 
 import { CellShell } from "./CellShell";
 
-const MUTED = "text-[11px] text-muted-foreground";
+const MUTED = "text-[0.6875rem] text-muted-foreground";
 
 /** The subset the analysis holds, as text. The site's notebook edits it. */
 export function SubsetSummary() {
@@ -20,7 +20,7 @@ export function SubsetSummary() {
             <li
               key={index}
               data-testid={`eda-filter-chip-${String(index)}`}
-              className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px]"
+              className="rounded-full border border-border bg-muted px-2 py-0.5 text-[0.6875rem]"
             >
               {summary}
             </li>

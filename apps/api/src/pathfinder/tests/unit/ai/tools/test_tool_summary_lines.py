@@ -80,7 +80,7 @@ class TestASilentZeroReportsEmpty:
             ctx, "nothing at all", record_type="transcript"
         )
         chunk = summary_of(returned)
-        assert chunk.data["summary"] == "0 searches"
+        assert chunk.data["summary"] == "0 searches on PlasmoDB"
         assert chunk.data["status"] == "empty"
 
     async def test_get_parameter_options(self, monkeypatch: pytest.MonkeyPatch) -> None:

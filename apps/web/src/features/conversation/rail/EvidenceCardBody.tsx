@@ -130,7 +130,7 @@ function ControlTest({ test }: { test: ControlTestEvidence }): ReactElement {
   if (test.negative != null) rows.push(controlRow(test.negative, "negative"));
   return (
     <div data-testid="evidence-controls">
-      <p className="mb-1.5 text-[11px] text-muted-foreground">
+      <p className="mb-1.5 text-[0.6875rem] text-muted-foreground">
         {test.controlSet == null
           ? `Control test on ${test.testedLabel}`
           : `Control test of ${test.controlSet.name} on ${test.testedLabel}`}
@@ -173,7 +173,7 @@ function Citations({
 }): ReactElement | null {
   if (cited.length === 0) return null;
   return (
-    <dl data-testid="evidence-citations" className="space-y-1 text-[11px]">
+    <dl data-testid="evidence-citations" className="space-y-1 text-[0.6875rem]">
       {cited.map((criterion) => (
         <div key={criterion.criterionId}>
           <dt className="text-muted-foreground">{criterion.criterionText}</dt>
@@ -248,12 +248,15 @@ export function EvidenceCardBody({
   return (
     <div data-testid="evidence-card-body" className="min-w-0 space-y-3">
       {(card.pendingChecks ?? []).length > 0 ? (
-        <p data-testid="evidence-pending" className="text-[11px] text-muted-foreground">
+        <p
+          data-testid="evidence-pending"
+          className="text-[0.6875rem] text-muted-foreground"
+        >
           {pendingLine(card.pendingChecks ?? [])}
         </p>
       ) : null}
       {superseded ? (
-        <p data-testid="evidence-superseded" className="text-[11px] text-warning">
+        <p data-testid="evidence-superseded" className="text-[0.6875rem] text-warning">
           Superseded: the strategy changed after this check.
         </p>
       ) : null}
@@ -267,7 +270,7 @@ export function EvidenceCardBody({
         <div data-testid="evidence-steps">
           <ExhibitTable columns={STEP_COLUMNS} rows={card.steps.map(stepRow)} />
           {card.siteRead !== "not_answered" ? null : (
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-[0.6875rem] text-muted-foreground">
               The site did not answer at the check, so no count is shown for it.
             </p>
           )}

@@ -15,7 +15,7 @@ from pydantic_ai.tools import (
 )
 
 from pathfinder.ai.audit.run_tools import START_TOOL
-from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, PROSE_MAX_CHARS, CardCallReply
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardCallReply
 from pathfinder.ai.lead.deleted_steps import DELETE_TOOL
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -68,7 +68,7 @@ def hold_the_contract_on_a_card(
         return None
     record = turn_record(ctx).model_copy(update={"ends_on_a_card": True})
     replies = _replies_beside_the_cards(requests)
-    report = LeadResponse(prose="\n\n".join(replies)[:PROSE_MAX_CHARS])
+    report = LeadResponse(prose="\n\n".join(replies))
     mismatches = to_correct(ctx, report, record)
     if not mismatches:
         return None

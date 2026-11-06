@@ -37,7 +37,7 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
             <div className="text-base font-semibold tracking-tight text-foreground">
               PathFinder
             </div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
               VEuPathDB Strategy Builder
             </div>
           </div>

@@ -14,7 +14,7 @@ import { plotCaption } from "./plotCaptions";
 // The chart's grid reserves 64px for its axes, so the plot area is the
 // height minus that; 220 matches the collapsed volcano.
 const HISTOGRAM_HEIGHT = 220;
-const MUTED = "text-[11px] text-muted-foreground";
+const MUTED = "text-[0.6875rem] text-muted-foreground";
 const SUMMARY = `cursor-pointer ${MUTED}`;
 const MULTIVALUED_NOTE =
   "one record can carry several values, so these counts do not add up to the subset size";

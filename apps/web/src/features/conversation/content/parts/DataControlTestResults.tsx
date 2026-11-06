@@ -177,7 +177,7 @@ function testedLine(data: ControlTestResults): string {
 function TestedStep({ data }: { data: ControlTestResults }): ReactNode {
   const parameters = data.targetParameters ?? [];
   return (
-    <dl className="mb-3 space-y-0.5 text-[11px] leading-relaxed">
+    <dl className="mb-3 space-y-0.5 text-[0.6875rem] leading-relaxed">
       <div className="flex gap-1.5">
         <dt className="shrink-0 text-muted-foreground">Tested step:</dt>
         <dd className="min-w-0 text-foreground">{testedLine(data)}</dd>

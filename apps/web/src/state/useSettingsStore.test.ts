@@ -25,6 +25,49 @@ describe("state/useSettingsStore", () => {
     expect(s.deleteFromWdk).toBe(false);
     expect(s.phaseModels).toEqual({});
     expect(s.phaseReasoning).toEqual({});
+    expect(s.textScale).toBe(100);
+  });
+
+  it("setTextScale writes the root font size and persists it", () => {
+    useSettingsStore.getState().setTextScale(130);
+
+    expect(document.documentElement.style.fontSize).toBe("130%");
+    expect(
+      JSON.parse(window.localStorage.getItem("pathfinder-settings-20260625") ?? "{}"),
+    ).toMatchObject({ state: { textScale: 130 } });
+  });
+
+  it("reads back a stored text size and applies it to the root", async () => {
+    window.localStorage.setItem(
+      "pathfinder-settings-20260625",
+      JSON.stringify({ state: { textScale: 115 }, version: 0 }),
+    );
+
+    await useSettingsStore.persist.rehydrate();
+
+    expect(useSettingsStore.getState().textScale).toBe(115);
+    expect(document.documentElement.style.fontSize).toBe("115%");
+  });
+
+  it("reads back the default text size for a stored size it does not offer", async () => {
+    useSettingsStore.getState().setTextScale(90);
+    window.localStorage.setItem(
+      "pathfinder-settings-20260625",
+      JSON.stringify({ state: { textScale: 250 }, version: 0 }),
+    );
+
+    await useSettingsStore.persist.rehydrate();
+
+    expect(useSettingsStore.getState().textScale).toBe(100);
+    expect(document.documentElement.style.fontSize).toBe("100%");
+  });
+
+  it("resetToDefaults restores the default text size", () => {
+    useSettingsStore.getState().setTextScale(90);
+    useSettingsStore.getState().resetToDefaults();
+
+    expect(useSettingsStore.getState().textScale).toBe(100);
+    expect(document.documentElement.style.fontSize).toBe("100%");
   });
 
   it("setShowRawToolCalls updates state", () => {

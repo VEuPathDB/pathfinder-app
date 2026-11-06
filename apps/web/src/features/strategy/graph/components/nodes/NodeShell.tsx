@@ -185,7 +185,7 @@ export function NodeShell({
           )}
           {subtitle !== "" && (
             <div
-              className="truncate pr-12 text-[11px] leading-tight text-muted-foreground"
+              className="truncate pr-12 text-[0.6875rem] leading-tight text-muted-foreground"
               title={subtitle}
               data-testid="node-subtitle"
             >
@@ -194,7 +194,7 @@ export function NodeShell({
           )}
           {reason !== "" && step.rationale != null && (
             <div
-              className="truncate pr-12 text-[11px] leading-tight text-muted-foreground"
+              className="truncate pr-12 text-[0.6875rem] leading-tight text-muted-foreground"
               title={reasonDetail(step.rationale)}
               data-testid="node-rationale"
             >

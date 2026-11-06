@@ -113,25 +113,24 @@ async def _push_combine_step(
             input_step_id=primary_wdk_id,
             record_type=record_type,
         )
-        return wdk_result.id
-
-    wdk_result = await api.create_combined_step(
-        CombinedStepSpec(
-            primary_step_id=primary_wdk_id,
-            secondary_step_id=secondary_wdk_id,
-            boolean_operator=parsed_op,
-            custom_name=name,
-            wdk_weight=step.wdk_weight,
-        ),
-        record_type=record_type,
-    )
-    if step.expanded_strategy_id is not None:
-        # The create-combined-step endpoint does not accept "expanded", so it
-        # is set by a PATCH.
+    else:
+        wdk_result = await api.create_combined_step(
+            CombinedStepSpec(
+                primary_step_id=primary_wdk_id,
+                secondary_step_id=secondary_wdk_id,
+                boolean_operator=parsed_op,
+                custom_name=name,
+                wdk_weight=step.wdk_weight,
+            ),
+            record_type=record_type,
+        )
+    if step.expanded_name:
+        # The create-combined-step call sends neither "expanded" nor
+        # "expandedName", so both are set by a PATCH.
         await api.update_step_properties(
             wdk_result.id,
             spec=PatchStepSpec(
-                expanded=True,
+                expanded=True if step.expanded_strategy_id is not None else None,
                 expanded_name=step.expanded_name,
             ),
         )
@@ -203,8 +202,10 @@ async def _patch_name(
     sync_state: WDKSyncState,
     step: StrategyStep,
 ) -> None:
-    """Write the name the step states."""
+    """Write the name the step states, and the name of the group it nests."""
     await api.update_step_properties(
         step_id=sync_state.wdk_step_ids[step.id],
-        spec=PatchStepSpec(custom_name=step.display_name),
+        spec=PatchStepSpec(
+            custom_name=step.display_name, expanded_name=step.expanded_name or None
+        ),
     )

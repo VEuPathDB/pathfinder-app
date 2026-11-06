@@ -19,6 +19,7 @@ from pathfinder.services.separation.offer import (
     too_few_controls_report,
 )
 from pathfinder.services.separation.thread_searches import thread_searches
+from pathfinder.services.strategies.search_sheets import radio_pairs_of
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 
@@ -49,8 +50,11 @@ async def separate_controls(
         return too_few_controls_report(
             result, task_id=task_id, site_id=site_id, request=request
         )
-    sheets = await sheet_params_for_searches(
-        site_id=site_id,
-        search_names={m.candidate.search_name for m in result.measured},
+    searches = {m.candidate.search_name for m in result.measured}
+    sheets = await sheet_params_for_searches(site_id=site_id, search_names=searches)
+    return separation_report(
+        result,
+        task_id=task_id,
+        sheets=sheets,
+        radio_pairs=await radio_pairs_of(site_id, searches),
     )
-    return separation_report(result, task_id=task_id, sheets=sheets)

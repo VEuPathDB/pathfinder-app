@@ -101,7 +101,7 @@ export function ScratchpadPanel({ conversationId }: ScratchpadPanelProps) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 px-2 py-1">
-      <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="px-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div className="flex flex-col gap-1">{children}</div>
@@ -166,7 +166,7 @@ function NoteCard({ note, onTogglePin, onDelete }: NoteCardProps) {
       {tags.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {tags.map((t) => (
-            <Badge key={t} variant="secondary" className="text-[10px]">
+            <Badge key={t} variant="secondary" className="text-[0.625rem]">
               {t}
             </Badge>
           ))}

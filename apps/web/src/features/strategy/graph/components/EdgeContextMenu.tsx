@@ -83,7 +83,7 @@ export function EdgeContextMenu({
       >
         {isCombineEdge && (
           <>
-            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
               Change operator
             </div>
             <div
@@ -103,7 +103,7 @@ export function EdgeContextMenu({
                     aria-checked={active}
                     aria-label={`Set operator to ${operatorLabel(op)}`}
                     className={cn(
-                      "flex flex-col items-center gap-1 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors",
+                      "flex flex-col items-center gap-1 rounded-md border px-2 py-1.5 text-[0.6875rem] font-medium transition-colors",
                       active
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border text-muted-foreground hover:border-input hover:bg-accent hover:text-foreground",

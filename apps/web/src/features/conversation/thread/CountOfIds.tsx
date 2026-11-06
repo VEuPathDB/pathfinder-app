@@ -39,11 +39,11 @@ export function CountOfIds({ count, ids, noun }: CountOfIdsProps): ReactElement 
         </button>
       </HoverCardTrigger>
       <HoverCardContent className="w-72 p-3">
-        <p className="text-[11px] text-muted-foreground">{noun}</p>
-        <p className="mt-1.5 max-h-40 overflow-y-auto font-mono text-[11px] break-all text-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">{noun}</p>
+        <p className="mt-1.5 max-h-40 overflow-y-auto font-mono text-[0.6875rem] break-all text-foreground">
           {ids.join(", ")}
         </p>
-        <p className="mt-1.5 text-[10px] text-muted-foreground">
+        <p className="mt-1.5 text-[0.625rem] text-muted-foreground">
           Click the number to copy them.
         </p>
       </HoverCardContent>

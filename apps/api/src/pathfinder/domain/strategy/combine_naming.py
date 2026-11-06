@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Mapping
 
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
+
+from pathfinder.domain.strategy.step_naming import cut_on_a_word
 
 _LABELS: dict[CombineOp, str] = {
     CombineOp.INTERSECT: "Intersect",
@@ -55,10 +57,43 @@ def combine_name(
     return combine_display_name(operator)
 
 
-def name_the_combines(steps: Iterable[StrategyStep]) -> None:
-    """Give each combine no researcher named its operator's label."""
-    for step in steps:
+def name_the_combines(steps: Mapping[str, StrategyStep]) -> None:
+    """Give each combine no researcher named its operator's label, and name each
+    nested group no saved strategy names after the steps inside it."""
+    for step in steps.values():
         if step.kind is StepKind.COMBINE:
             step.display_name = combine_name(
                 step.display_name, step.search_name, step.operator
             )
+            if step.expanded_strategy_id is None:
+                step.expanded_name = _group_name(steps, step.secondary_input_id)
+
+
+def _group_name(steps: Mapping[str, StrategyStep], group_id: str | None) -> str | None:
+    group = steps.get(group_id) if group_id is not None else None
+    if group is None or group.kind is not StepKind.COMBINE:
+        return None
+    combines: list[StrategyStep] = []
+    members: list[StrategyStep] = []
+    _gather(steps, group, combines, members)
+    shown = cut_on_a_word(", ".join(member.display_label for member in members))
+    operators = {combine.operator for combine in combines}
+    match list(operators):
+        case [CombineOp() as operator]:
+            return f"{combine_display_name(operator)}: {shown}"
+        case _:
+            return shown
+
+
+def _gather(
+    steps: Mapping[str, StrategyStep],
+    step: StrategyStep,
+    combines: list[StrategyStep],
+    members: list[StrategyStep],
+) -> None:
+    if step.kind is not StepKind.COMBINE:
+        members.append(step)
+        return
+    combines.append(step)
+    for input_id in step.input_ids():
+        _gather(steps, steps[input_id], combines, members)

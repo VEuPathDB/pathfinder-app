@@ -58,14 +58,14 @@ export function TraceGroup({
       <div data-testid="trace-group" className="flex h-6 items-center gap-2">
         <span
           data-testid="trace-group-label"
-          className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+          className="text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground"
         >
           {label}
         </span>
         {outcome !== null && (
           <span
             data-testid="trace-group-state"
-            className="text-[11px] text-muted-foreground"
+            className="text-[0.6875rem] text-muted-foreground"
           >
             {outcome}
           </span>
@@ -73,7 +73,7 @@ export function TraceGroup({
         {usage && (
           <span
             data-testid="trace-group-usage"
-            className="text-[11px] text-muted-foreground tabular-nums"
+            className="text-[0.6875rem] text-muted-foreground tabular-nums"
           >
             {formatUsage(group.tokens, group.costUsd)}
           </span>

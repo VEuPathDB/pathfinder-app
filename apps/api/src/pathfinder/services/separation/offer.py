@@ -8,6 +8,8 @@ step returned as its reason.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
+from typing import NamedTuple
 from uuid import UUID
 
 from pydantic import TypeAdapter
@@ -49,6 +51,11 @@ _NAMED_BY_ITS_SEARCH = frozenset({"catalog", "thread"})
 _SOURCE: TypeAdapter[ControlsSource] = TypeAdapter(ControlsSource)
 
 
+class _Reading(NamedTuple):
+    sheets: Sheets
+    radio_pairs: Mapping[str, Mapping[str, str]]
+
+
 def _controls(measured: MeasuredCandidate) -> ControlTestEvidence:
     return ControlTestEvidence(
         tested_label=measured.candidate.display_name,
@@ -81,7 +88,10 @@ def _rationale(measured: MeasuredCandidate, task_id: UUID) -> ControlsRationale:
 
 
 def _criterion(
-    measured: MeasuredCandidate, role: CriterionRole, task_id: UUID, sheets: Sheets
+    measured: MeasuredCandidate,
+    role: CriterionRole,
+    task_id: UUID,
+    reading: _Reading,
 ) -> Criterion:
     candidate = measured.candidate
     text = (
@@ -96,10 +106,11 @@ def _criterion(
         search_display_name=candidate.display_name,
         record_class=RECORD_TYPE,
         role=role,
+        radio_pairs=dict(reading.radio_pairs.get(candidate.search_name, {})),
         resolved_params=bind_values(
             candidate.parameters,
             "card",
-            sheets.get(candidate.search_name, ()),
+            reading.sheets.get(candidate.search_name, ()),
             str(task_id),
         ),
         confidence=1.0,
@@ -139,7 +150,7 @@ def _structure(node: SeparationNode) -> StructureNode:
 
 
 def _offer(
-    result: SeparationResult, task_id: UUID, sheets: Sheets
+    result: SeparationResult, task_id: UUID, reading: _Reading
 ) -> SeparationOffer | None:
     tree, positive, negative = result.tree, result.positive, result.negative
     if tree is None or positive is None or negative is None:
@@ -147,7 +158,7 @@ def _offer(
     by_id = {m.candidate.id: m for m in result.measured}
     roles = _roles(tree, "seed")
     criteria = [
-        _criterion(by_id[cid], role, task_id, sheets) for cid, role in roles.items()
+        _criterion(by_id[cid], role, task_id, reading) for cid, role in roles.items()
     ]
     read_positive = ControlSetEvidence(
         returned=positive.recovered_ids, not_returned=positive.missed_ids
@@ -204,19 +215,23 @@ def _measured(measured: MeasuredCandidate) -> MeasuredCriterion:
 
 
 def separation_report(
-    result: SeparationResult, *, task_id: UUID, sheets: Sheets
+    result: SeparationResult,
+    *,
+    task_id: UUID,
+    sheets: Sheets,
+    radio_pairs: Mapping[str, Mapping[str, str]],
 ) -> SeparationReport:
     """The report of one run: its offer, its measurements, its skips and its cost.
 
     ``sheets`` are the published sheets of the measured searches, which each
-    offered value is read on.
+    offered value is read on, and ``radio_pairs`` the pairs each one declares.
     """
     skipped = Counter[SkipReason](s.reason for s in result.skipped)
     return SeparationReport(
         task_id=str(task_id),
         site_id=result.site_id,
         mode=result.mode,
-        offer=_offer(result, task_id, sheets),
+        offer=_offer(result, task_id, _Reading(sheets, radio_pairs)),
         measured=[_measured(m) for m in result.measured],
         skipped_by_reason=dict(sorted(skipped.items())),
         skipped_examples=[

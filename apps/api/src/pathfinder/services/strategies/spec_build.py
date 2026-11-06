@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.build_outcome import (
     built_counts,
     node_status,
 )
+from pathfinder.domain.strategy.combine_naming import name_the_combines
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.orthology import organism_change
 from pathfinder.domain.strategy.record_class_check import step_class_of
@@ -102,6 +103,7 @@ def _replace_graph_contents(
     graph.recompute_roots()
     graph.last_step_id = root.id
     graph.note_words(step_words)
+    name_the_combines(graph.steps)
     if description is not None:
         graph.description = description
 
@@ -195,8 +197,6 @@ async def build_strategy_from_spec(
     if refusal is not None:
         raise ApplyError(refusal)
 
-    steps_by_id = flatten_tree(root)
-    nodes = [steps_by_id[sid] for sid in subtree_ids(root.id, steps_by_id)]
     sync_state = ensure_sync_state(session)
     _replace_graph_contents(
         graph,
@@ -205,6 +205,7 @@ async def build_strategy_from_spec(
         description=description,
         step_words=deps.step_words,
     )
+    nodes = [graph.steps[sid] for sid in subtree_ids(root.id, graph.steps)]
     # A step the build minted under a new id carries no kind yet, so the
     # catalog says which plugin reads its analysis document.
     await read_the_unread_kinds(site_id=deps.site_id, graph=graph)

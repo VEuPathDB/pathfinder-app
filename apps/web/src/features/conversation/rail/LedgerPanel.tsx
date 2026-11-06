@@ -7,6 +7,7 @@ import type { UIMessage } from "ai";
 import { runningPhase } from "@veupathdb/assistant-client";
 import { normalizeLedgerPayload } from "./normalizeLedger";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { cn } from "@/lib/utils/cn";
 import { useRightRailStore } from "@/state/useRightRailStore";
@@ -133,52 +134,71 @@ export function LedgerPanel({ conversationId }: { conversationId: string }) {
           Live state of the investigation. Each tab shows one stage in detail.
         </p>
       </div>
-      <div className="grid shrink-0 grid-cols-4 gap-0.5 border-b border-border bg-muted/30 p-1">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => selectTab(t.id)}
-            className={cn(
-              "relative rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors",
-              tab === t.id
-                ? "bg-card text-primary shadow-xs"
-                : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
-            )}
-          >
-            {t.label}
-            {hasUpdate(t.id) && t.id !== tab && (
-              <span
-                aria-label={`${t.label} has updates`}
-                className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary"
-              />
-            )}
-          </button>
-        ))}
-      </div>
-      <div
-        className="flex-1 overflow-auto"
-        role="region"
-        aria-label="Progress detail"
-        tabIndex={0}
+      <Tabs
+        value={tab}
+        onValueChange={(next) => {
+          const picked = TABS.find((t) => t.id === next);
+          if (picked !== undefined) selectTab(picked.id);
+        }}
+        className="min-h-0 flex-1 gap-0"
       >
-        {ledger === null ? (
-          <p className="px-4 py-3 text-xs text-muted-foreground">
-            {phase === null
-              ? "Waiting for the first stage of this investigation..."
-              : `${phaseLabel(phase)} is running...`}
-          </p>
-        ) : (
-          <>
-            {phase !== null && (
-              <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-                {`${phaseLabel(phase)} is running...`}
-              </p>
-            )}
-            <LedgerTabContent tab={tab} ledger={ledger} parts={parts} card={card} />
-          </>
-        )}
-      </div>
+        <TabsList
+          variant="line"
+          className="grid w-full shrink-0 grid-cols-4 gap-0 border-b border-border p-0 px-1 group-data-[orientation=horizontal]/tabs:h-auto"
+        >
+          {TABS.map((t) => (
+            <TabsTrigger
+              key={t.id}
+              value={t.id}
+              className={cn(
+                "h-auto rounded-none px-2 py-2 text-[0.6875rem] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                "data-[state=active]:font-semibold data-[state=active]:text-foreground",
+                "after:bg-primary group-data-[orientation=horizontal]/tabs:after:bottom-[-2px] group-data-[orientation=horizontal]/tabs:after:h-[3px]",
+              )}
+            >
+              {t.label}
+              {hasUpdate(t.id) && t.id !== tab && (
+                <span
+                  aria-label={`${t.label} has updates`}
+                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary"
+                />
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <div
+          className="min-h-0 flex-1 overflow-auto"
+          role="region"
+          aria-label="Progress detail"
+          tabIndex={0}
+        >
+          {TABS.map((t) => (
+            <TabsContent key={t.id} value={t.id} tabIndex={-1}>
+              {ledger === null ? (
+                <p className="px-4 py-3 text-xs text-muted-foreground">
+                  {phase === null
+                    ? "Waiting for the first stage of this investigation..."
+                    : `${phaseLabel(phase)} is running...`}
+                </p>
+              ) : (
+                <>
+                  {phase !== null && (
+                    <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+                      {`${phaseLabel(phase)} is running...`}
+                    </p>
+                  )}
+                  <LedgerTabContent
+                    tab={t.id}
+                    ledger={ledger}
+                    parts={parts}
+                    card={card}
+                  />
+                </>
+              )}
+            </TabsContent>
+          ))}
+        </div>
+      </Tabs>
     </div>
   );
 }

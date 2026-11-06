@@ -66,6 +66,19 @@ describe("ChatEmptyState", () => {
       "List ortholog groups with exactly one protein from every apicomplexan genome.",
     );
   });
+
+  it("hides the scrollbar of the swiped suggestion row", () => {
+    render(
+      <EmptyThread>
+        <ChatEmptyState assistantId="pathfinder" />
+      </EmptyThread>,
+    );
+
+    expect(screen.getByTestId("chat-suggestions")).toHaveClass(
+      "no-scrollbar",
+      "overflow-x-auto",
+    );
+  });
 });
 
 describe("ChatEmptyState first-run hint", () => {

@@ -101,7 +101,7 @@ async function openRail(page: Page, label: string): Promise<Locator> {
 async function openChecking(page: Page): Promise<Locator> {
   await openRail(page, "Progress");
   const panel = page.getByTestId("ledger-panel");
-  await panel.getByRole("button", { name: /^Checking/ }).click();
+  await panel.getByRole("tab", { name: /^Checking/ }).click();
   return panel;
 }
 

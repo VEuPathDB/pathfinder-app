@@ -66,7 +66,7 @@ export function SupersededBadge(): ReactElement | null {
     <div
       data-testid="superseded-badge"
       title="The strategy changed after this answer, so any counts here are historical."
-      className="inline-flex items-center gap-1.5 self-start py-0.5 text-[11px] text-warning"
+      className="inline-flex items-center gap-1.5 self-start py-0.5 text-[0.6875rem] text-warning"
     >
       <span className="font-medium">Superseded</span>
       <span aria-hidden>-</span>

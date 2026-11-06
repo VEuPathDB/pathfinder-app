@@ -125,11 +125,11 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
             variant="ghost"
             size="sm"
             onClick={() => setShowDismissed((prev) => !prev)}
-            className="h-7 w-full justify-start gap-1.5 px-1.5 text-[11px] font-normal uppercase tracking-wider text-muted-foreground"
+            className="h-7 w-full justify-start gap-1.5 px-1.5 text-[0.6875rem] font-normal uppercase tracking-wider text-muted-foreground"
           >
             <Archive className="h-3 w-3" />
             <span>Recently deleted ({data.dismissedConversations.length})</span>
-            <span className="ml-auto text-[10px]">
+            <span className="ml-auto text-[0.625rem]">
               {showDismissed ? "\u25BC" : "\u25B6"}
             </span>
           </Button>

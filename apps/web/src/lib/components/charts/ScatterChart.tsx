@@ -110,7 +110,7 @@ export function ScatterChart(props: ScatterChartProps) {
       {model.droppedPointCount > 0 && (
         <p
           data-testid={`${props.testId}-dropped`}
-          className="mt-1 text-[11px] text-muted-foreground"
+          className="mt-1 text-[0.6875rem] text-muted-foreground"
         >
           {model.droppedPointCount === 1
             ? "1 point with a missing coordinate was not plotted"

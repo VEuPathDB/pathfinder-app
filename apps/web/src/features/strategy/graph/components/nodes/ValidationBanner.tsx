@@ -71,7 +71,7 @@ export function ValidationBanner({
           {message}
         </p>
         {onOpenDetails != null && (
-          <span className="mt-1.5 block text-[10px] text-muted-foreground">
+          <span className="mt-1.5 block text-[0.625rem] text-muted-foreground">
             Click the dot for details.
           </span>
         )}

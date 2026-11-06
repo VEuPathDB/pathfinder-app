@@ -66,7 +66,7 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
         {assistantId !== DEFAULT_ASSISTANT_ID && (
           <div
             data-testid="chat-assistant-label"
-            className="mb-3 rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+            className="mb-3 rounded-full border border-border/60 px-2.5 py-0.5 text-[0.6875rem] font-medium text-muted-foreground"
           >
             {assistantLabel(assistantId)}
           </div>
@@ -120,13 +120,12 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
 
         {suggestions.length > 0 && (
           <div
+            data-testid="chat-suggestions"
             className={cn(
               "mt-8 w-full max-w-3xl",
-              "flex gap-2.5 overflow-x-auto pb-1",
+              "flex gap-2.5 overflow-x-auto pb-1 no-scrollbar",
               "sm:grid sm:grid-cols-2 sm:overflow-visible",
-              "[&::-webkit-scrollbar]:hidden",
             )}
-            style={{ scrollbarWidth: "none" }}
           >
             {suggestions.map((prompt, i) => (
               <SuggestionCard key={prompt} prompt={prompt} index={i} />
@@ -155,7 +154,7 @@ function SuggestionCard({ prompt, index }: { prompt: string; index: number }) {
         send
         className={cn(
           "h-auto w-full whitespace-normal rounded-xl border border-border/60 bg-card/40 px-4 py-3",
-          "text-left text-[13px] leading-relaxed text-muted-foreground",
+          "text-left text-[0.8125rem] leading-relaxed text-muted-foreground",
           "transition-all duration-200",
           "hover:-translate-y-0.5 hover:bg-card/80 hover:text-foreground hover:shadow-sm",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

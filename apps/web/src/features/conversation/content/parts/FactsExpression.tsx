@@ -16,7 +16,7 @@ export function FactsExpression({ expression }: { expression: string }): ReactEl
     <div className="mt-1 flex items-start gap-1">
       <pre
         data-testid="facts-param-expression"
-        className="min-w-0 flex-1 select-all whitespace-pre-wrap break-all rounded border border-border bg-muted/40 px-2 py-1 font-mono text-[11px] text-foreground"
+        className="min-w-0 flex-1 select-all whitespace-pre-wrap break-all rounded border border-border bg-muted/40 px-2 py-1 font-mono text-[0.6875rem] text-foreground"
       >
         {expression}
       </pre>

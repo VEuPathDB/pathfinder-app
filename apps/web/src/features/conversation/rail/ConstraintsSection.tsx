@@ -5,12 +5,8 @@ import type { InvestigationLedger } from "@pathfinder/shared/generated/types/Inv
 
 import { type Tone } from "@/features/conversation/rail/statusTone";
 
-import {
-  BoolBadge,
-  LedgerRow,
-  LedgerSection,
-  StatusPill,
-} from "./LedgerPanelPrimitives";
+import { constraintSentences } from "./constraintSentences";
+import { LedgerSection, StatusPill } from "./LedgerPanelPrimitives";
 
 const STATUS_TONE: Record<GroundedConstraint["status"], Tone> = {
   grounded: "good",
@@ -32,7 +28,7 @@ function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
   const { constraint } = entry;
   const realized = entry.realizedValue ?? "-";
   return (
-    <div className="ml-1 border-l border-border pl-2 text-[11px]">
+    <div className="ml-1 border-l border-border pl-2 text-[0.6875rem]">
       <div className="flex items-center justify-between gap-2">
         <span>
           {constraint.label}
@@ -58,21 +54,20 @@ export function ConstraintsSection({
 }: {
   constraints: InvestigationLedger["constraints"];
 }) {
-  const { blocking = false, unmetCount = 0, grounded = [] } = constraints ?? {};
+  const grounded = constraints?.grounded ?? [];
+  const sentences = constraintSentences(grounded);
   return (
     <LedgerSection title="Constraints">
-      <LedgerRow label="blocking" value={<BoolBadge value={blocking} />} />
-      <LedgerRow
-        label="unmet (user-explicit)"
-        value={
-          <StatusPill
-            text={String(unmetCount)}
-            tone={unmetCount > 0 ? "warn" : "neutral"}
-          />
-        }
-      />
+      {sentences.length > 0 && (
+        <p
+          data-testid="constraints-summary"
+          className="ml-1 pl-2 text-xs leading-relaxed text-foreground"
+        >
+          {sentences.join(" ")}
+        </p>
+      )}
       {grounded.length === 0 ? (
-        <p className="ml-1 pl-2 text-[11px] italic text-muted-foreground">none</p>
+        <p className="ml-1 pl-2 text-[0.6875rem] italic text-muted-foreground">none</p>
       ) : (
         grounded.map((entry) => (
           <ConstraintRow

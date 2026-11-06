@@ -47,7 +47,7 @@ export function EdaPanel({ conversationId }: EdaPanelProps) {
                 : analysis.datasetId}
             </p>
             <p className="text-muted-foreground">{analysis.displayName}</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[0.6875rem] text-muted-foreground">
               {`${analysis.numFilters.toLocaleString()} ${analysis.numFilters === 1 ? "filter" : "filters"} - ${analysis.numComputations.toLocaleString()} ${analysis.numComputations === 1 ? "computation" : "computations"}`}
             </p>
           </div>

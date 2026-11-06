@@ -15477,6 +15477,11 @@ components:
           - type: string
           - type: 'null'
           title: Organismparam
+        radioPairs:
+          additionalProperties:
+            type: string
+          title: Radiopairs
+          type: object
         datasetOrganisms:
           items:
             type: string

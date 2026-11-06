@@ -7,12 +7,21 @@ from collections.abc import Mapping
 from pydantic import ConfigDict, Field
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.model import CamelModel
+from veupathdb_mcp.catalog import RADIO_OFF
 
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
 
-__all__ = ["StepTitle", "TitleLabel", "criterion_title"]
+__all__ = ["StepTitle", "TitleLabel", "criterion_title", "cut_on_a_word"]
 
 LABELS_LENGTH = 60
+
+
+def cut_on_a_word(shown: str) -> str:
+    if len(shown) <= LABELS_LENGTH:
+        return shown
+    cut = shown[: LABELS_LENGTH + 1]
+    boundary = cut.rfind(" ")
+    return f"{cut[:boundary] if boundary > 0 else cut[:LABELS_LENGTH]}..."
 
 
 class TitleLabel(CamelModel):
@@ -34,11 +43,7 @@ class StepTitle(CamelModel):
         shown = ", ".join(label.label for label in self.labels)
         if not shown:
             return self.head
-        if len(shown) > LABELS_LENGTH:
-            cut = shown[: LABELS_LENGTH + 1]
-            boundary = cut.rfind(" ")
-            shown = f"{cut[:boundary] if boundary > 0 else cut[:LABELS_LENGTH]}..."
-        return f"{self.head}: {shown}"
+        return f"{self.head}: {cut_on_a_word(shown)}"
 
     def kept(self, parameters: Mapping[str, ParamValue]) -> StepTitle:
         return self.model_copy(
@@ -59,11 +64,18 @@ def criterion_title(criterion: Criterion) -> StepTitle:
     return StepTitle(
         head=criterion.search_display_name or criterion.text[:60],
         labels=[
-            TitleLabel(param=name, wire=bound.value.to_wire(), label=bound.label)
+            TitleLabel(param=name, wire=bound.value.to_wire(), label=label)
             for name, bound in criterion.resolved_params.items()
-            if bound.label
+            if (label := _label(criterion.radio_pairs, name, bound))
             and bound.visible
             and not bound.unset
             and name != criterion.organism_param
         ],
     )
+
+
+def _label(pairs: Mapping[str, str], name: str, bound: BoundValue) -> str:
+    off = bound.value.to_decoded() in (RADIO_OFF, [RADIO_OFF])
+    if name in pairs.values():
+        return "" if off else bound.value.to_wire()
+    return "" if name in pairs and off else bound.label

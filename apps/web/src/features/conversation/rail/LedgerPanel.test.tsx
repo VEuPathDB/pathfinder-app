@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 
 const messagesRef: { current: unknown[] } = { current: [] };
@@ -98,15 +99,54 @@ describe("LedgerPanel tab indicators", () => {
     expect(screen.queryByLabelText("Summary has updates")).toBeNull();
   });
 
-  it("clears a tab's dot once viewed, leaving other tabs flagged", () => {
+  it("clears a tab's dot once viewed, leaving other tabs flagged", async () => {
     setLedger(makeLedger());
     render(<LedgerPanel conversationId="c1" />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Planning/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Summary/ }));
+    await userEvent.click(screen.getByRole("tab", { name: /Planning/ }));
+    await userEvent.click(screen.getByRole("tab", { name: /Summary/ }));
 
     expect(screen.queryByLabelText("Planning has updates")).toBeNull();
     expect(screen.getByLabelText("Building has updates")).toBeInTheDocument();
+  });
+});
+
+describe("LedgerPanel active tab", () => {
+  it("marks the selected tab and gives it the primary underline", async () => {
+    setLedger(makeLedger());
+    render(<LedgerPanel conversationId="c1" />);
+
+    const summary = screen.getByRole("tab", { name: "Summary" });
+    const building = screen.getByRole("tab", { name: /^Building/ });
+    expect(summary).toHaveAttribute("aria-selected", "true");
+    expect(summary).toHaveAttribute("data-state", "active");
+    expect(building).toHaveAttribute("aria-selected", "false");
+
+    await userEvent.click(building);
+
+    expect(building).toHaveAttribute("aria-selected", "true");
+    expect(building).toHaveAttribute("data-state", "active");
+    expect(summary).toHaveAttribute("data-state", "inactive");
+    expect(building).toHaveClass(
+      "text-muted-foreground",
+      "data-[state=active]:font-semibold",
+      "data-[state=active]:text-foreground",
+      "after:bg-primary",
+      "group-data-[orientation=horizontal]/tabs:after:h-[3px]",
+    );
+    expect(building).not.toHaveClass("text-primary", "bg-card");
+  });
+
+  it("shows the selected tab's detail in a panel the tab names", async () => {
+    setLedger(makeLedger());
+    render(<LedgerPanel conversationId="c1" />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /^Building/ }));
+
+    const panel = screen.getByRole("tabpanel", { name: "Building" });
+    expect(Array.from(panel.querySelectorAll("h3"), (h) => h.textContent)).toEqual([
+      "Building",
+    ]);
   });
 });
 

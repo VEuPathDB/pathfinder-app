@@ -53,7 +53,7 @@ export function MemoriesPanel() {
 function MemorySection({ title, items }: { title: string; items: MemoryItem[] }) {
   return (
     <div className="px-3 py-2">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="mb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
         {title} · {items.length}
       </p>
       <ul className="space-y-1.5">
@@ -61,7 +61,7 @@ function MemorySection({ title, items }: { title: string; items: MemoryItem[] })
           <li key={item.key} className="rounded-md border border-border px-2 py-1.5">
             <p className="truncate text-xs font-medium">{item.value.name}</p>
             {item.value.summary.length > 0 && (
-              <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+              <p className="mt-0.5 line-clamp-2 text-[0.6875rem] text-muted-foreground">
                 {item.value.summary}
               </p>
             )}

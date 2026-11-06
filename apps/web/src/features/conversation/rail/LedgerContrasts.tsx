@@ -15,7 +15,7 @@ export function LedgerContrasts({ contrasts }: { contrasts: ContrastSummary[] })
 
   return (
     <div className="mt-2 space-y-1">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
         Contrast
       </div>
       {contrasts.map((c) => {
@@ -25,14 +25,14 @@ export function LedgerContrasts({ contrasts }: { contrasts: ContrastSummary[] })
           c.reference == null ||
           c.reference === "";
         return (
-          <div key={c.criterionId} className="text-[11px] leading-snug">
+          <div key={c.criterionId} className="text-[0.6875rem] leading-snug">
             <span className="font-mono text-muted-foreground">{c.criterionId}</span>
             <span className="mx-1 text-muted-foreground">·</span>
             <span className={incomplete ? "text-warning" : "text-foreground"}>
               {c.summary}
             </span>
             {incomplete && (
-              <span className="ml-1 text-[10px] text-warning">(incomplete)</span>
+              <span className="ml-1 text-[0.625rem] text-warning">(incomplete)</span>
             )}
           </div>
         );

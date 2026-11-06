@@ -20,6 +20,7 @@ from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM, to_wire
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.ledger_sections import render_structure
+from pathfinder.domain.clipped import clipped_text
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 from pathfinder.domain.strategy.expression_handles import BuiltPattern
@@ -146,7 +147,7 @@ def _case_value(
     value = MemoryValue(
         kind="case",
         name=_cut(name),
-        summary=summary[:_SUMMARY_LIMIT],
+        summary=clipped_text(summary, _SUMMARY_LIMIT),
         tags=_tags(state, spec),
         site_id=state.site_id,
         content=content,

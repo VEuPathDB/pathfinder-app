@@ -52,7 +52,12 @@ of the values it binds, which the binding pass reads
 (`step_naming.criterion_title`; `domain/strategy/step_naming.py::StepTitle`). A label
 counts when the value is shown, is not the site's initial value or prompt, and
 is not the organism parameter, which the strategy name carries; the labels are
-cut on a word at 60 code points. `StepWords.titles` stores that title per step
+cut on a word at 60 code points. For a pair the search declares in
+`radio-params` (`Criterion.radio_pairs`, read from the search's properties when
+FRAME binds it, when a strategy is read back and when a controls run offers
+it), a vocabulary half bound to `N/A` has no label and the free-text half
+is labelled by its own value, so `ec_wildcard=*` beside `ec_number_pattern=N/A`
+titles the step "EC Number: *". `StepWords.titles` stores that title per step
 id in the strategy's metadata. A step whose name equals its stored title is
 PathFinder's: `StrategyGraph.note_words` gives it the newer title, and a
 parameter write (`_apply_update_params`) gives it its own title less the label
@@ -61,7 +66,23 @@ its stored title, because a person renamed it, a model wrote it, the site holds
 another, or it was stored with no title, keeps its name. A rebound search keeps
 a researcher's name too.
 
+**A nested group is named after the steps inside it.** The site draws the
+secondary input of a combine as a nested strategy when that input has an input
+of its own, and labels it by the `expandedName` of the combine that takes it
+(`wdk-client` `StrategyUtils.ts::makeStepBoxDisplayName`, which shows "Unnamed
+Nested Strategy" for a combine with none). `combine_naming.py::name_the_combines`
+gives every combine whose secondary input is a combine, and that names no saved
+strategy, the names of the steps in that group in tree order, cut on a word at
+60 code points, after the operator's label when every combine in the group has
+one operator. It runs after every build and every commit, so the name follows
+the steps. A create or a name write sends it by a PATCH, without `expanded`. A
+saved strategy's own name, and a name the site imports with `expanded` set,
+are kept.
+
 # Gaps accepted
+
+- A name a person gives a nested group on the site and then collapses is not
+  read back, so the next write of that combine sends the generated name.
 
 - A branch or a copy of a thread carries no seed, so its name ("X (branch)",
   "Copy of X") is never generated anew.

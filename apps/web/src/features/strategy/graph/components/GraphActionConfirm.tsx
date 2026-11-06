@@ -88,7 +88,7 @@ export function GraphActionConfirm<R extends string>({
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{choice.title}</span>
                     {choice.isDefault && (
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
                         default
                       </span>
                     )}
@@ -96,7 +96,7 @@ export function GraphActionConfirm<R extends string>({
                   <span className="text-xs text-muted-foreground">
                     {choice.description}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[0.6875rem] text-muted-foreground">
                     Will delete {choice.willDelete.length}
                   </span>
                 </div>

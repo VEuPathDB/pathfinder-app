@@ -55,7 +55,7 @@ export function ScatterPanel({ payload }: { payload: EdaViz }) {
         {droppedCount > 0 ? (
           <p
             data-testid="eda-viz-scatter-no-pvalue"
-            className="mt-1 text-[11px] text-muted-foreground"
+            className="mt-1 text-[0.6875rem] text-muted-foreground"
           >
             {droppedCount === 1
               ? "1 point without a p-value was not plotted"
@@ -66,7 +66,7 @@ export function ScatterPanel({ payload }: { payload: EdaViz }) {
       <div className="w-full shrink-0 lg:w-80">
         <table
           data-testid="eda-viz-scatter-table"
-          className="w-full text-left text-[11px]"
+          className="w-full text-left text-[0.6875rem]"
         >
           <thead className="text-muted-foreground">
             <tr>
@@ -88,7 +88,7 @@ export function ScatterPanel({ payload }: { payload: EdaViz }) {
         {rows.length > READOUT_LIMIT ? (
           <p
             data-testid="eda-viz-scatter-cap"
-            className="mt-1 text-[11px] text-muted-foreground"
+            className="mt-1 text-[0.6875rem] text-muted-foreground"
           >
             {`The first ${String(READOUT_LIMIT)} of ${String(rows.length)} plotted points are listed.`}
           </p>

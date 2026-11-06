@@ -367,7 +367,7 @@ def test_a_question_with_a_reading_problem_is_still_a_question() -> None:
 
 
 def test_a_reading_label_is_clipped_to_leave_room_for_its_count() -> None:
-    assert Reading(label="x" * 91, value=EVERY).label == "x" * 90
+    assert Reading(label="x" * 91, value=EVERY).label == "x" * 87 + "..."
 
 
 def test_a_reading_of_an_unkeyed_question_says_its_pick_replaces_none() -> None:

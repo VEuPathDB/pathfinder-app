@@ -18,6 +18,7 @@ from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.readings import refused_picks
 from pathfinder.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.clipped import clipped_text
 from pathfinder.domain.strategy.card_answers import (
     option_refusal,
     spec_bound_by_card,
@@ -52,7 +53,6 @@ from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 _LABEL_LIMIT = 120
-_QUESTION_LIMIT = 300
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
 
 
@@ -107,7 +107,7 @@ def _answer_requirement(
         requested_value=stated,
         # A question carries the label. An unlabelled one falls back to the
         # answer, because a requirement is always named.
-        label=prompt[:_LABEL_LIMIT] or stated[:_LABEL_LIMIT],
+        label=clipped_text(prompt or stated, _LABEL_LIMIT),
         source=ConstraintSource.USER_EXPLICIT,
         hard=True,
     )
@@ -323,7 +323,7 @@ def _asked(questions: Sequence[CardQuestion]) -> list[OpenQuestion]:
     """The card's questions as the thread holds an answered one."""
     return [
         AskedQuestion(
-            question=q.prompt[:_QUESTION_LIMIT],
+            question=q.prompt,
             dimension=q.dimension,
             options=[o.label for o in q.options],
         ).typed()

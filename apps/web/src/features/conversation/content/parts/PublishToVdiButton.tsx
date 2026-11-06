@@ -14,7 +14,7 @@ const VISIBILITIES: readonly VdiVisibility[] = ["private", "protected", "public"
 const STATUS_POLL_MS = 5000;
 const PILL =
   "flex items-center gap-1 rounded-full border border-border px-2 py-0.5" +
-  " text-[10px] font-medium text-muted-foreground hover:text-foreground" +
+  " text-[0.625rem] font-medium text-muted-foreground hover:text-foreground" +
   " disabled:opacity-50";
 
 type PublishState =
@@ -53,14 +53,14 @@ function PublishedLine({ geneSetId }: { geneSetId: string }) {
 
   if (status.data === undefined && status.error !== null) {
     return (
-      <span role="alert" className="text-[10px] text-destructive">
+      <span role="alert" className="text-[0.625rem] text-destructive">
         {toUserMessage(status.error, "The publication status could not be read.")}
       </span>
     );
   }
 
   return (
-    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+    <span className="flex items-center gap-1.5 text-[0.625rem] text-muted-foreground">
       <Share2 className="size-3" aria-hidden />
       <span>{statusLine(status.data)}</span>
       {status.data != null && (
@@ -125,7 +125,7 @@ export function PublishToVdiButton({ geneSet }: { geneSet: GeneSet }) {
           Publish to VEuPathDB workspace
         </button>
         {state.kind === "failed" && (
-          <span role="alert" className="text-[10px] text-destructive">
+          <span role="alert" className="text-[0.625rem] text-destructive">
             {state.message}
           </span>
         )}
@@ -135,7 +135,7 @@ export function PublishToVdiButton({ geneSet }: { geneSet: GeneSet }) {
 
   return (
     <span className="flex items-center gap-1.5">
-      <label className="text-[10px] text-muted-foreground" htmlFor={visibilityId}>
+      <label className="text-[0.625rem] text-muted-foreground" htmlFor={visibilityId}>
         Visibility
       </label>
       <select
@@ -143,7 +143,7 @@ export function PublishToVdiButton({ geneSet }: { geneSet: GeneSet }) {
         value={visibility}
         disabled={state.kind === "publishing"}
         onChange={(e) => setVisibility(readVisibility(e.target.value))}
-        className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+        className="rounded border border-border bg-background px-1 py-0.5 text-[0.625rem]"
       >
         {VISIBILITIES.map((option) => (
           <option key={option} value={option}>

@@ -15,7 +15,7 @@ import { StatusPill } from "./LedgerPanelPrimitives";
 
 function Markdown({ children }: { children: string }) {
   return (
-    <div className="min-w-0 break-words text-[11px] leading-relaxed [&_a]:break-all [&_code]:whitespace-pre-wrap [&_code]:break-all [&_pre]:overflow-x-auto">
+    <div className="min-w-0 break-words text-[0.6875rem] leading-relaxed [&_a]:break-all [&_code]:whitespace-pre-wrap [&_code]:break-all [&_pre]:overflow-x-auto">
       <MessageResponse>{children}</MessageResponse>
     </div>
   );
@@ -59,22 +59,22 @@ function CriterionCard({ crit }: { crit: Criterion }) {
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 break-all font-mono text-[11px] font-medium text-foreground">
+        <span className="min-w-0 break-all font-mono text-[0.6875rem] font-medium text-foreground">
           {runsLabel(crit)}
         </span>
         <StatusPill text={crit.role} />
       </div>
-      <p className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-1 break-words text-[0.6875rem] leading-relaxed text-muted-foreground">
         {crit.text}
       </p>
       {selects != null && selects !== crit.text && (
-        <p className="mt-1 break-words text-[11px] leading-relaxed text-foreground">
+        <p className="mt-1 break-words text-[0.6875rem] leading-relaxed text-foreground">
           {selects}
         </p>
       )}
       {crit.rationale?.short != null && (
         <p
-          className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground"
+          className="mt-1 break-words text-[0.6875rem] leading-relaxed text-muted-foreground"
           title={
             crit.rationale.kind === "controls"
               ? crit.rationale.basis
@@ -88,7 +88,10 @@ function CriterionCard({ crit }: { crit: Criterion }) {
       {params.length > 0 && (
         <div className="mt-1.5 space-y-0.5">
           {params.map(([key, bound]) => (
-            <div key={key} className="break-all font-mono text-[10px] leading-relaxed">
+            <div
+              key={key}
+              className="break-all font-mono text-[0.625rem] leading-relaxed"
+            >
               <span className="text-muted-foreground">{key}</span>
               <span className="text-muted-foreground">: </span>
               <span className="text-foreground">{formatParamValue(bound.value)}</span>
@@ -98,7 +101,10 @@ function CriterionCard({ crit }: { crit: Criterion }) {
         </div>
       )}
       {(crit.openParams ?? []).map((slot) => (
-        <p key={slot.paramName} className="mt-1 break-words text-[10px] text-warning">
+        <p
+          key={slot.paramName}
+          className="mt-1 break-words text-[0.625rem] text-warning"
+        >
           needs <span className="font-mono">{slot.paramName}</span>: {slot.question}
         </p>
       ))}
@@ -118,7 +124,7 @@ export function FrameDetail({ frame }: { frame: InvestigationLedger["frame"] }) 
         ))}
       </div>
       {frame.structureRender != null && frame.structureRender !== "" && (
-        <div className="min-w-0 text-[10px]">
+        <div className="min-w-0 text-[0.625rem]">
           <span className="text-muted-foreground">structure: </span>
           <span className="break-all font-mono text-foreground">
             {frame.structureRender}
@@ -128,7 +134,10 @@ export function FrameDetail({ frame }: { frame: InvestigationLedger["frame"] }) 
       {dropped.length > 0 && (
         <div className="space-y-0.5">
           {dropped.map((d) => (
-            <p key={d.text} className="break-words text-[10px] text-muted-foreground">
+            <p
+              key={d.text}
+              className="break-words text-[0.625rem] text-muted-foreground"
+            >
               <span className="text-destructive">dropped</span> {d.text} - {d.reason}
             </p>
           ))}
@@ -148,7 +157,7 @@ function NodeResultRow({ node }: { node: NodeResult }) {
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 break-all font-mono text-[11px] text-foreground">
+        <span className="min-w-0 break-all font-mono text-[0.6875rem] text-foreground">
           {node.searchName === "__combine__" ? "Combine" : node.searchName}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -156,7 +165,7 @@ function NodeResultRow({ node }: { node: NodeResult }) {
         </div>
       </div>
       {node.error != null && node.error !== "" && (
-        <p className="mt-1 break-words text-[10px] leading-relaxed text-destructive">
+        <p className="mt-1 break-words text-[0.625rem] leading-relaxed text-destructive">
           {node.error}
         </p>
       )}
@@ -184,7 +193,7 @@ function MarkdownList({ label, items }: { label: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <Markdown>{items.map((item) => `- ${item}`).join("\n")}</Markdown>

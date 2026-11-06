@@ -87,7 +87,7 @@ function ChildList({
       data-testid="saved-substrategy-container"
       className="ml-1.5 mt-0.5 rounded-md border border-dashed border-primary/40 bg-primary/5 p-1.5"
     >
-      <header className="mb-1 flex items-center gap-2 px-1 text-[10px] uppercase tracking-wide text-primary/80">
+      <header className="mb-1 flex items-center gap-2 px-1 text-[0.625rem] uppercase tracking-wide text-primary/80">
         <Bookmark className="size-3" aria-hidden />
         <span className="truncate font-semibold">{savedName}</span>
       </header>

@@ -34,6 +34,22 @@ describe("AdvancedSettings", () => {
     expect(screen.getByRole("switch", { name: "Show token usage" })).toBeChecked();
   });
 
+  it("sets the text size from its own row", () => {
+    render(<AdvancedSettings />);
+
+    expect(screen.getByRole("radio", { name: "100%" })).toHaveAttribute(
+      "data-state",
+      "on",
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "130%" }));
+
+    expect(useSettingsStore.getState().textScale).toBe(130);
+    expect(screen.getByRole("radio", { name: "130%" })).toHaveAttribute(
+      "data-state",
+      "on",
+    );
+  });
+
   it("offers the reset of the settings this browser keeps", () => {
     render(<AdvancedSettings />);
 

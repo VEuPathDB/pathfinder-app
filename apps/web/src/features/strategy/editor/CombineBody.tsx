@@ -23,7 +23,7 @@ export function CombineBody({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
           Operator
         </p>
         <p className="mt-1 text-xs text-muted-foreground">

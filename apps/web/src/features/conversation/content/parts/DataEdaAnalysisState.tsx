@@ -14,7 +14,7 @@ import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { isNewestAnalysisState } from "./analysisStateParts";
 import { entityCountCaption } from "./entityCounts";
 
-const MUTED = "text-[11px] text-muted-foreground";
+const MUTED = "text-[0.6875rem] text-muted-foreground";
 
 export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
   useHydrateEdaPart({ kind: "analysis-state", data });
@@ -50,7 +50,7 @@ export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
               <span
                 key={index}
                 data-testid={`data-eda-filter-chip-${String(index)}`}
-                className="rounded-full bg-muted/50 px-2 py-0.5 text-[11px]"
+                className="rounded-full bg-muted/50 px-2 py-0.5 text-[0.6875rem]"
               >
                 {summary}
               </span>

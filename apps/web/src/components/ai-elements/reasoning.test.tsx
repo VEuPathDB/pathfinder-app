@@ -83,6 +83,52 @@ describe("Reasoning", () => {
     expect(screen.queryByText("Some reasoning content.")).toBeInTheDocument();
   });
 
+  it("shows the scrollbar of the reasoning box", () => {
+    setup({ isStreaming: true });
+    const box = screen.getByTestId("reasoning-scroll");
+    expect(box).not.toHaveClass("no-scrollbar");
+    expect(box).toHaveClass("overflow-y-auto");
+  });
+
+  it("expands the reasoning box to its full height and collapses it back", () => {
+    setup({ isStreaming: false, defaultOpen: true });
+    const box = screen.getByTestId("reasoning-scroll");
+    const toggle = screen.getByRole("button", { name: "Show all" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", box.id);
+    expect(box).toHaveClass("max-h-[12.5rem]");
+
+    act(() => {
+      toggle.click();
+    });
+    const collapse = screen.getByRole("button", { name: "Show less" });
+    expect(collapse).toHaveAttribute("aria-expanded", "true");
+    expect(box).not.toHaveClass("max-h-[12.5rem]");
+    expect(box).not.toHaveClass("overflow-y-auto");
+
+    act(() => {
+      collapse.click();
+    });
+    expect(screen.getByRole("button", { name: "Show all" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(box).toHaveClass("max-h-[12.5rem]");
+  });
+
+  it("keeps the newest reasoning in view while it streams", () => {
+    const { rerender } = setup({ isStreaming: true });
+    const box = screen.getByTestId("reasoning-scroll");
+    Object.defineProperty(box, "scrollHeight", { configurable: true, value: 640 });
+    rerender(
+      <Reasoning isStreaming>
+        <ReasoningTrigger />
+        <ReasoningContent>Some reasoning content. And more.</ReasoningContent>
+      </Reasoning>,
+    );
+    expect(box.scrollTop).toBe(640);
+  });
+
   it("does not auto-open when defaultOpen={false}", () => {
     setup({ isStreaming: true, defaultOpen: false });
     expect(screen.getByText("Thinking...")).toBeInTheDocument();

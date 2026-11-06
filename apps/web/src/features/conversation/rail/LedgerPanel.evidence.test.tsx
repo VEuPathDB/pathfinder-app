@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { reduceSnapshot } from "@veupathdb/assistant-client";
 
 const messagesRef: { current: unknown[] } = { current: [] };
@@ -65,10 +66,10 @@ function snapshot(revision: string | null): unknown[] {
   ];
 }
 
-function openVerification(chunks: unknown[]): void {
+async function openVerification(chunks: unknown[]): Promise<void> {
   messagesRef.current = reduceSnapshot(chunks);
   render(<LedgerPanel conversationId="c1" />);
-  fireEvent.click(screen.getByRole("button", { name: /^Checking/ }));
+  await userEvent.click(screen.getByRole("tab", { name: /^Checking/ }));
 }
 
 beforeEach(() => {
@@ -81,8 +82,8 @@ afterEach(() => {
 });
 
 describe("the Verification tab draws the check's evidence card", () => {
-  it("shows every control id, both counts of each step, the citations and the links", () => {
-    openVerification(snapshot("rev-1"));
+  it("shows every control id, both counts of each step, the citations and the links", async () => {
+    await openVerification(snapshot("rev-1"));
 
     expect(screen.getByTestId("evidence-card-body").textContent).not.toMatch(
       /Supported/,
@@ -105,8 +106,8 @@ describe("the Verification tab draws the check's evidence card", () => {
     expect(screen.queryByTestId("evidence-superseded")).toBeNull();
   });
 
-  it("marks the card superseded once the strategy changed after the check", () => {
-    openVerification(snapshot("rev-2"));
+  it("marks the card superseded once the strategy changed after the check", async () => {
+    await openVerification(snapshot("rev-2"));
 
     expect(screen.getByTestId("evidence-superseded").textContent).toBe(
       "Superseded: the strategy changed after this check.",

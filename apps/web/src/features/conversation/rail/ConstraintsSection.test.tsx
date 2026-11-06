@@ -33,8 +33,11 @@ describe("ConstraintsSection", () => {
         }}
       />,
     );
-    expect(screen.getByText(/data type/i)).toBeInTheDocument();
-    expect(screen.getByText(/substituted/i)).toBeInTheDocument();
+    expect(screen.getByText("data type *")).toBeInTheDocument();
+    expect(screen.getByText("substituted")).toBeInTheDocument();
+    expect(screen.getByTestId("constraints-summary")).toHaveTextContent(
+      "1 requirement is not met: data type.",
+    );
     expect(screen.getByText(/requested RNA-Seq -> microarray/i)).toBeInTheDocument();
   });
 
@@ -63,6 +66,33 @@ describe("ConstraintsSection", () => {
     );
     expect(screen.getByText("not verified")).toBeInTheDocument();
     expect(screen.queryByText(/grounded/i)).not.toBeInTheDocument();
+  });
+
+  it("states in one line what is true of the requirements, with no counters", () => {
+    render(
+      <ConstraintsSection
+        constraints={{
+          blocking: false,
+          unmetCount: 0,
+          grounded: ["enzymes", "interfere with host proteins"].map((label) => ({
+            constraint: {
+              kind: "property" as const,
+              requestedValue: label,
+              label,
+              source: "user_explicit" as const,
+              hard: true,
+            },
+            status: "not_verified" as const,
+            unverified: "no_step_states_it" as const,
+          })),
+        }}
+      />,
+    );
+    expect(screen.getByTestId("constraints-summary")).toHaveTextContent(
+      "2 requirements are not in any step: enzymes, interfere with host proteins.",
+    );
+    expect(screen.queryByText("blocking")).not.toBeInTheDocument();
+    expect(screen.queryByText(/unmet/)).not.toBeInTheDocument();
   });
 
   it("shows a row for a requirement of every kind", () => {

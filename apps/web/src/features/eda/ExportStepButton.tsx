@@ -81,7 +81,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       {!canExportRows ? (
         <p
           data-testid="eda-export-blocked"
-          className="text-[11px] text-muted-foreground"
+          className="text-[0.6875rem] text-muted-foreground"
         >
           This study cannot export genes as a step.
         </p>
@@ -89,7 +89,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       {exportStep.data?.stepName != null ? (
         <p
           data-testid="eda-export-step-name"
-          className="text-[11px] text-muted-foreground"
+          className="text-[0.6875rem] text-muted-foreground"
         >
           {`Exported: ${exportStep.data.stepName}`}
         </p>
@@ -104,7 +104,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
         />
       ) : null}
       {exportStep.error !== null ? (
-        <p data-testid="eda-export-error" className="text-[11px] text-destructive">
+        <p data-testid="eda-export-error" className="text-[0.6875rem] text-destructive">
           {toUserMessage(exportStep.error, EXPORT_FAILED)}
         </p>
       ) : null}
@@ -122,7 +122,10 @@ function UnmatchedGenes({
   const sentence = unmatchedGenesSentence(outcome.cutSize, outcome.stepSize, siteName);
   if (sentence === null) return null;
   return (
-    <p data-testid="eda-export-unmatched" className="text-[11px] text-muted-foreground">
+    <p
+      data-testid="eda-export-unmatched"
+      className="text-[0.6875rem] text-muted-foreground"
+    >
       {sentence}
     </p>
   );
@@ -139,7 +142,7 @@ function PlacementNotice({
     return (
       <p
         data-testid="eda-export-began-strategy"
-        className="text-[11px] text-muted-foreground"
+        className="text-[0.6875rem] text-muted-foreground"
       >
         {"This step is now the strategy's first step. "}
         <Link href={href} className={LINK_CLASS}>
@@ -151,7 +154,7 @@ function PlacementNotice({
   return (
     <p
       data-testid="eda-export-draft-step"
-      className="text-[11px] text-muted-foreground"
+      className="text-[0.6875rem] text-muted-foreground"
     >
       {
         "This step is a draft root. It is not part of the pushed strategy until you attach it. "

@@ -154,7 +154,7 @@ export function EditorHeader({
         </p>
       )}
       {isDevEnv && showRaw && (
-        <pre className="absolute right-4 top-14 z-10 max-w-md rounded border border-border bg-popover p-2 text-[10px] text-popover-foreground shadow">
+        <pre className="absolute right-4 top-14 z-10 max-w-md rounded border border-border bg-popover p-2 text-[0.625rem] text-popover-foreground shadow">
           {JSON.stringify(step, null, 2)}
         </pre>
       )}

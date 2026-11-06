@@ -72,7 +72,10 @@ def _decide_combine(
         # A combine's parameters live on the site only, and a search-config PUT
         # replaces the parameters whole, so the weight goes in at creation.
         return RecreateAction(), "combine weight changed"
-    if _renamed(new_step, old_step):
+    if _renamed(new_step, old_step) or (
+        bool(new_step.expanded_name)
+        and new_step.expanded_name != old_step.expanded_name
+    ):
         return PatchAction(search_config=False, name=True), "combine name changed"
     return SkipAction(), "combine unchanged"
 

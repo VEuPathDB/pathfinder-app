@@ -194,7 +194,7 @@ function StrategyFooter({ strategy }: StrategyFooterProps) {
   const stepCount = strategy.steps.length;
   return (
     <div
-      className="border-t border-border px-3 py-2 text-[10px] text-muted-foreground"
+      className="border-t border-border px-3 py-2 text-[0.625rem] text-muted-foreground"
       data-testid="rail-strategy-footer"
     >
       {stepCount} {stepCount === 1 ? "step" : "steps"}

@@ -31,7 +31,7 @@ from pathfinder.tests._support.separation import (
 
 
 def _report(result: SeparationResult) -> SeparationReport:
-    return separation_report(result, task_id=TASK_ID, sheets={})
+    return separation_report(result, task_id=TASK_ID, sheets={}, radio_pairs={})
 
 
 def _offer(result: SeparationResult) -> SeparationOffer:
@@ -293,6 +293,7 @@ def test_each_offered_value_is_read_on_the_published_sheet_of_its_search() -> No
         recorded_separation(ERYTHROCYTE_INVASION),
         task_id=TASK_ID,
         sheets={"GenesByText": sheet},
+        radio_pairs={},
     )
 
     assert report.offer is not None

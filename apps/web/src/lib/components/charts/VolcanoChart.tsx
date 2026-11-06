@@ -98,7 +98,7 @@ export function VolcanoChart(props: VolcanoChartProps) {
       {model.droppedRowCount > 0 && (
         <p
           data-testid={`${props.testId}-dropped`}
-          className="mt-1 text-[11px] text-muted-foreground"
+          className="mt-1 text-[0.6875rem] text-muted-foreground"
         >
           {model.droppedRowCount === 1
             ? "1 point without a p-value was not plotted"

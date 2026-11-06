@@ -92,7 +92,7 @@ export function Trace({
           <span
             data-testid="trace-usage"
             title="This turn"
-            className="ml-auto font-mono text-[11px] tabular-nums"
+            className="ml-auto font-mono text-[0.6875rem] tabular-nums"
           >
             {usageLine(usage)}
           </span>

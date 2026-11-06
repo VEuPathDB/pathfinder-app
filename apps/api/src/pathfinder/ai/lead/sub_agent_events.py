@@ -64,7 +64,10 @@ _RESULT_JSON_LIMIT = 16_000
 
 
 def _result_json(result: ToolReturnPart) -> JsonValue | None:
-    """The completed step's return in JSON form, or None when it cannot be serialised."""
+    """The completed step's return in JSON form, or None when it cannot be serialised.
+
+    A list over the cap keeps its whole leading entries and its last element.
+    """
     if result.outcome == "retried":
         return None
     try:
@@ -74,7 +77,26 @@ def _result_json(result: ToolReturnPart) -> JsonValue | None:
     text = json.dumps(value)
     if len(text) <= _RESULT_JSON_LIMIT:
         return value
-    return text[:_RESULT_JSON_LIMIT] + "... (truncated)"
+    match value:
+        case [*entries, last] if (shown := _whole_entries(entries, last)) is not None:
+            return shown
+        case _:
+            return text[:_RESULT_JSON_LIMIT] + "... (truncated)"
+
+
+def _whole_entries(entries: list[JsonValue], last: JsonValue) -> list[JsonValue] | None:
+    budget = _RESULT_JSON_LIMIT - len(
+        json.dumps([last, f"... ({len(entries)} more entries)"])
+    )
+    if budget < 0:
+        return None
+    kept: list[JsonValue] = []
+    for entry in entries:
+        budget -= len(json.dumps(entry)) + 2
+        if budget < 0:
+            break
+        kept.append(entry)
+    return [*kept, f"... ({len(entries) - len(kept)} more entries)", last]
 
 
 def _summarize_tool_result(content: object) -> str:

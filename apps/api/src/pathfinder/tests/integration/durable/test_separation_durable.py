@@ -8,6 +8,7 @@ run is its recorded answer on plasmodb, replayed with the rows it wrote.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Collection
 from uuid import UUID, uuid4
 
 import pytest
@@ -144,7 +145,14 @@ def requests(
         return {}
 
     monkeypatch.setattr(separation, "separate", _recorded)
+
+    async def _no_pairs(
+        _site_id: str, _searches: Collection[str]
+    ) -> dict[str, dict[str, str]]:
+        return {}
+
     monkeypatch.setattr(separation, "sheet_params_for_searches", _no_sheets)
+    monkeypatch.setattr(separation, "radio_pairs_of", _no_pairs)
     return seen
 
 
@@ -191,7 +199,7 @@ async def test_the_worker_stores_the_report_and_a_lane_per_candidate(
     assert task.status == "complete"
     assert task.result is not None
     assert SeparationReport.model_validate(task.result) == separation_report(
-        result, task_id=task_id, sheets={}
+        result, task_id=task_id, sheets={}, radio_pairs={}
     )
     ((site_id, request, name),) = requests
     assert (site_id, name, request.mode, request.budget, request.thread) == (

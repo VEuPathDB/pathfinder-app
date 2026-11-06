@@ -43,7 +43,7 @@ def recorded_separation(name: str) -> SeparationResult:
 def recorded_offer(name: str = SIGNAL_PEPTIDE) -> SeparationOffer:
     """The offer PathFinder reads from one recorded run."""
     offer = separation_report(
-        recorded_separation(name), task_id=TASK_ID, sheets={}
+        recorded_separation(name), task_id=TASK_ID, sheets={}, radio_pairs={}
     ).offer
     assert offer is not None
     return offer
@@ -92,9 +92,9 @@ def lead_answered_by_a_separation(result: SeparationResult) -> LeadDeps:
     state.durable_result = DurableTaskResult(
         task_id=TASK_ID,
         status="success",
-        result=separation_report(result, task_id=TASK_ID, sheets={}).model_dump(
-            by_alias=True, mode="json"
-        ),
+        result=separation_report(
+            result, task_id=TASK_ID, sheets={}, radio_pairs={}
+        ).model_dump(by_alias=True, mode="json"),
     )
     context = Context(
         site_id="plasmodb",

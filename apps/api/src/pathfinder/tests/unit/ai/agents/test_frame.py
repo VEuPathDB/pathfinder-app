@@ -65,9 +65,12 @@ def test_frame_instructions_fill_the_vocabulary_half_of_a_radio_pair() -> None:
     # refused. A wildcard is a vocabulary read, not a value to type.
     assert (
         "the vocabulary half carries the criterion; pass `N/A` for the free-text "
-        "half. The halves are ORed, so a value in both widens the search, and the "
-        "vocabulary half cannot be switched off"
+        "half. The halves are ORed, so a value in both widens the search. When the "
+        "vocabulary half's list offers `N/A`, a request that covers every entry (a "
+        "wildcard such as `*`) passes `N/A` there and the wildcard in the free-text "
+        "half"
     ) in _normalized(_FRAME_INSTRUCTIONS)
+    assert "cannot be switched off" not in _FRAME_INSTRUCTIONS
 
 
 def test_frame_instructions_read_a_typeahead_vocabulary_before_binding_it() -> None:

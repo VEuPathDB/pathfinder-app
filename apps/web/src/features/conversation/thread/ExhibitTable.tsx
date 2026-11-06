@@ -126,7 +126,7 @@ export function ExhibitTable({
         </div>
       ) : null}
       {notes.length > 0 ? (
-        <dl className="mt-2 space-y-0.5 text-[11px] leading-relaxed">
+        <dl className="mt-2 space-y-0.5 text-[0.6875rem] leading-relaxed">
           {notes.map((note) => (
             <div key={note.key} className="flex gap-1.5">
               <dt className="shrink-0 text-muted-foreground">{note.label}</dt>

@@ -86,7 +86,7 @@ export function ConversationSubtree({
               <Link
                 href={chatUrl(item.id)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded py-0.5 pr-6 text-[11px] transition-colors",
+                  "flex items-center gap-1.5 rounded py-0.5 pr-6 text-[0.6875rem] transition-colors",
                   isActive
                     ? "bg-primary/15 text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -95,7 +95,7 @@ export function ConversationSubtree({
               >
                 <GitBranch className="h-3 w-3 shrink-0" aria-hidden />
                 <span className="truncate">{item.title}</span>
-                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                <span className="ml-auto shrink-0 text-[0.625rem] text-muted-foreground">
                   {formatSidebarTime(item.updatedAt)}
                 </span>
               </Link>
@@ -126,7 +126,7 @@ export function ConversationSubtree({
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
-              className="flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] text-muted-foreground hover:bg-muted/50 hover:text-primary"
+              className="flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[0.6875rem] text-muted-foreground hover:bg-muted/50 hover:text-primary"
             >
               <GitBranch className="h-3 w-3 shrink-0" aria-hidden />
               <span>See full tree ({total})</span>

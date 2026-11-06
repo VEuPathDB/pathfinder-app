@@ -3,6 +3,11 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { SiteResponse } from "@pathfinder/shared";
+
+import { sitesOptions } from "@/lib/api/sites";
 import type { TraceRowStatus } from "@veupathdb/assistant-client";
 
 import { TraceRow } from "./TraceRow";
@@ -21,6 +26,20 @@ function row(patch: Partial<TraceRowView>): TraceRowView {
     ...patch,
   };
 }
+
+const TOXODB: SiteResponse = {
+  id: "toxodb",
+  name: "ToxoDB",
+  displayName: "ToxoDB (Toxoplasma)",
+  baseUrl: "https://qa.toxodb.org/toxo.qa/service",
+  projectId: "ToxoDB",
+  isPortal: false,
+  siteOrigin: "https://qa.toxodb.org",
+  signInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
+  pageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+  available: true,
+  unavailableReason: null,
+};
 
 function label(name: string): string {
   return name === "preview_eda_subset" ? "Preview samples" : name;
@@ -164,6 +183,79 @@ describe("TraceRow", () => {
     expect(raw).toHaveTextContent("entityId");
     expect(raw).toHaveTextContent("ENT_8151325d");
     expect(raw).toHaveTextContent("count");
+  });
+
+  it("opens the related experiments of other sites under the row", async () => {
+    const searched = row({
+      toolName: "search_for_searches",
+      summary:
+        "12 searches on PlasmoDB; related experiments on 1 other site (for reference)",
+      output: [
+        { name: "GenesByText" },
+        {
+          otherSites: {
+            note: "Experiments on other VEuPathDB sites.",
+            experiments: [
+              {
+                site: "toxodb",
+                datasetId: "DS_0a1b2c",
+                similarity: 0.71,
+                line: "Heat shock time course in tachyzoites (RNA-Seq)",
+              },
+              {
+                site: "cryptodb",
+                datasetId: "DS_9f8e7d",
+                similarity: 0.64,
+                line: "Oocyst stress response (microarray)",
+              },
+            ],
+          },
+        },
+      ],
+    });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    client.setQueryData(sitesOptions().queryKey, [TOXODB]);
+    render(
+      <QueryClientProvider client={client}>
+        <TraceRow row={searched} showRaw={false} nameFor={label} />
+      </QueryClientProvider>,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Related experiments" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryAllByTestId("trace-row-other-sites")).toHaveLength(0);
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const items = within(screen.getByTestId("trace-row-other-sites")).getAllByRole(
+      "listitem",
+    );
+    expect(items.map((item) => item.textContent)).toEqual([
+      "Heat shock time course in tachyzoites (RNA-Seq)ToxoDB (Toxoplasma)",
+      "Oocyst stress response (microarray)cryptodb",
+    ]);
+    expect(
+      within(items[0] ?? document.body).getByRole("link", {
+        name: "Heat shock time course in tachyzoites (RNA-Seq)",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "https://qa.toxodb.org/toxo.qa/app/record/dataset/DS_0a1b2c",
+    );
+    expect(within(items[1] ?? document.body).queryAllByRole("link")).toHaveLength(0);
+
+    await userEvent.click(toggle);
+    expect(screen.queryAllByTestId("trace-row-other-sites")).toHaveLength(0);
+  });
+
+  it("offers no related experiments on a row whose output names none", () => {
+    render(<TraceRow row={row({})} showRaw={false} nameFor={label} />);
+    expect(
+      screen.queryAllByRole("button", { name: "Related experiments" }),
+    ).toHaveLength(0);
   });
 
   it("keeps the tool call part testid the thread has always carried", () => {

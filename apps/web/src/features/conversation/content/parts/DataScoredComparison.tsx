@@ -55,7 +55,7 @@ function Name({
     <span className="flex items-baseline gap-1.5">
       <span className="font-medium">{variant.label}</span>
       {isWinner ? (
-        <span className="text-[10px] font-medium text-primary">winner</span>
+        <span className="text-[0.625rem] font-medium text-primary">winner</span>
       ) : null}
     </span>
   );
@@ -120,7 +120,7 @@ export function DataScoredComparison({ data }: { data: ScoredComparison }) {
       caption={caption(data)}
       exhibit={{ kind: "table", number: tableNumberFor(chat.messages, data) }}
     >
-      <p className="mb-3 text-[11px] text-muted-foreground">
+      <p className="mb-3 text-[0.6875rem] text-muted-foreground">
         {`ranked by ${data.objective}`}
       </p>
       <ExhibitTable columns={COLUMNS} rows={rows(data)} notes={notes(data)} />

@@ -55,7 +55,7 @@ export function MemoryRow({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                className="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] text-muted-foreground"
               >
                 {tag}
               </span>

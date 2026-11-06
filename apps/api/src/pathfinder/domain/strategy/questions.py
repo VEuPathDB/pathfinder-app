@@ -10,7 +10,7 @@ from typing import Annotated
 from pydantic import Field, ValidationError, model_validator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
+from pathfinder.domain.clipped import clipped_text, list_clipped_to, text_clipped_to
 from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -40,7 +40,7 @@ from pathfinder.domain.strategy.readings import (
     ReadValues,
 )
 
-_QUESTION_LIMIT = 300
+_QUESTION_LIMIT = 500
 _LABEL_LIMIT = 120
 _OPTIONS_LIMIT = 8
 _LEAST_OPTIONS = 2
@@ -83,7 +83,7 @@ class _Question(CamelModel):
         return Constraint(
             kind=self.dimension,
             requested_value=self.recommended_value,
-            label=self.question[:_LABEL_LIMIT],
+            label=clipped_text(self.question, _LABEL_LIMIT),
             source=ConstraintSource.ASSUMED,
             hard=False,
         )
@@ -317,7 +317,7 @@ class SlotQuestion(AskedQuestion):
 
 
 def _withdrawal(requirement: Constraint) -> TypedOption:
-    label = f"Drop {requirement.requested_value}"[:_LABEL_LIMIT]
+    label = clipped_text(f"Drop {requirement.requested_value}", _LABEL_LIMIT)
     return TypedOption(
         id=option_id(label),
         label=label,
@@ -326,7 +326,7 @@ def _withdrawal(requirement: Constraint) -> TypedOption:
 
 
 def _keeping(requirement: Constraint) -> TypedOption:
-    label = f"Keep {requirement.requested_value}"[:_LABEL_LIMIT]
+    label = clipped_text(f"Keep {requirement.requested_value}", _LABEL_LIMIT)
     return TypedOption(
         id=option_id(label),
         label=label,
@@ -391,7 +391,7 @@ def with_withdrawals(
                     question=(
                         f"No search on this site states "
                         f"{requirement.requested_value!r}. Drop it from the request?"
-                    )[:_QUESTION_LIMIT],
+                    ),
                     dimension=requirement.kind,
                     options=[option, _keeping(requirement)],
                 )
@@ -413,7 +413,7 @@ def with_refusals(
                 question=(
                     f"The site failed to run {search}. Keep "
                     f"{requirement.requested_value!r} to try again later, or drop it?"
-                )[:_QUESTION_LIMIT],
+                ),
                 dimension=requirement.kind,
                 options=[_keeping(requirement), _withdrawal(requirement)],
             )

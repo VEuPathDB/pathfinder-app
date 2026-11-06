@@ -14,7 +14,7 @@ export function ExpressionFits({ card }: { card: EvidenceCard }): ReactElement |
   if (fits.length === 0) return null;
   const titles = new Map(card.steps.map((step) => [step.wdkStepId, step.title]));
   return (
-    <div className="text-[11px]">
+    <div className="text-[0.6875rem]">
       <p id={labelId} className="text-muted-foreground">
         {LABEL}
       </p>

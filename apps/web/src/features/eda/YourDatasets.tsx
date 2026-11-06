@@ -71,7 +71,7 @@ function OwnDatasetRow({
   const detail = (
     <>
       <span className="block truncate text-sm">{dataset.name}</span>
-      <span className={`mt-0.5 block text-[11px] ${tone}`}>
+      <span className={`mt-0.5 block text-[0.6875rem] ${tone}`}>
         {dataset.message ?? STATE_TEXT[dataset.state]}
       </span>
     </>

@@ -34,13 +34,13 @@ function Cell({
       data-testid={`separation-cell-${name}`}
       className="min-w-0 rounded-md border border-border bg-background/60 p-2"
     >
-      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">{label}</p>
       <p data-testid="separation-count" className="font-mono text-base font-medium">
         {ids.length}
       </p>
       <p
         data-testid="separation-ids"
-        className="mt-1 max-h-20 overflow-y-auto break-words font-mono text-[10px] leading-relaxed text-muted-foreground"
+        className="mt-1 max-h-20 overflow-y-auto break-words font-mono text-[0.625rem] leading-relaxed text-muted-foreground"
       >
         {ids.join(", ")}
       </p>
@@ -141,7 +141,7 @@ function Measured({ report }: { report: SeparationReport }): ReactElement {
       {hidden > 0 && (
         <p
           data-testid="separation-measured-more"
-          className="text-[11px] text-muted-foreground"
+          className="text-[0.6875rem] text-muted-foreground"
         >
           {hidden} more measured searches are not shown.
         </p>
@@ -161,7 +161,7 @@ function Unresolved({ report }: { report: SeparationReport }): ReactElement {
         <p
           key={kind}
           data-testid="separation-unresolved"
-          className="break-words text-[11px] text-foreground"
+          className="break-words text-[0.6875rem] text-foreground"
         >
           {ids.length} {kind} the site does not know: {ids.join(", ")}
         </p>
@@ -210,24 +210,27 @@ function OfferBody({
     <div className="space-y-3">
       <Matrix offer={offer} />
       {root != null && (
-        <ul data-testid="separation-tree" className="list-disc pl-4 text-[11px]">
+        <ul data-testid="separation-tree" className="list-disc pl-4 text-[0.6875rem]">
           <TreeNode node={root} titles={titles} />
         </ul>
       )}
       <Criteria offer={offer} />
       {!offer.predictedMatchesRead && (
-        <p data-testid="separation-predicted" className="text-[11px] text-foreground">
+        <p
+          data-testid="separation-predicted"
+          className="text-[0.6875rem] text-foreground"
+        >
           The site&apos;s read of the tree differs from what the measured searches
           predicted.
         </p>
       )}
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         p = {offer.enrichment.pValue.toExponential(2)} that chance returns this many
         positives among the returned controls
       </p>
       <p
         data-testid="separation-informative"
-        className="text-[11px] text-muted-foreground"
+        className="text-[0.6875rem] text-muted-foreground"
       >
         {report.informativeCount} of {report.measured.length} measured searches tell the
         positives from the negatives
@@ -252,13 +255,13 @@ export function DataSeparationResult({
           <p
             key={sentence}
             data-testid="separation-shortfall"
-            className="text-[11px] text-foreground"
+            className="text-[0.6875rem] text-foreground"
           >
             {sentence}
           </p>
         ))}
         <Measured report={data} />
-        <ul className="text-[11px] text-muted-foreground">
+        <ul className="text-[0.6875rem] text-muted-foreground">
           {skippedRows(data).map((row) => (
             <li key={row} data-testid="separation-skipped">
               {row}
@@ -267,7 +270,7 @@ export function DataSeparationResult({
         </ul>
         <p
           data-testid="separation-requests"
-          className="text-[11px] text-muted-foreground"
+          className="text-[0.6875rem] text-muted-foreground"
         >
           {data.chargedRequests} of {data.budget} requests
         </p>

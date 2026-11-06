@@ -68,7 +68,7 @@ function toneFor(pct: number): string {
 function ContextFillValue({ fill }: { fill: ContextFill }) {
   if (fill.window <= 0) {
     return (
-      <span className="font-mono text-[10px] text-muted-foreground">
+      <span className="font-mono text-[0.625rem] text-muted-foreground">
         {formatTokens(fill.tokens)}
       </span>
     );
@@ -76,7 +76,7 @@ function ContextFillValue({ fill }: { fill: ContextFill }) {
   const pct = Math.min(fill.tokens / fill.window, 1);
   return (
     <>
-      <span className="font-mono text-[10px] text-muted-foreground">
+      <span className="font-mono text-[0.625rem] text-muted-foreground">
         {`${formatTokens(fill.tokens)} / ${formatTokens(fill.window)}`}
       </span>
       <span

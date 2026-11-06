@@ -37,6 +37,7 @@ from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.record_classes import search_record_types
+from pathfinder.services.strategies.search_sheets import radio_pairs_of
 from pathfinder.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
@@ -184,14 +185,15 @@ async def the_thread_wrote_the_strategy(
 
 class _Reading(NamedTuple):
     """How the replay reads the live steps: their sheets, the sheets their own
-    parents answer, their analyses, and the organism parameter each search it
-    read marks."""
+    parents answer, their analyses, and the organism parameter and the radio pairs
+    each search it read declares."""
 
     sheets: Sheets
     under_parents: StepSheets
     analyses: Analyses
     searches: frozenset[str]
     marks: Mapping[str, str]
+    pairs: Mapping[str, dict[str, str]]
     classes: Mapping[str, str]
 
 
@@ -208,7 +210,7 @@ async def _the_replay_reading(
     held = {node.search_name for node in nodes_of(live).values()} if live else set()
     classes = await search_record_types(site_id, (named | held) - {""})
     if not searches:
-        return _Reading({}, {}, analyses_of(live), searches, {}, classes)
+        return _Reading({}, {}, analyses_of(live), searches, {}, {}, classes)
     sheets = await sheet_params_for_searches(
         site_id=site_id, search_names=sorted(searches)
     )
@@ -220,6 +222,7 @@ async def _the_replay_reading(
         analyses=analyses_of(live),
         searches=searches,
         marks=await organism_parameters(site_id, searches),
+        pairs=await radio_pairs_of(site_id, searches),
         classes=classes,
     )
 
@@ -245,7 +248,12 @@ def _replayed(
     if not reading.searches:
         return replayed
     marked = [
-        c.model_copy(update={"organism_param": reading.marks.get(c.search_name)})
+        c.model_copy(
+            update={
+                "organism_param": reading.marks.get(c.search_name),
+                "radio_pairs": reading.pairs.get(c.search_name, {}),
+            }
+        )
         if c.search_name in reading.searches
         else c
         for c in replayed.criteria

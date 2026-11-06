@@ -158,7 +158,7 @@ function geneRow(gene: SampledGene): ExhibitRow {
 function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null {
   if (cited.length === 0) return null;
   return (
-    <div data-testid="evidence-sources" className="space-y-1 text-[11px]">
+    <div data-testid="evidence-sources" className="space-y-1 text-[0.6875rem]">
       <p className="text-muted-foreground">Sources the check read</p>
       <ul className="space-y-0.5">
         {cited.map((source) => {
@@ -210,7 +210,7 @@ export function EvidenceReview({
           {checks.some((check) => check.whyUnchecked === "site_unanswered") ? (
             <p
               data-testid="evidence-site-unanswered"
-              className="mb-1.5 text-[11px] text-muted-foreground"
+              className="mb-1.5 text-[0.6875rem] text-muted-foreground"
             >
               The site did not answer, so the strategy is not checked.
             </p>
@@ -227,7 +227,7 @@ export function EvidenceReview({
         <div data-testid="evidence-sampled-genes">
           <p
             data-testid="evidence-sample-count"
-            className="mb-1.5 text-[11px] text-muted-foreground"
+            className="mb-1.5 text-[0.6875rem] text-muted-foreground"
           >
             {sampleCountLine(genes)}
           </p>
@@ -238,7 +238,7 @@ export function EvidenceReview({
       {withheld.length > 0 ? (
         <ul
           data-testid="evidence-withheld"
-          className="space-y-1 text-[11px] text-muted-foreground"
+          className="space-y-1 text-[0.6875rem] text-muted-foreground"
         >
           {withheld.map((item) => (
             <li key={item.sentence} data-testid="evidence-withheld-item">

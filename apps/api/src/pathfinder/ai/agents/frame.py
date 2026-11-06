@@ -133,8 +133,9 @@ Procedure:
       - when the search offers both a vocabulary (typeahead) parameter and a free-text
         alternative for the same concept (GO term, InterPro domain, EC number), the
         vocabulary half carries the criterion; pass `N/A` for the free-text half. The
-        halves are ORed, so a value in both widens the search, and the vocabulary half
-        cannot be switched off;
+        halves are ORed, so a value in both widens the search. When the vocabulary
+        half's list offers `N/A`, a request that covers every entry (a wildcard such
+        as `*`) passes `N/A` there and the wildcard in the free-text half;
       - a concept or a wildcard you would have typed is one
         `get_parameter_options(query=[...])` over the vocabulary that lists every
         phrasing of the concept: its synonyms, its abbreviations and the families that

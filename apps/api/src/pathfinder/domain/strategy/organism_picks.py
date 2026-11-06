@@ -17,7 +17,6 @@ from pathfinder.domain.strategy.question_options import (
 )
 from pathfinder.domain.strategy.questions import OpenQuestion
 
-_QUESTION_LIMIT = 300
 _OFFERED = 5
 
 
@@ -51,9 +50,7 @@ def _option(requirement: Constraint, entry: str) -> TypedOption:
 def _question(requirement: Constraint, pick: OrganismPick) -> OpenQuestion:
     offered = pick.offered if len(pick.offered) > 1 else []
     return OpenQuestion(
-        question=(f'Which organism of this site do you mean by "{pick.quote}"?')[
-            :_QUESTION_LIMIT
-        ],
+        question=f'Which organism of this site do you mean by "{pick.quote}"?',
         dimension=ConstraintKind.ORGANISM,
         recommended_value=pick.picked or "",
         requirement_ids=[requirement.id],

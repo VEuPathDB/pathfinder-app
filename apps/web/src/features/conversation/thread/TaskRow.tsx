@@ -61,7 +61,7 @@ export function TaskRow({
     <div data-testid="task-row">
       <div className="flex h-8 items-center gap-2">
         <Badge outcome={outcome} pct={pct} />
-        <span className="truncate text-[13px] text-foreground">{label}</span>
+        <span className="truncate text-[0.8125rem] text-foreground">{label}</span>
         {running && estimatedSeconds !== null && (
           <span
             data-testid="task-row-elapsed"

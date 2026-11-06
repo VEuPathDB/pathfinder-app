@@ -70,7 +70,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
           >
             {`${String(selected.length)} ${selected.length === 1 ? "gene" : "genes"} selected, ${String(payload.retainedPoints)} of ${String(payload.totalPoints)} retained by the comparison`}
           </p>
-          <table className="mt-2 w-full text-left text-[11px]">
+          <table className="mt-2 w-full text-left text-[0.6875rem]">
             <thead className="text-muted-foreground">
               <tr>
                 <th className="font-normal">Gene</th>
@@ -96,7 +96,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
           {selected.length > READOUT_LIMIT ? (
             <p
               data-testid="eda-volcano-readout-cap"
-              className="mt-1 text-[11px] text-muted-foreground"
+              className="mt-1 text-[0.6875rem] text-muted-foreground"
             >
               {`The first ${String(READOUT_LIMIT)} of ${String(selected.length)} selected genes are listed.`}
             </p>

@@ -93,12 +93,14 @@ export function SlashPopover({
                   )}
                 >
                   <span className="text-muted-foreground">{cmd.icon}</span>
-                  <span className="font-mono text-[12px] font-medium">/{cmd.name}</span>
-                  <span className="truncate text-[12px] text-muted-foreground">
+                  <span className="font-mono text-[0.75rem] font-medium">
+                    /{cmd.name}
+                  </span>
+                  <span className="truncate text-[0.75rem] text-muted-foreground">
                     {cmd.description}
                   </span>
                   {aliases.length > 0 && (
-                    <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                    <span className="ml-auto shrink-0 font-mono text-[0.6875rem] text-muted-foreground">
                       {aliases.map((a) => `/${a}`).join(" ")}
                     </span>
                   )}

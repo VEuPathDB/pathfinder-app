@@ -61,7 +61,7 @@ export function ConsultCarousel({
         questions before I build the plan
         <span
           data-testid="consult-place"
-          className="ml-auto text-[10px] text-muted-foreground tabular-nums"
+          className="ml-auto text-[0.625rem] text-muted-foreground tabular-nums"
         >
           {index + 1} of {questions.length}
         </span>
@@ -204,13 +204,13 @@ function ConsultSlide({
                     {opt.label}
                   </span>
                   {opt.recommended === true && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-success">
+                    <span className="ml-auto inline-flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wide text-success">
                       <Sparkles className="size-2.5" aria-hidden /> Recommended
                     </span>
                   )}
                 </div>
                 {opt.description != null && opt.description !== "" && (
-                  <p className="mt-1 pl-6 text-[11px] text-muted-foreground">
+                  <p className="mt-1 pl-6 text-[0.6875rem] text-muted-foreground">
                     {opt.description}
                   </p>
                 )}

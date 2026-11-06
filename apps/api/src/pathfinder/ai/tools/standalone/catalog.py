@@ -12,6 +12,7 @@ from pydantic import ConfigDict, model_validator
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk import get_site
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import (
     SearchMatch,
@@ -23,7 +24,6 @@ from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_elsewhere import (
-    joined,
     own_search_names,
     rank_other_sites,
     with_other_sites,
@@ -164,9 +164,11 @@ async def search_for_searches(
         (match.card for match in elsewhere),
         await own_search_names(ctx.deps.site_id) if elsewhere else frozenset(),
     )
-    summary = f"{found} searches"
-    if shown:
-        summary += f", experiments on {joined([s.site_id for s in shown])}"
+    summary = f"{found} searches on {get_site(ctx.deps.site_id).name}"
+    others = len({entry.site_id for entry in shown})
+    if others:
+        sites = "site" if others == 1 else "sites"
+        summary += f"; related experiments on {others} other {sites} (for reference)"
     return with_summary(
         results,
         summary,

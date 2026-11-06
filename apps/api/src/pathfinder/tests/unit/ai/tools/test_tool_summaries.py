@@ -337,7 +337,7 @@ _RESUMED: dict[str, dict[str, Any]] = {
         "controlSet": {"id": SAVED_SET_ID, "name": "Saved controls"},
     },
     "separate_controls": separation_report(
-        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}
+        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}, radio_pairs={}
     ).model_dump(by_alias=True, mode="json"),
     "run_eda_compute": {
         "genesTested": 5511,

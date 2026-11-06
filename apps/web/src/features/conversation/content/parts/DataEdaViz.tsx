@@ -28,7 +28,7 @@ import { plotCaption } from "./plotCaptions";
 const COLLAPSED_HEIGHT = 220;
 const EXPANDED_HEIGHT = 480;
 const GENE_LIST_LIMIT = 12;
-const MUTED = "text-[11px] text-muted-foreground";
+const MUTED = "text-[0.6875rem] text-muted-foreground";
 const READOUT = `mt-1 ${MUTED}`;
 const SUMMARY = `cursor-pointer ${MUTED}`;
 

@@ -58,7 +58,7 @@ export function SettingsPage({
               <TabsTrigger
                 key={t.id}
                 value={t.id}
-                className="h-8 flex-none rounded-md px-2 text-[13px] font-medium text-muted-foreground after:hidden hover:bg-muted/60 group-data-[variant=line]/tabs-list:data-[state=active]:bg-muted data-[state=active]:text-foreground"
+                className="h-8 flex-none rounded-md px-2 text-[0.8125rem] font-medium text-muted-foreground after:hidden hover:bg-muted/60 group-data-[variant=line]/tabs-list:data-[state=active]:bg-muted data-[state=active]:text-foreground"
               >
                 {t.label}
               </TabsTrigger>

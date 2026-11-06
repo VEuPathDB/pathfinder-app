@@ -218,7 +218,7 @@ export function CanvasTopbar({
       {isDevEnv && showRaw && (
         <pre
           data-testid="canvas-topbar-raw-ast"
-          className="absolute right-3 top-12 z-50 max-h-[60vh] max-w-xl overflow-auto rounded border border-border bg-popover p-3 text-[10px] text-popover-foreground shadow"
+          className="absolute right-3 top-12 z-50 max-h-[60vh] max-w-xl overflow-auto rounded border border-border bg-popover p-3 text-[0.625rem] text-popover-foreground shadow"
         >
           {JSON.stringify(strategy, null, 2)}
         </pre>

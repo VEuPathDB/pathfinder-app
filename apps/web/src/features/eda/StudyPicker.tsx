@@ -151,7 +151,7 @@ function StudyRow({
         className="w-full px-2 py-2 text-left hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
       >
         <span className="block truncate text-sm">{study.displayName}</span>
-        <span className="mt-0.5 block text-[11px] text-muted-foreground">
+        <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
           {shortName !== "" ? <span className="mr-2">{shortName}</span> : null}
           <span className="mr-2 font-mono">{study.datasetId}</span>
           {sourceType !== "" ? <span className="mr-2">{sourceType}</span> : null}
@@ -166,7 +166,7 @@ function StudyRow({
         <p
           id={notHereId}
           data-testid={notHereId}
-          className="px-2 pb-2 text-[11px] text-muted-foreground"
+          className="px-2 pb-2 text-[0.6875rem] text-muted-foreground"
         >
           {notHere}
         </p>

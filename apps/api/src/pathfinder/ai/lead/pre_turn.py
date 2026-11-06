@@ -61,6 +61,7 @@ from pathfinder.services.strategies.record_classes import (
     search_record_types,
 )
 from pathfinder.services.strategies.revision_ops import last_change
+from pathfinder.services.strategies.search_sheets import radio_pairs_of
 from pathfinder.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
@@ -371,7 +372,8 @@ async def stated_spec_of(
     ast: StrategyAst, *, site_id: str, goal: str
 ) -> OperationalSpec:
     """The spec a strategy tree states, with each criterion holding only the
-    parameters its step's sheet shows and the organism parameter it marks."""
+    parameters its step's sheet shows, the organism parameter it marks and the
+    radio pairs its search declares."""
     search_names = [
         node.search_name for node in walk(ast.root) if node.infer_kind() != "combine"
     ]
@@ -391,8 +393,14 @@ async def stated_spec_of(
         sheets=sheets,
     )
     marks = await organism_parameters(site_id, search_names)
+    pairs = await radio_pairs_of(site_id, search_names)
     hydrated.criteria = [
-        c.model_copy(update={"organism_param": marks.get(c.search_name)})
+        c.model_copy(
+            update={
+                "organism_param": marks.get(c.search_name),
+                "radio_pairs": pairs.get(c.search_name, {}),
+            }
+        )
         for c in hydrated.criteria
     ]
     return read_under_their_parents(

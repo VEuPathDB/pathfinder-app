@@ -2,6 +2,12 @@ import type { ReasoningEffort } from "@pathfinder/shared";
 import { reasoningEffortSchema } from "@pathfinder/shared/generated/zod/reasoningEffortSchema";
 import { z } from "zod";
 import { pickableOnly, type PickableRole } from "@/lib/models/phaseRoles";
+import {
+  applyTextScale,
+  DEFAULT_TEXT_SCALE,
+  TEXT_SCALES,
+  type TextScale,
+} from "@/lib/textScale";
 import { createPersistedStore } from "./middleware";
 import { useLeftSidebarStore, useRightRailStore } from "./useRightRailStore";
 
@@ -15,10 +21,12 @@ interface SettingsState {
   firstRunHintDismissed: boolean;
   phaseModels: PhaseModelMap;
   phaseReasoning: PhaseReasoningMap;
+  textScale: TextScale;
 
   setShowRawToolCalls: (show: boolean) => void;
   setShowTokenUsage: (show: boolean) => void;
   setDeleteFromWdk: (v: boolean) => void;
+  setTextScale: (scale: TextScale) => void;
   dismissFirstRunHint: () => void;
   setPhaseModel: (role: PickableRole, id: string | null) => void;
   setPhaseReasoning: (role: PickableRole, effort: ReasoningEffort | null) => void;
@@ -33,6 +41,7 @@ const DEFAULTS = {
   firstRunHintDismissed: false,
   phaseModels: {} as PhaseModelMap,
   phaseReasoning: {} as PhaseReasoningMap,
+  textScale: DEFAULT_TEXT_SCALE,
 };
 
 // The fields a browser keeps. A stored pick for a role the researcher cannot
@@ -47,6 +56,9 @@ const storedSettings = z.object({
     .record(z.string(), reasoningEffortSchema)
     .transform(pickableOnly)
     .default({}),
+  textScale: z
+    .union(TEXT_SCALES.map((scale) => z.literal(scale)))
+    .catch(DEFAULTS.textScale),
 });
 
 function withoutKey<V>(
@@ -66,6 +78,7 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
     setShowRawToolCalls: (show) => set({ showRawToolCalls: show }),
     setShowTokenUsage: (show) => set({ showTokenUsage: show }),
     setDeleteFromWdk: (v) => set({ deleteFromWdk: v }),
+    setTextScale: (scale) => set({ textScale: scale }),
     dismissFirstRunHint: () => set({ firstRunHintDismissed: true }),
     setPhaseModel: (role, id) =>
       set((state) => ({
@@ -100,6 +113,12 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
     }),
   },
 );
+
+if (typeof document !== "undefined") {
+  useSettingsStore.subscribe((s) => s.textScale, applyTextScale, {
+    fireImmediately: true,
+  });
+}
 
 export function usesDefaultModels(
   state: Pick<SettingsState, "phaseModels" | "phaseReasoning">,

@@ -3,6 +3,8 @@
 import { useShallow } from "zustand/react/shallow";
 import { resetAllPersistedSettings, useSettingsStore } from "@/state/useSettingsStore";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { TEXT_SCALES } from "@/lib/textScale";
 
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
 
@@ -14,8 +16,12 @@ export function AdvancedSettings() {
     setShowTokenUsage,
     deleteFromWdk,
     setDeleteFromWdk,
+    textScale,
+    setTextScale,
   } = useSettingsStore(
     useShallow((s) => ({
+      textScale: s.textScale,
+      setTextScale: s.setTextScale,
       showRawToolCalls: s.showRawToolCalls,
       setShowRawToolCalls: s.setShowRawToolCalls,
       showTokenUsage: s.showTokenUsage,
@@ -36,6 +42,32 @@ export function AdvancedSettings() {
 
   return (
     <div className="space-y-8">
+      <SettingsSection title="Display">
+        <SettingsRow label="Text size" hint="Scales all text in PathFinder.">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            aria-label="Text size"
+            value={String(textScale)}
+            onValueChange={(next) => {
+              const picked = TEXT_SCALES.find((scale) => String(scale) === next);
+              if (picked !== undefined) setTextScale(picked);
+            }}
+          >
+            {TEXT_SCALES.map((scale) => (
+              <ToggleGroupItem
+                key={scale}
+                value={String(scale)}
+                className="px-3 text-xs"
+              >
+                {scale}%
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </SettingsRow>
+      </SettingsSection>
+
       <SettingsSection title="Conversations">
         <SettingsSwitch
           testId="delete-from-wdk-checkbox"

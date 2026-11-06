@@ -31,7 +31,7 @@ export function PasteTab({ text, onTextChange, name }: PasteTabProps) {
         className="font-mono text-xs"
       />
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+        <Badge variant="outline" className="px-1.5 py-0 text-[0.625rem]">
           {ids.length === 1 ? "1 ID" : `${String(ids.length)} IDs`}
         </Badge>
         <span>The site saves these IDs as a new list.</span>
@@ -103,12 +103,12 @@ export function UploadTab({ upload, onFileSelected }: UploadTabProps) {
       {upload !== null && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-mono">{upload.fileName}</span>
-          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+          <Badge variant="outline" className="px-1.5 py-0 text-[0.625rem]">
             {upload.idCount === 1 ? "1 ID" : `${String(upload.idCount)} IDs`}
           </Badge>
         </div>
       )}
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         Plain text or CSV file: one ID per line, the ID in the first column.
       </p>
     </div>
@@ -184,7 +184,7 @@ export function StrategyTab({ value, onChange }: StrategyTabProps) {
         emptyMessage="No strategy on this site is built yet."
         searchPlaceholder="Search strategies..."
       />
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         The site reads the IDs this strategy answers.
       </p>
     </div>

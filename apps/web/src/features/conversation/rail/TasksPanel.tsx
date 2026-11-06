@@ -95,7 +95,7 @@ function TaskRow({
             </a>
           )}
         </div>
-        <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="shrink-0 text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
           {STATUS_WORDS[task.status]}
         </span>
       </div>
@@ -108,14 +108,14 @@ function TaskRow({
             />
           </div>
           {task.latestMessage != null && task.latestMessage.length > 0 && (
-            <p className="mt-1 truncate text-[11px] text-muted-foreground">
+            <p className="mt-1 truncate text-[0.6875rem] text-muted-foreground">
               {task.latestMessage}
             </p>
           )}
         </div>
       )}
       {isFailed && task.error != null && task.error.length > 0 && (
-        <p className="mt-1 truncate text-[11px] text-destructive">{task.error}</p>
+        <p className="mt-1 truncate text-[0.6875rem] text-destructive">{task.error}</p>
       )}
     </li>
   );

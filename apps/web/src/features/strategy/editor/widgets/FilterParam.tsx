@@ -111,7 +111,7 @@ export function FilterParam({ spec, name, field }: ParamWidgetProps) {
       )}
 
       {ontologyHint !== null && !editingJson && (
-        <p className="text-[11px] text-muted-foreground">{ontologyHint}</p>
+        <p className="text-[0.6875rem] text-muted-foreground">{ontologyHint}</p>
       )}
 
       {hasError && errorMessage !== null && (

@@ -289,6 +289,7 @@ class Criterion(CamelModel):
     role: CriterionRole = "filter"
     # The parameter WDK marks as the search's organism, None when it marks none.
     organism_param: str | None = None
+    radio_pairs: dict[str, str] = Field(default_factory=dict)
     # The organisms of the one dataset the search runs on, read when it binds.
     # Empty when no one dataset of the site names the search.
     dataset_organisms: list[str] = Field(default_factory=list)

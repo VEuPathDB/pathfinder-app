@@ -56,7 +56,7 @@ export function DataGeneSetList({ data }: { data: ListedGeneSets }) {
                   {set.name}
                 </span>
                 {set.savedHere ? (
-                  <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px]">
+                  <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[0.625rem]">
                     This conversation
                   </span>
                 ) : null}

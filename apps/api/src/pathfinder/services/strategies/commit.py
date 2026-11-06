@@ -223,7 +223,7 @@ async def apply_operations_and_commit(
         restore_graph(graph, old_ast, entry_labels)
         raise
     renamed = bool(graph.name) and graph.name != entry_labels.name
-    name_the_combines(graph.steps.values())
+    name_the_combines(graph.steps)
     graph.note_words(deps.step_words)
 
     refusal = refusal_after_the_batch(

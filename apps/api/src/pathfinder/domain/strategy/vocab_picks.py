@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.value_binding import pick_terms
+from pathfinder.domain.strategy.value_label import label_term
 
 _OFFERED = 8
 
@@ -73,8 +74,8 @@ class PickRead(CamelModel):
         nearest = (
             "no entry states it surely"
             if self.pick.value is None
-            else f"the nearest entry is {self.pick.display}, confidence "
-            f"{self.pick.confidence:.2f}"
+            else "the nearest entry is "
+            + label_term(self.pick.value, self.pick.display or self.pick.value)
         )
         return SlotQuestion(
             question=(
@@ -86,7 +87,10 @@ class PickRead(CamelModel):
             options=self._offered(bound)[:_OFFERED],
             criterion_id=criterion.id,
             param_name=self.param_name,
-            labels={option.value: option.display for option in self.kept},
+            labels={
+                option.value: label_term(option.value, option.display)
+                for option in self.kept
+            },
         )
 
     def reopened(self, criterion: Criterion) -> Criterion:

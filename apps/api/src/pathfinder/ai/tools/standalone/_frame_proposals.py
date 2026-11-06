@@ -360,7 +360,7 @@ def _published_default(infos: list[ParameterInfo], name: str) -> str | None:
 def _radio_retry(
     call: CriterionCall, issue: RadioPairIssue, infos: list[ParameterInfo]
 ) -> str:
-    """Names the half that carries the criterion and the entries nearest to it."""
+    """Names the bindings the pair allows and the entries nearest to the value."""
     pair = issue.pair
     published = _published_default(infos, pair.vocabulary)
     holds = (
@@ -368,15 +368,31 @@ def _radio_retry(
         if published is not None
         else f"{pair.vocabulary} cannot be left empty"
     )
-    return (
-        f"{pair.free_text} and {pair.vocabulary} on {call.search_name} are ORed "
-        f"halves of one criterion; the vocabulary half carries it and cannot be "
-        f"switched off ({holds}). Put the criterion in {pair.vocabulary} (nearest "
-        f"entries for {issue.free_value!r}: {issue.nearest}; for a wildcard use "
+    in_vocabulary = (
+        f"the criterion in {pair.vocabulary} (nearest entries for "
+        f"{issue.free_value!r}: {issue.nearest}; for a wildcard use "
         f"get_parameter_options({call.search_name}, '{pair.vocabulary}', "
         f"query=[<every phrasing of the concept>]) and list the entries a phrase "
-        f"matched) and pass {RADIO_OFF} "
-        f"for {pair.free_text}."
+        f"matched) and pass {RADIO_OFF} for {pair.free_text}."
+    )
+    halves = (
+        f"{pair.free_text} and {pair.vocabulary} on {call.search_name} are ORed "
+        f"halves of one criterion"
+    )
+    offered = any(
+        option.value == RADIO_OFF
+        for info in infos
+        if info.name == pair.vocabulary
+        for option in info.vocabulary()
+    )
+    if offered:
+        return (
+            f"{halves} ({holds}). Either pass {RADIO_OFF} for {pair.vocabulary} "
+            f"to search by the {pair.free_text} value alone, or put {in_vocabulary}"
+        )
+    return (
+        f"{halves}; the vocabulary half carries it and cannot be switched off "
+        f"({holds}). Put {in_vocabulary}"
     )
 
 

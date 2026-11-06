@@ -62,7 +62,7 @@ function ComposerFooter() {
       <p
         data-testid="ai-notice"
         className={cn(
-          "flex-1 text-[11px] text-muted-foreground",
+          "flex-1 text-[0.6875rem] text-muted-foreground",
           hasUsage ? "text-right" : "text-center",
         )}
       >
@@ -80,13 +80,13 @@ function ConversationUsage({ usage }: { usage: ThreadUsage }) {
           <span
             data-testid="conversation-usage"
             tabIndex={0}
-            className="cursor-help text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2"
+            className="cursor-help text-[0.6875rem] text-muted-foreground underline decoration-dotted underline-offset-2"
           >
             Conversation · {formatTokens(usage.total.tokens)} tokens ·{" "}
             {formatCost(usage.total.costUsd)}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="space-y-0.5 text-[11px]">
+        <TooltipContent side="top" className="space-y-0.5 text-[0.6875rem]">
           <div className="text-muted-foreground">
             This conversation&apos;s total across all turns.
           </div>

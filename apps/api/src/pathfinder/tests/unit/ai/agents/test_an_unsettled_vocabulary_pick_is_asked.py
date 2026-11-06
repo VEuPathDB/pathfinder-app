@@ -160,11 +160,11 @@ async def test_a_choice_the_fit_doubts_is_asked_with_the_pick_and_kept_entries()
     assert asked.options[:3] == ["IPR011009", "IPR050205", "IPR011641"]
     assert asked.question == (
         "Which Specific Domain(s) states 'protein kinase'? On this site the "
-        "nearest entry is IPR011009 : Protein kinase-like (PK-like), confidence "
-        "0.31. Pick an entry, or say in your own words what you mean."
+        "nearest entry is Protein kinase-like (PK-like). Pick an entry, or say "
+        "in your own words what you mean."
     )
     (typed,) = held.questions(ctx.deps.agent_state.operational_spec_draft)
-    assert typed.options[0].label == "IPR011009 : Protein kinase-like (PK-like)"
+    assert typed.options[0].label == "Protein kinase-like (PK-like)"
     assert typed.options[0].binding == SetValues(
         criterion_id="c_kinase", params={_PARAM: "IPR011009"}
     )

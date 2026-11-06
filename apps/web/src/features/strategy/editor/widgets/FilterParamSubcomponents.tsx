@@ -44,7 +44,7 @@ export function FilterList({ filters, onRemove }: FilterListProps) {
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <span className="font-medium text-foreground">{filter.field}</span>
-              <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              <Badge variant="outline" className="px-1.5 py-0 text-[0.625rem]">
                 {fieldTypeLabel(filter)}
               </Badge>
             </div>

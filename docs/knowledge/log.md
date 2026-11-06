@@ -2,6 +2,32 @@
 
 ## 2026-11-06
 
+* **A clipped text ends at a sentence.** A text over its limit ends at the last sentence end
+  that fits, else at the last word that fits followed by "...". A card question holds 500
+  characters, and every card question and option label is clipped by the same function. A
+  pick card names its entries by their site labels, without the term id, the tree depth or
+  the confidence. See
+  [the decision](decisions/an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md).
+* **A long sub-agent result keeps its closing block.** The trace receives a step's return
+  under 16,000 characters. A list over that keeps its whole leading entries, a count of the
+  rest and its last element, so the `otherSites` block of a long search listing arrives.
+* **A strategy read back and a controls offer carry the radio pairs.** Turn entry, the
+  replay of an outside change and the separation offer read them from each search's
+  properties, so every path titles a radio pair the same way.
+* **A radio pair titles its step by the half that carries the value.** A vocabulary half bound
+  to `N/A` gives no label and the free-text half gives its value, so every enzyme reads
+  "EC Number: *" and not "EC Number: N/A". The criterion carries the pairs its search declares.
+* **The search listing summary names the thread's site.** It reads "12 searches on PlasmoDB;
+  related experiments on 3 other sites (for reference)", because the other sites' experiments
+  are read and never searched.
+* **A nested group of steps is named after the steps inside it.** The site labelled a combine
+  nested on the secondary side "Unnamed Nested Strategy" unless it came from a saved strategy.
+  The build and every commit now write its `expandedName`. See
+  [the decision](decisions/a-generated-name-follows-the-steps-it-names.md).
+* **A radio-pair refusal names the bindings the vocabulary allows.** When the vocabulary half
+  lists `N/A`, the retry offers `N/A` there with the value in the free-text half, or the
+  criterion in the vocabulary half. FRAME's procedure no longer says the vocabulary half
+  cannot be switched off.
 * **A catalog entry may be unranked.** An unranked entry is offered for any role and no tier
   resolves to it, so Claude Fable 5.1 joins the catalog and every tier and the default resolve
   as before. The prices of every entry were read again on the providers' pages and
@@ -9,7 +35,7 @@
   [the decision](decisions/a-model-a-role-picks-need-not-hold-a-rank.md).
 * **pydantic-ai is 2.59.0 and genai-prices is 0.2.1.** In pydantic-ai 2.59, a billing error
   inside an OpenAI stream carries the status the same error has before the stream, 429.
-* **pydantic-ai is 2.66.0, anthropic is 2.6.0 and assistant-core is 0.3.0b18.** From 2.60, a
+* **pydantic-ai is 2.66.0, anthropic is 2.6.0 and assistant-core is 0.9.0b2. Every library takes the 0.9.0 line.** From 2.60, a
   tool retry is the call's own `ToolReturnPart` with `outcome="retried"` and an output retry is a
   `RetryFeedbackPart`; `RetryPromptPart` is deprecated. The runtime and PathFinder read the
   outcome: a retried call still reads as corrected on its step, a retried sub-agent dispatch

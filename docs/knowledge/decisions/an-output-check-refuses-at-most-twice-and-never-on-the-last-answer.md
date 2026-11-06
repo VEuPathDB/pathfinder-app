@@ -22,7 +22,9 @@ the type. What is unambiguous is normalized there: a label, a question and a rep
 are clipped to their limits, a question keeps eight options at most, and an
 `AskedQuestion` with one option is a question answered in words. A report's `search` or
 `site` on a problem that does not take it is dropped, and VERIFY's reason, prose,
-lists, row texts, sources and memory drafts are clipped to their limits. Every
+lists, row texts, sources and memory drafts are clipped to their limits. A clip
+ends at the last sentence end that fits, else at the last word that fits followed
+by "...", and never inside a word. Every
 judgement is an output check: the reading problems (one reading, readings beside
 options, no slot, two alike, more than three), a question that decides nothing
 (`hold_the_questions_to_a_dimension`), the report checks (a refusal or a route with

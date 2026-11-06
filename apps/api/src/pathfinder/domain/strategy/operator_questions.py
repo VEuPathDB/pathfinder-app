@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from veupathdb.domain.strategy import CombineOp
 
+from pathfinder.domain.clipped import clipped_text
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.operator_reading import PAIR
@@ -15,7 +16,6 @@ from pathfinder.domain.strategy.question_options import (
 )
 from pathfinder.domain.strategy.questions import OpenQuestion
 
-_QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
 _PAIRED: dict[CombineOp, str] = {
     CombineOp.INTERSECT: "{n}s in both {a} and {b}",
@@ -43,7 +43,7 @@ def _finds(operator: CombineOp, names: Sequence[str], noun: str) -> str:
 
 
 def _option(prefix: str, finds: str, binding: SetOperator) -> TypedOption:
-    label = f"{prefix} {finds}"[:_LABEL_LIMIT]
+    label = clipped_text(f"{prefix} {finds}", _LABEL_LIMIT)
     return TypedOption(id=option_id(label), label=label, binding=binding)
 
 
@@ -59,7 +59,7 @@ def _question(
         question=(
             f"Your words read as {wanted}, but the plan finds {built}. "
             f"Which should it find?"
-        )[:_QUESTION_LIMIT],
+        ),
         requirement_ids=[rid for ids in reading.branches for rid in ids],
         options=[
             _option(

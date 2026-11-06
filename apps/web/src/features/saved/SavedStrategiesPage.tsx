@@ -230,7 +230,7 @@ function SavedRow({
         </span>
       </button>
       {consumerCount > 0 && (
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-primary">
           {inUse(consumerCount)}
         </span>
       )}

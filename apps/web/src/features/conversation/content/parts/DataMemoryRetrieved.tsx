@@ -81,7 +81,7 @@ function RecalledMemories({ data }: { data: RecalledMemoriesPayload }) {
         <ul className="space-y-0.5">
           {memories.map((mem) => (
             <li key={mem.key} className="flex min-w-0 items-baseline gap-2">
-              <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px]">
+              <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[0.625rem]">
                 {MEMORY_KIND_LABELS[mem.kind].one}
               </span>
               <MemoryName memory={mem} />

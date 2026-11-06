@@ -17,7 +17,7 @@ import { deleteGeneSet } from "@/lib/api/geneSets";
 
 const PILL =
   "flex items-center gap-1 rounded-full border border-border px-2 py-0.5" +
-  " text-[10px] font-medium text-muted-foreground hover:text-destructive" +
+  " text-[0.625rem] font-medium text-muted-foreground hover:text-destructive" +
   " disabled:opacity-50";
 
 type DeleteState =
@@ -65,7 +65,7 @@ export function DeleteGeneSetButton({
         {state.kind === "deleting" ? "Deleting..." : "Delete"}
       </button>
       {state.kind === "failed" && (
-        <span className="text-[10px] text-destructive">{state.message}</span>
+        <span className="text-[0.625rem] text-destructive">{state.message}</span>
       )}
       <AlertDialog
         open={state.kind === "confirming"}

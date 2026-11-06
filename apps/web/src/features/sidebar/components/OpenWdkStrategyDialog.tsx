@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { toUserMessage } from "@/lib/api/errors";
 import { sitesOptions } from "@/lib/api/sites";
 import { chatUrl } from "@/lib/routes";
+import { siteAppUrl } from "@/lib/sites/siteAppUrl";
 import { cn } from "@/lib/utils/cn";
 import { formatSidebarTime } from "@/features/sidebar/formatTime";
 import {
@@ -53,7 +54,7 @@ function matches(item: WdkStrategyListItem, filter: string): boolean {
 function exampleLink(sites: SiteResponse[], siteId: string): string {
   const here = sites.find((site) => site.id === siteId);
   if (here === undefined) return "";
-  return `${here.baseUrl.replace(/\/service$/, "")}/app/workspace/strategies/214626640`;
+  return siteAppUrl(here, "/app/workspace/strategies/214626640");
 }
 
 /** Why an entry names nothing this site can open, or null when it does. */

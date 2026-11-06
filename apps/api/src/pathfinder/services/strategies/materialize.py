@@ -134,7 +134,7 @@ async def materialize_strategy_snapshot(
         )
     if graph is None or refusal is not None:
         return _plan_only(fresh, refusal)
-    name_the_combines(graph.steps.values())
+    name_the_combines(graph.steps)
     sync_state = ensure_sync_state(session)
     try:
         outcome = await push_steps_with_plan(

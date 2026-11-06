@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Literal
 
 from assistant_core.graph.stream_events import tool_summary_event
@@ -322,6 +323,45 @@ def test_a_return_over_the_cap_is_cut_with_a_marker() -> None:
     assert isinstance(result, str)
     assert result.endswith("... (truncated)")
     assert len(result) < 20_000
+
+
+_OTHER_SITES = {
+    "otherSites": {
+        "note": "Experiments on other VEuPathDB sites.",
+        "experiments": [
+            {
+                "site": "toxodb",
+                "datasetId": "DS_63b0de882c",
+                "similarity": 0.61,
+                "line": "Sporozoite time course",
+            }
+        ],
+    }
+}
+
+
+def _search(n: int) -> dict[str, str]:
+    return {"name": f"GenesBySearch{n:03d}", "description": "Find genes " + "y" * 80}
+
+
+def test_a_long_list_keeps_whole_entries_and_its_last_element() -> None:
+    searches = [_search(n) for n in range(300)]
+
+    result = _result_of([*searches, _OTHER_SITES])
+
+    assert isinstance(result, list)
+    kept = len(result) - 2
+    assert result[:kept] == searches[:kept]
+    assert result[kept:] == [f"... ({300 - kept} more entries)", _OTHER_SITES]
+    assert len(json.dumps(result)) <= 16_000
+    assert kept > 100
+
+
+def test_a_list_whose_last_element_exceeds_the_cap_is_cut_as_text() -> None:
+    result = _result_of([_search(0), {"ids": "x" * 20_000}])
+
+    assert isinstance(result, str)
+    assert result.endswith("... (truncated)")
 
 
 def test_a_return_that_cannot_be_serialised_carries_no_result() -> None:

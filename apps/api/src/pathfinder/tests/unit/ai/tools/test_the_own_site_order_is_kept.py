@@ -188,7 +188,7 @@ async def test_an_unavailable_index_leaves_the_list_as_today(
 
 
 @pytest.mark.asyncio
-async def test_the_summary_names_the_other_sites_shown(
+async def test_the_summary_names_the_own_site_and_counts_the_others(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch, [CRYPTO, TOXO])
@@ -198,4 +198,22 @@ async def test_the_summary_names_the_other_sites_shown(
         await search_for_searches(ctx, query=_QUERY, record_type="transcript")
     )
 
-    assert chunk.data["summary"] == "2 searches, experiments on cryptodb and toxodb"
+    assert chunk.data["summary"] == (
+        "2 searches on PlasmoDB; related experiments on 2 other sites (for reference)"
+    )
+
+
+@pytest.mark.asyncio
+async def test_one_other_site_is_counted_in_the_singular(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch, [CRYPTO])
+    ctx = agent_run_context(agent_state=AgentToolState())
+
+    chunk = summary_of(
+        await search_for_searches(ctx, query=_QUERY, record_type="transcript")
+    )
+
+    assert chunk.data["summary"] == (
+        "2 searches on PlasmoDB; related experiments on 1 other site (for reference)"
+    )

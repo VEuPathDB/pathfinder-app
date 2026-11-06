@@ -97,7 +97,7 @@ export function CombineNode(props: StepNodeProps) {
           />
           <div
             data-testid="combine-operator-badge"
-            className="inline-flex items-center rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground"
+            className="inline-flex items-center rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[0.625rem] font-semibold uppercase tracking-wide text-foreground"
           >
             {operatorLabel(operator)}
           </div>

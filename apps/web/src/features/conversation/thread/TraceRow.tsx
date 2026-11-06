@@ -6,6 +6,8 @@ import { useState, type ReactElement } from "react";
 import { ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { cn } from "@/lib/utils/cn";
 
+import { otherSiteExperiments } from "./otherSites";
+import { RelatedExperiments } from "./RelatedExperiments";
 import { TRACE_GLYPHS } from "./traceGlyphs";
 import type { TraceRowView } from "./traceTypes";
 
@@ -53,6 +55,8 @@ export function TraceRow({
   stoppedLabel,
 }: TraceRowProps): ReactElement {
   const [open, setOpen] = useState(false);
+  const [relatedOpen, setRelatedOpen] = useState(false);
+  const related = otherSiteExperiments(row.output);
   const glyph = TRACE_GLYPHS[row.status];
   const detail = detailOf(row, stoppedLabel);
   return (
@@ -73,6 +77,19 @@ export function TraceRow({
             {detail}
           </span>
         )}
+        {related.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setRelatedOpen(!relatedOpen)}
+            aria-expanded={relatedOpen}
+            aria-label="Related experiments"
+            className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronRight
+              className={cn("size-3 transition-transform", relatedOpen && "rotate-90")}
+            />
+          </button>
+        )}
         {showRaw && (
           <button
             type="button"
@@ -87,6 +104,7 @@ export function TraceRow({
           </button>
         )}
       </div>
+      {relatedOpen && <RelatedExperiments experiments={related} />}
       {showRaw && (
         <div
           data-testid="trace-row-raw"

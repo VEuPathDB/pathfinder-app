@@ -187,7 +187,7 @@ export function ModelCatalogModal({
           </table>
         </div>
 
-        <div className="px-5 py-3 border-t border-border/40 text-[10px] text-muted-foreground">
+        <div className="px-5 py-3 border-t border-border/40 text-[0.625rem] text-muted-foreground">
           Prices per 1M tokens (USD)
         </div>
       </div>
@@ -231,18 +231,20 @@ function ModelRow({
           <div>
             <div className="font-medium text-foreground">{model.name}</div>
             {supportsReasoning && (
-              <span className="text-[10px] text-primary/80">reasoning</span>
+              <span className="text-[0.625rem] text-primary/80">reasoning</span>
             )}
             {reads !== null && (
-              <span className="ml-1.5 text-[10px] text-muted-foreground">{reads}</span>
+              <span className="ml-1.5 text-[0.625rem] text-muted-foreground">
+                {reads}
+              </span>
             )}
             {ownKey && (
-              <span className="ml-1.5 rounded bg-success/15 px-1 text-[10px] text-success">
+              <span className="ml-1.5 rounded bg-success/15 px-1 text-[0.625rem] text-success">
                 your key
               </span>
             )}
             {!ownKey && model.deploymentMayPay !== true && (
-              <span className="ml-1.5 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+              <span className="ml-1.5 rounded bg-muted px-1 text-[0.625rem] text-muted-foreground">
                 needs your key
               </span>
             )}
@@ -270,7 +272,7 @@ function ModelRow({
             type="button"
             disabled={!isEnabled}
             onClick={handleSelect}
-            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors bg-primary/10 text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[0.625rem] font-medium transition-colors bg-primary/10 text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Check className="h-3 w-3" />
             Select

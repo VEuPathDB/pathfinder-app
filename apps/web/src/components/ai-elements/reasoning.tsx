@@ -17,6 +17,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -167,7 +168,7 @@ export const ReasoningTrigger = memo(
       <CollapsibleTrigger
         data-testid="reasoning-trigger"
         className={cn(
-          "flex w-full items-center gap-2 text-muted-foreground text-[13px] leading-[1.65] transition-colors hover:text-foreground",
+          "flex w-full items-center gap-2 text-muted-foreground text-[0.8125rem] leading-[1.65] transition-colors hover:text-foreground",
           className,
         )}
         {...props}
@@ -198,6 +199,8 @@ export const ReasoningContent = memo(
   ({ className, children }: ReasoningContentProps) => {
     const { isStreaming, isOpen } = useReasoning();
     const scrollRef = useRef<HTMLDivElement>(null);
+    const scrollId = useId();
+    const [expanded, setExpanded] = useState(false);
     useEffect(() => {
       if (isStreaming && scrollRef.current !== null) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -214,13 +217,27 @@ export const ReasoningContent = memo(
         )}
       >
         <div
-          className="max-h-[200px] overflow-y-auto rounded-lg border border-border/20 bg-muted/30 px-3 py-2 text-[11px] leading-relaxed no-scrollbar"
+          id={scrollId}
+          data-testid="reasoning-scroll"
+          className={cn(
+            "rounded-lg border border-border/20 bg-muted/30 px-3 py-2 text-[0.6875rem] leading-relaxed",
+            !expanded && "max-h-[12.5rem] overflow-y-auto",
+          )}
           ref={scrollRef}
         >
           <Streamdown plugins={streamdownPlugins} components={modelMarkdownComponents}>
             {children}
           </Streamdown>
         </div>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={scrollId}
+          onClick={() => setExpanded(!expanded)}
+          className="mt-1 rounded-sm px-1 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {expanded ? "Show less" : "Show all"}
+        </button>
       </div>
     );
   },
