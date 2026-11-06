@@ -23,6 +23,8 @@ from pathfinder.tests._support.recorded_searches import (
 )
 from pathfinder.tests.integration.chat._helpers import (
     answer_card,
+    approval_tool_names,
+    checkpointed,
     dispatched,
     post_chat_turn,
     routes,
@@ -34,6 +36,7 @@ from pathfinder.tests.integration.http._lead_audit_turns import domain_of
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
 
 BUILD_ARC_TOKEN = "[[arc:echo]]"
+TYPED_PROMPT = f"the second one {BUILD_ARC_TOKEN}"
 
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "app_memory_store"
@@ -127,28 +130,58 @@ async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_excha
     )
 
 
-async def test_a_typed_message_over_the_readings_card_in_explore_mode_goes_to_the_lead(
-    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+async def _readings_card(
+    app: FastAPI, user_id: UUID, connector: InMemoryConnector, cid: UUID
 ) -> None:
-    cid = uuid4()
-    await run_one_chat_turn(
+    asked = await run_one_chat_turn(
         app=app,
-        user_id=authed_user_id,
-        connector=in_memory_jobs,
+        user_id=user_id,
+        connector=connector,
         prompt=EXPLORE_PROMPT,
         conversation_id=cid,
         mode="explore",
     )
+    assert approval_tool_names(asked) == ["consult_user"]
+
+
+async def test_a_typed_message_over_the_readings_card_in_explore_mode_goes_to_explore(
+    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+) -> None:
+    cid = uuid4()
+    await _readings_card(app, authed_user_id, in_memory_jobs, cid)
     chunks = await run_one_chat_turn(
         app=app,
         user_id=authed_user_id,
         connector=in_memory_jobs,
-        prompt=f"the second one {BUILD_ARC_TOKEN}",
+        prompt=TYPED_PROMPT,
         conversation_id=cid,
         mode="explore",
     )
-    assert routes(chunks) == []
-    assert (await turn_modes(cid))[-1] == ("assistant", "build")
+    assert (routes(chunks), approval_tool_names(chunks)) == (["explore"], [])
+    assert (await turn_modes(cid))[-1] == ("assistant", "explore")
+    assert [(await checkpointed(cid)).pending_approval] == [None]
+
+
+async def test_a_typed_message_over_the_readings_card_in_build_mode_is_a_new_message(
+    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+) -> None:
+    cid = uuid4()
+    await _readings_card(app, authed_user_id, in_memory_jobs, cid)
+    chunks = await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt=TYPED_PROMPT,
+        conversation_id=cid,
+        mode="build",
+    )
+    domain = await domain_of(cid)
+    assert routes(chunks) == ["build"]
+    assert [(await checkpointed(cid)).pending_approval] == [None]
+    assert [(e.kind, e.said) for e in domain.exchanges[1:]] == [
+        ("message", TYPED_PROMPT)
+    ]
+    assert [c.requested_value for c in domain.requirements] == []
 
 
 async def test_a_reply_with_no_buildable_reading_offers_no_card(

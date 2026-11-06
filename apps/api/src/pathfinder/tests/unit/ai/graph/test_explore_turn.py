@@ -36,7 +36,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from pathfinder.ai.tools.standalone.eda_statistics import EDA_PCA
 from pathfinder.domain.exchanges import Exchange
-from pathfinder.domain.modes import EXPLORE_PHASE
+from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.tests._support.durable_answers import PCA_RESULT
 from pathfinder.tests._support.run_context import turn_runtime
 
@@ -102,7 +102,9 @@ def parked_approval(*, phase: str, tool_name: str, **args: Any) -> PendingApprov
 
 
 def readings_park(*labels: str) -> PendingApproval:
-    return parked_approval(phase="lead", tool_name="consult_user", **card_of(*labels))
+    return parked_approval(
+        phase=READINGS_PHASE, tool_name="consult_user", **card_of(*labels)
+    )
 
 
 def pending_durable(*, task_id: UUID) -> PendingDurableCall:
@@ -237,7 +239,7 @@ def test_a_readings_card_parks_for_the_lead() -> None:
     )
 
     assert park is not None
-    assert (park.phase, park.tool_name) == ("lead", "consult_user")
+    assert (park.phase, park.tool_name) == (READINGS_PHASE, "consult_user")
     assert isinstance(park, PendingApproval)
     assert park.user_message_id == deps.state.user_message_id
 

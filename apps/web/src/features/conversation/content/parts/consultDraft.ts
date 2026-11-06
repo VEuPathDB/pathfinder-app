@@ -81,6 +81,13 @@ export function withNote(
   return withAnswer(draft, question, { ...answerOf(draft, question), note });
 }
 
+export function takesTypedNotes(
+  questions: readonly ConsultQuestion[],
+  draft: ConsultDraft,
+): boolean {
+  return questions[draft.index]?.allowNotes !== false;
+}
+
 export function typedAnswer(
   questions: readonly ConsultQuestion[],
   draft: ConsultDraft,

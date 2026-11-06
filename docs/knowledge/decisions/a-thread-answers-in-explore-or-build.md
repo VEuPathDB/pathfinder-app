@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A thread answers in Explore or Build
-description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore tells the researcher to switch to Build for one buildable reading and offers two or more on a consult card parked for the Lead, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
+description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore tells the researcher to switch to Build for one buildable reading and offers two or more on a readings card whose pick resumes in Build, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
 tags: [modes, explore, router, decisions, lead, graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-06T00:00:00Z }
 status: stable
@@ -14,10 +14,9 @@ status: stable
 agent, writes the route into the turn state's `mode`, and on a fresh turn emits a
 `data-turn-route` part, which the web reads to mark a reply "Explore". On a resumed turn the
 Explore node emits the part itself (`ai/graph/explore_node.py`), so every reply Explore wrote
-carries the mark. The Lead node and its
-toolsets are unchanged. The Lead's instructions gain one line, `LEAD_MODE_LINE`, that names the
-three modes. `finalize_turn` runs after either agent. Explore runs no check, so it writes no
-case memory.
+carries the mark. The Lead node and its toolsets are unchanged. The Lead's instructions gain
+one line, `LEAD_MODE_LINE`, that names the three modes. `finalize_turn` runs after either
+agent. Explore runs no check, so it writes no case memory.
 
 **The thread's mode.** `ChatRequestBody.mode` is `ThreadMode` (`auto`, `explore`, `build`;
 default `auto`, `domain/modes.py`). Any other value is refused with 422, the retired `strategy`
@@ -29,13 +28,15 @@ A branch or a copy opens on the source thread's mode, and a revert keeps it.
 **Who answers a turn.** The route node decides in this order:
 
 1. A resume goes to the agent that parked the call (`parked_route`): a completion turn that
-   carries the parked durable call's answer, and an answer to the parked card. At the API, a
-   typed message over a card the Lead parked also goes to the Lead, which reads it on its own
-   typed-reply path. A typed message over a card Explore parked (a preference to remember, a
-   sweep) is a new turn: it routes by the mode, and the card is cleared. The web sends no such
-   typed message over a consult card: it turns the typed words into an answer to the card, with
-   the words as its note (see
-   [the backlog card](../backlog/a-typed-reply-over-the-readings-card-keeps-its-readings.md)).
+   carries the parked durable call's answer, and an answer to the parked card. A typed message
+   over a card Explore parked is a new message: it routes by the mode (the router in Auto), and
+   the card closes. This holds for the readings card (phase `readings`), a preference to
+   remember and a sweep. A typed message over any other card the Lead parked (its own consult
+   cards, a FRAME, BUILD or VERIFY card) goes to the Lead, which reads it on its own
+   typed-reply path. In the web, typed words over a consult card whose question allows notes
+   answer the card as a note. Over a card whose question takes no note, such as the readings
+   card, the words are sent as a new message (`takesTypedNotes` in
+   `features/conversation/content/parts/consultDraft.ts`).
 2. Mode `explore` goes to Explore and mode `build` to the Lead.
 3. In Auto, a turn with no words goes to the Lead, and the router decides every other turn.
 
@@ -71,8 +72,9 @@ and `consult_user`. From the EDA and sweep toolsets it takes only the names in a
 either toolset later does not reach Explore. The research tool source (literature and web
 search, with no tool that writes) is admitted whole.
 `test_explore_holds_no_tool_that_writes_the_strategy` pins the 19 static tool names; the
-research source's tools are served at run time and are not in that set. It runs under `lead_usage_limits()` and reuses the Lead's stop replies and its
-model usage part.
+research source's tools are served at run time and are not in that set. An Explore turn runs
+under the Lead's per-turn token budget, `lead_usage_limits()`, and reuses the Lead's stop
+replies and its model usage part.
 
 **The explore role.** `explore` is a role in every tier. `EXPLORE_MODELS`
 (`platform/model_catalog.py`) maps each provider to its explore model: GPT-6.1 Terra on
@@ -87,10 +89,12 @@ like any role.
 **The hand-over.** When the conversation has exactly one reading the site can build
 directly, Explore counts it with `propose_readings` and ends its reply by telling the
 researcher to switch to Build (or, in Auto, to say "build it"); no card parks. When it has two
-or more, Explore counts them with `propose_readings` and ends on `consult_user`. Its validator (`ai/explore/readings_card.py`)
-admits only one untyped question whose options are counted readings, with no note and no
-replaced requirement. The card parks under the Lead's phase, so a pick resumes in Build. When
-the card parks, `hand_over_reading` records its labels as one named reading. The Lead's
+or more, Explore counts them with `propose_readings` and ends on `consult_user`. Its validator
+(`ai/explore/readings_card.py`) admits only one untyped question whose options are two or
+more counted readings, with no note and no replaced requirement. The card parks under the
+`readings` phase (`READINGS_PHASE`, `domain/modes.py`), which routes to the Lead, so a pick
+resumes in Build, while a typed message over it routes by the mode. When the card parks,
+`hand_over_reading` records its labels as one named reading. The Lead's
 existing consult path (`ai/lead/lead_consult.py`) then states the pick as a requirement and
 Build runs on. Explore writes its exchange and the researcher's words into the shared state,
 and never writes `requirements`, `operational_spec` or `original_request`.
@@ -102,14 +106,19 @@ The router was measured on 178 real messages (168 build, 10 explore), 3 runs eac
 about $0.00005 a turn. At the 0.65 floor, 19 of 168 build messages detour through Explore and
 9 of 10 explore messages are caught. A detour costs one Explore reply. For a request with
 one buildable reading, that reply tells the researcher to switch to Build; for two or more,
-it offers the readings card, and a pick builds the reading. A
-missed concept question costs a strategy built from words no search states.
+it offers the readings card, and a pick builds the reading. A missed concept question costs
+a strategy built from words no search states.
 
 The measurement used context text built by hand from recorded runs. Production sends
 `exchanges_text` and `strategy_line`, which differ in format on card answers, task results
-and the strategy line. The set also held only 10 explore messages and no help, remember or
-off-topic message. The 0.65 floor is therefore a starting value, and the backlog holds its
-re-measure.
+and the strategy line. The set held only 10 explore messages and no help, remember or
+off-topic message. The 0.65 floor stands as measured on 2026-11-06 on those 178 messages with
+hand-built context. No re-measure is planned, because no set of explore messages written by
+testers exists.
+
+A typed message over the readings card is a new message and not an answer to the card. The
+card asks the researcher to pick one counted reading. Words typed instead say something the
+card does not offer, so the mode decides who answers them, as for any new message.
 
 A resume skips the router because the parked call belongs to one agent's run. Sent to the
 other agent, the answer finds no call to resume.

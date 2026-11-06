@@ -35,7 +35,7 @@ from pathfinder.ai.graph import route_node
 from pathfinder.ai.graph.route_node import parked_route, route_turn_node
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.domain.modes import EXPLORE_PHASE
+from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.domain.provider_keys import KeyRefusal, ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
@@ -221,13 +221,49 @@ async def test_a_completion_turn_returns_to_the_agent_that_parked() -> None:
 
 @pytest.mark.usefixtures("turn", "refusing_decisions")
 async def test_a_readings_card_answer_goes_to_the_lead_in_explore_mode() -> None:
-    card = approval(phase="lead", tool_name="consult_user")
+    card = approval(phase=READINGS_PHASE, tool_name="consult_user")
     answered = state("explore", pending_approval=card, approval_responses=answer(card))
     assert (await route_turn_node(answered, runtime())).goto == "lead"
 
 
 @pytest.mark.usefixtures("refusing_decisions")
-async def test_a_typed_message_over_the_readings_card_goes_to_the_lead(
+async def test_a_typed_message_over_the_readings_card_follows_explore_mode(
+    turn: _Turn,
+) -> None:
+    card = approval(phase=READINGS_PHASE, tool_name="consult_user")
+    typed = state("explore", "Something else", pending_approval=card)
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command)["pending_approval"]) == (
+        "explore",
+        None,
+    )
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "explore"}}]
+
+
+@pytest.mark.usefixtures("refusing_decisions")
+async def test_a_typed_message_over_the_readings_card_follows_build_mode(
+    turn: _Turn,
+) -> None:
+    card = approval(phase=READINGS_PHASE, tool_name="consult_user")
+    typed = state("build", "Something else", pending_approval=card)
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command)["pending_approval"]) == ("lead", None)
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "build"}}]
+
+
+@pytest.mark.usefixtures("turn")
+async def test_a_typed_message_over_the_readings_card_in_auto_asks_the_router() -> None:
+    card = approval(phase=READINGS_PHASE, tool_name="consult_user")
+    typed = state("auto", "Talk it through [[arc:explore]]", pending_approval=card)
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command)["pending_approval"]) == (
+        "explore",
+        None,
+    )
+
+
+@pytest.mark.usefixtures("refusing_decisions")
+async def test_a_typed_message_over_the_leads_own_card_goes_to_the_lead(
     turn: _Turn,
 ) -> None:
     card = approval(phase="lead", tool_name="consult_user")

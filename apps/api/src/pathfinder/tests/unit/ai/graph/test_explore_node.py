@@ -14,7 +14,7 @@ from pathfinder.ai.models.mock.explore_arc import (
     READINGS_REPLY,
     SECOND_LABEL,
 )
-from pathfinder.domain.modes import EXPLORE_PHASE
+from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
@@ -47,7 +47,7 @@ async def test_an_explore_turn_ends_on_the_readings_card_for_the_lead(
     park = update_of(command)["pending_approval"]
     shown = [t for t in doubles.types() if t in {"text-delta", "tool-approval-request"}]
     assert command.goto == "finalize_turn"
-    assert (park.phase, park.tool_name) == ("lead", "consult_user")
+    assert (park.phase, park.tool_name) == (READINGS_PHASE, "consult_user")
     assert shown[-2:] == ["text-delta", "tool-approval-request"]
     assert "pending_durable_call" not in update_of(command)
 
@@ -132,7 +132,7 @@ async def test_an_answered_preference_resumes_explore_to_the_readings_card(
     resumed = await run_explore(answered)
 
     park = update_of(resumed)["pending_approval"]
-    assert (park.phase, park.tool_name) == ("lead", "consult_user")
+    assert (park.phase, park.tool_name) == (READINGS_PHASE, "consult_user")
     assert domain_of(resumed).exchanges[-1].kind == "card_answer"
     assert domain_of(resumed).exchanges[-1].said == "yes"
     assert domain_of(resumed).reading_labels() == [FIRST_LABEL, SECOND_LABEL]

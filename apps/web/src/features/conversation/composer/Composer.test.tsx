@@ -437,6 +437,33 @@ const CONSULT_ASKS: UIMessage = {
   ],
 };
 
+const READINGS_ASKS: UIMessage = {
+  id: "m1",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-consult_user",
+      toolCallId: "call_readings",
+      state: "approval-requested",
+      approval: { id: "approval-readings" },
+      input: {
+        questions: [
+          {
+            id: "reading",
+            kind: "single_choice",
+            prompt: "Which reading should the strategy build?",
+            options: [
+              { label: "Genes with a predicted signal peptide" },
+              { label: "Every protein-coding gene" },
+            ],
+            allowNotes: false,
+          },
+        ],
+      },
+    },
+  ],
+};
+
 const DELETE_ASKS: UIMessage = {
   id: "m1",
   role: "assistant",
@@ -553,6 +580,18 @@ describe("a card waiting on the researcher docks on the composer", () => {
     ).toHaveTextContent("1 of 2");
     expect(useConsultAnswersStore.getState().byApprovalId).toEqual({});
     expect(respond).not.toHaveBeenCalled();
+  });
+
+  it("sends typed words over a consult that takes no note as the next message", async () => {
+    runCalls = 0;
+    const respond = vi.fn();
+    renderComposer(true, { messages: [READINGS_ASKS], respond, countingRuntime: true });
+
+    typeAndSend("Only the genes expressed in the liver stage.");
+
+    await waitFor(() => expect(runCalls).toBe(1));
+    expect(respond).not.toHaveBeenCalled();
+    expect(useConsultAnswersStore.getState().byApprovalId).toEqual({});
   });
 
   it("sends typed words under any other card as the researcher's next message", async () => {

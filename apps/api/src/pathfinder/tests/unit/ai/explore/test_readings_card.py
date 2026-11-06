@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 from assistant_core.graph.turn_state import ConsultOption
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 from pydantic_ai import ModelRetry, RunContext
 
 from pathfinder.ai.explore.readings_card import (
@@ -86,6 +86,13 @@ async def test_an_uncounted_reading_is_refused(ctx: RunContext[LeadDeps]) -> Non
 async def test_a_card_with_no_reading_is_refused(ctx: RunContext[LeadDeps]) -> None:
     with pytest.raises(ModelRetry, match="two"):
         await readings_card_can_ask(ctx, [card()], reply="r")
+
+
+def test_a_card_of_one_counted_reading_is_refused(ctx: RunContext[LeadDeps]) -> None:
+    assert FIRST_LABEL in counted_labels(ctx.deps)
+
+    with pytest.raises(ValidationError, match="no choice"):
+        card(FIRST_LABEL)
 
 
 async def test_a_card_that_takes_notes_is_refused(ctx: RunContext[LeadDeps]) -> None:

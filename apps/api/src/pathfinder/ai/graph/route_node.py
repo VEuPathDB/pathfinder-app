@@ -25,13 +25,19 @@ from pathfinder.ai.graph.turn_route import (
     route_request_for,
 )
 from pathfinder.ai.models.mock.route import scripted_route
-from pathfinder.domain.modes import EXPLORE_PHASE, TurnRoute, route_of_parked_phase
+from pathfinder.domain.modes import (
+    EXPLORE_PHASE,
+    READINGS_PHASE,
+    TurnRoute,
+    route_of_parked_phase,
+)
 from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.services.turn_payment import spent_deployment_budget
 
 type _Agent = Literal["lead", "explore"]
 
 _AGENT_OF: Final[dict[TurnRoute, _Agent]] = {"build": "lead", "explore": "explore"}
+_NEW_TURN: Final = frozenset({EXPLORE_PHASE, READINGS_PHASE})
 
 
 def parked_route(state: PipelineState) -> TurnRoute | None:
@@ -41,7 +47,7 @@ def parked_route(state: PipelineState) -> TurnRoute | None:
     card = state.pending_approval
     if card is None:
         return None
-    if card.tool_call_id in state.approval_responses or card.phase != EXPLORE_PHASE:
+    if card.tool_call_id in state.approval_responses or card.phase not in _NEW_TURN:
         return route_of_parked_phase(card.phase)
     return None
 

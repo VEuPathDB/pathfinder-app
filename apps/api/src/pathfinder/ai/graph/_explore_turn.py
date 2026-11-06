@@ -24,7 +24,7 @@ from pathfinder.ai.graph._lead_turn import pending_approval
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.exchanges import Exchange
-from pathfinder.domain.modes import EXPLORE_PHASE
+from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.domain.strategy.chosen_reading import ChosenReading
 
 _HAND_OVER_TOOL = "consult_user"
@@ -81,13 +81,14 @@ def explore_park(
     if durable is not None:
         return durable.model_copy(update={"phase": EXPLORE_PHASE})
     approval = pending_approval(output=output, deps=deps, messages=messages)
-    if approval is None or approval.tool_name == _HAND_OVER_TOOL:
-        return approval
-    return approval.model_copy(update={"phase": EXPLORE_PHASE})
+    if approval is None:
+        return None
+    phase = READINGS_PHASE if approval.tool_name == _HAND_OVER_TOOL else EXPLORE_PHASE
+    return approval.model_copy(update={"phase": phase})
 
 
 def hands_over(parked: ParkedCall) -> bool:
-    return parked.phase != EXPLORE_PHASE
+    return parked.phase == READINGS_PHASE
 
 
 def hand_over_reading(domain: StrategyDomainState, park: ParkedCall) -> None:

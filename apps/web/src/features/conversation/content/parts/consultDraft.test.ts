@@ -7,6 +7,7 @@ import {
   answersOf,
   isAnswered,
   movedTo,
+  takesTypedNotes,
   toggled,
   typedAnswer,
   withNote,
@@ -141,5 +142,15 @@ describe("answersOf", () => {
         note: "none",
       },
     ]);
+  });
+});
+
+describe("takesTypedNotes", () => {
+  it("takes typed words as a note on a question that allows notes", () => {
+    expect(takesTypedNotes(QUESTIONS, EMPTY_DRAFT)).toBe(true);
+  });
+
+  it("refuses typed words on a question that takes no note", () => {
+    expect(takesTypedNotes(QUESTIONS, movedTo(EMPTY_DRAFT, QUESTIONS, 1))).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import {
   EMPTY_DRAFT,
   allAnswered,
   answersOf,
+  takesTypedNotes,
   typedAnswer,
   type ConsultDraft,
 } from "../content/parts/consultDraft";
@@ -42,6 +43,7 @@ export function useDockedCard(): DockedCard {
     if (parseSlashInput(typed) !== null) return false;
     const pending = pendingConsultOf(card);
     if (pending.questions.length === 0) return false;
+    if (!takesTypedNotes(pending.questions, draft)) return false;
     const next = typedAnswer(pending.questions, draft, typed);
     if (allAnswered(pending.questions, next)) {
       handleConsultSubmit(chat, pending, answersOf(pending.questions, next));

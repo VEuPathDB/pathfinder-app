@@ -6,6 +6,7 @@ type ThreadMode = Literal["auto", "explore", "build"]
 type TurnRoute = Literal["explore", "build"]
 
 EXPLORE_PHASE: Final = "explore"
+READINGS_PHASE: Final = "readings"
 BUILD_PROBABILITY_FLOOR: Final = 0.65
 
 
