@@ -5,6 +5,7 @@ import time
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb_mcp.catalog import (
     ChoiceQuestion,
     DecisionRequest,
@@ -28,7 +29,11 @@ from pathfinder.ai.graph.turn_route import (
 from pathfinder.ai.models.mock.route import scripted_route
 from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.tests.unit.ai.lead._budget_stop_turn import TITLE, built_session
+from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    SEARCH,
+    TITLE,
+    built_session,
+)
 
 REQ = route_request("Count genes with a signal peptide", conversation="", strategy="")
 
@@ -44,6 +49,11 @@ def _mode_question(request: DecisionRequest) -> ChoiceQuestion:
 def _section(request: DecisionRequest, heading: str, following: str) -> str:
     after = request.input.split(f"\n\n{heading}\n", 1)[1]
     return after.split(f"\n\n{following}\n", 1)[0]
+
+
+def _chosen(response: DecisionResponse | None) -> str | None:
+    answer = None if response is None else response.choice("mode")
+    return None if answer is None else answer.choice
 
 
 def _choice(build: float) -> DecisionResponse:
@@ -144,6 +154,27 @@ def test_a_built_strategy_names_its_final_step_and_count() -> None:
     )
 
 
+def test_a_split_strategy_with_no_cited_root_names_its_steps() -> None:
+    session = built_session()
+    graph = session.get_graph(None)
+    assert graph is not None
+    graph.steps = {
+        **graph.steps,
+        **flatten_tree(
+            StrategyStepNode(id="step_second", search_name=SEARCH, display_name="Other")
+        ),
+    }
+    graph.recompute_roots()
+    session.sync_state = None
+    assert strategy_line(session) == "Strategy: 2 steps"
+
+
+def test_a_root_with_no_count_names_its_final_step() -> None:
+    session = built_session()
+    session.sync_state = None
+    assert strategy_line(session) == f'Strategy: 1 step; the final step "{TITLE}"'
+
+
 async def test_a_sure_build_goes_to_build() -> None:
     assert await decided_route(REQ, answering(build=0.92)) == "build"
 
@@ -198,6 +229,11 @@ def test_the_mock_routes_by_the_arc_token() -> None:
     assert build_probability(explore) == 0.0
     assert build_probability(build) == 1.0
     assert build_probability(plain) == 1.0
+    assert [_chosen(response) for response in (explore, build, plain)] == [
+        "explore",
+        "build",
+        "build",
+    ]
 
 
 def test_the_route_request_reads_the_thread_and_the_strategy() -> None:
@@ -205,7 +241,7 @@ def test_the_route_request_reads_the_thread_and_the_strategy() -> None:
         conversation_id=uuid4(),
         user_id=uuid4(),
         site_id="vectorbase",
-        mode="strategy",
+        mode="auto",
         user_prompt="Why is 18 h in the reference?",
         domain=StrategyDomainState(
             exchanges=[

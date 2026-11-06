@@ -171,8 +171,8 @@ def explore_config(
 def _pathfinder_preset(
     provider: KeyableProvider, tier: _Tier, *, deployment_pays: bool
 ) -> TierPreset:
-    """Spend on the Lead and FRAME, which plan the turn, and run BUILD and
-    VERIFY on the cheaper model."""
+    """Spend on the Lead and FRAME, which plan the turn, run BUILD and VERIFY
+    on the cheaper model, and run Explore on the provider's explore model."""
     return TierPreset(
         roles={
             "lead": tier.thinker,

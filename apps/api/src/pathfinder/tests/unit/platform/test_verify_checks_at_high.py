@@ -27,7 +27,9 @@ def test_verify_checks_at_high_on_the_build_model(
     assert verify.model_id == preset.roles["execution"].model_id
 
 
-def test_the_default_tier_runs_every_role_on_the_default_model() -> None:
+def test_the_default_tier_runs_build_on_the_default_model_and_explore_on_terra() -> (
+    None
+):
     preset = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["default"]
 
     assert {
