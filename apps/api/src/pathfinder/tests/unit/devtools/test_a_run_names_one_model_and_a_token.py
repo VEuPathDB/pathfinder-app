@@ -42,6 +42,7 @@ _EVERY_ROLE = {
     "frame",
     "execution",
     "verification",
+    "explore",
     "title_generator",
     "note_compactor",
     "injection_judge",
@@ -182,6 +183,7 @@ def test_the_requests_a_pinned_run_sends_pin_every_role(tmp_path: Path) -> None:
         "frame": LUNA,
         "execution": LUNA,
         "verification": LUNA,
+        "explore": LUNA,
     }
 
 
@@ -217,6 +219,7 @@ def test_roles_exits_zero_when_every_role_is_on_the_model(
     assert code == 0
     assert printed == [
         f"execution: {LUNA}",
+        f"explore: {LUNA}",
         f"frame: {LUNA}",
         f"injection_judge: {LUNA}",
         f"lead: {LUNA}",
@@ -386,9 +389,10 @@ def test_an_eval_run_pins_the_model_reads_the_token_and_prints_the_roles(
     assert isinstance(token, EnvToken)
     assert token.token.get_secret_value() == _TOKEN
     assert received["roles"] == dict.fromkeys(_EVERY_ROLE, LUNA)
-    assert printed[:8] == printed[-9:-1]
-    assert f"lead: {LUNA}" in printed[:8]
-    assert printed[7] == "identity: WDK token from $PF_QA_TOKEN"
+    assert printed[:9] == printed[-10:-1]
+    assert f"lead: {LUNA}" in printed[:9]
+    assert f"explore: {LUNA}" in printed[:9]
+    assert printed[8] == "identity: WDK token from $PF_QA_TOKEN"
 
 
 @pytest.mark.usefixtures("restored_sites_file")

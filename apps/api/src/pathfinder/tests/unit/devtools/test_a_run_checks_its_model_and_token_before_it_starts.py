@@ -187,6 +187,7 @@ def test_with_screening_off_no_judge_role_is_resolved() -> None:
         "frame": LUNA,
         "execution": LUNA,
         "verification": LUNA,
+        "explore": LUNA,
         "title_generator": LUNA,
         "note_compactor": LUNA,
     }
