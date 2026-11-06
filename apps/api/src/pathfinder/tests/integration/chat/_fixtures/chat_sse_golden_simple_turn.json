@@ -19,6 +19,12 @@
   },
   {
     "data": {
+      "route": "build"
+    },
+    "type": "data-turn-route"
+  },
+  {
+    "data": {
       "label": "Recalling earlier work and reading the conversation",
       "waitingOnLlm": false
     },

@@ -13,6 +13,7 @@ from veupathdb_mcp.catalog import (
     decide,
 )
 
+from pathfinder.ai.capabilities.decisions_spend import decisions_on_the_deployment
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.tools.standalone.graph_helpers import (
     build_step_response,
@@ -114,4 +115,5 @@ async def decided_route(request: DecisionRequest, ask: DecisionsTransport) -> Tu
 
 
 async def ask_the_service(request: DecisionRequest) -> DecisionResponse | None:
-    return await decide(request, purpose=ROUTE_PURPOSE)
+    with decisions_on_the_deployment():
+        return await decide(request, purpose=ROUTE_PURPOSE)

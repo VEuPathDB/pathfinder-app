@@ -15,6 +15,7 @@ from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.stream_part_payloads import ControlTestResults
 from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.memory import MemoryKind
+from pathfinder.domain.modes import TurnRoute
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.turn_facts import TurnFacts
 
@@ -74,6 +75,17 @@ def ledger_update_event(*, ledger: InvestigationLedger) -> DataChunk:
     return DataChunk(
         type="data-ledger-update",
         data=ledger.model_dump(by_alias=True, mode="json"),
+    )
+
+
+class TurnRoutePayload(CamelModel):
+    route: TurnRoute
+
+
+def turn_route_event(route: TurnRoute) -> DataChunk:
+    return DataChunk(
+        type="data-turn-route",
+        data=TurnRoutePayload(route=route).model_dump(by_alias=True, mode="json"),
     )
 
 

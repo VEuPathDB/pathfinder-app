@@ -20,7 +20,7 @@ def compiled_graph() -> CompiledStateGraph[
     return build_pathfinder_graph(checkpointer=InMemorySaver())
 
 
-def test_graph_has_lead_and_finalize_nodes(
+def test_graph_has_the_route_and_both_agents(
     compiled_graph: CompiledStateGraph[
         PipelineState,
         Context,
@@ -29,11 +29,11 @@ def test_graph_has_lead_and_finalize_nodes(
     ],
 ) -> None:
     nodes = set(compiled_graph.get_graph().nodes.keys())
-    expected = {START, END, "lead", "finalize_turn"}
+    expected = {START, END, "route", "lead", "explore", "finalize_turn"}
     assert expected.issubset(nodes), nodes
 
 
-def test_graph_entry_edge_goes_to_lead(
+def test_the_graph_starts_at_the_route(
     compiled_graph: CompiledStateGraph[
         PipelineState,
         Context,
@@ -43,7 +43,7 @@ def test_graph_entry_edge_goes_to_lead(
 ) -> None:
     edges = compiled_graph.get_graph().edges
     targets_from_start = {e.target for e in edges if e.source == START}
-    assert targets_from_start == {"lead"}
+    assert targets_from_start == {"route"}
 
 
 def test_compiled_graph_records_state_schema_with_checkpointer(

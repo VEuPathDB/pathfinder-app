@@ -19,6 +19,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import httpx
+from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
@@ -127,20 +129,13 @@ async def run_deferred_chat_turns() -> None:
         )
 
 
-async def run_one_chat_turn(
+async def post_chat_turn(
     *,
     app: FastAPI,
     user_id: UUID,
     connector: InMemoryConnector,
-    prompt: str,
-    conversation_id: UUID | None = None,
-    mode: ThreadMode = "auto",
+    body: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    """Post one prompt, run the deferred turn, and return its SSE chunks.
-
-    ``conversation_id`` names the thread to continue; a new one opens without it.
-    """
-    thread_id = conversation_id or uuid4()
     queued = len(chat_turn_jobs(connector))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
@@ -149,11 +144,7 @@ async def run_one_chat_turn(
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post_task = asyncio.create_task(
-            client.post(
-                "/api/v1/chat",
-                json=chat_post_body(thread_id, prompt, mode=mode),
-                timeout=30.0,
-            ),
+            client.post("/api/v1/chat", json=body, timeout=30.0),
         )
         await asyncio.wait_for(
             wait_until_chat_turn_deferred(connector, after=queued),
@@ -168,6 +159,81 @@ async def run_one_chat_turn(
         msg = f"chat returned {response.status_code}; body={response.text[:500]!r}"
         raise AssertionError(msg)
     return parse_sse_body(response.text)
+
+
+async def run_one_chat_turn(
+    *,
+    app: FastAPI,
+    user_id: UUID,
+    connector: InMemoryConnector,
+    prompt: str,
+    conversation_id: UUID | None = None,
+    mode: ThreadMode = "auto",
+) -> list[dict[str, Any]]:
+    """Post one prompt, run the deferred turn, and return its SSE chunks.
+
+    ``conversation_id`` names the thread to continue; a new one opens without it.
+    """
+    thread_id = conversation_id or uuid4()
+    return await post_chat_turn(
+        app=app,
+        user_id=user_id,
+        connector=connector,
+        body=chat_post_body(thread_id, prompt, mode=mode),
+    )
+
+
+def answer_card(
+    conversation_id: UUID,
+    asked: list[dict[str, Any]],
+    chosen: list[str],
+    *,
+    mode: ThreadMode,
+) -> dict[str, Any]:
+    request = next(c for c in asked if c["type"] == "tool-approval-request")
+    call = next(
+        c
+        for c in asked
+        if c["type"] == "tool-input-available"
+        and c["toolCallId"] == request["toolCallId"]
+    )
+    [question] = call["input"]["questions"]
+    message_id = str(uuid4())
+    return {
+        "trigger": "submit-message",
+        "id": message_id,
+        "messages": [
+            {
+                "id": message_id,
+                "role": "assistant",
+                "parts": [
+                    {
+                        "type": f"tool-{call['toolName']}",
+                        "toolCallId": call["toolCallId"],
+                        "state": "approval-responded",
+                        "input": call["input"],
+                        "approval": {"id": request["approvalId"], "approved": True},
+                    },
+                    {
+                        "type": "data-user-question-answers",
+                        "data": {
+                            "toolCallId": call["toolCallId"],
+                            "answers": [
+                                {
+                                    "questionId": question["id"],
+                                    "prompt": question["prompt"],
+                                    "chosenLabels": chosen,
+                                }
+                            ],
+                        },
+                    },
+                ],
+            },
+        ],
+        "conversationId": str(conversation_id),
+        "siteId": "plasmodb",
+        "mode": mode,
+    }
 
 
 def parse_sse_body(body: str) -> list[dict[str, Any]]:
@@ -246,3 +312,41 @@ def redact(node: Any, *, parent_key: str | None = None) -> Any:
     if isinstance(node, str):
         return _redact_string(node)
     return node
+
+
+async def turn_modes(conversation_id: UUID) -> list[tuple[str, str]]:
+    async with async_session_factory() as session:
+        rows = await MessagesRepository(session).list_messages_for_conversation(
+            conversation_id
+        )
+    return [(row.role, str(row.metadata_["mode"])) for row in rows]
+
+
+def types(chunks: list[dict[str, Any]]) -> list[str]:
+    return [str(chunk["type"]) for chunk in chunks]
+
+
+def routes(chunks: list[dict[str, Any]]) -> list[str]:
+    return [c["data"]["route"] for c in chunks if c["type"] == "data-turn-route"]
+
+
+def tool_names(chunks: list[dict[str, Any]]) -> list[str]:
+    return [str(c["toolName"]) for c in chunks if c["type"] == "tool-input-available"]
+
+
+def approval_tool_names(chunks: list[dict[str, Any]]) -> list[str]:
+    asked = {c["toolCallId"] for c in chunks if c["type"] == "tool-approval-request"}
+    return [
+        str(c["toolName"])
+        for c in chunks
+        if c["type"] == "tool-input-available" and c["toolCallId"] in asked
+    ]
+
+
+def dispatched(chunks: list[dict[str, Any]]) -> list[str]:
+    calls = {
+        c["data"]["toolCallId"]: str(c["data"]["subAgent"])
+        for c in chunks
+        if c["type"] == "data-sub-agent-call"
+    }
+    return list(calls.values())

@@ -11,6 +11,7 @@ from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 from pathfinder.tests.integration.chat.conftest import recorded_site_reads
 from pathfinder.tests.integration.http._two_assistants import turn_with_body
 from pathfinder.tests.integration.http.conftest import client_for
+from pathfinder.tests.unit.ai.graph._explore_turns import serve_recorded_readings
 
 __all__ = ["recorded_site_reads"]
 
@@ -80,14 +81,18 @@ async def test_a_new_thread_reads_auto(
 
 
 async def test_the_mode_a_message_carries_sticks(
-    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+    app: FastAPI,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    serve_recorded_readings(monkeypatch)
     conversation_id = uuid4()
     await run_one_chat_turn(
         app=app,
         user_id=authed_user_id,
         connector=in_memory_jobs,
-        prompt="Which stages express these genes?",
+        prompt="Which stages express these genes? [[arc:explore]]",
         conversation_id=conversation_id,
         mode="explore",
     )

@@ -2,17 +2,12 @@ from __future__ import annotations
 
 import json
 from decimal import Decimal
-from pathlib import Path
-from typing import Any
 
 import httpx2
 import pytest
 from assistant_core.cost import cost_for_run
 from assistant_core.platform.types import PaidBy
-from openai import AsyncOpenAI
 from pydantic import SecretStr
-from pydantic_ai.providers import Provider
-from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage
 from structlog.testing import capture_logs
 from veupathdb_mcp.catalog import (
@@ -29,39 +24,19 @@ from pathfinder.ai.capabilities.decisions_spend import (
     install_decisions_transport,
     send_decision,
 )
-from pathfinder.domain.provider_keys import KeyableProvider, ProviderKeyring
+from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.model_keys import attach_keyring
+from pathfinder.tests._support.decisions_wire import DecisionsWire, recorded_decision
 
-FIXTURE = Path(__file__).parents[3] / "fixtures" / "decisions" / "interpro_pick.json"
-RECORDED = json.loads(FIXTURE.read_text())
+RECORDED = recorded_decision("interpro_pick.json")
 RESEARCHER_KEY = "sk-researcher-test-key"
 DEPLOYMENT_KEY = "sk-deployment-test-key"
 
 
-class _Wire:
-    def __init__(self) -> None:
-        self.sent: list[tuple[str, str, dict[str, object]]] = []
-
-    def answer(self, request: httpx2.Request) -> httpx2.Response:
-        self.sent.append(
-            (
-                str(request.url),
-                request.headers["authorization"],
-                json.loads(request.content),
-            )
-        )
-        return httpx2.Response(200, json=RECORDED["response"])
-
-    def build(self, name: KeyableProvider, key: SecretStr) -> Provider[Any]:
-        assert name == "openai"
-        client = AsyncOpenAI(
-            api_key=key.get_secret_value(),
-            http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(self.answer)),
-            max_retries=0,
-        )
-        return OpenAIProvider(openai_client=client)
+def _wire() -> DecisionsWire:
+    return DecisionsWire(RECORDED["response"])
 
 
 @pytest.fixture(autouse=True)
@@ -93,7 +68,7 @@ def test_a_decision_is_priced_as_gpt_6_luna_input() -> None:
 async def test_a_decision_in_a_turn_is_sent_on_the_researchers_key_and_charged_to_them() -> (
     None
 ):
-    wire = _Wire()
+    wire = _wire()
     spent: list[tuple[int, Decimal, PaidBy]] = []
     keyring = ProviderKeyring(active={"openai": SecretStr(RESEARCHER_KEY)})
 
@@ -116,7 +91,7 @@ async def test_a_decision_in_a_turn_is_sent_on_the_researchers_key_and_charged_t
 async def test_a_decision_with_no_researcher_key_is_sent_on_the_deployments_key() -> (
     None
 ):
-    wire = _Wire()
+    wire = _wire()
     spent: list[tuple[int, Decimal, PaidBy]] = []
 
     with (
@@ -130,7 +105,7 @@ async def test_a_decision_with_no_researcher_key_is_sent_on_the_deployments_key(
 
 
 async def test_a_decision_outside_a_turn_is_sent_and_charged_to_no_one() -> None:
-    wire = _Wire()
+    wire = _wire()
 
     with attach_keyring(ProviderKeyring(), build=wire.build):
         answered = await send_decision(_request())
@@ -138,7 +113,7 @@ async def test_a_decision_outside_a_turn_is_sent_and_charged_to_no_one() -> None
     assert (len(wire.sent), answered.usage.input_tokens) == (1, 711)
 
 
-class _RefusingWire(_Wire):
+class _RefusingWire(DecisionsWire):
     def answer(self, request: httpx2.Request) -> httpx2.Response:
         self.sent.append((str(request.url), request.headers["authorization"], {}))
         return httpx2.Response(
@@ -150,7 +125,7 @@ class _RefusingWire(_Wire):
 
 
 async def test_a_refused_decision_leaves_the_catalog_its_own_result() -> None:
-    wire = _RefusingWire()
+    wire = _RefusingWire(RECORDED["response"])
     use_decisions_transport(send_decision)
     try:
         with (
@@ -170,7 +145,7 @@ async def test_a_mock_deployment_asks_no_decision(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "mock")
-    wire = _Wire()
+    wire = _wire()
     install_decisions_transport()
     try:
         with attach_keyring(ProviderKeyring(), build=wire.build):
@@ -182,7 +157,7 @@ async def test_a_mock_deployment_asks_no_decision(
 
 
 async def test_a_live_deployment_sends_each_decision_on_the_turns_key() -> None:
-    wire = _Wire()
+    wire = _wire()
     install_decisions_transport()
     try:
         with attach_keyring(ProviderKeyring(), build=wire.build):

@@ -29724,6 +29724,25 @@
         "title": "TurnFailedPayload",
         "type": "object"
       },
+      "TurnRoute": {
+        "enum": [
+          "explore",
+          "build"
+        ],
+        "type": "string"
+      },
+      "TurnRoutePayload": {
+        "properties": {
+          "route": {
+            "$ref": "#/components/schemas/TurnRoute"
+          }
+        },
+        "required": [
+          "route"
+        ],
+        "title": "TurnRoutePayload",
+        "type": "object"
+      },
       "TurnStatusPayload": {
         "description": "Payload for the turn-status chunk. The model id travels on the first\nstatus of a turn only.",
         "properties": {
@@ -31025,6 +31044,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TurnFailedPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "turnRoute": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnRoutePayload"
               },
               {
                 "type": "null"

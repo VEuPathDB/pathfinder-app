@@ -295,10 +295,14 @@ def keyed_provider(model_id: str) -> tuple[Provider[Any], PaidBy]:
     keys = _current()
     users_key = _users_key(provider_of(model_id), keys)
     if users_key is None:
-        require_deployment_pays(model_id)
-        return _deployment_provider(provider_of(model_id), keys), PaidBy.DEPLOYMENT
+        return deployment_provider(model_id), PaidBy.DEPLOYMENT
     keyed, key = users_key
     return keys.build(keyed, key), PaidBy.USER
+
+
+def deployment_provider(model_id: str) -> Provider[Any]:
+    require_deployment_pays(model_id)
+    return _deployment_provider(provider_of(model_id), _current())
 
 
 def require_deployment_pays(model_id: str) -> None:

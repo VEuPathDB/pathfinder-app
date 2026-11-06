@@ -56,6 +56,7 @@ _ALLOWED_CHUNK_TYPES: frozenset[str] = frozenset(
         "data-turn-usage",
         "data-lead-usage",
         "data-turn-status",
+        "data-turn-route",
         "data-conversation-title",
         "message-metadata",
     }

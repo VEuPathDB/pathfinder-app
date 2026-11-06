@@ -17,7 +17,13 @@ from veupathdb_mcp.catalog import (
     use_decisions_transport,
 )
 
-from pathfinder.platform.model_keys import is_mock_deployment, keyed_provider
+from pathfinder.domain.provider_keys import provider_of
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_keys import (
+    deployment_provider,
+    is_mock_deployment,
+    keyed_provider,
+)
 
 DECISIONS_MODEL = "openai:gpt-6-luna"
 
@@ -26,6 +32,24 @@ type DecisionsSpendSink = Callable[[int, Decimal, PaidBy], None]
 _sink: ContextVar[DecisionsSpendSink | None] = ContextVar(
     "decisions_spend_sink", default=None
 )
+
+
+_on_the_deployment: ContextVar[bool] = ContextVar(
+    "decisions_on_the_deployment", default=False
+)
+
+
+@contextmanager
+def decisions_on_the_deployment() -> Iterator[None]:
+    token = _on_the_deployment.set(True)
+    try:
+        yield
+    finally:
+        _on_the_deployment.reset(token)
+
+
+def the_deployment_decides() -> bool:
+    return provider_of(DECISIONS_MODEL) in get_settings().deployment_providers
 
 
 @contextmanager
@@ -62,7 +86,11 @@ class DecisionsUnansweredError(httpx.HTTPError):
 
 
 async def send_decision(request: DecisionRequest) -> DecisionResponse:
-    provider, paid_by = keyed_provider(DECISIONS_MODEL)
+    provider, paid_by = (
+        (deployment_provider(DECISIONS_MODEL), PaidBy.DEPLOYMENT)
+        if _on_the_deployment.get()
+        else keyed_provider(DECISIONS_MODEL)
+    )
     try:
         raw = await provider.client.post(
             "/decisions", cast_to=httpx.Response, body=request.model_dump(mode="json")
@@ -90,7 +118,9 @@ def install_decisions_transport() -> None:
 __all__ = [
     "DECISIONS_MODEL",
     "decision_cost",
+    "decisions_on_the_deployment",
     "decisions_spend_to",
     "install_decisions_transport",
     "send_decision",
+    "the_deployment_decides",
 ]

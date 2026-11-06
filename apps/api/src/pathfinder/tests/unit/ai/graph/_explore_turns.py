@@ -120,9 +120,15 @@ class ExploreDoubles:
         return [str(chunk["type"]) for chunk in self.chunks()]
 
 
+def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> None:
+    served = _Reports()
+    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
+    monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
+
+
 def install_explore_doubles(monkeypatch: pytest.MonkeyPatch) -> ExploreDoubles:
     doubles = ExploreDoubles()
-    served = _Reports()
+    serve_recorded_readings(monkeypatch)
 
     async def _charge(
         session_factory: object, *, user_id: UUID, spent: Sequence[ModelSpend]
@@ -131,8 +137,6 @@ def install_explore_doubles(monkeypatch: pytest.MonkeyPatch) -> ExploreDoubles:
         doubles.charges.append((user_id, sum(spend.tokens for spend in spent)))
 
     monkeypatch.setattr(explore_node, "charge_spend", _charge)
-    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
-    monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
     monkeypatch.setattr(
         explore_node, "get_stream_writer", lambda: doubles.payloads.append
     )
