@@ -134,3 +134,34 @@ def test_a_case_not_run_is_printed_as_not_run(
     assert printed[-1].startswith(
         "--- 1/2 passed (re-measure 0, failed 0, errored 0, not run 1)"
     )
+
+
+def test_run_builds_unless_asked() -> None:
+    parser = _build_parser()
+
+    assert parser.parse_args(["run", "--sites", _QA]).mode == "build"
+    for mode in ("auto", "explore", "build"):
+        assert parser.parse_args(["run", "--sites", _QA, "--mode", mode]).mode == mode
+    with pytest.raises(SystemExit):
+        parser.parse_args(["run", "--sites", _QA, "--mode", "strategy"])
+
+
+@pytest.mark.usefixtures("restored_sites_file")
+def test_run_hands_the_mode_to_the_corpus(monkeypatch: pytest.MonkeyPatch) -> None:
+    received: list[object] = []
+
+    async def _run_corpus(**options: object) -> EvalRunSummary:
+        received.append(options["mode"])
+        return EvalRunSummary(
+            harness="pydantic-evals",
+            provider="mock",
+            assistant_id="pathfinder",
+            ran_at="2026-08-23T00:00:00+00:00",
+            cases=[],
+        )
+
+    monkeypatch.setattr(evals, "run_corpus", _run_corpus)
+
+    assert main(["run", "--sites", _QA]) == 0
+    assert main(["run", "--sites", _QA, "--mode", "explore"]) == 0
+    assert received == ["build", "explore"]

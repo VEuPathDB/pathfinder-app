@@ -17,7 +17,7 @@ from pathfinder.devtools.gates import (
     detect_gate,
 )
 
-_CTX = BodyCtx(conversation_id=uuid4(), site_id="vectorbase", mode="strategy")
+_CTX = BodyCtx(conversation_id=uuid4(), site_id="vectorbase", mode="build")
 
 
 def _typed[T](value: object, shape: type[T]) -> T:

@@ -22,6 +22,7 @@ import httpx
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.platform.security import create_user_token
 
@@ -72,7 +73,9 @@ _GENERIC_UUID_RE = re.compile(
 )
 
 
-def chat_post_body(conversation_id: UUID, prompt: str) -> dict[str, Any]:
+def chat_post_body(
+    conversation_id: UUID, prompt: str, *, mode: ThreadMode = "auto"
+) -> dict[str, Any]:
     """Build the ``POST /api/v1/chat`` body for one user message."""
     message_id = str(uuid4())
     return {
@@ -87,6 +90,7 @@ def chat_post_body(conversation_id: UUID, prompt: str) -> dict[str, Any]:
         ],
         "conversationId": str(conversation_id),
         "siteId": "plasmodb",
+        "mode": mode,
     }
 
 
@@ -130,6 +134,7 @@ async def run_one_chat_turn(
     connector: InMemoryConnector,
     prompt: str,
     conversation_id: UUID | None = None,
+    mode: ThreadMode = "auto",
 ) -> list[dict[str, Any]]:
     """Post one prompt, run the deferred turn, and return its SSE chunks.
 
@@ -146,7 +151,7 @@ async def run_one_chat_turn(
         post_task = asyncio.create_task(
             client.post(
                 "/api/v1/chat",
-                json=chat_post_body(thread_id, prompt),
+                json=chat_post_body(thread_id, prompt, mode=mode),
                 timeout=30.0,
             ),
         )

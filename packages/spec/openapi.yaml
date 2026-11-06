@@ -4465,9 +4465,8 @@ components:
           title: Siteid
           default: ''
         mode:
-          type: string
-          title: Mode
-          default: strategy
+          $ref: '#/components/schemas/ThreadMode'
+          default: auto
         phaseModels:
           additionalProperties:
             type: string
@@ -12619,6 +12618,12 @@ components:
       - text
       title: TextUIPart
       description: A text part of a message.
+    ThreadMode:
+      type: string
+      enum:
+      - auto
+      - explore
+      - build
     TierListResponse:
       properties:
         presets:

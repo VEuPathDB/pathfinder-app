@@ -24,6 +24,7 @@ from pathfinder.devtools.chat import (
     RunArgs,
 )
 from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption, gate_end
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 from pathfinder.evals import store
 from pathfinder.evals.case import (
@@ -446,8 +447,9 @@ async def test_the_corpus_reads_each_site_build_once_and_judges_the_drift(
         effort: str | None,
         via_worker: bool,
         wdk_token: EnvToken | None,
+        mode: ThreadMode,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker, wdk_token
+        del mode, run_root, effort, via_worker, wdk_token
         return ObservedOutcome(built_strategy=True, root_count=produced[case.name])
 
     monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
@@ -496,8 +498,9 @@ async def test_a_case_whose_site_login_did_not_answer_is_not_run(
         effort: str | None,
         via_worker: bool,
         wdk_token: EnvToken | None,
+        mode: ThreadMode,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker, wdk_token
+        del mode, run_root, effort, via_worker, wdk_token
         if case.site_id == "cryptodb":
             unanswered = httpx.ConnectTimeout("no answer")
             raise LoginUnansweredError(case.site_id, unanswered)
@@ -881,8 +884,9 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
         effort: str | None,
         via_worker: bool,
         wdk_token: EnvToken | None,
+        mode: ThreadMode,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker, wdk_token
+        del mode, run_root, effort, via_worker, wdk_token
         printed_before_each_case.append(capsys.readouterr().out)
         return ObservedOutcome(built_strategy=True, root_count=produced[case.name])
 
@@ -935,8 +939,9 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
         effort: str | None,
         via_worker: bool,
         wdk_token: EnvToken | None,
+        mode: ThreadMode,
     ) -> ObservedOutcome:
-        del case, run_root, effort, via_worker, wdk_token
+        del mode, case, run_root, effort, via_worker, wdk_token
         return ObservedOutcome(
             built_strategy=True,
             root_count=479,
@@ -1171,3 +1176,78 @@ async def test_a_case_runs_where_no_earlier_run_left_its_events(
     )
 
     assert seen == [False, False]
+
+
+async def test_a_case_builds_unless_the_run_names_a_mode(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [{100}, {100}], gate=_RUN_CARD)
+    answered = _answering(monkeypatch, [None])
+
+    await eval_runner.run_one_case(
+        _case(
+            "build it",
+            "now change one thing",
+            gates=_leave(GateAnswer(card="separate_controls", turn=0)),
+        ),
+        run_root=tmp_path,
+    )
+
+    assert [args.mode for args in installed.driven] == ["build", "build"]
+    assert [args.mode for args in answered] == ["build"]
+
+
+async def test_every_turn_and_answer_runs_in_the_mode_the_run_names(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [{100}, {100}], gate=_RUN_CARD)
+    answered = _answering(monkeypatch, [None])
+
+    await eval_runner.run_one_case(
+        _case(
+            "build it",
+            "now change one thing",
+            gates=_leave(GateAnswer(card="separate_controls", turn=0)),
+        ),
+        run_root=tmp_path,
+        mode="explore",
+    )
+
+    assert [args.mode for args in installed.driven] == ["explore", "explore"]
+    assert [args.mode for args in answered] == ["explore"]
+
+
+async def test_the_corpus_runs_every_case_in_the_mode_it_names(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    modes: list[ThreadMode] = []
+
+    async def _site_build(site_id: str) -> str:
+        del site_id
+        return "71"
+
+    async def _run_one_case(
+        case: EvalCase,
+        *,
+        run_root: Path,
+        effort: str | None,
+        via_worker: bool,
+        wdk_token: EnvToken | None,
+        mode: ThreadMode,
+    ) -> ObservedOutcome:
+        del case, run_root, effort, via_worker, wdk_token
+        modes.append(mode)
+        return ObservedOutcome(built_strategy=True, root_count=479)
+
+    monkeypatch.setattr(
+        eval_runner,
+        "load_corpus",
+        lambda: [_counted("uat-s1-plasmodb", "plasmodb", 479)],
+    )
+    monkeypatch.setattr(eval_runner, "site_build", _site_build)
+    monkeypatch.setattr(eval_runner, "run_one_case", _run_one_case)
+
+    await eval_runner.run_corpus(run_root=tmp_path)
+    await eval_runner.run_corpus(run_root=tmp_path, mode="auto")
+
+    assert modes == ["build", "auto"]

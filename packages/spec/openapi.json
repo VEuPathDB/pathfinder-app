@@ -7109,9 +7109,8 @@
             "default": ""
           },
           "mode": {
-            "type": "string",
-            "title": "Mode",
-            "default": "strategy"
+            "$ref": "#/components/schemas/ThreadMode",
+            "default": "auto"
           },
           "phaseModels": {
             "additionalProperties": {
@@ -19181,6 +19180,14 @@
         ],
         "title": "TextUIPart",
         "description": "A text part of a message."
+      },
+      "ThreadMode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "explore",
+          "build"
+        ]
       },
       "TierListResponse": {
         "properties": {

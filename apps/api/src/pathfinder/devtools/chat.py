@@ -69,6 +69,7 @@ from pathfinder.devtools.gates import (
 )
 from pathfinder.devtools.models import Chunk
 from pathfinder.devtools.turn_arc import TurnArc, read_arc
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application, attach_wdk_auth
 from pathfinder.jobs.job_context import WdkJobContext
@@ -92,6 +93,7 @@ DEV_USER_ID = UUID("00000000-0000-0000-0000-0000000000c1")
 RUN_ROOT = Path(os.environ.get("PF_RUN_ROOT", "/data/pf-runs"))
 _MAX_RESUMES = 8
 EFFORTS = get_args(ReasoningEffort.__value__)
+MODES = get_args(ThreadMode.__value__)
 TURN_SETTINGS_FILE = "turn_settings.json"
 
 
@@ -134,7 +136,7 @@ def identity_line(token: EnvToken | None) -> str:
 class RunArgs(BaseModel):
     prompt: str
     site: str
-    mode: str = "strategy"
+    mode: ThreadMode = "build"
     conversation_id: UUID
     run_dir: Path
     mock: bool = False
@@ -261,7 +263,7 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help=_SITES_HELP,
     )
-    run.add_argument("--mode", default="strategy")
+    run.add_argument("--mode", choices=MODES, default="build")
     run.add_argument("--conversation-id", default=None)
     run.add_argument("--run-dir", default=None)
     run.add_argument("--mock", action="store_true")
@@ -313,7 +315,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     resp.add_argument("--conversation-id", required=True)
     resp.add_argument("--run-dir", required=True)
-    resp.add_argument("--mode", default="strategy")
+    resp.add_argument("--mode", choices=MODES, default="build")
     resp.add_argument("--mock", action="store_true")
     resp.add_argument("--approve", choices=["prompt", "auto", "deny"], default="prompt")
     resp.add_argument("--capture-wdk", action="store_true")

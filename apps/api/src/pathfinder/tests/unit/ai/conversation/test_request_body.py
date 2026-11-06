@@ -176,6 +176,11 @@ def _documented_examples() -> dict[str, str]:
     return dict(_EXAMPLE.findall(protocol_section("request_examples")))
 
 
+def _documented_body_in_a_pathfinder_mode(name: str) -> dict[str, object]:
+    body = json.loads(_documented_examples()[name])
+    return {**body, "mode": "auto"} if "mode" in body else body
+
+
 def _model_field_names() -> set[str]:
     return {field.alias or name for name, field in ChatRequestBody.model_fields.items()}
 
@@ -199,12 +204,19 @@ def test_every_documented_example_validates(name: str) -> None:
     examples = _documented_examples()
 
     assert name in examples, sorted(examples)
-    ChatRequestBody.model_validate(json.loads(examples[name]))
+    ChatRequestBody.model_validate(_documented_body_in_a_pathfinder_mode(name))
+
+
+def test_the_documented_mode_is_not_a_pathfinder_mode() -> None:
+    with pytest.raises(ValidationError, match="mode"):
+        ChatRequestBody.model_validate(
+            json.loads(_documented_examples()["submit-message"])
+        )
 
 
 def test_the_submit_example_carries_the_user_message_the_turn_answers() -> None:
     body = ChatRequestBody.model_validate(
-        json.loads(_documented_examples()["submit-message"]),
+        _documented_body_in_a_pathfinder_mode("submit-message"),
     )
 
     assert body.is_approval_resume is False
@@ -214,7 +226,7 @@ def test_the_submit_example_carries_the_user_message_the_turn_answers() -> None:
 
 def test_the_approval_example_resumes_a_deferred_call() -> None:
     body = ChatRequestBody.model_validate(
-        json.loads(_documented_examples()["approval-response"]),
+        _documented_body_in_a_pathfinder_mode("approval-response"),
     )
 
     assert body.is_approval_resume is True

@@ -28,6 +28,7 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ReasoningEffort
+from pydantic import BaseModel, ConfigDict
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from veupathdb.domain.parameters import PhyleticTree
@@ -50,6 +51,7 @@ from pathfinder.devtools.chat import (
 )
 from pathfinder.devtools.gates import Gate, consult_labels, gate_end
 from pathfinder.devtools.transcript import facts_lines
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.domain.reply_note import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.domain.written_links import unescaped_markdown
@@ -268,6 +270,7 @@ async def _answer(
     return await drive_respond(
         RespondArgs(
             site=args.site,
+            mode=args.mode,
             conversation_id=args.conversation_id,
             run_dir=run_dir,
             approve="prompt",
@@ -302,6 +305,7 @@ async def run_one_case(
     effort: ReasoningEffort | None = None,
     via_worker: bool = False,
     wdk_token: EnvToken | None = None,
+    mode: ThreadMode = "build",
 ) -> ObservedOutcome:
     """Drive one case as a user of its own, whose memories go when it ends, so
     no case reads what another case wrote, in a run directory no earlier run
@@ -311,25 +315,31 @@ async def run_one_case(
     try:
         return await _run_turns(
             case,
-            user_id,
-            run_root=run_root,
-            effort=effort,
-            via_worker=via_worker,
-            wdk_token=wdk_token,
+            _CaseRun(
+                user_id=user_id,
+                run_root=run_root,
+                effort=effort,
+                via_worker=via_worker,
+                wdk_token=wdk_token,
+                mode=mode,
+            ),
         )
     finally:
         await forget_user(user_id)
 
 
-async def _run_turns(
-    case: EvalCase,
-    user_id: UUID,
-    *,
-    run_root: Path,
-    effort: ReasoningEffort | None,
-    via_worker: bool,
-    wdk_token: EnvToken | None,
-) -> ObservedOutcome:
+class _CaseRun(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    user_id: UUID
+    run_root: Path
+    effort: ReasoningEffort | None
+    via_worker: bool
+    wdk_token: EnvToken | None
+    mode: ThreadMode
+
+
+async def _run_turns(case: EvalCase, run: _CaseRun) -> ObservedOutcome:
     """Drive every turn of one case on a fresh thread, in order.
 
     The step ids are read on both sides of the last turn. A thread that held
@@ -359,16 +369,17 @@ async def _run_turns(
         args = RunArgs(
             prompt=prompt,
             site=case.site_id,
+            mode=run.mode,
             conversation_id=conversation_id,
-            run_dir=run_root / case.name / f"turn-{index + 1}",
+            run_dir=run.run_root / case.name / f"turn-{index + 1}",
             approve="prompt",
-            via_worker=via_worker,
+            via_worker=run.via_worker,
             quiet=True,
-            wdk_token=wdk_token,
+            wdk_token=run.wdk_token,
             assistant=case.assistant_id,
-            effort=case.effort if effort is None else effort,
+            effort=case.effort if run.effort is None else run.effort,
             attachments=inline,
-            user_id=user_id,
+            user_id=run.user_id,
         )
         capture, ended = await drive_run(args)
         refused.extend(capture.refused_tools())
@@ -502,6 +513,7 @@ async def run_corpus(
     effort: ReasoningEffort | None = None,
     via_worker: bool = False,
     wdk_token: EnvToken | None = None,
+    mode: ThreadMode = "build",
 ) -> EvalRunSummary:
     """Run the corpus and return the summary. Cases run one at a time.
 
@@ -526,6 +538,7 @@ async def run_corpus(
                 effort=effort,
                 via_worker=via_worker,
                 wdk_token=wdk_token,
+                mode=mode,
             )
         except LoginUnansweredError as exc:
             not_run[case.name] = str(exc)

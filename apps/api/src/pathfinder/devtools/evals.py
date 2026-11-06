@@ -8,8 +8,8 @@ Usage::
         --rationale "what this pins" [--turn ...] [--note ...]
     python -m pathfinder.devtools.evals corpus
     python -m pathfinder.devtools.evals run --sites FILE [--only NAME ...] \\
-        [--out FILE] [--effort EFFORT] [--via-worker] [--model ID] \\
-        [--wdk-token-env NAME]
+        [--out FILE] [--effort EFFORT] [--via-worker] [--mode MODE] \\
+        [--model ID] [--wdk-token-env NAME]
 
 ``promote`` writes the corpus file and ends the association: the staged row
 keeps its content hash and loses its user, its thread and its extract.
@@ -199,6 +199,7 @@ def _run_and_print(
             effort=args.effort,
             via_worker=args.via_worker,
             wdk_token=token,
+            mode=args.mode,
         ),
     )
     if args.out:
@@ -320,6 +321,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--via-worker",
         action="store_true",
         help="run every turn through the real worker, so durable tools execute",
+    )
+    run.add_argument(
+        "--mode",
+        choices=chat.MODES,
+        default="build",
+        help="the thread mode every turn of every case sends",
     )
     run.add_argument(
         "--model",

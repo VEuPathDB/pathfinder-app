@@ -65,6 +65,7 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 | `prompt` (positional) | the user message for this turn |
 | `--site` | WDK site id (e.g. `vectorbase`, `plasmodb`) - required |
 | `--sites <file>` | the sites file the turn reads. Without it the run reads `$VEUPATHDB_SITES_CONFIG`, and without that the QA sites (`deploy/sites/qa.yml`, mounted at `/app/config/sites/qa.yml` in compose), never the client's bundled production list. With `--via-worker` the file must be the one the worker reads (the stack's `VEUPATHDB_SITES_CONFIG`); a worker on the bundled list, or on another file, refuses the run with exit code 2. `respond` takes it too. |
+| `--mode auto\|explore\|build` | the thread mode the request body sends. Default `build`, so a run is a Build turn unless it names another mode. `respond` takes it too, so a resumed gate keeps the mode. |
 | `--conversation-id <uuid>` | resume an existing conversation (durable via checkpointer). Omit to mint a new one (printed unless `--quiet`). |
 | `--run-dir <path>` | where artifacts go. Default `/data/pf-runs/<conv>/<turn>`. Re-using a path is safe - each run **resets** the artifact subdirs (`tools/`, `state/`, `errors/`, `wdk/`, `llm/`) and top-level files first, so two runs never mix. Other files in the directory are left alone. |
 | `--model PHASE=ID` | per-phase model override (repeatable). Phases: `lead frame execution verification`. |
@@ -302,6 +303,7 @@ hold what the pipeline checks. A run needs a VEuPathDB login
 | `--effort none\|low\|medium\|high` | every role of every case at one effort; wins over the case's `effort` |
 | `--via-worker` | every turn through the real worker, so durable tools execute (control tests, sweeps, separations, EDA computes) |
 | `--out FILE` | writes `EvalRunSummary` as JSON |
+| `--mode auto\|explore\|build` | the thread mode every turn of every case sends, card answers included. Default `build`, so a replay compares Build to Build unless a run names another mode |
 | `--model ID` | one catalog model for every role of every case, as `chat --model-all` sets it, the title generator, the note compactor and the injection judge included. Before the first case the run checks every role and exits with code 2 when one resolves elsewhere, when the id is not in the catalog, or with `--via-worker`. It prints the `chat roles` lines before the first case and again above the closing line |
 | `--wdk-token-env NAME` | every case's WDK identity is the token in the variable NAME, with no password sign-in. An unset or empty variable, or a token that names no registered VEuPathDB login, exits with code 2 before the first case. The identity line prints before the first case and above the closing line |
 

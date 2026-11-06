@@ -13,6 +13,7 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     UIMessage,
 )
 
+from pathfinder.domain.modes import ThreadMode
 from pathfinder.platform.log_ids import SITE_ID_PATTERN
 from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.tiers import KNOWN_ROLES
@@ -60,7 +61,7 @@ class ChatRequestBody(CamelModel):
     # existing thread keeps the assistant it was created with.
     assistant_id: str | None = None
     site_id: str = Field(default="", max_length=50, pattern=_SITE_OR_NONE)
-    mode: str = "strategy"
+    mode: ThreadMode = "auto"
     # A role no installed assistant runs a model for is refused here, so the
     # runtime downstream only ever sees a role some preset names.
     phase_models: dict[str, str] = Field(default_factory=dict)
