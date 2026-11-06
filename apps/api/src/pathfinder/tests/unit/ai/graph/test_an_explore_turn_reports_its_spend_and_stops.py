@@ -14,7 +14,7 @@ from pathfinder.ai.graph import explore_node
 from pathfinder.ai.graph._lead_model import LeadModelContext
 from pathfinder.ai.lead.turn_budget import lead_turn_budget_message
 from pathfinder.domain.written_links import plain_markdown
-from pathfinder.tests.unit.ai.graph._explore_turns import (
+from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     ExploreDoubles,
     domain_of,

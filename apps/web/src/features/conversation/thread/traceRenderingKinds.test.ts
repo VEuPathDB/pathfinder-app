@@ -49,6 +49,7 @@ describe("traceRenderingKinds", () => {
       "data-strategy-revision",
       "data-delete-cascade",
       "data-user-question-answers",
+      "data-turn-route",
     ]) {
       expect(kinds.has(kind)).toBe(false);
     }

@@ -26,8 +26,8 @@ hard-coded about PathFinder. The spec module imports `persistence.models` and
 fails if that grows.
 
 **The graph is a factory, not a shape.** The runtime never names a node, an
-edge, a phase or an agent. PathFinder hands it a two-node lead graph over
-`PipelineState`; an assistant with a single agent loop and a bare `TurnState`
+edge, a phase or an agent. PathFinder hands it a graph that routes each turn to the Lead
+or to Explore over `PipelineState`; an assistant with a single agent loop and a bare `TurnState`
 hands it that, and the runtime cannot tell them apart.
 
 **Partial state is preserved by construction.** The state factory returns a

@@ -1,5 +1,3 @@
-"""The results a finished durable task reports: a reduction and a parameter sweep."""
-
 from __future__ import annotations
 
 from typing import Any

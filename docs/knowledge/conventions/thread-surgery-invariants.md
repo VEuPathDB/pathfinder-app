@@ -1,7 +1,7 @@
 ---
 type: Convention
 title: Thread surgery invariants
-description: What a branch and a revert promise, one testable sentence each, with the test that fails when it stops holding. Covers the copied prefix, the model's visible history, the strategy revision and its WDK identity, the id space, repeatability, the EDA binding case by case, the library rows, cross-thread memory, the busy-thread refusals and their lock, the checkpoint blobs and the checkpoint schema.
+description: What a branch and a revert promise, one testable sentence each, with the test that fails when it stops holding. Covers the copied prefix, the model's visible history, the strategy revision and its WDK identity, the id space, repeatability, the EDA binding case by case, the library rows, cross-thread memory, the thread's mode, the busy-thread refusals and their lock, the checkpoint blobs and the checkpoint schema.
 tags: [branching, revert, persistence, strategy-revision, testing]
 generated: { by: claude-code/opus-5, at: 2026-08-31T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-10-24T00:00:00Z }
@@ -39,6 +39,7 @@ The mechanism behind F7 and R7 is
 | F12 | A branch is refused while the source thread is busy: a queued or running `chat_turn` job locks it, its newest checkpoint parks an approval, a task of it is active, or another branch, revert or dispatch holds the thread lock. It goes through once the thread settles. | `test_surgery_refuses_a_busy_thread.py::test_a_branch_waits_for_the_thread_to_settle`, `...::test_surgery_is_refused_while_a_turn_is_being_dispatched` |
 | F13 | A branch that does not commit leaves no WDK strategy and no branch row. The push is the last VEuPathDB write of the branch; a failure after it, the commit included, deletes the minted strategy through `delete_released_mint`, once a fresh session confirms that no committed row names it. | `test_a_failed_branch_leaves_no_wdk_strategy.py` (three cases), `test_a_surgery_release_is_confirmed_and_best_effort.py` (four cases) |
 | F14 | A branch that does not commit leaves no EDA document of its own. The document the branch opened for its study is deleted through `delete_released_document` when its subset patch, its binding, a write after it or the commit fails, and the parent's document is untouched. | `test_a_failed_surgery_releases_what_it_made.py::test_a_branch_whose_commit_fails_deletes_its_document`, `...::test_a_branch_whose_snapshot_write_fails_deletes_its_document`, `test_an_opened_document_never_leaks.py` (four cases) |
+| F15 | A branch opens on the source thread's mode: `services/conversations/thread_mode.py::copy_thread_mode` copies its `conversation_modes` row, and a source with no row leaves the branch on `auto`. A copy made by duplicate does the same. | `test_a_copied_thread_keeps_its_mode.py::test_a_branch_opens_on_the_source_threads_mode`, `...::test_a_copy_opens_on_the_source_threads_mode` |
 
 A branch is refused rather than approximated when the thread holds a strategy
 and no revision history at all (`test_fork_materializes_revision.py`), and
@@ -59,6 +60,7 @@ while the thread is busy (F12).
 | R9 | A revert deletes every checkpoint blob that no surviving checkpoint names in `channel_versions` in its own namespace, and the next turn still reads the target's history. | `test_surgery_keeps_only_named_blobs.py::test_r9_a_revert_leaves_no_blob_its_checkpoints_do_not_name`, `test_checkpoint_blobs_follow_their_namespace.py::test_r9_a_revert_drops_a_subgraph_blob_only_the_root_names` |
 | R10 | A revert is refused while the thread is busy, as F12 defines it, and changes no row. A turn that streams while a revert is asked for keeps its rows until it ends; the revert then deletes them and they do not return. | `test_surgery_refuses_a_busy_thread.py::test_a_revert_waits_for_the_thread_to_settle`, `test_a_revert_during_a_turn_keeps_its_cut.py` |
 | R11 | A revert that does not commit leaves no WDK strategy and no EDA document it made. The strategy its re-push minted and a document it opened because the recorded one was gone are deleted when the commit, or a write after the push, fails; the thread keeps the strategy and the binding it had. | `test_a_failed_surgery_releases_what_it_made.py::test_a_revert_whose_commit_fails_deletes_its_mint`, `...::test_a_revert_whose_commit_fails_deletes_the_document_it_opened` |
+| R12 | A revert keeps the thread's mode: it cuts the thread in place and leaves its `conversation_modes` row. | `test_a_copied_thread_keeps_its_mode.py::test_a_revert_keeps_the_threads_mode` |
 
 # Both
 

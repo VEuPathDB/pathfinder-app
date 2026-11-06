@@ -23,6 +23,7 @@ from pathfinder.domain.exchanges import exchanges_text
 from pathfinder.domain.modes import TurnRoute, route_of_build_probability
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
+from pathfinder.platform.errors import ProviderKeyError
 
 ROUTE_QUESTION: Final = "mode"
 ROUTE_TIMEOUT_SECONDS: Final = 5.0
@@ -110,7 +111,7 @@ async def decided_route(request: DecisionRequest, ask: DecisionsTransport) -> Tu
     try:
         async with asyncio.timeout(ROUTE_TIMEOUT_SECONDS):
             response = await ask(request)
-    except TimeoutError:
+    except TimeoutError, ProviderKeyError:
         return "explore"
     return route_of_build_probability(build_probability(response))
 

@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Callable
 from typing import Any
 
 import pytest
 from assistant_core.models.scripted import detect_role
 from pydantic import SecretStr
-from pydantic_ai import Tool
+from pydantic_ai import RunContext, Tool
+from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from pathfinder.ai.explore import explore_agent
 from pathfinder.ai.explore.explore_agent import (
     build_explore_agent,
     build_explore_toolset,
 )
 from pathfinder.ai.explore.explore_model import resolve_explore_model_context
+from pathfinder.ai.lead import lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_toolset
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import _ROLES
 from pathfinder.ai.tools.standalone import catalog_discovery
+from pathfinder.ai.tools.toolsets import eda
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_keys import attach_keyring
@@ -44,9 +51,7 @@ def _explore_tools() -> FunctionToolset[Any]:
 
 
 def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
-    names = agent_tool_names(build_explore_agent())
-
-    assert {
+    assert agent_tool_names(build_explore_agent()) == {
         "propose_readings",
         "consult_user",
         "search_for_searches",
@@ -57,28 +62,44 @@ def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
         "list_gene_sets",
         "search_memory",
         "remember",
+        "search_eda_studies",
+        "describe_eda_study",
+        "open_eda_analysis",
+        "set_eda_filters",
+        "preview_eda_subset",
         "run_eda_compute",
         "run_eda_dimensionality_reduction",
+        "read_eda_statistics",
         "optimize_search_parameters",
-    } <= names
-    assert names.isdisjoint(
-        {
-            "frame_problem",
-            "build_strategy",
-            "edit_strategy",
-            "verify_strategy",
-            "recover_failed_steps",
-            "create_eda_step",
-            "propose_changes",
-            "clear_strategy",
-            "delete_step",
-            "separate_controls",
-            "adopt_separating_strategy",
-            "save_gene_set",
-            "export_gene_set",
-            "rename_strategy",
-        }
+    }
+
+
+async def _writes_a_step(ctx: RunContext[LeadDeps]) -> str:
+    del ctx
+    return "written"
+
+
+def test_a_tool_new_to_a_shared_toolset_does_not_reach_explore(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _with_a_writer(
+        build: Callable[[], AbstractToolset[LeadDeps]],
+    ) -> Callable[[], AbstractToolset[LeadDeps]]:
+        return lambda: FunctionToolset[LeadDeps](
+            tools=[
+                *unwrap_function_toolset(build()).tools.values(),
+                Tool(_writes_a_step),
+            ]
+        )
+
+    monkeypatch.setattr(eda, "build_toolset", _with_a_writer(eda.build_toolset))
+    monkeypatch.setattr(
+        explore_agent,
+        "build_sweep_toolset",
+        _with_a_writer(lead_agent.build_sweep_toolset),
     )
+
+    assert "_writes_a_step" not in agent_tool_names(build_explore_agent())
 
 
 def test_the_readings_card_needs_the_researchers_yes() -> None:
@@ -164,3 +185,17 @@ def test_a_readings_count_takes_two_readings_at_least() -> None:
         ["readings"],
         2,
     )
+
+
+def test_the_readings_card_is_described_as_the_readings_card() -> None:
+    described = _explore_tools().tools["consult_user"].description or ""
+
+    assert described.startswith("End the turn on the readings card")
+    assert "frame_problem" not in described
+    assert "edit_strategy" not in described
+
+
+def test_the_leads_card_keeps_its_own_description() -> None:
+    lead = unwrap_function_toolset(build_lead_toolset()).tools["consult_user"]
+
+    assert (lead.description or "").startswith("Ask the user design questions")

@@ -16,6 +16,7 @@ describe("buildChatRequestBody", () => {
         trigger: "submit-message",
         messages: [],
         baseBody: undefined,
+        mode: "auto",
       }),
     ).toThrow(/siteId is required/);
   });
@@ -29,6 +30,7 @@ describe("buildChatRequestBody", () => {
         trigger: "submit-message",
         messages: [],
         baseBody: undefined,
+        mode: "auto",
       }),
     ).toThrow();
   });
@@ -41,6 +43,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(out).toMatchObject({
       conversationId: "c1",
@@ -59,6 +62,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: { extra: "passthrough", conversationId: "should-be-overridden" },
+      mode: "auto",
     });
     expect(out["extra"]).toBe("passthrough");
     expect(out.conversationId).toBe("c1");
@@ -72,6 +76,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
+      mode: "auto",
       phaseModels: { lead: OPENAI_FLAGSHIP.id, frame: ANTHROPIC_SMALL.id },
       phaseReasoning: { lead: "high" },
     });
@@ -82,6 +87,19 @@ describe("buildChatRequestBody", () => {
     expect(out["phaseReasoning"]).toEqual({ lead: "high" });
   });
 
+  it("sends the mode", () => {
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [],
+      baseBody: undefined,
+      mode: "explore",
+    });
+    expect(out["mode"]).toBe("explore");
+  });
+
   it("names the assistant when the caller gives one", () => {
     const out = buildChatRequestBody({
       conversationId: "c1",
@@ -90,6 +108,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
+      mode: "auto",
       assistantId: "helper",
     });
     expect(out["assistantId"]).toBe("helper");
@@ -103,6 +122,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
+      mode: "auto",
     });
     expect("assistantId" in out).toBe(false);
   });
@@ -115,6 +135,7 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
+      mode: "auto",
       phaseModels: {},
       phaseReasoning: {},
     });
@@ -160,6 +181,7 @@ describe("the answers an approved consult carries", () => {
       trigger: "submit-message",
       messages: [answeredConsult()],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(out.messages[0]?.parts[1]).toEqual({
       type: "data-user-question-answers",
@@ -176,6 +198,7 @@ describe("the answers an approved consult carries", () => {
         trigger: "submit-message",
         messages: [answeredConsult()],
         baseBody: undefined,
+        mode: "auto",
       }),
     ).toThrow(/approval-7/);
   });
@@ -201,6 +224,7 @@ describe("the answers an approved consult carries", () => {
       trigger: "submit-message",
       messages: [message],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(out.messages[0]?.parts).toHaveLength(1);
   });
@@ -218,6 +242,7 @@ describe("the answers an approved consult carries", () => {
       trigger: "submit-message",
       messages: [plain],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(out.messages).toEqual([plain]);
   });
@@ -243,6 +268,7 @@ describe("the files a turn carries", () => {
         { id: "u2", role: "user", parts: [{ type: "text", text: "second" }, png] },
       ],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(out.messages.map((m) => m.parts.map((p) => p.type))).toEqual([
       ["text"],

@@ -28,6 +28,7 @@ export type CoreDataPartKind =
   | "data-turn-stopped"
   | "data-turn-failed"
   | "data-turn-withdrawn"
+  | "data-turn-route"
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-tool-approval"
@@ -49,6 +50,7 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-turn-stopped": DataTurnStopped,
   "data-turn-failed": DataTurnFailed,
   "data-turn-withdrawn": DataTurnWithdrawn,
+  "data-turn-route": noRender,
   "data-lead-usage": noRender,
   // The trace reads the line; the thread never draws it as a part of its own.
   "data-tool-summary": noRender,

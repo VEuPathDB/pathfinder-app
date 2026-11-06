@@ -4,6 +4,7 @@ import {
   type TurnRequestBody,
 } from "@veupathdb/assistant-client";
 
+import type { ThreadMode } from "@/lib/threadModes";
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
 
 import { withConsultAnswers } from "../rail/consultActions";
@@ -20,6 +21,7 @@ export interface BuildChatRequestBodyArgs {
   /** Set only on the message that creates the thread: an existing thread
    *  keeps the assistant it was created with, and another id is refused. */
   assistantId?: string;
+  mode: ThreadMode;
 }
 
 export type ChatRequestBodyShape = TurnRequestBody<UIMessage>;
@@ -56,6 +58,7 @@ export function buildChatRequestBody(
       assistantId: args.assistantId,
       phaseModels: args.phaseModels,
       phaseReasoning: args.phaseReasoning,
+      mode: args.mode,
     },
   });
 }

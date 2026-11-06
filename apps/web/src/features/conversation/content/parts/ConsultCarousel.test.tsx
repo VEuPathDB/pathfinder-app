@@ -217,6 +217,7 @@ describe("the answers the carousel collects reach the turn", () => {
       trigger: "submit-message",
       messages: [answeredMessage()],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(body.messages[0]?.parts[1]).toEqual({
       type: "data-user-question-answers",

@@ -9,6 +9,13 @@ from veupathdb.errors import WDKError
 
 from pathfinder.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.tests._support.explore_turns import (
+    EXPLORE_PROMPT,
+    GENE_TYPE_REPORT,
+    NO_READING_PROMPT,
+    seed_count,
+    serve_recorded_readings,
+)
 from pathfinder.tests._support.recorded_counts import recorded_count
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_plasmodb,
@@ -18,18 +25,12 @@ from pathfinder.tests.integration.chat._helpers import (
     answer_card,
     dispatched,
     post_chat_turn,
+    routes,
     run_one_chat_turn,
     turn_modes,
     types,
 )
 from pathfinder.tests.integration.http._lead_audit_turns import domain_of
-from pathfinder.tests.unit.ai.graph._explore_turns import (
-    EXPLORE_PROMPT,
-    GENE_TYPE_REPORT,
-    NO_READING_PROMPT,
-    seed_count,
-    serve_recorded_readings,
-)
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
 
 BUILD_ARC_TOKEN = "[[arc:echo]]"
@@ -124,6 +125,30 @@ async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_excha
         f"Readings offered: {FIRST_LABEL} ({seed_count()} genes); "
         f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
+
+
+async def test_a_typed_message_over_the_readings_card_in_explore_mode_goes_to_the_lead(
+    app: FastAPI, authed_user_id: UUID, in_memory_jobs: InMemoryConnector
+) -> None:
+    cid = uuid4()
+    await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt=EXPLORE_PROMPT,
+        conversation_id=cid,
+        mode="explore",
+    )
+    chunks = await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt=f"the second one {BUILD_ARC_TOKEN}",
+        conversation_id=cid,
+        mode="explore",
+    )
+    assert routes(chunks) == []
+    assert (await turn_modes(cid))[-1] == ("assistant", "build")
 
 
 async def test_a_reply_with_no_buildable_reading_offers_no_card(

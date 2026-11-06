@@ -37,6 +37,7 @@ import { beginConversation } from "../api/beginConversation";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
+import { threadModeFor } from "../composer/threadMode";
 import { createDurableTransport } from "./durableTransport";
 import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
 import { useReaderModel } from "./useReaderModel";
@@ -108,6 +109,7 @@ export function useChatRuntime({
             baseBody: body as Record<string, unknown> | undefined,
             phaseModels,
             phaseReasoning,
+            mode: threadModeFor(conversationId, queryClient),
             // A thread keeps the assistant it was created with, so only the
             // message that created it names one.
             ...(begun.isNew && assistantId !== undefined && { assistantId }),

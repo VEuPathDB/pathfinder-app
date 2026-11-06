@@ -10,7 +10,7 @@ from pathfinder.ai.tools.standalone.eda_statistics import EDA_PCA
 from pathfinder.ai.tools.standalone.optimization import PARAMETER_SWEEP
 from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.durable_answers import PCA_RESULT, SWEEP_RESULT
-from pathfinder.tests.unit.ai.graph._explore_turns import (
+from pathfinder.tests._support.explore_turns import (
     NO_READING_PROMPT,
     ExploreDoubles,
     domain_of,

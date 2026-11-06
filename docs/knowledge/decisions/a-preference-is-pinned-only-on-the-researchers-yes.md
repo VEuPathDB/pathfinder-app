@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A preference is pinned only on the researcher's yes
-description: Only the Lead holds remember, and a preference it would store waits on a card the researcher approves; FRAME, EXECUTION and VERIFY store no memory with it. Taking the tool from the sub-agents alone, and screening every in-process read, were rejected.
+description: Only the Lead and Explore hold remember, and a preference either would store waits on a card the researcher approves; FRAME, EXECUTION and VERIFY store no memory with it. Taking the tool from the sub-agents alone, and screening every in-process read, were rejected.
 tags: [memory, lead, security, approvals]
 generated: { by: claude-code/opus-5, at: 2026-10-11T00:00:00Z }
 status: stable
@@ -9,12 +9,14 @@ status: stable
 
 # What was decided
 
-`remember` is a Lead tool only (`ai/lead/lead_memory_tools.py`); the FRAME, EXECUTION
-and VERIFY toolsets do not hold it. A call with `kind="preference"` raises
+`remember` (`ai/lead/lead_memory_tools.py`) is held by the Lead and by Explore
+([a thread answers in Explore or Build](a-thread-answers-in-explore-or-build.md)); the
+FRAME, EXECUTION and VERIFY toolsets do not hold it. A call with `kind="preference"` raises
 `ApprovalRequired` until the researcher approves it, so the turn parks on a card whose
 first line is the question `ask_about_the_preferences` writes: "Remember in your later
 conversations: <name>: <summary>?". The memory is stored only when the approved call
-runs. Every other kind is stored at once, because no other kind is pinned.
+runs. Every other kind is stored at once, because no other kind is pinned. Explore's
+card parks under Explore's phase, so the answer resumes Explore.
 
 # Why
 

@@ -4,7 +4,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn
 from uuid import UUID, uuid4
 
 import pytest
@@ -18,6 +18,8 @@ from assistant_core.platform.types import PaidBy
 from assistant_core.quota import QuotaStatus
 from langgraph.runtime import Runtime
 from pydantic import SecretStr
+from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.catalog import (
     DecisionRequest,
@@ -26,6 +28,7 @@ from veupathdb_mcp.catalog import (
     use_decisions_transport,
 )
 
+from pathfinder.ai.capabilities import decisions_spend
 from pathfinder.ai.capabilities.decisions_spend import send_decision
 from pathfinder.ai.capabilities.metering import ModelSpend
 from pathfinder.ai.graph import route_node
@@ -33,19 +36,26 @@ from pathfinder.ai.graph.route_node import parked_route, route_turn_node
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.modes import EXPLORE_PHASE
-from pathfinder.domain.provider_keys import ProviderKeyring
+from pathfinder.domain.provider_keys import KeyRefusal, ProviderKeyring
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import (
+    OwnKeyRequiredError,
+    ProviderKeyError,
+    ProviderKeyRefusedError,
+    ProviderNotConfiguredError,
+)
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.model_keys import attach_keyring
 from pathfinder.tests._support.decisions_wire import DecisionsWire, recorded_decision
+from pathfinder.tests._support.explore_turns import chunks_of, update_of
 from pathfinder.tests._support.run_context import turn_runtime
-from pathfinder.tests.unit.ai.graph._explore_turns import chunks_of, update_of
 
 RECORDED = recorded_decision("interpro_pick.json")
 RECORDED_INPUT_TOKENS = 711
 DEPLOYMENT_KEY = "sk-deployment-route-key"
 RESEARCHER_KEY = "sk-researcher-route-key"
 TASK = uuid4()
+UNREADABLE = OperationalError("SELECT used_usd", {}, ConnectionRefusedError())
 SPENT = QuotaStatus(
     used_usd=Decimal("2.000000"),
     limit_usd=Decimal("2.0"),
@@ -153,6 +163,10 @@ def approval(*, phase: str, tool_name: str = "remember") -> PendingApproval:
     )
 
 
+def answer(card: PendingApproval) -> dict[str, ToolApprovalResponded]:
+    return {card.tool_call_id: ToolApprovalResponded(id="approval-1", approved=True)}
+
+
 def durable(*, phase: str, task: UUID) -> PendingDurableCall:
     return PendingDurableCall(
         phase=phase,
@@ -207,10 +221,23 @@ async def test_a_completion_turn_returns_to_the_agent_that_parked() -> None:
 
 @pytest.mark.usefixtures("turn", "refusing_decisions")
 async def test_a_readings_card_answer_goes_to_the_lead_in_explore_mode() -> None:
-    answered = state(
-        "explore", pending_approval=approval(phase="lead", tool_name="consult_user")
-    )
+    card = approval(phase="lead", tool_name="consult_user")
+    answered = state("explore", pending_approval=card, approval_responses=answer(card))
     assert (await route_turn_node(answered, runtime())).goto == "lead"
+
+
+@pytest.mark.usefixtures("refusing_decisions")
+async def test_a_typed_message_over_the_readings_card_goes_to_the_lead(
+    turn: _Turn,
+) -> None:
+    card = approval(phase="lead", tool_name="consult_user")
+    typed = state("explore", "Something else", pending_approval=card)
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command), turn.chunks()) == (
+        "lead",
+        {"mode": "build"},
+        [],
+    )
 
 
 @pytest.mark.usefixtures("turn", "refusing_decisions")
@@ -220,18 +247,53 @@ async def test_a_sub_agent_park_returns_to_the_lead() -> None:
 
 
 @pytest.mark.usefixtures("refusing_decisions")
-async def test_a_typed_message_over_an_explore_card_goes_to_explore(
+async def test_an_answered_explore_card_resumes_explore(turn: _Turn) -> None:
+    card = approval(phase=EXPLORE_PHASE)
+    answered = state("build", pending_approval=card, approval_responses=answer(card))
+    command = await route_turn_node(answered, runtime())
+    assert (command.goto, update_of(command), turn.chunks()) == (
+        "explore",
+        {"mode": "explore"},
+        [],
+    )
+
+
+@pytest.mark.usefixtures("refusing_decisions")
+async def test_a_typed_message_over_an_explore_card_follows_build_mode(
     turn: _Turn,
 ) -> None:
     typed = state(
         "build", "Something else", pending_approval=approval(phase=EXPLORE_PHASE)
     )
     command = await route_turn_node(typed, runtime())
-    assert (command.goto, update_of(command)["mode"], turn.chunks()) == (
-        "explore",
-        "explore",
-        [],
+    assert (command.goto, update_of(command)["pending_approval"]) == ("lead", None)
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "build"}}]
+
+
+@pytest.mark.usefixtures("refusing_decisions")
+async def test_a_typed_message_over_an_explore_card_follows_explore_mode(
+    turn: _Turn,
+) -> None:
+    typed = state(
+        "explore", "Something else", pending_approval=approval(phase=EXPLORE_PHASE)
     )
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command)["pending_approval"]) == (
+        "explore",
+        None,
+    )
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "explore"}}]
+
+
+@pytest.mark.usefixtures("turn")
+async def test_a_typed_message_over_an_explore_card_in_auto_asks_the_router() -> None:
+    typed = state(
+        "auto",
+        "Build it [[arc:build-journey]]",
+        pending_approval=approval(phase=EXPLORE_PHASE),
+    )
+    command = await route_turn_node(typed, runtime())
+    assert (command.goto, update_of(command)["pending_approval"]) == ("lead", None)
 
 
 def test_a_task_still_running_parks_no_route() -> None:
@@ -246,8 +308,10 @@ async def test_the_route_is_the_turns_mode_and_its_part(turn: _Turn) -> None:
 
 
 async def test_a_resume_writes_no_route_part(turn: _Turn) -> None:
+    card = approval(phase="lead")
     command = await route_turn_node(
-        state("auto", pending_approval=approval(phase="lead")), runtime()
+        state("auto", pending_approval=card, approval_responses=answer(card)),
+        runtime(),
     )
     assert (update_of(command)["mode"], turn.chunks()) == ("build", [])
 
@@ -296,3 +360,41 @@ async def test_a_deployment_with_no_openai_key_explores_without_asking(
         command = await route_turn_node(state("auto", "Count the genes"), runtime())
     assert (command.goto, wire.sent) == ("explore", [])
     assert [s for _, spent in turn.charged for s in spent] == []
+
+
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        OwnKeyRequiredError("GPT-6 Luna", "OpenAI"),
+        ProviderNotConfiguredError("OpenAI"),
+        ProviderKeyRefusedError("OpenAI", KeyRefusal.INVALID),
+    ],
+)
+@pytest.mark.usefixtures("live_deployment")
+async def test_a_key_refusal_on_the_router_call_explores(
+    turn: _Turn, monkeypatch: pytest.MonkeyPatch, refusal: ProviderKeyError
+) -> None:
+    def _refuse(model_id: str) -> NoReturn:
+        del model_id
+        raise refusal
+
+    monkeypatch.setattr(decisions_spend, "deployment_provider", _refuse)
+    wire = DecisionsWire(_routed_build())
+    with attach_keyring(ProviderKeyring(), build=wire.build):
+        command = await route_turn_node(state("auto", "Count the genes"), runtime())
+    assert (command.goto, wire.sent) == ("explore", [])
+    assert turn.chunks() == [{"type": "data-turn-route", "data": {"route": "explore"}}]
+
+
+@pytest.mark.usefixtures("turn", "live_deployment")
+async def test_a_database_error_reading_the_allowance_fails_the_turn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _unreadable(session: AsyncSession, user_id: UUID) -> QuotaStatus | None:
+        del session, user_id
+        raise UNREADABLE
+
+    monkeypatch.setattr(route_node, "spent_deployment_budget", _unreadable)
+    with pytest.raises(OperationalError) as raised:
+        await route_turn_node(state("auto", "Count the genes"), runtime())
+    assert raised.value is UNREADABLE

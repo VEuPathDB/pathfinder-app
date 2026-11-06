@@ -2,6 +2,21 @@
 
 ## 2026-11-06
 
+* **A thread answers in Auto, Explore or Build.** The graph is `route -> lead | explore ->
+  finalize_turn`. Build is the Lead as before, with one line in its instructions that names the
+  modes. Explore talks a research question through on the explore role's model with tools that
+  never write the strategy, cites or flags each claim, and hands a buildable reading to Build on a consult card
+  parked for the Lead. In Auto one Decisions call on gpt-6-luna sends the turn to Build at a
+  build probability of 0.65 or more, else to Explore; a resume goes back to the agent that
+  parked. The router runs on the deployment's key, metered, and a spent monthly allowance
+  sends every Auto turn to Explore. The thread's mode is a `conversation_modes` row, read back
+  on `ConversationResponse.mode`; a branch or a copy keeps it. The web shows a mode pill beside
+  Send and an "Explore" mark on a reply Explore wrote. Six backlog items were added. See
+  [the decision](decisions/a-thread-answers-in-explore-or-build.md).
+* **assistant-core is 0.9.0b3 and assistant-client is 0.9.0-beta.2 (protocol 2.4.1).** The
+  protocol states that a `mode` the assistant does not admit is refused with 422, and its
+  submit-message example sends no `mode`. PathFinder refuses any mode other than `auto`,
+  `explore` and `build`, the retired `strategy` included.
 * **A clipped text ends at a sentence.** A text over its limit ends at the last sentence end
   that fits, else at the last word that fits followed by "...". A card question holds 500
   characters, and every card question and option label is clipped by the same function. A

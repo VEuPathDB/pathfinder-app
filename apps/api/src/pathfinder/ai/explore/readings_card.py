@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Final
 
 from assistant_core.graph.turn_state import ConsultQuestion
 from assistant_core.platform.pydantic_base import CamelModel
@@ -14,6 +15,17 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
 
 _LEAST_READINGS = 2
+
+READINGS_CARD_DESCRIPTION: Final = (
+    "End the turn on the readings card: the researcher picks the reading Build builds.\n\n"
+    "Ask exactly one question. Its options are two or more readings this turn counted "
+    "with propose_readings, each labelled exactly as counted, with its gene count in the "
+    "option's description. Leave the question's dimension at untyped, set allowNotes to "
+    "false, and leave replaces empty. Put what the readings mean in reply, which streams "
+    "above the card.\n\n"
+    "This pauses the turn. A pick hands the conversation to Build, which builds the picked "
+    "reading. With fewer than two counted readings, end on the reply alone."
+)
 
 
 class _ParkedCard(CamelModel):

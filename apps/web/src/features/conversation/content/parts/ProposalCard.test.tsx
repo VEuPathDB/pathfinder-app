@@ -258,6 +258,7 @@ describe("the researcher's answer reaches the turn", () => {
       trigger: "submit-message",
       messages: [message(responded(true))],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(body.messages[0]?.parts[1]).toEqual({
       type: "data-user-question-answers",
@@ -318,6 +319,7 @@ describe("the researcher's answer reaches the turn", () => {
       trigger: "submit-message",
       messages: [message(responded(false))],
       baseBody: undefined,
+      mode: "auto",
     });
     expect(body.messages[0]?.parts).toHaveLength(1);
   });

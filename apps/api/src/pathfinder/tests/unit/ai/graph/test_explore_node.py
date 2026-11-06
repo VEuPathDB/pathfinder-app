@@ -15,8 +15,7 @@ from pathfinder.ai.models.mock.explore_arc import (
 )
 from pathfinder.domain.modes import EXPLORE_PHASE
 from pathfinder.domain.written_links import plain_markdown
-from pathfinder.tests._support.recorded_counts import recorded_count
-from pathfinder.tests.unit.ai.graph._explore_turns import (
+from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
@@ -30,6 +29,7 @@ from pathfinder.tests.unit.ai.graph._explore_turns import (
     seed_count,
     update_of,
 )
+from pathfinder.tests._support.recorded_counts import recorded_count
 
 
 @pytest.fixture

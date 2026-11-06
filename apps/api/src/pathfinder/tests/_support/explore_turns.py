@@ -1,6 +1,3 @@
-"""The doubles an Explore node test runs on: recorded counts, a stream writer
-and a quota charge that record what the turn wrote."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -52,7 +49,7 @@ def seed_count() -> int:
     return seed.measured.root_count
 
 
-def _counted(total: int) -> WDKAnswer:
+def counted_answer(total: int) -> WDKAnswer:
     return WDKAnswer.model_validate(
         {
             "meta": {
@@ -71,12 +68,10 @@ def _counted(total: int) -> WDKAnswer:
     )
 
 
-class _Reports:
-    def __init__(self) -> None:
-        self.answers = {
-            SIGNAL_PEPTIDE: _counted(seed_count()),
-            GENE_TYPE: WDKAnswer.model_validate(recorded_body(GENE_TYPE_REPORT)),
-        }
+@dataclass
+class RecordedReports:
+    answers: dict[str, WDKAnswer]
+    ran: list[tuple[str, dict[str, str]]] = field(default_factory=list)
 
     async def run_search_report(
         self,
@@ -87,7 +82,8 @@ class _Reports:
         report_config: object,
         view_filters: object,
     ) -> WDKAnswer:
-        del record_type, search_config, report_config, view_filters
+        del record_type, report_config, view_filters
+        self.ran.append((search_name, dict(search_config.parameters)))
         return self.answers[search_name]
 
 
@@ -120,10 +116,16 @@ class ExploreDoubles:
         return [str(chunk["type"]) for chunk in self.chunks()]
 
 
-def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> None:
-    served = _Reports()
+def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> RecordedReports:
+    served = RecordedReports(
+        answers={
+            SIGNAL_PEPTIDE: counted_answer(seed_count()),
+            GENE_TYPE: WDKAnswer.model_validate(recorded_body(GENE_TYPE_REPORT)),
+        }
+    )
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
     monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
+    return served
 
 
 def install_explore_doubles(monkeypatch: pytest.MonkeyPatch) -> ExploreDoubles:

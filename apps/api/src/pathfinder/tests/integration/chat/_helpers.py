@@ -19,13 +19,19 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import httpx
+from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
+from langchain_core.runnables import RunnableConfig
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.modes import ThreadMode
 from pathfinder.jobs.app import procrastinate_app
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
 _CHAT_TURN_TASK = "chat_turn:run"
@@ -183,13 +189,7 @@ async def run_one_chat_turn(
     )
 
 
-def answer_card(
-    conversation_id: UUID,
-    asked: list[dict[str, Any]],
-    chosen: list[str],
-    *,
-    mode: ThreadMode,
-) -> dict[str, Any]:
+def _approved_call(asked: list[dict[str, Any]]) -> dict[str, Any]:
     request = next(c for c in asked if c["type"] == "tool-approval-request")
     call = next(
         c
@@ -197,43 +197,66 @@ def answer_card(
         if c["type"] == "tool-input-available"
         and c["toolCallId"] == request["toolCallId"]
     )
-    [question] = call["input"]["questions"]
+    return {
+        "type": f"tool-{call['toolName']}",
+        "toolCallId": call["toolCallId"],
+        "state": "approval-responded",
+        "input": call["input"],
+        "approval": {"id": request["approvalId"], "approved": True},
+    }
+
+
+def _assistant_reply(
+    conversation_id: UUID, parts: list[dict[str, Any]], *, mode: ThreadMode
+) -> dict[str, Any]:
     message_id = str(uuid4())
     return {
         "trigger": "submit-message",
         "id": message_id,
-        "messages": [
-            {
-                "id": message_id,
-                "role": "assistant",
-                "parts": [
-                    {
-                        "type": f"tool-{call['toolName']}",
-                        "toolCallId": call["toolCallId"],
-                        "state": "approval-responded",
-                        "input": call["input"],
-                        "approval": {"id": request["approvalId"], "approved": True},
-                    },
-                    {
-                        "type": "data-user-question-answers",
-                        "data": {
-                            "toolCallId": call["toolCallId"],
-                            "answers": [
-                                {
-                                    "questionId": question["id"],
-                                    "prompt": question["prompt"],
-                                    "chosenLabels": chosen,
-                                }
-                            ],
-                        },
-                    },
-                ],
-            },
-        ],
+        "messages": [{"id": message_id, "role": "assistant", "parts": parts}],
         "conversationId": str(conversation_id),
         "siteId": "plasmodb",
         "mode": mode,
     }
+
+
+def approve_card(
+    conversation_id: UUID, asked: list[dict[str, Any]], *, mode: ThreadMode
+) -> dict[str, Any]:
+    return _assistant_reply(conversation_id, [_approved_call(asked)], mode=mode)
+
+
+def answer_card(
+    conversation_id: UUID,
+    asked: list[dict[str, Any]],
+    chosen: list[str],
+    *,
+    mode: ThreadMode,
+) -> dict[str, Any]:
+    approved = _approved_call(asked)
+    [question] = approved["input"]["questions"]
+    answers = {
+        "type": "data-user-question-answers",
+        "data": {
+            "toolCallId": approved["toolCallId"],
+            "answers": [
+                {
+                    "questionId": question["id"],
+                    "prompt": question["prompt"],
+                    "chosenLabels": chosen,
+                }
+            ],
+        },
+    }
+    return _assistant_reply(conversation_id, [approved, answers], mode=mode)
+
+
+async def checkpointed(conversation_id: UUID) -> PipelineState:
+    spec = get_assistant_registry().resolve(PATHFINDER_ASSISTANT_ID)
+    config: RunnableConfig = {"configurable": {"thread_id": str(conversation_id)}}
+    async with lifespan_checkpointer(get_settings().database_url) as saver:
+        snapshot = await spec.build_graph(saver).aget_state(config)
+    return PipelineState.model_validate(snapshot.values)
 
 
 def parse_sse_body(body: str) -> list[dict[str, Any]]:

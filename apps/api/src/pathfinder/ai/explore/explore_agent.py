@@ -13,7 +13,10 @@ from pathfinder.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
 from pathfinder.ai.explore.explore_tools import catalog_reads, propose_readings
-from pathfinder.ai.explore.readings_card import readings_card_can_ask
+from pathfinder.ai.explore.readings_card import (
+    READINGS_CARD_DESCRIPTION,
+    readings_card_can_ask,
+)
 from pathfinder.ai.lead.lead_agent import build_sweep_toolset, turn_tool_sources
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_memory_tools import remember, search_memory
@@ -25,7 +28,6 @@ from pathfinder.ai.lead.lead_pins import (
 from pathfinder.ai.lead.lead_reads import get_live_strategy_state
 from pathfinder.ai.lead.lead_tools import list_gene_sets
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone.eda_step import create_eda_step
 from pathfinder.ai.tools.standalone.gene_record import (
     offered_where_genes_are_held,
     read_gene_record,
@@ -48,6 +50,7 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
                 consult_user,
                 requires_approval=True,
                 args_validator=readings_card_can_ask,
+                description=READINGS_CARD_DESCRIPTION,
             ),
             *catalog_reads(),
             Tool(read_gene_record, prepare=offered_where_genes_are_held),
@@ -60,9 +63,24 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
     return RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS)
 
 
-def _writes_no_strategy(ctx: RunContext[LeadDeps], tool_def: ToolDefinition) -> bool:
+_SHARED_TOOLS: Final = frozenset(
+    {
+        "search_eda_studies",
+        "describe_eda_study",
+        "open_eda_analysis",
+        "set_eda_filters",
+        "preview_eda_subset",
+        "run_eda_compute",
+        "run_eda_dimensionality_reduction",
+        "read_eda_statistics",
+        "optimize_search_parameters",
+    }
+)
+
+
+def _explore_may_call(ctx: RunContext[LeadDeps], tool_def: ToolDefinition) -> bool:
     del ctx
-    return tool_def.name != create_eda_step.__name__
+    return tool_def.name in _SHARED_TOOLS
 
 
 def build_explore_agent() -> ExploreAgent:
@@ -73,8 +91,8 @@ def build_explore_agent() -> ExploreAgent:
         instructions=EXPLORE_INSTRUCTIONS,
         toolsets=[
             build_explore_toolset(),
-            eda.build_toolset().filtered(_writes_no_strategy),
-            build_sweep_toolset(),
+            eda.build_toolset().filtered(_explore_may_call),
+            build_sweep_toolset().filtered(_explore_may_call),
             turn_tool_sources,
         ],
         capabilities=agent_capabilities(

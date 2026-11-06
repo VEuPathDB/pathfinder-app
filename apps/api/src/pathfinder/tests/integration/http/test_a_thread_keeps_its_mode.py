@@ -7,11 +7,11 @@ import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.tests._support.explore_turns import serve_recorded_readings
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 from pathfinder.tests.integration.chat.conftest import recorded_site_reads
 from pathfinder.tests.integration.http._two_assistants import turn_with_body
 from pathfinder.tests.integration.http.conftest import client_for
-from pathfinder.tests.unit.ai.graph._explore_turns import serve_recorded_readings
 
 __all__ = ["recorded_site_reads"]
 

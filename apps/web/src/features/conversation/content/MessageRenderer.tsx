@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 
 import { AssistantThinkingPlaceholder } from "./AssistantThinkingPlaceholder";
 import { FailureNotice } from "./FailureNotice";
+import { ExploreMark } from "./ExploreMark";
 import { SupersededBadge } from "./SupersededBadge";
 import { ConsultRecord } from "./parts/ConsultRecap";
 import { ProposalCard } from "./parts/ProposalCard";
@@ -266,6 +267,7 @@ export function AssistantMessage() {
     <motion.div {...entrance} animate={MESSAGE_SETTLED}>
       <Message from="assistant" id={messageAnchorId(messageId)}>
         <MessageContent>
+          <ExploreMark />
           <SupersededBadge />
           <MessagePrimitive.Content components={contentComponents} />
           <AssistantThinkingPlaceholder />

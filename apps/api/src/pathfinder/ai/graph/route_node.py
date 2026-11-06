@@ -25,7 +25,7 @@ from pathfinder.ai.graph.turn_route import (
     route_request_for,
 )
 from pathfinder.ai.models.mock.route import scripted_route
-from pathfinder.domain.modes import TurnRoute, route_of_parked_phase
+from pathfinder.domain.modes import EXPLORE_PHASE, TurnRoute, route_of_parked_phase
 from pathfinder.platform.model_keys import is_mock_deployment
 from pathfinder.services.turn_payment import spent_deployment_budget
 
@@ -38,8 +38,11 @@ def parked_route(state: PipelineState) -> TurnRoute | None:
     durable = state.pending_durable_call
     if durable is not None and state.carries_durable_answer:
         return route_of_parked_phase(durable.phase)
-    if state.pending_approval is not None:
-        return route_of_parked_phase(state.pending_approval.phase)
+    card = state.pending_approval
+    if card is None:
+        return None
+    if card.tool_call_id in state.approval_responses or card.phase != EXPLORE_PHASE:
+        return route_of_parked_phase(card.phase)
     return None
 
 
@@ -96,6 +99,7 @@ async def route_turn_node(
         goto=_AGENT_OF[route],
         update={
             "mode": route,
+            "pending_approval": None,
             "turn_total_tokens": totals.turn_total_tokens,
             "turn_total_cost_usd": totals.turn_total_cost_usd,
         },

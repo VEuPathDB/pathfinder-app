@@ -22,6 +22,7 @@ import {
   useAttachmentRefusal,
 } from "./ComposerAttachments";
 import { DockedCardView } from "./DockedCardView";
+import { ModePill } from "./ModePill";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import { useDockedCard } from "./useDockedCard";
 import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
@@ -212,32 +213,35 @@ export function Composer({
         <ComposerAttachmentList assistantId={assistantId} refusal={attachmentRefusal} />
         <div className="flex items-center justify-between p-2">
           <AttachButton assistantId={assistantId} />
-          {isRunning ? (
-            <ComposerPrimitive.Cancel
-              data-testid="stop-button"
-              aria-label="Stop"
-              onClick={handleStopClick}
-              className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-sm text-destructive-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px"
-            >
-              <Square className="h-4 w-4" /> Stop
-            </ComposerPrimitive.Cancel>
-          ) : (
-            <ComposerPrimitive.Send
-              data-testid="send-button"
-              aria-label="Send"
-              disabled={blocked || attachmentRefusal !== null}
-              onClick={(event) => {
-                if (slash.refuseUnknown() || docked.answerTyped()) {
-                  event.preventDefault();
-                  return;
-                }
-                lastSendAt.current = Date.now();
-              }}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px disabled:opacity-50 disabled:hover:translate-y-0"
-            >
-              <Send className="h-4 w-4" /> Send
-            </ComposerPrimitive.Send>
-          )}
+          <div className="flex items-center gap-2">
+            <ModePill conversationId={conversationId} />
+            {isRunning ? (
+              <ComposerPrimitive.Cancel
+                data-testid="stop-button"
+                aria-label="Stop"
+                onClick={handleStopClick}
+                className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-sm text-destructive-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px"
+              >
+                <Square className="h-4 w-4" /> Stop
+              </ComposerPrimitive.Cancel>
+            ) : (
+              <ComposerPrimitive.Send
+                data-testid="send-button"
+                aria-label="Send"
+                disabled={blocked || attachmentRefusal !== null}
+                onClick={(event) => {
+                  if (slash.refuseUnknown() || docked.answerTyped()) {
+                    event.preventDefault();
+                    return;
+                  }
+                  lastSendAt.current = Date.now();
+                }}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                <Send className="h-4 w-4" /> Send
+              </ComposerPrimitive.Send>
+            )}
+          </div>
         </div>
       </div>
       <ComposerFooter />
