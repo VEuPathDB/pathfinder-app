@@ -2,6 +2,14 @@
 
 ## 2026-11-07
 
+* **A reply renders as markdown, and the turn vouches for its links.** The Lead's and Explore's
+  replies keep the headings, lists, tables and code the model writes. The server sends a
+  `data-reply-links` part beside the reply with the record pages the facts can cite and each
+  source a research read of the turn returned, and the web makes a link only of an address in
+  it; any other link shows as its words and an image as its alt text. Explore reads each new
+  message with the Lead's message reader, and a message read as off topic is offered no tool and
+  gets the two-sentence redirect. See
+  [the decision](decisions/the-product-renders-the-facts-the-reply-narrates.md).
 * **Explore is a Settings stage, and its model follows the tier.** On OpenAI Explore runs
   GPT-5.6 Luna on fast and default, GPT-6.1 Terra on balanced and GPT-6.1 Sol on quality; on
   Anthropic Haiku 5.5, Sonnet 5.5 and Sonnet 5.5; on Google Gemini 3.5 Flash-Lite, 3.8 Flash and

@@ -15,7 +15,6 @@ from pathfinder.ai.models.mock.explore_arc import (
     SECOND_LABEL,
 )
 from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     GENE_TYPE_REPORT,
@@ -57,7 +56,7 @@ async def test_the_card_reply_follows_the_facts(doubles: ExploreDoubles) -> None
 
     types = doubles.types()
     assert types.index("data-facts") < types.index("text-delta")
-    assert doubles.replies() == [plain_markdown(READINGS_REPLY)]
+    assert doubles.replies() == [READINGS_REPLY]
     assert types[0] == "data-turn-status"
 
 
@@ -70,7 +69,7 @@ async def test_an_explore_turn_writes_the_hand_over(doubles: ExploreDoubles) -> 
         f"Readings offered: {FIRST_LABEL} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
         f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
-    assert domain.exchanges[-1].reply == plain_markdown(READINGS_REPLY)
+    assert domain.exchanges[-1].reply == READINGS_REPLY
     assert domain.reading_labels() == [FIRST_LABEL, SECOND_LABEL]
     assert EXPLORE_PROMPT in domain.request_messages
     assert domain.requirements == []
@@ -85,8 +84,8 @@ async def test_a_turn_with_no_buildable_reading_parks_nothing(
 
     assert "pending_approval" not in update_of(command)
     assert domain_of(command).named_readings == []
-    assert doubles.replies() == [plain_markdown(NO_READING)]
-    assert domain_of(command).exchanges[-1].reply == plain_markdown(NO_READING)
+    assert doubles.replies() == [NO_READING]
+    assert domain_of(command).exchanges[-1].reply == NO_READING
 
 
 async def test_a_stated_preference_parks_for_explore_with_its_question(
@@ -136,7 +135,7 @@ async def test_an_answered_preference_resumes_explore_to_the_readings_card(
     assert domain_of(resumed).exchanges[-1].kind == "card_answer"
     assert domain_of(resumed).exchanges[-1].said == "yes"
     assert domain_of(resumed).reading_labels() == [FIRST_LABEL, SECOND_LABEL]
-    assert doubles.replies()[-1] == plain_markdown(READINGS_REPLY)
+    assert doubles.replies()[-1] == READINGS_REPLY
 
 
 async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
@@ -151,7 +150,7 @@ async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
     ]
     assert "pending_approval" not in update_of(command)
     assert doubles.of_type("tool-approval-request") == []
-    assert doubles.replies() == [plain_markdown(ONE_READING)]
+    assert doubles.replies() == [ONE_READING]
     assert domain_of(command).named_readings == []
     assert domain_of(command).exchanges[-1].card == ""
 

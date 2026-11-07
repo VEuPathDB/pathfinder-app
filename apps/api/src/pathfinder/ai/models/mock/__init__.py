@@ -30,6 +30,7 @@ from pathfinder.ai.models.mock.consult_arc import CONSULT
 from pathfinder.ai.models.mock.directive import ArcDirective
 from pathfinder.ai.models.mock.faults import fault_call, without_fault_calls
 from pathfinder.ai.models.mock.lead_flow import is_the_leads_run
+from pathfinder.ai.models.mock.reads import instructions_of
 from pathfinder.ai.models.mock.registry import arc_named
 from pathfinder.ai.models.mock.turn_arc import lead_arc_name, standing_directive
 
@@ -90,16 +91,21 @@ def role_script(role: Role) -> Script:
     return script
 
 
+_EXPLORE_MARK = "**Explore mode**"
+
+
 def explore_script(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
     return arc_named(turn_directive(messages).arc).explore(messages)
 
 
-def _unmarked(messages: list[ModelMessage]) -> ToolCallPart:
+def _unmarked(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
     """The script for a step whose tool list names no role.
 
-    A turn the reading put out of scope offers the Lead no tool at all, so
-    the role table has nothing to read and the Lead's own arc answers it.
+    A turn the reading put out of scope offers the Lead and Explore no tool at
+    all, so the role table has nothing to read and the agent's own arc answers it.
     """
+    if _EXPLORE_MARK in instructions_of(messages):
+        return explore_script(messages)
     if is_the_leads_run(messages):
         return role_script("lead")(messages)
     return terminal_call({})

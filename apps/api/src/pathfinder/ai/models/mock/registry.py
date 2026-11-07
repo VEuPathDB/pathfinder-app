@@ -65,6 +65,7 @@ from pathfinder.ai.models.mock.explore_arc import (
     ONE_READING_ARC,
     explore_readings,
     no_reading,
+    off_topic_reply,
     one_reading,
 )
 from pathfinder.ai.models.mock.facts_arcs import list_ids
@@ -257,9 +258,12 @@ ARCS: dict[str, Arc] = {
     "eda-compare-no-step": _arc(NEW_REQUEST, eda_compare_no_step),
     "eda-other-site": _arc(NEW_REQUEST, eda_other_site),
     "user-dataset-deseq": _arc(NEW_REQUEST, user_dataset_deseq),
-    "off-topic": _arc(
-        read_as(IntentClassification.OFF_TOPIC),
-        lead(history_free(prose_arcs.off_topic)),
+    "off-topic": replace(
+        _arc(
+            read_as(IntentClassification.OFF_TOPIC),
+            lead(history_free(prose_arcs.off_topic)),
+        ),
+        explore=off_topic_reply,
     ),
     "kinase-question": _arc(QUESTION, lead(history_free(prose_arcs.kinase_question))),
     "impact": _arc(QUESTION, lead(history_free(prose_arcs.impact))),

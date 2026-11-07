@@ -26,7 +26,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.step_words import AddedSearch
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.held_counts import session_holding
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     LEAD_FINAL,
@@ -263,7 +262,7 @@ async def test_a_card_whose_reply_matches_the_turn_parks_in_one_run(
     assert len(seen) == 1
     assert capture.pending_approval is not None
     assert capture.pending_approval.tool_call_id == "call_card_0"
-    assert _written_text(writer) == plain_markdown(POINTS_AT_THE_FACTS)
+    assert _written_text(writer) == POINTS_AT_THE_FACTS
     assert _cards_on_the_wire(writer) == ["call_card_0"]
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         "call_card_0"
@@ -317,7 +316,7 @@ async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
         < wire.index(f"tool-input-start:{DELETE}")
         < wire.index(f"tool-approval-request:{DELETE}")
     )
-    assert _written_text(writer) == plain_markdown(POINTS_AT_THE_FACTS + DELETE_REPLY)
+    assert _written_text(writer) == POINTS_AT_THE_FACTS + DELETE_REPLY
 
 
 async def test_the_facts_are_written_once_before_the_reply_the_card_carries(

@@ -13,7 +13,6 @@ from pathfinder.ai.explore.explore_agent import ExploreAgent
 from pathfinder.ai.graph import explore_node
 from pathfinder.ai.graph._lead_model import LeadModelContext
 from pathfinder.ai.lead.turn_budget import lead_turn_budget_message
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     ExploreDoubles,
@@ -91,7 +90,7 @@ async def test_a_turn_at_its_budget_says_it_stopped(
     command = await run_explore(explore_state(EXPLORE_PROMPT))
 
     [reply] = doubles.replies()
-    budget = plain_markdown(lead_turn_budget_message(RunUsage(requests=1), _ONE_CALL))
+    budget = lead_turn_budget_message(RunUsage(requests=1), _ONE_CALL)
     assert reply.endswith(budget)
     assert domain_of(command).exchanges[-1].reply == reply
     assert "pending_approval" not in update_of(command)
@@ -105,5 +104,5 @@ async def test_a_run_error_says_the_turn_stopped_on_it(
     command = await run_explore(explore_state(EXPLORE_PROMPT))
 
     assert [chunk["type"] for chunk in doubles.of_type("error")] == ["error"]
-    assert doubles.replies() == [plain_markdown(_ERROR_STOP)]
-    assert domain_of(command).exchanges[-1].reply == plain_markdown(_ERROR_STOP)
+    assert doubles.replies() == [_ERROR_STOP]
+    assert domain_of(command).exchanges[-1].reply == _ERROR_STOP

@@ -50,7 +50,9 @@ from pathfinder.ai.graph._lead_durable import (
     control_results_answered,
     statistics_answered,
 )
+from pathfinder.ai.graph._lead_facts import show_the_links
 from pathfinder.ai.graph._lead_model import LeadModelContext
+from pathfinder.ai.graph._lead_reading import classify_the_words
 from pathfinder.ai.graph._lead_stops import (
     fallback_prose,
     guard_stop_of,
@@ -212,6 +214,7 @@ def _show_the_reply(
     deps.state.domain.record_shown(facts.shown_records())
     if not facts.empty():
         emit_chunk(writer, facts_event(facts))
+    show_the_links(writer, deps, facts)
     shown = [
         *(_text_chunks(render_note(output, facts)) if output else []),
         *hold.release(facts, deps.state.domain.open_questions),
@@ -261,6 +264,8 @@ async def _run_explore_turn(
         ),
     )
     meter = SpendMeter()
+    if fresh:
+        await classify_the_words(state, deps, model_id=model.model_id, meter=meter)
     run = _ExploreRun()
     run.capture.lead_model = model.model_id
     run.capture.lead_reasoning_effort = model.reasoning_effort

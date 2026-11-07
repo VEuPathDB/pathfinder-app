@@ -104,6 +104,7 @@ import type {
   TurnFailedPayload,
   TurnWithdrawnPayload,
   TurnRoutePayload,
+  ReplyLinks,
   ConversationTitlePayload,
   ConversationResponse,
   DeleteCascadePayload,
@@ -414,6 +415,7 @@ export type KnownDataPartKind =
   | "data-turn-failed"
   | "data-turn-withdrawn"
   | "data-turn-route"
+  | "data-reply-links"
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-tool-approval"
@@ -462,6 +464,7 @@ export interface DataPartPayloadMap {
   "data-turn-failed": TurnFailedPayload;
   "data-turn-withdrawn": TurnWithdrawnPayload;
   "data-turn-route": TurnRoutePayload;
+  "data-reply-links": ReplyLinks;
   "data-lead-usage": DataLeadUsagePayload;
   "data-tool-summary": ToolSummaryPayload;
   "data-tool-approval": ToolApprovalPayload;

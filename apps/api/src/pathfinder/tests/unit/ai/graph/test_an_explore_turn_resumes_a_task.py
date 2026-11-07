@@ -8,7 +8,6 @@ from assistant_core.graph.turn_state import DurableTaskResult
 from pathfinder.ai.models.mock.explore_arc import NO_READING
 from pathfinder.ai.tools.standalone.eda_statistics import EDA_PCA
 from pathfinder.ai.tools.standalone.optimization import PARAMETER_SWEEP
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.durable_answers import PCA_RESULT, SWEEP_RESULT
 from pathfinder.tests._support.explore_turns import (
     NO_READING_PROMPT,
@@ -49,7 +48,7 @@ async def test_a_finished_reduction_resumes_explore_and_keeps_its_statistic(
     assert update_of(command)["pending_durable_call"] is None
     assert [statistic.id for statistic in domain.statistics] == ["stat_pca"]
     assert domain.exchanges[-1].kind == "task_result"
-    assert domain.exchanges[-1].reply == plain_markdown(NO_READING)
+    assert domain.exchanges[-1].reply == NO_READING
     assert domain.request_messages == []
 
 

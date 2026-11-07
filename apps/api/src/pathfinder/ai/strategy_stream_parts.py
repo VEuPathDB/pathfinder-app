@@ -1,6 +1,6 @@
 """Stream parts PathFinder emits: graph, strategy, gene sets, control tests,
 comparisons, the evidence card, a separation run's result, a delete card's
-cascade, the ledger, the route a turn took, the facts beside a reply, the
+cascade, the ledger, the route a turn took, the facts beside a reply, the links a reply may show, the
 recalled memories and this assistant's agent topology, and the proposal a card
 carries as its tool input."""
 
@@ -29,6 +29,7 @@ from pathfinder.ai.stream_part_payloads import (
     StrategyMeta,
 )
 from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.reply_links import ReplyLinks
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment.column_tally import ColumnTally
@@ -55,5 +56,6 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-memory-retrieved", RecalledMemoriesPayload)
     registry.register("data-delete-cascade", DeleteCascadePayload)
     registry.register("data-turn-route", TurnRoutePayload)
+    registry.register("data-reply-links", ReplyLinks)
     registry.register_schema_only("proposal", Proposal)
     register_agent_topology_stream_parts(registry)

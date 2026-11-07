@@ -83,7 +83,7 @@ def test_the_reply_shows_the_finding_before_its_note() -> None:
         [f"**{plain_markdown('Finding 1 of audit run ' + _FINDING['run_id'])}**"],
         (
             f"The review keeps the shifted splice site of "
-            f"[{_GENE}]({gene_record_url('fungidb', _GENE)})\\."
+            f"[{_GENE}]({gene_record_url('fungidb', _GENE)})."
         ),
     )
     assert {"- finding certainty: medium", "- evidence kind: confirmation"} <= set(

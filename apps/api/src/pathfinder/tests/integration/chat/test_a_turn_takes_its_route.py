@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.ai.models.mock.explore_arc import ONE_READING
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     NO_READING_PROMPT,
@@ -138,7 +137,7 @@ async def test_one_buildable_reading_ends_on_words_that_name_build(
     )
     said = "".join(str(c["delta"]) for c in chunks if c["type"] == "text-delta")
     assert (routes(chunks), approval_tool_names(chunks)) == (["explore"], [])
-    assert said == plain_markdown(ONE_READING)
+    assert said == ONE_READING
     assert [(await checkpointed(cid)).pending_approval] == [None]
 
 

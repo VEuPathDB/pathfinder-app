@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The product renders the facts; the reply narrates
-description: Every turn that holds a fact writes a typed facts part before the reply, built from the strategy, the spec, the ledger and the turn's reads and rendered by React; the reply is a note beside it that writes no number and no link of the turn and names a record only as [record:<id>], and one bounded check refuses a note that writes one. A guard that read the model's free text for facts, a reference grammar the reply wrote in place of each fact, and rendering the Lead's facts as markdown in the reply were rejected.
+description: Every turn that holds a fact writes a typed facts part before the reply, built from the strategy, the spec, the ledger and the turn's reads and rendered by React; the reply is a markdown note beside it that writes no number of the turn, names a record only as [record:<id>] and links only a source a research read of the turn returned, which the web alone turns into a link, and one bounded check refuses a note that writes one. A guard that read the model's free text for facts, a reference grammar the reply wrote in place of each fact, and rendering the Lead's facts as markdown in the reply were rejected.
 tags: [agents, lead, turn-contract, reply, facts]
 generated: { by: claude-code/opus-5, at: 2026-09-28T00:00:00Z }
 verified: { by: claude-code/opus-5.5, at: 2026-10-30T00:00:00Z }
@@ -114,16 +114,25 @@ hold the rendered text, so a saved conversation replays with no renderer. The au
 reply text is each `ReadFact` as markdown, then the rendered note
 (`ai/audit/reply.py::reply_text`).
 
-**No model-written link reaches the reader.** The note is plain text: `render_note` decodes its
-HTML entities and escapes every ASCII punctuation character (`domain/written_links.py::plain_markdown`),
-so no markdown or HTML the model writes forms a link, an image, an autolink or a reference
-definition, whatever its shape. The only links in a rendered note are the record links
-`render_note` inserts after it escapes the text. Filtering link shapes was rejected: a filter
-missed reference-style links and `scheme:` forms, and stripping one construct can rebuild
-another. The audit assistant's markdown escapes each read's title, labels and values the same
-way (`ReadFact.markdown`), and a row whose value holds a link is not shown. `written_links`
-still finds the links a note writes, inline, image, autolink, HTML, bare `scheme://`,
-`scheme:\\`, `www.` and `mailto:`, `javascript:` and the like, so the correction can name them.
+**The reply renders as markdown, and only a link the turn vouches for is a link.** `render_note`
+keeps the markdown the model wrote and replaces each `[record:<id>]` the facts can cite with the
+record's page; any other record reference is dropped. Beside the reply the server writes a
+`data-reply-links` part (`domain/reply_links.py::reply_links`, written by
+`ai/graph/_lead_facts.py::show_the_links` for the Lead and for Explore): the pages of the records
+the facts can cite, and each url, DOI and PMID a research read of the turn returned
+(`TurnMarkers.retrieved_sources`, recorded by `RetrievalRecordingToolset`), a DOI as its
+`doi.org` page and a PMID as its PubMed page. The web renders the reply's markdown with
+`features/conversation/content/vouchedLinks.tsx::VouchedLink` as its link element: a link whose
+address is in that part opens in a new tab, and any other link renders as its words alone. An
+image renders as its alt text and raw HTML is not rendered, so no markdown the model writes
+forms a link, an image or an HTML element, whatever its shape: inline, reference-style,
+autolink, bare `www.` or `https://`, `mailto:` or `javascript:`. A source a page the model read
+names is a link only when a research read returned that exact address, so a page cannot steer
+a link to an address of its own choosing or carry the conversation out in a query. Every other
+renderer of model text (`lib/markdown/modelImage.tsx::modelMarkdownComponents`, the reasoning
+box) renders every link as its words. The audit assistant's markdown escapes each read's title,
+labels and values (`ReadFact.markdown`), and a row whose value holds a link is not shown.
+`written_links` still finds the links a note writes, so the correction can name them.
 
 **No check reads the note.** The instruction asks the note to write no number and no link of
 the turn, and nothing refuses one that does: the check that read the note's tokens for numbers
@@ -160,6 +169,11 @@ how a reply placed a fact refused true text and made the model rewrite it; a not
 fact, so there is no placement to police.
 
 # What was rejected
+
+- **Escaping every mark the model writes.** It kept every model-written link out, and every
+  heading, list, table and code block with it: a list arrived as one line and bold showed its
+  asterisks. Deciding the link in the renderer keeps the same guarantee on every link shape,
+  since the renderer builds no link the part does not name, and the formatting renders.
 
 - **A reference grammar the reply wrote in place of each fact.** The model wrote
   `[count:<step_id>]`, `[value:<step_id>.<param>]`, `[stat:<id>.<row>]` and a dozen other

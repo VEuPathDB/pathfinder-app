@@ -17991,6 +17991,15 @@ components:
       - by
       title: ReplacedLifecycle
       type: object
+    ReplyLinks:
+      properties:
+        links:
+          items:
+            type: string
+          title: Links
+          type: array
+      title: ReplyLinks
+      type: object
     RequirementGap:
       description: A requirement the framing pass found no search on the site states.
       properties:
@@ -20808,6 +20817,10 @@ components:
         proposal:
           anyOf:
           - $ref: '#/components/schemas/Proposal'
+          - type: 'null'
+        replyLinks:
+          anyOf:
+          - $ref: '#/components/schemas/ReplyLinks'
           - type: 'null'
         scoredComparison:
           anyOf:

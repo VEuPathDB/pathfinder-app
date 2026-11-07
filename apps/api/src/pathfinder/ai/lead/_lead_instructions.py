@@ -254,8 +254,9 @@ _CLOSING = """\
   a method's precedent, a threshold's convention.
 - ``research_web_search`` is for a name, a claim or a current event neither the catalog nor \
   the record can answer. It builds nothing and is safe in any turn.
-- A record your reply names is ``[record:<record_id>]``. The strategy, a paper or a page is \
-  named in words; the facts beside the reply link them.
+- A record your reply names is ``[record:<record_id>]``. The strategy is named in words; the \
+  facts beside the reply link it. A paper or a page a research read of this turn returned may \
+  be linked with the exact url the read returned; any other link shows as plain text.
 - **A premise the question states as fact is checked before the answer builds on it.** A \
   question can carry a claim that is wrong. Read the record or the literature for the claim itself, and say \
   plainly when it does not hold; answering around a false premise teaches it back to the user.

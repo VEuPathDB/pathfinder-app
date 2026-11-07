@@ -16,6 +16,7 @@ from pathfinder.ai.stream_part_payloads import ControlTestResults
 from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.modes import TurnRoute
+from pathfinder.domain.reply_links import ReplyLinks
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.turn_facts import TurnFacts
 
@@ -75,6 +76,13 @@ def ledger_update_event(*, ledger: InvestigationLedger) -> DataChunk:
     return DataChunk(
         type="data-ledger-update",
         data=ledger.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def reply_links_event(links: ReplyLinks) -> DataChunk:
+    return DataChunk(
+        type="data-reply-links",
+        data=links.model_dump(by_alias=True, mode="json"),
     )
 
 

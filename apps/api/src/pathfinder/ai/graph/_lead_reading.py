@@ -10,6 +10,7 @@ from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.graph._lead_capture import LeadRunCapture, absorb_outside_spend
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.held_intent import hold_the_intent
+from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.message_intent import intent_of
 from pathfinder.ai.lead.message_reader import ReaderInput, read_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -87,6 +88,29 @@ def _reader_input(
     )
 
 
+async def _intent_of_words(
+    state: PipelineState,
+    deps: LeadDeps,
+    words: str,
+    *,
+    new_message: bool,
+    model_id: str,
+    meter: SpendMeter,
+) -> UserIntent:
+    if is_mock_deployment():
+        return scripted_intent(deps.state, words)
+    reading, request = await read_message(
+        _reader_input(
+            state, deps, words, await record_class_names(deps.runtime.site_id)
+        ),
+        files=_files(state) if new_message else [],
+        model=keyed_model(model_id),
+        model_id=model_id,
+        meter=meter,
+    )
+    return intent_of(reading, request)
+
+
 async def read_the_words(
     state: PipelineState,
     deps: LeadDeps,
@@ -98,24 +122,27 @@ async def read_the_words(
     words = _words(state, new_message=new_message)
     if words is None:
         return
-    if is_mock_deployment():
-        await hold_the_intent(deps, scripted_intent(deps.state, words), words)
-        return
     meter = SpendMeter()
     try:
-        reading, request = await read_message(
-            _reader_input(
-                state, deps, words, await record_class_names(deps.runtime.site_id)
-            ),
-            files=_files(state) if new_message else [],
-            model=keyed_model(model_id),
-            model_id=model_id,
-            meter=meter,
+        intent = await _intent_of_words(
+            state, deps, words, new_message=new_message, model_id=model_id, meter=meter
         )
     finally:
         for spend in meter.spent:
             absorb_outside_spend(capture, spend.tokens, spend.cost_usd, spend.paid_by)
-    await hold_the_intent(deps, intent_of(reading, request), words)
+    await hold_the_intent(deps, intent, words)
+
+
+async def classify_the_words(
+    state: PipelineState, deps: LeadDeps, *, model_id: str, meter: SpendMeter
+) -> None:
+    words = _words(state, new_message=True)
+    if words is None:
+        return
+    deps.intent = await _intent_of_words(
+        state, deps, words, new_message=True, model_id=model_id, meter=meter
+    )
+    state.turn_markers.intent_classified = True
 
 
 __all__ = ["read_the_words"]

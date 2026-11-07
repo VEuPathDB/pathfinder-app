@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from pathfinder.domain.read_facts import ReadFact, ReadRow, read_fact
@@ -11,41 +9,32 @@ from pathfinder.domain.written_links import written_links
 _URL = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1315100"
 _RECORD_LINK = f"[PF3D7_1315100]({_URL})"
 _HELD = TurnFacts(sources=[SourceFact(url=_URL, record_id="PF3D7_1315100")])
-_UNESCAPED = re.compile(r"(?<!\\)(?:\\\\)*[!-/:-@\[-`{-~]")
-
-
-def _unescaped_marks(rendered: str) -> list[str]:
-    plain = rendered.replace(_RECORD_LINK, "")
-    marks = (m.group()[-1] for m in _UNESCAPED.finditer(plain))
-    return [mark for mark in marks if mark != "\\"]
 
 
 @pytest.mark.parametrize(
     "note",
     [
         "[x][r]\n\n[r]: http://evil.example",
-        "Go to https:\\\\evil.com now.",
         "Run javascript:alert(1) now.",
-        "&#91;x&#93;(http://evil.example)",
-        "A nested [[x](a)](b) link.",
         'A ![chart](https://evil.example/c.png) and <a href="https://evil.example">x</a>.',
         "Write to <mailto:curator@example.org> or www.evil.example.",
-        "*bold* `code` _under_ # head | pipe & amp",
     ],
 )
-def test_the_rendered_note_holds_no_link_but_the_record_links(note: str) -> None:
+def test_the_note_writes_no_link_of_its_own_beside_the_record_links(
+    note: str,
+) -> None:
     rendered = render_note(f"Start with [record:PF3D7_1315100]. {note}", _HELD)
 
-    assert (linked_records(rendered), _unescaped_marks(rendered)) == (
+    assert (linked_records(rendered), rendered) == (
         ["PF3D7_1315100"],
-        [],
+        f"Start with {_RECORD_LINK}. {note}",
     )
 
 
 def test_a_record_the_turn_does_not_hold_renders_no_link() -> None:
     rendered = render_note("Compare it with [record:PF3D7_9999999].", _HELD)
 
-    assert (linked_records(rendered), rendered) == ([], "Compare it with\\.")
+    assert (linked_records(rendered), rendered) == ([], "Compare it with.")
 
 
 def test_every_link_shape_a_text_writes_is_found() -> None:

@@ -15,6 +15,7 @@ from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 
 from pathfinder.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from pathfinder.ai.models.mock.message_words import message
+from pathfinder.ai.models.mock.prose_arcs import OFF_TOPIC_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
@@ -123,6 +124,11 @@ def explore_readings(messages: list[ModelMessage]) -> ToolCallPart:
         scripted_call("consult_user", _card()),
     ]
     return next_unmade_call(sequence, messages)
+
+
+def off_topic_reply(messages: list[ModelMessage]) -> TextPart:
+    del messages
+    return scripted_text(OFF_TOPIC_PROSE)
 
 
 def no_reading(messages: list[ModelMessage]) -> TextPart:

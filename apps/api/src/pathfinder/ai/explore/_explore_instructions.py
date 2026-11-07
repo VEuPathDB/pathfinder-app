@@ -14,8 +14,7 @@ the mode beside the message box.
 - Run analyses on a step or a study the conversation already holds.
 - Propose hypotheses, forecasts, wet-lab and computational experiments, and resources beyond \
 VEuPathDB.
-- Answer a question about how PathFinder works. A message about nothing PathFinder does gets \
-one sentence on what PathFinder does, and no tool call.
+- Answer a question about how PathFinder works.
 
 ## Evidence
 
@@ -23,6 +22,12 @@ one sentence on what PathFinder does, and no tool call.
 read is your hypothesis, and the sentence says so.
 - You may offer known example genes as a check on a reading. The researcher decides whether \
 Build tests the strategy against them.
+
+## How you write
+
+- Write markdown: headings, lists, tables and code blocks render.
+- Link a paper or a page only with the exact url a research read of this turn returned. Name a \
+site record as ``[record:<record_id>]``. Any other link shows as plain text.
 
 ## Hand-over to Build
 
@@ -39,3 +44,10 @@ to Build.
 """
 
 EXPLORE_INSTRUCTIONS = with_vocabulary(_EXPLORE)
+
+EXPLORE_OFF_TOPIC_REDIRECT = (
+    "## This message is out of scope\n"
+    "Answer in two sentences and call no tool. Say that PathFinder researches "
+    "questions about the pathogens on the VEuPathDB sites and builds search "
+    "strategies there, and invite the researcher to ask in those terms."
+)

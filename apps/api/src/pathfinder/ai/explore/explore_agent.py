@@ -4,19 +4,23 @@ from typing import Final
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
-from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.capabilities import PrepareTools, ProcessHistory
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.ai.agents._instructions import pinned_run_budget, pinned_user_memories
 from pathfinder.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
-from pathfinder.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
+from pathfinder.ai.explore._explore_instructions import (
+    EXPLORE_INSTRUCTIONS,
+    EXPLORE_OFF_TOPIC_REDIRECT,
+)
 from pathfinder.ai.explore.explore_tools import catalog_reads, propose_readings
 from pathfinder.ai.explore.readings_card import (
     READINGS_CARD_DESCRIPTION,
     readings_card_can_ask,
 )
+from pathfinder.ai.lead.intent_gate import turn_is_off_topic
 from pathfinder.ai.lead.lead_agent import build_sweep_toolset, turn_tool_sources
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_memory_tools import remember, search_memory
@@ -83,6 +87,16 @@ def _explore_may_call(ctx: RunContext[LeadDeps], tool_def: ToolDefinition) -> bo
     return tool_def.name in _SHARED_TOOLS
 
 
+def pinned_off_topic_redirect(ctx: RunContext[LeadDeps]) -> str | None:
+    return EXPLORE_OFF_TOPIC_REDIRECT if turn_is_off_topic(ctx.deps) else None
+
+
+async def _no_tool_off_topic(
+    ctx: RunContext[LeadDeps], tool_defs: list[ToolDefinition]
+) -> list[ToolDefinition]:
+    return [] if turn_is_off_topic(ctx.deps) else tool_defs
+
+
 def build_explore_agent() -> ExploreAgent:
     agent: ExploreAgent = Agent(
         EXPLORE_MODEL,
@@ -98,6 +112,7 @@ def build_explore_agent() -> ExploreAgent:
         capabilities=agent_capabilities(
             [
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
+                PrepareTools[LeadDeps](_no_tool_off_topic),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
         ),
@@ -111,6 +126,7 @@ def build_explore_agent() -> ExploreAgent:
         pinned_conversation,
         pinned_user_prompt,
         pinned_run_budget,
+        pinned_off_topic_redirect,
     ):
         agent.instructions(fn)
     return agent

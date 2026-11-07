@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.written_links import plain_markdown
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     reading_deps,
@@ -119,13 +118,13 @@ def test_each_rule_is_corrected_once_and_the_third_answer_stands() -> None:
     assert deps.state.turn_markers.output_refusals == 2
 
 
-def test_a_model_written_link_is_shown_as_plain_text() -> None:
+def test_a_model_written_link_reaches_the_renderer_unchanged() -> None:
     deps = reading_deps()
     answer = reply("Read [the review](javascript:alert(1)) and https://evil.example.")
 
     let_through = hold_the_turn_contract(run_context_for(deps), answer)
 
     assert isinstance(let_through, LeadResponse)
-    assert render_note(let_through.prose, turn_facts(deps)) == plain_markdown(
+    assert render_note(let_through.prose, turn_facts(deps)) == (
         "Read [the review](javascript:alert(1)) and https://evil.example."
     )

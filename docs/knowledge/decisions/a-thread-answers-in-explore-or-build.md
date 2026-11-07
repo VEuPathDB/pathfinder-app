@@ -76,6 +76,15 @@ research source's tools are served at run time and are not in that set. An Explo
 under the Lead's per-turn limits, `lead_usage_limits()` (requests, tool calls and tokens), and
 reuses the Lead's stop replies and its model usage part.
 
+A new Explore message is read by the same message reader as the Lead's
+(`ai/graph/_lead_reading.py::classify_the_words`, on the Explore model and metered to the turn),
+which records only its classification: Explore keeps no requirement and names no organism. A
+message read as `off_topic` is offered no tool (`PrepareTools`) and the instruction to answer
+in two sentences with what PathFinder does (`EXPLORE_OFF_TOPIC_REDIRECT`), as the Lead's is.
+Explore writes markdown, and links a paper or a page only by the exact url a research read of
+the turn returned; see
+[the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
+
 **The explore role.** `explore` is a role in every tier and a stage on the Settings picker
 ("Exploring"). `EXPLORE_MODELS` (`platform/model_catalog.py`) maps each provider and tier to
 its explore model: on OpenAI GPT-5.6 Luna for fast and default, GPT-6.1 Terra for balanced,

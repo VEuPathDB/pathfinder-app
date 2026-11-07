@@ -49,19 +49,27 @@ import { ProposalCard } from "./parts/ProposalCard";
 import { SeparationCard } from "./parts/SeparationCard";
 import { UserAttachments } from "./parts/UserAttachments";
 import { StoppedNotice } from "./StoppedNotice";
+import { VouchedLink, VouchedLinks, vouchedLinksOf } from "./vouchedLinks";
 import { dataPartRenderers } from "./dataPartRegistry";
 import { messageAnchorId } from "../thread/messageAnchor";
 import { TraceAnchor, type TraceAnchorProps } from "../thread/TraceAnchor";
 
 const markdownRemarkPlugins = [remarkGfm];
 
-const Text: TextMessagePartComponent = () => (
-  <MarkdownTextPrimitive
-    remarkPlugins={markdownRemarkPlugins}
-    components={modelMarkdownComponents}
-    className="prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-  />
-);
+const replyMarkdownComponents = { ...modelMarkdownComponents, a: VouchedLink };
+
+const Text: TextMessagePartComponent = () => {
+  const content = useAuiState((s) => s.message.content);
+  return (
+    <VouchedLinks value={vouchedLinksOf(content)}>
+      <MarkdownTextPrimitive
+        remarkPlugins={markdownRemarkPlugins}
+        components={replyMarkdownComponents}
+        className="prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+      />
+    </VouchedLinks>
+  );
+};
 
 const UserText: TextMessagePartComponent = ({ text }) => (
   <p className="whitespace-pre-wrap break-words">{text}</p>
