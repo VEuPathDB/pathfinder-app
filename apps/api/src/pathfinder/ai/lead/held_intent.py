@@ -28,6 +28,7 @@ from pathfinder.ai.lead.intent import (
 from pathfinder.ai.lead.organism_reader import named_organisms
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.reading_plan import plan_organisms
 from pathfinder.domain.strategy.requirement_reports import numbered_requirements
 from pathfinder.services.gene_records.read import gene_record_url
 
@@ -187,6 +188,9 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
         state.domain.take_a_new_request(strategy_has_steps=deps.step_count > 0)
     state.domain.record_intent(intent, request_text=said)
     state.domain.hold_organism_picks(named.picks)
+    picked = state.domain.picked_offer(state.user_prompt)
+    if picked is not None:
+        state.domain.name_organisms_from(plan_organisms(picked.spec))
     if intent.classification in ANSWERING_INTENTS:
         state.domain.answer_the_questions_at_arrival(said)
     return intent

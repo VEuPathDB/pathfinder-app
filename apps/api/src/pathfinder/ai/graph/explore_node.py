@@ -66,6 +66,7 @@ from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.stream_events import (
+    BuildOfferPayload,
     build_offer_event,
     facts_event,
     recalled_memories_event,
@@ -233,14 +234,13 @@ def _offer_the_build(
 ) -> None:
     match proposed:
         case [reading] if parked is None:
-            emit_chunk(
-                writer,
-                build_offer_event(
-                    label=reading.label,
-                    gene_count=reading.gene_count,
-                    also=reading.also,
-                ),
+            offer = BuildOfferPayload(
+                label=reading.label,
+                plan=reading.plan,
+                gene_count=reading.gene_count,
+                also=reading.also,
             )
+            emit_chunk(writer, build_offer_event(offer))
         case _:
             return
 

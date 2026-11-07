@@ -34,8 +34,9 @@ from pathfinder.tests._support.run_context import turn_runtime
 SITE = "plasmodb"
 GENE_TYPE_REPORT = "report_gene_type_protein_coding"
 SIGNAL_PEPTIDE_REPORT = "report_signal_peptide_signalp6"
-FIRST_READING = "Predicted Signal Peptide: SignalP-6.0 (Plasmodium falciparum 3D7)"
-SECOND_READING = "Gene Type: protein coding, No (Plasmodium falciparum 3D7)"
+FIRST_READING = "Genes with a predicted signal peptide"
+SECOND_READING = "Every protein-coding gene"
+FIRST_PLAN = "Predicted Signal Peptide: SignalP-6.0 (Plasmodium falciparum 3D7)"
 EXPLORE_PROMPT = "Which genes carry a signal peptide? [[arc:explore]]"
 PREFERENCE_PROMPT = (
     "I prefer SignalP 6.0. Which genes carry a signal peptide? [[arc:explore]]"

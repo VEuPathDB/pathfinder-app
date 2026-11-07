@@ -99,16 +99,14 @@ def turn_route_event(route: TurnRoute) -> DataChunk:
 
 class BuildOfferPayload(CamelModel):
     label: str
+    plan: str
     gene_count: int | None
     also: str = ""
 
 
-def build_offer_event(*, label: str, gene_count: int | None, also: str) -> DataChunk:
+def build_offer_event(offer: BuildOfferPayload) -> DataChunk:
     return DataChunk(
-        type="data-build-offer",
-        data=BuildOfferPayload(
-            label=label, gene_count=gene_count, also=also
-        ).model_dump(by_alias=True, mode="json"),
+        type="data-build-offer", data=offer.model_dump(by_alias=True, mode="json")
     )
 
 

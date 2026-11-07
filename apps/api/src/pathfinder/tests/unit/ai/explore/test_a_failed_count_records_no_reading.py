@@ -18,9 +18,10 @@ from pathfinder.tests._support.run_context import lead_run_context
 def _reading(label: str, search_name: str, **parameters: Any) -> ProposedReading:
     return ProposedReading.model_validate(
         {
+            "title": label,
             "searches": [
                 {"label": label, "searchName": search_name, "parameters": parameters}
-            ]
+            ],
         }
     )
 

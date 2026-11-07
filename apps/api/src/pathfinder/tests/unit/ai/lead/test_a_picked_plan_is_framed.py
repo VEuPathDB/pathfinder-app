@@ -49,7 +49,7 @@ def _state(prompt: str, *, also: str = "") -> PipelineState:
         user_prompt=prompt,
     )
     state.domain.offer_reading(
-        OfferedReading(label=_LABEL, gene_count=219, spec=_PLAN, also=also)
+        OfferedReading(label=_LABEL, plan=_LABEL, gene_count=219, spec=_PLAN, also=also)
     )
     return state
 

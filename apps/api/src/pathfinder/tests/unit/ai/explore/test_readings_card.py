@@ -32,7 +32,10 @@ def ctx() -> RunContext[LeadDeps]:
     for label, count in _COUNTS.items():
         context.deps.state.domain.offer_reading(
             OfferedReading(
-                label=label, gene_count=count, spec=OperationalSpec(goal=label)
+                label=label,
+                plan=label,
+                gene_count=count,
+                spec=OperationalSpec(goal=label),
             )
         )
         context.deps.state.turn_markers.proposed_readings.append(label)

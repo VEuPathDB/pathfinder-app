@@ -331,6 +331,15 @@ class ThreadRequirements(BaseModel):
             if p.quote in unnamed
         ]
 
+    def name_organisms_from(self, organisms: Sequence[str]) -> None:
+        """Name each organism the request left open by the one entry of
+        ``organisms`` its words lead."""
+        for requirement in unnamed_organisms(self.requirements):
+            words = requirement.requested_value.casefold()
+            named = {o for o in organisms if o.casefold().startswith(words)}
+            if len(named) == 1:
+                self.name_organism(requirement.id, named.pop())
+
     def name_organism(self, requirement_id: str, organism: str) -> None:
         self.requirements = [
             c.model_copy(

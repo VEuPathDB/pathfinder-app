@@ -14552,6 +14552,9 @@ components:
         label:
           title: Label
           type: string
+        plan:
+          title: Plan
+          type: string
         geneCount:
           anyOf:
           - type: integer
@@ -14563,6 +14566,7 @@ components:
           type: string
       required:
       - label
+      - plan
       - geneCount
       title: BuildOfferPayload
       type: object

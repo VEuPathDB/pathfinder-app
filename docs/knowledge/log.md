@@ -6,7 +6,12 @@
   with words for what they cannot state; PathFinder names it from its steps and counts it from
   each search's gene ids, and a failed count records nothing. Build it and a card pick hand the
   plan to Build, whose framing text carries it; Build still frames, checks, builds and verifies.
-  See [the decision](decisions/a-thread-answers-in-explore-or-build.md).
+  A proposal carries a short title the model writes, and the plan PathFinder generates shows
+  under it; a title names one plan. Explore proposes each way the site can state a concept as
+  an alternative. The organism a picked plan runs names an organism the request left open, so
+  Build asks no organism card for it. A search name the site does not list, read for its
+  parameter options, goes back to the model as a correction instead of ending the turn. See
+  [the decision](decisions/a-thread-answers-in-explore-or-build.md).
 * **The composer shows all three modes, one reading builds from a button, and memory can be
   turned off.** The mode pill that cycled Auto, Explore and Build is a three-way switch
   (`ModeSwitch.tsx`). An Explore turn that counted one buildable reading and parked no card

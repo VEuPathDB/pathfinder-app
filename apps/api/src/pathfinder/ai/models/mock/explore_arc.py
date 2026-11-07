@@ -76,7 +76,12 @@ def _searches(organism: str) -> list[dict[str, Any]]:
 
 
 def _readings(organism: str) -> dict[str, Any]:
-    return {"readings": [{"searches": [search]} for search in _searches(organism)]}
+    return {
+        "readings": [
+            {"title": search["label"], "searches": [search]}
+            for search in _searches(organism)
+        ]
+    }
 
 
 class _Proposed(ToolAnswer):

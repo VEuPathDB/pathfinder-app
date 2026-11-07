@@ -24,6 +24,7 @@ import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 
 const OFFER: BuildOfferPayload = {
   label: "Proteins with exactly seven transmembrane domains",
+  plan: "Transmembrane Domain Count: 7, 7 (Anopheles gambiae PEST)",
   geneCount: 412,
 };
 
@@ -53,6 +54,14 @@ describe("DataBuildOffer", () => {
     expect(screen.getByRole("button", { name: "Build it" })).toBeInTheDocument();
     expect(screen.getByTestId("build-offer")).toHaveTextContent(
       "Proteins with exactly seven transmembrane domains (412 genes)",
+    );
+  });
+
+  it("writes the plan PathFinder generated under the title", () => {
+    offered();
+
+    expect(screen.getByTestId("build-offer-plan")).toHaveTextContent(
+      "Transmembrane Domain Count: 7, 7 (Anopheles gambiae PEST)",
     );
   });
 

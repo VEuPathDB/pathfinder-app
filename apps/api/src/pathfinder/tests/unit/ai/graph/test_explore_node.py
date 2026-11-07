@@ -15,6 +15,7 @@ from pathfinder.ai.models.mock.explore_arc import (
 from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
+    FIRST_PLAN,
     FIRST_READING,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
@@ -156,6 +157,7 @@ async def test_one_buildable_reading_is_counted_and_offered_to_build(
     assert [c["data"] for c in doubles.of_type("data-build-offer")] == [
         {
             "label": FIRST_READING,
+            "plan": FIRST_PLAN,
             "geneCount": recorded_count(SIGNAL_PEPTIDE_REPORT),
             "also": "",
         }

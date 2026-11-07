@@ -7,6 +7,7 @@ from functools import reduce
 from typing import Final
 
 from pydantic import Field
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, SinglePickValue
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
@@ -21,6 +22,7 @@ from pathfinder.domain.strategy.step_naming import cut_on_a_word
 
 class OfferedReading(CamelModel):
     label: str
+    plan: str
     gene_count: int | None
     spec: OperationalSpec
     not_counted: str = ""
@@ -37,6 +39,27 @@ def build_message(label: str) -> str:
 def label_built_by(message: str) -> str | None:
     found = _BUILD_MESSAGE.fullmatch(message.strip())
     return None if found is None else found["label"]
+
+
+def _picked(value: ParamValue) -> list[str]:
+    match value:
+        case MultiPickValue(values=values):
+            return list(values)
+        case SinglePickValue(value=picked):
+            return [picked]
+        case _:
+            return []
+
+
+def plan_organisms(spec: OperationalSpec) -> list[str]:
+    return [
+        organism
+        for criterion in spec.criteria
+        if criterion.organism_param is not None
+        and (bound := criterion.resolved_params.get(criterion.organism_param))
+        is not None
+        for organism in _picked(bound.value)
+    ]
 
 
 def picked_plan_text(offered: OfferedReading) -> str:
@@ -191,6 +214,7 @@ __all__ = [
     "label_built_by",
     "picked_plan_text",
     "plan_lines",
+    "plan_organisms",
     "reading_label",
     "reading_roles",
     "reading_shape_refusal",

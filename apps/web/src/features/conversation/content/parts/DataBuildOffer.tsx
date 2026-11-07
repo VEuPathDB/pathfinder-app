@@ -32,9 +32,18 @@ export function DataBuildOffer({
       data-testid="build-offer"
       className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm"
     >
-      <span className="text-muted-foreground">
-        {data.label} ({counted})
-      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">
+          {data.label} ({counted})
+        </p>
+        <p
+          data-testid="build-offer-plan"
+          title={data.plan}
+          className="line-clamp-2 text-xs text-muted-foreground"
+        >
+          {data.plan}
+        </p>
+      </div>
       <Button
         size="sm"
         disabled={isRunning}

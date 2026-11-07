@@ -23,6 +23,7 @@ from veupathdb_mcp.catalog import (
     ParentContextRequired,
     SearchOverviewResult,
     UnknownSearchError,
+    UnlistedSearchError,
     VocabNarrowing,
     inspect_search,
     read_parameter_options,
@@ -192,6 +193,12 @@ async def get_parameter_options(
         )
     except HiddenParameterError as exc:
         msg = f"{exc.detail} Read a parameter the sheet lists."
+        raise ModelRetry(msg) from exc
+    except UnlistedSearchError as exc:
+        msg = (
+            f"{exc.detail or exc.title} Find the search's exact name with "
+            "search_for_searches."
+        )
         raise ModelRetry(msg) from exc
     match result:
         case ParameterInfo():

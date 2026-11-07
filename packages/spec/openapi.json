@@ -22139,6 +22139,10 @@
             "title": "Label",
             "type": "string"
           },
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          },
           "geneCount": {
             "anyOf": [
               {
@@ -22158,6 +22162,7 @@
         },
         "required": [
           "label",
+          "plan",
           "geneCount"
         ],
         "title": "BuildOfferPayload",

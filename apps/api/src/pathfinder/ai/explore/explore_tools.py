@@ -29,6 +29,7 @@ _CONTINUED = " " * 8
 
 class ProposedCount(CamelModel):
     label: str
+    plan: str
     gene_count: int | None
     not_counted: str = ""
     also: str = ""
@@ -43,7 +44,8 @@ async def _offered(
     ]
     counted = await run_reading_count(ctx.deps.site_id, specs, proposal.root)
     return OfferedReading(
-        label=counted.label,
+        label=proposal.title,
+        plan=counted.label,
         gene_count=counted.gene_count,
         spec=counted.spec,
         not_counted=counted.not_counted,
@@ -63,8 +65,9 @@ async def propose_readings(
     """Propose plans Build can build, each counted when it can be. Read-only.
 
     A proposal is the catalog searches of one plan and how they combine, so a
-    request of two criteria is one proposal of two searches. PathFinder names
-    each proposal from its searches, values and operators; use that name. A
+    request of two criteria is one proposal of two searches. Give each a short
+    title; PathFinder writes its plan from its searches, values and operators
+    and shows it under the title. A
     plan of searches joined by INTERSECT, UNION or MINUS is counted from each
     search's gene ids, and no step is added. A plan it cannot count is
     proposed as not counted yet. A later call replaces this turn's proposals,
@@ -77,8 +80,12 @@ async def propose_readings(
     """
     offered = [await _offered(ctx, proposal) for proposal in readings]
     labels = [reading.label for reading in offered]
+    plans = [reading.plan for reading in offered]
     if len(set(labels)) < len(labels):
-        msg = f"Two proposals state the same plan: {labels}. Propose each plan once."
+        msg = f"Two proposals carry the same title: {labels}. Give each plan its own."
+        raise ModelRetry(msg)
+    if len(set(plans)) < len(plans):
+        msg = f"Two proposals state the same plan: {plans}. Propose each plan once."
         raise ModelRetry(msg)
     state = ctx.deps.state
     state.turn_markers.proposed_readings = labels
@@ -89,6 +96,7 @@ async def propose_readings(
     proposed = [
         ProposedCount(
             label=reading.label,
+            plan=reading.plan,
             gene_count=reading.gene_count,
             not_counted=reading.not_counted,
             also=reading.also,

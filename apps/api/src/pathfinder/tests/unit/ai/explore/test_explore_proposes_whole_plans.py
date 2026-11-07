@@ -58,7 +58,7 @@ _PROPOSED: TypeAdapter[list[ProposedCount]] = TypeAdapter(list[ProposedCount])
 
 
 def _proposal(**fields: Any) -> ProposedReading:
-    return ProposedReading.model_validate(fields)
+    return ProposedReading.model_validate({"title": "a plan", **fields})
 
 
 async def test_a_combined_proposal_is_counted_and_kept(
@@ -68,14 +68,22 @@ async def test_a_combined_proposal_is_counted_and_kept(
     ctx = lead_run_context(site_id=SITE)
 
     result = await propose_readings(
-        ctx, [_proposal(searches=[_CODING, _PEPTIDE], structure=_MINUS)]
+        ctx,
+        [
+            _proposal(
+                title="Coding genes with no signal peptide",
+                searches=[_CODING, _PEPTIDE],
+                structure=_MINUS,
+            )
+        ],
     )
 
     expected = recorded_count(GENE_TYPE_REPORT) - recorded_count(SIGNAL_PEPTIDE_REPORT)
     [proposed] = _PROPOSED.validate_python(result.return_value)
     domain = ctx.deps.state.domain
     assert proposed.gene_count == expected
-    assert " MINUS " in proposed.label
+    assert proposed.label == "Coding genes with no signal peptide"
+    assert " MINUS " in proposed.plan
     assert proposal_counts(ctx.deps) == {proposed.label: expected}
     assert ctx.deps.state.turn_markers.proposed_readings == [proposed.label]
     assert [c.id for c in domain.offered_readings[proposed.label].spec.criteria] == [
@@ -117,7 +125,11 @@ async def test_two_proposals_of_one_plan_are_refused(
 
     with pytest.raises(ModelRetry):
         await propose_readings(
-            ctx, [_proposal(searches=[_PEPTIDE]), _proposal(searches=[_PEPTIDE])]
+            ctx,
+            [
+                _proposal(title="one", searches=[_PEPTIDE]),
+                _proposal(title="two", searches=[_PEPTIDE]),
+            ],
         )
 
     assert ctx.deps.state.domain.offered_readings == {}
@@ -144,8 +156,25 @@ async def test_a_later_call_replaces_the_turns_proposals(
     await propose_readings(ctx, [_proposal(searches=[_PEPTIDE])])
 
     result = await propose_readings(
-        ctx, [_proposal(searches=[_CODING, _PEPTIDE], structure=_MINUS)]
+        ctx,
+        [_proposal(title="later", searches=[_CODING, _PEPTIDE], structure=_MINUS)],
     )
 
     [proposed] = _PROPOSED.validate_python(result.return_value)
     assert ctx.deps.state.turn_markers.proposed_readings == [proposed.label]
+
+
+async def test_one_title_for_two_plans_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_recorded_readings(monkeypatch)
+    ctx = lead_run_context(site_id=SITE)
+
+    with pytest.raises(ModelRetry, match="same title"):
+        await propose_readings(
+            ctx,
+            [
+                _proposal(title="signal", searches=[_PEPTIDE]),
+                _proposal(title="signal", searches=[_CODING]),
+            ],
+        )

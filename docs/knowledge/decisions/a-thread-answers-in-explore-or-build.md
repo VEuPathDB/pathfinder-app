@@ -111,15 +111,15 @@ many turns end on research, hypotheses, forecasts or experiments alone. A propos
 (`ProposedReading`, `services/experiment/reading_count.py`) is the catalog searches of one plan
 and how they combine, plus words (`also`) for what the searches cannot state, such as a map to
 orthologs, a study analysis or a saved strategy. `propose_readings` resolves each search, builds
-the plan's `OperationalSpec`, names it from its searches, values and operators
-(`domain/strategy/reading_plan.py::reading_label`; the model writes no label) and counts it
+the plan's `OperationalSpec`, writes the plan from its searches, values and operators
+(`domain/strategy/reading_plan.py::reading_label`) under the short title the model gives it, and counts it
 locally: each search's gene ids are read (up to 50,000) and combined here, so no step is saved on
 the site. A search with more ids than the read holds leaves the plan not counted yet. Every
 proposal is counted before any is recorded, so a failed call records none. Each proposal is kept
 in `StrategyDomainState.offered_readings`, which a new Build request does not set aside.
 
-With one proposal and no card, the Explore node writes a `data-build-offer` part (label, gene
-count or none, `also`), shown under the last reply as a Build it button
+With one proposal and no card, the Explore node writes a `data-build-offer` part (title,
+generated plan, gene count or none, `also`), shown under the last reply as a Build it button
 (`content/parts/DataBuildOffer.tsx`) that switches the thread to Build and sends
 `Build "<label>".` With two or more alternatives Explore ends on `consult_user`; its validator
 (`ai/explore/readings_card.py`) admits one untyped question whose options are this turn's

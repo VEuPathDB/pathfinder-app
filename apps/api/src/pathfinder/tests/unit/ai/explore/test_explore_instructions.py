@@ -55,6 +55,7 @@ def test_explore_proposes_a_whole_plan_and_only_when_it_helps() -> None:
         "A proposal is optional",
         "one proposal of two searches",
         "Never offer the parts of one plan as alternatives",
+        "more than one way, propose each way as an alternative",
     )
 
     assert _missing(*named) == []
