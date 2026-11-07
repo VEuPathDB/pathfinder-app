@@ -44,7 +44,7 @@ from pathfinder.ai.graph._explore_turn import (
     hand_over_reading,
     hands_over,
 )
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture, emit_lead_usage
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, emit_lead_usage
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.graph._lead_durable import (
     control_results_answered,
@@ -95,7 +95,7 @@ class _ExploreRun:
     output: str | DeferredToolRequests | None = None
     parked: PendingApproval | PendingDurableCall | None = None
     stop: str = ""
-    capture: _LeadRunCapture = field(default_factory=_LeadRunCapture)
+    capture: LeadRunCapture = field(default_factory=LeadRunCapture)
 
 
 async def _recalled(
@@ -189,7 +189,9 @@ def _reply_of(state: PipelineState, run: _ExploreRun) -> str | None:
         return run.output
     if run.parked is not None:
         return None
-    return run.stop or fallback_prose(run.capture, None, change=strategy_change(state))
+    return run.stop or fallback_prose(
+        run.capture, None, change=strategy_change(state), own_stage=EXPLORE_ROLE
+    )
 
 
 def _text_chunks(text: str) -> list[BaseChunk]:

@@ -22,6 +22,7 @@ export const PICKABLE_ROLE_DESCRIPTIONS = {
   lead: "Talks with you and decides what happens next.",
   frame: "Turns your question into a plan of searches and fills in their settings.",
   verification: "Checks the built strategy and reports what it found.",
+  explore: "Talks a research question through before anything is built.",
 } as const;
 
 export type PickableRole = keyof typeof PICKABLE_ROLE_DESCRIPTIONS;

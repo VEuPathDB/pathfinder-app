@@ -21,7 +21,6 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import AUDIT_ASSISTANT_ID, PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import (
     EXPLORE_MODELS,
-    deployment_may_pay,
     get_model_catalog,
     provider_default,
 )
@@ -158,21 +157,19 @@ EXPLORE_ROLE: Final = "explore"
 
 
 def explore_config(
-    provider: KeyableProvider, tier: _Tier, *, deployment_pays: bool
+    provider: KeyableProvider, name: TierName, tier: _Tier
 ) -> PhaseTierConfig:
-    model_id = EXPLORE_MODELS[provider]
-    if deployment_pays and not deployment_may_pay(model_id):
-        return tier.thinker
     return PhaseTierConfig(
-        model_id=model_id, reasoning_effort=tier.thinker.reasoning_effort
+        model_id=EXPLORE_MODELS[provider][name],
+        reasoning_effort=tier.thinker.reasoning_effort,
     )
 
 
 def _pathfinder_preset(
-    provider: KeyableProvider, tier: _Tier, *, deployment_pays: bool
+    provider: KeyableProvider, name: TierName, tier: _Tier
 ) -> TierPreset:
     """Spend on the Lead and FRAME, which plan the turn, run BUILD and VERIFY
-    on the cheaper model, and run Explore on the provider's explore model."""
+    on the cheaper model, and run Explore on the tier's explore model."""
     return TierPreset(
         roles={
             "lead": tier.thinker,
@@ -181,9 +178,7 @@ def _pathfinder_preset(
             "verification": tier.worker.model_copy(
                 update={"reasoning_effort": _VERIFY_EFFORT}
             ),
-            EXPLORE_ROLE: explore_config(
-                provider, tier, deployment_pays=deployment_pays
-            ),
+            EXPLORE_ROLE: explore_config(provider, name, tier),
         },
     )
 
@@ -200,15 +195,11 @@ def _audit_preset(tier: _Tier) -> TierPreset:
 type _Presets = dict[str, dict[ModelProvider, dict[TierName, TierPreset]]]
 
 
-def _presets(
-    by_provider: dict[KeyableProvider, dict[TierName, _Tier]], *, deployment_pays: bool
-) -> _Presets:
+def _presets(by_provider: dict[KeyableProvider, dict[TierName, _Tier]]) -> _Presets:
     return {
         PATHFINDER_ASSISTANT_ID: {
             provider: {
-                name: _pathfinder_preset(
-                    provider, tier, deployment_pays=deployment_pays
-                )
+                name: _pathfinder_preset(provider, name, tier)
                 for name, tier in tiers.items()
             }
             for provider, tiers in by_provider.items()
@@ -221,10 +212,10 @@ def _presets(
 
 
 # The presets a turn the deployment pays for runs, and the server's own default.
-TIER_PRESETS: _Presets = _presets(_BY_PROVIDER, deployment_pays=True)
+TIER_PRESETS: _Presets = _presets(_BY_PROVIDER)
 
 # The presets a researcher's own key for the provider runs.
-OWN_KEY_TIER_PRESETS: _Presets = _presets(_OWN_KEY_BY_PROVIDER, deployment_pays=False)
+OWN_KEY_TIER_PRESETS: _Presets = _presets(_OWN_KEY_BY_PROVIDER)
 
 # Every role a request may pin a model for. The audit roles run on their tier
 # alone, so the chat boundary refuses a pick for either of them.

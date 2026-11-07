@@ -45,9 +45,9 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.ai.capabilities.decisions_spend import decisions_spend_to
 from pathfinder.ai.graph._lead_answers import typed_reply
 from pathfinder.ai.graph._lead_capture import (
+    LeadRunCapture,
     _charge_token_delta,
     _emit_residual_prose,
-    _LeadRunCapture,
     _persist_residual_quota,
     absorb_outside_spend,
     emit_lead_usage,
@@ -146,7 +146,7 @@ def _run_prompt(
 
 def _absorb_run_result(
     event: AgentRunResultEvent[Any],
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     deps: LeadDeps,
 ) -> None:
     run_result = event.result
@@ -185,7 +185,7 @@ async def _ask_about_what_it_parks(
 def _stream_ends_after(
     event: AgentStreamEvent | AgentRunResultEvent[Any],
     guard: ToolRepetitionGuard,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
 ) -> bool:
     """Whether this event is the last one the turn takes from the run."""
     stop = guard_stop_of(event, guard)
@@ -232,7 +232,7 @@ async def _drive_lead_stream(
     state: PipelineState,
     agent: LeadAgent,
     deps: LeadDeps,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     writer: Any,
     message_id: UUID,
 ) -> None:
@@ -373,7 +373,7 @@ async def _run_lead_turn(
         fresh = working_state.domain.memories_to_show(stored)
         if fresh:
             emit_chunk(writer, recalled_memories_event(memories=fresh))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     message_id = uuid4()
 
     record_sub_agent_usage = sub_agent_usage_recorder(capture, state, writer)

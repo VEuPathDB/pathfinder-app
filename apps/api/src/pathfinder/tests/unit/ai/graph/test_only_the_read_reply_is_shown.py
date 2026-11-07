@@ -20,7 +20,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolInputStartChunk,
 )
 
-from pathfinder.ai.graph._lead_capture import _emit_residual_prose, _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, _emit_residual_prose
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -120,7 +120,7 @@ def test_the_reply_text_is_the_validated_output() -> None:
         {"chunk": chunk.model_dump(by_alias=True, mode="json")}
         for chunk in _through_hold(CardHold(), [*think, *_final_result()])
     ]
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse.model_validate({"prose": _PROSE})
 
     _emit_residual_prose(wire.append, capture, message_id=_MESSAGE_ID)
@@ -140,7 +140,7 @@ def test_the_reply_text_is_the_validated_output() -> None:
 
 def test_each_pass_of_one_turn_writes_its_reply_as_a_part_of_its_own() -> None:
     """A second pass under the same message id must not overwrite the first reply."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse.model_validate({"prose": _PROSE})
     wire: list[dict[str, Any]] = []
 

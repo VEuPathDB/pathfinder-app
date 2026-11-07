@@ -10,7 +10,7 @@ import asyncio
 from uuid import uuid4
 
 from pathfinder.ai.agents.state import SearchOverview
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_delta import _build_state_delta
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -66,7 +66,7 @@ def _deps(state: PipelineState, intent: UserIntent | None = None) -> LeadDeps:
 def _delta(
     state: PipelineState,
     deps: LeadDeps,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
 ) -> dict[str, object]:
     return _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
@@ -74,7 +74,7 @@ def _delta(
 def test_the_strategy_fields_travel_on_one_domain_channel() -> None:
     state = _state()
     deps = _deps(state)
-    delta = _delta(state, deps, _LeadRunCapture())
+    delta = _delta(state, deps, LeadRunCapture())
 
     assert set(delta) == {
         "domain",
@@ -92,7 +92,7 @@ def test_the_intent_the_lead_classified_is_written_to_the_domain() -> None:
     )
     state = _state()
     deps = _deps(state, intent)
-    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+    domain = _delta(state, deps, LeadRunCapture())["domain"]
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.user_intent == intent
@@ -103,7 +103,7 @@ def test_staleness_is_not_persisted() -> None:
     state = _state()
     deps = _deps(state)
     deps.state.domain.stale_build = StaleBuild(added_nodes=["s3"])
-    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+    domain = _delta(state, deps, LeadRunCapture())["domain"]
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.stale_build is None
@@ -112,7 +112,7 @@ def test_staleness_is_not_persisted() -> None:
 def test_a_turn_without_a_lead_response_keeps_the_recorded_next_state() -> None:
     state = _state(StrategyDomainState(lead_next_state="complete"))
     deps = _deps(state)
-    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+    domain = _delta(state, deps, LeadRunCapture())["domain"]
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.lead_next_state == "complete"
@@ -121,7 +121,7 @@ def test_a_turn_without_a_lead_response_keeps_the_recorded_next_state() -> None:
 def test_a_lead_response_sets_the_next_state() -> None:
     state = _state(StrategyDomainState(lead_next_state="complete"))
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Anything else?",
         next_state="await_user",
@@ -135,7 +135,7 @@ def test_a_lead_response_sets_the_next_state() -> None:
 def test_a_lead_response_records_the_questions_it_asks() -> None:
     state = _state()
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which RNA-seq study?",
         asked_questions=[
@@ -157,7 +157,7 @@ def test_a_lead_response_records_the_questions_it_asks() -> None:
 def test_a_lead_question_is_recorded_with_no_option() -> None:
     """A label binds nothing, so the question is answered in the researcher's words."""
     state = _state()
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which organism?",
         asked_questions=[
@@ -181,7 +181,7 @@ def test_the_record_that_names_a_dimension_wins_the_same_question() -> None:
         [OpenQuestion(question="Which gametocyte RNA-seq study?")],
     )
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which gametocyte RNA-seq study?",
         asked_questions=[
@@ -213,7 +213,7 @@ def test_a_bare_record_does_not_replace_the_dimension_already_asked() -> None:
         ),
     )
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Which study?",
         asked_questions=[AskedQuestion(question="Which study?")],
@@ -230,7 +230,7 @@ def test_a_turn_without_a_lead_response_keeps_the_open_questions() -> None:
     asked = OpenQuestion(question="Which study?", recommended_value="the 3D7 one")
     state = _state(StrategyDomainState(open_questions=[asked]))
     deps = _deps(state)
-    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+    domain = _delta(state, deps, LeadRunCapture())["domain"]
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.open_questions == [asked]
@@ -240,7 +240,7 @@ def test_a_lead_response_that_asks_nothing_clears_the_open_questions() -> None:
     asked = OpenQuestion(question="Which study?", recommended_value="the 3D7 one")
     state = _state(StrategyDomainState(open_questions=[asked]))
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose="Built it.",
         next_state="complete",
@@ -255,7 +255,7 @@ def test_the_discovered_searches_map_is_copied_out_of_the_working_state() -> Non
     state = _state()
     deps = _deps(state)
     deps.state.domain.discovered_searches["GenesByTaxon"] = _overview()
-    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+    domain = _delta(state, deps, LeadRunCapture())["domain"]
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.discovered_searches == deps.state.domain.discovered_searches
@@ -265,7 +265,7 @@ def test_the_discovered_searches_map_is_copied_out_of_the_working_state() -> Non
 def test_the_turn_totals_accumulate_the_lead_and_its_sub_agents() -> None:
     state = _state().model_copy(update={"turn_total_tokens": 100})
     deps = _deps(state)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.tokens = 20
     capture.sub_agent_tokens = 5
     delta = _delta(state, deps, capture)

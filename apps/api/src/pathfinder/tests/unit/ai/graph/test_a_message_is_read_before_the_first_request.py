@@ -16,7 +16,7 @@ from pydantic_ai.models.function import (
 )
 
 from pathfinder.ai.graph import _lead_model, _lead_reading
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
@@ -83,7 +83,7 @@ def test_the_lead_s_first_request_holds_the_reading_and_no_classify_tool(
             state=state,
             agent=build_lead_agent(),
             deps=deps,
-            capture=_LeadRunCapture(),
+            capture=LeadRunCapture(),
             writer=writer,
             message_id=uuid4(),
         )
@@ -108,7 +108,7 @@ def test_a_reading_the_provider_declines_withdraws_the_turn(
     first = _FirstRequest()
     model = first.model(deps)
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
     emitted: Any = writer
 

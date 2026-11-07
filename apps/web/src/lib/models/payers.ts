@@ -17,7 +17,7 @@ type PresetsByAssistant = Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, PresetsWithRoles>>>>>
 >;
 
-function providerOf(modelId: string): string {
+export function providerOf(modelId: string): string {
   return modelId.split(":")[0] ?? "";
 }
 

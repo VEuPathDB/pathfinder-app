@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic_ai.messages import FunctionToolResultEvent, ToolReturnPart
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import loop_stop_prose
 from pathfinder.ai.graph.lead_node import _stream_ends_after
 
@@ -24,7 +24,7 @@ def _stopped_by(guard: ToolRepetitionGuard, calls: list[dict[str, str]]) -> str:
 
 
 def _reply_after(guard: ToolRepetitionGuard, refusal: str) -> str:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     event = FunctionToolResultEvent(
         part=ToolReturnPart(
             tool_name=LITERATURE,
@@ -73,7 +73,7 @@ def test_the_rule_is_read_from_the_guard_and_not_from_the_refusal_text() -> None
 
 def test_a_result_the_guard_did_not_stop_on_leaves_the_run_going() -> None:
     guard = ToolRepetitionGuard(read_only_tools=frozenset({LITERATURE}))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     event = FunctionToolResultEvent(
         part=ToolReturnPart(tool_name=LITERATURE, content="ok", tool_call_id="c0"),
     )

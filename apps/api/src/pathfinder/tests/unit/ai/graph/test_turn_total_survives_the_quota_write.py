@@ -18,8 +18,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_capture import (
+    LeadRunCapture,
     SpendOutsideTheLead,
-    _LeadRunCapture,
     _persist_residual_quota,
 )
 from pathfinder.ai.graph._lead_delta import _build_state_delta
@@ -75,9 +75,9 @@ def _deps(
     )
 
 
-def _charged_capture() -> _LeadRunCapture:
+def _charged_capture() -> LeadRunCapture:
     """A turn whose Lead calls are already billed, with one sub-agent pass."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.tokens = 10
     capture.cost_usd = _LEAD_COST
     capture.charged_input_tokens = 10

@@ -23,7 +23,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_turn import resolve_turn_resumption
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -229,8 +229,8 @@ async def _drive(
     state: PipelineState,
     deps: LeadDeps,
     writer: ChunkCollector,
-) -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+) -> LeadRunCapture:
+    capture = LeadRunCapture()
     await _drive_lead_stream(
         state=state,
         agent=_lead_agent(),
@@ -256,7 +256,7 @@ async def _park(
     monkeypatch: pytest.MonkeyPatch,
     state: PipelineState,
     writer: ChunkCollector,
-) -> _LeadRunCapture:
+) -> LeadRunCapture:
     with pinned_sub_agent(
         monkeypatch,
         "verification",

@@ -9,6 +9,7 @@ import {
   rolesForAssistant,
   CUSTOM_TIER,
 } from "@/features/settings/tierPresets";
+import { picksFilledFromTier } from "@/lib/models/tierFill";
 import {
   ANTHROPIC_SMALL,
   DEFAULT_MODEL,
@@ -95,6 +96,7 @@ describe("rolesForAssistant", () => {
       "lead",
       "frame",
       "verification",
+      "explore",
     ]);
     expect(rolesForAssistant(PRESETS, "helper", "openai")).toEqual(["lead"]);
   });
@@ -168,11 +170,13 @@ describe("applyTierPreset", () => {
         lead: OPENAI_FLAGSHIP.id,
         frame: OPENAI_FLAGSHIP.id,
         verification: DEFAULT_MODEL.id,
+        explore: OPENAI_FLAGSHIP.id,
       },
       reasoning: {
         lead: "high",
         frame: "high",
         verification: "medium",
+        explore: "high",
       },
     });
   });
@@ -237,14 +241,47 @@ describe("deriveActiveTier", () => {
       lead: OPENAI_FLAGSHIP.id,
       frame: OPENAI_FLAGSHIP.id,
       verification: DEFAULT_MODEL.id,
+      explore: OPENAI_FLAGSHIP.id,
     };
     const reasoning = {
       lead: "high" as const,
       frame: "high" as const,
       verification: "medium" as const,
+      explore: "high" as const,
     };
     expect(
       deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
+    ).toBe("quality");
+  });
+
+  it("reads a tier saved before the explore pick existed as that tier", () => {
+    const saved = {
+      models: {
+        lead: OPENAI_FLAGSHIP.id,
+        frame: OPENAI_FLAGSHIP.id,
+        verification: DEFAULT_MODEL.id,
+      },
+      reasoning: {
+        lead: "high" as const,
+        frame: "high" as const,
+        verification: "medium" as const,
+      },
+    };
+    const filled = picksFilledFromTier(
+      Object.values(presetsForProvider(PRESETS, "pathfinder", "openai")),
+      saved,
+    );
+
+    expect(filled.models.explore).toBe(OPENAI_FLAGSHIP.id);
+    expect(
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        filled.models,
+        filled.reasoning,
+        "default",
+      ),
     ).toBe("quality");
   });
 

@@ -15,7 +15,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -79,7 +79,7 @@ async def _turn(site_id: str, seen: list[tuple[str, str]]) -> None:
         state=state,
         agent=build_lead_agent(),
         deps=deps,
-        capture=_LeadRunCapture(),
+        capture=LeadRunCapture(),
         writer=writer,
         message_id=uuid4(),
     )

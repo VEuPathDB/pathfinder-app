@@ -14,8 +14,8 @@ from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
 from pydantic_ai.usage import RunUsage, UsageLimits
 
-from pathfinder.ai.agents.roles import PhaseRole
-from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
+from pathfinder.ai.agents.roles import StageRole
+from pathfinder.ai.graph._lead_capture import GuardStop, LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_stops import (
@@ -34,7 +34,7 @@ logger = get_logger(__name__)
 
 
 async def noting_a_decline[EventT](
-    events: AsyncIterator[EventT], capture: _LeadRunCapture
+    events: AsyncIterator[EventT], capture: LeadRunCapture
 ) -> AsyncIterator[EventT]:
     try:
         async for event in events:
@@ -45,7 +45,7 @@ async def noting_a_decline[EventT](
 
 
 async def noting_a_provider_failure[EventT](
-    events: AsyncIterator[EventT], capture: _LeadRunCapture
+    events: AsyncIterator[EventT], capture: LeadRunCapture
 ) -> AsyncIterator[EventT]:
     try:
         async for event in events:
@@ -91,7 +91,7 @@ def stop_response(prose: str) -> LeadResponse:
 
 def absorb_loop_stop(
     state: PipelineState,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     guard: ToolRepetitionGuard,
 ) -> None:
     """Say why the turn ended when the guard stopped the Lead's own run."""
@@ -156,17 +156,19 @@ def strategy_change(state: PipelineState) -> StrategyChange:
 
 
 # The name the model settings show for each stage a researcher can set.
-_STAGE_LABELS: dict[PhaseRole, str] = {
+_STAGE_LABELS: dict[StageRole, str] = {
     "lead": "Assistant",
     "frame": "Planning",
     "execution": "Building",
     "verification": "Checking",
+    "explore": "Exploring",
 }
 
 
 def _stage_that_did_not_answer(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     unanswered: UnansweredStage | None,
+    own_stage: StageRole,
 ) -> UnansweredStage | None:
     """The stage of this turn whose model produced nothing, if there was one.
 
@@ -177,14 +179,15 @@ def _stage_that_did_not_answer(
         return unanswered
     if capture.model_answered or not capture.provider_failed:
         return None
-    return UnansweredStage(role="lead", model_id=capture.lead_model)
+    return UnansweredStage(role=own_stage, model_id=capture.lead_model)
 
 
 def _what_to_do_next(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     unanswered: UnansweredStage | None,
     *,
     change: StrategyChange,
+    own_stage: StageRole,
 ) -> str:
     """The action the reply offers, which names a model that never answered.
 
@@ -192,7 +195,7 @@ def _what_to_do_next(
     no choice to point at.
     """
     again = _NEXT[change]
-    stage = _stage_that_did_not_answer(capture, unanswered)
+    stage = _stage_that_did_not_answer(capture, unanswered, own_stage)
     if stage is None:
         return again
     entry = get_model_entry(stage.model_id)
@@ -300,10 +303,11 @@ def _unanswered_site_prose(site_name: str, *, change: StrategyChange) -> str:
 
 
 def fallback_prose(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     unanswered: UnansweredStage | None,
     *,
     change: StrategyChange,
+    own_stage: StageRole = "lead",
 ) -> str:
     """What the user reads when the run ended with no reply of its own.
 
@@ -320,7 +324,8 @@ def fallback_prose(
         shown = _SHOWN_BESIDE if capture.provider_failed else _ERROR_BESIDE
         return (
             f"I stopped this turn on an error I could not recover from; "
-            f"{shown}. {_what_to_do_next(capture, unanswered, change=change)}"
+            f"{shown}. "
+            f"{_what_to_do_next(capture, unanswered, change=change, own_stage=own_stage)}"
         )
     if change != "unchanged":
         return _NEXT[change]
@@ -331,7 +336,7 @@ def fallback_prose(
 
 
 def final_reply(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     unanswered: UnansweredStage | None,
     *,
     change: StrategyChange,

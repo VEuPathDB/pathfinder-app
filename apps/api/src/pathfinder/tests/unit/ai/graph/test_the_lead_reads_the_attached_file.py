@@ -18,7 +18,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart, TextUIPart
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -67,7 +67,7 @@ def _first_request_content(monkeypatch: pytest.MonkeyPatch) -> Any:
             state=state,
             agent=build_lead_agent(),
             deps=lead_deps(state),
-            capture=_LeadRunCapture(),
+            capture=LeadRunCapture(),
             writer=emitted,
             message_id=uuid4(),
         ),

@@ -31,7 +31,10 @@ def _table(provider: ModelProvider, entries: tuple[ModelEntry, ...]) -> Table:
 # The decided lineup; a refresh of the catalog edits this table.
 _DECIDED: dict[ModelProvider, Table] = {
     "openai": {
-        "quality": (("openai:gpt-6-sol", "high"), ("openai:gpt-5.6-luna", "medium")),
+        "quality": (
+            ("openai:gpt-6.1-sol", "high"),
+            ("openai:gpt-5.6-luna", "medium"),
+        ),
         "balanced": (
             ("openai:gpt-5.6-luna", "medium"),
             ("openai:gpt-6-luna", "medium"),
@@ -44,7 +47,7 @@ _DECIDED: dict[ModelProvider, Table] = {
     },
     "google": {
         "quality": (
-            ("google:gemini-3.1-pro-preview", "high"),
+            ("google:gemini-4-argon", "high"),
             ("google:gemini-3.8-flash", "medium"),
         ),
         "balanced": (
@@ -62,11 +65,11 @@ _DECIDED: dict[ModelProvider, Table] = {
     },
     "anthropic": {
         "quality": (
-            ("anthropic:claude-haiku-5-5", "high"),
-            ("anthropic:claude-haiku-5-5", "high"),
+            ("anthropic:claude-sonnet-5-5", "high"),
+            ("anthropic:claude-sonnet-5-5", "high"),
         ),
         "balanced": (
-            ("anthropic:claude-haiku-5-5", "medium"),
+            ("anthropic:claude-sonnet-5-5", "medium"),
             ("anthropic:claude-haiku-5-5", "medium"),
         ),
         "default": (

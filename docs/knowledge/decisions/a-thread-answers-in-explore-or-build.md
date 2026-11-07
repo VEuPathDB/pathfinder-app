@@ -76,15 +76,26 @@ research source's tools are served at run time and are not in that set. An Explo
 under the Lead's per-turn limits, `lead_usage_limits()` (requests, tool calls and tokens), and
 reuses the Lead's stop replies and its model usage part.
 
-**The explore role.** `explore` is a role in every tier. `EXPLORE_MODELS`
-(`platform/model_catalog.py`) maps each provider to its explore model: GPT-6.1 Terra on
-OpenAI, Opus 5.5 on Anthropic, Gemini 4 Argon on Google. The effort is the tier's thinker
-effort. A deployment-paid preset falls back to the tier's thinker for a model the deployment
-may not pay for, so Anthropic explores on the thinker unless a researcher's key pays. The map
-is typed by `KeyableProvider` and every model is checked against the catalog at import. There
-is no fallback for a provider the map lacks: a new provider fails at import until it gets one
-line. The role is kept off the Settings picker for now, but a request may still override it
-like any role.
+**The explore role.** `explore` is a role in every tier and a stage on the Settings picker
+("Exploring"). `EXPLORE_MODELS` (`platform/model_catalog.py`) maps each provider and tier to
+its explore model: on OpenAI GPT-5.6 Luna for fast and default, GPT-6.1 Terra for balanced,
+GPT-6.1 Sol for quality; on Anthropic Haiku 5.5 for fast and default, Sonnet 5.5 for balanced
+and quality; on Google Gemini 3.5 Flash-Lite for fast and default, 3.8 Flash for balanced,
+Gemini 4 Argon for quality. Every one of them is a model the deployment may pay for, and a
+researcher's own key runs the same ones; GPT-6 Astra, Opus 5.5 and Fable 5.1 run Explore only
+when a researcher picks one. The effort is the tier's thinker effort. The map is typed by
+`KeyableProvider` and `TierName`, and every model is checked against the catalog at import.
+There is no fallback for a provider or a tier the map lacks: a new one fails at import until it
+gets its line.
+
+A tier a researcher saved before the picker offered Explore holds no explore pick. When every
+other pick matches one tier, the web takes that tier's explore model and effort
+(`lib/models/tierFill.ts`): the Settings page shows the tier, and the next message stores and
+sends the pick (`features/conversation/runtime/turnPicks.ts`). Picks that match no tier, and a
+researcher with no picks, are left as they are.
+
+When Explore's model never answers, its stop reply names the Exploring stage
+(`fallback_prose(..., own_stage="explore")`); every Build stop reply is unchanged.
 
 **The hand-over.** When the conversation has exactly one reading the site can build
 directly, Explore counts it with `propose_readings` and ends its reply by telling the

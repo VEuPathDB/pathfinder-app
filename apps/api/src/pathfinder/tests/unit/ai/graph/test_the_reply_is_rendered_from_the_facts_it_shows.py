@@ -23,7 +23,7 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.conversation._turn_helpers import _extract_chunk
 from pathfinder.ai.graph import lead_node
-from pathfinder.ai.graph._lead_capture import _emit_residual_prose, _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, _emit_residual_prose
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.graph._lead_emit import release_the_cards
 from pathfinder.ai.graph._lead_facts import show_the_facts
@@ -83,7 +83,7 @@ async def _turn(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     payloads: list[object] = []
 
     async def _answered(
-        *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
+        *, deps: LeadDeps, capture: LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
         capture.response = LeadResponse(prose=_PROSE)
@@ -168,7 +168,7 @@ def _card(call_id: str, reply: str) -> list[Any]:
 def test_a_card_turn_shows_the_facts_once_and_renders_only_the_shown_card() -> None:
     payloads: list[object] = []
     deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=_session())
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     hold = CardHold()
     for chunk in (
         *_card("call_refused", "It returns 66 genes. Which field?"),
@@ -205,7 +205,7 @@ def test_the_records_a_facts_part_lists_are_kept_with_their_pages() -> None:
     deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=session)
     deps.state.turn_markers.record_listed_genes(103, ["Eint_010010", "Eint_020050"])
 
-    show_the_facts([].append, deps, _LeadRunCapture())
+    show_the_facts([].append, deps, LeadRunCapture())
 
     assert deps.state.domain.shown_records == [
         SourceFact(url=gene_record_url("microsporidiadb", g), record_id=g)
@@ -217,7 +217,7 @@ def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged()
     None
 ):
     payloads: list[object] = []
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = stop_response(loop_stop_prose(None))
 
     _emit_residual_prose(payloads.append, capture, message_id=uuid4())
@@ -233,7 +233,7 @@ def test_a_note_let_through_past_the_bound_is_shown_with_its_notice() -> None:
     payloads: list[object] = []
     deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=_session())
     deps.state.turn_markers.unchecked_reply = True
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.response = LeadResponse(
         prose=f"It keeps 1,234 genes, [record:{_EINT}] among them."
     )

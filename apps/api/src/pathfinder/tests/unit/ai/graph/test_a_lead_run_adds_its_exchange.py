@@ -6,7 +6,7 @@ from __future__ import annotations
 from assistant_core.graph.turn_state import ParkedCall, PendingApproval
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_exchange import turn_exchange
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.exchanges import Exchange
@@ -36,7 +36,7 @@ def _card(call_id: str) -> PendingApproval:
 
 def test_a_typed_reply_is_the_exchange_of_the_message() -> None:
     ctx = lead_run_context(user_prompt=_ASKED)
-    capture = _LeadRunCapture(
+    capture = LeadRunCapture(
         response=LeadResponse(prose="The strategy keeps 12 genes.")
     )
 
@@ -47,7 +47,7 @@ def test_a_typed_reply_is_the_exchange_of_the_message() -> None:
 
 def test_a_card_turn_keeps_the_card_it_asked() -> None:
     ctx = lead_run_context(user_prompt=_ASKED)
-    capture = _LeadRunCapture(pending_approval=_card("call_card"))
+    capture = LeadRunCapture(pending_approval=_card("call_card"))
 
     assert turn_exchange(ctx.deps.state, capture) == Exchange(
         said=_ASKED,
@@ -61,7 +61,7 @@ def test_an_answered_approval_is_the_researchers_words() -> None:
     ctx.deps.state.approval_responses["call_card"] = ToolApprovalResponded(
         id="call_card", approved=False, reason="use the female set only"
     )
-    capture = _LeadRunCapture(
+    capture = LeadRunCapture(
         answered_call=_card("call_card"),
         response=LeadResponse(prose="I kept the female set."),
     )
@@ -75,7 +75,7 @@ def test_an_answered_approval_is_the_researchers_words() -> None:
 
 def test_a_worker_result_is_a_task_exchange() -> None:
     ctx = lead_run_context(user_prompt=_ASKED)
-    capture = _LeadRunCapture(
+    capture = LeadRunCapture(
         answered_call=ParkedCall(
             phase="lead",
             tool_call_id="call_task",

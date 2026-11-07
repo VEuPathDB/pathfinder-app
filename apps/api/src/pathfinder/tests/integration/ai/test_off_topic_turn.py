@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_reading import read_the_words
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
@@ -59,7 +59,7 @@ async def _run(prompt: str, *, built: bool) -> tuple[LeadResponse, list[str], Le
         deps,
         new_message=True,
         model_id="mock:lead",
-        capture=_LeadRunCapture(),
+        capture=LeadRunCapture(),
     )
     result = await build_lead_agent().run(prompt, deps=deps, model=get_mock_model())
     assert isinstance(result.output, LeadResponse)

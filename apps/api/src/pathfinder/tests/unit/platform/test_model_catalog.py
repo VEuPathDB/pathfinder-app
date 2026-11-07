@@ -115,19 +115,19 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
     lineup = {e.id: e.rank for e in get_model_catalog() if e.provider in _CLOUD}
 
     assert lineup == {
-        "openai:gpt-6-sol": "flagship",
+        "openai:gpt-6-sol": "unranked",
         "openai:gpt-6-luna": "small",
         "openai:gpt-5.6-luna": "standard",
         "anthropic:claude-opus-5-5": "flagship",
         "anthropic:claude-sonnet-5-5": "standard",
         "anthropic:claude-haiku-5-5": "small",
-        "google:gemini-3.1-pro-preview": "flagship",
         "google:gemini-3.8-flash": "standard",
         "google:gemini-3.5-flash-lite": "small",
         "anthropic:claude-fable-5-1": "unranked",
-        "openai:gpt-6.1-sol": "unranked",
+        "openai:gpt-6.1-sol": "flagship",
         "openai:gpt-6.1-terra": "unranked",
-        "google:gemini-4-argon": "unranked",
+        "openai:gpt-6-astra": "unranked",
+        "google:gemini-4-argon": "flagship",
     }
 
 
@@ -140,13 +140,13 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
         ("anthropic:claude-opus-5-5", (4.00, 0.20, 20.00)),
         ("anthropic:claude-sonnet-5-5", (2.00, 0.10, 10.00)),
         ("anthropic:claude-haiku-5-5", (0.10, 0.01, 0.50)),
-        ("google:gemini-3.1-pro-preview", (2.00, 0.20, 12.00)),
         ("google:gemini-3.8-flash", (0.75, 0.075, 3.75)),
         ("google:gemini-3.5-flash-lite", (0.30, 0.03, 2.50)),
         ("anthropic:claude-fable-5-1", (10.00, 0.25, 50.00)),
         ("openai:gpt-6.1-sol", (2.00, 0.10, 10.00)),
         ("openai:gpt-6.1-terra", (1.00, 0.05, 5.00)),
         ("google:gemini-4-argon", (2.00, 0.10, 10.00)),
+        ("openai:gpt-6-astra", (10.00, 1.00, 50.00)),
     ],
 )
 def test_an_entry_records_the_price_its_provider_publishes(
@@ -253,9 +253,7 @@ def test_the_mock_reads_no_file() -> None:
     assert (mock.supports_images, mock.supports_documents) == (False, False)
 
 
-def test_the_deployment_pays_for_haiku_and_only_a_researchers_key_for_the_rest() -> (
-    None
-):
+def test_only_a_researchers_key_pays_for_opus_fable_and_astra() -> None:
     paid = {
         e.id: e.deployment_may_pay for e in get_model_catalog() if e.provider in _CLOUD
     }
@@ -265,14 +263,14 @@ def test_the_deployment_pays_for_haiku_and_only_a_researchers_key_for_the_rest()
         "openai:gpt-6-luna": True,
         "openai:gpt-5.6-luna": True,
         "anthropic:claude-opus-5-5": False,
-        "anthropic:claude-sonnet-5-5": False,
+        "anthropic:claude-sonnet-5-5": True,
         "anthropic:claude-haiku-5-5": True,
-        "google:gemini-3.1-pro-preview": True,
         "google:gemini-3.8-flash": True,
         "google:gemini-3.5-flash-lite": True,
         "anthropic:claude-fable-5-1": False,
         "openai:gpt-6.1-sol": True,
         "openai:gpt-6.1-terra": True,
+        "openai:gpt-6-astra": False,
         "google:gemini-4-argon": True,
     }
 
@@ -356,6 +354,7 @@ def test_an_openai_prompt_over_272k_tokens_pays_the_long_prompt_prices(
         ("openai:gpt-6.1-sol", 1_050_000),
         ("openai:gpt-6.1-terra", 1_050_000),
         ("google:gemini-4-argon", 1_048_576),
+        ("openai:gpt-6-astra", 1_050_000),
     ],
 )
 def test_a_new_entry_holds_its_published_window(model_id: str, window: int) -> None:

@@ -20,8 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.capabilities.metering import ModelSpend, charge_spend
 from pathfinder.ai.graph._lead_capture import (
+    LeadRunCapture,
     _charge_token_delta,
-    _LeadRunCapture,
     _persist_residual_quota,
     absorb_sub_agent_usage,
 )
@@ -106,7 +106,7 @@ def _cost(model_id: str, tokens: int) -> Decimal:
 
 
 async def test_a_streamed_charge_on_the_researchers_key_is_theirs(user: User) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     lead = ANTHROPIC_SMALL
     usage = RunUsage(input_tokens=1000, output_tokens=200)
 
@@ -136,7 +136,7 @@ async def test_the_residual_splits_by_payer(
     lead = ANTHROPIC_SMALL
     keyed_pass = _pass(ANTHROPIC_SMALL, PaidBy.USER, 400)
     deployment_pass = _pass(DEFAULT_MODEL, PaidBy.DEPLOYMENT, 700)
-    capture = _LeadRunCapture(lead_model=lead, tokens=300, cost_usd=Decimal("0.3"))
+    capture = LeadRunCapture(lead_model=lead, tokens=300, cost_usd=Decimal("0.3"))
     absorb_sub_agent_usage(capture, keyed_pass)
     absorb_sub_agent_usage(capture, deployment_pass)
 

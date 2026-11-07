@@ -11,7 +11,7 @@ import pytest
 from langgraph.runtime import Runtime
 
 from pathfinder.ai.graph import lead_node
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _run_lead_turn
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -32,7 +32,7 @@ async def test_the_turn_hands_back_its_exchange_after_the_earlier_ones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _answered(
-        *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
+        *, deps: LeadDeps, capture: LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
         capture.response = LeadResponse(prose=_REPLY)

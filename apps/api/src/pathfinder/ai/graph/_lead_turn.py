@@ -41,7 +41,7 @@ from pathfinder.ai.graph._lead_answers import (
     typed_reply,
     unanswered_inner,
 )
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_durable import (
     control_results_answered,
     inner_durable_calls,
@@ -210,7 +210,7 @@ class TurnResumption:
 
 def turn_ends_before_the_run(
     resumption: TurnResumption,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     writer: Any,
 ) -> bool:
     """Whether the answer leaves the Lead's run nothing to do.

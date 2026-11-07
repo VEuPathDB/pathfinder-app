@@ -39,7 +39,7 @@ from pathfinder.platform.refusals import agent_capabilities
 
 ExploreAgent = Agent[LeadDeps, str | DeferredToolRequests]
 
-EXPLORE_MODEL: Final = EXPLORE_MODELS["openai"]
+EXPLORE_MODEL: Final = EXPLORE_MODELS["openai"]["default"]
 
 
 def build_explore_toolset() -> AbstractToolset[LeadDeps]:

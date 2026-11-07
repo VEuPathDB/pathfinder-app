@@ -27,9 +27,7 @@ def test_verify_checks_at_high_on_the_build_model(
     assert verify.model_id == preset.roles["execution"].model_id
 
 
-def test_the_default_tier_runs_build_on_the_default_model_and_explore_on_terra() -> (
-    None
-):
+def test_the_default_tier_runs_build_and_explore_on_the_default_model() -> None:
     preset = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["default"]
 
     assert {
@@ -39,5 +37,5 @@ def test_the_default_tier_runs_build_on_the_default_model_and_explore_on_terra()
         "frame": ("openai:gpt-5.6-luna", "medium"),
         "execution": ("openai:gpt-5.6-luna", "medium"),
         "verification": ("openai:gpt-5.6-luna", "high"),
-        "explore": ("openai:gpt-6.1-terra", "medium"),
+        "explore": ("openai:gpt-5.6-luna", "medium"),
     }

@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
@@ -254,8 +254,8 @@ async def drive_lead(
     state: PipelineState,
     deps: LeadDeps,
     writer: Collector,
-) -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+) -> LeadRunCapture:
+    capture = LeadRunCapture()
     await _drive_lead_stream(
         state=state,
         agent=build_lead_agent(),

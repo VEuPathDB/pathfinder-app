@@ -19,7 +19,7 @@ from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.explore.readings_card import card_labels
 from pathfinder.ai.graph._lead_durable import pending_durable_call
-from pathfinder.ai.graph._lead_exchange import _answer_words
+from pathfinder.ai.graph._lead_exchange import answer_words
 from pathfinder.ai.graph._lead_turn import pending_approval
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -126,7 +126,7 @@ def explore_exchange(
         return Exchange(kind="task_result", reply=reply, card=card)
     return Exchange(
         kind="card_answer",
-        said=_answer_words(state, answered),
+        said=answer_words(state, answered),
         reply=reply,
         card=card,
     )

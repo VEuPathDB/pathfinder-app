@@ -18,9 +18,9 @@ from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
+    SIGNAL_PEPTIDE_REPORT,
     SITE,
     RecordedReports,
-    seed_count,
     serve_recorded_readings,
 )
 from pathfinder.tests._support.recorded_counts import recorded_count
@@ -68,7 +68,7 @@ async def test_the_explore_arc_counts_two_readings_and_offers_them(
     assert call.tool_name == "consult_user"
     assert card_labels(call.args_as_dict()) == [FIRST_LABEL, SECOND_LABEL]
     assert counted_labels(deps) == {
-        FIRST_LABEL: seed_count(),
+        FIRST_LABEL: recorded_count(SIGNAL_PEPTIDE_REPORT),
         SECOND_LABEL: recorded_count(GENE_TYPE_REPORT),
     }
     assert [name for name, _ in reports.ran] == [SIGNAL_PEPTIDE, GENE_TYPE]

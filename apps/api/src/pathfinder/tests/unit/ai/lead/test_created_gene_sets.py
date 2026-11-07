@@ -15,7 +15,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.graph import nodes
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_delta import _build_state_delta
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import (
@@ -57,7 +57,7 @@ def _deps() -> LeadDeps:
 def _domain_after_the_turn(deps: LeadDeps) -> StrategyDomainState:
     """The domain the Lead's node writes back when the turn ends."""
     domain = _build_state_delta(
-        state=deps.state, deps=deps, capture=_LeadRunCapture(), memories=[]
+        state=deps.state, deps=deps, capture=LeadRunCapture(), memories=[]
     )["domain"]
     assert isinstance(domain, StrategyDomainState)
     return domain

@@ -55,5 +55,5 @@ async def test_the_route_answers_one_model_under_a_uniform_tier(
     body = await _body()
     defaults = body["phaseDefaults"]
 
-    assert defaults.pop("explore") == EXPLORE_MODELS["openai"]
+    assert defaults.pop("explore") == EXPLORE_MODELS["openai"]["fast"]
     assert set(defaults.values()) == {OPENAI_SMALL}

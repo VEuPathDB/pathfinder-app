@@ -1,0 +1,30 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "POST",
+    "url": "https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript/searches/GenesWithSignalPeptide/reports/standard",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-11-07",
+    "reads": "site default: GenesWithSignalPeptide organism=[Plasmodium falciparum 3D7], signalp_version=SignalP-6.0"
+  },
+  "body": {
+    "records": [],
+    "meta": {
+      "displayViewTotalCount": 479,
+      "tables": [],
+      "pagination": {
+        "offset": 0,
+        "numRecords": 0
+      },
+      "cachePreviouslyExisted": true,
+      "viewTotalCount": 483,
+      "sorting": [],
+      "recordClassName": "transcript",
+      "responseCount": 0,
+      "attributes": [],
+      "totalCount": 483,
+      "displayTotalCount": 479
+    }
+  }
+}

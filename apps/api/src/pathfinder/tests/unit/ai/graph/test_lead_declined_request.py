@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.graph import _lead_model, lead_node
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import final_reply
 from pathfinder.ai.graph.lead_node import _drive_lead_stream, _run_lead_turn
 from pathfinder.ai.graph.runtime import Context
@@ -104,10 +104,10 @@ def _declining_model(wire: ProviderWire) -> Model:
 
 def _drive(
     monkeypatch: pytest.MonkeyPatch, model: Model, state: PipelineState
-) -> tuple[_LeadRunCapture, Collector]:
+) -> tuple[LeadRunCapture, Collector]:
     allow_requests_to_the_wire(monkeypatch)
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
     emitted: Any = writer
     asyncio.run(

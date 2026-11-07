@@ -9,7 +9,7 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. The OpenAI and Anthropic models are in UAT: the deployment pays for `Claude Haiku 5.5`, and `Claude Sonnet 5.5` and `Claude Opus 5.5` run only on a tester's own Anthropic key. The Google models are not ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. The OpenAI and Anthropic models are in UAT: the deployment pays for `Claude Haiku 5.5` and `Claude Sonnet 5.5`, and `Claude Opus 5.5`, `Claude Fable 5.1` and `GPT-6 Astra` run only on a tester's own key. The `Stages` section lists `Assistant`, `Planning`, `Checking` and `Exploring`. The Google models are not ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 

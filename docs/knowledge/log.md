@@ -1,5 +1,22 @@
 # Log
 
+## 2026-11-07
+
+* **Explore is a Settings stage, and its model follows the tier.** On OpenAI Explore runs
+  GPT-5.6 Luna on fast and default, GPT-6.1 Terra on balanced and GPT-6.1 Sol on quality; on
+  Anthropic Haiku 5.5, Sonnet 5.5 and Sonnet 5.5; on Google Gemini 3.5 Flash-Lite, 3.8 Flash and
+  Gemini 4 Argon. A tier saved before the stage existed takes that tier's explore model. Explore's
+  stop reply names the Exploring stage. See
+  [the decision](decisions/a-thread-answers-in-explore-or-build.md).
+* **The catalog.** GPT-6.1 Sol is OpenAI's flagship, so Build's quality tier plans on it; GPT-6
+  Sol stays as an unranked pick. GPT-6 Astra joins as a model only a researcher's key runs.
+  Gemini 4 Argon is Google's flagship and Gemini 3.1 Pro left the catalog. The deployment pays
+  for Claude Sonnet 5.5, so its Anthropic quality and balanced tiers plan on Sonnet. See
+  [the decision](decisions/only-a-researchers-key-runs-the-larger-claude-models.md).
+* **Explore's tests count from a recorded report.** The signal-peptide reading is answered from
+  a recorded QA PlasmoDB report of `GenesWithSignalPeptide` (SignalP-6.0), and the Lead's run
+  capture and card-answer reader have public names. Four backlog items left.
+
 ## 2026-11-06
 
 * **A thread answers in Auto, Explore or Build.** The graph is `route -> lead | explore ->

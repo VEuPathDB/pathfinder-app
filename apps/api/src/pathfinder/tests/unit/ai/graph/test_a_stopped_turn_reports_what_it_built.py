@@ -17,7 +17,7 @@ from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -69,7 +69,7 @@ def _raising_model(error: Exception) -> FunctionModel:
 
 async def _turn_that_built_then_raised(
     error: Exception, monkeypatch: pytest.MonkeyPatch
-) -> _LeadRunCapture:
+) -> LeadRunCapture:
     state = _state()
     working = await refresh_live_strategy_state(state, _context(state))
     deps = LeadDeps(
@@ -77,7 +77,7 @@ async def _turn_that_built_then_raised(
     )
     deps.state.record_build(BuildOutcome(pushed_step_ids=["step_a"]))
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _raising_model(error))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer: Any = Collector()
     await _drive_lead_stream(
         state=state,

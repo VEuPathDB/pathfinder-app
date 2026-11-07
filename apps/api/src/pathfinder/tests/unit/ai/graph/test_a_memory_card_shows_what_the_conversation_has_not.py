@@ -15,7 +15,7 @@ from langgraph.runtime import Runtime
 
 from pathfinder.ai.conversation._turn_helpers import _extract_chunk
 from pathfinder.ai.graph import lead_node
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _run_lead_turn
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -44,7 +44,7 @@ async def _turn(
     payloads: list[object] = []
 
     async def _answered(
-        *, deps: LeadDeps, capture: _LeadRunCapture, **_kwargs: Any
+        *, deps: LeadDeps, capture: LeadRunCapture, **_kwargs: Any
     ) -> None:
         del deps
         capture.response = LeadResponse(prose="Done.")

@@ -24,6 +24,7 @@ describe("phase role metadata", () => {
 
   it("describes every role a researcher picks a model for", () => {
     expect(Object.keys(PICKABLE_ROLE_DESCRIPTIONS).sort()).toEqual([
+      "explore",
       "frame",
       "lead",
       "verification",
@@ -41,9 +42,9 @@ describe("phase role metadata", () => {
     expect(isPickableRole("lead")).toBe(true);
   });
 
-  it("offers no pick for the explore role", () => {
-    expect(isPickableRole("explore")).toBe(false);
-    expect(Object.keys(PICKABLE_ROLE_DESCRIPTIONS)).not.toContain("explore");
+  it("offers a pick for the explore role", () => {
+    expect(isPickableRole("explore")).toBe(true);
+    expect(phaseLabel("explore")).toBe("Exploring");
   });
 
   it("falls back to the role name for a label", () => {

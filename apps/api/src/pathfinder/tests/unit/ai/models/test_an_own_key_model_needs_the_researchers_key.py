@@ -34,7 +34,7 @@ from pathfinder.tests._support.provider_wire import (
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 OPUS = "anthropic:claude-opus-5-5"
-SONNET = "anthropic:claude-sonnet-5-5"
+FABLE = "anthropic:claude-fable-5-1"
 _USER_KEY = "sk-ant-user-sentinel-0123456789"
 _DEPLOYMENT_KEY = "sk-ant-deployment-sentinel-98765"
 _OWN_ANTHROPIC = ProviderKeyring(active={"anthropic": SecretStr(_USER_KEY)})
@@ -73,7 +73,7 @@ _PATHS: list[Callable[[str], object]] = [
 
 
 @pytest.mark.parametrize("resolve", _PATHS, ids=lambda f: f.__name__)
-@pytest.mark.parametrize("model_id", [OPUS, SONNET])
+@pytest.mark.parametrize("model_id", [OPUS, FABLE])
 def test_a_pick_of_an_own_key_model_without_the_key_is_refused(
     resolve: Callable[[str], object], model_id: str
 ) -> None:
@@ -88,7 +88,7 @@ def test_a_pick_of_an_own_key_model_without_the_key_is_refused(
     assert wire.sent_headers() == []
 
 
-@pytest.mark.parametrize("model_id", [OPUS, SONNET])
+@pytest.mark.parametrize("model_id", [OPUS, FABLE])
 async def test_the_researchers_anthropic_key_runs_an_own_key_model(
     model_id: str,
 ) -> None:
@@ -117,7 +117,7 @@ async def test_the_deployment_runs_haiku_on_its_own_key() -> None:
     ]
 
 
-@pytest.mark.parametrize("model_id", [OPUS, SONNET, "openai:not-in-the-catalog"])
+@pytest.mark.parametrize("model_id", [OPUS, FABLE, "openai:not-in-the-catalog"])
 def test_the_judges_deployment_model_is_only_one_the_deployment_pays_for(
     model_id: str,
 ) -> None:

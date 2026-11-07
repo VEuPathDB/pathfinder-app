@@ -29,7 +29,6 @@ import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { useRightRailStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useSettingsStore } from "@/state/useSettingsStore";
 import { useStrategyStore } from "@/state/strategy/store";
 
 import { conversationCursors } from "../api/assistantClient";
@@ -39,6 +38,7 @@ import { threadModeFor } from "../composer/threadMode";
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
 import { createDurableTransport } from "./durableTransport";
+import { picksForTheTurn } from "./turnPicks";
 import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
 import { useReaderModel } from "./useReaderModel";
 import { reduceWithdrawnTurns, withdrawPrompt } from "./withdrawnPrompt";
@@ -92,7 +92,10 @@ export function useChatRuntime({
         }),
       prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
         const siteId = useSessionStore.getState().selectedSite;
-        const { phaseModels, phaseReasoning } = useSettingsStore.getState();
+        const picks = await picksForTheTurn(
+          queryClient,
+          assistantId ?? DEFAULT_ASSISTANT_ID,
+        );
         useFirstMessageStore.getState().rememberFirstMessage(conversationId, messages);
         const begun = await beginConversation(conversationId, {
           siteId,
@@ -107,8 +110,8 @@ export function useChatRuntime({
             trigger,
             messages,
             baseBody: body as Record<string, unknown> | undefined,
-            phaseModels,
-            phaseReasoning,
+            phaseModels: picks.models,
+            phaseReasoning: picks.reasoning,
             mode: threadModeFor(conversationId, queryClient),
             // A thread keeps the assistant it was created with, so only the
             // message that created it names one.

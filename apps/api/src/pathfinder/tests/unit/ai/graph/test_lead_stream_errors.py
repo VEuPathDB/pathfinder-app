@@ -31,7 +31,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import fallback_prose
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
@@ -119,7 +119,7 @@ def _answering_then_raising_model(error: Exception) -> FunctionModel:
 def _drive(
     monkeypatch: pytest.MonkeyPatch,
     error: Exception,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     writer: Collector,
 ) -> None:
     _drive_model(monkeypatch, _raising_model(error), capture, writer)
@@ -128,7 +128,7 @@ def _drive(
 def _drive_model(
     monkeypatch: pytest.MonkeyPatch,
     model: Model,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     writer: Collector,
 ) -> None:
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
@@ -167,7 +167,7 @@ def test_a_graph_control_signal_reaches_the_graph_unlogged(
     The turn logs nothing: a signal the graph reads is not a failure, and the
     stack it would render carries every local of the run.
     """
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
 
     with caplog.at_level(logging.ERROR), pytest.raises(GraphBubbleUp):
@@ -187,7 +187,7 @@ def test_any_other_failure_reaches_the_user_as_an_error_chunk(
     The turn logs nothing here either. Only the loop that writes the chunks
     reports through ``lead_node``, and it ran to the end.
     """
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
 
     with caplog.at_level(logging.ERROR):
@@ -201,7 +201,7 @@ def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A transport failure is not a badly phrased message; the reply says which it was."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     _drive(
         monkeypatch,
@@ -222,7 +222,7 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The provider's payload is persisted prose if the reply repeats it."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     body = {"error": {"message": "Rate limit reached for org-abc123"}}
     failure = ModelHTTPError(status_code=429, model_name="luna", body=body)
 
@@ -238,7 +238,7 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture(), None, change="unchanged") == (
+    assert fallback_prose(LeadRunCapture(), None, change="unchanged") == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )
@@ -248,7 +248,7 @@ def test_a_model_that_never_answered_is_recorded_as_unanswered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The reply blames the model only where the model produced nothing."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     _drive(monkeypatch, RuntimeError("Connection error."), capture, Collector())
 
@@ -268,7 +268,7 @@ def test_a_model_that_never_answered_is_recorded_as_unanswered(
 def test_the_capture_says_whether_a_provider_call_failed(
     monkeypatch: pytest.MonkeyPatch, error: Exception, provider_failed: bool
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     _drive(monkeypatch, error, capture, Collector())
 
@@ -279,7 +279,7 @@ def test_the_capture_says_whether_a_provider_call_failed(
 def test_a_model_that_answered_once_is_recorded_as_answered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     _drive_model(
         monkeypatch,
@@ -303,7 +303,7 @@ def test_a_billing_error_inside_the_stream_reaches_the_wire_without_its_body(
         request=httpx2.Request("POST", "https://api.openai.com/v1/responses"),
         body=body,
     )
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
 
     with attach_keyring(ProviderKeyring()) as keys:

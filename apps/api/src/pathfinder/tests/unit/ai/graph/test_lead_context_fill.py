@@ -14,8 +14,8 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_capture import (
+    LeadRunCapture,
     _charge_token_delta,
-    _LeadRunCapture,
     emit_lead_usage,
 )
 from pathfinder.ai.graph.runtime import Context
@@ -88,7 +88,7 @@ def test_context_window_for_reads_the_catalog() -> None:
 async def test_each_charged_delta_records_the_request_input(
     no_quota_writes: None,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = _LEAD_MODEL
     state = _state()
     context = _context()
@@ -111,7 +111,7 @@ async def test_each_charged_delta_records_the_request_input(
 
 def test_lead_usage_event_carries_zero_when_nothing_was_charged() -> None:
     collector = _Collector()
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = "nosuchprovider:nosuchmodel"
 
     emit_lead_usage(collector, capture, 0, "0")

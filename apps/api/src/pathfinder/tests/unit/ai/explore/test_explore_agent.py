@@ -144,12 +144,20 @@ def test_the_mock_reads_explore_as_its_own_role() -> None:
 
 
 @pytest.mark.usefixtures("_cloud_provider")
-def test_explore_runs_on_terra_by_default() -> None:
+@pytest.mark.parametrize(
+    ("tier", "model_id"),
+    [("default", "openai:gpt-5.6-luna"), ("balanced", TERRA)],
+)
+def test_explore_runs_on_the_deployment_tier_s_model(
+    monkeypatch: pytest.MonkeyPatch, tier: str, model_id: str
+) -> None:
+    monkeypatch.setattr(get_settings(), "default_tier", tier, raising=False)
+
     resolved = resolve_explore_model_context(
         build_explore_agent(), model_override=None, reasoning_effort=None
     )
 
-    assert resolved.model_id == TERRA
+    assert resolved.model_id == model_id
 
 
 @pytest.mark.usefixtures("_cloud_provider")

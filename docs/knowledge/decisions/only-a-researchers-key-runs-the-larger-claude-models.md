@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Only a researcher's key runs the larger Claude models, and the catalog prices the Claude models the meter charges
-description: The Anthropic lineup is Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5. The deployment's key runs Haiku 5.5 alone; a researcher's live Anthropic key runs all three. Each catalog entry says whether the deployment may pay for it, the flag fails closed, and the server refuses a turn that names a model nobody may pay for before any provider call. The Claude entries carry their own prices, which the runtime meters per request in place of its price snapshot. Swapping the model silently, billing the deployment, a per-provider rule, and metering every entry at catalog prices were rejected.
+description: The Anthropic lineup is Claude Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.1. The deployment's key runs Haiku 5.5 and Sonnet 5.5; a researcher's live Anthropic key runs all four, and GPT-6 Astra runs only on a researcher's OpenAI key. Each catalog entry says whether the deployment may pay for it, the flag fails closed, and the server refuses a turn that names a model nobody may pay for before any provider call. The Claude entries carry their own prices, which the runtime meters per request in place of its price snapshot. Swapping the model silently, billing the deployment, a per-provider rule, and metering every entry at catalog prices were rejected.
 tags: [models, quota, pricing, security, settings]
 generated: { by: claude-code/opus-5-5, at: 2026-10-08T00:00:00Z }
 verified: { by: claude-code/opus-5-5, at: 2026-10-08T00:00:00Z }
@@ -20,8 +20,9 @@ PNG and one PDF on each, and read the PDF's word back
 ([An attachment is a file part the model can read](an-attachment-is-a-file-part-the-model-can-read.md)).
 
 **Who may pay.** `ModelEntry.deployment_may_pay` is `False` unless the entry says
-otherwise. Every OpenAI and Google entry, Haiku 5.5, the mock and each local
-model say `True`; Sonnet 5.5 and Opus 5.5 do not. A model id the catalog does
+otherwise. Every Google entry, every OpenAI entry but GPT-6 Astra, Haiku 5.5,
+Sonnet 5.5, the mock and each local model say `True`; Opus 5.5, Fable 5.1 and
+GPT-6 Astra do not. A model id the catalog does
 not hold is not one the deployment pays for
 (`model_catalog.deployment_may_pay`). `validate_lineup` (`model_entry.py`) holds one default and
 one small entry per provider both in its whole lineup and in the part the
@@ -37,7 +38,7 @@ compaction), is refused before a request leaves. The chat gate
 (`services/provider_keys.py::require_payers`, which `require_turn_paid` and
 `jobs/turn_keys.py` call) refuses a request body whose per-role picks name such
 a model with no live researcher key for its provider, before the message is
-stored or a job is deferred. A researcher's live Anthropic key pays for all three.
+stored or a job is deferred. A researcher's live Anthropic key pays for all four.
 
 **What the researcher sees.** `/api/v1/models` serves a model with
 `enabled: false` when its provider holds no deployment key or its entry runs
@@ -50,9 +51,10 @@ model catalog marks a model it holds back "needs your key".
 `TIER_PRESETS` from the entries the deployment pays for, and
 `OWN_KEY_TIER_PRESETS` from the whole catalog. `GET /api/v1/tiers` serves both
 (`presets`, `ownKeyPresets`), and the settings page applies the own-key set for
-a provider the researcher's key pays for. On the deployment's key every
-Anthropic tier runs Haiku 5.5; on a researcher's key, quality runs Opus 5.5 and
-Sonnet 5.5, balanced Sonnet 5.5 and Haiku 5.5, default and fast Haiku 5.5. The
+a provider the researcher's key pays for. On the deployment's key quality runs
+Sonnet 5.5 for every role, balanced Sonnet 5.5 and Haiku 5.5, default and fast
+Haiku 5.5; on a researcher's key, quality runs Opus 5.5 and Sonnet 5.5, and the
+other tiers are the same. The
 server's own defaults read `TIER_PRESETS` alone, so a turn with no pick never
 names a model the deployment cannot pay for.
 

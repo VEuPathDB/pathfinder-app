@@ -27,46 +27,19 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from pathfinder.domain.modes import EXPLORE_PHASE
 from pathfinder.services.experiment import variant_comparison
-from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
 from pathfinder.tests._support.record_classes import recorded_searches
 from pathfinder.tests._support.recorded_columns import recorded_body
 from pathfinder.tests._support.run_context import turn_runtime
 
 SITE = "plasmodb"
 GENE_TYPE_REPORT = "report_gene_type_protein_coding"
+SIGNAL_PEPTIDE_REPORT = "report_signal_peptide_signalp6"
 EXPLORE_PROMPT = "Which genes carry a signal peptide? [[arc:explore]]"
 PREFERENCE_PROMPT = (
     "I prefer SignalP 6.0. Which genes carry a signal peptide? [[arc:explore]]"
 )
 NO_READING_PROMPT = "What is known about this family? [[arc:explore-no-reading]]"
 ONE_READING_PROMPT = "Which genes carry a signal peptide? [[arc:explore-one-reading]]"
-_SIGNAL_PEPTIDE_SEED = "PF3D7 Signal Peptide Genes"
-
-
-def seed_count() -> int:
-    [seed] = [s for s in get_seeds_for_site(SITE) if s.name == _SIGNAL_PEPTIDE_SEED]
-    assert seed.measured is not None
-    assert seed.measured.root_count is not None
-    return seed.measured.root_count
-
-
-def counted_answer(total: int) -> WDKAnswer:
-    return WDKAnswer.model_validate(
-        {
-            "meta": {
-                "totalCount": total,
-                "displayTotalCount": total,
-                "viewTotalCount": total,
-                "displayViewTotalCount": total,
-                "responseCount": 0,
-                "recordClassName": "transcript",
-                "attributes": [],
-                "tables": [],
-                "pagination": {"offset": 0, "numRecords": 0},
-            },
-            "records": [],
-        }
-    )
 
 
 @dataclass
@@ -120,7 +93,9 @@ class ExploreDoubles:
 def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> RecordedReports:
     served = RecordedReports(
         answers={
-            SIGNAL_PEPTIDE: counted_answer(seed_count()),
+            SIGNAL_PEPTIDE: WDKAnswer.model_validate(
+                recorded_body(SIGNAL_PEPTIDE_REPORT)
+            ),
             GENE_TYPE: WDKAnswer.model_validate(recorded_body(GENE_TYPE_REPORT)),
         }
     )

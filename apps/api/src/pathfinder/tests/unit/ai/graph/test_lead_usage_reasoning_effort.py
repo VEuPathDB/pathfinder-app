@@ -14,8 +14,8 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_capture import (
+    LeadRunCapture,
     _charge_token_delta,
-    _LeadRunCapture,
     emit_lead_usage,
 )
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
@@ -123,7 +123,7 @@ def test_the_mock_provider_states_no_effort(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_the_usage_chunk_carries_the_effort() -> None:
     collector = _Collector()
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = _LEAD_MODEL
     capture.lead_reasoning_effort = "high"
 
@@ -134,7 +134,7 @@ def test_the_usage_chunk_carries_the_effort() -> None:
 
 def test_the_usage_chunk_states_no_effort_when_the_run_has_none() -> None:
     collector = _Collector()
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = _LEAD_MODEL
 
     emit_lead_usage(collector, capture, 0, "0")
@@ -147,7 +147,7 @@ def test_the_usage_chunk_states_no_effort_when_the_run_has_none() -> None:
 async def test_the_live_chunk_reads_the_effort_off_the_capture(
     no_quota_writes: None,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = _LEAD_MODEL
     capture.lead_reasoning_effort = "high"
     state = PipelineState(

@@ -18,6 +18,7 @@ from pathfinder.platform.tiers import (
     KNOWN_ROLES,
     OWN_KEY_TIER_PRESETS,
     TIER_PRESETS,
+    TierPreset,
 )
 
 BALANCED_BEFORE = {
@@ -28,32 +29,46 @@ BALANCED_BEFORE = {
 }
 
 
-def test_every_openai_tier_explores_on_terra() -> None:
-    for name, preset in TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"].items():
-        assert preset.roles["explore"].model_id == "openai:gpt-6.1-terra", name
+_EXPLORES_ON = {
+    "openai": {
+        "fast": "openai:gpt-5.6-luna",
+        "default": "openai:gpt-5.6-luna",
+        "balanced": "openai:gpt-6.1-terra",
+        "quality": "openai:gpt-6.1-sol",
+    },
+    "anthropic": {
+        "fast": "anthropic:claude-haiku-5-5",
+        "default": "anthropic:claude-haiku-5-5",
+        "balanced": "anthropic:claude-sonnet-5-5",
+        "quality": "anthropic:claude-sonnet-5-5",
+    },
+    "google": {
+        "fast": "google:gemini-3.5-flash-lite",
+        "default": "google:gemini-3.5-flash-lite",
+        "balanced": "google:gemini-3.8-flash",
+        "quality": "google:gemini-4-argon",
+    },
+}
 
 
-def test_every_google_tier_explores_on_argon() -> None:
-    for name, preset in TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["google"].items():
-        assert preset.roles["explore"].model_id == "google:gemini-4-argon", name
+@pytest.mark.parametrize("presets", [TIER_PRESETS, OWN_KEY_TIER_PRESETS])
+def test_each_tier_explores_on_its_decided_model(
+    presets: dict[str, dict[str, dict[str, TierPreset]]],
+) -> None:
+    explores_on = {
+        provider: {
+            name: preset.roles["explore"].model_id for name, preset in tiers.items()
+        }
+        for provider, tiers in presets[PATHFINDER_ASSISTANT_ID].items()
+    }
+    assert explores_on == _EXPLORES_ON
 
 
 def test_explore_runs_at_the_thinker_effort() -> None:
-    preset = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["fast"]
-    assert preset.roles["explore"].reasoning_effort == "low"
-    assert preset.roles["explore"].reasoning_effort == (
-        preset.roles["lead"].reasoning_effort
-    )
-
-
-def test_an_own_anthropic_key_explores_on_opus() -> None:
-    preset = OWN_KEY_TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["anthropic"]["quality"]
-    assert preset.roles["explore"].model_id == "anthropic:claude-opus-5-5"
-
-
-def test_a_deployment_paid_anthropic_turn_explores_on_the_thinker() -> None:
-    for name, preset in TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["anthropic"].items():
-        assert preset.roles["explore"] == preset.roles["lead"], name
+    for name, preset in TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"].items():
+        assert preset.roles["explore"].reasoning_effort == (
+            preset.roles["lead"].reasoning_effort
+        ), name
 
 
 def test_the_deployment_never_pays_for_a_model_it_may_not() -> None:
@@ -75,7 +90,7 @@ def test_the_explore_role_is_known() -> None:
 
 
 def test_the_explore_role_has_a_compile_time_model() -> None:
-    assert phase_defaults()["explore"] == EXPLORE_MODELS["openai"]
+    assert phase_defaults()["explore"] == EXPLORE_MODELS["openai"]["default"]
 
 
 def test_a_chat_body_may_pick_an_explore_model() -> None:

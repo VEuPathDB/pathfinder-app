@@ -11,7 +11,7 @@ from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 from veupathdb.domain.parameters import NumberValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import final_reply
 from pathfinder.ai.graph._lead_turn import (
     resolve_turn_resumption,
@@ -152,7 +152,7 @@ async def test_no_leaves_the_strategy_and_the_reply_untouched(
         CALL_ID: ToolApprovalResponded(id=CALL_ID, approved=False),
     }
     written: list[dict[str, Any]] = []
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     resumption = await resolve_turn_resumption(state=state, deps=thread.deps)
     ended = turn_ends_before_the_run(resumption, capture, written.append)

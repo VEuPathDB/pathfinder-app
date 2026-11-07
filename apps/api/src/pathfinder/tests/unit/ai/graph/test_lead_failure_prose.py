@@ -10,7 +10,7 @@ from __future__ import annotations
 from pydantic_ai.exceptions import ModelHTTPError
 
 from pathfinder.ai.agents.roles import PhaseRole
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import (
     fallback_prose,
     final_reply,
@@ -43,28 +43,28 @@ _CHOSEN_MODEL = DEFAULT_MODEL
 _CHOSEN_MODEL_NAME = display_name(DEFAULT_MODEL)
 
 
-def _failed(error: str) -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+def _failed(error: str) -> LeadRunCapture:
+    capture = LeadRunCapture()
     capture.run_error = error
     capture.provider_failed = True
     return capture
 
 
-def _own_fault(*, model: str = _CHOSEN_MODEL) -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+def _own_fault(*, model: str = _CHOSEN_MODEL) -> LeadRunCapture:
+    capture = LeadRunCapture()
     capture.run_error = "Expecting value: line 1 column 1 (char 0)"
     capture.lead_model = model
     return capture
 
 
-def _never_answered(error: str, *, model: str = _CHOSEN_MODEL) -> _LeadRunCapture:
+def _never_answered(error: str, *, model: str = _CHOSEN_MODEL) -> LeadRunCapture:
     """A turn whose model was asked and streamed nothing before the error."""
     capture = _failed(error)
     capture.lead_model = model
     return capture
 
 
-def _after_the_lead_answered(error: str) -> _LeadRunCapture:
+def _after_the_lead_answered(error: str) -> LeadRunCapture:
     """A turn whose own model answered, so the failure came from a dispatch."""
     capture = _failed(error)
     capture.lead_model = _CHOSEN_MODEL
@@ -120,7 +120,7 @@ def test_a_provider_refusal_is_shown_with_its_own_sentence() -> None:
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture(), None, change="unchanged") == (
+    assert fallback_prose(LeadRunCapture(), None, change="unchanged") == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )
@@ -137,6 +137,23 @@ class TestTheModelTheTurnCouldNotReach:
         assert prose == (
             "I stopped this turn on an error I could not recover from; what it "
             "answered is shown beside this reply. The Assistant stage of this "
+            f"turn runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a "
+            "different "
+            "model for that stage in Settings, or send the message again and I "
+            "will start over from it."
+        )
+
+    def test_an_explore_turn_names_the_exploring_stage(self) -> None:
+        prose = fallback_prose(
+            _never_answered("Connection error."),
+            None,
+            change="unchanged",
+            own_stage="explore",
+        )
+
+        assert prose == (
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Exploring stage of this "
             f"turn runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a "
             "different "
             "model for that stage in Settings, or send the message again and I "
@@ -372,7 +389,7 @@ class TestATurnWhoseChangeLanded:
         )
 
     def test_a_run_with_no_reply_and_no_error_states_what_landed(self) -> None:
-        prose = fallback_prose(_LeadRunCapture(), None, change="unchecked")
+        prose = fallback_prose(LeadRunCapture(), None, change="unchecked")
 
         assert "rephrase" not in prose
         assert "The change shown beside this reply landed" in prose
@@ -392,7 +409,7 @@ class TestATurnWhoseChangeLanded:
     def test_a_change_its_check_judged_is_said_to_be_checked(self) -> None:
         prose = [
             fallback_prose(capture, None, change="checked")
-            for capture in (_failed(str(_RATE_LIMIT)), _LeadRunCapture())
+            for capture in (_failed(str(_RATE_LIMIT)), LeadRunCapture())
         ]
 
         assert [p.endswith(_CHECKED) and "not checked" not in p for p in prose] == [

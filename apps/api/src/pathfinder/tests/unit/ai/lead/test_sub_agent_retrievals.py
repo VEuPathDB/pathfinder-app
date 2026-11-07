@@ -14,7 +14,7 @@ import pytest
 from pydantic_ai.toolsets import FunctionToolset
 
 from pathfinder.ai.graph._lead_capture import (
-    _LeadRunCapture,
+    LeadRunCapture,
     sub_agent_usage_recorder,
 )
 from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
@@ -101,7 +101,7 @@ async def test_a_served_answer_that_names_a_price_adds_nothing_to_the_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _a_pass_that_reads_a_paper(monkeypatch)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     deps = _turn()
     deps.record_sub_agent_usage = sub_agent_usage_recorder(
         capture, deps.state, ChunkCollector()

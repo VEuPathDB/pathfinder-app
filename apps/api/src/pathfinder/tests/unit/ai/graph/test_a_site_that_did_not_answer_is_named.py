@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import fallback_prose
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
@@ -47,7 +47,7 @@ def _raising_model(error: Exception) -> FunctionModel:
 
 
 def _drive(
-    monkeypatch: pytest.MonkeyPatch, error: Exception, capture: _LeadRunCapture
+    monkeypatch: pytest.MonkeyPatch, error: Exception, capture: LeadRunCapture
 ) -> Collector:
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _raising_model(error))
     state = PipelineState(
@@ -88,7 +88,7 @@ def _drive(
 def test_a_timeout_to_orthomcl_in_the_run_names_orthomcl(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     failure = asyncio.run(failed_read("orthomcl", timed_out))
 
     writer = _drive(monkeypatch, failure, capture)
@@ -105,7 +105,7 @@ def test_a_timeout_to_orthomcl_in_the_run_names_orthomcl(
 def test_a_change_that_landed_before_the_site_failed_is_said(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     _drive(monkeypatch, asyncio.run(failed_read("orthomcl", timed_out)), capture)
 
@@ -119,7 +119,7 @@ def test_a_change_that_landed_before_the_site_failed_is_said(
 def test_a_refusal_in_the_run_keeps_its_own_text(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     failure = asyncio.run(failed_read("plasmodb", refused))
 
     writer = _drive(monkeypatch, failure, capture)

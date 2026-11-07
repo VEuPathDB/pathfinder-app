@@ -85,7 +85,7 @@ class SpendOutsideTheLead:
 
 
 @dataclass
-class _LeadRunCapture:
+class LeadRunCapture:
     """Terminal state captured from the Lead agent's streaming run."""
 
     guard_stop: GuardStop | None = None
@@ -186,7 +186,7 @@ class _LeadRunCapture:
 
 
 def absorb_outside_spend(
-    capture: _LeadRunCapture, tokens: int, cost: Decimal, paid_by: PaidBy
+    capture: LeadRunCapture, tokens: int, cost: Decimal, paid_by: PaidBy
 ) -> None:
     capture.sub_agent_tokens += tokens
     capture.sub_agent_cost += cost
@@ -195,7 +195,7 @@ def absorb_outside_spend(
         capture.own_key_sub_agent_cost += cost
 
 
-def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> None:
+def absorb_sub_agent_usage(capture: LeadRunCapture, info: SubAgentRunUsage) -> None:
     """Add one sub-agent pass to the turn total and to its dispatch's total.
 
     A dispatch that ran more than one pass owes the sum of them, so the card
@@ -218,7 +218,7 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
 
 
 def sub_agent_usage_recorder(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     state: PipelineState,
     writer: Any,
 ) -> Callable[[SubAgentRunUsage], None]:
@@ -248,7 +248,7 @@ def turn_with_spend(
 
 def emit_lead_usage(
     writer: Any,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     tokens: int,
     cost_usd: str,
 ) -> None:
@@ -268,7 +268,7 @@ def emit_lead_usage(
 
 def _emit_residual_prose(
     writer: Any,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     *,
     message_id: UUID,
 ) -> None:
@@ -299,7 +299,7 @@ def _split_agent_model(agent_model: str) -> tuple[str | None, str | None]:
 async def _charge_token_delta(
     context: Context | None,
     state: PipelineState,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     usage: RunUsage,
     writer: Any,
     agent_model: str,
@@ -350,7 +350,7 @@ async def _charge_token_delta(
 
 
 def _residual_by_payer(
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     unbilled: SpendOutsideTheLead,
     lead_tokens: int,
     lead_cost: Decimal,
@@ -371,7 +371,7 @@ def _residual_by_payer(
 async def _persist_residual_quota(
     context: Context | None,
     state: PipelineState,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
 ) -> None:
     if context is None:
         return

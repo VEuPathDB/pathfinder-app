@@ -7,7 +7,7 @@ function fixture(id: string, name: string) {
 }
 
 export const DEFAULT_MODEL = fixture("openai:gpt-5.6-luna", "GPT-5.6 Luna");
-export const OPENAI_FLAGSHIP = fixture("openai:gpt-6-sol", "GPT-6 Sol");
+export const OPENAI_FLAGSHIP = fixture("openai:gpt-6.1-sol", "GPT-6.1 Sol");
 export const OPENAI_SMALL = fixture("openai:gpt-6-luna", "GPT-6 Luna");
 export const GOOGLE_STANDARD = fixture("google:gemini-3.8-flash", "Gemini 3.8 Flash");
 export const ANTHROPIC_SMALL = fixture(

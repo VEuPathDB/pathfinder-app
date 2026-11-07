@@ -4,7 +4,7 @@ import pytest
 from assistant_core.graph.turn_state import UserQuestionAnswer
 
 from pathfinder.ai.graph import _lead_reading
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_reading import read_the_words
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
@@ -70,7 +70,7 @@ async def test_a_card_note_is_read_and_its_requirements_recorded(
         deps,
         new_message=False,
         model_id="mock:lead",
-        capture=_LeadRunCapture(),
+        capture=LeadRunCapture(),
     )
 
     assert read == [_NOTE]
@@ -94,7 +94,7 @@ async def test_a_card_answered_with_no_note_reads_nothing(
         deps,
         new_message=False,
         model_id="mock:lead",
-        capture=_LeadRunCapture(),
+        capture=LeadRunCapture(),
     )
 
     assert (read, deps.intent) == ([], None)

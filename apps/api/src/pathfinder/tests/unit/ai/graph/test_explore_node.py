@@ -22,13 +22,13 @@ from pathfinder.tests._support.explore_turns import (
     NO_READING_PROMPT,
     ONE_READING_PROMPT,
     PREFERENCE_PROMPT,
+    SIGNAL_PEPTIDE_REPORT,
     ExploreDoubles,
     chunks_of,
     domain_of,
     explore_state,
     install_explore_doubles,
     run_explore,
-    seed_count,
     update_of,
 )
 from pathfinder.tests._support.recorded_counts import recorded_count
@@ -67,7 +67,7 @@ async def test_an_explore_turn_writes_the_hand_over(doubles: ExploreDoubles) -> 
 
     assert domain.exchanges[-1].said == EXPLORE_PROMPT
     assert domain.exchanges[-1].card == (
-        f"Readings offered: {FIRST_LABEL} ({seed_count()} genes); "
+        f"Readings offered: {FIRST_LABEL} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
         f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
     assert domain.exchanges[-1].reply == plain_markdown(READINGS_REPLY)
@@ -147,7 +147,7 @@ async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
     [facts] = doubles.of_type("data-facts")
     [comparison] = facts["data"]["comparisons"]
     assert [(v["label"], v["geneCount"]) for v in comparison["variants"]] == [
-        (FIRST_LABEL, seed_count())
+        (FIRST_LABEL, recorded_count(SIGNAL_PEPTIDE_REPORT))
     ]
     assert "pending_approval" not in update_of(command)
     assert doubles.of_type("tool-approval-request") == []

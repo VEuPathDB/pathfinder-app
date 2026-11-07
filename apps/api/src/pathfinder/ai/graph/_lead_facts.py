@@ -7,7 +7,7 @@ from typing import Any
 
 from assistant_core.graph.emit import emit_chunk
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import shown_refusal
 from pathfinder.ai.graph.stream_events import facts_event
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -15,7 +15,7 @@ from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.turn_facts import TurnFacts
 
 
-def show_the_facts(writer: Any, deps: LeadDeps, capture: _LeadRunCapture) -> TurnFacts:
+def show_the_facts(writer: Any, deps: LeadDeps, capture: LeadRunCapture) -> TurnFacts:
     """Write the turn's facts, unless this turn wrote them or they hold nothing,
     and keep them for the replies of the turn."""
     if capture.facts_shown:

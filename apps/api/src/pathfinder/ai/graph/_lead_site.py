@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import AsyncIterator, Iterator
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.services.site_errors import SiteDidNotAnswerError, unanswered_site
 
 
@@ -19,7 +19,7 @@ def a_dead_site_changes_nothing() -> Iterator[None]:
 
 
 async def naming_a_dead_site[EventT](
-    events: AsyncIterator[EventT], capture: _LeadRunCapture
+    events: AsyncIterator[EventT], capture: LeadRunCapture
 ) -> AsyncIterator[EventT]:
     try:
         async for event in events:

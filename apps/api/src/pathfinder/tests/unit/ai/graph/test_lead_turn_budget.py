@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.graph import _lead_model, lead_node
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -162,12 +162,12 @@ def _thinking_model(part_for: Any) -> FunctionModel:
 
 def _drive(
     monkeypatch: pytest.MonkeyPatch, classification: str
-) -> tuple[_LeadRunCapture, Collector]:
+) -> tuple[LeadRunCapture, Collector]:
     read_as(monkeypatch, classification)
     model = _read_then_answer()
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
     state = _state()
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     writer = Collector()
     emitted: Any = writer
     asyncio.run(
@@ -315,7 +315,7 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
         monkeypatch.setattr(module, "get_stream_writer", lambda: writer)
     state = _framed_state()
     session = StrategySession(site_id=SITE_ID)
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     emitted: Any = writer
     with pinned_sub_agent(
         monkeypatch,

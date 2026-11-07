@@ -40,7 +40,7 @@ def test_a_split_tier_answers_the_model_of_each_role() -> None:
         "frame": OPENAI_STANDARD,
         "execution": OPENAI_SMALL,
         "verification": OPENAI_SMALL,
-        "explore": OPENAI_EXPLORE,
+        "explore": OPENAI_EXPLORE["balanced"],
         "auditor": OPENAI_STANDARD,
         "audit_review": OPENAI_SMALL,
     }
@@ -50,7 +50,7 @@ def test_a_uniform_tier_answers_one_model_for_every_role_but_explore() -> None:
     defaults = installed_phase_defaults("openai", "fast")
 
     assert set(defaults) == set(phase_defaults()) | {"auditor", "audit_review"}
-    assert defaults["explore"] == OPENAI_EXPLORE
+    assert defaults["explore"] == OPENAI_EXPLORE["fast"]
     assert {m for r, m in defaults.items() if r != "explore"} == {OPENAI_SMALL}
 
 
@@ -91,7 +91,7 @@ def test_one_assistant_runs_each_of_its_roles_on_the_pick_or_the_default(
         "frame": DEFAULT_MODEL,
         "execution": DEFAULT_MODEL,
         "verification": DEFAULT_MODEL,
-        "explore": OPENAI_EXPLORE,
+        "explore": OPENAI_EXPLORE["default"],
     }
 
 

@@ -17,7 +17,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.graph._lead_stops import final_reply, strategy_change
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
@@ -131,7 +131,7 @@ def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
         monkeypatch.setattr(module, "get_stream_writer", lambda: writer)
     state = _framed_state()
     deps = _deps(state, StrategySession(site_id=SITE_ID))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     emitted: Any = writer
     with pinned_sub_agent(
         monkeypatch,
@@ -184,7 +184,7 @@ def test_a_reply_out_of_shape_every_time_ends_on_the_turns_facts(
         monkeypatch.setattr(module, "get_stream_writer", lambda: writer)
     state = _framed_state()
     deps = _deps(state, StrategySession(site_id=SITE_ID))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     emitted: Any = writer
     asyncio.run(
         _drive_lead_stream(
@@ -240,7 +240,7 @@ def test_another_model_fault_of_the_lead_ends_on_the_error(
     writer = Collector()
     state = _framed_state()
     deps = _deps(state, StrategySession(site_id=SITE_ID))
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     emitted: Any = writer
     asyncio.run(
         _drive_lead_stream(

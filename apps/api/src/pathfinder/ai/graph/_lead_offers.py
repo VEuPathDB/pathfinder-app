@@ -27,7 +27,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 
 from pathfinder.ai.graph._lead_answers import answers_for, is_pure_approval, typed_reply
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.proposal import (
     OFFER_TOOLS,
@@ -147,7 +147,7 @@ def answer_to_the_offer(
 
 def close_the_declined_card(
     parked: ParkedCall | None,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     writer: Any,
 ) -> None:
     """Close the card as denied with no model call.

@@ -17,7 +17,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import EditDelta
@@ -99,7 +99,7 @@ async def test_the_fourth_refused_pass_ends_the_edit_with_its_reason(
     ]
     assert run.output == "The fold change could not be set."
     writer = ChunkCollector()
-    show_the_facts(writer, deps, _LeadRunCapture())
+    show_the_facts(writer, deps, LeadRunCapture())
     assert [facts["refusal"] for facts in writer.data_of("data-facts")] == [_UNBOUND]
 
 

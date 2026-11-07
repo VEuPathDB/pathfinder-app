@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
 
 from pathfinder.ai.agents.state import LookupRecord
 from pathfinder.ai.capabilities.metering import RunPricing
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture, absorb_sub_agent_usage
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, absorb_sub_agent_usage
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for, inner_context
@@ -371,7 +371,7 @@ def test_a_metered_run_is_recorded_on_the_call_that_ran_it() -> None:
 
 
 def test_the_turn_prices_a_metered_run_as_the_quota_does() -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     deps = lead_deps(
         pipeline_state(user_prompt="q"),
         record_usage=lambda info: absorb_sub_agent_usage(capture, info),

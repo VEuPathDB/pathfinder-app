@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.lead import deleted_steps
 from pathfinder.ai.lead.deleted_steps import ask_about_the_removals, delete_question
@@ -174,7 +174,7 @@ async def test_a_parked_delete_writes_its_question_for_the_card(
         state=state,
         agent=agent,
         deps=deps,
-        capture=_LeadRunCapture(),
+        capture=LeadRunCapture(),
         writer=writer,
         message_id=uuid4(),
     )

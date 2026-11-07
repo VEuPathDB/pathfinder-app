@@ -7,7 +7,7 @@ from types import MappingProxyType
 from typing import Final
 
 import yaml
-from assistant_core.platform.types import ModelProvider
+from assistant_core.platform.types import ModelProvider, TierName
 from assistant_core.pricing import install_model_prices
 from pydantic import BaseModel, ConfigDict
 
@@ -40,8 +40,8 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             id="openai:gpt-6-sol",
             deployment_may_pay=True,
             name="GPT-6 Sol",
-            description="OpenAI flagship reasoning - 1.05M context",
-            rank="flagship",
+            description="Previous OpenAI flagship reasoning - 1.05M context",
+            rank="unranked",
             supports_reasoning=True,
             supports_images=True,
             supports_documents=True,
@@ -83,8 +83,8 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             id="openai:gpt-6.1-sol",
             deployment_may_pay=True,
             name="GPT-6.1 Sol",
-            description="OpenAI reasoning model for complex work - 1.05M context",
-            rank="unranked",
+            description="OpenAI flagship reasoning - 1.05M context",
+            rank="flagship",
             supports_reasoning=True,
             supports_images=True,
             supports_documents=True,
@@ -108,6 +108,20 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             output_price=5.00,
         ),
         ModelEntry.entry(
+            id="openai:gpt-6-astra",
+            name="GPT-6 Astra",
+            description="OpenAI's deepest reasoning model - 1.05M context",
+            rank="unranked",
+            deployment_may_pay=False,
+            supports_reasoning=True,
+            supports_images=True,
+            supports_documents=True,
+            context_size=1_050_000,
+            input_price=10.00,
+            cached_input_price=1.00,
+            output_price=50.00,
+        ),
+        ModelEntry.entry(
             id="anthropic:claude-opus-5-5",
             name="Claude Opus 5.5",
             description="Anthropic flagship - 1M context",
@@ -127,7 +141,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             name="Claude Sonnet 5.5",
             description="Balanced Anthropic model - 1M context",
             rank="standard",
-            deployment_may_pay=False,
+            deployment_may_pay=True,
             supports_reasoning=True,
             supports_images=True,
             supports_documents=True,
@@ -178,20 +192,6 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             meter=CatalogMeter(cache_write_price=12.50),
         ),
         ModelEntry.entry(
-            id="google:gemini-3.1-pro-preview",
-            deployment_may_pay=True,
-            name="Gemini 3.1 Pro",
-            description="Google flagship - deep reasoning",
-            rank="flagship",
-            supports_reasoning=True,
-            supports_images=True,
-            supports_documents=True,
-            context_size=1_000_000,
-            input_price=2.00,
-            cached_input_price=0.20,
-            output_price=12.00,
-        ),
-        ModelEntry.entry(
             id="google:gemini-3.8-flash",
             deployment_may_pay=True,
             name="Gemini 3.8 Flash",
@@ -224,8 +224,8 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
             id="google:gemini-4-argon",
             deployment_may_pay=True,
             name="Gemini 4 Argon",
-            description="Google frontier reasoning model - 1M context",
-            rank="unranked",
+            description="Google flagship reasoning - 1M context",
+            rank="flagship",
             supports_reasoning=True,
             supports_images=True,
             supports_documents=True,
@@ -245,19 +245,41 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
     )
 )
 
-EXPLORE_MODELS: Final[Mapping[KeyableProvider, str]] = MappingProxyType(
-    require_catalogued(
+EXPLORE_MODELS: Final[Mapping[KeyableProvider, Mapping[TierName, str]]] = (
+    MappingProxyType(
         {
-            "openai": "openai:gpt-6.1-terra",
-            "anthropic": "anthropic:claude-opus-5-5",
-            "google": "google:gemini-4-argon",
-        },
-        _CLOUD_MODELS,
+            "openai": MappingProxyType(
+                {
+                    "fast": "openai:gpt-5.6-luna",
+                    "default": "openai:gpt-5.6-luna",
+                    "balanced": "openai:gpt-6.1-terra",
+                    "quality": "openai:gpt-6.1-sol",
+                }
+            ),
+            "anthropic": MappingProxyType(
+                {
+                    "fast": "anthropic:claude-haiku-5-5",
+                    "default": "anthropic:claude-haiku-5-5",
+                    "balanced": "anthropic:claude-sonnet-5-5",
+                    "quality": "anthropic:claude-sonnet-5-5",
+                }
+            ),
+            "google": MappingProxyType(
+                {
+                    "fast": "google:gemini-3.5-flash-lite",
+                    "default": "google:gemini-3.5-flash-lite",
+                    "balanced": "google:gemini-3.8-flash",
+                    "quality": "google:gemini-4-argon",
+                }
+            ),
+        }
     )
 )
+for _by_tier in EXPLORE_MODELS.values():
+    require_catalogued(_by_tier, _CLOUD_MODELS)
 
 # The day the prices above were last checked against each provider's page.
-PRICES_AS_OF: Final = date(2026, 11, 6)
+PRICES_AS_OF: Final = date(2026, 11, 7)
 
 
 class _OllamaYamlItem(BaseModel):

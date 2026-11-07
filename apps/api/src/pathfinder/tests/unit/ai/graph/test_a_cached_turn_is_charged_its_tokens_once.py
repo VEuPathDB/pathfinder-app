@@ -12,7 +12,7 @@ from pydantic_ai.messages import ModelResponse, TextPart
 from pydantic_ai.usage import RequestUsage, RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.graph._lead_capture import _charge_token_delta, _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, _charge_token_delta
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.strategy.session import StrategySession
@@ -83,7 +83,7 @@ async def test_cache_tokens_inside_the_input_are_not_charged_again(
         db_session_factory=detached_session,
         cancel_event=asyncio.Event(),
     )
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     capture.lead_model = _LUNA
     usage = RunUsage()
 

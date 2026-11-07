@@ -11,6 +11,8 @@ PhaseRole = Literal[
     "verification",
 ]
 
+StageRole = Literal[PhaseRole, "explore"]
+
 PHASE_ROLES: tuple[PhaseRole, ...] = (
     "lead",
     "frame",

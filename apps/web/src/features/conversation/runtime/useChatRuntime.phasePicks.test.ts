@@ -4,7 +4,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ANTHROPIC_SMALL, OPENAI_FLAGSHIP } from "@/lib/models/__fixtures__/models";
+import {
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+  OPENAI_FLAGSHIP,
+  OPENAI_SMALL,
+} from "@/lib/models/__fixtures__/models";
 import { useSettingsStore } from "@/state/useSettingsStore";
 
 import { useChatRuntime } from "./useChatRuntime";
@@ -15,7 +20,24 @@ function readBody(init: RequestInit | undefined): Record<string, unknown> {
   return JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
 }
 
-/** Answer both calls a send makes, and record the chat bodies. */
+const TERRA = "openai:gpt-6.1-terra";
+
+const BALANCED = {
+  roles: {
+    lead: { modelId: DEFAULT_MODEL.id, reasoningEffort: "medium" },
+    frame: { modelId: DEFAULT_MODEL.id, reasoningEffort: "medium" },
+    execution: { modelId: OPENAI_SMALL.id, reasoningEffort: "medium" },
+    verification: { modelId: OPENAI_SMALL.id, reasoningEffort: "high" },
+    explore: { modelId: TERRA, reasoningEffort: "medium" },
+  },
+};
+
+const TIERS = {
+  presets: { pathfinder: { openai: { balanced: BALANCED } } },
+  ownKeyPresets: { pathfinder: { openai: { balanced: BALANCED } } },
+};
+
+/** Answer the calls a send makes, and record the chat bodies. */
 function stubSendFetch(): Record<string, unknown>[] {
   const chat: Record<string, unknown>[] = [];
   vi.stubGlobal(
@@ -31,6 +53,14 @@ function stubSendFetch(): Record<string, unknown>[] {
               "content-type": "text/event-stream",
               "x-vercel-ai-ui-message-stream": "v1",
             },
+          }),
+        );
+      }
+      if (url.includes("/api/v1/tiers")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(TIERS), {
+            status: 200,
+            headers: { "content-type": "application/json" },
           }),
         );
       }
@@ -77,5 +107,42 @@ describe("the phase picks a turn carries", () => {
 
     expect(chat[0]?.["phaseModels"]).toEqual({ lead: OPENAI_FLAGSHIP.id });
     expect(chat[0]?.["phaseReasoning"]).toEqual({ lead: "high" });
+  });
+
+  it("gives a tier saved before the explore pick existed that tier's explore model", async () => {
+    window.localStorage.setItem(
+      "pathfinder-settings-20260625",
+      JSON.stringify({
+        state: {
+          phaseModels: {
+            lead: DEFAULT_MODEL.id,
+            frame: DEFAULT_MODEL.id,
+            verification: OPENAI_SMALL.id,
+          },
+          phaseReasoning: { lead: "medium", frame: "medium", verification: "high" },
+        },
+        version: 0,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    const chat = stubSendFetch();
+
+    const { result } = renderHook(() =>
+      useChatRuntime({ conversationId: CONVERSATION_ID }),
+    );
+    await act(async () => {
+      void result.current.chat.sendMessage({ text: "kinases in P. falciparum" });
+    });
+    await waitFor(() => {
+      expect(result.current.chat.status).not.toBe("submitted");
+    });
+
+    expect(chat[0]?.["phaseModels"]).toEqual({
+      lead: DEFAULT_MODEL.id,
+      frame: DEFAULT_MODEL.id,
+      verification: OPENAI_SMALL.id,
+      explore: TERRA,
+    });
+    expect(useSettingsStore.getState().phaseModels.explore).toBe(TERRA);
   });
 });

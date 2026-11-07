@@ -22,7 +22,7 @@ from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
-from pathfinder.ai.agents.roles import PhaseRole
+from pathfinder.ai.agents.roles import PhaseRole, StageRole
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.agents.verification import (
@@ -210,7 +210,7 @@ def phase_override_kwargs(
 class UnansweredStage:
     """The stage whose model produced no part of an answer, and that model."""
 
-    role: PhaseRole
+    role: StageRole
     model_id: str
 
 

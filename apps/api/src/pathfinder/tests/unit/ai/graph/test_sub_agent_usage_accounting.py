@@ -18,7 +18,7 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_capture import (
-    _LeadRunCapture,
+    LeadRunCapture,
     _persist_residual_quota,
     absorb_sub_agent_usage,
     sub_agent_usage_recorder,
@@ -51,7 +51,7 @@ def _pass(tokens: int) -> SubAgentRunUsage:
 
 def test_a_continued_dispatch_totals_every_pass_it_ran() -> None:
     """FRAME continues a budget-stopped pass under the same tool call id."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
 
     absorb_sub_agent_usage(capture, _pass(2441))
     absorb_sub_agent_usage(capture, _pass(2441))
@@ -63,7 +63,7 @@ def test_a_continued_dispatch_totals_every_pass_it_ran() -> None:
 
 
 def test_two_dispatches_keep_their_own_totals() -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     verify = SubAgentRunUsage(
         usage=RunUsage(input_tokens=80, output_tokens=0),
         model_name=_MODEL,
@@ -84,7 +84,7 @@ def test_two_dispatches_keep_their_own_totals() -> None:
 
 def test_the_completed_card_reports_what_the_dispatch_spent() -> None:
     """The thread's chip sums these cards, so each carries its whole dispatch."""
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     absorb_sub_agent_usage(capture, _pass(2441))
     absorb_sub_agent_usage(capture, _pass(2441))
     collector = ChunkCollector()
@@ -134,7 +134,7 @@ def test_a_dispatch_with_no_recorded_usage_reports_zero() -> None:
 
 
 def test_a_sub_agent_pass_reports_the_running_turn_total() -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     state = pipeline_state(user_prompt="q")
     writer = ChunkCollector()
     record_sub_agent = sub_agent_usage_recorder(capture, state, writer)
@@ -151,7 +151,7 @@ def test_a_sub_agent_pass_reports_the_running_turn_total() -> None:
 async def test_a_pass_its_run_already_charged_counts_and_is_not_charged_again(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     state = pipeline_state(user_prompt="q")
     charged: list[int] = []
 
@@ -175,7 +175,7 @@ async def test_a_pass_its_run_already_charged_counts_and_is_not_charged_again(
 async def test_a_pass_charged_on_the_researchers_key_is_not_charged_again(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     state = pipeline_state(user_prompt="q")
     charged: list[tuple[PaidBy, int]] = []
 

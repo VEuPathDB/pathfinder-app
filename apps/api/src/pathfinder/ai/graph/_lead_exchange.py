@@ -7,7 +7,7 @@ from assistant_core.graph.turn_state import ParkedCall
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.reply_note import render_note
@@ -46,7 +46,7 @@ class _CardWords(CamelModel):
         return " ".join(asked) or f"approve {tool_name}"
 
 
-def _answer_words(state: PipelineState, card: ParkedCall) -> str:
+def answer_words(state: PipelineState, card: ParkedCall) -> str:
     """The researcher's answer to the card: the words a question card recorded,
     else yes or no with the comment they sent."""
     answered = state.turn_markers.answered
@@ -57,7 +57,7 @@ def _answer_words(state: PipelineState, card: ParkedCall) -> str:
     return f"{verdict}: {response.reason}" if response.reason else verdict
 
 
-def turn_exchange(state: PipelineState, capture: _LeadRunCapture) -> Exchange:
+def turn_exchange(state: PipelineState, capture: LeadRunCapture) -> Exchange:
     """The exchange of this run, each reference of its reply rendered from the
     facts the turn showed."""
     card = capture.pending_approval
@@ -71,7 +71,7 @@ def turn_exchange(state: PipelineState, capture: _LeadRunCapture) -> Exchange:
     if answered.tool_call_id in state.approval_responses:
         return Exchange(
             kind="card_answer",
-            said=_answer_words(state, answered),
+            said=answer_words(state, answered),
             reply=shown,
             card=asked,
         )

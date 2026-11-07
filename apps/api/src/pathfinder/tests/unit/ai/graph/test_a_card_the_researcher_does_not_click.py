@@ -18,7 +18,7 @@ from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from pathfinder.ai.graph import _lead_model
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent_gate import DECLINED_OFFER_REFUSAL
 from pathfinder.ai.lead.proposal import AddCriterionChange, DeclinedProposal
@@ -75,7 +75,7 @@ async def _answered(
     writer: Collector,
     card: tuple[str, dict[str, Any]],
     answer: Any,
-) -> tuple[LeadDeps, _LeadRunCapture, list[list[ModelMessage]]]:
+) -> tuple[LeadDeps, LeadRunCapture, list[list[ModelMessage]]]:
     """Park the turn on ``card``, then run the turn ``answer`` shapes."""
     calls: list[list[ModelMessage]] = []
     monkeypatch.setattr(

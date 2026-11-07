@@ -8,6 +8,7 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
 import { withPayers } from "@/lib/models/payers";
+import { picksFilledFromTier } from "@/lib/models/tierFill";
 import {
   phaseDescription,
   phaseLabel,
@@ -35,9 +36,9 @@ export function ModelSettings() {
   const { payers } = useProviderPayers();
   const modelCatalog = withPayers(data?.models ?? [], payers);
   const phaseDefaults = data?.phaseDefaults ?? {};
-  const phaseModels = useSettingsStore((s) => s.phaseModels);
+  const storedModels = useSettingsStore((s) => s.phaseModels);
   const setPhaseModel = useSettingsStore((s) => s.setPhaseModel);
-  const phaseReasoning = useSettingsStore((s) => s.phaseReasoning);
+  const storedReasoning = useSettingsStore((s) => s.phaseReasoning);
   const setPhaseReasoning = useSettingsStore((s) => s.setPhaseReasoning);
   const applyPhasePreset = useSettingsStore((s) => s.applyPhasePreset);
 
@@ -51,7 +52,7 @@ export function ModelSettings() {
       Object.keys(presetsForProvider(tierData?.presets, assistantId, tab.key)).length >
         0,
   );
-  const leadModelId = phaseModels["lead"] ?? phaseDefaults["lead"];
+  const leadModelId = storedModels["lead"] ?? phaseDefaults["lead"];
   const leadProvider = modelCatalog.find((m) => m.id === leadModelId)?.provider;
   const provider = providers.some((tab) => tab.key === leadProvider)
     ? (leadProvider ?? "")
@@ -60,6 +61,10 @@ export function ModelSettings() {
     presetsForPayer(tierData, payers?.[key] === "user");
   const presets = presetsFor(provider);
   const tierPresets = presetsForProvider(presets, assistantId, provider);
+  const { models: phaseModels, reasoning: phaseReasoning } = picksFilledFromTier(
+    Object.values(tierPresets),
+    { models: storedModels, reasoning: storedReasoning },
+  );
   const roles = rolesForAssistant(presets, assistantId, provider);
   const activeTier = deriveActiveTier(
     presets,

@@ -7,7 +7,7 @@ from pydantic_ai.messages import BinaryContent, UserContent
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart
 
 from pathfinder.ai.capabilities.metering import SpendMeter
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture, absorb_outside_spend
+from pathfinder.ai.graph._lead_capture import LeadRunCapture, absorb_outside_spend
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.held_intent import hold_the_intent
 from pathfinder.ai.lead.message_intent import intent_of
@@ -93,7 +93,7 @@ async def read_the_words(
     *,
     new_message: bool,
     model_id: str,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
 ) -> None:
     words = _words(state, new_message=new_message)
     if words is None:

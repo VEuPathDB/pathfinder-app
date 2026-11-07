@@ -11,7 +11,7 @@ from typing import Any
 from assistant_core.memory.schemas import MemoryValue
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -59,7 +59,7 @@ def _created_gene_sets(deps: LeadDeps) -> list[CreatedGeneSet]:
 def _domain_delta(
     *,
     deps: LeadDeps,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
 ) -> StrategyDomainState:
     domain = deps.state.domain
     response = capture.response
@@ -82,7 +82,7 @@ def _build_state_delta(
     *,
     state: PipelineState,
     deps: LeadDeps,
-    capture: _LeadRunCapture,
+    capture: LeadRunCapture,
     memories: list[MemoryValue],
 ) -> dict[str, Any]:
     cumulative_tokens = (

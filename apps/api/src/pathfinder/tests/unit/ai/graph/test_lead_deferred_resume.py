@@ -28,7 +28,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.usage import RunUsage
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_turn import (
     ConcurrentSubAgentApprovalsError,
     pending_approval,
@@ -101,7 +101,7 @@ def test_deferred_resume_history_includes_user_request() -> None:
         new_msgs=[consult_resp],
         output=DeferredToolRequests(approvals=[call]),
     )
-    capture = _LeadRunCapture()
+    capture = LeadRunCapture()
     event: Any = SimpleNamespace(result=result)
     _absorb_run_result(event, capture, _deps())
 

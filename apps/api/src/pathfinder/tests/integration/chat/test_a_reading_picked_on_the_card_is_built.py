@@ -13,7 +13,7 @@ from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
-    seed_count,
+    SIGNAL_PEPTIDE_REPORT,
     serve_recorded_readings,
 )
 from pathfinder.tests._support.recorded_counts import recorded_count
@@ -125,7 +125,7 @@ async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_excha
     )
     domain = await domain_of(cid)
     assert domain.exchanges[0].card == (
-        f"Readings offered: {FIRST_LABEL} ({seed_count()} genes); "
+        f"Readings offered: {FIRST_LABEL} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
         f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import SecretStr
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_capture import LeadRunCapture
 from pathfinder.ai.graph._lead_stops import final_reply
 from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.domain.provider_keys import KeyRefusal, ProviderKeyring
@@ -18,8 +18,8 @@ from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 _KEYRING = ProviderKeyring(active={"anthropic": SecretStr("sk-ant-0123456789WXYZ")})
 
 
-def _refused_turn() -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+def _refused_turn() -> LeadRunCapture:
+    capture = LeadRunCapture()
     capture.lead_model = ANTHROPIC_SMALL
     capture.run_error = str(ProviderKeyRefusedError("Anthropic"))
     return capture
@@ -88,8 +88,8 @@ _DEPLOYMENT_REFUSED = (
 )
 
 
-def _deployment_refused_turn() -> _LeadRunCapture:
-    capture = _LeadRunCapture()
+def _deployment_refused_turn() -> LeadRunCapture:
+    capture = LeadRunCapture()
     capture.lead_model = DEFAULT_MODEL
     capture.run_error = str(DeploymentKeyRefusedError("OpenAI", KeyRefusal.NO_CREDIT))
     return capture
