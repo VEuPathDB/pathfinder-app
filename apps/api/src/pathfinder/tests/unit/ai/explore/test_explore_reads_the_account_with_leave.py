@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic import TypeAdapter
-from pydantic_ai import ModelRetry
+from pydantic_ai import ApprovalRequired, ModelRetry
 
 from pathfinder.ai.explore import account_reads
 from pathfinder.ai.explore.account_reads import (
@@ -94,3 +94,17 @@ async def test_a_gene_set_read_names_its_genes(
         "kinases",
         ["PF3D7_0102200", "PF3D7_0107600"],
     )
+
+
+async def test_an_ask_that_was_not_approved_grants_nothing(
+    standing: list[bool],
+) -> None:
+    del standing
+    ctx = lead_run_context()
+
+    with pytest.raises(ApprovalRequired):
+        await ask_to_read_the_account(ctx, what="your other threads")
+
+    assert ctx.deps.state.turn_markers.account_reads_allowed is False
+    with pytest.raises(ModelRetry, match="ask_to_read_the_account"):
+        await list_my_threads(ctx)

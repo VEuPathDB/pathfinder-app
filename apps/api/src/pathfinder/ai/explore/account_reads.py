@@ -5,7 +5,7 @@ from uuid import UUID
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import ApprovalRequired, ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.lead.dispatch_context import inner_context
@@ -58,6 +58,8 @@ async def ask_to_read_the_account(ctx: RunContext[LeadDeps], what: str) -> str:
         what: What you want to read and why, in the researcher's terms.
     """
     del what
+    if not ctx.tool_call_approved:
+        raise ApprovalRequired
     ctx.deps.state.turn_markers.account_reads_allowed = True
     return "The researcher allowed it. Read what you asked for."
 
