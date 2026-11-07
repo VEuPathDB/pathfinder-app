@@ -2,6 +2,16 @@
 
 ## 2026-11-07
 
+* **The composer shows all three modes, one reading builds from a button, and memory can be
+  turned off.** The mode pill that cycled Auto, Explore and Build is a three-way switch
+  (`ModeSwitch.tsx`). An Explore turn that counted one buildable reading and parked no card
+  writes a `data-build-offer` part, and its Build it button switches the thread to Build and
+  sends the reading. The Memory tab's "Use memory in my conversations" switch is
+  `users.memory_enabled`; off, every turn, durable task and audit turn of that researcher runs
+  with no memory store. assistant-core 0.9.0b4 streams none of pydantic-ai's history deltas
+  (`data-model-settings-delta` and two more) and deletes the ones already logged. See
+  [the modes decision](decisions/a-thread-answers-in-explore-or-build.md) and
+  [the memory decision](decisions/a-researcher-can-turn-memory-off.md).
 * **A reply renders as markdown, and the turn vouches for its links.** The Lead's and Explore's
   replies keep the headings, lists, tables and code the model writes. The server sends a
   `data-reply-links` part beside the reply with the record pages the facts can cite and each

@@ -12,6 +12,7 @@ from assistant_core.conversation.stream_parts.registry import (
 )
 
 from pathfinder.ai.graph.stream_events import (
+    BuildOfferPayload,
     DeleteCascadePayload,
     RecalledMemoriesPayload,
     StrategyRevisionPayload,
@@ -57,5 +58,6 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-delete-cascade", DeleteCascadePayload)
     registry.register("data-turn-route", TurnRoutePayload)
     registry.register("data-reply-links", ReplyLinks)
+    registry.register("data-build-offer", BuildOfferPayload)
     registry.register_schema_only("proposal", Proposal)
     register_agent_topology_stream_parts(registry)

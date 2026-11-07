@@ -1,3 +1,4 @@
+import { DataBuildOffer } from "./parts/DataBuildOffer";
 import { DataColumnTally } from "./parts/DataColumnTally";
 import { DataFactsNotices } from "./parts/DataFactsNotices";
 import { DataGeneSet } from "./parts/DataGeneSet";
@@ -27,7 +28,8 @@ export type StrategyDataPartKind =
   | "data-gene-set"
   | "data-gene-set-list"
   | "data-strategy-revision"
-  | "data-delete-cascade";
+  | "data-delete-cascade"
+  | "data-build-offer";
 
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
@@ -48,4 +50,5 @@ export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKi
   "data-strategy-revision": noRender,
   // The approval card reads the cascade off the parts array.
   "data-delete-cascade": noRender,
+  "data-build-offer": DataBuildOffer,
 };

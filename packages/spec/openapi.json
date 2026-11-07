@@ -5742,6 +5742,95 @@
         ]
       }
     },
+    "/api/v1/me/memory": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get My Memory Setting",
+        "description": "Return whether turns read and write this researcher's memories.",
+        "operationId": "get_my_memory_setting_api_v1_me_memory_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySetting"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Put My Memory Setting",
+        "description": "Turn memory on or off for this researcher's turns. Stored memories stay.",
+        "operationId": "put_my_memory_setting_api_v1_me_memory_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySetting"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySetting"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
     "/api/v1/conversations/{conversation_id}/tasks": {
       "get": {
         "tags": [
@@ -13631,6 +13720,19 @@
           "hits"
         ],
         "title": "MemorySearchResponse"
+      },
+      "MemorySetting": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "MemorySetting"
       },
       "MemoryValue": {
         "properties": {
@@ -22029,6 +22131,24 @@
           "sentence"
         ],
         "title": "BuildCaveat",
+        "type": "object"
+      },
+      "BuildOfferPayload": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "geneCount": {
+            "title": "Genecount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "geneCount"
+        ],
+        "title": "BuildOfferPayload",
         "type": "object"
       },
       "BuildOutcome": {
@@ -30727,6 +30847,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/BackgroundTaskStarted"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buildOffer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BuildOfferPayload"
               },
               {
                 "type": "null"

@@ -4,10 +4,12 @@ import type {
   MemoryKind,
   MemoryListResponse,
   MemorySearchResponse,
+  MemorySetting,
 } from "@pathfinder/shared";
 import { memoryItemSchema } from "@pathfinder/shared/generated/zod/memoryItemSchema";
 import { memoryListResponseSchema } from "@pathfinder/shared/generated/zod/memoryListResponseSchema";
 import { memorySearchResponseSchema } from "@pathfinder/shared/generated/zod/memorySearchResponseSchema";
+import { memorySettingSchema } from "@pathfinder/shared/generated/zod/memorySettingSchema";
 
 import { requestJson, requestVoid } from "@/lib/api/http";
 
@@ -47,4 +49,14 @@ export async function editMemory(
 
 export async function deleteMemory(key: string, kind: MemoryKind): Promise<void> {
   await requestVoid(memoryPath(key), { method: "DELETE", query: { kind } });
+}
+
+const SETTING_PATH = "/api/v1/me/memory";
+
+export async function getMemorySetting(): Promise<MemorySetting> {
+  return await requestJson(memorySettingSchema, SETTING_PATH);
+}
+
+export async function putMemorySetting(body: MemorySetting): Promise<MemorySetting> {
+  return await requestJson(memorySettingSchema, SETTING_PATH, { method: "PUT", body });
 }

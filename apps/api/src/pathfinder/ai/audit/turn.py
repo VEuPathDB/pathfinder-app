@@ -18,6 +18,7 @@ from pathfinder.ai.audit.auditor import charged_model_id
 from pathfinder.ai.audit.charges import charge
 from pathfinder.ai.audit.deps import AuditDeps
 from pathfinder.ai.audit.retrievals import AuditRetrievalToolset
+from pathfinder.services.memory_setting import the_researchers_store
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,7 +32,7 @@ async def build_turn_context(request: TurnContextRequest) -> AuditTurnContext:
         user_id=request.user_id,
         db_session_factory=async_session_factory,
         cancel_event=request.cancel_event,
-        memory_store=request.memory_store,
+        memory_store=await the_researchers_store(request.memory_store, request.user_id),
         phase_models=dict(request.phase_models),
         phase_reasoning=dict(request.phase_reasoning),
         tool_sources=dict(request.tool_sources),

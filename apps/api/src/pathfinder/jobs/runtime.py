@@ -9,6 +9,7 @@ from langgraph.store.postgres.aio import AsyncPostgresStore
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.services.memory_setting import the_researchers_store
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -39,7 +40,7 @@ async def build_worker_runtime_context(
         strategy_session=strategy_session,
         db_session_factory=async_session_factory,
         cancel_event=asyncio.Event(),
-        memory_store=memory_store,
+        memory_store=await the_researchers_store(memory_store, conversation.user_id),
     )
 
 

@@ -125,7 +125,7 @@ def test_a_reply_with_no_reading_is_text(prompt: str) -> None:
     ["Which genes carry a signal peptide? [[arc:explore-one-reading]]"],
     indirect=True,
 )
-def test_the_one_reading_arc_counts_it_then_names_build(prompt: str) -> None:
+def test_the_one_reading_arc_counts_it_then_replies(prompt: str) -> None:
     messages = _asked(prompt)
 
     counted = _CALL.validate_python(_explore(messages))
@@ -137,7 +137,6 @@ def test_the_one_reading_arc_counts_it_then_names_build(prompt: str) -> None:
         (FIRST_LABEL, SIGNAL_PEPTIDE)
     ]
     assert reply.content == ONE_READING
-    assert "Build" in ONE_READING
 
 
 @pytest.mark.parametrize("prompt", ["What does this search read?"], indirect=True)

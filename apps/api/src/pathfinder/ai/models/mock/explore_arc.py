@@ -38,8 +38,7 @@ NO_READING = (
 )
 ONE_READING = (
     "[mock] The site's signal peptide search states this as asked, and the "
-    "facts beside this reply show the genes it counts. Switch to Build, or "
-    'say "build it" in Auto, to have it built.'
+    "facts beside this reply show the genes it counts."
 )
 _PREFERENCE = re.compile(r"\bprefer", re.IGNORECASE)
 

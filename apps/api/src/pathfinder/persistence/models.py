@@ -101,6 +101,9 @@ class User(Base):
         Boolean, nullable=False, default=True, server_default=text("true")
     )
     data_notice_seen: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    memory_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
     # One-directional: the thread is the runtime's and names no owner back.
     # The relationship stays because it orders the flush and cascades a delete.

@@ -12,13 +12,3 @@ export const THREAD_MODE_DESCRIPTIONS: Record<ThreadMode, string> = {
     "Talk a research question through; nothing is built until you pick a reading",
   build: "Build and change strategies",
 };
-
-const NEXT_THREAD_MODE: Record<ThreadMode, ThreadMode> = {
-  auto: "explore",
-  explore: "build",
-  build: "auto",
-};
-
-export function nextThreadMode(mode: ThreadMode): ThreadMode {
-  return NEXT_THREAD_MODE[mode];
-}

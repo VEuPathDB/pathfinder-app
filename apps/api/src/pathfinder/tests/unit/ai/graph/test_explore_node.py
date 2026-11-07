@@ -138,7 +138,7 @@ async def test_an_answered_preference_resumes_explore_to_the_readings_card(
     assert doubles.replies()[-1] == READINGS_REPLY
 
 
-async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
+async def test_one_buildable_reading_is_counted_and_offered_to_build(
     doubles: ExploreDoubles,
 ) -> None:
     command = await run_explore(explore_state(ONE_READING_PROMPT))
@@ -153,6 +153,23 @@ async def test_one_buildable_reading_is_counted_and_handed_to_build_in_words(
     assert doubles.replies() == [ONE_READING]
     assert domain_of(command).named_readings == []
     assert domain_of(command).exchanges[-1].card == ""
+    assert [c["data"] for c in doubles.of_type("data-build-offer")] == [
+        {"label": FIRST_LABEL, "geneCount": recorded_count(SIGNAL_PEPTIDE_REPORT)}
+    ]
+
+
+async def test_a_turn_that_offers_the_readings_card_offers_no_build(
+    doubles: ExploreDoubles,
+) -> None:
+    await run_explore(explore_state(EXPLORE_PROMPT))
+
+    assert doubles.of_type("data-build-offer") == []
+
+
+async def test_a_turn_with_no_reading_offers_no_build(doubles: ExploreDoubles) -> None:
+    await run_explore(explore_state(NO_READING_PROMPT))
+
+    assert doubles.of_type("data-build-offer") == []
 
 
 async def test_a_fresh_explore_turn_leaves_its_mark_to_the_route_node(

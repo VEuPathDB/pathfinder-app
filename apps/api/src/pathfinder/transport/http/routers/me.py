@@ -21,6 +21,11 @@ from pathfinder.services.eval_data.consent import (
     read_privacy,
     update_privacy,
 )
+from pathfinder.services.memory_setting import (
+    MemorySetting,
+    read_memory_setting,
+    update_memory_setting,
+)
 from pathfinder.services.provider_keys import (
     ProviderKeyView,
     key_statuses,
@@ -181,3 +186,22 @@ async def continue_my_data_notice(
 ) -> PrivacySettings:
     """Record the data statement version seen, with the learning choice."""
     return await continue_past_the_data_notice(session, user_id, choice)
+
+
+@router.get("/memory", response_model=MemorySetting)
+async def get_my_memory_setting(
+    session: DBSession,
+    user_id: CurrentUser,
+) -> MemorySetting:
+    """Return whether turns read and write this researcher's memories."""
+    return await read_memory_setting(session, user_id)
+
+
+@router.put("/memory", response_model=MemorySetting)
+async def put_my_memory_setting(
+    session: DBSession,
+    user_id: CurrentUser,
+    setting: MemorySetting,
+) -> MemorySetting:
+    """Turn memory on or off for this researcher's turns. Stored memories stay."""
+    return await update_memory_setting(session, user_id, setting)

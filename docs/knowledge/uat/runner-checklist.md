@@ -43,7 +43,7 @@ Times are the measured wall time of the same turns with `openai:gpt-5.6-luna` at
 | 7 | E1 to E5, E8 | 25 min (E2 146 s) |
 | 8 | E6, E7 (needs the count matrix) | 20 min (install about 68 s) |
 | 9 | UD1 to UD4 ([user datasets](flows-user-datasets.md); also on vectorbase) | 25 min (UD1 and UD2 each run one DESeq2 compute) |
-| 10 | M1 to M6 | 20 min |
+| 10 | M1 to M7 | 25 min |
 | 11 | C1 to C16 | 25 min |
 | 12 | A1, A3, A5, A6 (A2 where keys are on) | 20 min |
 | 13 | G2, G3 | 10 min |

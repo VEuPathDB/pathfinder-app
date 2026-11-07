@@ -12,6 +12,8 @@ vi.mock("@/features/settings/api/memories", () => ({
   searchMemories: vi.fn(),
   editMemory: vi.fn(),
   deleteMemory: vi.fn(),
+  getMemorySetting: vi.fn(async () => ({ enabled: true })),
+  putMemorySetting: vi.fn(),
 }));
 
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";

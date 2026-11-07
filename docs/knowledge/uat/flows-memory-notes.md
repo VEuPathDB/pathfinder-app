@@ -1,7 +1,7 @@
 ---
 type: TestPlan
 title: UAT flows - memory and notes
-description: A liked and a disliked answer and what they change later, the recalled-memories figure, the notes the assistant keeps in the rail, the Memory settings tab with its edit, delete and tombstone, and a preference remembered across conversations.
+description: A liked and a disliked answer and what they change later, the recalled-memories figure, the notes the assistant keeps in the rail, the Memory settings tab with its edit, delete and tombstone, a preference remembered across conversations, and memory turned off.
 tags: [uat, flows, memory, notes, ratings]
 generated: { by: claude-code/opus-5.5, at: 2026-09-24T00:00:00Z }
 status: draft
@@ -70,3 +70,13 @@ Measured: every S2 build saved and pinned one note ("Note saved: Signal peptide 
 | 2 | Account B | Send the same | B's reply does not know the preference |
 
 Measured: "You prefer the **Su et al. strand-specific RNA-seq dataset** for *Plasmodium falciparum* 3D7 gametocyte-expression analyses." 14 s, $0.010.
+
+## M7 - Memory off - core on plasmodb
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | Settings, `Memory` | Read | `Memory`; that off neither recalls nor saves memories and that the memories below stay; switch `Use memory in my conversations`, on |
+| 2 | Switch | Turn off, reload, reopen | Still off; the memory list is unchanged |
+| 3 | After M6, a new conversation | Send `Which dataset do I prefer for gametocyte expression?` | No `Recalled memories` figure; the reply does not know the preference |
+| 4 | Switch | Turn on, then step 3 again | `Recalled memories` lists the preference again |
+

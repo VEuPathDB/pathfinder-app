@@ -97,6 +97,20 @@ def turn_route_event(route: TurnRoute) -> DataChunk:
     )
 
 
+class BuildOfferPayload(CamelModel):
+    label: str
+    gene_count: int
+
+
+def build_offer_event(*, label: str, gene_count: int) -> DataChunk:
+    return DataChunk(
+        type="data-build-offer",
+        data=BuildOfferPayload(label=label, gene_count=gene_count).model_dump(
+            by_alias=True, mode="json"
+        ),
+    )
+
+
 class DeleteCascadePayload(CamelModel):
     """The steps a parked delete removes besides its own, as its card names each."""
 

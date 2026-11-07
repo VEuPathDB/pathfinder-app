@@ -43,6 +43,7 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.services.conversations.responses import conversation_strategy_revision
 from pathfinder.services.conversations.turns import turn_start_revision_id
+from pathfinder.services.memory_setting import the_researchers_store
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -96,7 +97,7 @@ async def build_turn_context(request: TurnContextRequest) -> Context:
         db_session_factory=async_session_factory,
         tool_sources=dict(request.tool_sources),
         cancel_event=request.cancel_event,
-        memory_store=request.memory_store,
+        memory_store=await the_researchers_store(request.memory_store, request.user_id),
         phase_models=dict(request.phase_models),
         phase_reasoning=dict(request.phase_reasoning),
     )

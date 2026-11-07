@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable
+from collections.abc import AsyncGenerator, Awaitable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 from uuid import uuid4
@@ -66,6 +66,7 @@ from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.stream_events import (
+    build_offer_event,
     facts_event,
     recalled_memories_event,
     turn_route_event,
@@ -224,6 +225,18 @@ def _show_the_reply(
     return " ".join(c.delta for c in shown if isinstance(c, TextDeltaChunk))
 
 
+def _offer_the_build(
+    writer: Any,
+    parked: PendingApproval | PendingDurableCall | None,
+    counts: Mapping[str, int],
+) -> None:
+    match list(counts.items()):
+        case [(label, gene_count)] if parked is None:
+            emit_chunk(writer, build_offer_event(label=label, gene_count=gene_count))
+        case _:
+            return
+
+
 async def _run_explore_turn(
     state: PipelineState, runtime: Runtime[Context]
 ) -> Command[Literal["finalize_turn"]]:
@@ -275,6 +288,7 @@ async def _run_explore_turn(
         writer,
     )
     reply = _show_the_reply(writer, deps, hold, _reply_of(state, run))
+    _offer_the_build(writer, run.parked, counted_labels(deps))
     if run.parked is not None and hands_over(run.parked):
         hand_over_reading(state.domain, run.parked)
     state.domain.record_exchange(

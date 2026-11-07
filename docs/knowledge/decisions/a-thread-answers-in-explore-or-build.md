@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A thread answers in Explore or Build
-description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore tells the researcher to switch to Build for one buildable reading and offers two or more on a readings card whose pick resumes in Build, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
+description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore offers one buildable reading on a Build it button and two or more on a readings card whose pick resumes in Build, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
 tags: [modes, explore, router, decisions, lead, graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-06T00:00:00Z }
 status: stable
@@ -46,8 +46,8 @@ choice question, `build` or `explore`. The request holds the measured instructio
 `strategy_line` (the step count, the final step's title and its count) and the last 4,000 of
 the message. The turn goes to Build only when the build probability is at least
 `BUILD_PROBABILITY_FLOOR`, 0.65. A refusal, an error, a key refusal or 5 seconds without an
-answer routes to Explore. For a request with one buildable reading, Explore tells the
-researcher to switch to Build, and for two or more it offers the readings card. A mock
+answer routes to Explore. For a request with one buildable reading, Explore offers a Build it
+button, and for two or more it offers the readings card. A mock
 deployment routes by the `[[arc:<name>]]` token (`ai/models/mock/route.py`): an arc whose name
 starts with `explore` goes to Explore.
 
@@ -107,8 +107,11 @@ When Explore's model never answers, its stop reply names the Exploring stage
 (`fallback_prose(..., own_stage="explore")`); every Build stop reply is unchanged.
 
 **The hand-over.** When the conversation has exactly one reading the site can build
-directly, Explore counts it with `propose_readings` and ends its reply by telling the
-researcher to switch to Build (or, in Auto, to say "build it"); no card parks. When it has two
+directly, Explore counts it with `propose_readings` and ends on its reply; no card parks. The
+Explore node then writes a `data-build-offer` part with the reading's label and gene count
+(`explore_node._offer_the_build`), and the web shows it under the last reply as a Build it
+button (`content/parts/DataBuildOffer.tsx`) that switches the thread to Build and sends
+`Build "<label>".` A turn that parks a card, or counts no reading or more than one, writes no offer. When it has two
 or more, Explore counts them with `propose_readings` and ends on `consult_user`. Its validator
 (`ai/explore/readings_card.py`) admits only one untyped question whose options are two or
 more counted readings, with no note and no replaced requirement. The card parks under the
@@ -125,7 +128,7 @@ The router was measured on 178 real messages (168 build, 10 explore), 3 runs eac
 2026-11-06. It scored 93.3 percent with identical answers across runs, at 0.14 s median and
 about $0.00005 a turn. At the 0.65 floor, 19 of 168 build messages detour through Explore and
 9 of 10 explore messages are caught. A detour costs one Explore reply. For a request with
-one buildable reading, that reply tells the researcher to switch to Build; for two or more,
+one buildable reading, the reply carries a Build it button; for two or more,
 it offers the readings card, and a pick builds the reading. A missed concept question costs
 a strategy built from words no search states.
 
@@ -144,6 +147,13 @@ A resume skips the router because the parked call belongs to one agent's run. Se
 other agent, the answer finds no call to resume.
 
 # Rejected
+
+**A readings card with one option.** `CardQuestion` refuses a question with one option as no
+choice, and a card parks the turn for an answer the researcher already gave by asking. The
+button sends the reading as a new Build message.
+
+**A reply that tells the researcher to switch to Build.** The researcher then switched the mode
+and had to send a message of their own before anything was built.
 
 **A second assistant for Explore.** A thread belongs to one assistant
 (`conversations.assistant_id`), so a hand-over would cross threads and lose the checkpoint,

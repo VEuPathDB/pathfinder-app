@@ -60,6 +60,7 @@ import type {
   ListedGeneSets,
   MemoryEditRequest,
   MemoryItem,
+  MemorySetting,
   MemoryListResponse,
   MemorySearchResponse,
   MemoryValue,
@@ -105,6 +106,7 @@ import type {
   TurnWithdrawnPayload,
   TurnRoutePayload,
   ReplyLinks,
+  BuildOfferPayload,
   ConversationTitlePayload,
   ConversationResponse,
   DeleteCascadePayload,
@@ -261,6 +263,7 @@ export type StepKind = "search" | "transform" | "combine";
 export type MemoryKind = MemoryValue["kind"];
 export type {
   MemoryValue,
+  MemorySetting,
   MemoryItem,
   MemoryListResponse,
   MemorySearchResponse,
@@ -291,6 +294,7 @@ export const DATA_STATEMENT_VERSION: DataStatementVersion = theOnlyVersion(
 export type { TaskListItem, TaskListResponse };
 
 export type {
+  BuildOfferPayload,
   GraphSnapshot,
   GraphCleared,
   StrategyMeta,
@@ -416,6 +420,7 @@ export type KnownDataPartKind =
   | "data-turn-withdrawn"
   | "data-turn-route"
   | "data-reply-links"
+  | "data-build-offer"
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-tool-approval"
@@ -465,6 +470,7 @@ export interface DataPartPayloadMap {
   "data-turn-withdrawn": TurnWithdrawnPayload;
   "data-turn-route": TurnRoutePayload;
   "data-reply-links": ReplyLinks;
+  "data-build-offer": BuildOfferPayload;
   "data-lead-usage": DataLeadUsagePayload;
   "data-tool-summary": ToolSummaryPayload;
   "data-tool-approval": ToolApprovalPayload;

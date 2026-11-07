@@ -18,6 +18,7 @@ import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { MemoryEditor } from "./memory/MemoryEditor";
 import { MemorySearch } from "./memory/MemorySearch";
 import { MemorySection } from "./memory/MemorySection";
+import { MemorySwitch } from "./memory/MemorySwitch";
 
 const PAGE_SIZE = 50;
 
@@ -86,6 +87,7 @@ export function MemorySettings() {
 
   return (
     <div className="space-y-4">
+      <MemorySwitch />
       <MemorySearch
         onEdit={(m) => setEditing(m)}
         onDelete={handleDelete}

@@ -22,7 +22,7 @@ import {
   useAttachmentRefusal,
 } from "./ComposerAttachments";
 import { DockedCardView } from "./DockedCardView";
-import { ModePill } from "./ModePill";
+import { ModeSwitch } from "./ModeSwitch";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import { useDockedCard } from "./useDockedCard";
 import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
@@ -214,7 +214,7 @@ export function Composer({
         <div className="flex items-center justify-between p-2">
           <AttachButton assistantId={assistantId} />
           <div className="flex items-center gap-2">
-            <ModePill conversationId={conversationId} />
+            <ModeSwitch conversationId={conversationId} />
             {isRunning ? (
               <ComposerPrimitive.Cancel
                 data-testid="stop-button"
