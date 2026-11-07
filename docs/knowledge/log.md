@@ -2,11 +2,17 @@
 
 ## 2026-11-07
 
+* **Explore reads the researcher's account with leave.** It reads the thread's strategy freely,
+  and saved strategies, other threads and gene set genes after an ask card the researcher allows
+  once, for the thread or for every thread (Settings, Privacy, turns the last off). See
+  [the decision](decisions/explore-reads-the-account-with-leave.md).
 * **A count of the orthology profile search runs its derived pattern.** A variant of
   `GenesByOrthologPattern` (Explore's proposals, the Lead's count and compare tools) ran the
   hidden `profile_pattern` at the site default `hsap=1T`, a human ortholog present, so Explore
   counted 32 genes for a plan Build built as 40. `resolved_variants` now derives the pattern from
-  `included_species` and `excluded_species`, as a step of the search does.
+  `included_species` and `excluded_species`, as a step of the search does, and takes a comma
+  list of species codes as the derivation reads it. A proposal's local count intersects the
+  records the site intersects, transcripts, and counts their genes, as the built strategy does.
 * **Explore proposes whole plans.** A proposal is the searches of one plan and how they combine,
   with words for what they cannot state; PathFinder names it from its steps and counts it from
   each search's gene ids, and a failed count records nothing. Build it and a card pick hand the

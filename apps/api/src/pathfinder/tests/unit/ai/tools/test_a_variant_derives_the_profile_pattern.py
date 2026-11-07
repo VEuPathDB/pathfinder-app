@@ -71,3 +71,14 @@ async def test_the_species_lists_derive_the_pattern_the_variant_runs() -> None:
 async def test_a_variant_naming_no_species_is_refused() -> None:
     with pytest.raises(ModelRetry, match="included_species"):
         await resolved_variants(StrategySession(site_id="plasmodb"), [_profile()])
+
+
+async def test_a_comma_list_of_species_codes_derives_one_pattern() -> None:
+    (spec,) = await resolved_variants(
+        StrategySession(site_id="plasmodb"),
+        [_profile(included_species="pfal", excluded_species="hsap,pber")],
+    )
+
+    assert spec.parameters["profile_pattern"] == StringValue(
+        value="%hsap:N%pber:N%pfal:Y%"
+    )

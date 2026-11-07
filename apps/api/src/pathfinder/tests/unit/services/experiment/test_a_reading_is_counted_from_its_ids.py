@@ -40,7 +40,9 @@ _CODING_IDS = [f"PF3D7_00{n:02d}00" for n in range(10)]
 _PEPTIDE_IDS = [*_CODING_IDS[:4], "PF3D7_API00100"]
 
 
-def _answer(ids: list[str], total: int | None = None) -> WDKAnswer:
+def _answer(
+    ids: list[str], total: int | None = None, *, transcript: str = "1"
+) -> WDKAnswer:
     return WDKAnswer.model_validate(
         {
             "meta": {
@@ -49,7 +51,13 @@ def _answer(ids: list[str], total: int | None = None) -> WDKAnswer:
                 "recordClassName": "transcript",
             },
             "records": [
-                {"id": [{"name": "gene_source_id", "value": gene}]} for gene in ids
+                {
+                    "id": [
+                        {"name": "gene_source_id", "value": gene},
+                        {"name": "source_id", "value": f"{gene}.{transcript}"},
+                    ]
+                }
+                for gene in ids
             ],
         }
     )
@@ -114,3 +122,15 @@ async def test_a_search_read_past_the_cap_is_offered_not_counted(
             "Narrow it, for example to one organism."
         ),
     )
+
+
+async def test_a_gene_whose_transcripts_fall_apart_is_not_intersected(
+    reports: RecordedReports,
+) -> None:
+    reports.answers[GENE_TYPE] = _answer(_CODING_IDS[:3], transcript="1")
+    reports.answers[SIGNAL_PEPTIDE] = _answer(_CODING_IDS[:2], transcript="2")
+    root = spec_joined(CombineOp.INTERSECT, spec_leaf("coding"), spec_leaf("peptide"))
+
+    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root)
+
+    assert counted.gene_count == 0

@@ -2193,6 +2193,85 @@
         }
       }
     },
+    "/api/v1/conversations/{conversation_id}/account-reads": {
+      "put": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Allow or refuse Explore's reads of the researcher's account in this thread.",
+        "operationId": "put_account_reads_api_v1_conversations__conversation_id__account_reads_put",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountReadsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountReads"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/conversations/{conversation_id}/revert-to-message": {
       "post": {
         "tags": [
@@ -5831,6 +5910,95 @@
         ]
       }
     },
+    "/api/v1/me/account-reads": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get My Account Reads",
+        "description": "Whether Explore may read this researcher's account in every thread.",
+        "operationId": "get_my_account_reads_api_v1_me_account_reads_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlwaysAccountReads"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Put My Account Reads",
+        "description": "Allow Explore to read this researcher's account in every thread, or stop it.",
+        "operationId": "put_my_account_reads_api_v1_me_account_reads_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlwaysAccountReads"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlwaysAccountReads"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
     "/api/v1/conversations/{conversation_id}/tasks": {
       "get": {
         "tags": [
@@ -5922,6 +6090,40 @@
   },
   "components": {
     "schemas": {
+      "AccountReads": {
+        "properties": {
+          "allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allowed"
+        ],
+        "title": "AccountReads"
+      },
+      "AccountReadsRequest": {
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allowed"
+        ],
+        "title": "AccountReadsRequest"
+      },
       "AddCombineOp": {
         "properties": {
           "kind": {
@@ -6088,6 +6290,19 @@
           "length"
         ],
         "title": "AlphaFoldModel"
+      },
+      "AlwaysAccountReads": {
+        "properties": {
+          "always": {
+            "type": "boolean",
+            "title": "Always"
+          }
+        },
+        "type": "object",
+        "required": [
+          "always"
+        ],
+        "title": "AlwaysAccountReads"
       },
       "AnalysisRationale": {
         "properties": {

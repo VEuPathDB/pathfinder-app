@@ -4,7 +4,7 @@ import operator
 import re
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from functools import reduce
-from typing import Final
+from typing import Any, Final
 
 from pydantic import Field
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, SinglePickValue
@@ -75,9 +75,9 @@ def picked_plan_text(offered: OfferedReading) -> str:
     return "\n".join(lines)
 
 
-type _SetOp = Callable[[frozenset[str], frozenset[str]], frozenset[str]]
-
-_COUNTED: Final[dict[CombineOp, _SetOp]] = {
+_COUNTED: Final[
+    dict[CombineOp, Callable[[frozenset[Any], frozenset[Any]], frozenset[Any]]]
+] = {
     CombineOp.INTERSECT: operator.and_,
     CombineOp.UNION: operator.or_,
     CombineOp.MINUS: operator.sub,
@@ -130,9 +130,9 @@ def reading_shape_refusal(root: StructureNode, names: Sequence[str]) -> str | No
     return None
 
 
-def combined_ids(
-    node: StructureNode, ids: Mapping[str, frozenset[str]]
-) -> frozenset[str]:
+def combined_ids[K](
+    node: StructureNode, ids: Mapping[str, frozenset[K]]
+) -> frozenset[K]:
     if node.kind == "leaf":
         return ids[node.named_criterion]
     held = [combined_ids(child, ids) for child in node.inputs]

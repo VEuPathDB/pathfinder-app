@@ -82,3 +82,7 @@ def test_explore_carries_the_vocabulary_rule() -> None:
 
 def test_explore_writes_ascii_only() -> None:
     assert EXPLORE_INSTRUCTIONS.isascii()
+
+
+def test_explore_asks_before_it_reads_the_account() -> None:
+    assert _missing("ask_to_read_the_account", "other PathFinder conversations") == []

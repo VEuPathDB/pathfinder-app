@@ -208,6 +208,8 @@ class TurnMarkers(CamelModel):
     output_refusals: int = 0
     refused_rules: list[str] = Field(default_factory=list)
     unchecked_reply: bool = False
+    # The researcher allowed this turn's reads of their account.
+    account_reads_allowed: bool = False
     # The labels of the readings this turn proposed, in the order it proposed them.
     proposed_readings: list[str] = Field(default_factory=list)
     # The EDA datasets this turn opened an analysis on.

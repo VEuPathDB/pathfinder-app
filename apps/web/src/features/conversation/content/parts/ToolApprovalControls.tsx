@@ -31,6 +31,7 @@ import {
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
 import { answeredInALaterMessage, isOpenCard } from "./cardAnswers";
+import { ACCOUNT_READ_TOOL, AccountReadCard, accountReadWhat } from "./AccountReadCard";
 
 /** The tools whose approval their own card answers. */
 const CARD_TOOLS: ReadonlySet<string> = new Set([
@@ -176,6 +177,16 @@ export function ToolApprovalCard({
       conversationId: chat.id,
     });
   };
+
+  if (approval.toolName === ACCOUNT_READ_TOOL && approval.decision === "pending") {
+    return (
+      <AccountReadCard
+        conversationId={chat.id}
+        what={accountReadWhat(approval.input)}
+        onAnswer={respond}
+      />
+    );
+  }
 
   return (
     <ApprovalCard

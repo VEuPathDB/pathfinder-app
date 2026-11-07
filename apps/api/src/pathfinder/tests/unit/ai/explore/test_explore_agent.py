@@ -60,6 +60,11 @@ def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
         "read_gene_record",
         "get_live_strategy_state",
         "list_gene_sets",
+        "ask_to_read_the_account",
+        "read_saved_strategies",
+        "list_my_threads",
+        "read_my_thread",
+        "read_gene_set",
         "search_memory",
         "remember",
         "search_eda_studies",
@@ -102,11 +107,12 @@ def test_a_tool_new_to_a_shared_toolset_does_not_reach_explore(
     assert "_writes_a_step" not in agent_tool_names(build_explore_agent())
 
 
-def test_the_readings_card_needs_the_researchers_yes() -> None:
+def test_the_readings_card_and_the_account_ask_need_the_researchers_yes() -> None:
     tools = _explore_tools().tools
 
     assert [n for n, t in sorted(tools.items()) if t.requires_approval] == [
-        "consult_user"
+        "ask_to_read_the_account",
+        "consult_user",
     ]
 
 

@@ -80,3 +80,13 @@ Measured: "You prefer the **Su et al. strand-specific RNA-seq dataset** for *Pla
 | 3 | After M6, a new conversation | Send `Which dataset do I prefer for gametocyte expression?` | No `Recalled memories` figure; the reply does not know the preference |
 | 4 | Switch | Turn on, then step 3 again | `Recalled memories` lists the preference again |
 
+## M8 - Explore asks before it reads the account - core on plasmodb
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | A new conversation, mode Explore | Send `Have I looked at gametocyte kinases before?` | A card `Let PathFinder read your saved strategies, other conversations or gene sets?` naming what it wants to read; boxes `Always allow in this conversation` and `Always allow in all conversations`; `Allow`, `Don't allow` |
+| 2 | Card | `Don't allow` | The reply answers without your other conversations |
+| 3 | Same conversation | Send the message again, tick `Always allow in this conversation`, `Allow` | The reply names your earlier conversation |
+| 4 | Same conversation | Send a third question that needs your gene sets | No card; the reply reads them |
+| 5 | Settings, `Privacy` | Read | `Reading your account` with the switch `Always let PathFinder read my account in every conversation`, off |
+

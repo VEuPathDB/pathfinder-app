@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from pathfinder.transport.http.deps import require_registered_wdk_identity
 
 from . import (
+    account_reads,
     cancel,
     counts,
     crud,
@@ -37,6 +38,7 @@ router.include_router(events.router)
 router.include_router(sidebar.router)
 router.include_router(scratchpad.router)
 router.include_router(ratings.router)
+router.include_router(account_reads.router)
 router.include_router(revert.router)
 router.include_router(save_substrategy.router)
 router.include_router(cancel.router)

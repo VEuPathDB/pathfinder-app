@@ -89,6 +89,11 @@ export const TOOL_LABELS: Record<string, string> = {
   promote_to_memory: "Save to memory",
   search_memory: "Search memory",
   remember: "Remember",
+  ask_to_read_the_account: "Ask to read your account",
+  read_saved_strategies: "Read your saved strategies",
+  list_my_threads: "List your conversations",
+  read_my_thread: "Read a conversation",
+  read_gene_set: "Read a gene set",
   // Research, served by the research tool source
   research_web_search: "Web search",
   research_literature_search: "Literature search",

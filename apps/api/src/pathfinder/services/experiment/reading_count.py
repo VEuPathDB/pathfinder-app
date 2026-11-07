@@ -7,7 +7,6 @@ from veupathdb import strip_html_tags
 from veupathdb.model import CamelModel
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed, read_search_definition
-from veupathdb_mcp.wdk import extract_pk
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -108,11 +107,20 @@ class CountedReading(CamelModel):
     not_counted: str = ""
 
 
-async def _ids(site_id: str, spec: VariantSpec) -> frozenset[str]:
+type _RecordKey = tuple[str, ...]
+
+
+def _genes(keys: frozenset[_RecordKey]) -> set[str]:
+    return {key[0] for key in keys if key}
+
+
+async def _ids(site_id: str, spec: VariantSpec) -> frozenset[_RecordKey]:
     answer = await run_variant_search(site_id, spec)
-    found = frozenset(pk for record in answer.records if (pk := extract_pk(record)))
+    found = frozenset(
+        tuple(part.value for part in record.id) for record in answer.records
+    )
     total = answer.meta.records_returned()
-    if total > len(found):
+    if total > len(_genes(found)):
         raise ReadingTooLargeError(spec.label, total, len(found))
     return found
 
@@ -147,7 +155,7 @@ async def _count(
         ids = {spec.label: await _ids(site_id, spec) for spec in searches}
     except ReadingTooLargeError as too_large:
         return None, str(too_large)
-    return len(combined_ids(root, ids)), ""
+    return len(_genes(combined_ids(root, ids))), ""
 
 
 async def count_reading(

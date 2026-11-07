@@ -13,6 +13,11 @@ from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import KeyProbe, probe_key
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.security import limiter
+from pathfinder.services.conversations.account_reads import (
+    AlwaysAccountReads,
+    read_always_account_reads,
+    set_always_account_reads,
+)
 from pathfinder.services.eval_data.consent import (
     DataNoticeContinue,
     PrivacySettings,
@@ -205,3 +210,22 @@ async def put_my_memory_setting(
 ) -> MemorySetting:
     """Turn memory on or off for this researcher's turns. Stored memories stay."""
     return await update_memory_setting(session, user_id, setting)
+
+
+@router.get("/account-reads", response_model=AlwaysAccountReads)
+async def get_my_account_reads(
+    session: DBSession,
+    user_id: CurrentUser,
+) -> AlwaysAccountReads:
+    """Whether Explore may read this researcher's account in every thread."""
+    return await read_always_account_reads(session, user_id)
+
+
+@router.put("/account-reads", response_model=AlwaysAccountReads)
+async def put_my_account_reads(
+    session: DBSession,
+    user_id: CurrentUser,
+    setting: AlwaysAccountReads,
+) -> AlwaysAccountReads:
+    """Allow Explore to read this researcher's account in every thread, or stop it."""
+    return await set_always_account_reads(session, user_id, always=setting.always)

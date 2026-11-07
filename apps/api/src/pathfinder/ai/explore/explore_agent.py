@@ -15,6 +15,13 @@ from pathfinder.ai.explore._explore_instructions import (
     EXPLORE_INSTRUCTIONS,
     EXPLORE_OFF_TOPIC_REDIRECT,
 )
+from pathfinder.ai.explore.account_reads import (
+    ask_to_read_the_account,
+    list_my_threads,
+    read_gene_set,
+    read_my_thread,
+    read_saved_strategies,
+)
 from pathfinder.ai.explore.explore_tools import catalog_reads, propose_readings
 from pathfinder.ai.explore.readings_card import (
     READINGS_CARD_DESCRIPTION,
@@ -60,6 +67,11 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
             Tool(read_gene_record, prepare=offered_where_genes_are_held),
             Tool(get_live_strategy_state),
             Tool(list_gene_sets),
+            Tool(ask_to_read_the_account, requires_approval=True),
+            Tool(read_saved_strategies),
+            Tool(list_my_threads),
+            Tool(read_my_thread),
+            Tool(read_gene_set),
             Tool(search_memory),
             Tool(remember),
         ],

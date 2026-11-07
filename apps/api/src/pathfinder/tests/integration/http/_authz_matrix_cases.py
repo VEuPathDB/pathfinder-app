@@ -119,6 +119,13 @@ def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
         Case("PUT", rating_route, rating, _CONV, {"rating": "dislike"}),
         Case("DELETE", rating_route, rating, _CONV),
         Case(
+            "PUT",
+            "/api/v1/conversations/{conversation_id}/account-reads",
+            f"{base}/account-reads",
+            _CONV,
+            {"allowed": True},
+        ),
+        Case(
             "POST",
             "/api/v1/conversations/{conversation_id}/revert-to-message",
             f"{base}/revert-to-message",

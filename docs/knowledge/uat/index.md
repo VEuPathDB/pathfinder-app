@@ -95,7 +95,7 @@ Result: `pass`, `fail`, `blocked` or `re-measure`. Bug ids: the tracker's, comma
 | E1 to E8 | plasmodb | | |
 | UD1 to UD4 | plasmodb | | |
 | UD1 to UD4 | vectorbase | | |
-| M1 to M7 | plasmodb | | |
+| M1 to M8 | plasmodb | | |
 | C1 to C16 | plasmodb | | |
 | A1 to A6 | once | | |
 | G1 | each site | | |
@@ -181,6 +181,7 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | M5 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
 | M6 | `apps/web/e2e/uat/memory-notes.spec.ts` | `uat-m6-plasmodb` | - |
 | M7 | - | - | - |
+| M8 | - | - | - |
 | C1 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
 | C2 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
 | C3 | `apps/web/e2e/uat/composer.spec.ts` | - | - |

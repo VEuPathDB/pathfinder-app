@@ -345,15 +345,17 @@ async def resolved_variants(
         }
         infos = {info.name: info for info in await infos_at(search, parents)}
         site_set = _site_set(infos)
+        phyletic = is_phyletic_sheet(list(infos.values()))
         entries = {
             name: value
             if held.get(name) == to_wire(value)
+            or (phyletic and name in PHYLETIC_LIST_PARAMS)
             else _entry_value(variant, infos[name], value)
             for name, value in variant.parameters.items()
             if name not in site_set
         }
         entries = {**_published_defaults(variant, infos), **entries, **site_set}
-        if is_phyletic_sheet(list(infos.values())):
+        if phyletic:
             entries = {**entries, **await _derived_phyletic(site_id, variant)}
         checked.append(variant.model_copy(update={"parameters": entries}))
     return checked

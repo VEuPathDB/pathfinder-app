@@ -104,6 +104,9 @@ class User(Base):
     memory_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
+    account_reads_always: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
     # One-directional: the thread is the runtime's and names no owner back.
     # The relationship stays because it orders the flush and cascades a delete.
@@ -422,6 +425,22 @@ class ConversationMode(Base):
         primary_key=True,
     )
     mode: Mapped[ThreadMode] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ConversationAccountRead(Base):
+    __tablename__ = "conversation_account_reads"
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -5,6 +5,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
+vi.mock("@/lib/api/accountReads", () => ({
+  ALWAYS_ACCOUNT_READS_KEY: ["me", "account-reads"],
+  getAlwaysAllowed: vi.fn(async () => ({ always: false })),
+  setAlwaysAllowed: vi.fn(),
+}));
+
 vi.mock("@/lib/api/privacy", () => ({
   PRIVACY_QUERY_KEY: ["me", "privacy"],
   getPrivacySettings: vi.fn(),
@@ -89,7 +95,9 @@ describe("PrivacySettings", () => {
       expect(mockedUpdate).toHaveBeenCalledWith({ evalDataConsent: false });
     });
     await waitFor(() => {
-      expect(screen.getByRole("switch")).not.toBeChecked();
+      expect(
+        screen.getByRole("switch", { name: "Let PathFinder learn from my strategies" }),
+      ).not.toBeChecked();
     });
   });
 
@@ -108,7 +116,9 @@ describe("PrivacySettings", () => {
       expect(mockedUpdate).toHaveBeenCalledWith({ evalDataConsent: true });
     });
     await waitFor(() => {
-      expect(screen.getByRole("switch")).toBeChecked();
+      expect(
+        screen.getByRole("switch", { name: "Let PathFinder learn from my strategies" }),
+      ).toBeChecked();
     });
   });
 

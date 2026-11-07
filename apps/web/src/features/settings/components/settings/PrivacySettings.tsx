@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/privacy";
 import { yourDataUrl } from "@/lib/routes";
 
+import { AccountReadsSwitch } from "./AccountReadsSwitch";
 import { SettingsSection, SettingsSwitch } from "./SettingsRow";
 
 export function PrivacySettings() {
@@ -61,6 +62,8 @@ export function PrivacySettings() {
           />
         )}
       </SettingsSection>
+
+      <AccountReadsSwitch />
 
       {isPending && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

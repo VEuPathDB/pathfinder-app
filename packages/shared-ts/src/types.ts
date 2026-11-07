@@ -61,6 +61,8 @@ import type {
   MemoryEditRequest,
   MemoryItem,
   MemorySetting,
+  AccountReads,
+  AlwaysAccountReads,
   MemoryListResponse,
   MemorySearchResponse,
   MemoryValue,
@@ -263,6 +265,8 @@ export type StepKind = "search" | "transform" | "combine";
 export type MemoryKind = MemoryValue["kind"];
 export type {
   MemoryValue,
+  AccountReads,
+  AlwaysAccountReads,
   MemorySetting,
   MemoryItem,
   MemoryListResponse,
