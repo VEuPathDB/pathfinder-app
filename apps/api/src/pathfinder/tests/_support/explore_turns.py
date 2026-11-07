@@ -49,6 +49,7 @@ ONE_READING_PROMPT = "Which genes carry a signal peptide? [[arc:explore-one-read
 class RecordedReports:
     answers: dict[str, WDKAnswer]
     ran: list[tuple[str, dict[str, str]]] = field(default_factory=list)
+    filters: list[object] = field(default_factory=list)
 
     async def run_search_report(
         self,
@@ -59,8 +60,9 @@ class RecordedReports:
         report_config: object,
         view_filters: object,
     ) -> WDKAnswer:
-        del record_type, report_config, view_filters
+        del record_type, report_config
         self.ran.append((search_name, dict(search_config.parameters)))
+        self.filters.append(view_filters)
         return self.answers[search_name]
 
 

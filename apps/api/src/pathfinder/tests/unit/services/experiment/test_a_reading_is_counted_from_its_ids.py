@@ -108,9 +108,10 @@ async def test_the_counted_spec_states_both_searches_under_the_structure(
     assert counted.label.split(" MINUS ")[0].startswith("Gene Type")
 
 
-async def test_a_search_read_past_the_cap_is_offered_not_counted(
-    reports: RecordedReports,
+async def test_a_search_that_fills_the_read_is_offered_not_counted(
+    reports: RecordedReports, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(variant_comparison, "READ_CAP", 10)
     reports.answers[GENE_TYPE] = _answer(_CODING_IDS, total=50_001)
 
     counted = await count_reading(SITE, [_CODING], spec_leaf("coding"))
@@ -118,10 +119,20 @@ async def test_a_search_read_past_the_cap_is_offered_not_counted(
     assert (counted.gene_count, counted.not_counted) == (
         None,
         (
-            "coding returns 50,001 genes, more than the 10 a reading's count reads. "
-            "Narrow it, for example to one organism."
+            "coding returns 50,001 genes, more than a reading's count reads in one "
+            "read of 10 records. Narrow it, for example to one organism."
         ),
     )
+
+
+async def test_a_reading_reads_every_transcript_of_its_searches(
+    reports: RecordedReports,
+) -> None:
+    root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
+
+    await count_reading(SITE, [_PEPTIDE, _CODING], root)
+
+    assert reports.filters == [None, None]
 
 
 async def test_a_gene_whose_transcripts_fall_apart_is_not_intersected(

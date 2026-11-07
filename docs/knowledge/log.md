@@ -11,8 +11,10 @@
   hidden `profile_pattern` at the site default `hsap=1T`, a human ortholog present, so Explore
   counted 32 genes for a plan Build built as 40. `resolved_variants` now derives the pattern from
   `included_species` and `excluded_species`, as a step of the search does, and takes a comma
-  list of species codes as the derivation reads it. A proposal's local count intersects the
-  records the site intersects, transcripts, and counts their genes, as the built strategy does.
+  list of species codes as the derivation reads it. A proposal's local count reads every
+  transcript of each search, with no representative-transcript filter, intersects transcripts as
+  WDK's boolean steps do and counts their genes: on two dev-portal plans it gives 39 and 14, the
+  counts of the strategies Build built, where the representative reads gave 21 and 15.
 * **Explore proposes whole plans.** A proposal is the searches of one plan and how they combine,
   with words for what they cannot state; PathFinder names it from its steps and counts it from
   each search's gene ids, and a failed count records nothing. Build it and a card pick hand the

@@ -55,7 +55,7 @@ from pathfinder.domain.comparison_facts import (
 from pathfinder.services.gene_records.attributes import product_attribute
 
 _CONCURRENCY = 4
-_MAX_RECORDS = 50_000
+READ_CAP = 50_000
 _SAMPLE_UNIQUE = 8
 
 
@@ -209,23 +209,27 @@ async def counted_in_place(
 
 
 async def run_variant_search(
-    site_id: str, spec: VariantSpec, *, attributes: Sequence[str] = ()
+    site_id: str,
+    spec: VariantSpec,
+    *,
+    attributes: Sequence[str] = (),
+    every_transcript: bool = False,
 ) -> WDKAnswer:
-    """One variant's answer, capped at ``_MAX_RECORDS`` ids and creating no step.
+    """One variant's answer, capped at ``READ_CAP`` ids and creating no step.
 
     A transcript search reports one row per gene, so the cap counts genes.
     """
     client = get_wdk_client(site_id)
     report: JSONObject = {
         "attributes": list(attributes),
-        "pagination": {"offset": 0, "numRecords": _MAX_RECORDS},
+        "pagination": {"offset": 0, "numRecords": READ_CAP},
     }
     return await client.run_search_report(
         spec.record_type,
         spec.search_name,
         WDKSearchConfig(parameters=wire_map(spec.parameters)),
         report_config=report,
-        view_filters=view_filters_for(spec.record_type),
+        view_filters=None if every_transcript else view_filters_for(spec.record_type),
     )
 
 
@@ -282,7 +286,7 @@ async def run_variant_comparison(
 
     ``gene_count`` is the variant's full WDK result count; overlap and
     ``unique_count`` are computed over the retrieved IDs (capped at
-    ``_MAX_RECORDS``). ``truncated`` flags when any variant exceeded the cap,
+    ``READ_CAP``). ``truncated`` flags when any variant exceeded the cap,
     so overlap figures are lower bounds.
     """
     sem = asyncio.Semaphore(_CONCURRENCY)

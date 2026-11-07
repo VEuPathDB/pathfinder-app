@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.reading_plan import (
     reading_shape_refusal,
 )
 from pathfinder.domain.strategy.value_binding import bind_values
+from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.variant_comparison import (
     VariantInput,
     VariantSpec,
@@ -36,8 +37,8 @@ class ReadingTooLargeError(ValueError):
         self.total = total
         self.read = read
         super().__init__(
-            f"{label} returns {total:,} genes, more than the {read:,} a reading's "
-            "count reads. Narrow it, for example to one organism."
+            f"{label} returns {total:,} genes, more than a reading's count reads in "
+            f"one read of {read:,} records. Narrow it, for example to one organism."
         )
 
 
@@ -115,14 +116,14 @@ def _genes(keys: frozenset[_RecordKey]) -> set[str]:
 
 
 async def _ids(site_id: str, spec: VariantSpec) -> frozenset[_RecordKey]:
-    answer = await run_variant_search(site_id, spec)
-    found = frozenset(
+    answer = await run_variant_search(site_id, spec, every_transcript=True)
+    if len(answer.records) >= variant_comparison.READ_CAP:
+        raise ReadingTooLargeError(
+            spec.label, answer.meta.records_returned(), variant_comparison.READ_CAP
+        )
+    return frozenset(
         tuple(part.value for part in record.id) for record in answer.records
     )
-    total = answer.meta.records_returned()
-    if total > len(_genes(found)):
-        raise ReadingTooLargeError(spec.label, total, len(found))
-    return found
 
 
 def _criterion(
