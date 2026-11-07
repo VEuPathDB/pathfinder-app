@@ -110,6 +110,13 @@ async def resolved_search(
     return specs[0]
 
 
+async def search_count_of(
+    ctx: RunContext[LeadDeps], search: VariantInput
+) -> SearchCount:
+    spec = await resolved_search(ctx, search, record_type=_GENES)
+    return await run_search_count(ctx.deps.site_id, spec)
+
+
 async def count_search(
     ctx: RunContext[LeadDeps], search: VariantInput
 ) -> ToolReturn[SearchCount]:
@@ -128,8 +135,7 @@ async def count_search(
     Args:
         search: The search, its parameter values and a short ``label``.
     """
-    spec = await resolved_search(ctx, search, record_type=_GENES)
-    counted = await run_search_count(ctx.deps.site_id, spec)
+    counted = await search_count_of(ctx, search)
     ctx.deps.state.turn_markers.record_comparison(counted.fact())
     return with_summary(
         counted, f"{counted.label}: {counted.gene_count:,} genes", ctx=ctx

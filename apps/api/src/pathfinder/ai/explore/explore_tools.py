@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.types import JSONObject
-from pydantic import Field, TypeAdapter
+from pydantic import Field
 from pydantic_ai import RunContext, Tool
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResult
@@ -15,13 +15,12 @@ from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResul
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import catalog, catalog_discovery
-from pathfinder.ai.tools.standalone.search_reads import count_search
+from pathfinder.ai.tools.standalone.search_reads import search_count_of
 from pathfinder.services.experiment.search_reads import SearchCount
 from pathfinder.services.experiment.variant_comparison import VariantInput
 
 _ARGUMENT = re.compile(r"^ {4}(\w+):")
 _CONTINUED = " " * 8
-_COUNT: TypeAdapter[SearchCount] = TypeAdapter(SearchCount)
 
 
 async def propose_readings(
@@ -45,10 +44,9 @@ async def propose_readings(
         readings: One reading at least, each a search, its parameter values
             and a short ``label`` the card shows.
     """
-    counted = [
-        _COUNT.validate_python((await count_search(ctx, reading)).return_value)
-        for reading in readings
-    ]
+    counted = [await search_count_of(ctx, reading) for reading in readings]
+    for count in counted:
+        ctx.deps.state.turn_markers.record_comparison(count.fact())
     return with_summary(
         counted, f"{count_noun(len(counted), 'reading')} counted", ctx=ctx
     )
