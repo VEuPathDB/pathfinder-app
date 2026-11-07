@@ -27,14 +27,14 @@ const OFFER: BuildOfferPayload = {
   geneCount: 412,
 };
 
-function offered(sendMessage = vi.fn(async () => {})) {
+function offered(sendMessage = vi.fn(async () => {}), offer = OFFER) {
   const helpers = {
-    ...chatHelpersFor(threadOf([threadPart("data-build-offer", OFFER)])),
+    ...chatHelpersFor(threadOf([threadPart("data-build-offer", offer)])),
     sendMessage,
   };
   render(
     <ChatHelpersProvider value={helpers}>
-      <DataBuildOffer data={OFFER} />
+      <DataBuildOffer data={offer} />
     </ChatHelpersProvider>,
   );
   return sendMessage;
@@ -53,6 +53,31 @@ describe("DataBuildOffer", () => {
     expect(screen.getByRole("button", { name: "Build it" })).toBeInTheDocument();
     expect(screen.getByTestId("build-offer")).toHaveTextContent(
       "Proteins with exactly seven transmembrane domains (412 genes)",
+    );
+  });
+
+  it("says a plan it could not count is not counted yet", () => {
+    offered(
+      vi.fn(async () => {}),
+      { ...OFFER, geneCount: null },
+    );
+
+    expect(screen.getByTestId("build-offer")).toHaveTextContent(
+      "Proteins with exactly seven transmembrane domains (not counted yet)",
+    );
+  });
+
+  it("shows what Explore suggests beside the plan", () => {
+    offered(
+      vi.fn(async () => {}),
+      {
+        ...OFFER,
+        also: "Then map the result to orthologs in Aedes aegypti.",
+      },
+    );
+
+    expect(screen.getByTestId("build-offer-also")).toHaveTextContent(
+      "Also suggested: Then map the result to orthologs in Aedes aegypti.",
     );
   });
 

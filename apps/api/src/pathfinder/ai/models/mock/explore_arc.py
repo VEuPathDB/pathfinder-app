@@ -11,11 +11,13 @@ from assistant_core.models.scripted import (
     scripted_call,
     scripted_text,
 )
+from pydantic import TypeAdapter
 from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 
 from pathfinder.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from pathfinder.ai.models.mock.message_words import message
 from pathfinder.ai.models.mock.prose_arcs import OFF_TOPIC_PROSE
+from pathfinder.ai.models.mock.reads import ToolAnswer, last_answer
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
@@ -51,38 +53,54 @@ def _single(value: str) -> dict[str, Any]:
     return {"type": "single-pick-vocabulary", "value": value}
 
 
+def _searches(organism: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "label": FIRST_LABEL,
+            "search_name": SIGNAL_PEPTIDE,
+            "parameters": {
+                "organism": _multi(organism),
+                "signalp_version": _single(SIGNALP_VERSIONS[0]),
+            },
+        },
+        {
+            "label": SECOND_LABEL,
+            "search_name": GENE_TYPE,
+            "parameters": {
+                "organism": _multi(organism),
+                "geneType": _multi("protein coding"),
+                "includePseudogenes": _single("No"),
+            },
+        },
+    ]
+
+
 def _readings(organism: str) -> dict[str, Any]:
-    return {
-        "readings": [
-            {
-                "label": FIRST_LABEL,
-                "search_name": SIGNAL_PEPTIDE,
-                "parameters": {
-                    "organism": _multi(organism),
-                    "signalp_version": _single(SIGNALP_VERSIONS[0]),
-                },
-            },
-            {
-                "label": SECOND_LABEL,
-                "search_name": GENE_TYPE,
-                "parameters": {
-                    "organism": _multi(organism),
-                    "geneType": _multi("protein coding"),
-                    "includePseudogenes": _single("No"),
-                },
-            },
-        ]
-    }
+    return {"readings": [{"searches": [search]} for search in _searches(organism)]}
 
 
-def _card() -> dict[str, Any]:
+class _Proposed(ToolAnswer):
+    label: str
+
+
+_PROPOSED: TypeAdapter[list[_Proposed]] = TypeAdapter(list[_Proposed])
+
+
+def proposed_labels(messages: list[ModelMessage]) -> list[str]:
+    answer = last_answer(messages, "propose_readings")
+    return (
+        [] if answer is None else [p.label for p in _PROPOSED.validate_python(answer)]
+    )
+
+
+def _card(labels: list[str]) -> dict[str, Any]:
     return {
         "reply": READINGS_REPLY,
         "questions": [
             {
                 "id": "reading",
                 "prompt": READINGS_QUESTION,
-                "options": [{"label": FIRST_LABEL}, {"label": SECOND_LABEL}],
+                "options": [{"label": label} for label in labels],
                 "allowNotes": False,
             }
         ],
@@ -120,7 +138,7 @@ def explore_readings(messages: list[ModelMessage]) -> ToolCallPart:
     sequence = [
         scripted_call("propose_readings", _readings(organism)),
         *_kept_preference(),
-        scripted_call("consult_user", _card()),
+        scripted_call("consult_user", _card(proposed_labels(messages))),
     ]
     return next_unmade_call(sequence, messages)
 

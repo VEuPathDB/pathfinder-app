@@ -6,49 +6,97 @@ from collections.abc import Callable
 from typing import Annotated, Any
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
+from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import Field
-from pydantic_ai import RunContext, Tool
+from pydantic_ai import ModelRetry, RunContext, Tool
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResult
 
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import catalog, catalog_discovery
-from pathfinder.ai.tools.standalone.search_reads import search_count_of
-from pathfinder.services.experiment.search_reads import SearchCount
-from pathfinder.services.experiment.variant_comparison import VariantInput
+from pathfinder.ai.tools.standalone.search_reads import resolved_search
+from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
+from pathfinder.domain.strategy.reading_plan import OfferedReading
+from pathfinder.services.evidence.comparisons import run_reading_count
+from pathfinder.services.experiment.reading_count import ProposedReading
 
+_GENES = "transcript"
 _ARGUMENT = re.compile(r"^ {4}(\w+):")
 _CONTINUED = " " * 8
 
 
+class ProposedCount(CamelModel):
+    label: str
+    gene_count: int | None
+    not_counted: str = ""
+    also: str = ""
+
+
+async def _offered(
+    ctx: RunContext[LeadDeps], proposal: ProposedReading
+) -> OfferedReading:
+    specs = [
+        await resolved_search(ctx, search, record_type=_GENES)
+        for search in proposal.searches
+    ]
+    counted = await run_reading_count(ctx.deps.site_id, specs, proposal.root)
+    return OfferedReading(
+        label=counted.label,
+        gene_count=counted.gene_count,
+        spec=counted.spec,
+        not_counted=counted.not_counted,
+        also=proposal.also,
+    )
+
+
+def _fact(offered: OfferedReading, gene_count: int) -> ComparisonFact:
+    counted = ComparedVariant(label=offered.label, gene_count=gene_count)
+    return ComparisonFact(variants=[counted], on_its_card=False)
+
+
 async def propose_readings(
     ctx: RunContext[LeadDeps],
-    readings: Annotated[list[VariantInput], Field(min_length=1)],
-) -> ToolReturn[list[SearchCount]]:
-    """Count the genes each reading the site can build returns. Read-only.
+    readings: Annotated[list[ProposedReading], Field(min_length=1)],
+) -> ToolReturn[list[ProposedCount]]:
+    """Propose plans Build can build, each counted when it can be. Read-only.
 
-    A reading is one catalog search with its parameter values and a short
-    ``label``, one way the site can state what the researcher asks. Each
-    search runs as an anonymous WDK report, so no step is added and the
-    strategy keeps its root and its count. Offer two or more counted readings
-    on one ``consult_user`` card, each option labelled exactly as counted
-    here, so the researcher picks the reading the strategy builds. One
-    counted reading takes no card.
-
-    A search name the catalog does not list is refused with the searches the
-    catalog lookup finds for it.
+    A proposal is the catalog searches of one plan and how they combine, so a
+    request of two criteria is one proposal of two searches. PathFinder names
+    each proposal from its searches, values and operators; use that name. A
+    plan of searches joined by INTERSECT, UNION or MINUS is counted from each
+    search's gene ids, and no step is added. A plan it cannot count is
+    proposed as not counted yet. A later call replaces this turn's proposals,
+    so propose alternatives together. Offer two or more proposals on one
+    ``consult_user`` card, each option labelled exactly as returned here. One
+    proposal takes no card.
 
     Args:
-        readings: One reading at least, each a search, its parameter values
-            and a short ``label`` the card shows.
+        readings: One proposal at least, each one plan.
     """
-    counted = [await search_count_of(ctx, reading) for reading in readings]
-    for count in counted:
-        ctx.deps.state.turn_markers.record_comparison(count.fact())
+    offered = [await _offered(ctx, proposal) for proposal in readings]
+    labels = [reading.label for reading in offered]
+    if len(set(labels)) < len(labels):
+        msg = f"Two proposals state the same plan: {labels}. Propose each plan once."
+        raise ModelRetry(msg)
+    state = ctx.deps.state
+    state.turn_markers.proposed_readings = labels
+    for reading in offered:
+        state.domain.offer_reading(reading)
+        if reading.gene_count is not None:
+            state.turn_markers.record_comparison(_fact(reading, reading.gene_count))
+    proposed = [
+        ProposedCount(
+            label=reading.label,
+            gene_count=reading.gene_count,
+            not_counted=reading.not_counted,
+            also=reading.also,
+        )
+        for reading in offered
+    ]
     return with_summary(
-        counted, f"{count_noun(len(counted), 'reading')} counted", ctx=ctx
+        proposed, f"{count_noun(len(proposed), 'reading')} proposed", ctx=ctx
     )
 
 

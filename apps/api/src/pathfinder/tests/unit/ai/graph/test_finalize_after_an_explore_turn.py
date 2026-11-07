@@ -7,10 +7,11 @@ import pytest
 from langgraph.runtime import Runtime
 
 from pathfinder.ai.graph import nodes
-from pathfinder.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from pathfinder.services.conversations.message_ratings import TurnMemories
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
+    FIRST_READING,
+    SECOND_READING,
     SITE,
     explore_state,
     install_explore_doubles,
@@ -63,7 +64,7 @@ async def test_finalize_after_an_explore_turn_writes_no_memory_and_keeps_its_sta
 
     command = await nodes.finalize_turn_node(explored, runtime)
 
-    assert explored.domain.reading_labels() == [FIRST_LABEL, SECOND_LABEL]
+    assert explored.domain.reading_labels() == [FIRST_READING, SECOND_READING]
     assert (finalized.writes, finalized.compactions, finalized.store.rows) == (
         [],
         0,

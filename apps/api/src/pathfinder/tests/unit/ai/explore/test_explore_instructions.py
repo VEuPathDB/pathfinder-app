@@ -45,9 +45,19 @@ def test_explore_names_every_mode() -> None:
     assert _missing(*named) == []
 
 
-def test_explore_leaves_one_reading_to_the_build_button() -> None:
-    assert _missing("exactly one reading", "Build button") == []
+def test_explore_leaves_one_proposal_to_the_build_button() -> None:
+    assert _missing("With one proposal", "Build button") == []
     assert '"build it"' not in EXPLORE_INSTRUCTIONS
+
+
+def test_explore_proposes_a_whole_plan_and_only_when_it_helps() -> None:
+    named = (
+        "A proposal is optional",
+        "one proposal of two searches",
+        "Never offer the parts of one plan as alternatives",
+    )
+
+    assert _missing(*named) == []
 
 
 def test_explore_marks_a_hypothesis() -> None:

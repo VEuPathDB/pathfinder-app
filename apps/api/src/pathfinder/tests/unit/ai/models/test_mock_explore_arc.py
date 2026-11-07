@@ -56,9 +56,11 @@ def _asked(said: str) -> list[ModelMessage]:
     return [ModelRequest(parts=[UserPromptPart(content=said)])]
 
 
-def _after(messages: list[ModelMessage], call: ToolCallPart) -> list[ModelMessage]:
+def _after(
+    messages: list[ModelMessage], call: ToolCallPart, content: object = "done"
+) -> list[ModelMessage]:
     returned = ToolReturnPart(
-        tool_name=call.tool_name, content="done", tool_call_id=call.tool_call_id
+        tool_name=call.tool_name, content=content, tool_call_id=call.tool_call_id
     )
     return [
         *messages,
@@ -83,16 +85,16 @@ def test_the_explore_arc_counts_two_readings_then_offers_them(prompt: str) -> No
 
     counted = _CALL.validate_python(_explore(messages))
     readings = counted.args_as_dict()["readings"]
-    offered = _CALL.validate_python(_explore(_after(messages, counted)))
+    proposed = [{"label": "first plan", "geneCount": 479}, {"label": "second plan"}]
+    offered = _CALL.validate_python(_explore(_after(messages, counted, proposed)))
     [question] = offered.args_as_dict()["questions"]
 
     assert counted.tool_name == "propose_readings"
-    assert [(r["label"], r["search_name"]) for r in readings] == [
-        (FIRST_LABEL, SIGNAL_PEPTIDE),
-        (SECOND_LABEL, "GenesByGeneType"),
-    ]
+    assert [
+        [(s["label"], s["search_name"]) for s in r["searches"]] for r in readings
+    ] == [[(FIRST_LABEL, SIGNAL_PEPTIDE)], [(SECOND_LABEL, "GenesByGeneType")]]
     assert offered.tool_name == "consult_user"
-    assert [o["label"] for o in question["options"]] == [FIRST_LABEL, SECOND_LABEL]
+    assert [o["label"] for o in question["options"]] == ["first plan", "second plan"]
     assert question["allowNotes"] is False
     assert "hypothesis" in offered.args_as_dict()["reply"]
 
@@ -133,9 +135,9 @@ def test_the_one_reading_arc_counts_it_then_replies(prompt: str) -> None:
     reply = _TEXT.validate_python(_explore(_after(messages, counted)))
 
     assert counted.tool_name == "propose_readings"
-    assert [(r["label"], r["search_name"]) for r in readings] == [
-        (FIRST_LABEL, SIGNAL_PEPTIDE)
-    ]
+    assert [
+        [(s["label"], s["search_name"]) for s in r["searches"]] for r in readings
+    ] == [[(FIRST_LABEL, SIGNAL_PEPTIDE)]]
     assert reply.content == ONE_READING
 
 

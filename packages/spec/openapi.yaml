@@ -14553,8 +14553,14 @@ components:
           title: Label
           type: string
         geneCount:
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Genecount
-          type: integer
+        also:
+          default: ''
+          title: Also
+          type: string
       required:
       - label
       - geneCount

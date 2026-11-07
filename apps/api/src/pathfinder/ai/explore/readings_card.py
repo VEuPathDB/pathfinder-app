@@ -13,18 +13,19 @@ from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.lead_consult import consult_can_ask
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.reading_plan import OfferedReading
 
 _LEAST_READINGS = 2
 
 READINGS_CARD_DESCRIPTION: Final = (
-    "End the turn on the readings card: the researcher picks the reading Build builds.\n\n"
-    "Ask exactly one question. Its options are two or more readings this turn counted "
-    "with propose_readings, each labelled exactly as counted, with its gene count in the "
-    "option's description. Leave the question's dimension at untyped, set allowNotes to "
-    "false, and leave replaces empty. Put what the readings mean in reply, which streams "
-    "above the card.\n\n"
-    "This pauses the turn. A pick hands the conversation to Build, which builds the picked "
-    "reading. With fewer than two counted readings, end on the reply alone."
+    "End the turn on the readings card: the researcher picks the plan Build frames.\n\n"
+    "Ask exactly one question. Its options are two or more plans this turn proposed "
+    "with propose_readings, each labelled exactly as returned, with its gene count, or "
+    "not counted yet, in the option's description. Leave the question's dimension at "
+    "untyped, set allowNotes to false, and leave replaces empty. Put what the plans mean "
+    "in reply, which streams above the card.\n\n"
+    "This pauses the turn. A pick hands the conversation and the picked plan to Build. "
+    "With fewer than two proposals, end on the reply alone."
 )
 
 
@@ -34,12 +35,17 @@ class _ParkedCard(CamelModel):
     questions: list[ConsultQuestion] = Field(default_factory=list)
 
 
-def counted_labels(deps: LeadDeps) -> dict[str, int]:
-    return {
-        variant.label: variant.gene_count
-        for comparison in deps.state.turn_markers.comparisons
-        for variant in comparison.variants
-    }
+def proposals(deps: LeadDeps) -> list[OfferedReading]:
+    offered = deps.state.domain.offered_readings
+    return [
+        offered[label]
+        for label in deps.state.turn_markers.proposed_readings
+        if label in offered
+    ]
+
+
+def proposal_counts(deps: LeadDeps) -> dict[str, int | None]:
+    return {reading.label: reading.gene_count for reading in proposals(deps)}
 
 
 def _form_refusal(question: CardQuestion) -> str | None:
@@ -64,25 +70,27 @@ def _form_refusal(question: CardQuestion) -> str | None:
     return wrong[0] if wrong else None
 
 
-def _refusal(questions: list[CardQuestion], counted: Mapping[str, int]) -> str | None:
+def _refusal(
+    questions: list[CardQuestion], counted: Mapping[str, int | None]
+) -> str | None:
     if len(questions) != 1:
         return (
             f"The readings card asks one question, and this one asks {len(questions)}. "
-            "Ask one question whose options are the readings you counted."
+            "Ask one question whose options are the plans you proposed."
         )
     [question] = questions
     labels = [option.label for option in question.options]
     if len(labels) < _LEAST_READINGS:
         return (
-            "The readings card offers two readings at least, each one counted with "
+            "The readings card offers two proposals at least, each one made with "
             "propose_readings. With fewer, end on the reply alone."
         )
     uncounted = [label for label in labels if label not in counted]
     if uncounted:
         return (
-            f"The options {uncounted} name no reading this turn counted. Count each "
-            f"with propose_readings first, or label each option exactly as counted: "
-            f"{sorted(counted) or 'none counted yet'}."
+            f"The options {uncounted} name no plan this turn proposed. Propose each "
+            f"with propose_readings first, or label each option exactly as returned: "
+            f"{sorted(counted) or 'none proposed yet'}."
         )
     return _form_refusal(question)
 
@@ -90,7 +98,7 @@ def _refusal(questions: list[CardQuestion], counted: Mapping[str, int]) -> str |
 async def readings_card_can_ask(
     ctx: RunContext[LeadDeps], questions: list[CardQuestion], *, reply: CardReply
 ) -> None:
-    refusal = _refusal(questions, counted_labels(ctx.deps))
+    refusal = _refusal(questions, proposal_counts(ctx.deps))
     if refusal is not None:
         raise ModelRetry(refusal)
     await consult_can_ask(ctx, questions, reply=reply)

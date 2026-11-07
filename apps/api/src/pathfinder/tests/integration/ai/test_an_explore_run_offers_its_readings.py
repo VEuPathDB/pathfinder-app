@@ -7,17 +7,18 @@ from pydantic_ai import DeferredToolRequests
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.explore.explore_agent import build_explore_agent
-from pathfinder.ai.explore.readings_card import card_labels, counted_labels
+from pathfinder.ai.explore.readings_card import card_labels, proposal_counts
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
+    FIRST_READING,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
+    SECOND_READING,
     SIGNAL_PEPTIDE_REPORT,
     SITE,
     RecordedReports,
@@ -66,10 +67,10 @@ async def test_the_explore_arc_counts_two_readings_and_offers_them(
     assert isinstance(result.output, DeferredToolRequests)
     [call] = result.output.approvals
     assert call.tool_name == "consult_user"
-    assert card_labels(call.args_as_dict()) == [FIRST_LABEL, SECOND_LABEL]
-    assert counted_labels(deps) == {
-        FIRST_LABEL: recorded_count(SIGNAL_PEPTIDE_REPORT),
-        SECOND_LABEL: recorded_count(GENE_TYPE_REPORT),
+    assert card_labels(call.args_as_dict()) == [FIRST_READING, SECOND_READING]
+    assert proposal_counts(deps) == {
+        FIRST_READING: recorded_count(SIGNAL_PEPTIDE_REPORT),
+        SECOND_READING: recorded_count(GENE_TYPE_REPORT),
     }
     assert [name for name, _ in reports.ran] == [SIGNAL_PEPTIDE, GENE_TYPE]
     assert deps.state.domain.named_readings == []
@@ -90,4 +91,4 @@ async def test_a_reply_with_no_buildable_reading_ends_with_no_card(
     assert isinstance(result.output, str)
     assert result.output.startswith("[mock]")
     assert reports.ran == []
-    assert counted_labels(deps) == {}
+    assert proposal_counts(deps) == {}

@@ -29,18 +29,26 @@ Build tests the strategy against them.
 - Link a paper or a page only with the exact url a research read of this turn returned. Name a \
 site record as ``[record:<record_id>]``. Any other link shows as plain text.
 
-## Hand-over to Build
+## Proposing a build
 
-- You never build or change a strategy. A strategy change happens in Build.
-- When the conversation has exactly one reading the site can build directly, count it with \
-``propose_readings``. A Build button under your reply builds it, so do not ask the researcher \
-to switch modes or to reply. Do not offer a card for one reading.
-- When the conversation has two or more readings the site can build, count each one with \
-``propose_readings``. Then end the turn with ``consult_user``: one question whose options are \
-the counted readings, each labelled exactly as you counted it, with its count in the option's \
-description, so the researcher picks the one Build builds. The card takes no note.
-- With no reading the site can build, end on your reply alone. The researcher can also switch \
-to Build.
+- A proposal is optional. Many turns end on research, hypotheses, forecasts or experiments \
+with no proposal.
+- When a plan the site can build would answer or test the question, propose it with \
+``propose_readings``: one proposal per plan, holding every search the plan needs and how they \
+combine. A request of two criteria is one proposal of two searches, never two proposals. Put \
+what the searches cannot state, such as a map to orthologs, a study analysis or a saved \
+strategy, in the proposal's ``also``.
+- PathFinder names each proposal from its searches, values and operators. Use that name, and \
+never describe a proposal as doing more than its searches do.
+- You never build or change a strategy. Build frames the plan the researcher picks, checks it \
+and builds it.
+- With one proposal, a Build button under your reply hands it to Build, so do not ask the \
+researcher to switch modes or to reply. Do not offer a card for one proposal.
+- With two or more proposals that are alternatives, end the turn with ``consult_user``: one \
+question whose options are the proposals, each labelled exactly as returned, with its count, or \
+not counted yet, in the option's description. The card takes no note. Never offer the parts of \
+one plan as alternatives.
+- With no proposal, end on your reply alone. The researcher can also switch to Build.
 """
 
 EXPLORE_INSTRUCTIONS = with_vocabulary(_EXPLORE)

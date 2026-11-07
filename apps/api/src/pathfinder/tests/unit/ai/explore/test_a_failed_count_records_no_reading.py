@@ -6,18 +6,22 @@ import pytest
 from pydantic_ai import ModelRetry
 
 from pathfinder.ai.explore.explore_tools import propose_readings
-from pathfinder.ai.explore.readings_card import counted_labels
+from pathfinder.ai.explore.readings_card import proposal_counts
 from pathfinder.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
-from pathfinder.services.experiment.variant_comparison import VariantInput
+from pathfinder.services.experiment.reading_count import ProposedReading
 from pathfinder.tests._support.explore_turns import SITE, serve_recorded_readings
 from pathfinder.tests._support.run_context import lead_run_context
 
 
-def _reading(label: str, search_name: str, **parameters: Any) -> VariantInput:
-    return VariantInput.model_validate(
-        {"label": label, "search_name": search_name, "parameters": parameters}
+def _reading(label: str, search_name: str, **parameters: Any) -> ProposedReading:
+    return ProposedReading.model_validate(
+        {
+            "searches": [
+                {"label": label, "searchName": search_name, "parameters": parameters}
+            ]
+        }
     )
 
 
@@ -51,4 +55,7 @@ async def test_a_failed_call_records_none_of_its_readings(
     with pytest.raises(ModelRetry):
         await propose_readings(ctx, readings)
 
-    assert counted_labels(ctx.deps) == {}
+    assert (proposal_counts(ctx.deps), ctx.deps.state.domain.offered_readings) == (
+        {},
+        {},
+    )

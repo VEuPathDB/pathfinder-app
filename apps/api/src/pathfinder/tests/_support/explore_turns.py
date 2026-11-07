@@ -16,7 +16,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     UserPromptPart,
 )
-from veupathdb.wdk import WDKAnswer, WDKSearchConfig
+from veupathdb.wdk import WDKAnswer, WDKSearch, WDKSearchConfig
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from pathfinder.ai.capabilities.metering import ModelSpend
@@ -26,7 +26,7 @@ from pathfinder.ai.graph.explore_node import make_explore_node
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from pathfinder.domain.modes import EXPLORE_PHASE
-from pathfinder.services.experiment import variant_comparison
+from pathfinder.services.experiment import reading_count, variant_comparison
 from pathfinder.tests._support.record_classes import recorded_searches
 from pathfinder.tests._support.recorded_columns import recorded_body
 from pathfinder.tests._support.run_context import turn_runtime
@@ -34,6 +34,8 @@ from pathfinder.tests._support.run_context import turn_runtime
 SITE = "plasmodb"
 GENE_TYPE_REPORT = "report_gene_type_protein_coding"
 SIGNAL_PEPTIDE_REPORT = "report_signal_peptide_signalp6"
+FIRST_READING = "Predicted Signal Peptide: SignalP-6.0 (Plasmodium falciparum 3D7)"
+SECOND_READING = "Gene Type: protein coding, No (Plasmodium falciparum 3D7)"
 EXPLORE_PROMPT = "Which genes carry a signal peptide? [[arc:explore]]"
 PREFERENCE_PROMPT = (
     "I prefer SignalP 6.0. Which genes carry a signal peptide? [[arc:explore]]"
@@ -90,17 +92,40 @@ class ExploreDoubles:
         return [str(chunk["type"]) for chunk in self.chunks()]
 
 
-def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> RecordedReports:
-    served = RecordedReports(
-        answers={
-            SIGNAL_PEPTIDE: WDKAnswer.model_validate(
-                recorded_body(SIGNAL_PEPTIDE_REPORT)
-            ),
-            GENE_TYPE: WDKAnswer.model_validate(recorded_body(GENE_TYPE_REPORT)),
-        }
+def answer_with_ids(answer: WDKAnswer, ids: Sequence[str]) -> WDKAnswer:
+    """A recorded answer's meta with the gene ids a full read of it returns."""
+    records = [{"id": [{"name": "gene_source_id", "value": gene}]} for gene in ids]
+    return WDKAnswer.model_validate(
+        {"meta": answer.meta.model_dump(by_alias=True), "records": records}
     )
+
+
+def _recorded_with_ids() -> dict[str, WDKAnswer]:
+    coding = WDKAnswer.model_validate(recorded_body(GENE_TYPE_REPORT))
+    peptide = WDKAnswer.model_validate(recorded_body(SIGNAL_PEPTIDE_REPORT))
+    coding_ids = [f"PF3D7_{n:07d}" for n in range(coding.meta.records_returned())]
+    return {
+        GENE_TYPE: answer_with_ids(coding, coding_ids),
+        SIGNAL_PEPTIDE: answer_with_ids(
+            peptide, coding_ids[: peptide.meta.records_returned()]
+        ),
+    }
+
+
+async def _recorded_definition(
+    site_id: str, record_type: str, search_name: str
+) -> WDKSearch:
+    del site_id, record_type
+    return recorded_searches()[search_name]
+
+
+def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> RecordedReports:
+    """The recorded counts of both searches, each answer carrying as many gene
+    ids as it counts."""
+    served = RecordedReports(answers=_recorded_with_ids())
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
     monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
+    monkeypatch.setattr(reading_count, "read_search_definition", _recorded_definition)
     return served
 
 

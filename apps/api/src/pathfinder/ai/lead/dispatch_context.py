@@ -35,6 +35,7 @@ from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operat
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.operator_reading import read_operators
 from pathfinder.domain.strategy.orthology_request import OrthologyRequest
+from pathfinder.domain.strategy.reading_plan import picked_plan_text
 from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_reconciliation import (
@@ -43,12 +44,7 @@ from pathfinder.domain.strategy.spec_reconciliation import (
 from pathfinder.platform.model_keys import turn_paid_by
 
 
-def framing_goal(state: PipelineState) -> str:
-    """The text a fresh spec is framed from.
-
-    A clarification answers a request that was made earlier, so the pass reads
-    the original request and the answer to it, in that order.
-    """
+def _stated_goal(state: PipelineState) -> str:
     original = state.domain.original_request
     # The text alone: a sub-agent binds searches and reads no attached file.
     latest = state.user_prompt
@@ -57,6 +53,20 @@ def framing_goal(state: PipelineState) -> str:
     if not latest:
         return original
     return f"{original}\n\nThe user then clarified: {latest}"
+
+
+def framing_goal(state: PipelineState) -> str:
+    """The text a fresh spec is framed from.
+
+    A clarification answers a request that was made earlier, so the pass reads
+    the original request and the answer to it, in that order. A plan Explore
+    offered that the researcher picked follows, written out.
+    """
+    stated = _stated_goal(state)
+    picked = state.domain.picked_offer(state.user_prompt)
+    if picked is None:
+        return stated
+    return f"{stated}\n\n{picked_plan_text(picked)}"
 
 
 def message_asks(deps: LeadDeps) -> list[str]:

@@ -7,12 +7,13 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from veupathdb.errors import WDKError
 
-from pathfinder.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
+    FIRST_READING,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
+    SECOND_READING,
     SIGNAL_PEPTIDE_REPORT,
     serve_recorded_readings,
 )
@@ -72,13 +73,16 @@ async def test_the_pick_is_a_requirement(
         app=app,
         user_id=authed_user_id,
         connector=in_memory_jobs,
-        body=answer_card(cid, asked, [SECOND_LABEL], mode="explore"),
+        body=answer_card(cid, asked, [SECOND_READING], mode="explore"),
     )
     domain = await domain_of(cid)
     assert [(c.kind, c.requested_value, c.source) for c in domain.requirements] == [
-        (ConstraintKind.UNTYPED, SECOND_LABEL, ConstraintSource.USER_EXPLICIT)
+        (ConstraintKind.UNTYPED, SECOND_READING, ConstraintSource.USER_EXPLICIT)
     ]
-    assert domain.picked_readings == [SECOND_LABEL]
+    assert domain.picked_readings == [SECOND_READING]
+    assert domain.offered_readings[SECOND_READING].spec.criteria[0].search_name == (
+        "GenesByGeneType"
+    )
     assert "frame" in dispatched(chunks)
     assert (await turn_modes(cid))[-1] == ("assistant", "build")
 
@@ -98,11 +102,11 @@ async def test_the_pick_does_not_set_the_request_aside(
         app=app,
         user_id=authed_user_id,
         connector=in_memory_jobs,
-        body=answer_card(cid, asked, [FIRST_LABEL], mode="auto"),
+        body=answer_card(cid, asked, [FIRST_READING], mode="auto"),
     )
     domain = await domain_of(cid)
     assert EXPLORE_PROMPT in domain.request_messages
-    assert domain.reading_labels() == [FIRST_LABEL, SECOND_LABEL]
+    assert domain.reading_labels() == [FIRST_READING, SECOND_READING]
 
 
 async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_exchanges(
@@ -125,8 +129,8 @@ async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_excha
     )
     domain = await domain_of(cid)
     assert domain.exchanges[0].card == (
-        f"Readings offered: {FIRST_LABEL} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
-        f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
+        f"Readings offered: {FIRST_READING} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
+        f"{SECOND_READING} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
 
 

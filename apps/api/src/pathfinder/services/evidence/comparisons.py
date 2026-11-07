@@ -4,7 +4,9 @@ and without a control set."""
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.catalog import ParameterInfo
 
+from pathfinder.domain.strategy.operational_spec import StructureNode
 from pathfinder.services.experiment import (
+    reading_count,
     scored_comparison,
     search_reads,
     variant_comparison,
@@ -16,6 +18,16 @@ async def run_search_count(
 ) -> search_reads.SearchCount:
     """How many genes one search returns. No step is created."""
     return await search_reads.search_count(site_id, spec)
+
+
+async def run_reading_count(
+    site_id: str,
+    specs: list[variant_comparison.VariantSpec],
+    root: StructureNode,
+) -> reading_count.CountedReading:
+    """A proposal's spec and the genes its plan holds, counted from each search's
+    ids when it can be. No step is created."""
+    return await reading_count.count_reading(site_id, specs, root)
 
 
 async def run_search_membership(

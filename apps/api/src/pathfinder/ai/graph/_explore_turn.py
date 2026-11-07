@@ -96,14 +96,19 @@ def hand_over_reading(domain: StrategyDomainState, park: ParkedCall) -> None:
     domain.name_reading(ChosenReading(chosen=labels[0], alternatives=labels[1:]))
 
 
-def _offered(parked: ParkedCall, counts: Mapping[str, int]) -> str:
+def _counted(gene_count: int | None) -> str:
+    return "not counted yet" if gene_count is None else f"{gene_count} genes"
+
+
+def _offered(parked: ParkedCall, counts: Mapping[str, int | None]) -> str:
     offered = "; ".join(
-        f"{label} ({counts[label]} genes)" for label in card_labels(parked.tool_args)
+        f"{label} ({_counted(counts.get(label))})"
+        for label in card_labels(parked.tool_args)
     )
     return f"Readings offered: {offered}"
 
 
-def _card_words(parked: ParkedCall | None, counts: Mapping[str, int]) -> str:
+def _card_words(parked: ParkedCall | None, counts: Mapping[str, int | None]) -> str:
     if parked is None:
         return ""
     if hands_over(parked):
@@ -117,7 +122,7 @@ def explore_exchange(
     reply: str,
     parked: ParkedCall | None,
     answered: ParkedCall | None,
-    counts: Mapping[str, int],
+    counts: Mapping[str, int | None],
 ) -> Exchange:
     card = _card_words(parked, counts)
     if answered is None:

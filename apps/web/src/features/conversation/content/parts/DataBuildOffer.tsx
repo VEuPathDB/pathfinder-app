@@ -23,14 +23,17 @@ export function DataBuildOffer({
   const setMode = useThreadModeStore((s) => s.setMode);
   const chat = useChatHelpers();
   if (!isLast || conversationId === null) return null;
+  const counted =
+    data.geneCount === null
+      ? "not counted yet"
+      : `${data.geneCount.toLocaleString()} ${countNoun("transcript", data.geneCount)}`;
   return (
     <div
       data-testid="build-offer"
       className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm"
     >
       <span className="text-muted-foreground">
-        {data.label} ({data.geneCount.toLocaleString()}{" "}
-        {countNoun("transcript", data.geneCount)})
+        {data.label} ({counted})
       </span>
       <Button
         size="sm"
@@ -42,6 +45,14 @@ export function DataBuildOffer({
       >
         <Hammer className="mr-1 size-4" aria-hidden /> Build it
       </Button>
+      {data.also !== undefined && data.also !== "" ? (
+        <p
+          data-testid="build-offer-also"
+          className="w-full text-xs text-muted-foreground"
+        >
+          Also suggested: {data.also}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -22140,8 +22140,20 @@
             "type": "string"
           },
           "geneCount": {
-            "title": "Genecount",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genecount"
+          },
+          "also": {
+            "default": "",
+            "title": "Also",
+            "type": "string"
           }
         },
         "required": [

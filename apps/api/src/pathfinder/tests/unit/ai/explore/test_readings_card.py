@@ -9,13 +9,14 @@ from pydantic_ai import ModelRetry, RunContext
 
 from pathfinder.ai.explore.readings_card import (
     card_labels,
-    counted_labels,
+    proposal_counts,
     readings_card_can_ask,
 )
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind
-from pathfinder.services.experiment.search_reads import SearchCount
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.reading_plan import OfferedReading
 from pathfinder.tests._support.run_context import lead_run_context
 
 CALL_ID = "call_readings_card"
@@ -29,10 +30,12 @@ _PROMPT = "Which reading should the strategy build?"
 def ctx() -> RunContext[LeadDeps]:
     context = lead_run_context(tool_call_id=CALL_ID)
     for label, count in _COUNTS.items():
-        counted = SearchCount(
-            label=label, search_name="GenesWithSignalPeptide", gene_count=count
+        context.deps.state.domain.offer_reading(
+            OfferedReading(
+                label=label, gene_count=count, spec=OperationalSpec(goal=label)
+            )
         )
-        context.deps.state.turn_markers.record_comparison(counted.fact())
+        context.deps.state.turn_markers.proposed_readings.append(label)
     return context
 
 
@@ -60,8 +63,8 @@ def consult_args(*labels: str) -> dict[str, JsonValue]:
     }
 
 
-def test_the_counted_labels_are_read_from_the_turn(ctx: RunContext[LeadDeps]) -> None:
-    assert counted_labels(ctx.deps) == _COUNTS
+def test_the_proposals_are_read_from_the_turn(ctx: RunContext[LeadDeps]) -> None:
+    assert proposal_counts(ctx.deps) == _COUNTS
 
 
 async def test_a_card_of_the_counted_readings_is_asked(
@@ -89,7 +92,7 @@ async def test_a_card_with_no_reading_is_refused(ctx: RunContext[LeadDeps]) -> N
 
 
 def test_a_card_of_one_counted_reading_is_refused(ctx: RunContext[LeadDeps]) -> None:
-    assert FIRST_LABEL in counted_labels(ctx.deps)
+    assert proposal_counts(ctx.deps)[FIRST_LABEL] == 479
 
     with pytest.raises(ValidationError, match="no choice"):
         card(FIRST_LABEL)

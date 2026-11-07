@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A thread answers in Explore or Build
-description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore offers one buildable reading on a Build it button and two or more on a readings card whose pick resumes in Build, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
+description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore proposes whole plans (searches and their combines, counted locally, named by PathFinder) and offers one on a Build it button and two or more on a readings card, and the picked plan is written into the text FRAME frames from, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
 tags: [modes, explore, router, decisions, lead, graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-06T00:00:00Z }
 status: stable
@@ -106,21 +106,36 @@ researcher with no picks, are left as they are.
 When Explore's model never answers, its stop reply names the Exploring stage
 (`fallback_prose(..., own_stage="explore")`); every Build stop reply is unchanged.
 
-**The hand-over.** When the conversation has exactly one reading the site can build
-directly, Explore counts it with `propose_readings` and ends on its reply; no card parks. The
-Explore node then writes a `data-build-offer` part with the reading's label and gene count
-(`explore_node._offer_the_build`), and the web shows it under the last reply as a Build it
-button (`content/parts/DataBuildOffer.tsx`) that switches the thread to Build and sends
-`Build "<label>".` A turn that parks a card, or counts no reading or more than one, writes no offer. When it has two
-or more, Explore counts them with `propose_readings` and ends on `consult_user`. Its validator
-(`ai/explore/readings_card.py`) admits only one untyped question whose options are two or
-more counted readings, with no note and no replaced requirement. The card parks under the
-`readings` phase (`READINGS_PHASE`, `domain/modes.py`), which routes to the Lead, so a pick
-resumes in Build, while a typed message over it routes by the mode. When the card parks,
-`hand_over_reading` records its labels as one named reading. The Lead's
-existing consult path (`ai/lead/lead_consult.py`) then states the pick as a requirement and
-Build runs on. Explore writes its exchange and the researcher's words into the shared state,
-and never writes `requirements`, `operational_spec` or `original_request`.
+**The hand-over.** Explore proposes a plan only when one would answer or test the question;
+many turns end on research, hypotheses, forecasts or experiments alone. A proposal
+(`ProposedReading`, `services/experiment/reading_count.py`) is the catalog searches of one plan
+and how they combine, plus words (`also`) for what the searches cannot state, such as a map to
+orthologs, a study analysis or a saved strategy. `propose_readings` resolves each search, builds
+the plan's `OperationalSpec`, names it from its searches, values and operators
+(`domain/strategy/reading_plan.py::reading_label`; the model writes no label) and counts it
+locally: each search's gene ids are read (up to 50,000) and combined here, so no step is saved on
+the site. A search with more ids than the read holds leaves the plan not counted yet. Every
+proposal is counted before any is recorded, so a failed call records none. Each proposal is kept
+in `StrategyDomainState.offered_readings`, which a new Build request does not set aside.
+
+With one proposal and no card, the Explore node writes a `data-build-offer` part (label, gene
+count or none, `also`), shown under the last reply as a Build it button
+(`content/parts/DataBuildOffer.tsx`) that switches the thread to Build and sends
+`Build "<label>".` With two or more alternatives Explore ends on `consult_user`; its validator
+(`ai/explore/readings_card.py`) admits one untyped question whose options are this turn's
+proposals, with no note and no replaced requirement. The card parks under the `readings` phase
+(`READINGS_PHASE`, `domain/modes.py`), which routes to the Lead, so a pick resumes in Build,
+while a typed message over it routes by the mode. When the card parks, `hand_over_reading`
+records its labels as one named reading, and the Lead's consult path (`ai/lead/lead_consult.py`)
+states the pick as a requirement.
+
+Build is not bypassed. The plan a `Build "<label>".` message names, else the one a card answer
+picked last (`picked_offer`), is written out into the text FRAME frames from
+(`dispatch_context.framing_goal`, `reading_plan.picked_plan_text`): each search with its wire
+values and the structure, with Explore's words after it. FRAME frames it as stated and changes it
+only where a requirement or the site disagrees, and the Lead checks, builds and verifies it as
+any request. Explore writes its exchange and the researcher's words into the shared state, and
+never writes `requirements`, `operational_spec` or `original_request`.
 
 # Why
 
@@ -147,6 +162,15 @@ A resume skips the router because the parked call belongs to one agent's run. Se
 other agent, the answer finds no call to resume.
 
 # Rejected
+
+**A Build it button that builds the plan with no model.** It skips what Build does before a
+build: the requirement links verification checks, the organism and vocabulary checks, and the
+questions a plan leaves open. Explore runs on the faster tier and does none of them.
+
+**A reading of one search.** Asked for 7-TM proteins with no ortholog in other Diptera on
+2026-11-07, Explore handed one search to Build in five of six runs, and the Lead built that half
+in both runs that reached it; one run offered the two halves as alternatives on the card, and one
+named a 7-TM search for an orthology filter it did not apply.
 
 **A readings card with one option.** `CardQuestion` refuses a question with one option as no
 choice, and a card parks the turn for an answer the researcher already gave by asking. The

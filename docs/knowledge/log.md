@@ -2,6 +2,11 @@
 
 ## 2026-11-07
 
+* **Explore proposes whole plans.** A proposal is the searches of one plan and how they combine,
+  with words for what they cannot state; PathFinder names it from its steps and counts it from
+  each search's gene ids, and a failed count records nothing. Build it and a card pick hand the
+  plan to Build, whose framing text carries it; Build still frames, checks, builds and verifies.
+  See [the decision](decisions/a-thread-answers-in-explore-or-build.md).
 * **The composer shows all three modes, one reading builds from a button, and memory can be
   turned off.** The mode pill that cycled Auto, Explore and Build is a three-way switch
   (`ModeSwitch.tsx`). An Explore turn that counted one buildable reading and parked no card

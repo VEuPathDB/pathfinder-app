@@ -8,19 +8,19 @@ from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.models.mock.explore_arc import (
-    FIRST_LABEL,
     NO_READING,
     ONE_READING,
     READINGS_REPLY,
-    SECOND_LABEL,
 )
 from pathfinder.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from pathfinder.tests._support.explore_turns import (
     EXPLORE_PROMPT,
+    FIRST_READING,
     GENE_TYPE_REPORT,
     NO_READING_PROMPT,
     ONE_READING_PROMPT,
     PREFERENCE_PROMPT,
+    SECOND_READING,
     SIGNAL_PEPTIDE_REPORT,
     ExploreDoubles,
     chunks_of,
@@ -66,11 +66,11 @@ async def test_an_explore_turn_writes_the_hand_over(doubles: ExploreDoubles) -> 
 
     assert domain.exchanges[-1].said == EXPLORE_PROMPT
     assert domain.exchanges[-1].card == (
-        f"Readings offered: {FIRST_LABEL} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
-        f"{SECOND_LABEL} ({recorded_count(GENE_TYPE_REPORT)} genes)"
+        f"Readings offered: {FIRST_READING} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
+        f"{SECOND_READING} ({recorded_count(GENE_TYPE_REPORT)} genes)"
     )
     assert domain.exchanges[-1].reply == READINGS_REPLY
-    assert domain.reading_labels() == [FIRST_LABEL, SECOND_LABEL]
+    assert domain.reading_labels() == [FIRST_READING, SECOND_READING]
     assert EXPLORE_PROMPT in domain.request_messages
     assert domain.requirements == []
     assert domain.operational_spec is None
@@ -134,7 +134,7 @@ async def test_an_answered_preference_resumes_explore_to_the_readings_card(
     assert (park.phase, park.tool_name) == (READINGS_PHASE, "consult_user")
     assert domain_of(resumed).exchanges[-1].kind == "card_answer"
     assert domain_of(resumed).exchanges[-1].said == "yes"
-    assert domain_of(resumed).reading_labels() == [FIRST_LABEL, SECOND_LABEL]
+    assert domain_of(resumed).reading_labels() == [FIRST_READING, SECOND_READING]
     assert doubles.replies()[-1] == READINGS_REPLY
 
 
@@ -146,7 +146,7 @@ async def test_one_buildable_reading_is_counted_and_offered_to_build(
     [facts] = doubles.of_type("data-facts")
     [comparison] = facts["data"]["comparisons"]
     assert [(v["label"], v["geneCount"]) for v in comparison["variants"]] == [
-        (FIRST_LABEL, recorded_count(SIGNAL_PEPTIDE_REPORT))
+        (FIRST_READING, recorded_count(SIGNAL_PEPTIDE_REPORT))
     ]
     assert "pending_approval" not in update_of(command)
     assert doubles.of_type("tool-approval-request") == []
@@ -154,7 +154,11 @@ async def test_one_buildable_reading_is_counted_and_offered_to_build(
     assert domain_of(command).named_readings == []
     assert domain_of(command).exchanges[-1].card == ""
     assert [c["data"] for c in doubles.of_type("data-build-offer")] == [
-        {"label": FIRST_LABEL, "geneCount": recorded_count(SIGNAL_PEPTIDE_REPORT)}
+        {
+            "label": FIRST_READING,
+            "geneCount": recorded_count(SIGNAL_PEPTIDE_REPORT),
+            "also": "",
+        }
     ]
 
 

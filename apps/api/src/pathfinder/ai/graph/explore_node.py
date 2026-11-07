@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 from uuid import uuid4
@@ -34,7 +34,7 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
 from pathfinder.ai.explore.explore_agent import ExploreAgent, build_explore_agent
 from pathfinder.ai.explore.explore_model import resolve_explore_model_context
-from pathfinder.ai.explore.readings_card import counted_labels
+from pathfinder.ai.explore.readings_card import proposal_counts, proposals
 from pathfinder.ai.graph._explore_turn import (
     ExploreTurn,
     explore_exchange,
@@ -77,6 +77,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import lead_usage_limits
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.reply_note import render_note
+from pathfinder.domain.strategy.reading_plan import OfferedReading
 from pathfinder.platform.tiers import EXPLORE_ROLE
 
 _FINALIZE: Literal["finalize_turn"] = "finalize_turn"
@@ -228,11 +229,18 @@ def _show_the_reply(
 def _offer_the_build(
     writer: Any,
     parked: PendingApproval | PendingDurableCall | None,
-    counts: Mapping[str, int],
+    proposed: Sequence[OfferedReading],
 ) -> None:
-    match list(counts.items()):
-        case [(label, gene_count)] if parked is None:
-            emit_chunk(writer, build_offer_event(label=label, gene_count=gene_count))
+    match proposed:
+        case [reading] if parked is None:
+            emit_chunk(
+                writer,
+                build_offer_event(
+                    label=reading.label,
+                    gene_count=reading.gene_count,
+                    also=reading.also,
+                ),
+            )
         case _:
             return
 
@@ -288,7 +296,7 @@ async def _run_explore_turn(
         writer,
     )
     reply = _show_the_reply(writer, deps, hold, _reply_of(state, run))
-    _offer_the_build(writer, run.parked, counted_labels(deps))
+    _offer_the_build(writer, run.parked, proposals(deps))
     if run.parked is not None and hands_over(run.parked):
         hand_over_reading(state.domain, run.parked)
     state.domain.record_exchange(
@@ -297,7 +305,7 @@ async def _run_explore_turn(
             reply=reply,
             parked=run.parked,
             answered=turn.answered,
-            counts=counted_labels(deps),
+            counts=proposal_counts(deps),
         )
     )
     await charge_spend(

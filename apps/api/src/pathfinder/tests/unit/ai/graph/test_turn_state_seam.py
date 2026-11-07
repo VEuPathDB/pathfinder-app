@@ -75,6 +75,7 @@ DOMAIN_FIELDS = {
     "open_questions",
     "recommendations",
     "named_readings",
+    "offered_readings",
     "picked_readings",
     "organism_picks",
     "original_request",

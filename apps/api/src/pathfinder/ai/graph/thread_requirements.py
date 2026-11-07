@@ -31,6 +31,7 @@ from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
 )
+from pathfinder.domain.strategy.reading_plan import OfferedReading, label_built_by
 from pathfinder.domain.strategy.readings import AcceptedReading
 from pathfinder.domain.strategy.requirement_lifecycle import (
     RetiredRequirement,
@@ -70,6 +71,7 @@ class ThreadRequirements(BaseModel):
     # requirement on the same dimension replaces one.
     recommendations: list[StoredConstraint] = Field(default_factory=list)
     named_readings: list[ChosenReading] = Field(default_factory=list)
+    offered_readings: dict[str, OfferedReading] = Field(default_factory=dict)
     picked_readings: list[str] = Field(default_factory=list)
     organism_picks: list[OrganismPick] = Field(default_factory=list)
 
@@ -85,6 +87,17 @@ class ThreadRequirements(BaseModel):
     def name_reading(self, reading: ChosenReading | None) -> None:
         if reading is not None and reading not in self.named_readings:
             self.named_readings.append(reading)
+
+    def offer_reading(self, offered: OfferedReading) -> None:
+        self.offered_readings[offered.label] = offered
+
+    def picked_offer(self, message: str) -> OfferedReading | None:
+        """The plan Explore offered that this message builds, else the one a
+        card answer picked last."""
+        for label in (label_built_by(message), *reversed(self.picked_readings)):
+            if label is not None and label in self.offered_readings:
+                return self.offered_readings[label]
+        return None
 
     def pick_reading(self, label: str) -> None:
         if label not in self.picked_readings:
