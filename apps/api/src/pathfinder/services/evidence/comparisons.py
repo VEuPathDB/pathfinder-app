@@ -1,6 +1,7 @@
 """The comparison part of the evidence facade: running search variants with
 and without a control set."""
 
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -43,6 +44,15 @@ async def run_variant_comparison(
 ) -> variant_comparison.VariantComparison:
     """Run each variant and compare the result gene sets. Nothing is scored."""
     return await variant_comparison.run_variant_comparison(site_id, specs)
+
+
+async def variant_phyletic_values(
+    site_id: str, record_type: str, search_name: str, lists: dict[str, str]
+) -> dict[str, ParamValue]:
+    """The orthology profile values the two species lists derive."""
+    return await variant_comparison.phyletic_values(
+        site_id, record_type, search_name, lists
+    )
 
 
 async def variant_search_parameters(

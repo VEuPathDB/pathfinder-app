@@ -20,7 +20,13 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import Field
 from veupathdb import strip_html_tags
-from veupathdb.domain.parameters import ParamValue, to_wire, wire_map
+from veupathdb.domain.parameters import (
+    ParamValue,
+    PhyleticBinding,
+    StringValue,
+    to_wire,
+    wire_map,
+)
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import (
@@ -29,7 +35,13 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     get_wdk_client,
 )
-from veupathdb_mcp.catalog import ParameterInfo, wdk_fetch_at
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    PhyleticListError,
+    derive_phyletic_overrides,
+    read_search_definition,
+    wdk_fetch_at,
+)
 from veupathdb_mcp.wdk import (
     compute_plan_step_counts,
     extract_pk,
@@ -118,6 +130,23 @@ async def search_parameters(
     """The parameters the site's search takes, each with the vocabulary the
     parent values in ``context`` give it."""
     return await wdk_fetch_at(site_id, record_type, search_name)(context)
+
+
+async def phyletic_values(
+    site_id: str, record_type: str, search_name: str, lists: dict[str, str]
+) -> dict[str, ParamValue]:
+    """The pattern and the two species lists of an orthology profile search,
+    derived from the lists as a step of the search derives them. Raises
+    ``PhyleticListError`` for lists that select nothing or name no entry."""
+    definition = await read_search_definition(site_id, record_type, search_name)
+    match derive_phyletic_overrides(list(definition.parameters or []), lists):
+        case PhyleticBinding() as binding:
+            return {
+                name: StringValue(value=value)
+                for name, value in binding.model_dump().items()
+            }
+        case refused:
+            raise PhyleticListError(refused)
 
 
 def _in_place(ast: StrategyAst, step_id: str, spec: VariantSpec) -> StrategyAst:

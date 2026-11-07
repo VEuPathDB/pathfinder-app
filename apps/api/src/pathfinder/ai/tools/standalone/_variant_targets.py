@@ -12,6 +12,7 @@ from difflib import get_close_matches
 from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
+    PHYLETIC_LIST_PARAMS,
     MultiPickValue,
     ParamValue,
     SinglePickValue,
@@ -22,6 +23,8 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
 from veupathdb_mcp.catalog import (
     ParameterInfo,
+    PhyleticListError,
+    is_phyletic_sheet,
 )
 
 from pathfinder.ai.tools.standalone._frame_proposals import (
@@ -32,7 +35,10 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services.evidence.comparisons import variant_search_parameters
+from pathfinder.services.evidence.comparisons import (
+    variant_phyletic_values,
+    variant_search_parameters,
+)
 from pathfinder.services.experiment.variant_comparison import (
     VariantInput,
     VariantSpec,
@@ -262,6 +268,22 @@ def _site_set(infos: dict[str, ParameterInfo]) -> dict[str, ParamValue]:
     }
 
 
+async def _derived_phyletic(
+    site_id: str, variant: VariantSpec
+) -> dict[str, ParamValue]:
+    lists = {
+        name: to_wire(variant.parameters[name])
+        for name in PHYLETIC_LIST_PARAMS
+        if name in variant.parameters
+    }
+    try:
+        return await variant_phyletic_values(
+            site_id, variant.record_type, variant.search_name, lists
+        )
+    except PhyleticListError as refused:
+        raise ModelRetry(refused.detail or refused.title) from refused
+
+
 type _Search = tuple[str, str]
 
 
@@ -331,5 +353,7 @@ async def resolved_variants(
             if name not in site_set
         }
         entries = {**_published_defaults(variant, infos), **entries, **site_set}
+        if is_phyletic_sheet(list(infos.values())):
+            entries = {**entries, **await _derived_phyletic(site_id, variant)}
         checked.append(variant.model_copy(update={"parameters": entries}))
     return checked
