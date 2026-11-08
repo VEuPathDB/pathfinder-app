@@ -2,6 +2,14 @@
 
 ## 2026-11-08
 
+* **A read the site did not answer is named, not the whole strategy.** The check's verdict said
+  "the site did not answer, so the strategy is not checked" whenever any one read went
+  unanswered, although three checks of a 2,195-gene strategy had passed and only its organism
+  count was missing. Only an unanswered read of the strategy itself still says so; any other
+  names what went unanswered beside the passes ("3 checks passed; the site did not answer the
+  organism count of step ..., so that is not checked"). The organism count is asked once more
+  before it is held unanswered; a read the site answered with a status is not asked again. The
+  same count on QA answers in 1.5 to 2 s.
 * **A phone has one bar.** Below 640px both side rails give way to one bar along the bottom
   edge (`app/components/PhoneBar.tsx`) that scrolls sideways: the conversation list, Conversation,
   Saved strategies, the open conversation's panel buttons (the right rail draws them into the

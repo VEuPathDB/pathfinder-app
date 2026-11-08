@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 from pydantic_ai import ToolFailed
@@ -158,6 +158,19 @@ async def _strategy_checks(judged: _Judged) -> list[SiteCheck]:
     ]
 
 
+async def _asked_twice[T](root: SiteStep, read: Callable[[], Awaitable[T]]) -> T:
+    try:
+        return await read_in_time(
+            "the organism count", root.named, read(), deadline=READ_DEADLINE_SECONDS
+        )
+    except ToolFailed as failed:
+        if answered_with_a_status(failed.__cause__):
+            raise
+    return await read_in_time(
+        "the organism count", root.named, read(), deadline=READ_DEADLINE_SECONDS
+    )
+
+
 async def _counted_organisms(
     judged: _Judged, root: SiteStep
 ) -> CountedOrganisms | UnreadOrganisms:
@@ -172,11 +185,8 @@ async def _counted_organisms(
         step_url=None,
     )
     try:
-        tally = await read_in_time(
-            "the organism count",
-            root.named,
-            run_step_tally(counted, GENOME_COLUMN, MAX_COLUMN_COUNT_TOP),
-            deadline=READ_DEADLINE_SECONDS,
+        tally = await _asked_twice(
+            root, lambda: run_step_tally(counted, GENOME_COLUMN, MAX_COLUMN_COUNT_TOP)
         )
     except ReporterRefusedError:
         return _refused_organisms(root)
@@ -209,13 +219,11 @@ async def _paged_organisms(
     judged: _Judged, root: SiteStep
 ) -> CountedOrganisms | UnreadOrganisms:
     try:
-        paged = await read_in_time(
-            "the organism count",
-            root.named,
-            count_paged_values(
+        paged = await _asked_twice(
+            root,
+            lambda: count_paged_values(
                 judged.site_id, root.wdk_step_id, root.record_class, GENOME_COLUMN
             ),
-            deadline=READ_DEADLINE_SECONDS,
         )
     except ToolFailed as failed:
         if answered_with_a_status(failed.__cause__):

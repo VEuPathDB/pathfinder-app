@@ -127,6 +127,18 @@ def unanswered_checks(why: str) -> list[SiteCheck]:
     ]
 
 
+def unanswered_verdict(checks: Sequence[SiteCheck]) -> str | None:
+    unanswered = [check for check in checks if check.site_unanswered]
+    if not unanswered:
+        return None
+    if any(check.subject == _STRATEGY for check in unanswered):
+        return "The site did not answer, so the strategy is not checked"
+    passed = sum(check.status == "pass" for check in checks)
+    named = "; ".join(check.evidence for check in unanswered)
+    those = "that is" if len(unanswered) == 1 else "those are"
+    return f"{counted(passed, 'check')} passed; {named}, so {those} not checked"
+
+
 def unanswered_columns(step: str) -> SiteCheck:
     return SiteCheck(
         kind="step_columns",

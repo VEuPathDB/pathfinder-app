@@ -295,7 +295,7 @@ async def test_a_refused_reporter_is_not_sent_again_until_its_refusal_lapses(
     assert (sent_while_held, len(server.counted)) == (1, 2)
 
 
-async def test_an_organism_count_the_site_does_not_answer_is_sent_next_turn(
+async def test_an_organism_count_the_site_does_not_answer_is_asked_twice_each_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server = ToolServer(refusal=_connect_error())
@@ -306,7 +306,7 @@ async def test_an_organism_count_the_site_does_not_answer_is_sent_next_turn(
 
     organism = _organism(digest.review.checks)
     assert (organism.status, organism.why_unchecked) == ("unchecked", "site_unanswered")
-    assert (digest.success, digest.not_checked, len(server.counted)) == (False, True, 2)
+    assert (digest.success, digest.not_checked, len(server.counted)) == (False, True, 4)
 
 
 class _Unreached:

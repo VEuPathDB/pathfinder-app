@@ -42,7 +42,7 @@ from pathfinder.domain.caveats import BuildCaveat, Gap, check_gaps, measured_cav
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
 from pathfinder.domain.separation import AttachedControls
-from pathfinder.domain.site_checks import SiteCheck, failed
+from pathfinder.domain.site_checks import SiteCheck, failed, unanswered_verdict
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
 from pathfinder.services.strategies.bound_uploads import uploads_the_specs_run_on
@@ -252,16 +252,16 @@ def _build(deps: LeadDeps) -> BuildCaveat | None:
     return build_contradiction(ledger.build, built_step_count=len(live))
 
 
-def _verdict(build: BuildCaveat | None, gaps: list[Gap], *, unanswered: bool) -> str:
+def _verdict(
+    build: BuildCaveat | None, gaps: list[Gap], checks: list[SiteCheck]
+) -> str:
     found = [
         *([] if build is None else [build.sentence]),
         *(gap.sentence for gap in gaps if gap.fails_the_check),
     ]
     if found:
         return "; ".join(found)
-    if unanswered:
-        return "The site did not answer, so the strategy is not checked"
-    return "No check of the strategy on the site failed"
+    return unanswered_verdict(checks) or "No check of the strategy on the site failed"
 
 
 def _decided(
@@ -286,7 +286,7 @@ def _decided(
                 if any(check.breaks_the_structure for check in checks)
                 else None
             ),
-            "reason": _verdict(build, gaps, unanswered=unanswered),
+            "reason": _verdict(build, gaps, checks),
             "pending_checks": [] if graph is None else unread_analyses(graph),
             "review": checked.review.model_copy(
                 update={"checks": checks, "column_fits": fits}

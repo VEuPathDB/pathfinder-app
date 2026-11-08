@@ -80,6 +80,7 @@ class TallySite:
 class ToolServer:
     counts: ColumnCounts | None = None
     refusal: Exception | None = None
+    refused_asks: int | None = None
     listed: StepColumns | None = None
     counted: list[tuple[str, int, str, int]] = field(default_factory=list)
     listed_for: list[tuple[str, int]] = field(default_factory=list)
@@ -95,7 +96,8 @@ class ToolServer:
     ) -> ColumnCounts:
         assert budget_seconds is None
         self.counted.append((site_id, step_id, column, top))
-        if self.refusal is not None:
+        refusing = self.refused_asks is None or len(self.counted) <= self.refused_asks
+        if self.refusal is not None and refusing:
             raise self.refusal
         assert self.counts is not None
         return self.counts
