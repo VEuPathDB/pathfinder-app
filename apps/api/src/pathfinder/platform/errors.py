@@ -52,6 +52,7 @@ class ErrorCode(StrEnum):
     EDIT_REFUSED = "EDIT_REFUSED"
     ASSISTANT_NOT_FOUND = "ASSISTANT_NOT_FOUND"
     ASSISTANT_MISMATCH = "ASSISTANT_MISMATCH"
+    AUDITS_NOT_OFFERED = "AUDITS_NOT_OFFERED"
 
     # EDA
     EDA_NO_OPEN_ANALYSIS = "EDA_NO_OPEN_ANALYSIS"
@@ -274,6 +275,16 @@ class AssistantNotFoundError(AppError):
                 f"No assistant {assistant_id!r} is installed. "
                 f"Installed: {', '.join(known)}."
             ),
+        )
+
+
+class AuditsNotOfferedError(AppError):
+    def __init__(self, *, site: str) -> None:
+        super().__init__(
+            code=ErrorCode.AUDITS_NOT_OFFERED,
+            title="Audits not offered",
+            status=403,
+            detail=f"{site} does not offer the gene model audit.",
         )
 
 

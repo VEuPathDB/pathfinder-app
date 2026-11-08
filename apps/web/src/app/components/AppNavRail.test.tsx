@@ -15,10 +15,11 @@ vi.mock("next/navigation", () => ({
 
 import { AppNavRail } from "./AppNavRail";
 
-function draw() {
+function draw(offersAudits = true) {
   return render(
     <AppNavRail
       siteId="plasmodb"
+      offersAudits={offersAudits}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
     />,
@@ -74,6 +75,13 @@ describe("AppNavRail section links", () => {
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
     expect(hrefs).toEqual(["/conversation", "/saved", "/audits"]);
+  });
+
+  it("offers no audits link on a site that offers no audit", async () => {
+    draw(false);
+    await screen.findByRole("link", { name: "Conversation" });
+    const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(["/conversation", "/saved"]);
   });
 
   it("names the audits link and marks it current on an audit page", async () => {

@@ -16,6 +16,7 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
     pageUrl: `${origin}/${id}/app/pathfinder`,
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   };
 }
 

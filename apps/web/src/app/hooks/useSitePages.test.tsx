@@ -34,6 +34,7 @@ function site(id: string, origin: string, webapp: string): SiteResponse {
     pageUrl: `${origin}/${webapp}/app/pathfinder`,
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   };
 }
 

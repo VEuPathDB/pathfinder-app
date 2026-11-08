@@ -26,6 +26,7 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
     pageUrl: `${origin}/${id}/app/pathfinder`,
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   };
 }
 
@@ -48,13 +49,26 @@ function currentSiteWith(sites: SiteResponse[]) {
 }
 
 describe("useCurrentSite", () => {
+  it("offers audits where the current site does", () => {
+    const offering = {
+      ...site("plasmodb", window.location.origin),
+      offersAudits: true,
+    };
+    expect(currentSiteWith([offering]).offersAudits).toBe(true);
+  });
+
   it("is the component site whose website frames PathFinder", () => {
     expect(
       currentSiteWith([
         site("veupathdb", "https://muharram.veupathdb.org", true),
         site("plasmodb", window.location.origin),
       ]),
-    ).toEqual({ siteId: "plasmodb", isPortal: false, conversationSite: null });
+    ).toEqual({
+      siteId: "plasmodb",
+      isPortal: false,
+      conversationSite: null,
+      offersAudits: false,
+    });
   });
 
   it("is the portal on the portal's website", () => {
@@ -63,7 +77,12 @@ describe("useCurrentSite", () => {
         site("veupathdb", window.location.origin, true),
         site("plasmodb", "https://muharram.plasmodb.org"),
       ]),
-    ).toEqual({ siteId: "veupathdb", isPortal: true, conversationSite: null });
+    ).toEqual({
+      siteId: "veupathdb",
+      isPortal: true,
+      conversationSite: null,
+      offersAudits: false,
+    });
   });
 
   it("is the deployment's configured site on a host no site names", () => {
@@ -72,6 +91,11 @@ describe("useCurrentSite", () => {
         site("veupathdb", "https://muharram.veupathdb.org", true),
         site("toxodb", "https://muharram.toxodb.org"),
       ]),
-    ).toEqual({ siteId: "toxodb", isPortal: false, conversationSite: null });
+    ).toEqual({
+      siteId: "toxodb",
+      isPortal: false,
+      conversationSite: null,
+      offersAudits: false,
+    });
   });
 });

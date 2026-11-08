@@ -51,7 +51,7 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const conversationId = conversationIdFromPath(pathname);
-  const { siteId: selectedSite, conversationSite } = useCurrentSite();
+  const { siteId: selectedSite, conversationSite, offersAudits } = useCurrentSite();
   const elsewhereSite = conversationSite !== selectedSite ? conversationSite : null;
 
   // Mirror the resolved site into the session store, where readers outside
@@ -110,6 +110,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <div ref={layoutRef} className="relative flex min-h-0 flex-1 overflow-hidden">
         <AppNavRail
           siteId={selectedSite}
+          offersAudits={offersAudits}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}
         />

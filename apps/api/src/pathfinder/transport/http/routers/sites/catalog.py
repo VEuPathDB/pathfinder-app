@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from veupathdb_mcp import catalog
 
+from pathfinder.domain.audit.offered import offers_audits
 from pathfinder.platform.readiness import get_readiness
 from pathfinder.services.site_pages import pathfinder_page_url, sign_in_url
 from pathfinder.transport.http.deps import AvailableSite
@@ -43,6 +44,7 @@ async def list_sites() -> list[SiteResponse]:
                     "signInUrl": sign_in_url(s),
                     "pageUrl": pathfinder_page_url(s),
                     "available": available,
+                    "offersAudits": offers_audits(s.base_url),
                     "unavailableReason": reason,
                 }
             )

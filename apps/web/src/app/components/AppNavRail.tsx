@@ -21,6 +21,7 @@ import { RailQuotaMeter } from "./RailQuotaMeter";
 
 interface AppNavRailProps {
   siteId: string;
+  offersAudits: boolean;
   onToggleSidebar: () => void;
   sidebarExpanded: boolean;
 }
@@ -39,6 +40,7 @@ const NAV: NavSpec[] = [
 
 export function AppNavRail({
   siteId,
+  offersAudits,
   onToggleSidebar,
   sidebarExpanded,
 }: AppNavRailProps) {
@@ -71,7 +73,7 @@ export function AppNavRail({
 
         <div className="my-1 h-px w-6 bg-border" />
 
-        {NAV.map((item) => {
+        {NAV.filter((item) => offersAudits || item.href !== auditsUrl()).map((item) => {
           const href = item.href;
           const active = pathname.startsWith(href);
           const Icon = item.icon;

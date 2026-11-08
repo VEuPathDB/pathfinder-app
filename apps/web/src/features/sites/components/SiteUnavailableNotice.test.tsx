@@ -22,6 +22,7 @@ function site(over: Partial<SiteResponse>): SiteResponse {
     pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
     available: true,
     unavailableReason: null,
+    offersAudits: false,
     ...over,
   };
 }
@@ -33,6 +34,7 @@ const PORTAL_DOWN = site({
   isPortal: true,
   available: false,
   unavailableReason: "the site did not answer in time",
+  offersAudits: false,
 });
 
 function draw(siteId: string, rows: SiteResponse[] | undefined) {

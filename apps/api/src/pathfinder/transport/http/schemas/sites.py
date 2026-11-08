@@ -20,6 +20,7 @@ class SiteResponse(CamelModel):
     page_url: str
     available: bool
     unavailable_reason: str | None = None
+    offers_audits: bool
 
 
 class RecordTypeResponse(CamelModel):

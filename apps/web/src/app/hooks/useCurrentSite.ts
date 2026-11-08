@@ -14,6 +14,7 @@ export function useCurrentSite(): {
   siteId: string;
   isPortal: boolean;
   conversationSite: string | null;
+  offersAudits: boolean;
 } {
   const { data: sites } = useSuspenseQuery(sitesOptions());
   const origin = usePageOrigin();
@@ -26,5 +27,6 @@ export function useCurrentSite(): {
     siteId,
     isPortal: sites.some((site) => site.id === siteId && site.isPortal),
     conversationSite: conversation?.siteId ?? null,
+    offersAudits: sites.some((site) => site.id === siteId && site.offersAudits),
   };
 }

@@ -16,6 +16,7 @@ function site(id: string, host: string, webapp: string): SiteResponse {
     pageUrl: `https://${host}/${webapp}/app/pathfinder`,
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   };
 }
 

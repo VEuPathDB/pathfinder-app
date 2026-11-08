@@ -58,6 +58,7 @@ const SITES: SiteResponse[] = [
     pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   },
 ];
 

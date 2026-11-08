@@ -22,6 +22,7 @@ const PORTAL_DOWN: SiteResponse = {
   pageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
   available: false,
   unavailableReason: "TimeoutError",
+  offersAudits: false,
 };
 
 function draw(down: boolean) {

@@ -82,6 +82,7 @@ function siteRow(over: Partial<SiteResponse>): SiteResponse {
     pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
     available: true,
     unavailableReason: null,
+    offersAudits: false,
     ...over,
   };
 }
@@ -104,6 +105,7 @@ const PORTAL_DOWN = siteRow({
   isPortal: true,
   available: false,
   unavailableReason: "TimeoutError",
+  offersAudits: false,
 });
 
 function holdUnseededReads() {

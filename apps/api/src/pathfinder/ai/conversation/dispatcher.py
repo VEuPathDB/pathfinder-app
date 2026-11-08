@@ -22,6 +22,7 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
 from pathfinder.platform.metrics import CHAT_TURNS_STARTED
+from pathfinder.services.audit.offered import require_audits_offered
 from pathfinder.services.conversations.begin import (
     begin_conversation,
     refuse_a_thread_of_another_caller,
@@ -71,6 +72,7 @@ async def _enqueue_turn(
       ``state.approval_responses`` from the request body and resumes the
       deferred tool.
     """
+    require_audits_offered(spec.assistant_id, body.site_id)
     await require_a_free_turn(
         session, user_id=user_id, conversation_id=body.conversation_id
     )

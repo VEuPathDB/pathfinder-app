@@ -16,6 +16,7 @@ function site(id: string, baseUrl: string): SiteResponse {
     pageUrl: `${baseUrl.replace(/\/service$/, "")}/app/pathfinder`,
     available: true,
     unavailableReason: null,
+    offersAudits: false,
   };
 }
 

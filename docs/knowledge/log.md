@@ -2,6 +2,10 @@
 
 ## 2026-11-08
 
+* **Audits are offered on the dev sites only.** A site whose host starts with `muharram.` offers
+  the gene model audit; on QA and every other site the web shows no Audits section and the
+  dispatcher refuses an audit thread. See
+  [the decision](decisions/audits-are-offered-on-the-dev-sites-only.md).
 * **A read the site did not answer is named, not the whole strategy.** The check's verdict said
   "the site did not answer, so the strategy is not checked" whenever any one read went
   unanswered, although three checks of a 2,195-gene strategy had passed and only its organism

@@ -17656,6 +17656,10 @@
               }
             ],
             "title": "Unavailablereason"
+          },
+          "offersAudits": {
+            "type": "boolean",
+            "title": "Offersaudits"
           }
         },
         "type": "object",
@@ -17669,7 +17673,8 @@
           "siteOrigin",
           "signInUrl",
           "pageUrl",
-          "available"
+          "available",
+          "offersAudits"
         ],
         "title": "SiteResponse",
         "description": "VEuPathDB site information, with what this process can reach of it."
@@ -21620,6 +21625,7 @@
           "EDIT_REFUSED",
           "ASSISTANT_NOT_FOUND",
           "ASSISTANT_MISMATCH",
+          "AUDITS_NOT_OFFERED",
           "EDA_NO_OPEN_ANALYSIS",
           "EDA_COMPUTE_NOT_RUN",
           "SPECIALIST_PRECONDITION_FAILED",

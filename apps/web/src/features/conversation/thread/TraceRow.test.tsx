@@ -39,6 +39,7 @@ const TOXODB: SiteResponse = {
   pageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
   available: true,
   unavailableReason: null,
+  offersAudits: false,
 };
 
 function label(name: string): string {
