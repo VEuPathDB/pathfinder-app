@@ -74,9 +74,7 @@ describe("the audits page", () => {
       ]),
     ).toEqual([`${RUNS_URL}?siteId=toxodb`]);
     expect(
-      screen.getByText(
-        "No audits on ToxoDB yet. Ask the audit assistant in a conversation to audit a genome.",
-      ),
+      screen.getByText("No audits on ToxoDB yet. Audit a genome to start one."),
     ).toBeInTheDocument();
   });
 
@@ -88,9 +86,7 @@ describe("the audits page", () => {
       ]),
     ).toEqual([RUNS_URL]);
     expect(
-      screen.getByText(
-        "No audits yet. Ask the audit assistant in a conversation to audit a genome.",
-      ),
+      screen.getByText("No audits yet. Audit a genome to start one."),
     ).toBeInTheDocument();
   });
 
