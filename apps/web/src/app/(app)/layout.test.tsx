@@ -56,6 +56,7 @@ import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQ
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { strategyQueryOptions } from "@/lib/api/strategy";
+import { PHONE_QUERY } from "@/lib/layout/viewport";
 import { createTestWrapper } from "@/lib/query/testing";
 import { makeStrategy } from "@/lib/types/fixtures";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
@@ -206,6 +207,19 @@ describe("AppShellLayout for a session the website has not signed in", () => {
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(true);
     useLeftSidebarStore.setState({ collapsed: false });
+  });
+
+  it("puts every rail button in one bottom bar on a phone", () => {
+    const wide = window.matchMedia;
+    window.matchMedia = (query: string) => ({
+      ...wide(query),
+      matches: query === PHONE_QUERY,
+    });
+    drawSession(true);
+
+    const bar = screen.getByRole("navigation", { name: "PathFinder" });
+    expect(within(bar).getByRole("button", { name: "Settings" })).toBeVisible();
+    window.matchMedia = wide;
   });
 
   it("draws the same shell when the address asks for the embedded layout", () => {

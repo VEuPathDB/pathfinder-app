@@ -6,9 +6,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ACTIVE_PILL } from "@/lib/components/activePill";
 import { cn } from "@/lib/utils/cn";
 
-const ACTIVE_PILL = "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary";
 import {
   Tooltip,
   TooltipContent,
@@ -46,7 +46,7 @@ export function AppNavRail({
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex h-full w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar py-2">
+      <div className="flex h-full w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar py-2 max-sm:hidden">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

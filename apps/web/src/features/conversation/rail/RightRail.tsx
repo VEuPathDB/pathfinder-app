@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { viewportIsNarrow } from "@/lib/layout/viewport";
 import { useEntrance } from "@/lib/motion";
+import { ACTIVE_PILL } from "@/lib/components/activePill";
 import { cn } from "@/lib/utils/cn";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { shouldAutoOpenLedger } from "./autoOpenLedger";
@@ -32,6 +34,7 @@ import {
   useRightRailStore,
   type RightRailPanel,
 } from "@/state/useRightRailStore";
+import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 
 import { computeRailActivity } from "./railActivity";
@@ -44,7 +47,6 @@ import { StrategyPanel } from "./StrategyPanel";
 import { TasksPanel } from "./TasksPanel";
 
 const PANEL_TRANSITION = { type: "spring", stiffness: 380, damping: 36 } as const;
-const ACTIVE_PILL = "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary";
 
 interface RightRailProps {
   conversationId: string;
@@ -75,6 +77,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
   );
   const togglePanel = useRightRailStore((s) => s.togglePanel);
   const closePanel = useRightRailStore((s) => s.closePanel);
+  const phoneSlot = usePhoneBarStore((s) => s.slot);
   const autoOpenedConversation = useRightRailStore((s) => s.autoOpenedConversation);
   const autoOpen = useRightRailStore((s) => s.autoOpen);
   const openSettings = useSettingsModalStore((s) => s.open);
@@ -138,13 +141,46 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
     }
   };
 
+  const button = (
+    id: RightRailPanel,
+    Icon: LucideIcon,
+    label: string,
+    onPhone: boolean,
+  ) => {
+    const isOpen = openPanel === id;
+    const showDot = hasUpdate[id] && !isOpen;
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => togglePanel(conversationId, id, markersFor(id))}
+        aria-label={`${isOpen ? "Close" : "Open"} ${label}`}
+        aria-pressed={isOpen}
+        className={cn("relative", onPhone && "size-11 shrink-0", isOpen && ACTIVE_PILL)}
+      >
+        <Icon className="h-4 w-4" aria-hidden />
+        <AnimatePresence>
+          {showDot && (
+            <motion.span
+              key="dot"
+              {...dotEntrance}
+              animate={{ scale: 1, opacity: 1 }}
+              aria-label={`${label} has updates`}
+              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary"
+            />
+          )}
+        </AnimatePresence>
+      </Button>
+    );
+  };
+
   return (
     <TooltipProvider delayDuration={150}>
       {openPanel != null && (
         <NarrowBackdrop
           label="Close panel"
           onClose={closePanel}
-          className="left-0 right-11"
+          className="left-0 right-11 max-sm:right-0"
         />
       )}
       <AnimatePresence initial={false}>
@@ -154,7 +190,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
             data-testid="rail-panel"
             {...panelEntrance}
             animate={{ width: RAIL_PANEL_WIDTH, opacity: 1 }}
-            className="h-full shrink-0 overflow-hidden border-l border-border bg-background max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:right-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.75rem)] max-[900px]:shadow-xl"
+            className="h-full shrink-0 overflow-hidden border-l border-border bg-background max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:right-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.75rem)] max-sm:right-0 max-sm:max-w-[calc(100%-3rem)] max-[900px]:shadow-xl"
           >
             <div
               style={{ width: RAIL_PANEL_WIDTH }}
@@ -192,43 +228,26 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
         )}
       </AnimatePresence>
       <div
-        className="flex h-full w-11 shrink-0 flex-col items-center gap-1 border-l border-border bg-sidebar py-2"
+        role="toolbar"
+        aria-orientation="vertical"
         aria-label="Right rail"
+        className="flex h-full w-11 shrink-0 flex-col items-center gap-1 border-l border-border bg-sidebar py-2 max-sm:hidden"
       >
-        {RAIL_ICONS.map(({ id, icon: Icon, label }) => {
-          const isOpen = openPanel === id;
-          const showDot = hasUpdate[id] && !isOpen;
-          return (
-            <Tooltip key={id}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel(conversationId, id, markersFor(id))}
-                  aria-label={`${isOpen ? "Close" : "Open"} ${label}`}
-                  aria-pressed={isOpen}
-                  className={cn("relative", isOpen && ACTIVE_PILL)}
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  <AnimatePresence>
-                    {showDot && (
-                      <motion.span
-                        key="dot"
-                        {...dotEntrance}
-                        animate={{ scale: 1, opacity: 1 }}
-                        aria-label={`${label} has updates`}
-                        className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary"
-                      />
-                    )}
-                  </AnimatePresence>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">{label}</TooltipContent>
-            </Tooltip>
-          );
-        })}
+        {RAIL_ICONS.map(({ id, icon, label }) => (
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>{button(id, icon, label, false)}</TooltipTrigger>
+            <TooltipContent side="left">{label}</TooltipContent>
+          </Tooltip>
+        ))}
         <RailFoot onOpenSettings={() => openSettings()} />
       </div>
+      {phoneSlot !== null &&
+        createPortal(
+          RAIL_ICONS.map(({ id, icon, label }) => (
+            <Fragment key={id}>{button(id, icon, label, true)}</Fragment>
+          )),
+          phoneSlot,
+        )}
     </TooltipProvider>
   );
 }

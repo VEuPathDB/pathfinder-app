@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { useMediaQuery } from "usehooks-ts";
 
 import { AppNavRail } from "@/app/components/AppNavRail";
 import { AppShellError } from "@/app/components/AppShellError";
 import { ConversationElsewhereNotice } from "@/app/components/ConversationElsewhereNotice";
 import { FrameLocationReporter } from "@/app/components/FrameLocationReporter";
 import { LoadingScreen } from "@/app/components/LoadingScreen";
+import { PhoneBar } from "@/app/components/PhoneBar";
 import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
 import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
@@ -30,6 +32,7 @@ import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
 import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { RailFoot } from "@/lib/components/RailFoot";
+import { PHONE_QUERY } from "@/lib/layout/viewport";
 import { conversationIdFromPath, isChatPath } from "@/lib/routes";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -69,8 +72,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { layoutRef, sidebarWidth, isDragging, startDragging } = useSidebarResize();
   const leftCollapsed = useLeftSidebarStore((s) => s.collapsed);
   const toggleLeft = useLeftSidebarStore((s) => s.toggle);
-  useAutoCollapsePanels();
+  useAutoCollapsePanels(pathname);
   const modals = useModalState();
+  const onPhone = useMediaQuery(PHONE_QUERY);
   const sidebarEntrance = useEntrance({
     initial: { width: 0, opacity: 0 },
     exit: { width: 0, opacity: 0 },
@@ -116,7 +120,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               key="sidebar-expanded"
               {...sidebarEntrance}
               animate={{ width: sidebarWidth, opacity: 1 }}
-              className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.5rem)] max-[900px]:shadow-xl"
+              className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.5rem)] max-sm:left-0 max-sm:max-w-[calc(100%-3rem)] max-[900px]:shadow-xl"
             >
               <div
                 style={{ width: sidebarWidth }}
@@ -132,7 +136,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <NarrowBackdrop
             label="Close conversations"
             onClose={toggleLeft}
-            className="left-11 right-0"
+            className="left-11 right-0 max-sm:left-0"
           />
         )}
 
@@ -162,12 +166,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         {!rightRailShown && (
           <aside
             aria-label="Help and settings"
-            className="flex h-full w-11 shrink-0 flex-col items-center border-l border-border bg-sidebar py-2"
+            className="flex h-full w-11 shrink-0 flex-col items-center border-l border-border bg-sidebar py-2 max-sm:hidden"
           >
             <RailFoot onOpenSettings={() => modals.openSettings()} />
           </aside>
         )}
       </div>
+
+      {onPhone && <PhoneBar onOpenSettings={() => modals.openSettings()} />}
 
       <SettingsPage
         open={modals.showSettings}

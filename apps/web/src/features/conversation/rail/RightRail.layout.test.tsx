@@ -3,7 +3,7 @@
  */
 import type { UIMessage } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next/navigation", () => ({
@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/conversation/conv-1",
 }));
 
+import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
@@ -100,6 +101,24 @@ describe("the rail panel floats over the thread only in a narrow window", () => 
     expect(screen.getByRole("button", { name: "Close panel" })).toHaveClass(
       "min-[900px]:hidden",
     );
+  });
+});
+
+describe("the rail's buttons on a phone", () => {
+  it("draws its panel buttons into the phone bar and hides its own strip there", async () => {
+    const slot = document.createElement("div");
+    document.body.appendChild(slot);
+    usePhoneBarStore.setState({ slot });
+    renderRail("conv-1", []);
+
+    expect(screen.getByRole("toolbar", { name: "Right rail" })).toHaveClass(
+      "max-sm:hidden",
+    );
+    await userEvent.click(within(slot).getByRole("button", { name: "Open Progress" }));
+
+    expect(useRightRailStore.getState().openPanel).toBe("ledger");
+    usePhoneBarStore.setState({ slot: null });
+    slot.remove();
   });
 });
 

@@ -5,3 +5,5 @@ export const SIDE_PANEL_MIN_WIDTH_PX = 900;
 export function viewportIsNarrow(): boolean {
   return typeof window !== "undefined" && window.innerWidth < SIDE_PANEL_MIN_WIDTH_PX;
 }
+
+export const PHONE_QUERY = "(max-width: 639.98px)";

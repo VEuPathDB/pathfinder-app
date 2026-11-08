@@ -2,6 +2,11 @@
 
 ## 2026-11-08
 
+* **A phone has one bar.** Below 640px both side rails give way to one bar along the bottom
+  edge (`app/components/PhoneBar.tsx`) that scrolls sideways: the conversation list, Conversation,
+  Saved strategies, the open conversation's panel buttons (the right rail draws them into the
+  bar's slot), Help and Settings. The thread takes the full width, and a narrow window closes both
+  drawers when the page changes, so a conversation picked from the list opens in full view.
 * **A narrow window keeps the thread readable.** Below 900px the conversation list and the right
   rail's panel open over the thread as drawers, each with a backdrop that closes it; at 900px and
   above both stay in flow as before. The rail panel opened in flow at every width since its

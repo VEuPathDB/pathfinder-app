@@ -28,21 +28,21 @@ describe("useAutoCollapsePanels", () => {
   it("closes the left sidebar and the right rail on a narrow viewport", () => {
     setViewport(820);
 
-    renderHook(() => useAutoCollapsePanels());
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(true);
     expect(useRightRailStore.getState().openPanel).toBeNull();
   });
 
   it("keeps both open on a wide viewport", () => {
-    renderHook(() => useAutoCollapsePanels());
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(false);
     expect(useRightRailStore.getState().openPanel).toBe("tasks");
   });
 
   it("closes both when the window narrows after mount", () => {
-    renderHook(() => useAutoCollapsePanels());
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
     expect(useRightRailStore.getState().openPanel).toBe("tasks");
 
     setViewport(700);
@@ -56,7 +56,7 @@ describe("useAutoCollapsePanels", () => {
 
   it("leaves a panel the reader opens on a narrow viewport alone until the next resize", () => {
     setViewport(820);
-    renderHook(() => useAutoCollapsePanels());
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
     expect(useRightRailStore.getState().openPanel).toBeNull();
 
     act(() => {
@@ -66,5 +66,33 @@ describe("useAutoCollapsePanels", () => {
     });
 
     expect(useRightRailStore.getState().openPanel).toBe("ledger");
+  });
+
+  it("closes both drawers when a narrow window moves to another page", async () => {
+    setViewport(390);
+    const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      initialProps: "/conversation/c1",
+    });
+    act(openBothPanels);
+
+    await act(async () => {
+      view.rerender("/conversation/c2");
+    });
+
+    expect(useLeftSidebarStore.getState().collapsed).toBe(true);
+    expect(useRightRailStore.getState().openPanel).toBeNull();
+  });
+
+  it("keeps both open when a wide window moves to another page", async () => {
+    const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      initialProps: "/conversation/c1",
+    });
+
+    await act(async () => {
+      view.rerender("/conversation/c2");
+    });
+
+    expect(useLeftSidebarStore.getState().collapsed).toBe(false);
+    expect(useRightRailStore.getState().openPanel).toBe("tasks");
   });
 });
