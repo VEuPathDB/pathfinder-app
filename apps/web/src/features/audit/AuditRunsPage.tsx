@@ -9,7 +9,8 @@ import type { CheckWords } from "@pathfinder/shared/generated/types/CheckWords";
 
 import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
-import { auditRunUrl } from "@/lib/routes";
+import { AUDIT_ASSISTANT_ID } from "@/lib/assistants";
+import { auditRunUrl, newChatUrl } from "@/lib/routes";
 
 import { dayText, scopeText } from "./format";
 import { PHASE_WORDS } from "./words";
@@ -54,7 +55,7 @@ function RunRow({
 
 function emptyText(onlySite: string | null): string {
   const where = onlySite === null ? "" : ` on ${siteShortName(onlySite)}`;
-  return `No audits${where} yet. Ask the audit assistant in a conversation to audit a genome.`;
+  return `No audits${where} yet. Audit a genome to start one.`;
 }
 
 function RunsList({ onlySite }: { onlySite: string | null }) {
@@ -64,12 +65,20 @@ function RunsList({ onlySite }: { onlySite: string | null }) {
   const { data: words } = useSuspenseQuery(auditWordsOptions());
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <header className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-semibold">Audits</h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Each audit checks the gene models a VEuPathDB site serves for the genomes you
-          chose.
-        </p>
+      <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+        <div>
+          <h1 className="text-lg font-semibold">Audits</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Each audit checks the gene models a VEuPathDB site serves for the genomes
+            you chose.
+          </p>
+        </div>
+        <Link
+          href={newChatUrl(AUDIT_ASSISTANT_ID)}
+          className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+        >
+          Audit a genome
+        </Link>
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
         {runs.length === 0 ? (

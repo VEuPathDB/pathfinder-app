@@ -13,6 +13,10 @@ export function chatRoot(): string {
   return "/conversation";
 }
 
+export function newChatUrl(assistantId: string): string {
+  return `${chatRoot()}?${ASSISTANT_PARAM}=${assistantId}`;
+}
+
 export function isChatPath(pathname: string): boolean {
   return pathname === chatRoot() || pathname.startsWith(`${chatRoot()}/`);
 }

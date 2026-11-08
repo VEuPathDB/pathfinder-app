@@ -2,6 +2,10 @@
 
 ## 2026-11-08
 
+* **The Audits page opens an audit conversation.** Its "Audit a genome" link opens a new
+  conversation under the gene model audit assistant, which the web now names among the
+  assistants it serves; before, the web knew only the strategy builder, so a request for the
+  audit assistant opened a strategy builder thread. An audit thread shows no mode switch.
 * **Explore reads the researcher's strategies from WDK.** `read_my_strategies` lists the
   account's strategies on the thread's site, or on a site the model names, as WDK holds them:
   saved ones and unsaved drafts marked as such, the newest 50 and the totals. It replaces a

@@ -9,6 +9,7 @@ import { SlashPopover } from "@/features/conversation/slash/SlashPopover";
 import { commands } from "@/features/conversation/slash/registry";
 import { useSlashCommands } from "@/features/conversation/slash/useSlashCommands";
 import { stopTurn } from "@/lib/api/conversations";
+import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import {
   useConversationDetail,
   useConversationExists,
@@ -214,7 +215,9 @@ export function Composer({
         <div className="flex items-center justify-between p-2">
           <AttachButton assistantId={assistantId} />
           <div className="flex items-center gap-2">
-            <ModeSwitch conversationId={conversationId} />
+            {assistantId === DEFAULT_ASSISTANT_ID ? (
+              <ModeSwitch conversationId={conversationId} />
+            ) : null}
             {isRunning ? (
               <ComposerPrimitive.Cancel
                 data-testid="stop-button"

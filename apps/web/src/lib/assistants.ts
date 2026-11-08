@@ -3,6 +3,7 @@
 // ConversationResponse carry.
 
 export const DEFAULT_ASSISTANT_ID = "pathfinder";
+export const AUDIT_ASSISTANT_ID = "audit";
 
 export interface AssistantChoice {
   id: string;
@@ -18,6 +19,13 @@ export const ASSISTANT_CHOICES: readonly AssistantChoice[] = [
     blurb: (siteName) =>
       `Build and refine multi-step ${siteName} search strategies with guided ` +
       `parameter selection and validation.`,
+  },
+  {
+    id: AUDIT_ASSISTANT_ID,
+    label: "Gene model audit",
+    blurb: (siteName) =>
+      `Check the gene models ${siteName} serves for the genomes you choose, ` +
+      `and review what each check found.`,
   },
 ];
 

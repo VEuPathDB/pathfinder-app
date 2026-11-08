@@ -91,6 +91,7 @@ function renderComposer(
     countingRuntime?: boolean;
     messages?: UIMessage[];
     respond?: ChatHelpers["addToolApprovalResponse"];
+    assistantId?: string;
   },
 ) {
   const { queryClient, Wrapper } = createTestWrapper();
@@ -107,7 +108,10 @@ function renderComposer(
   return render(
     <Runtime>
       <ChatHelpersProvider value={makeChat(options?.messages ?? [], options?.respond)}>
-        <Composer conversationId="test-conversation" assistantId="pathfinder" />
+        <Composer
+          conversationId="test-conversation"
+          assistantId={options?.assistantId ?? "pathfinder"}
+        />
       </ChatHelpersProvider>
     </Runtime>,
     { wrapper: Wrapper },
@@ -129,6 +133,17 @@ async function sendAndWaitForStop(): Promise<void> {
 }
 
 describe("Composer", () => {
+  it("offers the mode switch in a strategy builder thread", () => {
+    renderComposer(true);
+    expect(screen.getByTestId("mode-switch")).toBeInTheDocument();
+  });
+
+  it("offers no mode switch in an audit thread", () => {
+    renderComposer(true, { assistantId: "audit" });
+    expect(screen.getByTestId("send-button")).toHaveTextContent("Send");
+    expect(screen.queryByTestId("mode-switch")).toBeNull();
+  });
+
   it("renders an input and send button for a signed-in user", () => {
     renderComposer(true);
     expect(screen.getByPlaceholderText(/ask about strategies/i)).toBeInTheDocument();

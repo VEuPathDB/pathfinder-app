@@ -121,12 +121,18 @@ describe("AuditRunsPage", () => {
     ).toHaveAttribute("href", "/audits/00000000-0000-4000-8000-000000000009");
   });
 
+  it("opens a new audit conversation from its header", () => {
+    renderWith([]);
+    expect(screen.getByRole("link", { name: "Audit a genome" })).toHaveAttribute(
+      "href",
+      "/conversation?assistant=audit",
+    );
+  });
+
   it("says how to start one when there is none", () => {
     renderWith([]);
     expect(
-      screen.getByText(
-        "No audits yet. Ask the audit assistant in a conversation to audit a genome.",
-      ),
+      screen.getByText("No audits yet. Audit a genome to start one."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -161,9 +167,7 @@ describe("AuditRunsPage", () => {
     const asked = serveRuns([SAMPLE_RUN.run]);
     renderServed("toxodb");
     expect(
-      await screen.findByText(
-        "No audits on ToxoDB yet. Ask the audit assistant in a conversation to audit a genome.",
-      ),
+      await screen.findByText("No audits on ToxoDB yet. Audit a genome to start one."),
     ).toBeInTheDocument();
     expect(asked).toEqual([`${RUNS_URL}?siteId=toxodb`]);
     expect(screen.queryByRole("table")).toBeNull();

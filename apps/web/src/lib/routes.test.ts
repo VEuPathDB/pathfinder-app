@@ -10,6 +10,7 @@ import {
   edaTabUrl,
   helpUrl,
   isChatPath,
+  newChatUrl,
   savedUrl,
   strategyCanvasUrl,
   strategyStepUrl,
@@ -21,6 +22,10 @@ describe("route builders", () => {
     expect(chatRoot()).toBe("/conversation");
     expect(chatUrl("c1")).toBe("/conversation/c1");
     expect(savedUrl()).toBe("/saved");
+  });
+
+  it("opens a new conversation with the assistant it names", () => {
+    expect(newChatUrl("audit")).toBe("/conversation?assistant=audit");
   });
 
   it("reads the conversation id out of a path, past a query or a hash", () => {
