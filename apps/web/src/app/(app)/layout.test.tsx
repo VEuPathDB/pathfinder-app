@@ -59,6 +59,7 @@ import { strategyQueryOptions } from "@/lib/api/strategy";
 import { createTestWrapper } from "@/lib/query/testing";
 import { makeStrategy } from "@/lib/types/fixtures";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
+import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import AppShellLayout from "./layout";
@@ -195,6 +196,16 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(screen.queryByTestId("signed-out-notice")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Monthly spend" })).toBeInTheDocument();
     expect(screen.getByTestId("data-notice")).toBeInTheDocument();
+  });
+
+  it("closes the conversation list from the backdrop a narrow window draws", async () => {
+    useLeftSidebarStore.setState({ collapsed: false });
+    drawSession(true);
+
+    await userEvent.click(screen.getByRole("button", { name: "Close conversations" }));
+
+    expect(useLeftSidebarStore.getState().collapsed).toBe(true);
+    useLeftSidebarStore.setState({ collapsed: false });
   });
 
   it("draws the same shell when the address asks for the embedded layout", () => {

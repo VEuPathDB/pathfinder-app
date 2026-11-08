@@ -2,6 +2,13 @@
 
 ## 2026-11-08
 
+* **A narrow window keeps the thread readable.** Below 900px the conversation list and the right
+  rail's panel open over the thread as drawers, each with a backdrop that closes it; at 900px and
+  above both stay in flow as before. The rail panel opened in flow at every width since its
+  overlay mode was deleted, which left a phone a thread column a few words wide; a narrow window
+  still never opens the panel on its own, so it covers a card only when the researcher opens it.
+  The suggestions stack in one column until the thread is wide enough for two, the composer's
+  controls and footer wrap, and Send, Stop and the mode switch keep a 44px tap target when narrow.
 * **The Audits page opens an audit conversation.** Its "Audit a genome" link opens a new
   conversation under the gene model audit assistant, which the web now names among the
   assistants it serves; before, the web knew only the strategy builder, so a request for the

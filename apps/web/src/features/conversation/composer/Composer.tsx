@@ -59,12 +59,15 @@ function ComposerFooter() {
   const usage = threadUsage(chat.messages);
   const hasUsage = usage.total.tokens > 0 || usage.total.costUsd > 0;
   return (
-    <div className="flex items-center gap-3 px-1 pt-1">
+    <div
+      data-testid="composer-footer"
+      className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-1 pt-1"
+    >
       {hasUsage && <ConversationUsage usage={usage} />}
       <p
         data-testid="ai-notice"
         className={cn(
-          "flex-1 text-[0.6875rem] text-muted-foreground",
+          "min-w-64 flex-1 text-[0.6875rem] text-muted-foreground",
           hasUsage ? "text-right" : "text-center",
         )}
       >
@@ -212,9 +215,12 @@ export function Composer({
           </p>
         )}
         <ComposerAttachmentList assistantId={assistantId} refusal={attachmentRefusal} />
-        <div className="flex items-center justify-between p-2">
+        <div
+          data-testid="composer-controls"
+          className="flex flex-wrap items-center justify-between gap-2 p-2"
+        >
           <AttachButton assistantId={assistantId} />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             {assistantId === DEFAULT_ASSISTANT_ID ? (
               <ModeSwitch conversationId={conversationId} />
             ) : null}
@@ -223,7 +229,7 @@ export function Composer({
                 data-testid="stop-button"
                 aria-label="Stop"
                 onClick={handleStopClick}
-                className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-sm text-destructive-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px"
+                className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-sm max-[900px]:min-h-11 text-destructive-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px"
               >
                 <Square className="h-4 w-4" /> Stop
               </ComposerPrimitive.Cancel>
@@ -239,7 +245,7 @@ export function Composer({
                   }
                   lastSendAt.current = Date.now();
                 }}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px disabled:opacity-50 disabled:hover:translate-y-0"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm max-[900px]:min-h-11 text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px disabled:opacity-50 disabled:hover:translate-y-0"
               >
                 <Send className="h-4 w-4" /> Send
               </ComposerPrimitive.Send>

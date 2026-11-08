@@ -67,17 +67,16 @@ describe("ChatEmptyState", () => {
     );
   });
 
-  it("hides the scrollbar of the swiped suggestion row", () => {
+  it("stacks the suggestions in one column until the thread is wide enough for two", () => {
     render(
       <EmptyThread>
         <ChatEmptyState assistantId="pathfinder" />
       </EmptyThread>,
     );
 
-    expect(screen.getByTestId("chat-suggestions")).toHaveClass(
-      "no-scrollbar",
-      "overflow-x-auto",
-    );
+    const suggestions = screen.getByTestId("chat-suggestions");
+    expect(suggestions).toHaveClass("flex-col", "@xl:grid", "@xl:grid-cols-2");
+    expect(suggestions.parentElement).toHaveClass("@container");
   });
 });
 

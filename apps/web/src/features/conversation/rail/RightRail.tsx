@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
+import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { RailFoot } from "@/lib/components/RailFoot";
 import {
   Tooltip,
@@ -73,6 +74,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
     conversationId,
   );
   const togglePanel = useRightRailStore((s) => s.togglePanel);
+  const closePanel = useRightRailStore((s) => s.closePanel);
   const autoOpenedConversation = useRightRailStore((s) => s.autoOpenedConversation);
   const autoOpen = useRightRailStore((s) => s.autoOpen);
   const openSettings = useSettingsModalStore((s) => s.open);
@@ -138,6 +140,13 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
 
   return (
     <TooltipProvider delayDuration={150}>
+      {openPanel != null && (
+        <NarrowBackdrop
+          label="Close panel"
+          onClose={closePanel}
+          className="left-0 right-11"
+        />
+      )}
       <AnimatePresence initial={false}>
         {openPanel != null && (
           <motion.div
@@ -145,9 +154,12 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
             data-testid="rail-panel"
             {...panelEntrance}
             animate={{ width: RAIL_PANEL_WIDTH, opacity: 1 }}
-            className="h-full shrink-0 overflow-hidden border-l border-border bg-background"
+            className="h-full shrink-0 overflow-hidden border-l border-border bg-background max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:right-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.75rem)] max-[900px]:shadow-xl"
           >
-            <div style={{ width: RAIL_PANEL_WIDTH }} className="h-full">
+            <div
+              style={{ width: RAIL_PANEL_WIDTH }}
+              className="h-full max-[900px]:w-full!"
+            >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={openPanel}

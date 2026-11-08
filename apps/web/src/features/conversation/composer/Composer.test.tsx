@@ -138,6 +138,14 @@ describe("Composer", () => {
     expect(screen.getByTestId("mode-switch")).toBeInTheDocument();
   });
 
+  it("wraps its controls and gives Send a full tap target in a narrow window", () => {
+    renderComposer(true);
+    expect(screen.getByTestId("composer-controls")).toHaveClass("flex-wrap");
+    expect(screen.getByTestId("send-button")).toHaveClass("max-[900px]:min-h-11");
+    expect(screen.getByTestId("composer-footer")).toHaveClass("flex-wrap");
+    expect(screen.getByTestId("ai-notice")).toHaveClass("min-w-64");
+  });
+
   it("offers no mode switch in an audit thread", () => {
     renderComposer(true, { assistantId: "audit" });
     expect(screen.getByTestId("send-button")).toHaveTextContent("Send");

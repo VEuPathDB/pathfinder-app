@@ -28,6 +28,7 @@ import { ConversationSidebar } from "@/features/sidebar/components/ConversationS
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
+import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { RailFoot } from "@/lib/components/RailFoot";
 import { conversationIdFromPath, isChatPath } from "@/lib/routes";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
@@ -102,7 +103,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <QueryErrorToasts />
       {signInGate}
 
-      <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
+      <div ref={layoutRef} className="relative flex min-h-0 flex-1 overflow-hidden">
         <AppNavRail
           siteId={selectedSite}
           onToggleSidebar={toggleLeft}
@@ -115,9 +116,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               key="sidebar-expanded"
               {...sidebarEntrance}
               animate={{ width: sidebarWidth, opacity: 1 }}
-              className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar"
+              className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.5rem)] max-[900px]:shadow-xl"
             >
-              <div style={{ width: sidebarWidth }} className="h-full">
+              <div
+                style={{ width: sidebarWidth }}
+                className="h-full max-[900px]:w-full!"
+              >
                 <ConversationSidebar siteId={selectedSite} />
               </div>
             </motion.div>
@@ -125,12 +129,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </AnimatePresence>
 
         {!leftCollapsed && (
+          <NarrowBackdrop
+            label="Close conversations"
+            onClose={toggleLeft}
+            className="left-11 right-0"
+          />
+        )}
+
+        {!leftCollapsed && (
           <div
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize sidebar"
             onMouseDown={startDragging}
-            className="w-1 cursor-col-resize bg-muted transition-colors duration-150 hover:bg-primary/20"
+            className="w-1 cursor-col-resize bg-muted max-[900px]:hidden transition-colors duration-150 hover:bg-primary/20"
           />
         )}
 

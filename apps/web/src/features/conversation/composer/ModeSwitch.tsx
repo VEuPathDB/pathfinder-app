@@ -40,7 +40,7 @@ export function ModeSwitch({ conversationId }: { conversationId: string }) {
           key={option}
           value={option}
           title={THREAD_MODE_DESCRIPTIONS[option]}
-          className="px-3 text-xs"
+          className="px-3 text-xs max-[900px]:min-h-11"
         >
           {THREAD_MODE_LABELS[option]}
         </ToggleGroupItem>

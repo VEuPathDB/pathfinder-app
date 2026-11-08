@@ -62,7 +62,7 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
 
   return (
     <AuiIf condition={(s) => s.thread.isEmpty}>
-      <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+      <div className="@container flex min-h-[60vh] flex-1 flex-col items-center justify-center px-6 py-10 text-center">
         {assistantId !== DEFAULT_ASSISTANT_ID && (
           <div
             data-testid="chat-assistant-label"
@@ -123,8 +123,8 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
             data-testid="chat-suggestions"
             className={cn(
               "mt-8 w-full max-w-3xl",
-              "flex gap-2.5 overflow-x-auto pb-1 no-scrollbar",
-              "sm:grid sm:grid-cols-2 sm:overflow-visible",
+              "flex flex-col gap-2.5 pb-1",
+              "@xl:grid @xl:grid-cols-2",
             )}
           >
             {suggestions.map((prompt, i) => (
@@ -144,11 +144,7 @@ function SuggestionCard({ prompt, index }: { prompt: string; index: number }) {
   });
 
   return (
-    <motion.div
-      {...entrance}
-      animate={{ opacity: 1, y: 0 }}
-      className="min-w-[240px] shrink-0 sm:min-w-0 sm:shrink"
-    >
+    <motion.div {...entrance} animate={{ opacity: 1, y: 0 }} className="min-w-0">
       <ThreadPrimitive.Suggestion
         prompt={prompt}
         send

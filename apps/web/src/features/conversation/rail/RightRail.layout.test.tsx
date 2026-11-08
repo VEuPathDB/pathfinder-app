@@ -79,23 +79,27 @@ describe("the rail badge is scoped to the open conversation", () => {
   });
 });
 
-describe("the rail panel never covers the thread", () => {
-  it("stays in flow at 744px, where an overlay would cover the consult card", () => {
+describe("the rail panel floats over the thread only in a narrow window", () => {
+  it("floats as a drawer with a backdrop that closes it, below 900px", async () => {
     setViewportWidth(744);
     useRightRailStore.setState({ openPanel: "tasks" });
     renderRail("conv-1", []);
-    const panel = screen.getByTestId("rail-panel");
-    expect(panel.className).not.toContain("absolute");
-    expect(panel.getAttribute("data-overlay")).toBe(null);
+    expect(screen.getByTestId("rail-panel")).toHaveClass("max-[900px]:absolute");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close panel" }));
+
+    expect(useRightRailStore.getState().openPanel).toBe(null);
   });
 
   it("stays in flow on a wide viewport", () => {
     setViewportWidth(1440);
     useRightRailStore.setState({ openPanel: "tasks" });
     renderRail("conv-1", []);
-    const panel = screen.getByTestId("rail-panel");
-    expect(panel.className).not.toContain("absolute");
-    expect(panel.getAttribute("data-overlay")).toBe(null);
+    const classes = screen.getByTestId("rail-panel").className.split(" ");
+    expect(classes.filter((name) => name === "absolute")).toEqual([]);
+    expect(screen.getByRole("button", { name: "Close panel" })).toHaveClass(
+      "min-[900px]:hidden",
+    );
   });
 });
 
