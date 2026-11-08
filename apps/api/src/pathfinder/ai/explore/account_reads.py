@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from typing import Final
+from typing import Final, Literal
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import ApprovalRequired, ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.wdk import WDKStrategySummary, list_sites
 
-from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._frame_saved import saved_strategy_listing
-from pathfinder.ai.tools.standalone.saved_strategies import SavedStrategiesResult
 from pathfinder.services.conversations.thread_reading import (
     ThreadListing,
     ThreadReading,
@@ -20,14 +18,43 @@ from pathfinder.services.conversations.thread_reading import (
     standing_leave,
 )
 from pathfinder.services.evidence.gene_sets import get_gene_set
+from pathfinder.services.strategies.account_strategies import account_strategies
 
 ASK_TOOL: Final = "ask_to_read_the_account"
 _GENES_READ = 500
+_STRATEGIES_READ = 50
 _NO_LEAVE = (
-    "Reading the researcher's saved strategies, other conversations or gene sets "
+    "Reading the researcher's strategies, other conversations or gene sets "
     "needs their leave. Call ask_to_read_the_account first, naming what you want to "
     "read and why."
 )
+
+
+class AccountStrategy(CamelModel):
+    wdk_strategy_id: int
+    name: str
+    status: Literal["saved", "unsaved draft"]
+    estimated_size: int | None
+    record_class_name: str | None
+    last_modified: str
+
+    @classmethod
+    def of(cls, summary: WDKStrategySummary) -> AccountStrategy:
+        return cls(
+            wdk_strategy_id=summary.strategy_id,
+            name=summary.name,
+            status="saved" if summary.is_saved else "unsaved draft",
+            estimated_size=summary.estimated_size,
+            record_class_name=summary.record_class_name,
+            last_modified=summary.last_modified,
+        )
+
+
+class AccountStrategies(CamelModel):
+    site_id: str
+    total: int
+    saved: int
+    strategies: list[AccountStrategy]
 
 
 class GeneSetReading(CamelModel):
@@ -47,12 +74,12 @@ async def _has_leave(ctx: RunContext[LeadDeps]) -> None:
 
 
 async def ask_to_read_the_account(ctx: RunContext[LeadDeps], what: str) -> str:
-    """Ask the researcher's leave to read their saved strategies, their other
+    """Ask the researcher's leave to read their strategies, their other
     PathFinder conversations or the genes of their gene sets.
 
-    A card shows ``what`` and asks; the researcher allows it or not. Ask only when
-    reading them would change your answer. An allowed ask lets this turn's reads
-    run.
+    A card shows ``what`` and asks; the researcher allows it or not. Ask when the
+    researcher asks about them or when reading them would change your answer. An
+    allowed ask lets this turn's reads run.
 
     Args:
         what: What you want to read and why, in the researcher's terms.
@@ -64,15 +91,32 @@ async def ask_to_read_the_account(ctx: RunContext[LeadDeps], what: str) -> str:
     return "The researcher allowed it. Read what you asked for."
 
 
-async def read_saved_strategies(
-    ctx: RunContext[LeadDeps],
-) -> ToolReturn[SavedStrategiesResult]:
-    """The strategies the researcher saved on this site. Needs their leave."""
+async def read_my_strategies(
+    ctx: RunContext[LeadDeps], site_id: str | None = None
+) -> ToolReturn[AccountStrategies]:
+    """The researcher's WDK strategies on a site, saved ones and unsaved drafts,
+    the newest 50 and the totals. Needs their leave.
+
+    Args:
+        site_id: The site to read, such as plasmodb or vectorbase. Omit it for
+            this conversation's site.
+    """
+    site = site_id or ctx.deps.site_id
+    known = sorted(info.id for info in list_sites())
+    if site not in known:
+        msg = f"No site is named {site}. Name one of: {', '.join(known)}."
+        raise ModelRetry(msg)
     await _has_leave(ctx)
-    entries = await saved_strategy_listing(inner_context(ctx))
+    summaries = await account_strategies(site)
+    read = AccountStrategies(
+        site_id=site,
+        total=len(summaries),
+        saved=sum(summary.is_saved for summary in summaries),
+        strategies=[AccountStrategy.of(s) for s in summaries[:_STRATEGIES_READ]],
+    )
     return with_summary(
-        SavedStrategiesResult(saved_strategies=entries),
-        count_noun(len(entries), "saved strategy"),
+        read,
+        f"{count_noun(read.total, 'strategy')} on {site}, {read.saved} saved",
         ctx=ctx,
     )
 
@@ -119,10 +163,12 @@ async def read_gene_set(
 
 __all__ = [
     "ASK_TOOL",
+    "AccountStrategies",
+    "AccountStrategy",
     "GeneSetReading",
     "ask_to_read_the_account",
     "list_my_threads",
     "read_gene_set",
+    "read_my_strategies",
     "read_my_thread",
-    "read_saved_strategies",
 ]

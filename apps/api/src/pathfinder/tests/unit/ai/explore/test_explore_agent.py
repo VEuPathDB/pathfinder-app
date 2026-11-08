@@ -61,7 +61,7 @@ def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
         "get_live_strategy_state",
         "list_gene_sets",
         "ask_to_read_the_account",
-        "read_saved_strategies",
+        "read_my_strategies",
         "list_my_threads",
         "read_my_thread",
         "read_gene_set",

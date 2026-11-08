@@ -9,6 +9,7 @@ from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.transport.http.routers.sites import strategies
 
 SITE = "plasmodb"
+_LISTING = "pathfinder.services.strategies.account_strategies.get_strategy_api"
 
 
 def _summary(
@@ -52,7 +53,7 @@ def _install(
         api.sites.append(site_id)
         return api
 
-    monkeypatch.setattr(strategies, "get_strategy_api", _factory)
+    monkeypatch.setattr(_LISTING, _factory)
     return api
 
 

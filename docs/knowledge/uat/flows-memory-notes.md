@@ -84,7 +84,7 @@ Measured: "You prefer the **Su et al. strand-specific RNA-seq dataset** for *Pla
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | A new conversation, mode Explore | Send `Have I looked at gametocyte kinases before?` | A card `Let PathFinder read your saved strategies, other conversations or gene sets?` naming what it wants to read; boxes `Always allow in this conversation` and `Always allow in all conversations`; `Allow`, `Don't allow` |
+| 1 | A new conversation, mode Explore | Send `Have I looked at gametocyte kinases before?` | A card `Let PathFinder read your strategies, other conversations or gene sets?` naming what it wants to read; boxes `Always allow in this conversation` and `Always allow in all conversations`; `Allow`, `Don't allow` |
 | 2 | Card | `Don't allow` | The reply answers without your other conversations |
 | 3 | Same conversation | Send the message again, tick `Always allow in this conversation`, `Allow` | The reply names your earlier conversation |
 | 4 | Same conversation | Send a third question that needs your gene sets | No card; the reply reads them |

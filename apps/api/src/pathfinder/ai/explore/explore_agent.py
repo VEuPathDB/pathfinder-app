@@ -19,8 +19,8 @@ from pathfinder.ai.explore.account_reads import (
     ask_to_read_the_account,
     list_my_threads,
     read_gene_set,
+    read_my_strategies,
     read_my_thread,
-    read_saved_strategies,
 )
 from pathfinder.ai.explore.explore_tools import catalog_reads, propose_readings
 from pathfinder.ai.explore.readings_card import (
@@ -68,7 +68,7 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
             Tool(get_live_strategy_state),
             Tool(list_gene_sets),
             Tool(ask_to_read_the_account, requires_approval=True),
-            Tool(read_saved_strategies),
+            Tool(read_my_strategies),
             Tool(list_my_threads),
             Tool(read_my_thread),
             Tool(read_gene_set),

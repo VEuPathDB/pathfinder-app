@@ -1,5 +1,14 @@
 # Log
 
+## 2026-11-08
+
+* **Explore reads the researcher's strategies from WDK.** `read_my_strategies` lists the
+  account's strategies on the thread's site, or on a site the model names, as WDK holds them:
+  saved ones and unsaved drafts marked as such, the newest 50 and the totals. It replaces a
+  read of the strategies saved from PathFinder threads, which answered none to an account that
+  holds 378 on PlasmoDB QA. Explore asks to read the account when the researcher asks about it,
+  not only when a read would change its answer.
+
 ## 2026-11-07
 
 * **Explore reads the researcher's account with leave.** It reads the thread's strategy freely,

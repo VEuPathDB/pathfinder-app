@@ -2,9 +2,8 @@
 
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter, Depends
-from veupathdb.wdk import get_strategy_api
-from veupathdb.wdk.strategy_api.helpers import is_internal_wdk_strategy_name
 
+from pathfinder.services.strategies.account_strategies import account_strategies
 from pathfinder.transport.http.deps import (
     AvailableSite,
     require_registered_wdk_identity,
@@ -35,20 +34,13 @@ async def list_account_strategies(siteId: AvailableSite) -> list[WdkStrategyList
     A strategy the researcher deleted, and a helper strategy this deployment
     wrote into the same account, are not the researcher's to reopen.
     """
-    summaries = await get_strategy_api(siteId).list_strategies()
-    return sorted(
-        (
-            WdkStrategyListItem(
-                wdk_strategy_id=summary.strategy_id,
-                name=summary.name,
-                estimated_size=summary.estimated_size,
-                is_saved=summary.is_saved,
-                last_modified=summary.last_modified,
-            )
-            for summary in summaries
-            if not summary.is_deleted
-            and not is_internal_wdk_strategy_name(summary.name)
-        ),
-        key=lambda item: item.last_modified,
-        reverse=True,
-    )
+    return [
+        WdkStrategyListItem(
+            wdk_strategy_id=summary.strategy_id,
+            name=summary.name,
+            estimated_size=summary.estimated_size,
+            is_saved=summary.is_saved,
+            last_modified=summary.last_modified,
+        )
+        for summary in await account_strategies(siteId)
+    ]

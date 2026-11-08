@@ -86,3 +86,9 @@ def test_explore_writes_ascii_only() -> None:
 
 def test_explore_asks_before_it_reads_the_account() -> None:
     assert _missing("ask_to_read_the_account", "other PathFinder conversations") == []
+
+
+def test_a_question_about_the_account_is_answered_from_it() -> None:
+    named = ("when the researcher asks about them", "Never say you cannot reach them")
+
+    assert _missing(*named) == []

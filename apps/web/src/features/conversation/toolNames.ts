@@ -90,7 +90,7 @@ export const TOOL_LABELS: Record<string, string> = {
   search_memory: "Search memory",
   remember: "Remember",
   ask_to_read_the_account: "Ask to read your account",
-  read_saved_strategies: "Read your saved strategies",
+  read_my_strategies: "Read your strategies",
   list_my_threads: "List your conversations",
   read_my_thread: "Read a conversation",
   read_gene_set: "Read a gene set",

@@ -65,7 +65,7 @@ export function AccountReadCard({
     >
       <p className="flex items-center gap-1.5 text-xs font-medium">
         <ShieldAlert className="size-3.5 text-warning" aria-hidden />
-        Let PathFinder read your saved strategies, other conversations or gene sets?
+        Let PathFinder read your strategies, other conversations or gene sets?
       </p>
       <p data-testid="account-read-what" className="text-xs text-muted-foreground">
         {what}
