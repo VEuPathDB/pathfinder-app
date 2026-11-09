@@ -12,7 +12,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch
-        pending={false}
+        busy={null}
         error={null}
         onBranch={onBranch}
         onRevert={vi.fn()}
@@ -29,7 +29,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch
-        pending={false}
+        busy={null}
         error={null}
         onBranch={vi.fn()}
         onRevert={onRevert}
@@ -45,7 +45,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch={false}
-        pending={false}
+        busy={null}
         error={null}
         onBranch={vi.fn()}
         onRevert={vi.fn()}
@@ -61,7 +61,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch
-        pending
+        busy="revert"
         error={null}
         onBranch={vi.fn()}
         onRevert={vi.fn()}
@@ -72,12 +72,48 @@ describe("BranchOrRevertDialog", () => {
     expect(screen.getByTestId("edit-revert-button")).toBeDisabled();
   });
 
+  it("says the branch is under way while it runs", () => {
+    render(
+      <BranchOrRevertDialog
+        open
+        canBranch
+        busy="branch"
+        error={null}
+        onBranch={vi.fn()}
+        onRevert={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("edit-branch-button")).toHaveTextContent("Branching...");
+    expect(screen.getByTestId("edit-branch-button")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByTestId("edit-revert-button")).toHaveTextContent("Revert");
+  });
+
+  it("says the revert is under way while it runs", () => {
+    render(
+      <BranchOrRevertDialog
+        open
+        canBranch
+        busy="revert"
+        error={null}
+        onBranch={vi.fn()}
+        onRevert={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("edit-revert-button")).toHaveTextContent("Reverting...");
+    expect(screen.getByTestId("edit-branch-button")).toHaveTextContent(/^Branch$/);
+  });
+
   it("renders the server's refusal and keeps both actions clickable", () => {
     render(
       <BranchOrRevertDialog
         open
         canBranch
-        pending={false}
+        busy={null}
         error="Target message not found"
         onBranch={vi.fn()}
         onRevert={vi.fn()}
@@ -96,7 +132,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch
-        pending={false}
+        busy={null}
         error={null}
         onBranch={vi.fn()}
         onRevert={vi.fn()}
@@ -115,7 +151,7 @@ describe("BranchOrRevertDialog", () => {
       <BranchOrRevertDialog
         open
         canBranch
-        pending={false}
+        busy={null}
         error={null}
         onBranch={vi.fn()}
         onRevert={vi.fn()}

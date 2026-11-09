@@ -16,7 +16,7 @@ import { toUserMessage } from "@/lib/api/errors";
 import { chatUrl, conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
-import { BranchOrRevertDialog } from "./BranchOrRevertDialog";
+import { BranchOrRevertDialog, type EditAction } from "./BranchOrRevertDialog";
 
 function dialogError(branchError: unknown, revertError: unknown): string | null {
   if (branchError != null) return toUserMessage(branchError, "Could not branch");
@@ -81,7 +81,12 @@ export function EditComposerBranchOrRevert() {
     },
   });
 
-  const pending = branchMutation.isPending || revertMutation.isPending;
+  const busy: EditAction | null = branchMutation.isPending
+    ? "branch"
+    : revertMutation.isPending
+      ? "revert"
+      : null;
+  const pending = busy !== null;
 
   const handleClick = () => {
     if (composerText.trim() === "") return;
@@ -104,7 +109,7 @@ export function EditComposerBranchOrRevert() {
       <BranchOrRevertDialog
         open={dialogOpen}
         canBranch={parentId !== null}
-        pending={pending}
+        busy={busy}
         error={dialogError(branchMutation.error, revertMutation.error)}
         onBranch={() => branchMutation.mutate()}
         onRevert={() => revertMutation.mutate()}

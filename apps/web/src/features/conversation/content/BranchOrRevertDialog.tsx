@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch, RotateCcw } from "lucide-react";
+import { GitBranch, Loader2, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+export type EditAction = "branch" | "revert";
+
 export interface BranchOrRevertDialogProps {
   open: boolean;
   canBranch: boolean;
-  pending: boolean;
+  busy: EditAction | null;
   error: string | null;
   onBranch: () => void;
   onRevert: () => void;
@@ -25,12 +27,13 @@ export interface BranchOrRevertDialogProps {
 export function BranchOrRevertDialog({
   open,
   canBranch,
-  pending,
+  busy,
   error,
   onBranch,
   onRevert,
   onCancel,
 }: BranchOrRevertDialogProps) {
+  const pending = busy !== null;
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
       <DialogContent className="sm:max-w-md">
@@ -86,20 +89,30 @@ export function BranchOrRevertDialog({
               variant="outline"
               onClick={onBranch}
               disabled={pending || !canBranch}
+              aria-busy={busy === "branch"}
               data-testid="edit-branch-button"
             >
-              <GitBranch className="mr-1 h-3.5 w-3.5" />
-              Branch
+              {busy === "branch" ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <GitBranch className="mr-1 h-3.5 w-3.5" />
+              )}
+              {busy === "branch" ? "Branching..." : "Branch"}
             </Button>
             <Button
               type="button"
               variant="destructive"
               onClick={onRevert}
               disabled={pending}
+              aria-busy={busy === "revert"}
               data-testid="edit-revert-button"
             >
-              <RotateCcw className="mr-1 h-3.5 w-3.5" />
-              Revert
+              {busy === "revert" ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <RotateCcw className="mr-1 h-3.5 w-3.5" />
+              )}
+              {busy === "revert" ? "Reverting..." : "Revert"}
             </Button>
           </div>
         </DialogFooter>
