@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-09
+
+* **The right rail shows what the researcher asked.** Six panels become Strategy, Review and a
+  Study panel that appears with a study. Review reads the ledger section by section, so a
+  thread whose ledger carries one retired value shows every other section instead of an empty
+  panel. See [the decision](decisions/the-right-rail-shows-what-the-researcher-asked.md).
+
 ## 2026-11-08
 
 * **Audits are offered on the dev sites only.** A site whose host starts with `muharram.` offers

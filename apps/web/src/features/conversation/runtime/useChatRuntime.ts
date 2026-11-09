@@ -1,5 +1,6 @@
 "use client";
 
+import { tasksListOptions } from "../api/tasks";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -136,6 +137,11 @@ export function useChatRuntime({
         case "data-scratchpad-updated":
           void queryClient.invalidateQueries({
             queryKey: listScratchpadNotesQueryOptions(conversationId).queryKey,
+          });
+          break;
+        case "data-background-task-started":
+          void queryClient.invalidateQueries({
+            queryKey: tasksListOptions(conversationId).queryKey,
           });
           break;
         case "data-graph-snapshot": {

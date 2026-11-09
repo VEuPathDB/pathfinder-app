@@ -37,8 +37,8 @@ Check on the S1, S2 and S5 builds of [standard flows](flows-strategy-standard.md
 | 5 | Sampled genes | Read | `Gene`, `Product`, `Fits`, `Why`; genes of the requested organism; `Why` cites a record value (S1: `signalp_60_probability=...`) |
 | 6 | `Sources the check read` | Click one | The site's gene record page opens |
 | 7 | `Open in <Site>` | Click | The site shows the same tree and root count |
-| 8 | Right rail `Progress`, `Checking` tab | Read | The same card, with `complete yes`, the gaps and caveats lists, and no `successful` row |
-| 9 | Composer | Change a parameter (S9), then reopen the older card in the rail | `Superseded: the strategy changed after this check.`; the older answer carries `Superseded - strategy changed since this answer` |
+| 8 | Right rail `Review` | Read | `The strategy answers your question` with the card's count and `counts match the site`; the spot check counts and the caveats are the card's |
+| 9 | Composer | Change a parameter (S9), then read the older card and the right rail `Review` | `Superseded: the strategy changed after this check.` on the card; the older answer carries `Superseded - strategy changed since this answer`; Review reads `The strategy changed after the last check` |
 
 When every sampled gene is `Unclear` (FND-6), the card's line reads `8 of 8 sampled genes unclear`, and the appendix's Strategy section lists no caveat for it.
 
@@ -59,7 +59,7 @@ Measured today: the reply was right (52 of 80, 38 of 40 excluded, the two negati
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | The V2 conversation | Send `Optimize the SignalP version of the signal peptide search to recover as many of my positive controls as possible while returning as few of my negative controls as possible.` | An approval card `Optimize parameters needs your approval before it runs.`, `Deny` / `Approve` |
-| 2 | Approval card | `Approve` | Task row `Optimize parameters` with `~900 s` and a percent; the Tasks panel lists it |
+| 2 | Approval card | `Approve` | Task row `Optimize parameters` with `~900 s` and a percent; the right rail `Review` lists it under `Working now` |
 | 3 | Thread, when done | Read | A figure `Scored variants` (`Table <n>`), headers `Variant`, `MCC`, `F1`, `Precision`, `Sensitivity`, `Balanced accuracy`, the `winner` badge on SignalP-4.1 (76 of 80, 1 of 40, 572 genes), then SignalP-5.0, then SignalP-6.0 |
 
 Measured today: the sweep never ran in six turns over two conversations; the approved call carried no controls and failed with `At least one of positive_controls or negative_controls must be provided.` (FND-8, blocker).

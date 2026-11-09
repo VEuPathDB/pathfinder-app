@@ -139,8 +139,8 @@ test.describe("Layout and access", () => {
       await expect(chatPage.composer).toBeVisible();
       await expect(chatPage.sendButton).toBeVisible();
       await expect(page.getByTestId("conversation-usage")).toBeVisible();
-      await expect(graphPage.railFooter).toHaveText("3 steps");
-      expect(await unclipped(graphPage.railFooter)).toBe(true);
+      await expect(graphPage.railStepRows).toHaveCount(3);
+      expect(await unclipped(graphPage.railHeadline)).toBe(true);
 
       const card = await expectEvidence(page, counts.root);
       const clipped = await card
@@ -175,7 +175,7 @@ test.describe("Layout and access", () => {
     await expect(openSidebar).toHaveAttribute("aria-pressed", "false");
     await expect(
       page.getByRole("button", {
-        name: /^Close (Strategy|Tasks|Memories|Notes|Progress|Studies)$/,
+        name: /^Close (Strategy|Review|Study)$/,
       }),
     ).toHaveCount(0);
     expect(await noHorizontalScroll(page)).toBe(true);
@@ -363,7 +363,7 @@ test.describe("Layout and access", () => {
           .getByRole("button", { name: "Close Strategy", exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Open Notes", exact: true }),
+        page.getByRole("button", { name: "Open Review", exact: true }),
       ).toBeVisible();
 
       const id = chatPage.lastStrategyId ?? "";

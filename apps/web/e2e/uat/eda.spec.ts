@@ -148,13 +148,13 @@ async function expectStudiesRail(page: Page, api: ApiClient, conversationId: str
 }
 
 /** Leave the tab for the thread and wait for the composer. */
-/** Bring the rail's Studies panel on screen; it stays open once a reader opened it. */
+/** Bring the rail's Study panel on screen; it stays open once a reader opened it. */
 async function showStudies(page: Page) {
   // The rail mounts with the conversation, so wait for the conversation first.
   await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
   const open = page
     .getByLabel("Right rail")
-    .getByRole("button", { name: "Open Studies", exact: true });
+    .getByRole("button", { name: "Open Study", exact: true });
   if ((await open.count()) > 0) await open.click();
   await expect(page.getByTestId("rail-eda-panel")).toBeVisible();
 }
@@ -174,7 +174,7 @@ async function expectOneExportedStep(
 ): Promise<number> {
   const counts = await siteCounts(api, conversationId, siteId);
   await graphPage.openRailStrategyPanel();
-  await expect(graphPage.railFooter).toHaveText("1 step");
+  await expect(graphPage.railHeadline).toContainText(printed(counts.root));
   await expect(graphPage.railStepRows).toHaveCount(1);
   await expect(graphPage.railStepRows).toContainText(stepName);
   await expect(graphPage.railPanel).toContainText(printed(counts.root));

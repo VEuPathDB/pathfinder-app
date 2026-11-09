@@ -25,7 +25,7 @@ Measured: step 1 as expected, 6 genes (WDK: 6; 24 with up or down), 127 s, $0.10
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Each component site, the S2 prompt of that site | Read the trace row `Find searches` | `<n> searches` for the site's own list; when other sites have close experiments, `, experiments on <site>, <site>` after it; the steps built use only this site's searches |
-| 2 | Progress panel, `Planning` tab | Read each criterion | Search names of this site only |
+| 2 | Right rail `Strategy` | Open each step | Each step's search is one of this site's |
 
 Measured: toxodb `10 searches, experiments on plasmodb`; vectorbase `5 searches, experiments on plasmodb`; plasmodb `experiments on toxodb and fungidb`. No other site's search was bound in any run.
 

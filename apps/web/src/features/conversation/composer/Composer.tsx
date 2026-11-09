@@ -188,6 +188,7 @@ export function Composer({
       >
         <ComposerPrimitive.Input
           data-testid="message-input"
+          data-composer-input
           placeholder={
             !signedIn
               ? SIGN_IN_TO_BUILD

@@ -46,14 +46,13 @@ describe("EdaPanel", () => {
     });
     render(<EdaPanel conversationId="conv-1" />);
     const panel = screen.getByTestId("rail-eda-panel");
-    expect(panel).toHaveTextContent("1 filter");
-    expect(panel).toHaveTextContent("0 computations");
+    expect(panel).toHaveTextContent("1 filter · 0 computations");
   });
 
   it("opens the tab from the header action", async () => {
     useEdaStore.getState().applyAnalysisState(EDA_ANALYSIS_STATE_FIXTURE);
     render(<EdaPanel conversationId="conv-1" />);
-    await userEvent.click(screen.getByTestId("rail-eda-open"));
+    await userEvent.click(screen.getByRole("button", { name: "Open study" }));
     expect(pushMock).toHaveBeenCalledWith("/conversation/conv-1/eda");
   });
 

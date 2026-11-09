@@ -1,38 +1,26 @@
 import type { UIMessage } from "ai";
 
 export interface RailActivity {
-  ledgerCount: number;
-  scratchpadCount: number;
-  taskCount: number;
-  memoryCount: number;
-  edaCount: number;
+  reviewCount: number;
+  studyCount: number;
   hasUserMessage: boolean;
 }
 
-const PART_TO_KEY: Record<
-  string,
-  "ledgerCount" | "scratchpadCount" | "taskCount" | "memoryCount" | "edaCount"
-> = {
-  "data-ledger-update": "ledgerCount",
-  "data-scratchpad-updated": "scratchpadCount",
-  "data-background-task-started": "taskCount",
-  "data-memory-retrieved": "memoryCount",
-  "data-eda.analysis-state": "edaCount",
-  "data-eda.subset-preview": "edaCount",
-  "data-eda.viz": "edaCount",
+const PART_TO_KEY: Record<string, "reviewCount" | "studyCount"> = {
+  "data-ledger-update": "reviewCount",
+  "data-evidence-card": "reviewCount",
+  "data-background-task-started": "reviewCount",
+  "data-scratchpad-updated": "reviewCount",
+  "data-memory-retrieved": "reviewCount",
+  "data-eda.analysis-state": "studyCount",
+  "data-eda.subset-preview": "studyCount",
+  "data-eda.viz": "studyCount",
 };
 
-/**
- * Tally per-panel activity from the chat message stream so every rail icon can
- * show an "unseen update" dot consistently (not just strategy/plan).
- */
 export function computeRailActivity(messages: readonly UIMessage[]): RailActivity {
   const activity: RailActivity = {
-    ledgerCount: 0,
-    scratchpadCount: 0,
-    taskCount: 0,
-    memoryCount: 0,
-    edaCount: 0,
+    reviewCount: 0,
+    studyCount: 0,
     hasUserMessage: false,
   };
   for (const message of messages) {

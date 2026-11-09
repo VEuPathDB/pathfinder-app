@@ -55,6 +55,7 @@ function strategy(size: number): Strategy {
 function Rail() {
   return (
     <StrategyPanel
+      check={null}
       strategy={useStrategyData(CONVERSATION)}
       siteId={SITE}
       conversationId={CONVERSATION}
@@ -127,7 +128,12 @@ describe("StrategyPanel refresh", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
-        <StrategyPanel strategy={null} siteId={SITE} conversationId={CONVERSATION} />
+        <StrategyPanel
+          check={null}
+          strategy={null}
+          siteId={SITE}
+          conversationId={CONVERSATION}
+        />
       </QueryClientProvider>,
     );
 

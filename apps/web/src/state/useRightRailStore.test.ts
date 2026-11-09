@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   RIGHT_RAIL_PANELS,
   lastSeenFor,
+  retiredPanel,
   useRightRailStore,
   useLeftSidebarStore,
 } from "./useRightRailStore";
@@ -12,22 +13,44 @@ beforeEach(() => {
   useRightRailStore.setState({
     openPanel: null,
     autoOpenedConversation: null,
-    ledgerSeen: {},
     lastSeen: {},
   });
   useLeftSidebarStore.setState({ collapsed: false });
 });
 
 describe("RIGHT_RAIL_PANELS", () => {
-  it("carries the eda panel", () => {
-    expect(RIGHT_RAIL_PANELS).toEqual([
+  it("carries strategy, review and study", () => {
+    expect(RIGHT_RAIL_PANELS).toEqual(["strategy", "review", "study"]);
+  });
+});
+
+describe("retiredPanel", () => {
+  it("maps a retired panel id", () => {
+    expect(
+      ["ledger", "tasks", "memories", "scratchpad", "eda", "strategy", "bogus", 3].map(
+        retiredPanel,
+      ),
+    ).toEqual([
+      "review",
+      "review",
+      "review",
+      "review",
+      "study",
       "strategy",
-      "tasks",
-      "memories",
-      "scratchpad",
-      "ledger",
-      "eda",
+      null,
+      null,
     ]);
+  });
+
+  it("hydrates a stored retired panel as its successor", async () => {
+    window.localStorage.setItem(
+      useRightRailStore.persist.getOptions().name ?? "",
+      JSON.stringify({ state: { openPanel: "tasks", lastSeen: {} }, version: 0 }),
+    );
+
+    await useRightRailStore.persist.rehydrate();
+
+    expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 });
 
@@ -39,70 +62,60 @@ describe("useRightRailStore", () => {
     const s = useRightRailStore.getState();
     expect(s.openPanel).toBe("strategy");
     expect(lastSeenFor(s.lastSeen, "c1").strategyStepCount).toBe(4);
-    expect(lastSeenFor(s.lastSeen, "c1").ledgerCount).toBe(0);
+    expect(lastSeenFor(s.lastSeen, "c1").reviewCount).toBe(0);
   });
 
   it("keeps one conversation's markers out of another's", () => {
-    useRightRailStore.getState().openPanelId("c1", "tasks", { taskCount: 3 });
+    useRightRailStore.getState().openPanelId("c1", "review", { reviewCount: 3 });
     const seen = useRightRailStore.getState().lastSeen;
-    expect(lastSeenFor(seen, "c1").taskCount).toBe(3);
-    expect(lastSeenFor(seen, "c2").taskCount).toBe(0);
+    expect(lastSeenFor(seen, "c1").reviewCount).toBe(3);
+    expect(lastSeenFor(seen, "c2").reviewCount).toBe(0);
   });
 
-  it("openPanelId records the eda marker so the dot clears", () => {
-    useRightRailStore.getState().openPanelId("c1", "eda", { edaCount: 3 });
+  it("openPanelId records the study marker so the dot clears", () => {
+    useRightRailStore.getState().openPanelId("c1", "study", { studyCount: 3 });
     const s = useRightRailStore.getState();
-    expect(s.openPanel).toBe("eda");
-    expect(lastSeenFor(s.lastSeen, "c1").edaCount).toBe(3);
+    expect(s.openPanel).toBe("study");
+    expect(lastSeenFor(s.lastSeen, "c1").studyCount).toBe(3);
   });
 
   it("togglePanel opens a different panel, closes the same one", () => {
     const s = useRightRailStore.getState();
-    s.togglePanel("c1", "memories", { memoryCount: 1 });
-    expect(useRightRailStore.getState().openPanel).toBe("memories");
-    expect(lastSeenFor(useRightRailStore.getState().lastSeen, "c1").memoryCount).toBe(
+    s.togglePanel("c1", "review", { reviewCount: 1 });
+    expect(useRightRailStore.getState().openPanel).toBe("review");
+    expect(lastSeenFor(useRightRailStore.getState().lastSeen, "c1").reviewCount).toBe(
       1,
     );
 
-    s.togglePanel("c1", "memories", { memoryCount: 2 });
+    s.togglePanel("c1", "review", { reviewCount: 2 });
     expect(useRightRailStore.getState().openPanel).toBeNull();
 
-    s.togglePanel("c1", "tasks", {});
-    expect(useRightRailStore.getState().openPanel).toBe("tasks");
+    s.togglePanel("c1", "strategy", {});
+    expect(useRightRailStore.getState().openPanel).toBe("strategy");
   });
 
   it("closePanel clears the open panel", () => {
-    useRightRailStore.getState().openPanelId("c1", "memories", {});
+    useRightRailStore.getState().openPanelId("c1", "review", {});
     useRightRailStore.getState().closePanel();
     expect(useRightRailStore.getState().openPanel).toBe(null);
   });
 
-  it("autoOpen opens the ledger once per conversation", () => {
-    useRightRailStore.getState().autoOpen("c1", "ledger");
-    expect(useRightRailStore.getState().openPanel).toBe("ledger");
+  it("autoOpen opens review once per conversation", () => {
+    useRightRailStore.getState().autoOpen("c1", "review");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
     expect(useRightRailStore.getState().autoOpenedConversation).toBe("c1");
   });
 
   it("autoOpen leaves a panel the researcher already opened", () => {
     useRightRailStore.getState().togglePanel("c1", "strategy", {});
-    useRightRailStore.getState().autoOpen("c1", "ledger");
+    useRightRailStore.getState().autoOpen("c1", "review");
     expect(useRightRailStore.getState().openPanel).toBe("strategy");
   });
 
   it("autoOpen runs again on another conversation", () => {
     useRightRailStore.getState().closePanel();
-    useRightRailStore.getState().autoOpen("c2", "ledger");
-    expect(useRightRailStore.getState().openPanel).toBe("ledger");
-  });
-
-  it("markLedgerTabSeen keys signatures by conversation and tab", () => {
-    useRightRailStore.getState().markLedgerTabSeen("c1", "frame", "sig-frame");
-    useRightRailStore.getState().markLedgerTabSeen("c1", "plan", "sig-plan");
-    useRightRailStore.getState().markLedgerTabSeen("c2", "frame", "other");
-
-    const { ledgerSeen } = useRightRailStore.getState();
-    expect(ledgerSeen["c1"]).toEqual({ frame: "sig-frame", plan: "sig-plan" });
-    expect(ledgerSeen["c2"]).toEqual({ frame: "other" });
+    useRightRailStore.getState().autoOpen("c2", "review");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 });
 

@@ -39,19 +39,19 @@ export function CompactDisconnectedSection({
       data-testid="compact-strategy-orphans"
       className="rounded-md border border-dashed border-warning/40 bg-warning/10 p-2"
     >
-      <header className="mb-1 flex items-center justify-between gap-2 px-1 text-[0.625rem] uppercase tracking-wide text-warning">
+      <header className="mb-1 flex items-center justify-between gap-2 px-1 text-xs font-medium text-warning">
         <span>{orphans.length} disconnected</span>
         <Button
           type="button"
           size="xs"
           variant="ghost"
           onClick={handleClear}
-          className="h-5 gap-1 px-1.5 text-[0.625rem] text-warning hover:text-warning"
+          className="h-6 gap-1 px-1.5 text-xs text-warning hover:text-warning"
         >
           <Trash2 className="size-3" aria-hidden /> Remove all
         </Button>
       </header>
-      <p className="px-1 pb-1 text-[0.625rem] text-muted-foreground">
+      <p className="px-1 pb-1 text-xs text-muted-foreground">
         These steps aren&apos;t connected and block save. Remove or wire them up in the
         full editor.
       </p>

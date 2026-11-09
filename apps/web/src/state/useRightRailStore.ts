@@ -1,32 +1,36 @@
+import { z } from "zod";
+
 import { createPersistedStore } from "./middleware";
 
-export const RIGHT_RAIL_PANELS = [
-  "strategy",
-  "tasks",
-  "memories",
-  "scratchpad",
-  "ledger",
-  "eda",
-] as const;
+export const RIGHT_RAIL_PANELS = ["strategy", "review", "study"] as const;
 
 export type RightRailPanel = (typeof RIGHT_RAIL_PANELS)[number];
 
+const SUCCESSORS: Record<string, RightRailPanel> = {
+  strategy: "strategy",
+  review: "review",
+  study: "study",
+  ledger: "review",
+  tasks: "review",
+  memories: "review",
+  scratchpad: "review",
+  eda: "study",
+};
+
+export function retiredPanel(id: unknown): RightRailPanel | null {
+  return typeof id === "string" ? (SUCCESSORS[id] ?? null) : null;
+}
+
 interface LastSeen {
   strategyStepCount: number;
-  ledgerCount: number;
-  scratchpadCount: number;
-  taskCount: number;
-  memoryCount: number;
-  edaCount: number;
+  reviewCount: number;
+  studyCount: number;
 }
 
 const DEFAULT_LAST_SEEN: LastSeen = {
   strategyStepCount: 0,
-  ledgerCount: 0,
-  scratchpadCount: 0,
-  taskCount: 0,
-  memoryCount: 0,
-  edaCount: 0,
+  reviewCount: 0,
+  studyCount: 0,
 };
 
 /** Markers for every conversation the rail has shown, keyed by conversation id. */
@@ -40,11 +44,27 @@ export function lastSeenFor(
   return lastSeen[conversationId] ?? DEFAULT_LAST_SEEN;
 }
 
+const COUNT = z.number().catch(0);
+
+const STORED = z.object({
+  openPanel: z.unknown(),
+  lastSeen: z
+    .record(
+      z.string(),
+      z.object({
+        strategyStepCount: COUNT,
+        reviewCount: COUNT,
+        studyCount: COUNT,
+      }),
+    )
+    .catch({}),
+  autoOpenedConversation: z.string().nullable().catch(null),
+});
+
 interface RightRailState {
   openPanel: RightRailPanel | null;
   lastSeen: LastSeenByConversation;
   autoOpenedConversation: string | null;
-  ledgerSeen: Record<string, Record<string, string>>;
 
   openPanelId: (
     conversationId: string,
@@ -58,7 +78,6 @@ interface RightRailState {
   ) => void;
   closePanel: () => void;
   autoOpen: (conversationId: string, panel: RightRailPanel) => void;
-  markLedgerTabSeen: (conversationId: string, tab: string, signature: string) => void;
 }
 
 function withMarkers(
@@ -78,7 +97,6 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
     openPanel: null,
     lastSeen: {},
     autoOpenedConversation: null,
-    ledgerSeen: {},
 
     openPanelId: (conversationId, panel, markers) =>
       set((s) => ({
@@ -107,14 +125,6 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
         openPanel: s.openPanel ?? panel,
       }));
     },
-
-    markLedgerTabSeen: (conversationId, tab, signature) =>
-      set((s) => ({
-        ledgerSeen: {
-          ...s.ledgerSeen,
-          [conversationId]: { ...s.ledgerSeen[conversationId], [tab]: signature },
-        },
-      })),
   }),
   {
     name: "pathfinder-right-rail",
@@ -122,8 +132,17 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
       openPanel: s.openPanel,
       lastSeen: s.lastSeen,
       autoOpenedConversation: s.autoOpenedConversation,
-      ledgerSeen: s.ledgerSeen,
     }),
+    merge: (stored, current) => {
+      const parsed = STORED.safeParse(stored);
+      if (!parsed.success) return current;
+      return {
+        ...current,
+        openPanel: retiredPanel(parsed.data.openPanel),
+        lastSeen: parsed.data.lastSeen,
+        autoOpenedConversation: parsed.data.autoOpenedConversation,
+      };
+    },
   },
 );
 

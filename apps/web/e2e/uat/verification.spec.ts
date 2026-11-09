@@ -97,14 +97,6 @@ async function openRail(page: Page, label: string): Promise<Locator> {
   return region;
 }
 
-/** Open the rail's Progress panel on its Checking tab. */
-async function openChecking(page: Page): Promise<Locator> {
-  await openRail(page, "Progress");
-  const panel = page.getByTestId("ledger-panel");
-  await panel.getByRole("tab", { name: /^Checking/ }).click();
-  return panel;
-}
-
 /** The facts line of one control test: its label, then each set's returned count. */
 function controlResult(
   recovered: number,
@@ -248,15 +240,14 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       new RegExp(`^${web}/app/workspace/strategies/\\d+/\\d+/summary:_default$`),
     );
 
-    const rail = await openChecking(page);
-    await expect(rail.getByTestId("evidence-verdict")).toHaveCount(0);
-    await expect(
-      rail.getByText("complete", { exact: true }).locator(".."),
-    ).toContainText("yes");
-    await expect(rail.getByText("successful", { exact: true })).toHaveCount(0);
-    await expect(rail.getByText("gaps", { exact: true })).toHaveCount(0);
-    await expect(rail.getByText("caveats", { exact: true })).toHaveCount(0);
-    await expect(rail.getByTestId("evidence-superseded")).toHaveCount(0);
+    const rail = await openRail(page, "Review");
+    await expect(rail.getByTestId("review-verdict")).toContainText(
+      "The strategy answers your question",
+    );
+    await expect(rail.getByTestId("review-verdict")).toContainText(
+      `${printed(counts.root)} genes · counts match the site`,
+    );
+    await expect(rail.getByRole("heading", { name: "Caveats" })).toHaveCount(0);
 
     const tm = paramText(
       nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE),
@@ -276,8 +267,10 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
     // The edit runs its own check, so the rail holds that newer card and the
     // older answer in the conversation carries the mark.
-    const current = await openChecking(page);
-    await expect(current.getByTestId("evidence-superseded")).toHaveCount(0);
+    const current = await openRail(page, "Review");
+    await expect(current.getByTestId("review-verdict")).not.toContainText(
+      "The strategy changed after the last check",
+    );
     await expect(page.getByTestId("superseded-badge")).toContainText([
       "strategy changed since this answer",
     ]);
@@ -340,10 +333,13 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     // A set the strategy separates whole measures no caveat, and the facts show none.
     await expect(controlsCaveats(page)).toHaveText(caveat === "" ? [] : [caveat]);
 
-    const tasks = await openRail(page, "Tasks");
     await expect(
-      tasks.getByRole("listitem").filter({ hasText: "Run control tests" }),
-    ).toContainText("Complete", { timeout: 60_000 });
+      page.getByTestId("task-row").filter({ hasText: "Run control tests" }),
+    ).toHaveCount(1);
+    const review = await openRail(page, "Review");
+    await expect(review.getByRole("heading", { name: "Working now" })).toHaveCount(0, {
+      timeout: 60_000,
+    });
   });
 
   test("V3 - Parameter sweep with its approval", async ({
@@ -376,9 +372,9 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     await expect(
       page.getByTestId("task-row").filter({ hasText: "Optimize parameters" }),
     ).toHaveCount(1, { timeout: 120_000 });
-    const tasks = await openRail(page, "Tasks");
+    const review = await openRail(page, "Review");
     await expect(
-      tasks.getByRole("listitem").filter({ hasText: "Optimize parameters" }),
+      review.getByRole("listitem").filter({ hasText: "Optimize parameters" }),
     ).toHaveCount(1, { timeout: 60_000 });
 
     const figure = page.getByTestId("data-scored-comparison");

@@ -25,6 +25,7 @@ vi.mock("@/state/strategy/useStepSnapshot", () => ({
 }));
 
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
+import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";
 import { StrategyPanel } from "./StrategyPanel";
 
 const STRATEGY: Strategy = {
@@ -49,6 +50,63 @@ const STRATEGY: Strategy = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+function renderChecked(check: Parameters<typeof StrategyPanel>[0]["check"]) {
+  render(
+    <StrategyPanel
+      check={check}
+      strategy={STRATEGY}
+      siteId="plasmodb"
+      conversationId="conv-1"
+    />,
+  );
+}
+
+const MATCHED = {
+  ...EVIDENCE_CARD,
+  steps: EVIDENCE_CARD.steps.map((step) => ({ ...step, drifted: false })),
+};
+
+describe("StrategyPanel headline", () => {
+  afterEach(() => cleanup());
+
+  it("shows the result count headline", () => {
+    renderChecked(null);
+    expect(screen.getByTestId("strategy-headline").textContent).toBe("5genes");
+    expect(screen.queryByTestId("rail-strategy-footer")).toBeNull();
+  });
+
+  it("says the counts match", () => {
+    renderChecked({ card: MATCHED, superseded: false });
+    expect(screen.getByTestId("strategy-check").textContent).toBe(
+      "Checked: every count matches PlasmoDB",
+    );
+  });
+
+  it("says how many counts changed", () => {
+    renderChecked({ card: EVIDENCE_CARD, superseded: false });
+    expect(screen.getByTestId("strategy-check").textContent).toBe(
+      "1 count changed on PlasmoDB since the build",
+    );
+  });
+
+  it("says the check is stale", () => {
+    renderChecked({ card: MATCHED, superseded: true });
+    expect(screen.getByTestId("strategy-check").textContent).toBe(
+      "Changed since the last check",
+    );
+  });
+
+  it("says the site did not answer", () => {
+    renderChecked({
+      card: { ...MATCHED, siteRead: "not_answered" },
+      superseded: false,
+    });
+    expect(screen.getByTestId("strategy-check").textContent).toBe(
+      "PlasmoDB did not answer the check",
+    );
+  });
+});
+
 describe("StrategyPanel (read-only rail)", () => {
   afterEach(() => {
     cleanup();
@@ -56,29 +114,51 @@ describe("StrategyPanel (read-only rail)", () => {
   });
 
   it("shows empty state when no steps", () => {
-    render(<StrategyPanel strategy={null} siteId="plasmodb" conversationId="conv-1" />);
+    render(
+      <StrategyPanel
+        check={null}
+        strategy={null}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
+    );
     expect(screen.getByText(/No strategy built yet/i)).toBeTruthy();
   });
 
   it("renders compact step list and Open button when steps exist", () => {
     render(
-      <StrategyPanel strategy={STRATEGY} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={STRATEGY}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
     expect(screen.getByTestId("compact-strategy-view")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /open/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open editor" })).toBeTruthy();
   });
 
   it("Open button navigates to /strategy", () => {
     render(
-      <StrategyPanel strategy={STRATEGY} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={STRATEGY}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /open/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open editor" }));
     expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("conv-1"));
   });
 
   it("Clicking a step row navigates to /strategy/step/:id", () => {
     render(
-      <StrategyPanel strategy={STRATEGY} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={STRATEGY}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
     fireEvent.click(screen.getByTestId("compact-step-row-step_1"));
     expect(pushMock).toHaveBeenCalledWith(strategyStepUrl("conv-1", "step_1"));
@@ -105,7 +185,12 @@ function renderEmptyPanel(): void {
   qc.setQueryData(listStrategiesQueryOptions({ siteId: "plasmodb" }).queryKey, []);
   render(
     <QueryClientProvider client={qc}>
-      <StrategyPanel strategy={null} siteId="plasmodb" conversationId="conv-1" />
+      <StrategyPanel
+        check={null}
+        strategy={null}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />
     </QueryClientProvider>,
   );
 }

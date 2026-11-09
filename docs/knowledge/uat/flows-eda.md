@@ -17,7 +17,7 @@ Expected numbers, measured on 2026-09-24: the comparison `wildtype` (group A) ag
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | A new conversation with one message sent, right rail `Studies` | Read | `No study is open`, `Ask the assistant to explore a study, and the subset and its plots appear here.` |
+| 1 | A new conversation with one message sent, right rail | Read | Two panel buttons, `Strategy` and `Review`; no `Study` |
 | 2 | Browser | Go to `/conversation/<id>/eda` | Header `No study selected`; `Back to conversation`; `Your datasets` with `Upload on VEuPathDB`; `Search studies...` |
 | 3 | `Search studies...` | Type `h` | `Type at least 2 characters to search studies.` |
 | 4 | `Search studies...` | Type `heat shock` | A row `Heat shock response in sensitive mutants (LRR5, DHC)` with `DS_e973eadd57` and its sites |
@@ -35,7 +35,7 @@ Expected numbers, measured on 2026-09-24: the comparison `wildtype` (group A) ag
 | 4 | Thread | Read the figure | Volcano titled with the effect size (`log2(Fold Change)`); caption ends `201 of 5,490 genes retained).`; `Group A: wildtype - Group B: delta-DHC mutant`; `Gene ids (201)` with `Copy gene ids` |
 | 5 | Thread | Read the rest | `Strategy updated` `1 step, 201 genes`, step `Genes that differ between wildtype and delta-DHC mutant` (`GenesByEdaVizWithCompute`); an evidence card under the reply |
 | 6 | Reply | Read | DESeq, sense counts, 5,490 genes tested, 201 pass, 31 higher in delta-DHC mutant, 170 higher in wild type |
-| 7 | Right rail `Studies` | Read | The study, the analysis name, `1 filter - 1 computation` |
+| 7 | Right rail `Study` | Read | The study, the analysis name, `1 filter · 1 computation`, `Open study` |
 
 Measured: exactly the numbers above, 146 s, $0.070 (through the worker). The evidence card's sample line reads `0 of 8 sampled genes fit` beside `Supported`: FND-6 (major).
 

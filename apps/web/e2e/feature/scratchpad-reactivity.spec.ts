@@ -20,6 +20,7 @@ import type { BrowserContext, Route } from "@playwright/test";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
 import { availableSiteId } from "../fixtures/available-site";
+import { openNotes } from "../fixtures/rail";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 
 const NOTE_ID = "note-e2e-scratchpad-001";
@@ -153,16 +154,8 @@ test.describe("Notes rail", () => {
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
 
-    // Open the notes rail panel up-front: empty state first.
-    const openScratchpadButton = page.getByRole("button", {
-      name: "Open Notes",
-      exact: true,
-    });
-    await expect(openScratchpadButton).toBeVisible({ timeout: 15_000 });
-    await openScratchpadButton.click();
-
-    const panel = page.getByTestId("scratchpad-panel");
-    await expect(panel).toBeVisible();
+    // Open the notes up-front: empty state first.
+    await openNotes(page);
     await expect(page.getByTestId("scratchpad-empty")).toBeVisible();
 
     // Send any message - our chat-route stub emits `data-scratchpad-updated`
@@ -234,8 +227,7 @@ test.describe("Notes rail", () => {
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
 
-    // Open the notes rail.
-    await page.getByRole("button", { name: "Open Notes", exact: true }).click();
+    await openNotes(page);
 
     const note = page.getByTestId(`scratchpad-note-${NOTE_ID}`);
     await expect(note).toBeVisible({ timeout: 15_000 });

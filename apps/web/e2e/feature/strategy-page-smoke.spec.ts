@@ -19,7 +19,6 @@ test.describe("Strategy page smoke", () => {
     await page.goto(`conversation/${conversationId}`);
     await graphPage.openRailStrategyPanel();
     await expect(graphPage.railOpenButton).toBeVisible();
-    await expect(graphPage.railFooter).toHaveText("1 step");
     await expect(graphPage.railStepRows).toHaveCount(1);
 
     await graphPage.railOpenButton.click();

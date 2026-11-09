@@ -61,7 +61,6 @@ The Lead's history is compacted at 100,000 estimated tokens (about 400,000 chara
 |---|---|---|---|
 | 1 | One plasmodb conversation | Build S2, then send 30 edits in turn (alternate `Change the transmembrane range to 1 to 99.` and `Change the transmembrane range back to 2 to 99.`) | Each answer is 288 or 116 genes as the range says (SP INTERSECT TM 1-99 is 288) |
 | 2 | Same | Send `What did I first ask for, and how many genes does the strategy return now?` | The first request (the S2 prompt) and the current count, both right after compaction |
-| 3 | Right rail `Progress`, `Context` | Read | The `Assistant` bar drops after the compaction and stays under its window |
 
 ## R6 - A network drop and a reload in the middle of a turn
 

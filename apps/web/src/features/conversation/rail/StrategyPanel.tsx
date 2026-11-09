@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Bookmark, RefreshCw, Workflow } from "lucide-react";
+import { Bookmark, Check, CircleAlert, RefreshCw, Workflow } from "lucide-react";
 
-import type { Strategy } from "@pathfinder/shared";
+import { siteShortName, type EvidenceCard, type Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { CompactStrategyView } from "@/features/strategy/graph/components/CompactStrategyView";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";
@@ -12,15 +12,26 @@ import { beginConversation } from "@/features/conversation/api/beginConversation
 import { SaveSubstrategyDialog } from "@/features/strategy/editor/SaveSubstrategyDialog";
 import { useRefreshStepCountsMutation } from "@/features/strategy/mutations/useRefreshStepCountsMutation";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
+import { AnimatedCount } from "@/lib/components/AnimatedCount";
 import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
+import { countNoun } from "@/lib/utils/countNoun";
+import { countOf } from "@/lib/utils/countOf";
+import { cn } from "@/lib/utils/cn";
+import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
+
+export interface StrategyCheck {
+  card: EvidenceCard;
+  superseded: boolean;
+}
 
 interface StrategyPanelProps {
   strategy: Strategy | null;
   siteId: string;
   conversationId: string;
+  check: StrategyCheck | null;
 }
 
 const STEP_ROUTE_RE = /\/strategy\/step\/([^/?#]+)/;
@@ -29,6 +40,7 @@ export function StrategyPanel({
   strategy,
   siteId,
   conversationId,
+  check,
 }: StrategyPanelProps) {
   const router = useRouter();
   const pathname = usePathname() as string | null;
@@ -88,24 +100,30 @@ export function StrategyPanel({
                 aria-hidden
               />
             </Button>
-            {wdkUrl != null && wdkUrl !== "" && (
-              <OpenInSiteLink href={wdkUrl} siteId={siteId} opens="strategy" />
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={openFullEditor}
-              data-testid="rail-strategy-open"
-              className="h-7 gap-1 px-2 text-xs"
-            >
-              Open
-            </Button>
           </div>
         ) : null
       }
     >
       {hasSteps ? (
         <div className="flex h-full flex-col" data-testid="rail-strategy-panel">
+          <div className="flex flex-col gap-2.5 border-b border-border px-4 py-4">
+            <Headline strategy={strategy} />
+            <CheckLine check={check} siteId={siteId} />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openFullEditor}
+                data-testid="rail-strategy-open"
+                className="h-7 px-2.5 text-xs transition-transform active:scale-[0.98]"
+              >
+                Open editor
+              </Button>
+              {wdkUrl != null && wdkUrl !== "" && (
+                <OpenInSiteLink href={wdkUrl} siteId={siteId} opens="strategy" />
+              )}
+            </div>
+          </div>
           <div className="min-h-0 flex-1 overflow-auto">
             <CompactStrategyView
               strategy={strategy}
@@ -115,7 +133,6 @@ export function StrategyPanel({
               onInsertSavedAt={setInsertTargetId}
             />
           </div>
-          <StrategyFooter strategy={strategy} />
         </div>
       ) : (
         <RailEmptyState
@@ -186,18 +203,61 @@ export function StrategyPanel({
   );
 }
 
-interface StrategyFooterProps {
-  strategy: Strategy;
+function Headline({ strategy }: { strategy: Strategy }) {
+  const root = strategy.steps.find((step) => step.id === strategy.rootStepId) ?? null;
+  const size = useStepSnapshot(root).estimatedSize;
+  return (
+    <p data-testid="strategy-headline" className="flex items-baseline gap-1.5">
+      {typeof size === "number" ? (
+        <AnimatedCount
+          value={size}
+          className="text-2xl font-semibold tracking-tight tabular-nums text-foreground"
+        />
+      ) : (
+        <span className="text-2xl font-semibold text-muted-foreground">...</span>
+      )}
+      <span className="text-sm text-muted-foreground">
+        {countNoun(
+          root?.recordType ?? strategy.recordType,
+          typeof size === "number" ? size : 2,
+        )}
+      </span>
+    </p>
+  );
 }
 
-function StrategyFooter({ strategy }: StrategyFooterProps) {
-  const stepCount = strategy.steps.length;
+function checkWords(
+  check: StrategyCheck,
+  site: string,
+): { text: string; good: boolean } {
+  if (check.superseded) return { text: "Changed since the last check", good: false };
+  if (check.card.siteRead !== "read") {
+    return { text: `${site} did not answer the check`, good: false };
+  }
+  const drifted = check.card.steps.filter((step) => step.drifted).length;
+  if (drifted > 0) {
+    return {
+      text: `${countOf(drifted, "count", "counts")} changed on ${site} since the build`,
+      good: false,
+    };
+  }
+  return { text: `Checked: every count matches ${site}`, good: true };
+}
+
+function CheckLine({ check, siteId }: { check: StrategyCheck | null; siteId: string }) {
+  if (check === null) return null;
+  const { text, good } = checkWords(check, siteShortName(siteId));
+  const Icon = good ? Check : CircleAlert;
   return (
-    <div
-      className="border-t border-border px-3 py-2 text-[0.625rem] text-muted-foreground"
-      data-testid="rail-strategy-footer"
+    <p
+      data-testid="strategy-check"
+      className={cn(
+        "flex items-center gap-1.5 text-xs",
+        good ? "text-success" : "text-muted-foreground",
+      )}
     >
-      {stepCount} {stepCount === 1 ? "step" : "steps"}
-    </div>
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      {text}
+    </p>
   );
 }

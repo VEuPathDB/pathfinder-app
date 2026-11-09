@@ -16,7 +16,7 @@ function setViewport(width: number): void {
 
 function openBothPanels(): void {
   useLeftSidebarStore.setState({ collapsed: false });
-  useRightRailStore.getState().openPanelId(CONVERSATION, "tasks", { taskCount: 1 });
+  useRightRailStore.getState().openPanelId(CONVERSATION, "review", { reviewCount: 1 });
 }
 
 beforeEach(() => {
@@ -38,12 +38,12 @@ describe("useAutoCollapsePanels", () => {
     renderHook(() => useAutoCollapsePanels("/conversation/c1"));
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(false);
-    expect(useRightRailStore.getState().openPanel).toBe("tasks");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 
   it("closes both when the window narrows after mount", () => {
     renderHook(() => useAutoCollapsePanels("/conversation/c1"));
-    expect(useRightRailStore.getState().openPanel).toBe("tasks");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
 
     setViewport(700);
     act(() => {
@@ -62,10 +62,10 @@ describe("useAutoCollapsePanels", () => {
     act(() => {
       useRightRailStore
         .getState()
-        .openPanelId(CONVERSATION, "ledger", { ledgerCount: 2 });
+        .openPanelId(CONVERSATION, "review", { reviewCount: 2 });
     });
 
-    expect(useRightRailStore.getState().openPanel).toBe("ledger");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 
   it("closes both drawers when a narrow window moves to another page", async () => {
@@ -93,6 +93,6 @@ describe("useAutoCollapsePanels", () => {
     });
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(false);
-    expect(useRightRailStore.getState().openPanel).toBe("tasks");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 });

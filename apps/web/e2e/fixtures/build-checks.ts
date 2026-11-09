@@ -64,9 +64,7 @@ export async function expectBuild(
 
   const graph = new GraphPage(page);
   await graph.openRailStrategyPanel();
-  await expect(graph.railFooter).toHaveText(
-    `${layout.steps} ${layout.steps === 1 ? "step" : "steps"}`,
-  );
+  await expect(graph.railHeadline).toContainText(printed(counts.root));
   await expect(graph.railStepRows).toHaveCount(layout.steps);
   await expect(graph.railPanel).toContainText(printed(counts.root));
   return counts;

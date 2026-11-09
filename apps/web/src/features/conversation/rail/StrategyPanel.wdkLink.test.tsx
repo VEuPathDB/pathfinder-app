@@ -45,7 +45,12 @@ describe("the rail panel links to the host site", () => {
   // require opening the full editor.
   it("offers a link to the strategy on the host site", () => {
     render(
-      <StrategyPanel strategy={strategy()} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={strategy()}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
 
     expect(
@@ -57,7 +62,12 @@ describe("the rail panel links to the host site", () => {
 
   it("names the site the strategy belongs to", () => {
     render(
-      <StrategyPanel strategy={strategy()} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={strategy()}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
 
     expect(
@@ -70,6 +80,7 @@ describe("the rail panel links to the host site", () => {
       "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/330871000";
     render(
       <StrategyPanel
+        check={null}
         strategy={strategy({ siteId: "orthomcl", recordType: "group", wdkUrl: url })}
         siteId="orthomcl"
         conversationId="conv-1"
@@ -83,7 +94,12 @@ describe("the rail panel links to the host site", () => {
 
   it("opens in a new tab without leaking the referrer", () => {
     render(
-      <StrategyPanel strategy={strategy()} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={strategy()}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
     const link = screen.getByRole("link", { name: "Open strategy on PlasmoDB" });
 
@@ -93,7 +109,12 @@ describe("the rail panel links to the host site", () => {
 
   it("keeps the button that opens the full editor", () => {
     render(
-      <StrategyPanel strategy={strategy()} siteId="plasmodb" conversationId="conv-1" />,
+      <StrategyPanel
+        check={null}
+        strategy={strategy()}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
     );
 
     expect(screen.getByTestId("rail-strategy-open")).toBeVisible();
@@ -102,6 +123,7 @@ describe("the rail panel links to the host site", () => {
   it("offers no link before the strategy reaches WDK", () => {
     render(
       <StrategyPanel
+        check={null}
         strategy={strategy({ wdkUrl: null, wdkStrategyId: null })}
         siteId="plasmodb"
         conversationId="conv-1"
@@ -112,7 +134,14 @@ describe("the rail panel links to the host site", () => {
   });
 
   it("offers no link when there is no strategy", () => {
-    render(<StrategyPanel strategy={null} siteId="plasmodb" conversationId="conv-1" />);
+    render(
+      <StrategyPanel
+        check={null}
+        strategy={null}
+        siteId="plasmodb"
+        conversationId="conv-1"
+      />,
+    );
 
     expect(screen.queryByRole("link", { name: /^Open strategy on / })).toBe(null);
   });

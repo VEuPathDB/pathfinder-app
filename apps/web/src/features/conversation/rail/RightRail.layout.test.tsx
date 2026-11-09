@@ -59,7 +59,6 @@ beforeEach(() => {
   useRightRailStore.setState({
     openPanel: null,
     autoOpenedConversation: null,
-    ledgerSeen: {},
     lastSeen: {},
   });
   useLeftSidebarStore.setState({ collapsed: false });
@@ -67,23 +66,45 @@ beforeEach(() => {
 });
 
 describe("the rail badge is scoped to the open conversation", () => {
-  it("raises no Tasks dot on a fresh conversation after another one ran a task", () => {
+  it("raises no Review dot on a fresh conversation after another one ran a task", () => {
     renderRail("conv-1", TASK_STARTED);
-    expect(screen.getByLabelText("Tasks has updates")).toBeInTheDocument();
+    expect(screen.getByLabelText("Review has updates")).toBeInTheDocument();
 
-    screen.getByLabelText("Open Tasks").click();
-    expect(useRightRailStore.getState().lastSeen["conv-1"]?.taskCount).toBe(1);
+    screen.getByLabelText("Open Review").click();
+    expect(useRightRailStore.getState().lastSeen["conv-1"]?.reviewCount).toBe(1);
 
     cleanup();
     renderRail("conv-2", []);
-    expect(screen.queryByLabelText("Tasks has updates")).toBe(null);
+    expect(screen.queryByLabelText("Review has updates")).toBe(null);
+  });
+});
+
+describe("the rail's panel buttons", () => {
+  it("offers Strategy and Review, and Study only with a study", () => {
+    renderRail("conv-1", []);
+    const rail = screen.getByRole("toolbar", { name: "Right rail" });
+    expect(
+      within(rail)
+        .getAllByRole("button", { name: /^Open / })
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Open Strategy", "Open Review"]);
+
+    cleanup();
+    renderRail("conv-2", [
+      { id: "m1", role: "assistant", parts: [{ type: "data-eda.viz", data: {} }] },
+    ]);
+    expect(
+      within(screen.getByRole("toolbar", { name: "Right rail" }))
+        .getAllByRole("button", { name: /^Open / })
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Open Strategy", "Open Review", "Open Study"]);
   });
 });
 
 describe("the rail panel floats over the thread only in a narrow window", () => {
   it("floats as a drawer with a backdrop that closes it, below 900px", async () => {
     setViewportWidth(744);
-    useRightRailStore.setState({ openPanel: "tasks" });
+    useRightRailStore.setState({ openPanel: "review" });
     renderRail("conv-1", []);
     expect(screen.getByTestId("rail-panel")).toHaveClass("max-[900px]:absolute");
 
@@ -94,7 +115,7 @@ describe("the rail panel floats over the thread only in a narrow window", () => 
 
   it("stays in flow on a wide viewport", () => {
     setViewportWidth(1440);
-    useRightRailStore.setState({ openPanel: "tasks" });
+    useRightRailStore.setState({ openPanel: "review" });
     renderRail("conv-1", []);
     const classes = screen.getByTestId("rail-panel").className.split(" ");
     expect(classes.filter((name) => name === "absolute")).toEqual([]);
@@ -114,9 +135,9 @@ describe("the rail's buttons on a phone", () => {
     expect(screen.getByRole("toolbar", { name: "Right rail" })).toHaveClass(
       "max-sm:hidden",
     );
-    await userEvent.click(within(slot).getByRole("button", { name: "Open Progress" }));
+    await userEvent.click(within(slot).getByRole("button", { name: "Open Review" }));
 
-    expect(useRightRailStore.getState().openPanel).toBe("ledger");
+    expect(useRightRailStore.getState().openPanel).toBe("review");
     usePhoneBarStore.setState({ slot: null });
     slot.remove();
   });

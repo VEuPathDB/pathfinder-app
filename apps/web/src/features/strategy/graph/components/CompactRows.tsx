@@ -92,7 +92,7 @@ function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProp
       >
         {label}
       </span>
-      <span className="text-[0.625rem] tabular-nums text-muted-foreground">
+      <span className="text-xs tabular-nums text-muted-foreground">
         {typeof liveCount === "number" ? liveCount.toLocaleString() : "..."}
       </span>
     </button>

@@ -3,8 +3,8 @@
 import type { ReactElement } from "react";
 import type { ControlSetEvidence, EvidenceCard } from "@pathfinder/shared";
 
-import { EvidenceCardBody } from "@/features/conversation/rail/EvidenceCardBody";
-import { sampleCountLine } from "@/features/conversation/rail/EvidenceReview";
+import { EvidenceCardBody } from "@/features/conversation/content/evidence/EvidenceCardBody";
+import { sampleCountLine } from "@/features/conversation/content/evidence/EvidenceReview";
 import { Figure } from "@/features/conversation/thread/Figure";
 
 function setClause(set: ControlSetEvidence | null | undefined, kind: string): string[] {

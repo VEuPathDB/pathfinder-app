@@ -65,7 +65,6 @@ beforeEach(() => {
   useRightRailStore.setState({
     openPanel: null,
     autoOpenedConversation: null,
-    ledgerSeen: {},
     lastSeen: {},
   });
 });
@@ -73,8 +72,8 @@ beforeEach(() => {
 describe("RightRail eda marker", () => {
   it("marks unseen EDA activity when the thread carries eda parts", () => {
     renderRail(EDA_MESSAGES);
-    expect(screen.getByLabelText("Studies has updates")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Progress has updates")).toBe(null);
+    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Review has updates")).toBe(null);
   });
 
   it("carries no marker on a thread with no eda part", () => {
@@ -85,42 +84,42 @@ describe("RightRail eda marker", () => {
         parts: [{ type: "data-ledger-update", data: {} }],
       },
     ]);
-    expect(screen.queryByLabelText("Studies has updates")).toBe(null);
-    expect(screen.getByLabelText("Progress has updates")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Study has updates")).toBe(null);
+    expect(screen.getByLabelText("Review has updates")).toBeInTheDocument();
   });
 
   it("clears the marker once the eda panel records what it saw", async () => {
     renderRail(EDA_MESSAGES);
     act(() => {
-      useRightRailStore.getState().openPanelId("conv-1", "eda", { edaCount: 3 });
+      useRightRailStore.getState().openPanelId("conv-1", "study", { studyCount: 3 });
     });
-    expect(lastSeenFor(useRightRailStore.getState().lastSeen, "conv-1").edaCount).toBe(
-      3,
-    );
+    expect(
+      lastSeenFor(useRightRailStore.getState().lastSeen, "conv-1").studyCount,
+    ).toBe(3);
     act(() => {
       useRightRailStore.getState().closePanel();
     });
     await waitFor(() => {
-      expect(screen.queryByLabelText("Studies has updates")).toBe(null);
+      expect(screen.queryByLabelText("Study has updates")).toBe(null);
     });
-    expect(screen.getByLabelText("Open Studies")).toBeInTheDocument();
+    expect(screen.getByLabelText("Open Study")).toBeInTheDocument();
   });
 
   it("records what the rail icon showed when the researcher opens the panel", async () => {
     renderRail(EDA_MESSAGES);
-    expect(screen.getByLabelText("Studies has updates")).toBeInTheDocument();
+    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText("Open Studies"));
+    await userEvent.click(screen.getByLabelText("Open Study"));
     expect(screen.getByTestId("rail-eda-panel")).toBeInTheDocument();
-    expect(lastSeenFor(useRightRailStore.getState().lastSeen, "conv-1").edaCount).toBe(
-      3,
-    );
+    expect(
+      lastSeenFor(useRightRailStore.getState().lastSeen, "conv-1").studyCount,
+    ).toBe(3);
 
     act(() => {
       useRightRailStore.getState().closePanel();
     });
     await waitFor(() => {
-      expect(screen.queryByLabelText("Studies has updates")).toBe(null);
+      expect(screen.queryByLabelText("Study has updates")).toBe(null);
     });
   });
 
@@ -129,11 +128,8 @@ describe("RightRail eda marker", () => {
       lastSeen: {
         "conv-1": {
           strategyStepCount: 0,
-          ledgerCount: 0,
-          scratchpadCount: 0,
-          taskCount: 0,
-          memoryCount: 0,
-          edaCount: 3,
+          reviewCount: 0,
+          studyCount: 3,
         },
       },
     });
@@ -141,6 +137,6 @@ describe("RightRail eda marker", () => {
       ...EDA_MESSAGES,
       { id: "m2", role: "assistant", parts: [{ type: "data-eda.viz", data: {} }] },
     ]);
-    expect(screen.getByLabelText("Studies has updates")).toBeInTheDocument();
+    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
   });
 });

@@ -829,12 +829,13 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .poll(() => chat.assistantMessages.count(), { timeout: 240_000 })
       .toBeGreaterThan(1);
 
-    const tasksToggle = reopened.getByRole("button", { name: "Open Tasks" });
-    if ((await tasksToggle.count()) > 0) await tasksToggle.click();
-    const panel = reopened.getByRole("region", { name: "Tasks detail" });
     await expect(
-      panel.getByRole("listitem").filter({ hasText: CONTROL_TESTS }),
-    ).toContainText("Complete");
+      reopened.getByTestId("task-row").filter({ hasText: CONTROL_TESTS }),
+    ).toHaveCount(1);
+    const reviewToggle = reopened.getByRole("button", { name: "Open Review" });
+    if ((await reviewToggle.count()) > 0) await reviewToggle.click();
+    const panel = reopened.getByRole("region", { name: "Review detail" });
+    await expect(panel.getByRole("heading", { name: "Working now" })).toHaveCount(0);
   });
 
   test("F12 - Two accounts stay apart", async ({

@@ -23,4 +23,4 @@ status: draft
 | D8 | `curl -s https://<host>/<project>/service/` for the five sites | `buildNumber` recorded in [the index](index.md); 71 when these documents were written |
 | D9 | `curl -s -X POST <api-url>/api/v1/gene-sets/import -H 'Content-Type: application/json' -d '{}'` (no `X-Requested-With`, no bearer) | 403 `{"detail":"Missing required X-Requested-With header"}` |
 | D10 | `curl -s <api-url>/api/v1/conversations?siteId=plasmodb` with no credential | 401 `Not authenticated` |
-| D11 | In the app, signed in | Send `hello` in a new conversation on plasmodb | A reply within 30 s; the Tasks panel empty; no error toast |
+| D11 | In the app, signed in | Send `hello` in a new conversation on plasmodb | A reply within 30 s; no `Working now` in the right rail `Review`; no error toast |

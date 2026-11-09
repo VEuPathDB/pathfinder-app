@@ -10,6 +10,7 @@ import type { Note } from "@pathfinder/shared/generated/types/Note";
 
 import { BASE_PATH } from "@/lib/basePath";
 
+import { openNotes } from "../fixtures/rail";
 import { test, expect, APP_ROOT, BASE_URL, addWebsiteLogin } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import {
@@ -407,31 +408,27 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     const [note] = pinned;
     if (note === undefined) throw new Error("the build pinned no note");
 
-    await page.getByRole("button", { name: "Open Notes" }).click();
+    await openNotes(page);
     const panel = page.getByTestId("scratchpad-panel");
     const card = panel.getByTestId(`scratchpad-note-${note.id}`);
     await expect(card).toHaveAttribute("data-pinned", "true");
-    await expect(panel.getByText("Pinned", { exact: true })).toBeVisible();
     await expect(card).toContainText(note.title);
 
     const opener = card.locator("button[aria-expanded]");
     await opener.click();
     await expect(opener).toHaveAttribute("aria-expanded", "true");
-    await expect(card.locator("pre")).toHaveText(note.body);
+    await expect(card.getByTestId("scratchpad-note-body")).toHaveText(note.body);
 
     await card.getByRole("button", { name: "Unpin" }).click();
     await expect(card).toHaveAttribute("data-pinned", "false");
-    await expect(panel.getByText("Recent", { exact: true })).toBeVisible();
-    await expect(panel.getByText("Pinned", { exact: true })).toHaveCount(0);
 
     await card.getByRole("button", { name: "Delete note" }).click();
     await expect(card).toHaveCount(0);
 
     await chatPage.newChat(siteId);
-    const openNotes = page.getByRole("button", { name: "Open Notes" });
-    if ((await openNotes.count()) > 0) await openNotes.click();
+    await openNotes(page);
     await expect(page.getByTestId("scratchpad-empty")).toHaveText(
-      "No notes yet. The assistant saves findings here as it works.",
+      "The assistant saves findings here as it works.",
     );
   });
 

@@ -152,12 +152,12 @@ test.describe("EDA data parts render in the thread", () => {
 
     await openAnalysisCard(page);
 
-    // The rail auto-opens the Progress panel on the first user message, so the
-    // Studies toggle reads "Open Studies" until it is clicked.
-    await page.getByRole("button", { name: /^(Open|Close) Studies$/ }).click();
+    // The rail auto-opens Review on the first user message, so the Study
+    // toggle reads "Open Study" until it is clicked.
+    await page.getByRole("button", { name: /^(Open|Close) Study$/ }).click();
     await expect(page.getByTestId("rail-eda-panel")).toContainText(STUDY_TITLE);
     await expect(page.getByTestId("rail-eda-panel")).toContainText(
-      "0 filters - 0 computations",
+      "0 filters · 0 computations",
     );
 
     // The dev server compiles the tab route on first request, so the

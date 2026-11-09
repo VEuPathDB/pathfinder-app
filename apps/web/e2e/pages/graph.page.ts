@@ -17,7 +17,7 @@ const BUILD_TURN_BUDGET_MS = 180_000;
  * Page object for the strategy graph + step editor surfaces.
  *
  * Targets the post-overhaul UI:
- * - Read-only rail panel on `/conversation/[id]` with an "Open" button
+ * - Read-only rail panel on `/conversation/[id]` with an "Open editor" button
  * - Full-page editor at `/conversation/[id]/strategy` with a CanvasTopbar +
  *   CanvasControls + SelectionActionBar
  * - Right-anchored Sheet step editor (auto-saves; no Save button)
@@ -34,7 +34,7 @@ export class GraphPage {
     return this.page.getByTestId("rail-strategy-panel");
   }
 
-  /** The "Open" button in the rail header that navigates to /strategy. */
+  /** The "Open editor" button in the rail panel that navigates to /strategy. */
   get railOpenButton(): Locator {
     return this.page.getByTestId("rail-strategy-open");
   }
@@ -85,15 +85,15 @@ export class GraphPage {
     return this.page.getByTestId(`compact-step-row-${stepId}`);
   }
 
-  /** Footer row with "N steps". */
-  get railFooter(): Locator {
-    return this.page.getByTestId("rail-strategy-footer");
+  /** The result count and its noun at the top of the rail panel. */
+  get railHeadline(): Locator {
+    return this.page.getByTestId("strategy-headline");
   }
 
   /**
    * Bring the rail's Strategy panel on screen.
    *
-   * The rail auto-opens Progress on the thread's first user message, so the
+   * The rail auto-opens Review on the thread's first user message, so the
    * Strategy toggle reads "Open Strategy" until a spec clicks it.
    */
   async openRailStrategyPanel() {
