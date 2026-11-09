@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { useEntrance, usePrefersReducedMotion } from "@/lib/motion";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
+import { useConversationExists } from "@/state/useConversationExists";
 
 import { isActiveTask, tasksListOptions } from "../../api/tasks";
 import {
@@ -36,9 +37,10 @@ interface ReviewPanelProps {
 
 export function ReviewPanel({ conversationId, strategy }: ReviewPanelProps) {
   const messages = useChatHelpers().messages;
-  const tasks = (useQuery(tasksListOptions(conversationId)).data?.tasks ?? []).filter(
-    (t) => isActiveTask(t.status),
-  );
+  const exists = useConversationExists(conversationId);
+  const tasks = (
+    useQuery({ ...tasksListOptions(conversationId), enabled: exists }).data?.tasks ?? []
+  ).filter((t) => isActiveTask(t.status));
   const reduced = usePrefersReducedMotion();
   const slide = useEntrance({
     initial: { height: 0, opacity: 0 },

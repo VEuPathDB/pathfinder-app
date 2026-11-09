@@ -15,6 +15,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 import { server } from "../../../../../vitest.msw-setup";
+
+const route = vi.hoisted(() => ({ pathname: "/conversation/conv-1" }));
+vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 import {
   ChatHelpersProvider,
   type ChatHelpers,
@@ -90,9 +93,32 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  route.pathname = "/conversation/conv-1";
+});
 
 describe("ReviewPanel", () => {
+  it("reads no notes or tasks of a conversation not created yet", async () => {
+    route.pathname = "/conversation";
+    const asked: string[] = [];
+    server.use(
+      http.get(`${API}/${CONVERSATION}/scratchpad/notes`, ({ request }) => {
+        asked.push(request.url);
+        return HttpResponse.json([]);
+      }),
+      http.get(`${API}/${CONVERSATION}/tasks`, ({ request }) => {
+        asked.push(request.url);
+        return HttpResponse.json({ tasks: [] });
+      }),
+    );
+
+    renderPanel([]);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(asked).toEqual([]);
+  });
+
   it("shows the empty state", () => {
     renderPanel([]);
     expect(screen.getByText("Nothing to review yet")).toBeInTheDocument();

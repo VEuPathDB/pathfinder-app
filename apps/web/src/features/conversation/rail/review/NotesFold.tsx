@@ -10,6 +10,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Fold } from "@/lib/components/Fold";
+import { useConversationExists } from "@/state/useConversationExists";
 
 import { ReviewSection } from "./ReviewSection";
 
@@ -75,7 +76,8 @@ function NoteCard({ note, onTogglePin, onDelete }: NoteCardProps) {
 export function NotesFold({ conversationId }: { conversationId: string }) {
   const queryClient = useQueryClient();
   const options = listScratchpadNotesQueryOptions(conversationId);
-  const notes = useQuery(options).data ?? [];
+  const exists = useConversationExists(conversationId);
+  const notes = useQuery({ ...options, enabled: exists }).data ?? [];
   const refresh = (): void => {
     void queryClient.invalidateQueries({ queryKey: options.queryKey });
   };
