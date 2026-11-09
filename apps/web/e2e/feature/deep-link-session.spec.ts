@@ -13,7 +13,7 @@ import { seedStrategy } from "../fixtures/strategy-builds";
 import { signInAsWdkAccount } from "../fixtures/website-login";
 
 test.describe("A deep link opened on the website login alone", () => {
-  test("renders the thread and the quota meter", async ({ page, context, siteId }) => {
+  test("renders the thread and the spend ring", async ({ page, context, siteId }) => {
     await signInAsWdkAccount(context);
     const api = await createApiClient(context, APP_ROOT);
     const { conversationId } = await seedStrategy(api, siteId);
@@ -29,7 +29,9 @@ test.describe("A deep link opened on the website login alone", () => {
       await expect(page.getByTestId("message-composer")).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByRole("img", { name: "Monthly spend" })).toBeVisible();
+      await expect(page.getByTestId("spend-ring")).toHaveAccessibleName(
+        /^Monthly spend \d+% of allowance$/,
+      );
       expect(refused).toEqual([]);
     } finally {
       await api.delete(`api/v1/conversations/${conversationId}`);
@@ -68,7 +70,9 @@ test.describe("A deep link opened on the website login alone", () => {
       await expect(page.getByTestId("message-composer")).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByRole("img", { name: "Monthly spend" })).toBeVisible();
+      await expect(page.getByTestId("spend-ring")).toHaveAccessibleName(
+        /^Monthly spend \d+% of allowance$/,
+      );
       expect(requests).toContain("GET 200 /pathfinder/api/v1/me/quota");
       expect(requests.filter((line) => line.includes(" 401 "))).toEqual([]);
     } finally {

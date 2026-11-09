@@ -18,10 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { auditsUrl, chatRoot, savedUrl } from "@/lib/routes";
 
-import { RailQuotaMeter } from "./RailQuotaMeter";
-
 interface AppNavRailProps {
-  siteId: string;
   offersAudits: boolean;
   onToggleSidebar: () => void;
   sidebarExpanded: boolean;
@@ -41,7 +38,6 @@ const NAV: NavSpec[] = [
 ];
 
 export function AppNavRail({
-  siteId,
   offersAudits,
   onToggleSidebar,
   sidebarExpanded,
@@ -106,7 +102,6 @@ export function AppNavRail({
         })}
 
         <div className="mt-auto flex flex-col items-center gap-1">
-          <RailQuotaMeter siteId={siteId} />
           <RailFoot onOpenSettings={onOpenSettings} />
         </div>
       </div>

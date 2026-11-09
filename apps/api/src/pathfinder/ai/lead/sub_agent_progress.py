@@ -7,7 +7,6 @@ without a result still owes the turn.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 from assistant_core.conversation.stream_parts.agent_topology import (
@@ -31,11 +30,9 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     phase_model_id,
 )
-from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
 
 __all__ = [
-    "ContextMeter",
     "emit_live_ledger",
     "emit_running_usage",
     "record_stopped_usage",
@@ -86,43 +83,17 @@ def record_stopped_usage(
     )
 
 
-@dataclass
-class ContextMeter:
-    """The model one dispatch runs, and the input tokens already reported for it.
-
-    ``RunUsage.input_tokens`` accumulates over a run, so one request's input
-    size is the delta between two readings. One request answers every one of
-    its parallel tool calls, so an unchanged reading repeats the last size
-    instead of reporting 0. A drop reads as 0.
-    """
-
-    model_id: str
-    seen_input: int = 0
-    last_size: int = 0
-
-    def last_request_input(self, usage: RunUsage) -> int:
-        delta = usage.input_tokens - self.seen_input
-        self.seen_input = usage.input_tokens
-        if delta > 0:
-            self.last_size = delta
-        elif delta < 0:
-            self.last_size = 0
-        return self.last_size
-
-
 def emit_running_usage(
     writer: Any,
     role: PhaseRole,
     parent_tool_call_id: str,
     usage: RunUsage,
-    meter: ContextMeter,
+    model_id: str,
     *,
     baseline: SubAgentCallUsage,
 ) -> None:
-    """Push the dispatch's running tokens/cost and context fill after each
-    inner tool call, priced on the model the meter reads. ``baseline`` is what
-    its earlier passes spent."""
-    model_id = meter.model_id
+    """Push the dispatch's running tokens/cost after each inner tool call,
+    priced on ``model_id``. ``baseline`` is what its earlier passes spent."""
     provider, _, model = model_id.partition(":")
     cost = baseline.cost + cost_for_run(
         usage=usage,
@@ -141,8 +112,6 @@ def emit_running_usage(
                 model_id=model_id,
                 tokens=baseline.tokens + usage.total_tokens,
                 cost_usd=str(cost),
-                context_tokens=meter.last_request_input(usage),
-                context_window=context_window_for(model_id),
             )
         ),
     )

@@ -77,7 +77,7 @@ unsupported region, which is the deployment's and not the key's, so it is not a
 refusal.
 
 **Usage.** Each `monthly_usage` row names its payer (runtime `0.3.0a17`). The
-rail's spending meter fills its ring with the allowance spent, and its tooltip
+spend ring beside Attach fills with the allowance spent, and its tooltip
 adds the own-key spend when the researcher holds a live key. Every model call of a turn is charged: the Lead
 and the sub-agents through the Lead's capture, the thread title and the notes
 compaction through `ai/capabilities/metering.py`, each on the row of the key

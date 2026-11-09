@@ -124,7 +124,6 @@ def _absorb(
 ) -> None:
     output = event.result.output
     run.output = output
-    run.capture.last_request_input_tokens = event.result.response.usage.input_tokens
     if isinstance(output, DeferredToolRequests):
         ask_about_the_preferences(output, writer)
         run.parked = explore_park(output, deps, list(event.result.all_messages()))

@@ -51,8 +51,6 @@ vi.mock("@/features/help/DataNotice", () => ({
 
 import type { SiteResponse } from "@pathfinder/shared";
 
-import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { strategyQueryOptions } from "@/lib/api/strategy";
@@ -148,16 +146,6 @@ function drawSession(signedIn: boolean) {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, { signedIn });
   queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
-  queryClient.setQueryData(getMyQuotaQueryKey(), {
-    usedUsd: "1.25",
-    limitUsd: "10.00",
-    totalTokens: 123456,
-    percent: 12.5,
-    resetsAt: "2026-10-01T12:00:00Z",
-    ownKeyUsd: "0",
-    ownKeyTokens: 0,
-    ownKeyProviders: [],
-  });
   return render(
     <Wrapper>
       <AppShellLayout>
@@ -185,9 +173,6 @@ describe("AppShellLayout for a session the website has not signed in", () => {
         encodeURIComponent("/pathfinder/conversation"),
     );
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("img", { name: "Monthly spend" }),
-    ).not.toBeInTheDocument();
     expect(container.querySelectorAll("input[type='password']")).toHaveLength(0);
   });
 
@@ -197,7 +182,6 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(screen.getByRole("link", { name: "Conversation" })).toBeInTheDocument();
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
     expect(screen.queryByTestId("signed-out-notice")).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Monthly spend" })).toBeInTheDocument();
     expect(screen.getByTestId("data-notice")).toBeInTheDocument();
   });
 
@@ -319,14 +303,7 @@ describe("AppShellLayout once the website login is signed in", () => {
     vi.unstubAllGlobals();
   });
 
-  function quotaReads(): string[] {
-    return vi
-      .mocked(fetch)
-      .mock.calls.map(([input]) => String(input))
-      .filter((url) => url.includes("/api/v1/me/quota"));
-  }
-
-  it("mounts the routed content and reads the quota with no wait", async () => {
+  it("mounts the routed content with no wait", async () => {
     const { queryClient, Wrapper } = createTestWrapper();
     queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
       signedIn: true,
@@ -342,7 +319,6 @@ describe("AppShellLayout once the website login is signed in", () => {
     await act(async () => {});
 
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
-    expect(quotaReads()).toHaveLength(1);
   });
 });
 

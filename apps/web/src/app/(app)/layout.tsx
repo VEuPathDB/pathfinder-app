@@ -110,7 +110,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       <div ref={layoutRef} className="relative flex min-h-0 flex-1 overflow-hidden">
         <AppNavRail
-          siteId={selectedSite}
           offersAudits={offersAudits}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}

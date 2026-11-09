@@ -40,7 +40,6 @@ from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsa
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.turn_facts import TurnFacts
-from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
 
 logger = get_logger(__name__)
@@ -116,7 +115,6 @@ class LeadRunCapture:
     sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
     lead_model: str = ""
     lead_reasoning_effort: ReasoningEffort | None = None
-    last_request_input_tokens: int = 0
     pending_approval: PendingApproval | None = None
     pending_durable_call: PendingDurableCall | None = None
     parked_call_answered: bool = False
@@ -259,8 +257,6 @@ def emit_lead_usage(
             model_id=capture.lead_model,
             tokens=tokens,
             cost_usd=cost_usd,
-            context_tokens=capture.last_request_input_tokens,
-            context_window=context_window_for(capture.lead_model),
             reasoning_effort=capture.lead_reasoning_effort,
         ),
     )
@@ -340,10 +336,6 @@ async def _charge_token_delta(
     capture.charged_input_tokens += delta_input
     capture.charged_output_tokens += delta_output
     capture.charged_cost += delta_cost
-    if delta_input > 0:
-        # ``input_tokens`` accumulates over the run, so one request's input
-        # size is the delta. A charge with no new input keeps the last size.
-        capture.last_request_input_tokens = delta_input
     total_tokens, cost_usd = capture.live_totals(state)
     emit_turn_usage(writer, total_tokens, cost_usd)
     emit_lead_usage(writer, capture, capture.charged_tokens, str(capture.charged_cost))

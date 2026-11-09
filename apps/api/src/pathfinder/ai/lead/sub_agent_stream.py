@@ -50,7 +50,6 @@ from pathfinder.ai.lead.sub_agent_events import (
     _forward_inner_event,
 )
 from pathfinder.ai.lead.sub_agent_progress import (
-    ContextMeter,
     emit_live_ledger,
     emit_running_usage,
     record_stopped_usage,
@@ -279,7 +278,7 @@ async def stream_sub_agent[OutputT: BaseModel](
         usage=usage,
         parent_tool_call_id=parent_tool_call_id,
     )
-    context_meter = ContextMeter(model_id=phase_model_id(deps.runtime, role))
+    model_id = phase_model_id(deps.runtime, role)
     # A pass that continues a stopped one runs on its own budget, so its card
     # adds what the dispatch already spent.
     baseline = deps.sub_agent_usage_by_call.get(
@@ -332,7 +331,7 @@ async def stream_sub_agent[OutputT: BaseModel](
                             stopping,
                             writer=writer,
                             answered=answered,
-                            context_meter=context_meter,
+                            model_id=model_id,
                             baseline=baseline,
                         ):
                             break
@@ -381,7 +380,7 @@ def _after_tool_result(
     *,
     writer: Any,
     answered: frozenset[str],
-    context_meter: ContextMeter,
+    model_id: str,
     baseline: SubAgentCallUsage,
 ) -> bool:
     """Show the result's progress, and whether the guard ended the run on it.
@@ -396,7 +395,7 @@ def _after_tool_result(
         role,
         stopping.parent_tool_call_id,
         stopping.usage,
-        context_meter,
+        model_id,
         baseline=baseline,
     )
     guard = agent_deps.tool_repetition_guard

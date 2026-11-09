@@ -3,10 +3,6 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
-import type { QuotaResponse } from "@pathfinder/shared/generated/types/QuotaResponse";
-
-import { server } from "../../../vitest.msw-setup";
 
 const route = { pathname: "/conversation/abc-123" };
 vi.mock("next/navigation", () => ({
@@ -20,7 +16,6 @@ const openSettings = vi.fn();
 function draw(offersAudits = true) {
   return render(
     <AppNavRail
-      siteId="plasmodb"
       offersAudits={offersAudits}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
@@ -29,27 +24,8 @@ function draw(offersAudits = true) {
   );
 }
 
-const QUOTA: QuotaResponse = {
-  usedUsd: "1.25",
-  limitUsd: "10.00",
-  totalTokens: 123456,
-  percent: 12.5,
-  resetsAt: "2026-10-01T12:00:00Z",
-  ownKeyUsd: "0",
-  ownKeyTokens: 0,
-  ownKeyProviders: [],
-};
-
 beforeEach(() => {
   route.pathname = "/conversation/abc-123";
-  server.use(
-    http.get("http://localhost:3000/pathfinder/api/v1/veupathdb/auth/status", () =>
-      HttpResponse.json({ signedIn: true }),
-    ),
-    http.get("http://localhost:3000/pathfinder/api/v1/me/quota", () =>
-      HttpResponse.json(QUOTA),
-    ),
-  );
 });
 
 afterEach(cleanup);
@@ -100,7 +76,7 @@ describe("AppNavRail section links", () => {
 
   it("never shows a site control", async () => {
     draw();
-    await screen.findByRole("img", { name: "Monthly spend" });
+    await screen.findByRole("img", { name: "PathFinder" });
 
     expect(
       screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
@@ -116,7 +92,7 @@ describe("AppNavRail section links", () => {
   });
 });
 
-describe("AppNavRail spending meter", () => {
+describe("AppNavRail bottom group", () => {
   it("opens the rail with the sidebar toggle and ends it with the PathFinder mark", async () => {
     draw();
 
@@ -127,16 +103,16 @@ describe("AppNavRail spending meter", () => {
     expect(screen.getByRole("img", { name: "PathFinder" })).toBeInTheDocument();
   });
 
-  it("opens the bottom group with the spending meter", async () => {
+  it("carries no spending meter", async () => {
     draw();
-    const meter = await screen.findByRole("img", { name: "Monthly spend" });
+    await screen.findByRole("img", { name: "PathFinder" });
 
-    expect(meter.parentElement?.firstElementChild).toBe(meter);
+    expect(screen.queryByRole("img", { name: "Monthly spend" })).toBe(null);
   });
 
   it("offers no model settings button of its own", async () => {
     draw();
-    await screen.findByRole("img", { name: "Monthly spend" });
+    await screen.findByRole("img", { name: "PathFinder" });
 
     expect(screen.queryAllByRole("button", { name: "AI model settings" })).toHaveLength(
       0,

@@ -3,7 +3,6 @@
  */
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import type { ReactNode } from "react";
 import type { UIMessage } from "ai";
@@ -221,35 +220,9 @@ describe("the second click of a double-click on Send does not cancel the turn", 
   });
 });
 
-describe("the conversation usage footer names its scope", () => {
-  const USAGE_MESSAGES: UIMessage[] = [
-    {
-      id: "m1",
-      role: "assistant",
-      parts: [
-        {
-          type: "data-lead-usage",
-          data: { tokens: 1000, costUsd: "0.01", modelId: "openai:gpt" },
-        },
-        {
-          type: "data-sub-agent-call",
-          id: "c1",
-          data: { tokens: 2000, costUsd: "0.02" },
-        },
-      ],
-    },
-  ];
-
-  it("states this conversation's total in the ring's tooltip", async () => {
-    renderComposer(true, { messages: USAGE_MESSAGES });
-    fireEvent.focus(screen.getByTestId("context-ring"));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "Conversation · 3K tokens · $0.03",
-    );
-  });
-
-  it("fills the ring by the assistant's context", () => {
-    renderComposer(true, {
+describe("the composer's spend ring", () => {
+  it("sits beside Attach once the conversation has usage", () => {
+    renderComposer(false, {
       messages: [
         {
           id: "m1",
@@ -257,52 +230,15 @@ describe("the conversation usage footer names its scope", () => {
           parts: [
             {
               type: "data-lead-usage",
-              data: {
-                tokens: 1000,
-                costUsd: "0.01",
-                modelId: "openai:gpt",
-                contextTokens: 42_000,
-                contextWindow: 1_050_000,
-              },
+              data: { tokens: 1000, costUsd: "0.01", modelId: "openai:gpt" },
             },
           ],
         },
       ],
     });
-    expect(screen.getByTestId("context-ring")).toHaveAccessibleName(
-      "Assistant context 4% full",
+    expect(screen.getByTestId("spend-ring")).toHaveAccessibleName(
+      "This conversation's spend",
     );
-  });
-
-  it("is keyboard reachable and explains the scope in its tooltip", async () => {
-    renderComposer(true, { messages: USAGE_MESSAGES });
-    const trigger = screen.getByTestId("context-ring");
-    expect(trigger.tagName).toBe("BUTTON");
-
-    fireEvent.focus(trigger);
-    await waitFor(() =>
-      expect(
-        screen.getAllByText("This conversation's total across all turns.").length,
-      ).toBeGreaterThan(0),
-    );
-  });
-
-  it("explains the scope on a touch tap", async () => {
-    renderComposer(true, { messages: USAGE_MESSAGES });
-
-    await userEvent.pointer({
-      keys: "[TouchA]",
-      target: screen.getByTestId("context-ring"),
-    });
-
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "This conversation's total across all turns.",
-    );
-  });
-
-  it("renders nothing when the conversation has no usage", () => {
-    renderComposer(true);
-    expect(screen.queryByTestId("context-ring")).toBe(null);
   });
 });
 
@@ -331,7 +267,7 @@ describe("the composer says the assistant can make mistakes", () => {
       ],
     });
     expect(screen.getByTestId("ai-notice")).toHaveTextContent(NOTICE);
-    expect(screen.getByTestId("context-ring")).toBeVisible();
+    expect(screen.getByTestId("spend-ring")).toBeVisible();
   });
 });
 

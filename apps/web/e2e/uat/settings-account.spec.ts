@@ -268,17 +268,15 @@ test.describe("Settings and account", () => {
       const chipText = normalize(await chips.textContent());
       expect(chipUsage(chipText)).toBe(formatUsage(turn.totalTokens, turn.costUsd));
 
-      const ring = page.getByTestId("context-ring");
-      const totalLine = `Conversation · ${formatTokens(turn.totalTokens)} tokens · ${formatCost(
-        Number(turn.costUsd),
-      )}`;
+      const ring = page.getByTestId("spend-ring");
       await expect(ring).toBeVisible({ timeout: 30_000 });
       await ring.hover();
-      const breakdown = tooltip(page, "This conversation's total across all turns.");
+      const breakdown = tooltip(page, "This conversation");
       await expect(breakdown).toBeVisible();
-      await expect(breakdown).toContainText("Assistant");
-      await expect(breakdown).toContainText("Sub-agents");
-      await expect(breakdown).toContainText(totalLine);
+      const firstTotal = `${formatTokens(turn.totalTokens)} tokens, ${formatCost(Number(turn.costUsd))}`;
+      await expect(breakdown.getByTestId("spend-conversation")).toContainText(
+        firstTotal,
+      );
 
       // The title call is charged beside the turn, so the quota grows by at least the turn.
       await expect
@@ -291,24 +289,18 @@ test.describe("Settings and account", () => {
         Number(turn.costUsd) - 0.01,
       );
       await page.reload();
-      const meter = page.getByRole("img", { name: "Monthly spend", exact: true });
-      await expect(meter).toBeVisible({ timeout: 30_000 });
-      await meter.hover();
-      const account = tooltip(
-        page,
-        "Account total this month, across all conversations.",
-      );
-      await expect(account).toBeVisible();
-      await expect(account).toContainText(
-        `${formatCost(Number(after.usedUsd))} of ${formatCost(Number(after.limitUsd))} this month`,
+      await expect(ring).toBeVisible({ timeout: 30_000 });
+      await ring.hover();
+      const month = tooltip(page, "This month");
+      await expect(month).toBeVisible();
+      await expect(month.getByTestId("spend-month")).toContainText(
+        `${formatCost(Number(after.usedUsd))} of ${formatCost(Number(after.limitUsd))}`,
       );
       const resets = new Date(after.resetsAt).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       });
-      await expect(account).toContainText(
-        `${formatTokens(after.totalTokens)} tokens, resets ${resets}`,
-      );
+      await expect(month.getByTestId("spend-resets")).toContainText(resets);
 
       await chatPage.sendAndSettle(prompt("recap", COUNT_QUESTION));
       await expect(chips).toHaveCount(2, { timeout: 60_000 });
@@ -320,8 +312,8 @@ test.describe("Settings and account", () => {
       );
       await ring.hover();
       await expect(
-        tooltip(page, "This conversation's total across all turns."),
-      ).not.toContainText(totalLine);
+        tooltip(page, "This conversation").getByTestId("spend-conversation"),
+      ).not.toContainText(firstTotal);
     },
   );
 
@@ -462,7 +454,7 @@ test.describe("Settings and account", () => {
       await expect(reply.getByTestId("trace-usage")).toHaveCount(1, {
         timeout: 60_000,
       });
-      const footer = page.getByTestId("context-ring");
+      const footer = page.getByTestId("spend-ring");
       await expect(footer).toBeVisible();
 
       await openSettingsTab(page, settingsPage, "Advanced");

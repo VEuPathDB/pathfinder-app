@@ -17,7 +17,6 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.platform.model_catalog import (
     DEFAULT_MODEL_ID,
     PRICES_AS_OF,
-    context_window_for,
     deployment_may_pay,
     get_model_catalog,
     get_model_entry,
@@ -355,7 +354,9 @@ def test_an_openai_prompt_over_272k_tokens_pays_the_long_prompt_prices(
     ],
 )
 def test_a_new_entry_holds_its_published_window(model_id: str, window: int) -> None:
-    assert context_window_for(model_id) == window
+    entry = get_model_entry(model_id)
+    assert entry is not None
+    assert entry.context_size == window
 
 
 @pytest.mark.parametrize(

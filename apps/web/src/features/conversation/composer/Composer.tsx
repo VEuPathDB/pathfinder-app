@@ -26,7 +26,7 @@ import { ModeSwitch } from "./ModeSwitch";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import { useDockedCard } from "./useDockedCard";
 import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
-import { ContextRing } from "./ContextRing";
+import { SpendRing } from "./SpendRing";
 
 const SEND_TO_STOP_GUARD_MS = 500;
 
@@ -160,7 +160,7 @@ export function Composer({
         >
           <div className="flex items-center gap-1">
             <AttachButton assistantId={assistantId} />
-            <ContextRing />
+            <SpendRing />
           </div>
           <div className="flex items-center justify-end gap-2">
             {assistantId === DEFAULT_ASSISTANT_ID ? (

@@ -35,7 +35,7 @@ Needs a deployment with personal keys on (`PROVIDER_KEY_ENCRYPTION_KEY` set). Th
 | 1 | Settings, `Provider keys` on a deployment with the feature off | Read | `This deployment does not accept personal keys.` |
 | 2 | Same, feature on | Read | `YOUR OWN PROVIDER KEYS` (CSS), the intro `A key pays for its provider's models, outside your monthly allowance. ...`; rows `OpenAI`, `Anthropic`, `Google`, each `Not set. The deployment's key is used, if it has one.` |
 | 3 | `OpenAI key` | Paste `not-a-real-key-uat-0000000000`, `Save` | Button `Checking...`, then the sentence `OpenAI refused the key you added, so nothing ran on it. Replace or remove your OpenAI key in Settings, under Provider keys.`; nothing stored |
-| 4 | `OpenAI key` | Paste a working key, `Save` | `...<last characters>, added <Mon D>.`; the rail's spending meter adds the line `On your keys this month: $<n>, <tokens> tokens` to its tooltip |
+| 4 | `OpenAI key` | Paste a working key, `Save` | `...<last characters>, added <Mon D>.`; the spend ring's tooltip adds the row `On your keys` `$<n>, <tokens> tokens` |
 | 5 | New conversation | Send the S1 prompt | 479 genes; the usage is charged to the key (the tooltip's `On your keys this month: $<n>`) |
 | 6 | `Remove OpenAI key` | Click | Back to `Not set. The deployment's key is used, if it has one.` |
 | 7 | A key whose account has no credit | Save it | Not stored: the provider's refusal is classified as no credit. A stored key that runs out later reads `...<hint>: This key has no credit. Add credit to the OpenAI account, or replace the key.` |
@@ -44,10 +44,10 @@ Needs a deployment with personal keys on (`PROVIDER_KEY_ENCRYPTION_KEY` set). Th
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | After S1, under the composer | Read | `Conversation`, `<tokens> tokens`, `<cost>` joined by middle dots; tooltip `This conversation's total across all turns.` with rows `Assistant`, `Sub-agents`, `Total` |
+| 1 | After S1, the spend ring beside Attach | Hover | Row `This conversation` reads `<tokens> tokens, <cost>` |
 | 2 | The trace header | Read | `<model> (<effort>) - <tokens>, <cost>`, tooltip `This turn` |
-| 3 | The rail's spending meter (`Monthly spend`, above `Settings`) | Hover | `Account total this month, across all conversations.`, `$<used> of $<limit> this month` and `<tokens> tokens, resets <Mon D>`; the ring fills to the share of the allowance spent, amber from 80% and red at 100% |
-| 4 | Compare | The meter's spend grows by the conversation's total after the turn | Within a cent. The title and compaction calls are not charged (the backlog item "The title and the compactor are metered") |
+| 3 | The spend ring (`Monthly spend <n>% of allowance`) | Hover | Rows `This month` `$<used> of $<limit>` and `Resets` `<Mon D>`; the ring and its `<n>%` fill to the share of the allowance spent, amber from 80% and red at 100% |
+| 4 | Compare | The ring's monthly spend grows by the conversation's total after the turn | Within a cent. The title and compaction calls are not charged (the backlog item "The title and the compactor are metered") |
 
 Measured turn costs on `openai:gpt-5.6-luna`: a one-search build $0.074, a two-search build $0.05 to $0.14, an orthology edit $0.09 to $0.11, an off-topic reply $0.005.
 

@@ -87,7 +87,7 @@ Not measured: an operator cannot slow the account read without also failing the 
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Operator | Set account A's monthly limit below what it has spent | The rail's spending meter (`Monthly spend`) turns red and its ring is full |
+| 1 | Operator | Set account A's monthly limit below what it has spent | The spend ring beside Attach turns red, its ring is full and it reads `100%` |
 | 2 | Composer | Read | Banner `Monthly quota reached` with `You've used $<used> of your $<limit> monthly limit. New messages are paused until <Month D, YYYY>, unless every stage runs on a key you added in Settings, under Provider keys.`; placeholder `Monthly quota reached - try again after the reset date.`; `Send` disabled |
 | 3 | Operator | Restore the limit | Sending works again |
 

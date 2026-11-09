@@ -25,7 +25,6 @@ __all__ = [
     "DEFAULT_MODEL_ID",
     "EXPLORE_MODELS",
     "PRICES_AS_OF",
-    "context_window_for",
     "deployment_may_pay",
     "get_model_catalog",
     "get_model_entry",
@@ -348,13 +347,6 @@ def deployment_may_pay(model_id: str) -> bool:
 def get_model_entry(model_id: str) -> ModelEntry | None:
     """Look up a model by catalog ID. Return None when no entry matches."""
     return _build_index().get(model_id)
-
-
-def context_window_for(model_id: str) -> int:
-    """The model's context window in tokens. An unknown model has no window,
-    which reads as 0."""
-    entry = _build_index().get(model_id)
-    return entry.context_size if entry is not None else 0
 
 
 def get_smallest_model(provider: ModelProvider) -> ModelEntry:
