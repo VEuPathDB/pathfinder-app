@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 from uuid import uuid4
 
 import pytest
@@ -16,6 +16,7 @@ from pathfinder.ai.audit.turn import build_turn_context as build_audit_context
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.jobs.runtime import build_worker_runtime_context
 from pathfinder.persistence.models import User
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
@@ -29,7 +30,7 @@ async def store(
 
 
 async def _thread(
-    session_maker: async_sessionmaker[AsyncSession], *, memory_enabled: bool
+    session_maker: async_sessionmaker[AsyncSession], *, memory_enabled: bool | None
 ) -> Conversation:
     user_id = uuid4()
     conversation = Conversation(
@@ -101,3 +102,34 @@ async def test_a_task_of_a_researcher_with_memory_off_has_no_store(
     )
 
     assert (context.user_id, context.memory_store) == (thread.user_id, None)
+
+
+@pytest.fixture
+def memory_on_by_default(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    monkeypatch.setenv("MEMORY_ON_BY_DEFAULT", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+async def test_an_unset_account_has_no_store_on_a_deployment_that_keeps_memory_off(
+    store: AsyncPostgresStore, session_maker: async_sessionmaker[AsyncSession]
+) -> None:
+    thread = await _thread(session_maker, memory_enabled=None)
+
+    context = await build_turn_context(_request(thread, store))
+
+    assert (context.user_id, context.memory_store) == (thread.user_id, None)
+
+
+async def test_an_unset_account_reads_the_store_on_a_deployment_that_turns_memory_on(
+    store: AsyncPostgresStore,
+    session_maker: async_sessionmaker[AsyncSession],
+    memory_on_by_default: None,
+) -> None:
+    del memory_on_by_default
+    thread = await _thread(session_maker, memory_enabled=None)
+
+    context = await build_turn_context(_request(thread, store))
+
+    assert context.memory_store is store

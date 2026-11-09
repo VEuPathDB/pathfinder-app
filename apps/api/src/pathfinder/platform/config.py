@@ -204,6 +204,14 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ),
     )
 
+    memory_on_by_default: bool = Field(
+        default=False,
+        description=(
+            "Whether memory is on for an account that never set the Memory switch. "
+            "An account's own setting always wins."
+        ),
+    )
+
     # Prompt-injection screening, and the model one judgement runs on.
     input_screening_enabled: bool = True
     input_screening_model: str = DEFAULT_MODEL_ID

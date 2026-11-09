@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import NotFoundError
 
 
@@ -16,6 +17,18 @@ class MemorySetting(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     enabled: bool
+
+
+def memory_is_on(*, stored: bool | None, on_by_default: bool) -> bool:
+    return on_by_default if stored is None else stored
+
+
+def _effective(*, stored: bool | None) -> MemorySetting:
+    return MemorySetting(
+        enabled=memory_is_on(
+            stored=stored, on_by_default=get_settings().memory_on_by_default
+        )
+    )
 
 
 async def _load(session: AsyncSession, user_id: UUID) -> User:
@@ -26,7 +39,7 @@ async def _load(session: AsyncSession, user_id: UUID) -> User:
 
 
 async def read_memory_setting(session: AsyncSession, user_id: UUID) -> MemorySetting:
-    return MemorySetting(enabled=(await _load(session, user_id)).memory_enabled)
+    return _effective(stored=(await _load(session, user_id)).memory_enabled)
 
 
 async def update_memory_setting(
@@ -35,21 +48,22 @@ async def update_memory_setting(
     user = await _load(session, user_id)
     user.memory_enabled = setting.enabled
     await session.commit()
-    return MemorySetting(enabled=user.memory_enabled)
+    return _effective(stored=user.memory_enabled)
 
 
 async def the_researchers_store[S](store: S | None, user_id: UUID) -> S | None:
     if store is None:
         return None
     async with async_session_factory() as session:
-        enabled = await session.scalar(
+        stored = await session.scalar(
             select(User.memory_enabled).where(User.id == user_id)
         )
-    return None if enabled is False else store
+    return store if _effective(stored=stored).enabled else None
 
 
 __all__ = [
     "MemorySetting",
+    "memory_is_on",
     "read_memory_setting",
     "the_researchers_store",
     "update_memory_setting",

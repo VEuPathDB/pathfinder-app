@@ -2,6 +2,13 @@
 
 ## 2026-11-09
 
+* **Memory is off unless the deployment or the researcher turns it on.** An account that never
+  set its Memory switch follows `MEMORY_ON_BY_DEFAULT`, which is off when unset; dev and QA
+  leave it unset and production sets it on. Every stored choice was emptied once. See
+  [the decision](decisions/a-researcher-can-turn-memory-off.md).
+* **GPT-6 Sol leaves the catalog.** GPT-6.1 Sol replaced it. A pick a browser saved for a model
+  the catalog no longer lists is dropped before the turn, so that role runs its default instead
+  of every turn being refused.
 * **The right rail shows what the researcher asked.** Six panels become Strategy, Review and a
   Study panel that appears with a study. Review reads the ledger section by section, so a
   thread whose ledger carries one retired value shows every other section instead of an empty

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A researcher can turn memory off
-description: A switch on the Memory tab, stored on the account as users.memory_enabled, gives every turn, durable task and audit turn of that researcher no memory store, so nothing is recalled or written; a flag on each request and hiding the memory tools were rejected.
+description: A switch on the Memory tab, stored on the account as users.memory_enabled, gives every turn, durable task and audit turn of that researcher no memory store, so nothing is recalled or written; an account that never set it follows MEMORY_ON_BY_DEFAULT, off unless the deployment sets it; a flag on each request and hiding the memory tools were rejected.
 tags: [memory, settings, testing]
 generated: { by: claude-code/opus-5, at: 2026-11-07T00:00:00Z }
 status: stable
@@ -10,7 +10,12 @@ status: stable
 # What was decided
 
 The Memory tab shows "Use memory in my conversations" (`MemorySwitch.tsx`), read and written
-through `GET` and `PUT /api/v1/me/memory` and stored as `users.memory_enabled` (default on).
+through `GET` and `PUT /api/v1/me/memory` and stored as `users.memory_enabled`. The column is
+empty until the researcher sets the switch, and an empty one follows the deployment's
+`MEMORY_ON_BY_DEFAULT` (`services/memory_setting.py::memory_is_on`), which is off when unset.
+The dev and QA deployments leave it unset; production sets it on. Migration `2026_11_09_0001`
+emptied every account's stored choice, so each account follows the deployment until its
+researcher sets the switch again.
 Every context a turn runs in asks `services/memory_setting.py::the_researchers_store` for its
 memory store: the PathFinder turn (`assistants/pathfinder_spec.py`), the durable task
 (`jobs/runtime.py`) and the audit turn (`ai/audit/turn.py`). With the switch off the context
@@ -27,6 +32,10 @@ steer the next answer, so a wrong answer cannot be told apart from a memory that
 
 The account holds the switch because the researcher turns it once and every device and every
 tab follows it, durable tasks included, which no request body reaches.
+
+The default lives on the deployment, not on the column, because the stage decides it: dev and
+QA keep runs repeatable while production serves researchers who expect to be remembered, and
+one image runs on every stage.
 
 # What was rejected
 

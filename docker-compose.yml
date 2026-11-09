@@ -51,6 +51,8 @@ services:
       # message; the worker screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
       INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
+      # Memory for an account that never set its Memory switch; the worker reads it too.
+      MEMORY_ON_BY_DEFAULT: ${MEMORY_ON_BY_DEFAULT:-false}
       # Seconds of silence after which the chat SSE stream sends a comment frame.
       SSE_KEEPALIVE_SECONDS: ${SSE_KEEPALIVE_SECONDS:-15}
       # Silence after which a worker counts as dead and its turn is failed.
@@ -115,6 +117,7 @@ services:
       # This process runs the turn, so it screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
       INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
+      MEMORY_ON_BY_DEFAULT: ${MEMORY_ON_BY_DEFAULT:-false}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       PATHFINDER_SITE: ${PATHFINDER_SITE:-}

@@ -101,9 +101,7 @@ class User(Base):
         Boolean, nullable=False, default=True, server_default=text("true")
     )
     data_notice_seen: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    memory_enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=text("true")
-    )
+    memory_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     account_reads_always: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )

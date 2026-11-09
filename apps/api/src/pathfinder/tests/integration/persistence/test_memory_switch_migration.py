@@ -20,6 +20,7 @@ from pathfinder.tests.integration.persistence._migration_db import (
 
 PREVIOUS_REVISION = "2026_11_06_0001"
 REVISION = "2026_11_07_0001"
+UNSET_REVISION = "2026_11_09_0001"
 USER_ID = uuid4()
 
 
@@ -54,3 +55,27 @@ def test_the_downgrade_drops_the_switch(seeded_database: str) -> None:
     command.downgrade(alembic_config(seeded_database), PREVIOUS_REVISION)
 
     assert "memory_enabled" not in columns(seeded_database, "users")
+
+
+def test_every_account_forgets_its_choice(seeded_database: str) -> None:
+    command.upgrade(alembic_config(seeded_database), REVISION)
+    with psycopg.connect(psycopg_url(seeded_database), autocommit=True) as connection:
+        connection.execute(
+            "INSERT INTO users (id, memory_enabled) VALUES (%s, false)", (str(uuid4()),)
+        )
+
+    command.upgrade(alembic_config(seeded_database), UNSET_REVISION)
+
+    assert rows(seeded_database, "SELECT DISTINCT memory_enabled FROM users", ()) == [
+        (None,)
+    ]
+
+
+def test_a_new_account_has_no_choice(seeded_database: str) -> None:
+    command.upgrade(alembic_config(seeded_database), UNSET_REVISION)
+    with psycopg.connect(psycopg_url(seeded_database), autocommit=True) as connection:
+        connection.execute("INSERT INTO users (id) VALUES (%s)", (str(uuid4()),))
+
+    assert rows(seeded_database, "SELECT DISTINCT memory_enabled FROM users", ()) == [
+        (None,)
+    ]
