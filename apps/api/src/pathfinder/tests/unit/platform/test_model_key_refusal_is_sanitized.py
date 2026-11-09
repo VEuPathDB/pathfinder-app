@@ -240,16 +240,18 @@ async def test_an_anthropic_request_error_names_its_reason_in_the_log(
 ) -> None:
     """Anthropic's sentence says why it refused the request; a key in it is masked."""
     wire = ProviderWire(
-        answers=(
-            400,
-            {
-                "type": "error",
-                "error": {
-                    "type": "invalid_request_error",
-                    "message": _ANTHROPIC_REJECTION,
+        answers=[
+            (
+                400,
+                {
+                    "type": "error",
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": _ANTHROPIC_REJECTION,
+                    },
                 },
-            },
-        )
+            )
+        ],
     )
 
     with (

@@ -40,6 +40,10 @@ _ANTHROPIC_LOW_CREDIT = "Your credit balance is too low"
 _ANTHROPIC_REJECTED = "invalid_request_error"
 _REJECTION_CHARS = 200
 _KEY_IN_TEXT = re.compile(r"sk-[A-Za-z0-9_-]+")
+_SCHEMA_TOO_LARGE = (
+    "The compiled grammar is too large",
+    "Schema is too complex for compilation",
+)
 
 
 class _Body(BaseModel):
@@ -185,6 +189,14 @@ class ProviderFailure:
         if error.type != _ANTHROPIC_REJECTED or not error.message:
             return None
         return _KEY_IN_TEXT.sub("sk-***", error.message)[:_REJECTION_CHARS]
+
+    @property
+    def schema_too_large(self) -> bool:
+        """Anthropic would not compile the request's strict schemas."""
+        error = _AnthropicError.model_validate(self.body).error
+        return error.type == _ANTHROPIC_REJECTED and error.message.startswith(
+            _SCHEMA_TOO_LARGE
+        )
 
 
 def provider_failure(error: Exception) -> ProviderFailure:

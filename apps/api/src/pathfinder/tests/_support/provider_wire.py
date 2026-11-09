@@ -140,6 +140,53 @@ def openai_stream_that_fails(model: str, body: JsonValue) -> bytes:
     return f"{events}event: error\ndata: {failed}\n\n".encode()
 
 
+def anthropic_answer(model: str, text: str) -> dict[str, Any]:
+    return {
+        "id": "msg_test",
+        "type": "message",
+        "role": "assistant",
+        "model": model,
+        "content": [{"type": "text", "text": text}],
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {"input_tokens": 12, "output_tokens": 6},
+    }
+
+
+def anthropic_text_stream(model: str, text: str) -> bytes:
+    events: list[dict[str, Any]] = [
+        {
+            "type": "message_start",
+            "message": {
+                **anthropic_answer(model, ""),
+                "content": [],
+                "stop_reason": None,
+            },
+        },
+        {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {"type": "text", "text": ""},
+        },
+        {
+            "type": "content_block_delta",
+            "index": 0,
+            "delta": {"type": "text_delta", "text": text},
+        },
+        {"type": "content_block_stop", "index": 0},
+        {
+            "type": "message_delta",
+            "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+            "usage": {"output_tokens": 6},
+        },
+        {"type": "message_stop"},
+    ]
+    frames = (
+        f"event: {event['type']}\ndata: {json.dumps(event)}\n\n" for event in events
+    )
+    return "".join(frames).encode()
+
+
 def anthropic_declining_stream(model: str, explanation: str | None) -> bytes:
     started = Message.model_validate(
         {
@@ -179,6 +226,16 @@ def anthropic_declining_stream(model: str, explanation: str | None) -> bytes:
     return "".join(frames).encode()
 
 
+def _anthropic_text(requested: _Requested, text: str) -> httpx2.Response:
+    if requested.stream:
+        return httpx2.Response(
+            200,
+            content=anthropic_text_stream(requested.model, text),
+            headers={"content-type": "text/event-stream"},
+        )
+    return httpx2.Response(200, json=anthropic_answer(requested.model, text))
+
+
 @dataclass
 class ProviderWire:
     """Builds real providers on a transport that records every request.
@@ -192,7 +249,8 @@ class ProviderWire:
     refuse: bool = False
     refused_by: str = "invalid-key"
     status: int | None = None
-    answers: tuple[int, dict[str, Any]] | None = None
+    answers: list[tuple[int, dict[str, Any]]] = field(default_factory=list)
+    anthropic_text: str | None = None
     fails_mid_stream: str | None = None
     declines: bool = False
     explanation: str | None = None
@@ -202,17 +260,12 @@ class ProviderWire:
         self, provider: KeyableProvider, request: httpx2.Request
     ) -> httpx2.Response:
         self.requests.append(request)
-        if self.refuse:
-            refusal = load_refusal(f"{provider}-{self.refused_by}")
-            if refusal.status is None:
-                msg = "a refusal without a status is sent inside a stream"
-                raise ValueError(msg)
-            return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
-        if self.answers is not None:
-            return httpx2.Response(self.answers[0], json=self.answers[1])
-        if self.status is not None:
-            return httpx2.Response(self.status)
+        failed = self._failed(provider)
+        if failed is not None:
+            return failed
         requested = _Requested.model_validate_json(request.content)
+        if self.anthropic_text is not None:
+            return _anthropic_text(requested, self.anthropic_text)
         if self.declines:
             return httpx2.Response(
                 200,
@@ -233,6 +286,20 @@ class ProviderWire:
                 headers={"content-type": "text/event-stream"},
             )
         return httpx2.Response(200, json=openai_answer(requested.model))
+
+    def _failed(self, provider: KeyableProvider) -> httpx2.Response | None:
+        if self.refuse:
+            refusal = load_refusal(f"{provider}-{self.refused_by}")
+            if refusal.status is None:
+                msg = "a refusal without a status is sent inside a stream"
+                raise ValueError(msg)
+            return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
+        if self.answers:
+            status, body = self.answers.pop(0)
+            return httpx2.Response(status, json=body)
+        if self.status is not None:
+            return httpx2.Response(self.status)
+        return None
 
     def build(self, name: KeyableProvider, key: SecretStr) -> Provider[Any]:
         client = httpx2.AsyncClient(

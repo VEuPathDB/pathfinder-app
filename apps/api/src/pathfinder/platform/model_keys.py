@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from assistant_core.errors import ModelDeclinedError
@@ -216,8 +216,11 @@ class GuardedModel(WrapperModel):
             )
         except PROVIDER_ERRORS as error:
             failure = self._failure(error)
+            prompted = _prompted_after(error, model_request_parameters)
         else:
             return response
+        if prompted is not None:
+            return await self.request(messages, model_settings, prompted)
         # Raised outside the handler, so the provider's error is not its context.
         raise failure
 
@@ -229,18 +232,43 @@ class GuardedModel(WrapperModel):
         model_request_parameters: ModelRequestParameters,
         run_context: RunContext[Any] | None = None,
     ) -> AsyncIterator[StreamedResponse]:
+        opened = False
         try:
             async with super().request_stream(
                 messages, model_settings, model_request_parameters, run_context
             ) as response:
+                opened = True
                 yield response
         except PROVIDER_ERRORS as error:
             failure = self._failure(error)
+            prompted = (
+                None if opened else _prompted_after(error, model_request_parameters)
+            )
         else:
+            return
+        if prompted is not None:
+            async with self.request_stream(
+                messages, model_settings, prompted, run_context
+            ) as response:
+                yield response
             return
         # An error the consumer's loop raised is still handled by its caller, so
         # only suppressing the context keeps it out of the traceback.
         raise failure from None
+
+
+def _prompted_after(
+    error: Exception, parameters: ModelRequestParameters
+) -> ModelRequestParameters | None:
+    """The same request with its output asked for as prompted JSON, when the
+    provider would not compile its strict schema."""
+    if (
+        parameters.output_mode not in {"auto", "native"}
+        or parameters.output_object is None
+        or not provider_failure(error).schema_too_large
+    ):
+        return None
+    return replace(parameters, output_mode="prompted", allow_text_output=True)
 
 
 def _deployment_provider(name: str, keys: TurnKeys) -> Provider[Any]:

@@ -2,6 +2,12 @@
 
 ## 2026-11-09
 
+* **A structured output Claude cannot compile is asked for as prompted JSON.** Anthropic refuses a
+  strict schema whose grammar is too large ("The compiled grammar is too large", "Schema is too
+  complex for compilation"), and its limit on that size is not published. `GuardedModel`
+  (`platform/model_keys.py`) sends that one request again with the output asked for in the
+  prompt and checked by the agent, so the reader's stated-request schema (84 fields, 39 optional)
+  runs on Claude; a schema Anthropic compiles keeps its strict output.
 * **The worker log says why Anthropic rejected a request.** The provider-error warning carries
   Anthropic's own sentence for an `invalid_request_error` that is no key refusal, cut to 200
   characters with any key masked; every other provider message, and every body, stays out.
