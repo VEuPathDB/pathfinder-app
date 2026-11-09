@@ -30,7 +30,22 @@ _RECALLED_MEMORIES: Final = "data-memory-retrieved"
 
 NOT_SHARED: Final = "Not shared: this read the owner's account."
 
-_CALL_KINDS: Final = frozenset({"tool-input-start", "tool-input-available"})
+_CALL_KINDS: Final = frozenset(
+    {"tool-input-start", "tool-input-available", "tool-input-error"}
+)
+_NAMING_FIELDS: Final[tuple[str, ...]] = (
+    "type",
+    "toolCallId",
+    "toolName",
+    "approvalId",
+)
+_PLACEHOLDERS: Final[dict[str, dict[str, Any]]] = {
+    "tool-input-delta": {"inputTextDelta": ""},
+    "tool-input-available": {"input": {}},
+    "tool-input-error": {"input": {}, "errorText": NOT_SHARED},
+    "tool-output-available": {"output": NOT_SHARED},
+    "tool-output-error": {"errorText": NOT_SHARED},
+}
 
 
 class _ToolChunk(BaseModel):
@@ -59,12 +74,5 @@ def without_owner_reads(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _hidden(chunk: dict[str, Any], kind: str) -> dict[str, Any]:
-    if kind == "tool-input-delta":
-        return {**chunk, "inputTextDelta": ""}
-    if kind == "tool-input-available":
-        return {**chunk, "input": {}}
-    if kind == "tool-output-available":
-        return {**chunk, "output": NOT_SHARED}
-    if kind == "tool-output-error":
-        return {**chunk, "errorText": NOT_SHARED}
-    return chunk
+    named = {field: chunk[field] for field in _NAMING_FIELDS if field in chunk}
+    return {**named, **_PLACEHOLDERS.get(kind, {})}

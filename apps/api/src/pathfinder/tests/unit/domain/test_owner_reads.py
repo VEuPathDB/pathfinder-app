@@ -194,3 +194,25 @@ def test_an_owner_read_loses_its_input() -> None:
     assert shown[1]["inputTextDelta"] == ""
     assert shown[2]["input"] == {}
     assert "Gametocyte markers" not in str(shown)
+
+
+def test_an_owner_read_keeps_only_what_names_the_call() -> None:
+    chunks: list[dict[str, object]] = [
+        {"type": "tool-input-start", "toolCallId": "c-5", "toolName": "list_gene_sets"},
+        {
+            "type": "tool-input-error",
+            "toolCallId": "c-5",
+            "toolName": "list_gene_sets",
+            "input": {"site": "plasmodb", "owner": "Gametocyte sets"},
+            "errorText": "Gametocyte sets is not a site",
+            "providerMetadata": {"note": "Gametocyte sets"},
+        },
+    ]
+
+    assert without_owner_reads(chunks)[1] == {
+        "type": "tool-input-error",
+        "toolCallId": "c-5",
+        "toolName": "list_gene_sets",
+        "input": {},
+        "errorText": NOT_SHARED,
+    }
