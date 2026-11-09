@@ -5,16 +5,23 @@ from uuid import UUID, uuid4
 from assistant_core.conversation.authz import owned_by_caller
 from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
-from sqlalchemy import asc, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import ConversationStrategy
-from pathfinder.persistence.repositories.checkpoint_rows import copy_checkpoints
+from pathfinder.persistence.repositories.checkpoint_rows import (
+    ChannelRewrite,
+    copy_checkpoints,
+    rewrite_channels,
+)
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.platform.thread_refusals import ForkRefusedError
-from pathfinder.services.conversations.fork_copy import copy_conversation_events
+from pathfinder.services.conversations.fork_copy import (
+    EventRewrite,
+    copy_conversation_events,
+)
 from pathfinder.services.conversations.fork_ids import IdMint
 from pathfinder.services.conversations.fork_strategy import (
     anchor_snapshot,
@@ -50,6 +57,21 @@ _REFUSALS = {
     ),
 }
 
+_COPY_REFUSALS = {
+    ThreadBusy.LOCKED: "This conversation is changing right now. Try again in a moment.",
+    ThreadBusy.TURN: (
+        "This conversation is still answering. Make a copy once the reply has finished."
+    ),
+    ThreadBusy.APPROVAL: (
+        "This conversation is waiting for its owner's answer. Make a copy once it is "
+        "answered."
+    ),
+    ThreadBusy.TASK: (
+        "This conversation is running a background task. Make a copy once it has "
+        "finished."
+    ),
+}
+
 
 async def fork_conversation(
     session: AsyncSession,
@@ -66,9 +88,57 @@ async def fork_conversation(
     if source is None or not owned_by_caller(source, user_id):
         msg = "Source conversation not found"
         raise ForkError(msg)
+    return await _thread_from(
+        session,
+        source=source,
+        from_message_id=from_message_id,
+        user_id=user_id,
+        name=new_name or f"{source.name} (branch)",
+        for_another_account=None,
+    )
+
+
+async def copy_conversation(
+    session: AsyncSession,
+    *,
+    source: Conversation,
+    user_id: UUID,
+    rewrite: ChannelRewrite,
+) -> Conversation:
+    """Copy the whole thread into ``user_id``'s account, with no parent link."""
+    last = await session.scalar(
+        select(Message.id)
+        .where(Message.conversation_id == source.id)
+        .order_by(desc(Message.created_at))
+        .limit(1),
+    )
+    if last is None:
+        msg = "The conversation has no messages to copy"
+        raise ForkError(msg)
+    return await _thread_from(
+        session,
+        source=source,
+        from_message_id=last,
+        user_id=user_id,
+        name=f"{source.name} (copy)",
+        for_another_account=rewrite,
+    )
+
+
+async def _thread_from(
+    session: AsyncSession,
+    *,
+    source: Conversation,
+    from_message_id: UUID,
+    user_id: UUID,
+    name: str,
+    for_another_account: ChannelRewrite | None,
+) -> Conversation:
+    source_conversation_id = source.id
+    branch = for_another_account is None
     busy = await claim_settled_thread(session, source_conversation_id)
     if busy is not None:
-        raise ForkRefusedError(_REFUSALS[busy])
+        raise ForkRefusedError((_REFUSALS if branch else _COPY_REFUSALS)[busy])
     source_strategy_row = await session.get(
         ConversationStrategy,
         source_conversation_id,
@@ -115,11 +185,11 @@ async def fork_conversation(
         id=new_conv_id,
         user_id=user_id,
         site_id=source.site_id,
-        name=new_name or f"{source.name} (branch)",
+        name=name,
         assistant_id=source.assistant_id,
         application_id=source.application_id,
-        parent_conversation_id=source_conversation_id,
-        parent_message_id=from_message_id,
+        parent_conversation_id=source_conversation_id if branch else None,
+        parent_message_id=from_message_id if branch else None,
     )
     session.add(fork)
     await session.flush()
@@ -157,8 +227,11 @@ async def fork_conversation(
         source_conversation_id=source_conversation_id,
         new_conversation_id=new_conv_id,
         cutoff_ts=next_message_ts,
-        note_id_map=note_id_map,
-        messages=messages,
+        rewrite=EventRewrite(
+            note_id_map=note_id_map,
+            messages=messages,
+            hide_owner_reads=not branch,
+        ),
     )
     await StrategyRevisionRepository(session).copy_prefix(
         source_conversation_id=source_conversation_id,
@@ -172,6 +245,10 @@ async def fork_conversation(
         target_thread_id=str(new_conv_id),
         cutoff=next_message_ts,
     )
+    if for_another_account is not None:
+        await rewrite_channels(
+            session, thread_id=str(new_conv_id), rewrite=for_another_account
+        )
     # The copied log carries the binding states of the turns it holds.
     document = await branch_thread_binding(session, conversation_id=new_conv_id)
     if snapshot is None or source_strategy_row is None:

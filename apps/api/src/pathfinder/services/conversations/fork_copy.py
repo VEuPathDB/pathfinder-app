@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -8,11 +9,19 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.owner_reads import without_owner_reads
 from pathfinder.services.conversations.fork_ids import (
     IdMint,
     rewrite_message_ids_in_chunk,
     rewrite_scratchpad_ids_in_chunk,
 )
+
+
+@dataclass(frozen=True)
+class EventRewrite:
+    note_id_map: dict[str, str]
+    messages: IdMint
+    hide_owner_reads: bool
 
 
 async def copy_conversation_events(
@@ -21,9 +30,9 @@ async def copy_conversation_events(
     source_conversation_id: UUID,
     new_conversation_id: UUID,
     cutoff_ts: datetime | None,
-    note_id_map: dict[str, str],
-    messages: IdMint,
+    rewrite: EventRewrite,
 ) -> None:
+    messages = rewrite.messages
     rows = await session.execute(
         text(
             """
@@ -37,9 +46,13 @@ async def copy_conversation_events(
         ),
         {"src": str(source_conversation_id), "cutoff": cutoff_ts},
     )
+    source = list(rows.mappings())
+    chunks = [dict(row["chunk"]) for row in source]
+    if rewrite.hide_owner_reads:
+        chunks = without_owner_reads(chunks)
     inserts: list[dict[str, Any]] = []
-    for row in rows.mappings():
-        chunk = rewrite_scratchpad_ids_in_chunk(dict(row["chunk"]), note_id_map)
+    for row, copied in zip(source, chunks, strict=True):
+        chunk = rewrite_scratchpad_ids_in_chunk(copied, rewrite.note_id_map)
         chunk = rewrite_message_ids_in_chunk(chunk, messages)
         inserts.append(
             {

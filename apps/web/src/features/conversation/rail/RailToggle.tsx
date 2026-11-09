@@ -10,6 +10,7 @@ import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 
+import { ShareButton } from "../share/ShareButton";
 import { useRailPanels, type RailPanelButton } from "./useRailPanels";
 
 const HIGHLIGHT = { type: "spring", stiffness: 520, damping: 40 } as const;
@@ -90,22 +91,28 @@ export function RailToggle({ conversationId, strategy }: RailToggleProps) {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-card via-card/80 to-transparent max-sm:hidden"
       />
-      <div
-        role="toolbar"
-        aria-label="Side panels"
-        className="absolute right-3 top-3 z-20 flex items-center gap-0.5 rounded-full border border-border bg-background/85 p-0.5 shadow-sm backdrop-blur max-sm:hidden"
-      >
-        {panels.map((panel) => (
-          <PanelButton key={panel.id} panel={panel} onPhone={false} />
-        ))}
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5 max-sm:hidden">
+        <ShareButton conversationId={conversationId} onPhone={false} />
+        <div
+          role="toolbar"
+          aria-label="Side panels"
+          className="flex items-center gap-0.5 rounded-full border border-border bg-background/85 p-0.5 shadow-sm backdrop-blur"
+        >
+          {panels.map((panel) => (
+            <PanelButton key={panel.id} panel={panel} onPhone={false} />
+          ))}
+        </div>
       </div>
       {phoneSlot !== null &&
         createPortal(
-          panels.map((panel) => (
-            <Fragment key={panel.id}>
-              <PanelButton panel={panel} onPhone />
-            </Fragment>
-          )),
+          <>
+            {panels.map((panel) => (
+              <Fragment key={panel.id}>
+                <PanelButton panel={panel} onPhone />
+              </Fragment>
+            ))}
+            <ShareButton conversationId={conversationId} onPhone />
+          </>,
           phoneSlot,
         )}
     </MotionConfig>

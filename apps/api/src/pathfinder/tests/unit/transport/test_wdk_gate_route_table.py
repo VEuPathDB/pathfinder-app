@@ -42,6 +42,7 @@ GATED: frozenset[tuple[str, str]] = frozenset(
             "/api/v1/conversations/{conversation_id:uuid}/strategy/steps/{step_id}/records",
         ),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/fork"),
+        ("POST", "/api/v1/shared/{token}/copy"),
         ("POST", "/api/v1/conversations/{conversation_id}/revert-to-message"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/save-substrategy"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),

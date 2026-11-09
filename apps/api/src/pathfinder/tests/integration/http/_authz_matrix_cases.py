@@ -126,6 +126,25 @@ def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
             {"allowed": True},
         ),
         Case(
+            "PUT",
+            "/api/v1/conversations/{conversation_id}/share",
+            f"{base}/share",
+            _CONV,
+            {"public": True, "allowCopy": True},
+        ),
+        Case(
+            "POST",
+            "/api/v1/conversations/{conversation_id}/share/password",
+            f"{base}/share/password",
+            _CONV,
+        ),
+        Case(
+            "DELETE",
+            "/api/v1/conversations/{conversation_id}/share",
+            f"{base}/share",
+            _CONV,
+        ),
+        Case(
             "POST",
             "/api/v1/conversations/{conversation_id}/revert-to-message",
             f"{base}/revert-to-message",

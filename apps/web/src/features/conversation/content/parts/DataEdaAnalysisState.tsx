@@ -12,6 +12,7 @@ import { useHydrateEdaPart } from "@/state/eda";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { isNewestAnalysisState } from "./analysisStateParts";
+import { useReadOnlyThread } from "../../readOnlyThread";
 import { entityCountCaption } from "./entityCounts";
 
 const MUTED = "text-[0.6875rem] text-muted-foreground";
@@ -19,6 +20,7 @@ const MUTED = "text-[0.6875rem] text-muted-foreground";
 export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
   useHydrateEdaPart({ kind: "analysis-state", data });
   const conversationId = useConversationId();
+  const readOnly = useReadOnlyThread();
   const chat = useChatHelpers();
   const hiddenFilters = data.numFilters - data.filterSummaries.length;
   // The thread keeps one card per analysis: the newest. Older statements
@@ -35,7 +37,7 @@ export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
           {data.analysisUrl != null ? (
             <OpenInSiteLink href={data.analysisUrl} siteId={data.siteId} />
           ) : null}
-          {conversationId !== null ? (
+          {conversationId !== null && !readOnly ? (
             <OpenEdaTab conversationId={conversationId} />
           ) : null}
         </span>

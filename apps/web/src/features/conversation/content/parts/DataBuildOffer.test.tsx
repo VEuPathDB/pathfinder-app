@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 
 import { useThreadModeStore } from "@/state/useThreadModeStore";
 
+import { ReadOnlyThreadProvider } from "../../readOnlyThread";
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataBuildOffer } from "./DataBuildOffer";
 import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
@@ -40,6 +41,25 @@ function offered(sendMessage = vi.fn(async () => {}), offer = OFFER) {
   );
   return sendMessage;
 }
+
+describe("DataBuildOffer in a shared thread", () => {
+  it("shows the offer with no button that builds it", () => {
+    render(
+      <ReadOnlyThreadProvider value>
+        <ChatHelpersProvider
+          value={chatHelpersFor(threadOf([threadPart("data-build-offer", OFFER)]))}
+        >
+          <DataBuildOffer data={OFFER} />
+        </ChatHelpersProvider>
+      </ReadOnlyThreadProvider>,
+    );
+
+    expect(screen.getByTestId("build-offer")).toHaveTextContent(
+      "Proteins with exactly seven transmembrane domains (412 genes)",
+    );
+    expect(screen.queryByRole("button", { name: "Build it" })).toBeNull();
+  });
+});
 
 describe("DataBuildOffer", () => {
   afterEach(() => {

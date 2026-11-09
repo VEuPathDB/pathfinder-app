@@ -15,7 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
-from pathfinder.persistence.models import ControlSet, ConversationStrategy
+from pathfinder.persistence.models import (
+    ControlSet,
+    ConversationShare,
+    ConversationStrategy,
+)
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
@@ -89,6 +93,15 @@ async def _create_rows(
         metadata_={},
     )
     session.add(reply)
+    session.add(
+        ConversationShare(
+            conversation_id=conversation.id,
+            token=f"matrix-{conversation.id}",
+            public=False,
+            password_hash="0" * 64,
+            allow_copy=False,
+        ),
+    )
     note = await ScratchpadRepository(session).create(
         conversation_id=conversation.id,
         data=NoteCreate(title="t", summary="s", body="b"),

@@ -57,5 +57,20 @@ PathFinder has no dark-mode switch and does not follow the operating system; its
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | A screen reader, the thread | Navigate | The thread is a `log`; buttons read `Send`, `Stop`, `Attach a gene-ID list, an image or a PDF`, `Good response`, `Bad response`, `Branch to a new conversation from here`, `Open Strategy`, `Open Review`, `Assistant context <n>% full` |
+| 1 | A screen reader, the thread | Navigate | The thread is a `log`; buttons read `Send`, `Stop`, `Attach a gene-ID list, an image or a PDF`, `Good response`, `Bad response`, `Branch to a new conversation from here`, `Open Strategy`, `Open Review`, `Monthly spend <n>% of allowance` |
 | 2 | Evidence card counts | Focus a count | `<n> positive controls recovered, click to copy the ids` |
+
+## L6 - A shared conversation - once
+
+Two browsers: the owner signed in, and a second browser signed out.
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | Owner, the conversation's top right | `Share` | Dialog `Share this conversation` with two boxes, both unticked, and `Create link` |
+| 2 | Same | `Create link` | A `Link` and a `Password`, each with a copy button; `Copy it now. It is not shown again.` |
+| 3 | Second browser | Open the link | A password form; the conversation's name is not shown |
+| 4 | Same | Type the password, `Open` | The conversation under its name, marked `Read-only`; no composer, no Branch, Edit, rating or Build it |
+| 5 | Owner | Send a message | Second browser: `The conversation is answering. The reply shows here when it is done.`, then the reply within a few seconds of the owner seeing it end |
+| 6 | Owner | Tick `Anyone with the link can open it` | The password lines go away; a fresh second browser opens the link with no password |
+| 7 | Owner | Tick `Let people copy it into their own account` | A signed-out viewer sees `Sign in to make a copy`; a signed-in viewer sees `Make a copy`, which opens `<name> (copy)` in their own list |
+| 8 | Owner | `Stop sharing` | The link answers `This link is no longer shared.` |

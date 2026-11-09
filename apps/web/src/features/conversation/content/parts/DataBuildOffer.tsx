@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { countNoun } from "@/lib/utils/countNoun";
 import { useThreadModeStore } from "@/state/useThreadModeStore";
 
+import { useReadOnlyThread } from "../../readOnlyThread";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useConversationId } from "../../useConversationId";
 
@@ -22,7 +23,8 @@ export function DataBuildOffer({
   const conversationId = useConversationId();
   const setMode = useThreadModeStore((s) => s.setMode);
   const chat = useChatHelpers();
-  if (!isLast || conversationId === null) return null;
+  const readOnly = useReadOnlyThread();
+  if (!isLast || (conversationId === null && !readOnly)) return null;
   const counted =
     data.geneCount === null
       ? "not counted yet"
@@ -44,16 +46,18 @@ export function DataBuildOffer({
           {data.plan}
         </p>
       </div>
-      <Button
-        size="sm"
-        disabled={isRunning}
-        onClick={() => {
-          setMode(conversationId, "build");
-          void chat.sendMessage({ text: `Build "${data.label}".` });
-        }}
-      >
-        <Hammer className="mr-1 size-4" aria-hidden /> Build it
-      </Button>
+      {readOnly || conversationId === null ? null : (
+        <Button
+          size="sm"
+          disabled={isRunning}
+          onClick={() => {
+            setMode(conversationId, "build");
+            void chat.sendMessage({ text: `Build "${data.label}".` });
+          }}
+        >
+          <Hammer className="mr-1 size-4" aria-hidden /> Build it
+        </Button>
+      )}
       {data.also !== undefined && data.also !== "" ? (
         <p
           data-testid="build-offer-also"

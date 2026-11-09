@@ -8,6 +8,7 @@ import { MEMORY_KIND_LABELS } from "@/lib/memoryKinds";
 import { chatUrl } from "@/lib/routes";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 
+import { useReadOnlyThread } from "../../readOnlyThread";
 import { StalePartNotice } from "../StalePartNotice";
 import { isCurrentWire } from "../currentWire";
 
@@ -28,6 +29,14 @@ function repeatedNames(memories: RecalledMemory[]): Set<string> {
 
 function MemoryName({ memory }: { memory: RecalledMemory }) {
   const focusMemory = useMemoryFocusStore((s) => s.focusMemory);
+  const readOnly = useReadOnlyThread();
+  if (readOnly) {
+    return (
+      <span className={NAME} title={memory.name}>
+        {memory.name}
+      </span>
+    );
+  }
   if (memory.kind === "strategy") {
     const thread = memory.sourceConversationId;
     if (thread == null) {

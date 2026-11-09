@@ -6,19 +6,17 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from assistant_core.graph.turn_state import TurnState
-from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import StoredMemory
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import (
-    BeforeValidator,
     ConfigDict,
     Field,
-    ValidationError,
     model_validator,
 )
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
+from pathfinder.ai.graph.clipped_draft import ClippedDraft
 from pathfinder.ai.graph.stored_requirement_keys import (
     check_by_id,
     gaps_by_id,
@@ -79,24 +77,6 @@ class FailureCause(StrEnum):
     UNRESOLVED_SLOTS = "unresolved_slots"
     TRANSIENT_ERROR = "transient_error"
     STRUCTURE_VIOLATION = "structure_violation"
-
-
-class _DraftWords(CamelModel):
-    model_config = ConfigDict(extra="allow")
-
-    name: Annotated[str, text_clipped_to(200)]
-    summary: Annotated[str, text_clipped_to(400)]
-    tags: Annotated[list[str], list_clipped_to(8)] = Field(default_factory=list)
-
-
-def clipped_draft(raw: object) -> object:
-    try:
-        return _DraftWords.model_validate(raw).model_dump(by_alias=True)
-    except ValidationError:
-        return raw
-
-
-type ClippedDraft = Annotated[MemoryEntryDraft, BeforeValidator(clipped_draft)]
 
 
 class VerificationDigest(CamelModel):
@@ -240,6 +220,18 @@ class StrategyDomainState(ThreadRequirements):
     # What the site says each criterion runs on, read when a step binds, when
     # the turn opens and when a check runs.
     data_marks: DataMarks = Field(default_factory=DataMarks)
+
+    def for_another_account(self) -> StrategyDomainState:
+        return self.model_copy(
+            update={
+                "created_gene_sets": [],
+                "separation_offers": {},
+                "attached_controls": None,
+                "control_sets": [],
+                "memory_index": {},
+                "shown_memories": [],
+            }
+        )
 
     @model_validator(mode="after")
     def _names_the_checked_requirements_by_id(self) -> StrategyDomainState:

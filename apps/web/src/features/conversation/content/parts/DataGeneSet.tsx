@@ -8,14 +8,15 @@ import { Figure } from "@/features/conversation/thread/Figure";
 import { geneSetsListOptions } from "@/lib/api/geneSets";
 import { queryKeyPrefixes } from "@/lib/query/keys";
 
+import { useReadOnlyThread } from "../../readOnlyThread";
 import { DeleteGeneSetButton } from "./DeleteGeneSetButton";
 import { PublishToVdiButton } from "./PublishToVdiButton";
 import { SavedOnIcon } from "./SavedOnIcon";
 
 /** The set as the researcher's list holds it now: the set, "deleted" when the
  * list no longer carries it, or null while the list is unread. */
-function useHeldSet(data: GeneSetPart): GeneSet | "deleted" | null {
-  const list = useQuery(geneSetsListOptions(data.siteId));
+function useHeldSet(data: GeneSetPart, readOnly: boolean): GeneSet | "deleted" | null {
+  const list = useQuery({ ...geneSetsListOptions(data.siteId), enabled: !readOnly });
   if (list.data === undefined) return null;
   return list.data.find((set) => set.id === data.geneSetId) ?? "deleted";
 }
@@ -23,7 +24,8 @@ function useHeldSet(data: GeneSetPart): GeneSet | "deleted" | null {
 export function DataGeneSet({ data }: { data: GeneSetPart }) {
   const queryClient = useQueryClient();
   const [deletedHere, setDeletedHere] = useState(false);
-  const held = useHeldSet(data);
+  const readOnly = useReadOnlyThread();
+  const held = useHeldSet(data, readOnly);
   const deleted = deletedHere || held === "deleted";
   const actionable = deleted || held === null ? null : held;
   const onDeleted = () => {

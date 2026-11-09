@@ -2,6 +2,16 @@
 
 ## 2026-11-09
 
+* **A conversation can be shared by a link.** Share, at the top right of a conversation, makes
+  one link that shows the thread read-only and keeps showing it as it continues: open to anyone
+  with it, or behind a password PathFinder makes. The owner can let viewers copy it into their
+  own account, make a new password and stop sharing. See
+  [the decision](decisions/a-conversation-is-shared-by-a-link.md).
+* **One spend ring beside Attach.** The ring fills to the share of the account's monthly
+  allowance spent, amber from 80% and red at 100%, and its tooltip states this conversation's
+  total, this month's spend against the allowance, the reset date and the own-key spend. The
+  left rail's spending meter and the context-window figure are gone. See
+  [the decision](decisions/the-right-rail-shows-what-the-researcher-asked.md).
 * **One rail, a panel toggle, and panels that dock only while the chat keeps 600 px.** The right
   icon strip is gone: Strategy, Review and Study are a pill at the top right of the
   conversation, help and settings sit in the left rail, and the context ring sits beside Attach.

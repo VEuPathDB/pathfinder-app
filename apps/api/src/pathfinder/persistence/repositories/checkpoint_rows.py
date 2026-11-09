@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from assistant_core.conversation.serde import build_checkpoint_serde
 from assistant_core.graph.turn_state import PendingApproval
+from langgraph.checkpoint.serde.base import SerializerProtocol
 from pydantic import TypeAdapter
 from sqlalchemy import (
     Column,
@@ -25,6 +27,7 @@ from sqlalchemy import (
     insert,
     literal,
     select,
+    update,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,10 +39,12 @@ __all__ = [
     "CHECKPOINT_TABLES",
     "CHECKPOINT_TS",
     "PENDING_APPROVAL_CHANNEL",
+    "ChannelRewrite",
     "CheckpointCut",
     "copy_checkpoints",
     "cut_checkpoints",
     "parked_approval",
+    "rewrite_channels",
 ]
 
 CHECKPOINT_TS = "ts"
@@ -245,3 +250,49 @@ async def parked_approval(
     return _APPROVAL.validate_python(
         build_checkpoint_serde().loads_typed((row.type, bytes(row.blob))),
     )
+
+
+@dataclass(frozen=True)
+class ChannelRewrite:
+    serde: SerializerProtocol
+    channels: Mapping[str, Callable[[Any], object]]
+
+
+async def rewrite_channels(
+    session: AsyncSession, *, thread_id: str, rewrite: ChannelRewrite
+) -> None:
+    """Rewrite each named channel's stored values for one thread."""
+    for table, key in (
+        (
+            checkpoint_blobs,
+            (checkpoint_blobs.c.checkpoint_ns, checkpoint_blobs.c.version),
+        ),
+        (
+            checkpoint_writes,
+            (
+                checkpoint_writes.c.checkpoint_ns,
+                checkpoint_writes.c.checkpoint_id,
+                checkpoint_writes.c.task_id,
+                checkpoint_writes.c.idx,
+            ),
+        ),
+    ):
+        rows = await session.execute(
+            select(table.c.channel, table.c.type, table.c.blob, *key).where(
+                table.c.thread_id == thread_id,
+                table.c.channel.in_(list(rewrite.channels)),
+                table.c.type != _EMPTY_BLOB,
+            )
+        )
+        for row in rows.all():
+            value = rewrite.serde.loads_typed((row.type, bytes(row.blob)))
+            kind, blob = rewrite.serde.dumps_typed(rewrite.channels[row.channel](value))
+            await session.execute(
+                update(table)
+                .where(
+                    table.c.thread_id == thread_id,
+                    table.c.channel == row.channel,
+                    *(column == row._mapping[column.name] for column in key),
+                )
+                .values(type=kind, blob=blob)
+            )

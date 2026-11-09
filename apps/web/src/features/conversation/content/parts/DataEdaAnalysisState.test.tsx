@@ -23,6 +23,7 @@ import {
   ChatHelpersProvider,
   type ChatHelpers,
 } from "../../runtime/chatHelpersContext";
+import { ReadOnlyThreadProvider } from "../../readOnlyThread";
 import { DataEdaAnalysisState } from "./DataEdaAnalysisState";
 import { EDA_ANALYSIS_STATE_FIXTURE } from "./edaPartFixtures";
 
@@ -40,6 +41,21 @@ beforeEach(() => {
   useEdaStore.getState().reset();
   pushMock.mockClear();
   route.pathname = "/conversation/conv-1";
+});
+
+describe("DataEdaAnalysisState in a shared thread", () => {
+  it("offers no way into the owner's study", () => {
+    render(
+      <ReadOnlyThreadProvider value>
+        <DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />
+      </ReadOnlyThreadProvider>,
+    );
+
+    expect(screen.getByTestId("figure")).toHaveTextContent(
+      "Heat shock response in sensitive mutants (LRR5, DHC)",
+    );
+    expect(screen.queryByRole("button", { name: "Open study" })).toBeNull();
+  });
 });
 
 describe("DataEdaAnalysisState", () => {

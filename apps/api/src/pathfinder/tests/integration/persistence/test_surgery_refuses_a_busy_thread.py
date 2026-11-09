@@ -6,14 +6,17 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
+from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy import text
 
+from pathfinder.assistants.copies import copy_rewrite
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.thread_refusals import ForkRefusedError, RevertRefusedError
-from pathfinder.services.conversations.fork import fork_conversation
+from pathfinder.services.conversations.fork import copy_conversation, fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 from pathfinder.services.conversations.thread_lock import (
     hold_thread,
@@ -40,6 +43,22 @@ FORK_REFUSALS = {
     ),
     "active task": (
         "This chat is running a background task. Branch it once the task has finished."
+    ),
+}
+COPY_REFUSALS = {
+    "queued turn": (
+        "This conversation is still answering. Make a copy once the reply has finished."
+    ),
+    "running turn": (
+        "This conversation is still answering. Make a copy once the reply has finished."
+    ),
+    "pending approval": (
+        "This conversation is waiting for its owner's answer. Make a copy once it is "
+        "answered."
+    ),
+    "active task": (
+        "This conversation is running a background task. Make a copy once it has "
+        "finished."
     ),
 }
 REVERT_REFUSALS = {
@@ -89,6 +108,18 @@ async def _fork(thread: FourTurns, user_id: UUID) -> UUID:
         return fork.id
 
 
+async def _copy(thread: FourTurns, user_id: UUID) -> None:
+    rewrite = copy_rewrite(PATHFINDER_ASSISTANT_ID)
+    assert rewrite is not None
+    async with db.async_session_factory() as session:
+        source = await session.get(Conversation, thread.conversation_id)
+        assert source is not None
+        await copy_conversation(
+            session, source=source, user_id=user_id, rewrite=rewrite
+        )
+        await session.commit()
+
+
 async def _revert(thread: FourTurns, user_id: UUID) -> None:
     async with db.async_session_factory() as session:
         await revert_conversation_to_message(
@@ -128,6 +159,30 @@ async def test_a_branch_waits_for_the_thread_to_settle(
     await clear()
     fork_id = await _fork(thread, user_id)
     assert len(await message_ids(fork_id)) == 2
+
+
+@pytest.mark.parametrize("kind", sorted(COPY_REFUSALS))
+@pytest.mark.usefixtures("db_cleaner")
+async def test_a_copy_tells_the_viewer_why_it_waits(
+    kind: str,
+    saver: AsyncPostgresSaver,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    install_fake_push(monkeypatch)
+    owner = await seed_user()
+    viewer = await seed_user()
+    thread = await four_turn_thread(owner)
+    await make_busy(
+        kind,
+        saver=saver,
+        conversation_id=thread.conversation_id,
+        user_id=owner,
+    )
+
+    with pytest.raises(ForkRefusedError) as refused:
+        await _copy(thread, viewer)
+
+    assert refused.value.detail == COPY_REFUSALS[kind]
 
 
 @pytest.mark.parametrize("kind", sorted(REVERT_REFUSALS))

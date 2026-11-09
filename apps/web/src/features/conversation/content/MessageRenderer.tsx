@@ -51,6 +51,7 @@ import { UserAttachments } from "./parts/UserAttachments";
 import { StoppedNotice } from "./StoppedNotice";
 import { VouchedLink, VouchedLinks, vouchedLinksOf } from "./vouchedLinks";
 import { dataPartRenderers } from "./dataPartRegistry";
+import { useReadOnlyThread } from "../readOnlyThread";
 import { messageAnchorId } from "../thread/messageAnchor";
 import { TraceAnchor, type TraceAnchorProps } from "../thread/TraceAnchor";
 
@@ -155,6 +156,7 @@ const MESSAGE_ENTRANCE = {
 const MESSAGE_SETTLED = { opacity: 1, y: 0 };
 
 export function UserMessage() {
+  const readOnly = useReadOnlyThread();
   const entrance = useEntrance(MESSAGE_ENTRANCE);
   return (
     <motion.div {...entrance} animate={MESSAGE_SETTLED}>
@@ -170,11 +172,13 @@ export function UserMessage() {
                 <Copy />
               </MessageAction>
             </ActionBarPrimitive.Copy>
-            <ActionBarPrimitive.Edit asChild>
-              <MessageAction tooltip="Edit">
-                <Pencil />
-              </MessageAction>
-            </ActionBarPrimitive.Edit>
+            {readOnly ? null : (
+              <ActionBarPrimitive.Edit asChild>
+                <MessageAction tooltip="Edit">
+                  <Pencil />
+                </MessageAction>
+              </ActionBarPrimitive.Edit>
+            )}
           </MessageActions>
         </ActionBarPrimitive.Root>
       </Message>
@@ -270,6 +274,7 @@ function AssistantStoppedNotice() {
 
 export function AssistantMessage() {
   const messageId = useAuiState((s) => s.message.id);
+  const readOnly = useReadOnlyThread();
   const entrance = useEntrance(MESSAGE_ENTRANCE);
   return (
     <motion.div {...entrance} animate={MESSAGE_SETTLED}>
@@ -290,11 +295,15 @@ export function AssistantMessage() {
                 <Copy />
               </MessageAction>
             </ActionBarPrimitive.Copy>
-            <ActionBarPrimitive.Reload asChild>
-              <RegenerateAction />
-            </ActionBarPrimitive.Reload>
-            <BranchMessageAction />
-            <RateMessageActions />
+            {readOnly ? null : (
+              <>
+                <ActionBarPrimitive.Reload asChild>
+                  <RegenerateAction />
+                </ActionBarPrimitive.Reload>
+                <BranchMessageAction />
+                <RateMessageActions />
+              </>
+            )}
           </MessageActions>
         </ActionBarPrimitive.Root>
       </Message>

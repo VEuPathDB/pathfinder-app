@@ -51,8 +51,8 @@ async def anchor_snapshot(
     if not strategy_row.strategy_ast:
         return None
     msg = (
-        "This chat predates the strategy history, so a branch cannot "
-        "reproduce the strategy it had at that message."
+        "This chat predates the strategy history, so the strategy it had "
+        "at that message cannot be reproduced."
     )
     raise ForkRefusedError(msg)
 

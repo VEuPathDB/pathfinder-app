@@ -105,6 +105,7 @@ from pathfinder.transport.http.routers import (
     memories,
     models,
     product_events,
+    shared,
     sites,
     tasks,
     tiers,
@@ -326,6 +327,7 @@ def _register_routers(app: FastAPI) -> None:
         memories.router,
         me.router,
         tasks.router,
+        shared.router,
     ):
         app.include_router(router)
 

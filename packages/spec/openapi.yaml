@@ -1420,6 +1420,166 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/conversations/{conversation_id}/share:
+    get:
+      tags:
+      - conversations
+      summary: The conversation's share link, or none.
+      operationId: get_share_api_v1_conversations__conversation_id__share_get
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareState'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    put:
+      tags:
+      - conversations
+      summary: Make or change the conversation's share link.
+      operationId: put_share_api_v1_conversations__conversation_id__share_put
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareSettings'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareChange'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    delete:
+      tags:
+      - conversations
+      summary: Stop sharing the conversation.
+      operationId: delete_share_api_v1_conversations__conversation_id__share_delete
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/conversations/{conversation_id}/share/password:
+    post:
+      tags:
+      - conversations
+      summary: Make a new password for the share link; the old one stops working.
+      operationId: post_share_password_api_v1_conversations__conversation_id__share_password_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareChange'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/conversations/{conversation_id}/revert-to-message:
     post:
       tags:
@@ -3734,6 +3894,146 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/shared/{token}:
+    get:
+      tags:
+      - shared
+      summary: What a share link opens, and where its completed history ends.
+      operationId: get_shared_api_v1_shared__token__get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      - name: X-Share-Password
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: X-Share-Password
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedConversation'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/shared/{token}/snapshot:
+    get:
+      tags:
+      - shared
+      summary: The completed history of a shared conversation.
+      operationId: get_shared_snapshot_api_v1_shared__token__snapshot_get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      - name: X-Share-Password
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: X-Share-Password
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsSnapshot'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/shared/{token}/copy:
+    post:
+      tags:
+      - shared
+      summary: Copy a shared conversation into the caller's account.
+      operationId: copy_shared_conversation_api_v1_shared__token__copy_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
+      - name: X-Share-Password
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: X-Share-Password
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 components:
   schemas:
     AccountReads:
@@ -5155,6 +5455,23 @@ components:
       - createdAt
       - updatedAt
       title: ConversationResponse
+    ConversationShareView:
+      properties:
+        token:
+          type: string
+          title: Token
+        public:
+          type: boolean
+          title: Public
+        allowCopy:
+          type: boolean
+          title: Allowcopy
+      type: object
+      required:
+      - token
+      - public
+      - allowCopy
+      title: ConversationShareView
     CreateConversationRequest:
       properties:
         name:
@@ -11567,6 +11884,72 @@ components:
       anyOf:
       - type: string
       - type: 'null'
+    ShareChange:
+      properties:
+        share:
+          $ref: '#/components/schemas/ConversationShareView'
+        password:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Password
+      type: object
+      required:
+      - share
+      - password
+      title: ShareChange
+    ShareSettings:
+      properties:
+        public:
+          type: boolean
+          title: Public
+        allowCopy:
+          type: boolean
+          title: Allowcopy
+      type: object
+      required:
+      - public
+      - allowCopy
+      title: ShareSettings
+    ShareState:
+      properties:
+        share:
+          anyOf:
+          - $ref: '#/components/schemas/ConversationShareView'
+          - type: 'null'
+      type: object
+      required:
+      - share
+      title: ShareState
+    SharedConversation:
+      properties:
+        name:
+          type: string
+          title: Name
+        siteId:
+          type: string
+          title: Siteid
+        assistantId:
+          type: string
+          title: Assistantid
+        allowCopy:
+          type: boolean
+          title: Allowcopy
+        cursor:
+          type: integer
+          title: Cursor
+        turnInFlight:
+          type: boolean
+          title: Turninflight
+      type: object
+      required:
+      - name
+      - siteId
+      - assistantId
+      - allowCopy
+      - cursor
+      - turnInFlight
+      title: SharedConversation
     SideVerdict:
       type: string
       enum:
@@ -14170,6 +14553,10 @@ components:
       - ASSISTANT_NOT_FOUND
       - ASSISTANT_MISMATCH
       - AUDITS_NOT_OFFERED
+      - SHARE_NOT_FOUND
+      - SHARE_LOCKED
+      - SHARE_COPY_NOT_ALLOWED
+      - SHARE_IS_PUBLIC
       - EDA_NO_OPEN_ANALYSIS
       - EDA_COMPUTE_NOT_RUN
       - SPECIALIST_PRECONDITION_FAILED

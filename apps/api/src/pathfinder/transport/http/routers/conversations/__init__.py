@@ -16,6 +16,7 @@ from . import (
     revert,
     save_substrategy,
     scratchpad,
+    share,
     sidebar,
     step_records,
     wdk_import,
@@ -39,6 +40,7 @@ router.include_router(sidebar.router)
 router.include_router(scratchpad.router)
 router.include_router(ratings.router)
 router.include_router(account_reads.router)
+router.include_router(share.router)
 router.include_router(revert.router)
 router.include_router(save_substrategy.router)
 router.include_router(cancel.router)

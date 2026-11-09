@@ -446,6 +446,36 @@ class ConversationAccountRead(Base):
     )
 
 
+class ConversationShare(Base):
+    __tablename__ = "conversation_shares"
+    __table_args__ = (
+        CheckConstraint(
+            "public OR password_hash IS NOT NULL",
+            name="ck_conversation_shares_private_has_password",
+        ),
+    )
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    public: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    allow_copy: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
 class Export(Base):
     """Temporary download artifact with TTL."""
 

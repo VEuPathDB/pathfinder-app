@@ -12,7 +12,7 @@ from pydantic import (
     WrapValidator,
 )
 
-from pathfinder.ai.graph.state import clipped_draft
+from pathfinder.ai.graph.clipped_draft import clipped_draft
 from pathfinder.ai.lead.deltas import FrameResult, VerificationDelta
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain import clipped

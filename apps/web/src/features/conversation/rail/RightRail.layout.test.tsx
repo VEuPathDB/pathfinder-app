@@ -136,9 +136,9 @@ describe("the rail's buttons on a phone", () => {
     usePhoneBarStore.setState({ slot });
     renderRail("conv-1", []);
 
-    expect(screen.getByRole("toolbar", { name: "Side panels" })).toHaveClass(
-      "max-sm:hidden",
-    );
+    expect(
+      screen.getByRole("toolbar", { name: "Side panels" }).parentElement,
+    ).toHaveClass("max-sm:hidden");
     await userEvent.click(within(slot).getByRole("button", { name: "Open Review" }));
 
     expect(useRightRailStore.getState().openPanel).toBe("review");

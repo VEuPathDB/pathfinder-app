@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { createTestWrapper } from "@/lib/query/testing";
 
 import { server } from "../../../../../vitest.msw-setup";
+import { ReadOnlyThreadProvider } from "../../readOnlyThread";
 import { DataGeneSet } from "./DataGeneSet";
 
 const GENE_SETS = "http://localhost:3000/pathfinder/api/v1/gene-sets";
@@ -65,6 +66,30 @@ function renderFigure() {
   const { Wrapper } = createTestWrapper();
   return render(<DataGeneSet data={PART} />, { wrapper: Wrapper });
 }
+
+describe("DataGeneSet in a shared thread", () => {
+  it("names the set and reads no list of the viewer's sets", async () => {
+    const reads: string[] = [];
+    server.use(
+      http.get(GENE_SETS, ({ request }) => {
+        reads.push(request.url);
+        return HttpResponse.json([listed()]);
+      }),
+    );
+    const { Wrapper } = createTestWrapper();
+    render(
+      <ReadOnlyThreadProvider value>
+        <DataGeneSet data={PART} />
+      </ReadOnlyThreadProvider>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByTestId("data-gene-set")).toHaveTextContent("Gene set created");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(reads).toEqual([]);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+});
 
 describe("DataGeneSet", () => {
   it("titles the figure with the gene set name", () => {

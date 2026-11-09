@@ -9,6 +9,7 @@ import type { RecalledMemoriesPayload, RecalledMemory } from "@pathfinder/shared
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
+import { ReadOnlyThreadProvider } from "../../readOnlyThread";
 import { DataMemoryRetrieved } from "./DataMemoryRetrieved";
 
 const THREAD = "e9f2a030-4c4d-4b12-8f71-32d362d0ef95";
@@ -48,6 +49,22 @@ beforeEach(() => {
 
 afterEach(() => {
   useMemoryFocusStore.getState().clearFocus();
+});
+
+describe("DataMemoryRetrieved in a shared thread", () => {
+  it("names each memory with no link or button into the owner's account", () => {
+    render(
+      <ReadOnlyThreadProvider value>
+        <DataMemoryRetrieved data={MEMORIES} />
+      </ReadOnlyThreadProvider>,
+    );
+
+    const card = screen.getByTestId("data-memory-retrieved");
+    expect(card).toHaveTextContent("Erythrocytic genes");
+    expect(card).toHaveTextContent("chat-e9f2a030");
+    expect(within(card).queryByRole("link")).toBeNull();
+    expect(within(card).queryByRole("button")).toBeNull();
+  });
 });
 
 describe("DataMemoryRetrieved", () => {

@@ -9,7 +9,6 @@ a tool one of the four agents offers, or the guard watches nothing that runs.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 from uuid import uuid4
 
 from assistant_core.capabilities import repetition_guard
@@ -18,10 +17,6 @@ from assistant_core.capabilities.repetition_guard import (
     ToolRepetitionGuard,
 )
 from assistant_core.graph.runtime import AssistantDeps
-from pydantic_ai import Agent
-from pydantic_ai.toolsets.abstract import AbstractToolset
-from pydantic_ai.toolsets.function import FunctionToolset
-from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.agents.tool_vocabulary import (
     DISCOVERY_CALL_CAPS,
@@ -31,52 +26,23 @@ from pathfinder.ai.agents.tool_vocabulary import (
 )
 from pathfinder.ai.capabilities import resilience
 from pathfinder.ai.capabilities.resilience import ToolResilience
-from pathfinder.ai.explore.explore_agent import build_explore_agent
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
-from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.offered_tools import (
+    offered_tool_names,
+    served_tool_names,
+)
 
 PRODUCT_NAMES = {
     "READ_ONLY_TOOLS",
     "SEARCH_LOOKUP_TOOLS",
     "_SEARCH_LOOKUP_TOOLS",
 }
-
-
-def _tool_names(toolset: AbstractToolset[Any]) -> set[str]:
-    """Names a toolset offers, through however many wrappers it carries."""
-    if isinstance(toolset, WrapperToolset):
-        return _tool_names(toolset.wrapped)
-    if isinstance(toolset, FunctionToolset):
-        return set(toolset.tools)
-    return set()
-
-
-def _served_tool_names() -> set[str]:
-    """The tools a declared source serves, under the prefix the runtime adds."""
-    return {
-        f"{RESEARCH_TOOL_SOURCE.name}_{tool}"
-        for tool in RESEARCH_TOOL_SOURCE.tools or ()
-    }
-
-
-def _offered_tool_names() -> set[str]:
-    """Every tool name the Lead, Explore or one of the sub-agents can call."""
-    agents: list[Agent[Any, Any]] = [build_lead_agent(), build_explore_agent()]
-    agents.extend(build() for build in BUILD_SUB_AGENT_BY_ROLE.values())
-    registered = {
-        name
-        for agent in agents
-        for toolset in agent.toolsets
-        for name in _tool_names(toolset)
-    }
-    return registered | _served_tool_names()
 
 
 def _context() -> Context:
@@ -151,7 +117,7 @@ def test_the_product_guard_carries_the_pathfinder_vocabulary() -> None:
 
 def test_every_watched_name_is_a_tool_some_agent_offers() -> None:
     """A watched name nothing carries is an entry that can never fire."""
-    assert READ_ONLY_TOOLS - _offered_tool_names() == set()
+    assert READ_ONLY_TOOLS - offered_tool_names() == set()
 
 
 def test_the_study_catalog_reads_are_watched() -> None:
@@ -167,13 +133,13 @@ def test_another_sites_experiment_read_is_watched_and_capped() -> None:
 
 def test_the_watched_research_names_carry_the_source_prefix() -> None:
     """The guard keys on the name the model calls, which the prefix decides."""
-    assert _served_tool_names() <= READ_ONLY_TOOLS
+    assert served_tool_names() <= READ_ONLY_TOOLS
     assert "web_search" not in READ_ONLY_TOOLS
     assert "literature_search" not in READ_ONLY_TOOLS
 
 
 def test_every_search_lookup_name_is_a_tool_some_agent_offers() -> None:
-    assert SEARCH_LOOKUP_TOOLS - _offered_tool_names() == set()
+    assert SEARCH_LOOKUP_TOOLS - offered_tool_names() == set()
 
 
 def test_the_generic_deps_default_to_a_guard_that_watches_nothing() -> None:
