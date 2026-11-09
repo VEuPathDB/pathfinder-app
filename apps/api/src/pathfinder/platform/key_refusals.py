@@ -7,6 +7,7 @@ shows is not a refusal: the call failed, and the key stays live.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -36,6 +37,9 @@ _OPENAI_BILLING_CODES = frozenset(
 )
 # Anthropic answers a low balance as a bad request, told apart by its message.
 _ANTHROPIC_LOW_CREDIT = "Your credit balance is too low"
+_ANTHROPIC_REJECTED = "invalid_request_error"
+_REJECTION_CHARS = 200
+_KEY_IN_TEXT = re.compile(r"sk-[A-Za-z0-9_-]+")
 
 
 class _Body(BaseModel):
@@ -173,6 +177,14 @@ class ProviderFailure:
             return nested.type, None
         flat = _OpenAIError.model_validate(self.body)
         return flat.type, flat.code
+
+    @property
+    def anthropic_rejection(self) -> str | None:
+        """Anthropic's sentence for a request it rejected, with any key masked."""
+        error = _AnthropicError.model_validate(self.body).error
+        if error.type != _ANTHROPIC_REJECTED or not error.message:
+            return None
+        return _KEY_IN_TEXT.sub("sk-***", error.message)[:_REJECTION_CHARS]
 
 
 def provider_failure(error: Exception) -> ProviderFailure:

@@ -192,6 +192,7 @@ class ProviderWire:
     refuse: bool = False
     refused_by: str = "invalid-key"
     status: int | None = None
+    answers: tuple[int, dict[str, Any]] | None = None
     fails_mid_stream: str | None = None
     declines: bool = False
     explanation: str | None = None
@@ -207,6 +208,8 @@ class ProviderWire:
                 msg = "a refusal without a status is sent inside a stream"
                 raise ValueError(msg)
             return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
+        if self.answers is not None:
+            return httpx2.Response(self.answers[0], json=self.answers[1])
         if self.status is not None:
             return httpx2.Response(self.status)
         requested = _Requested.model_validate_json(request.content)

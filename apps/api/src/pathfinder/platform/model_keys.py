@@ -173,7 +173,7 @@ class GuardedModel(WrapperModel):
             if self._key_provider is None
             else classify_refusal(self._key_provider, failure.status, failure.body)
         )
-        # The operator reads what the provider did; the body and message stay out.
+        # The operator reads what the provider did; the body stays out.
         provider_type, provider_code = failure.kind
         logger.warning(
             "model provider error",
@@ -184,6 +184,9 @@ class GuardedModel(WrapperModel):
             model=self.model_name,
             paid_by=self._paid_by.value,
             refusal=None if refusal is None else refusal.value,
+            provider_message=None
+            if refusal is not None
+            else failure.anthropic_rejection,
         )
         if self._key_provider is not None and refusal is not None:
             return self._refused(self._key_provider, refusal)

@@ -159,6 +159,7 @@ class _Warned(BaseModel):
     event: str = ""
     provider_type: str | None = None
     provider_code: str | None = None
+    provider_message: str | None = None
 
 
 async def test_a_billing_error_inside_the_stream_refuses_the_deployment_key(
@@ -226,3 +227,49 @@ async def test_a_model_the_deployment_always_pays_for_is_guarded_too() -> None:
 
     assert _leaks(_printed(caught.value)) == []
     assert "sk-researcher-key" not in str(wire.sent_headers())
+
+
+_ANTHROPIC_REJECTION = (
+    "max_tokens: 32000 > 8192, which is the maximum allowed number of output "
+    "tokens for claude-haiku-5-5 (key sk-ant-api03-sentinelWXYZ)"
+)
+
+
+async def test_an_anthropic_request_error_names_its_reason_in_the_log(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Anthropic's sentence says why it refused the request; a key in it is masked."""
+    wire = ProviderWire(
+        answers=(
+            400,
+            {
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": _ANTHROPIC_REJECTION,
+                },
+            },
+        )
+    )
+
+    with (
+        caplog.at_level(logging.WARNING),
+        attach_keyring(ProviderKeyring(), build=wire.build),
+    ):
+        model = keyed_model("anthropic:claude-haiku-5-5")
+        assert isinstance(model, Model)
+        with pytest.raises(ModelHTTPError) as caught:
+            await one_generation(model)
+
+    warned = [
+        event
+        for record in caplog.records
+        if (event := _Warned.model_validate(record.msg)).event == "model provider error"
+    ]
+    assert [w.provider_message for w in warned] == [
+        (
+            "max_tokens: 32000 > 8192, which is the maximum allowed number of output "
+            "tokens for claude-haiku-5-5 (key sk-***)"
+        )
+    ]
+    assert caught.value.body is None

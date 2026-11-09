@@ -2,6 +2,9 @@
 
 ## 2026-11-09
 
+* **The worker log says why Anthropic rejected a request.** The provider-error warning carries
+  Anthropic's own sentence for an `invalid_request_error` that is no key refusal, cut to 200
+  characters with any key masked; every other provider message, and every body, stays out.
 * **A conversation can be shared by a link.** Share, at the top right of a conversation, makes
   one link that shows the thread read-only and keeps showing it as it continues: open to anyone
   with it, or behind a password PathFinder makes. The owner can let viewers copy it into their
