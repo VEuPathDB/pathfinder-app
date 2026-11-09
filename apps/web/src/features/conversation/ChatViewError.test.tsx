@@ -88,6 +88,7 @@ describe("ChatView error boundary", () => {
       ChatHelpersProvider: (props: { children: ReactNode }) => props.children,
     }));
     vi.doMock("./rail/RightRail", () => ({ RightRail: () => null }));
+    vi.doMock("./rail/RailToggle", () => ({ RailToggle: () => null }));
   }
 
   it("renders the recovery panel instead of losing the whole view", async () => {

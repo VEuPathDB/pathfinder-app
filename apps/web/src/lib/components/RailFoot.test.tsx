@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { createTestWrapper } from "@/lib/query/testing";
 
 import { RailFoot } from "./RailFoot";
@@ -17,7 +18,12 @@ function drawFoot(onOpenSettings: () => void) {
     "fetch",
     vi.fn(() => new Promise<Response>(() => {})),
   );
-  render(<RailFoot onOpenSettings={onOpenSettings} />, { wrapper: Wrapper });
+  render(
+    <TooltipProvider>
+      <RailFoot onOpenSettings={onOpenSettings} />
+    </TooltipProvider>,
+    { wrapper: Wrapper },
+  );
 }
 
 describe("RailFoot", () => {

@@ -7,6 +7,7 @@ import {
   retiredPanel,
   useRightRailStore,
   useLeftSidebarStore,
+  useSideOrderStore,
 } from "./useRightRailStore";
 
 beforeEach(() => {
@@ -119,7 +120,37 @@ describe("useRightRailStore", () => {
   });
 });
 
+describe("the side opened last", () => {
+  it("follows whichever side opened most recently", () => {
+    useLeftSidebarStore.setState({ collapsed: true });
+    useRightRailStore.getState().togglePanel("c1", "review", {});
+    const afterRight = useSideOrderStore.getState().lastOpened;
+    useLeftSidebarStore.getState().toggle();
+    const afterLeft = useSideOrderStore.getState().lastOpened;
+    useRightRailStore.getState().openPanelId("c1", "strategy", {});
+
+    expect([afterRight, afterLeft, useSideOrderStore.getState().lastOpened]).toEqual([
+      "right",
+      "left",
+      "right",
+    ]);
+  });
+
+  it("is not moved by closing a side", () => {
+    useRightRailStore.getState().togglePanel("c1", "review", {});
+    useLeftSidebarStore.getState().setCollapsed(false);
+    useRightRailStore.getState().closePanel();
+
+    expect(useSideOrderStore.getState().lastOpened).toBe("left");
+  });
+});
+
 describe("useLeftSidebarStore", () => {
+  it("keeps the sidebar's width", () => {
+    useLeftSidebarStore.getState().setWidth(280);
+    expect(useLeftSidebarStore.getState().width).toBe(280);
+  });
+
   it("toggles and sets collapsed", () => {
     useLeftSidebarStore.getState().toggle();
     expect(useLeftSidebarStore.getState().collapsed).toBe(true);

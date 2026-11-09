@@ -202,13 +202,18 @@ describe("AppShellLayout for a session the website has not signed in", () => {
   });
 
   it("closes the conversation list from the backdrop a narrow window draws", async () => {
-    useLeftSidebarStore.setState({ collapsed: false });
+    const wide = window.innerWidth;
+    window.innerWidth = 744;
     drawSession(true);
+    act(() => {
+      useLeftSidebarStore.getState().setCollapsed(false);
+    });
 
     await userEvent.click(screen.getByRole("button", { name: "Close conversations" }));
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(true);
     useLeftSidebarStore.setState({ collapsed: false });
+    window.innerWidth = wide;
   });
 
   it("puts every rail button in one bottom bar on a phone", () => {
@@ -247,28 +252,25 @@ describe("AppShellLayout settings modal", () => {
     address.path = "/conversation";
   });
 
-  it("opens from the gear beside Help on a page with no right rail", async () => {
+  it("opens from the gear beside Help in the left rail", async () => {
     address.path = "/saved";
     drawSession(true);
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "false");
-    const foot = screen.getByLabelText("Help and settings");
-    const help = within(foot).getByRole("link", { name: "Help" });
-    expect(help.nextElementSibling).toBe(
-      within(foot).getByRole("button", { name: "Settings" }),
-    );
+    const help = screen.getByRole("link", { name: "Help" });
+    const gear = screen.getByRole("button", { name: "Settings" });
+    expect(help.nextElementSibling).toBe(gear);
 
-    await userEvent.click(within(foot).getByRole("button", { name: "Settings" }));
+    await userEvent.click(gear);
 
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-open", "true");
     expect(screen.getByTestId("settings-page")).toHaveAttribute("data-tab", "model");
   });
 
-  it("leaves the gear to the conversation's right rail", () => {
+  it("keeps one gear, in the left rail, on a conversation", () => {
     address.path = "/conversation";
     drawSession(true);
 
-    expect(screen.queryAllByLabelText("Help and settings")).toHaveLength(0);
-    expect(screen.queryAllByRole("button", { name: "Settings" })).toHaveLength(0);
+    expect(screen.getAllByRole("button", { name: "Settings" })).toHaveLength(1);
   });
 
   it("keeps the gear on a conversation route whose site is down", () => {
@@ -288,11 +290,7 @@ describe("AppShellLayout settings modal", () => {
       </Wrapper>,
     );
 
-    expect(
-      within(screen.getByLabelText("Help and settings")).getByRole("button", {
-        name: "Settings",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Settings" })).toHaveLength(1);
   });
 
   it("opens on the tab a caller outside the shell names", () => {

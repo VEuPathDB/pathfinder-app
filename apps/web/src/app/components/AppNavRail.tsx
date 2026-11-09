@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { RailFoot } from "@/lib/components/RailFoot";
 import { ACTIVE_PILL } from "@/lib/components/activePill";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,6 +25,7 @@ interface AppNavRailProps {
   offersAudits: boolean;
   onToggleSidebar: () => void;
   sidebarExpanded: boolean;
+  onOpenSettings: () => void;
 }
 
 interface NavSpec {
@@ -43,6 +45,7 @@ export function AppNavRail({
   offersAudits,
   onToggleSidebar,
   sidebarExpanded,
+  onOpenSettings,
 }: AppNavRailProps) {
   const pathname = usePathname();
 
@@ -104,6 +107,7 @@ export function AppNavRail({
 
         <div className="mt-auto flex flex-col items-center gap-1">
           <RailQuotaMeter siteId={siteId} />
+          <RailFoot onOpenSettings={onOpenSettings} />
         </div>
       </div>
     </TooltipProvider>

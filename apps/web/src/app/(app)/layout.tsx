@@ -31,9 +31,10 @@ import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
 import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
-import { RailFoot } from "@/lib/components/RailFoot";
 import { PHONE_QUERY } from "@/lib/layout/viewport";
-import { conversationIdFromPath, isChatPath } from "@/lib/routes";
+import { conversationIdFromPath } from "@/lib/routes";
+import { cn } from "@/lib/utils/cn";
+import { useDockLayout } from "@/state/useDockLayout";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -73,6 +74,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const leftCollapsed = useLeftSidebarStore((s) => s.collapsed);
   const toggleLeft = useLeftSidebarStore((s) => s.toggle);
   useAutoCollapsePanels(pathname);
+  const { leftFloats } = useDockLayout();
   const modals = useModalState();
   const onPhone = useMediaQuery(PHONE_QUERY);
   const sidebarEntrance = useEntrance({
@@ -90,7 +92,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // takes the sign-in prompt's place.
   const siteDown = access.kind === "down";
   const showsElsewhere = elsewhereSite !== null && conversationId !== null;
-  const rightRailShown = isChatPath(pathname) && !siteDown && !showsElsewhere;
   const forcedSignIn = access.kind === "up" && !access.signedIn;
   const signInGate = siteDown ? null : <VeupathdbSignInGate forced={forcedSignIn} />;
 
@@ -113,6 +114,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           offersAudits={offersAudits}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}
+          onOpenSettings={() => modals.openSettings()}
         />
 
         <AnimatePresence initial={false}>
@@ -121,11 +123,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               key="sidebar-expanded"
               {...sidebarEntrance}
               animate={{ width: sidebarWidth, opacity: 1 }}
-              className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-11 max-[900px]:z-40 max-[900px]:max-w-[calc(100%-5.5rem)] max-sm:left-0 max-sm:max-w-[calc(100%-3rem)] max-[900px]:shadow-xl"
+              className={cn(
+                "h-full shrink-0 overflow-hidden border-r border-border bg-sidebar",
+                leftFloats &&
+                  "absolute inset-y-0 left-11 z-40 max-w-[calc(100%-5.5rem)] shadow-xl max-sm:left-0 max-sm:max-w-[calc(100%-3rem)]",
+              )}
             >
               <div
                 style={{ width: sidebarWidth }}
-                className="h-full max-[900px]:w-full!"
+                className={cn("h-full", leftFloats && "w-full!")}
               >
                 <ConversationSidebar siteId={selectedSite} />
               </div>
@@ -133,7 +139,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           )}
         </AnimatePresence>
 
-        {!leftCollapsed && (
+        {!leftCollapsed && leftFloats && (
           <NarrowBackdrop
             label="Close conversations"
             onClose={toggleLeft}
@@ -141,13 +147,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           />
         )}
 
-        {!leftCollapsed && (
+        {!leftCollapsed && !leftFloats && (
           <div
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize sidebar"
             onMouseDown={startDragging}
-            className="w-1 cursor-col-resize bg-muted max-[900px]:hidden transition-colors duration-150 hover:bg-primary/20"
+            className="w-1 cursor-col-resize bg-muted transition-colors duration-150 hover:bg-primary/20"
           />
         )}
 
@@ -163,15 +169,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             )}
           </SiteAvailabilityGate>
         </div>
-
-        {!rightRailShown && (
-          <aside
-            aria-label="Help and settings"
-            className="flex h-full w-11 shrink-0 flex-col items-center border-l border-border bg-sidebar py-2 max-sm:hidden"
-          >
-            <RailFoot onOpenSettings={() => modals.openSettings()} />
-          </aside>
-        )}
       </div>
 
       {onPhone && <PhoneBar onOpenSettings={() => modals.openSettings()} />}

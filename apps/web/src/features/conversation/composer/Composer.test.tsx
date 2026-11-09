@@ -240,17 +240,44 @@ describe("the conversation usage footer names its scope", () => {
     },
   ];
 
-  it("labels the visible line as this conversation's total", () => {
+  it("states this conversation's total in the ring's tooltip", async () => {
     renderComposer(true, { messages: USAGE_MESSAGES });
-    expect(screen.getByTestId("conversation-usage")).toHaveTextContent(
+    fireEvent.focus(screen.getByTestId("context-ring"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
       "Conversation · 3K tokens · $0.03",
+    );
+  });
+
+  it("fills the ring by the assistant's context", () => {
+    renderComposer(true, {
+      messages: [
+        {
+          id: "m1",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-lead-usage",
+              data: {
+                tokens: 1000,
+                costUsd: "0.01",
+                modelId: "openai:gpt",
+                contextTokens: 42_000,
+                contextWindow: 1_050_000,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(screen.getByTestId("context-ring")).toHaveAccessibleName(
+      "Assistant context 4% full",
     );
   });
 
   it("is keyboard reachable and explains the scope in its tooltip", async () => {
     renderComposer(true, { messages: USAGE_MESSAGES });
-    const trigger = screen.getByTestId("conversation-usage");
-    expect(trigger).toHaveAttribute("tabindex", "0");
+    const trigger = screen.getByTestId("context-ring");
+    expect(trigger.tagName).toBe("BUTTON");
 
     fireEvent.focus(trigger);
     await waitFor(() =>
@@ -265,7 +292,7 @@ describe("the conversation usage footer names its scope", () => {
 
     await userEvent.pointer({
       keys: "[TouchA]",
-      target: screen.getByTestId("conversation-usage"),
+      target: screen.getByTestId("context-ring"),
     });
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -275,7 +302,7 @@ describe("the conversation usage footer names its scope", () => {
 
   it("renders nothing when the conversation has no usage", () => {
     renderComposer(true);
-    expect(screen.queryByTestId("conversation-usage")).toBe(null);
+    expect(screen.queryByTestId("context-ring")).toBe(null);
   });
 });
 
@@ -288,7 +315,7 @@ describe("the composer says the assistant can make mistakes", () => {
     expect(screen.getByTestId("ai-notice")).toHaveTextContent(NOTICE);
   });
 
-  it("keeps the notice beside the usage line", () => {
+  it("keeps the notice once the conversation has usage", () => {
     renderComposer(true, {
       messages: [
         {
@@ -304,9 +331,7 @@ describe("the composer says the assistant can make mistakes", () => {
       ],
     });
     expect(screen.getByTestId("ai-notice")).toHaveTextContent(NOTICE);
-    expect(screen.getByTestId("conversation-usage")).toHaveTextContent(
-      "Conversation · 1K tokens · $0.01",
-    );
+    expect(screen.getByTestId("context-ring")).toBeVisible();
   });
 });
 

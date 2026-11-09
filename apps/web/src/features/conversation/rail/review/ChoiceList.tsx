@@ -3,7 +3,7 @@
 import { useAui } from "@assistant-ui/react";
 
 import { Button } from "@/components/ui/button";
-import { viewportIsNarrow } from "@/lib/layout/viewport";
+import { currentDockLayout } from "@/state/useDockLayout";
 import { countOf } from "@/lib/utils/countOf";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
@@ -22,7 +22,7 @@ export function ChoiceList({ choices }: { choices: readonly Choice[] }) {
   if (choices.length === 0) return null;
   const change = (choice: Choice): void => {
     aui.composer().setText(`Change ${choice.param} (now ${choice.value}) to `);
-    if (viewportIsNarrow()) closePanel();
+    if (currentDockLayout().rightFloats) closePanel();
     queueMicrotask(focusComposer);
   };
   return (

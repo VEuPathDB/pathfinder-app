@@ -99,7 +99,7 @@ The last step of every flow deletes what the flow created, with the click below.
 | A gene set | PathFinder | The gene set figure in the thread, `Delete`, then `Delete` in `Delete <name>?`. |
 | A published dataset (VDI) | The account's workspace on the site | On the site: `Open dataset`, then the site's own delete. PathFinder never deletes a dataset (decided, see [known limits](known-limits.md)). |
 | A memory | PathFinder | Settings, `Memory` tab, the row's `Delete <name>`, confirm the browser dialog. |
-| A note | PathFinder, per conversation | Right rail `Notes`, `Delete note` on the card; the conversation delete removes the rest. |
+| A note | PathFinder, per conversation | `Review`, `Assistant's notes`, `Delete note` on the card; the conversation delete removes the rest. |
 | A control set, a scored run | PathFinder | Settings, `Data` tab, `Clear site data`, `Confirm`. |
 | An EDA analysis | The account's analyses on the site | On the site: `Open in <Site>`, then the site's own delete. |
 | A rating | PathFinder | Click the pressed `Good response` or `Bad response` again. |

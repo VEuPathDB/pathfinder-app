@@ -153,7 +153,7 @@ async function showStudies(page: Page) {
   // The rail mounts with the conversation, so wait for the conversation first.
   await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
   const open = page
-    .getByLabel("Right rail")
+    .getByLabel("Side panels")
     .getByRole("button", { name: "Open Study", exact: true });
   if ((await open.count()) > 0) await open.click();
   await expect(page.getByTestId("rail-eda-panel")).toBeVisible();

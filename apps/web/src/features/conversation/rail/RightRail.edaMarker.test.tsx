@@ -22,6 +22,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 
 import { lastSeenFor, useRightRailStore } from "@/state/useRightRailStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
+import { RailToggle } from "./RailToggle";
 import { RightRail } from "./RightRail";
 
 const EDA_MESSAGES: UIMessage[] = [
@@ -56,6 +57,7 @@ function makeChat(messages: UIMessage[]): ChatHelpers {
 function renderRail(messages: UIMessage[]): void {
   render(
     <ChatHelpersProvider value={makeChat(messages)}>
+      <RailToggle conversationId="conv-1" strategy={null} />
       <RightRail conversationId="conv-1" strategy={null} siteId="plasmodb" />
     </ChatHelpersProvider>,
   );
@@ -72,8 +74,8 @@ beforeEach(() => {
 describe("RightRail eda marker", () => {
   it("marks unseen EDA activity when the thread carries eda parts", () => {
     renderRail(EDA_MESSAGES);
-    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Review has updates")).toBe(null);
+    expect(screen.getByText("Study has updates")).toBeInTheDocument();
+    expect(screen.queryByText("Review has updates")).toBe(null);
   });
 
   it("carries no marker on a thread with no eda part", () => {
@@ -84,8 +86,8 @@ describe("RightRail eda marker", () => {
         parts: [{ type: "data-ledger-update", data: {} }],
       },
     ]);
-    expect(screen.queryByLabelText("Study has updates")).toBe(null);
-    expect(screen.getByLabelText("Review has updates")).toBeInTheDocument();
+    expect(screen.queryByText("Study has updates")).toBe(null);
+    expect(screen.getByText("Review has updates")).toBeInTheDocument();
   });
 
   it("clears the marker once the eda panel records what it saw", async () => {
@@ -100,14 +102,14 @@ describe("RightRail eda marker", () => {
       useRightRailStore.getState().closePanel();
     });
     await waitFor(() => {
-      expect(screen.queryByLabelText("Study has updates")).toBe(null);
+      expect(screen.queryByText("Study has updates")).toBe(null);
     });
     expect(screen.getByLabelText("Open Study")).toBeInTheDocument();
   });
 
   it("records what the rail icon showed when the researcher opens the panel", async () => {
     renderRail(EDA_MESSAGES);
-    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
+    expect(screen.getByText("Study has updates")).toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText("Open Study"));
     expect(screen.getByTestId("rail-eda-panel")).toBeInTheDocument();
@@ -119,7 +121,7 @@ describe("RightRail eda marker", () => {
       useRightRailStore.getState().closePanel();
     });
     await waitFor(() => {
-      expect(screen.queryByLabelText("Study has updates")).toBe(null);
+      expect(screen.queryByText("Study has updates")).toBe(null);
     });
   });
 
@@ -137,6 +139,6 @@ describe("RightRail eda marker", () => {
       ...EDA_MESSAGES,
       { id: "m2", role: "assistant", parts: [{ type: "data-eda.viz", data: {} }] },
     ]);
-    expect(screen.getByLabelText("Study has updates")).toBeInTheDocument();
+    expect(screen.getByText("Study has updates")).toBeInTheDocument();
   });
 });

@@ -15,6 +15,8 @@ vi.mock("next/navigation", () => ({
 
 import { AppNavRail } from "./AppNavRail";
 
+const openSettings = vi.fn();
+
 function draw(offersAudits = true) {
   return render(
     <AppNavRail
@@ -22,6 +24,7 @@ function draw(offersAudits = true) {
       offersAudits={offersAudits}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
+      onOpenSettings={openSettings}
     />,
   );
 }
@@ -70,18 +73,18 @@ describe("AppNavRail section links", () => {
     expect(click).toBe(true);
   });
 
-  it("links the chat, the saved strategies and the audits, and neither help nor a workbench", async () => {
+  it("links the chat, the saved strategies, the audits and help, and no workbench", async () => {
     draw();
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/conversation", "/saved", "/audits"]);
+    expect(hrefs).toEqual(["/conversation", "/saved", "/audits", "/help"]);
   });
 
   it("offers no audits link on a site that offers no audit", async () => {
     draw(false);
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/conversation", "/saved"]);
+    expect(hrefs).toEqual(["/conversation", "/saved", "/help"]);
   });
 
   it("names the audits link and marks it current on an audit page", async () => {
@@ -101,27 +104,27 @@ describe("AppNavRail section links", () => {
 
     expect(
       screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Open conversation sidebar"]);
+    ).toEqual(["Open conversation sidebar", "Settings"]);
     expect(screen.queryByRole("menu")).toBe(null);
   });
 
-  it("carries no settings gear, which sits beside Help", async () => {
+  it("opens Settings from the gear beside Help", async () => {
     draw();
-    await screen.findByRole("img", { name: "Monthly spend" });
+    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
 
-    expect(screen.queryAllByRole("button", { name: "Settings" })).toHaveLength(0);
+    expect(openSettings).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("AppNavRail spending meter", () => {
-  it("opens the rail with the sidebar toggle and carries no logo", async () => {
+  it("opens the rail with the sidebar toggle and ends it with the PathFinder mark", async () => {
     draw();
 
     const toggle = await screen.findByRole("button", {
       name: "Open conversation sidebar",
     });
     expect(toggle.parentElement?.firstElementChild).toBe(toggle);
-    expect(screen.queryByRole("img", { name: "PathFinder" })).toBeNull();
+    expect(screen.getByRole("img", { name: "PathFinder" })).toBeInTheDocument();
   });
 
   it("opens the bottom group with the spending meter", async () => {

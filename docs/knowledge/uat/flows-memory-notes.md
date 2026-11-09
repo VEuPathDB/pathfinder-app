@@ -43,10 +43,10 @@ Notes belong to one conversation; memories reach every conversation of the accou
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | The S2 conversation | Right rail `Notes` | Section `PINNED` (CSS) with a note titled like "Signal peptide and transmembrane intersection" (the build pins it: trace rows `Save note`, `Pin note`) |
+| 1 | The S2 conversation | `Review`, `Assistant's notes` | Listed first, pinned, a note titled like "Signal peptide and transmembrane intersection" (the build pins it: trace rows `Save note`, `Pin note`) |
 | 2 | The note card | Click | The body opens |
-| 3 | The note card | `Unpin` | It moves to `RECENT` (CSS) |
-| 4 | The note card | `Delete note` | It is gone at once; no confirm; a new conversation shows `No notes yet. The assistant saves findings here as it works.` |
+| 3 | The note card | `Unpin` | It moves below the pinned notes |
+| 4 | The note card | `Delete note` | It is gone at once; no confirm; a new conversation shows `The assistant saves findings here as it works.` |
 
 Measured: every S2 build saved and pinned one note ("Note saved: Signal peptide and transmembrane intersection").
 

@@ -268,19 +268,17 @@ test.describe("Settings and account", () => {
       const chipText = normalize(await chips.textContent());
       expect(chipUsage(chipText)).toBe(formatUsage(turn.totalTokens, turn.costUsd));
 
-      const footer = page.getByTestId("conversation-usage");
-      const footerLine = `Conversation · ${formatTokens(turn.totalTokens)} tokens · ${formatCost(
+      const ring = page.getByTestId("context-ring");
+      const totalLine = `Conversation · ${formatTokens(turn.totalTokens)} tokens · ${formatCost(
         Number(turn.costUsd),
       )}`;
-      await expect(footer).toHaveText(footerLine, { timeout: 30_000 });
-      await footer.hover();
+      await expect(ring).toBeVisible({ timeout: 30_000 });
+      await ring.hover();
       const breakdown = tooltip(page, "This conversation's total across all turns.");
       await expect(breakdown).toBeVisible();
       await expect(breakdown).toContainText("Assistant");
       await expect(breakdown).toContainText("Sub-agents");
-      await expect(breakdown).toContainText(
-        `Total${formatUsage(turn.totalTokens, turn.costUsd)}`,
-      );
+      await expect(breakdown).toContainText(totalLine);
 
       // The title call is charged beside the turn, so the quota grows by at least the turn.
       await expect
@@ -320,7 +318,10 @@ test.describe("Settings and account", () => {
       expect(chipUsage(next ?? "")).toBe(
         formatUsage(second.totalTokens, second.costUsd),
       );
-      await expect(footer).not.toHaveText(footerLine);
+      await ring.hover();
+      await expect(
+        tooltip(page, "This conversation's total across all turns."),
+      ).not.toContainText(totalLine);
     },
   );
 
@@ -461,7 +462,7 @@ test.describe("Settings and account", () => {
       await expect(reply.getByTestId("trace-usage")).toHaveCount(1, {
         timeout: 60_000,
       });
-      const footer = page.getByTestId("conversation-usage");
+      const footer = page.getByTestId("context-ring");
       await expect(footer).toBeVisible();
 
       await openSettingsTab(page, settingsPage, "Advanced");

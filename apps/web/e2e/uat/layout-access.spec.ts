@@ -138,7 +138,7 @@ test.describe("Layout and access", () => {
       expect(await noHorizontalScroll(page)).toBe(true);
       await expect(chatPage.composer).toBeVisible();
       await expect(chatPage.sendButton).toBeVisible();
-      await expect(page.getByTestId("conversation-usage")).toBeVisible();
+      await expect(page.getByTestId("context-ring")).toBeVisible();
       await expect(graphPage.railStepRows).toHaveCount(3);
       expect(await unclipped(graphPage.railHeadline)).toBe(true);
 
@@ -359,7 +359,7 @@ test.describe("Layout and access", () => {
       // A build opens the Strategy panel, so its toggle names the close.
       await expect(
         page
-          .getByLabel("Right rail")
+          .getByLabel("Side panels")
           .getByRole("button", { name: "Close Strategy", exact: true }),
       ).toBeVisible();
       await expect(

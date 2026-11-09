@@ -7,7 +7,7 @@ const FIRST_TURN = {
   conversationId: "c1",
   autoOpenedConversation: null,
   autoOpenChecked: null,
-  narrowViewport: false,
+  railWouldFloat: false,
 };
 
 describe("shouldAutoOpenReview", () => {
@@ -16,7 +16,7 @@ describe("shouldAutoOpenReview", () => {
   });
 
   it("leaves the rail closed on a viewport too narrow to hold it", () => {
-    expect(shouldAutoOpenReview({ ...FIRST_TURN, narrowViewport: true })).toBe(false);
+    expect(shouldAutoOpenReview({ ...FIRST_TURN, railWouldFloat: true })).toBe(false);
   });
 
   it("waits for the reader to say something", () => {

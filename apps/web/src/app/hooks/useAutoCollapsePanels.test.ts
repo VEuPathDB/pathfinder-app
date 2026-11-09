@@ -83,6 +83,52 @@ describe("useAutoCollapsePanels", () => {
     expect(useRightRailStore.getState().openPanel).toBeNull();
   });
 
+  it("keeps a drawer the reader opened through a resize that leaves it floating", () => {
+    setViewport(980);
+    useLeftSidebarStore.setState({ collapsed: true });
+    useRightRailStore.getState().closePanel();
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    act(() => {
+      useRightRailStore.getState().openPanelId(CONVERSATION, "review", {});
+    });
+
+    setViewport(960);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(useRightRailStore.getState().openPanel).toBe("review");
+  });
+
+  it("closes a docked rail that a narrowing window turns into a drawer", () => {
+    useLeftSidebarStore.setState({ collapsed: true });
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+
+    setViewport(980);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(useRightRailStore.getState().openPanel).toBe(null);
+  });
+
+  it("closes only the floating rail when a mid-width window moves to another page", async () => {
+    setViewport(1200);
+    const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      initialProps: "/conversation/c1",
+    });
+    act(openBothPanels);
+
+    await act(async () => {
+      view.rerender("/conversation/c2");
+    });
+
+    expect([
+      useLeftSidebarStore.getState().collapsed,
+      useRightRailStore.getState().openPanel,
+    ]).toEqual([false, null]);
+  });
+
   it("keeps both open when a wide window moves to another page", async () => {
     const view = renderHook((path: string) => useAutoCollapsePanels(path), {
       initialProps: "/conversation/c1",

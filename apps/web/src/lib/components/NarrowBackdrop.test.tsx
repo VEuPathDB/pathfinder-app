@@ -15,12 +15,4 @@ describe("NarrowBackdrop", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
-
-  it("shows only below the width that holds a side panel", () => {
-    render(<NarrowBackdrop label="Close panel" onClose={() => {}} />);
-
-    expect(screen.getByRole("button", { name: "Close panel" })).toHaveClass(
-      "min-[900px]:hidden",
-    );
-  });
 });

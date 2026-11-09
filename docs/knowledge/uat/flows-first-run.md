@@ -94,7 +94,7 @@ Uses the conversation of `S4` then `S9` in [standard strategy flows](flows-strat
 |---|---|---|---|
 | 1 | The S4 + S9 conversation, first user message | Hover, `Edit`, send the same S4 text again, `Save...` | Dialog `Edit earlier message`: `Branch to a new conversation` and `Revert this conversation`, with the text `Delete every message after this point in this conversation. Notes and pending tasks from those turns are also removed. The strategy goes back to what it was at this message; a later version stays in your VEuPathDB account. Saved gene sets are kept.` |
 | 2 | Dialog | `Revert` | Every message after the edited one is gone; a new turn runs the edited text. |
-| 3 | Thread | Wait | The strategy is the S4 tree again, 363 genes; `Notes` holds no note of the deleted turns. |
+| 3 | Thread | Wait | The strategy is the S4 tree again, 363 genes; `Assistant's notes` holds no note of the deleted turns. |
 | 4 | Browser | Reload | The deleted turns stay gone. |
 
 ## F10 - Reload and Stop in the middle of a turn - core

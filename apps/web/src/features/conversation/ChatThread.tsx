@@ -68,7 +68,7 @@ function ThreadBody({ assistantId }: { assistantId: string }) {
   return (
     <>
       <Conversation>
-        <ConversationContent>
+        <ConversationContent className="pt-14 max-sm:pt-4">
           <ChatEmptyState assistantId={assistantId} />
           <ThreadPrimitive.Messages
             components={{

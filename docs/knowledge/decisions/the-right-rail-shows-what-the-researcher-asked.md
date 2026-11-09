@@ -9,8 +9,14 @@ status: stable
 
 # What was decided
 
-The right rail has three panels (`state/useRightRailStore.ts::RIGHT_RAIL_PANELS`): Strategy,
-Review, and Study, whose button shows only while the thread has a study. Review
+The right side has three panels (`state/useRightRailStore.ts::RIGHT_RAIL_PANELS`): Strategy,
+Review, and Study, whose button shows only while the thread has a study. Their buttons are a
+pill at the top right of the conversation (`rail/RailToggle.tsx`), and on a phone they sit in
+the bottom bar; help, settings and the PathFinder mark sit at the foot of the left rail. A side
+panel stays beside the conversation only while the conversation keeps 600 px
+(`lib/layout/dock.ts::dockLayout`); otherwise the panel opened last floats over it as a drawer.
+The assistant's context fill is a ring beside Attach (`composer/ContextRing.tsx`), whose
+tooltip also holds the conversation's token and cost totals. Review
 (`features/conversation/rail/review/`) is one scroll: what runs now, the question, a verdict,
 each requirement the researcher stated with its status, the steps that failed or returned
 nothing, the sampled genes by fit, the values the assistant or the site chose with a button that
@@ -38,4 +44,9 @@ each answer was already in the thread.
   restyled `open slots 0` row still answers no question a researcher asks.
 - **Move the full evidence card into the rail.** The card stays in the thread, beside the reply
   it supports; Review summarizes it.
-- **A context-window figure in the rail.** It is the assistant's budget, not the research.
+- **A context-window figure in the rail.** It is the assistant's budget, not the research; the
+  ring beside the composer shows it where a message is written.
+- **The panel buttons in the left rail.** The left rail moves between pages; the panels belong
+  to the conversation in front of the researcher.
+- **A fixed 900 px breakpoint.** Between 900 px and about 1,300 px two docked panels left the
+  composer too narrow to use.

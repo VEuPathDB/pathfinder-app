@@ -1,6 +1,23 @@
 import { z } from "zod";
 
-import { createPersistedStore } from "./middleware";
+import { SIDEBAR_WIDTH_PX, type Side } from "@/lib/layout/dock";
+
+import { createPersistedStore, createStore } from "./middleware";
+
+interface SideOrderState {
+  lastOpened: Side | null;
+  markOpened: (side: Side) => void;
+}
+
+export const useSideOrderStore = createStore<SideOrderState>(
+  "SideOrderStore",
+  (set) => ({
+    lastOpened: null,
+    markOpened: (side) => set({ lastOpened: side }),
+  }),
+);
+
+const markOpened = (side: Side): void => useSideOrderStore.getState().markOpened(side);
 
 export const RIGHT_RAIL_PANELS = ["strategy", "review", "study"] as const;
 
@@ -98,11 +115,13 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
     lastSeen: {},
     autoOpenedConversation: null,
 
-    openPanelId: (conversationId, panel, markers) =>
+    openPanelId: (conversationId, panel, markers) => {
+      markOpened("right");
       set((s) => ({
         openPanel: panel,
         lastSeen: withMarkers(s.lastSeen, conversationId, markers),
-      })),
+      }));
+    },
 
     togglePanel: (conversationId, panel, markers) => {
       const current = get().openPanel;
@@ -110,6 +129,7 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
         set({ openPanel: null });
         return;
       }
+      markOpened("right");
       set((s) => ({
         openPanel: panel,
         lastSeen: withMarkers(s.lastSeen, conversationId, markers),
@@ -120,6 +140,7 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
 
     autoOpen: (conversationId, panel) => {
       if (get().autoOpenedConversation === conversationId) return;
+      if (get().openPanel === null) markOpened("right");
       set((s) => ({
         autoOpenedConversation: conversationId,
         openPanel: s.openPanel ?? panel,
@@ -148,16 +169,26 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
 
 interface LeftSidebarState {
   collapsed: boolean;
+  width: number;
   toggle: () => void;
   setCollapsed: (value: boolean) => void;
+  setWidth: (width: number) => void;
 }
 
 export const useLeftSidebarStore = createPersistedStore<LeftSidebarState>(
   "LeftSidebarStore",
-  (set) => ({
+  (set, get) => ({
     collapsed: false,
-    toggle: () => set((s) => ({ collapsed: !s.collapsed })),
-    setCollapsed: (value) => set({ collapsed: value }),
+    width: SIDEBAR_WIDTH_PX,
+    toggle: () => {
+      if (get().collapsed) markOpened("left");
+      set((s) => ({ collapsed: !s.collapsed }));
+    },
+    setCollapsed: (value) => {
+      if (!value) markOpened("left");
+      set({ collapsed: value });
+    },
+    setWidth: (width) => set({ width }),
   }),
   {
     name: "pathfinder-left-sidebar",

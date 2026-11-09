@@ -14,7 +14,6 @@ import {
   useConversationDetail,
   useConversationExists,
 } from "@/state/useConversationExists";
-import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
 
 import {
@@ -27,19 +26,7 @@ import { ModeSwitch } from "./ModeSwitch";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import { useDockedCard } from "./useDockedCard";
 import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
-import {
-  formatTokens,
-  formatCost,
-  formatUsage,
-} from "@/features/conversation/usageFormat";
-import { type ThreadUsage, threadUsage } from "@veupathdb/assistant-client";
-import { useChatHelpers } from "@/features/conversation/runtime/chatHelpersContext";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ContextRing } from "./ContextRing";
 
 const SEND_TO_STOP_GUARD_MS = 500;
 
@@ -55,67 +42,18 @@ const AI_NOTICE =
   "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
 
 function ComposerFooter() {
-  const chat = useChatHelpers();
-  const usage = threadUsage(chat.messages);
-  const hasUsage = usage.total.tokens > 0 || usage.total.costUsd > 0;
   return (
     <div
       data-testid="composer-footer"
-      className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-1 pt-1"
+      className="flex flex-wrap items-center px-1 pt-1"
     >
-      {hasUsage && <ConversationUsage usage={usage} />}
       <p
         data-testid="ai-notice"
-        className={cn(
-          "min-w-64 flex-1 text-[0.6875rem] text-muted-foreground",
-          hasUsage ? "text-right" : "text-center",
-        )}
+        className="min-w-64 flex-1 text-center text-xs text-muted-foreground"
       >
         {AI_NOTICE}
       </p>
     </div>
-  );
-}
-
-function ConversationUsage({ usage }: { usage: ThreadUsage }) {
-  return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip tapToOpen>
-        <TooltipTrigger asChild>
-          <span
-            data-testid="conversation-usage"
-            tabIndex={0}
-            className="cursor-help text-[0.6875rem] text-muted-foreground underline decoration-dotted underline-offset-2"
-          >
-            Conversation · {formatTokens(usage.total.tokens)} tokens ·{" "}
-            {formatCost(usage.total.costUsd)}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="space-y-0.5 text-[0.6875rem]">
-          <div className="text-muted-foreground">
-            This conversation&apos;s total across all turns.
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Assistant</span>
-            <span className="font-mono tabular-nums">
-              {formatUsage(usage.lead.tokens, usage.lead.costUsd)}
-            </span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Sub-agents</span>
-            <span className="font-mono tabular-nums">
-              {formatUsage(usage.subAgents.tokens, usage.subAgents.costUsd)}
-            </span>
-          </div>
-          <div className="flex justify-between gap-4 border-t border-border/60 pt-0.5 font-medium">
-            <span>Total</span>
-            <span className="font-mono tabular-nums">
-              {formatUsage(usage.total.tokens, usage.total.costUsd)}
-            </span>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   );
 }
 
@@ -220,7 +158,10 @@ export function Composer({
           data-testid="composer-controls"
           className="flex flex-wrap items-center justify-between gap-2 p-2"
         >
-          <AttachButton assistantId={assistantId} />
+          <div className="flex items-center gap-1">
+            <AttachButton assistantId={assistantId} />
+            <ContextRing />
+          </div>
           <div className="flex items-center justify-end gap-2">
             {assistantId === DEFAULT_ASSISTANT_ID ? (
               <ModeSwitch conversationId={conversationId} />

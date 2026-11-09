@@ -3,7 +3,7 @@ interface AutoOpenInput {
   conversationId: string;
   autoOpenedConversation: string | null;
   autoOpenChecked: string | null;
-  narrowViewport: boolean;
+  railWouldFloat: boolean;
 }
 
 /** Whether the rail opens itself on Review for this thread. */
@@ -12,11 +12,11 @@ export function shouldAutoOpenReview({
   conversationId,
   autoOpenedConversation,
   autoOpenChecked,
-  narrowViewport,
+  railWouldFloat,
 }: AutoOpenInput): boolean {
   return (
     hasUserMessage &&
-    !narrowViewport &&
+    !railWouldFloat &&
     autoOpenedConversation !== conversationId &&
     autoOpenChecked !== conversationId
   );

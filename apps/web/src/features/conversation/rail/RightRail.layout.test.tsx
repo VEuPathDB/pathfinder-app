@@ -13,8 +13,8 @@ vi.mock("next/navigation", () => ({
 
 import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
-import { useSettingsModalStore } from "@/state/useSettingsModalStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
+import { RailToggle } from "./RailToggle";
 import { RightRail } from "./RightRail";
 
 function makeChat(messages: UIMessage[], id: string): ChatHelpers {
@@ -37,6 +37,7 @@ function makeChat(messages: UIMessage[], id: string): ChatHelpers {
 function renderRail(conversationId: string, messages: UIMessage[]): void {
   render(
     <ChatHelpersProvider value={makeChat(messages, conversationId)}>
+      <RailToggle conversationId={conversationId} strategy={null} />
       <RightRail conversationId={conversationId} strategy={null} siteId="plasmodb" />
     </ChatHelpersProvider>,
   );
@@ -68,21 +69,23 @@ beforeEach(() => {
 describe("the rail badge is scoped to the open conversation", () => {
   it("raises no Review dot on a fresh conversation after another one ran a task", () => {
     renderRail("conv-1", TASK_STARTED);
-    expect(screen.getByLabelText("Review has updates")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open Review" }),
+    ).toHaveAccessibleDescription("Review has updates");
 
     screen.getByLabelText("Open Review").click();
     expect(useRightRailStore.getState().lastSeen["conv-1"]?.reviewCount).toBe(1);
 
     cleanup();
     renderRail("conv-2", []);
-    expect(screen.queryByLabelText("Review has updates")).toBe(null);
+    expect(screen.queryByText("Review has updates")).toBe(null);
   });
 });
 
 describe("the rail's panel buttons", () => {
   it("offers Strategy and Review, and Study only with a study", () => {
     renderRail("conv-1", []);
-    const rail = screen.getByRole("toolbar", { name: "Right rail" });
+    const rail = screen.getByRole("toolbar", { name: "Side panels" });
     expect(
       within(rail)
         .getAllByRole("button", { name: /^Open / })
@@ -94,34 +97,35 @@ describe("the rail's panel buttons", () => {
       { id: "m1", role: "assistant", parts: [{ type: "data-eda.viz", data: {} }] },
     ]);
     expect(
-      within(screen.getByRole("toolbar", { name: "Right rail" }))
+      within(screen.getByRole("toolbar", { name: "Side panels" }))
         .getAllByRole("button", { name: /^Open / })
         .map((b) => b.getAttribute("aria-label")),
     ).toEqual(["Open Strategy", "Open Review", "Open Study"]);
   });
 });
 
-describe("the rail panel floats over the thread only in a narrow window", () => {
-  it("floats as a drawer with a backdrop that closes it, below 900px", async () => {
-    setViewportWidth(744);
+describe("the rail panel floats over the thread when the chat would drop below 600px", () => {
+  it("floats as a drawer with a backdrop that closes it", async () => {
+    setViewportWidth(980);
+    useLeftSidebarStore.setState({ collapsed: true });
     useRightRailStore.setState({ openPanel: "review" });
     renderRail("conv-1", []);
-    expect(screen.getByTestId("rail-panel")).toHaveClass("max-[900px]:absolute");
+    expect(screen.getByTestId("rail-panel")).toHaveClass("absolute");
 
     await userEvent.click(screen.getByRole("button", { name: "Close panel" }));
 
     expect(useRightRailStore.getState().openPanel).toBe(null);
   });
 
-  it("stays in flow on a wide viewport", () => {
+  it("stays beside the chat when the chat keeps 600px", () => {
     setViewportWidth(1440);
+    useLeftSidebarStore.setState({ collapsed: true });
     useRightRailStore.setState({ openPanel: "review" });
     renderRail("conv-1", []);
-    const classes = screen.getByTestId("rail-panel").className.split(" ");
-    expect(classes.filter((name) => name === "absolute")).toEqual([]);
-    expect(screen.getByRole("button", { name: "Close panel" })).toHaveClass(
-      "min-[900px]:hidden",
+    expect(screen.getByTestId("rail-panel").className.split(" ")).not.toContain(
+      "absolute",
     );
+    expect(screen.queryByRole("button", { name: "Close panel" })).toBe(null);
   });
 });
 
@@ -132,7 +136,7 @@ describe("the rail's buttons on a phone", () => {
     usePhoneBarStore.setState({ slot });
     renderRail("conv-1", []);
 
-    expect(screen.getByRole("toolbar", { name: "Right rail" })).toHaveClass(
+    expect(screen.getByRole("toolbar", { name: "Side panels" })).toHaveClass(
       "max-sm:hidden",
     );
     await userEvent.click(within(slot).getByRole("button", { name: "Open Review" }));
@@ -140,47 +144,5 @@ describe("the rail's buttons on a phone", () => {
     expect(useRightRailStore.getState().openPanel).toBe("review");
     usePhoneBarStore.setState({ slot: null });
     slot.remove();
-  });
-});
-
-describe("the right rail ends with the PathFinder mark", () => {
-  beforeEach(() => {
-    cleanup();
-  });
-
-  it("puts the mark below the panel buttons, as the last item of the rail", () => {
-    renderRail("c-mark", []);
-
-    const rail = screen.getByLabelText("Right rail");
-    const mark = screen.getByRole("img", { name: "PathFinder" });
-    expect(rail.lastElementChild?.contains(mark)).toBe(true);
-    expect(rail).toContainElement(
-      screen.getByRole("button", { name: "Open Strategy" }),
-    );
-  });
-
-  it("puts help and the settings gear together, directly above the mark", () => {
-    renderRail("c-help", []);
-
-    const help = screen.getByRole("link", { name: "Help" });
-    const gear = screen.getByRole("button", { name: "Settings" });
-    const mark = screen.getByRole("img", { name: "PathFinder" });
-    expect(help).toHaveAttribute("href", "/help");
-    expect(help.parentElement).toBe(mark.closest("[data-rail-foot]"));
-    expect(help.nextElementSibling).toBe(gear);
-    expect(gear.nextElementSibling?.contains(mark)).toBe(true);
-  });
-
-  it("opens Settings from the gear beside help", async () => {
-    useSettingsModalStore.setState({ isOpen: false, tab: "keys" });
-    renderRail("c-gear", []);
-
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
-
-    expect(useSettingsModalStore.getState()).toMatchObject({
-      isOpen: true,
-      tab: "keys",
-    });
-    useSettingsModalStore.setState({ isOpen: false, tab: "model" });
   });
 });

@@ -2,6 +2,10 @@
 
 ## 2026-11-09
 
+* **One rail, a panel toggle, and panels that dock only while the chat keeps 600 px.** The right
+  icon strip is gone: Strategy, Review and Study are a pill at the top right of the
+  conversation, help and settings sit in the left rail, and the context ring sits beside Attach.
+  See [the decision](decisions/the-right-rail-shows-what-the-researcher-asked.md).
 * **Memory is off unless the deployment or the researcher turns it on.** An account that never
   set its Memory switch follows `MEMORY_ON_BY_DEFAULT`, which is off when unset; dev and QA
   leave it unset and production sets it on. Every account that held memory on was emptied once;

@@ -20,6 +20,7 @@ import {
 
 import { ChatThread } from "./ChatThread";
 import { ChatViewError } from "./ChatViewError";
+import { RailToggle } from "./rail/RailToggle";
 import { RightRail } from "./rail/RightRail";
 import { ChatHelpersProvider } from "./runtime/chatHelpersContext";
 import { useChatRuntime } from "./runtime/useChatRuntime";
@@ -116,6 +117,7 @@ function ChatViewBody({
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             <ChatThread conversationId={conversationId} assistantId={assistantId} />
+            <RailToggle conversationId={conversationId} strategy={strategy} />
           </div>
           <RightRail
             conversationId={conversationId}

@@ -14,10 +14,7 @@ export function NarrowBackdrop({
       type="button"
       aria-label={label}
       onClick={onClose}
-      className={cn(
-        "absolute inset-y-0 z-30 bg-black/30 min-[900px]:hidden",
-        className,
-      )}
+      className={cn("absolute inset-y-0 z-30 bg-black/30", className)}
     />
   );
 }

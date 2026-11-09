@@ -9,14 +9,14 @@ status: draft
 
 # Layout and access (L)
 
-Run once, on plasmodb, on a conversation that holds S2 and its evidence card. Below 900 px the sidebar and the right rail collapse on load and on each resize; the sidebar is 220 to 360 px and the main column keeps at least 520 px.
+Run once, on plasmodb, on a conversation that holds S2 and its evidence card. A side panel stays beside the conversation only while the conversation keeps 600 px; otherwise the one opened last floats over it as a drawer, and a floating panel closes on load, on navigation and on resize. The sidebar is 220 to 360 px.
 
 ## L1 - 1024 px wide - core, once
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Browser window 1024 x 768 | Open the S2 conversation | No horizontal scroll of the page; the composer, `Send` and the usage pill visible |
-| 2 | Right rail `Strategy` | Open | The panel shows the 3 steps and the footer `3 steps` without clipping |
+| 2 | Panel toggle `Strategy` (top right of the conversation) | Open | The panel shows the root count and the 3 steps without clipping |
 | 3 | Evidence card | Open the appendix below the reply, read `Evidence` | Every column of the step and requirement tables readable (wrapping allowed, no cut text) |
 | 4 | Appendix | Read the closed line, then open it | The closed line reads `Appendix · <n> sections · <count> genes` and, with caveats, `<n> caveats`. Open, the sections read `A. Strategy`, `B. Evidence` and on, in two columns from three sections, one heading size and one text size in every section |
 | 5 | Canvas | `Open` | Nodes, counts and the topbar fit; `Fit to view` fits the tree |
@@ -57,5 +57,5 @@ PathFinder has no dark-mode switch and does not follow the operating system; its
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | A screen reader, the thread | Navigate | The thread is a `log`; buttons read `Send`, `Stop`, `Attach a gene-ID list, an image or a PDF`, `Good response`, `Bad response`, `Branch to a new conversation from here`, `Open Strategy`, `Open Notes` |
+| 1 | A screen reader, the thread | Navigate | The thread is a `log`; buttons read `Send`, `Stop`, `Attach a gene-ID list, an image or a PDF`, `Good response`, `Bad response`, `Branch to a new conversation from here`, `Open Strategy`, `Open Review`, `Assistant context <n>% full` |
 | 2 | Evidence card counts | Focus a count | `<n> positive controls recovered, click to copy the ids` |
