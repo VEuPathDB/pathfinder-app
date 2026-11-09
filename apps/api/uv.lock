@@ -2502,7 +2502,7 @@ wheels = [
 
 [[package]]
 name = "pathfinder-api"
-version = "0.9.0b7"
+version = "0.9.0b8"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
