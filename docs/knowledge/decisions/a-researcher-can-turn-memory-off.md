@@ -14,8 +14,9 @@ through `GET` and `PUT /api/v1/me/memory` and stored as `users.memory_enabled`. 
 empty until the researcher sets the switch, and an empty one follows the deployment's
 `MEMORY_ON_BY_DEFAULT` (`services/memory_setting.py::memory_is_on`), which is off when unset.
 The dev and QA deployments leave it unset; production sets it on. Migration `2026_11_09_0001`
-emptied every account's stored choice, so each account follows the deployment until its
-researcher sets the switch again.
+emptied every account that held memory on, so those follow the deployment until their
+researcher sets the switch again; an account that turned memory off keeps it off, so a
+deployment that turns memory on never overrides a researcher who declined it.
 Every context a turn runs in asks `services/memory_setting.py::the_researchers_store` for its
 memory store: the PathFinder turn (`assistants/pathfinder_spec.py`), the durable task
 (`jobs/runtime.py`) and the audit turn (`ai/audit/turn.py`). With the switch off the context

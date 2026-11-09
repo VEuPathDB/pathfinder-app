@@ -4,7 +4,8 @@
 
 * **Memory is off unless the deployment or the researcher turns it on.** An account that never
   set its Memory switch follows `MEMORY_ON_BY_DEFAULT`, which is off when unset; dev and QA
-  leave it unset and production sets it on. Every stored choice was emptied once. See
+  leave it unset and production sets it on. Every account that held memory on was emptied once;
+  an account that turned it off keeps it off. See
   [the decision](decisions/a-researcher-can-turn-memory-off.md).
 * **GPT-6 Sol leaves the catalog.** GPT-6.1 Sol replaced it. A pick a browser saved for a model
   the catalog no longer lists is dropped before the turn, so that role runs its default instead

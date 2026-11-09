@@ -57,18 +57,35 @@ def test_the_downgrade_drops_the_switch(seeded_database: str) -> None:
     assert "memory_enabled" not in columns(seeded_database, "users")
 
 
-def test_every_account_forgets_its_choice(seeded_database: str) -> None:
+def test_an_account_that_chose_on_forgets_it_and_one_that_chose_off_keeps_it(
+    seeded_database: str,
+) -> None:
+    opted_out = uuid4()
     command.upgrade(alembic_config(seeded_database), REVISION)
     with psycopg.connect(psycopg_url(seeded_database), autocommit=True) as connection:
         connection.execute(
-            "INSERT INTO users (id, memory_enabled) VALUES (%s, false)", (str(uuid4()),)
+            "INSERT INTO users (id, memory_enabled) VALUES (%s, false)",
+            (str(opted_out),),
         )
 
     command.upgrade(alembic_config(seeded_database), UNSET_REVISION)
 
-    assert rows(seeded_database, "SELECT DISTINCT memory_enabled FROM users", ()) == [
-        (None,)
-    ]
+    assert rows(
+        seeded_database,
+        "SELECT id::text, memory_enabled FROM users ORDER BY memory_enabled NULLS FIRST",
+        (),
+    ) == [(str(USER_ID), None), (str(opted_out), False)]
+
+
+def test_the_downgrade_turns_an_unset_account_off(seeded_database: str) -> None:
+    command.upgrade(alembic_config(seeded_database), UNSET_REVISION)
+    command.downgrade(alembic_config(seeded_database), REVISION)
+
+    assert rows(
+        seeded_database,
+        "SELECT memory_enabled FROM users WHERE id = %s",
+        (str(USER_ID),),
+    ) == [(False,)]
 
 
 def test_a_new_account_has_no_choice(seeded_database: str) -> None:

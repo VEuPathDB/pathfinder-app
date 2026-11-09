@@ -11,11 +11,11 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.alter_column("users", "memory_enabled", nullable=True, server_default=None)
-    op.execute("UPDATE users SET memory_enabled = NULL")
+    op.execute("UPDATE users SET memory_enabled = NULL WHERE memory_enabled IS TRUE")
 
 
 def downgrade() -> None:
-    op.execute("UPDATE users SET memory_enabled = true WHERE memory_enabled IS NULL")
+    op.execute("UPDATE users SET memory_enabled = false WHERE memory_enabled IS NULL")
     op.alter_column(
         "users",
         "memory_enabled",
