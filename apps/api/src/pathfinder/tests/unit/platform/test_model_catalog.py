@@ -115,7 +115,6 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
     lineup = {e.id: e.rank for e in get_model_catalog() if e.provider in _CLOUD}
 
     assert lineup == {
-        "openai:gpt-6-sol": "unranked",
         "openai:gpt-6-luna": "small",
         "openai:gpt-5.6-luna": "standard",
         "anthropic:claude-opus-5-5": "flagship",
@@ -134,7 +133,6 @@ def test_the_lineup_names_the_decided_ids_and_ranks() -> None:
 @pytest.mark.parametrize(
     ("model_id", "prices"),
     [
-        ("openai:gpt-6-sol", (2.00, 0.20, 10.00)),
         ("openai:gpt-6-luna", (0.10, 0.01, 0.50)),
         ("openai:gpt-5.6-luna", (0.20, 0.02, 1.20)),
         ("anthropic:claude-opus-5-5", (4.00, 0.20, 20.00)),
@@ -259,7 +257,6 @@ def test_only_a_researchers_key_pays_for_opus_fable_and_astra() -> None:
     }
 
     assert paid == {
-        "openai:gpt-6-sol": True,
         "openai:gpt-6-luna": True,
         "openai:gpt-5.6-luna": True,
         "anthropic:claude-opus-5-5": False,

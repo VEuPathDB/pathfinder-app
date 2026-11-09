@@ -37,20 +37,6 @@ __all__ = [
 _CLOUD_MODELS: tuple[ModelEntry, ...] = validate_lineup(
     (
         ModelEntry.entry(
-            id="openai:gpt-6-sol",
-            deployment_may_pay=True,
-            name="GPT-6 Sol",
-            description="Previous OpenAI flagship reasoning - 1.05M context",
-            rank="unranked",
-            supports_reasoning=True,
-            supports_images=True,
-            supports_documents=True,
-            context_size=1_050_000,
-            input_price=2.00,
-            cached_input_price=0.20,
-            output_price=10.00,
-        ),
-        ModelEntry.entry(
             id="openai:gpt-6-luna",
             deployment_may_pay=True,
             name="GPT-6 Luna",

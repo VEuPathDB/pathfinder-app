@@ -1,7 +1,11 @@
 /**
  * @vitest-environment jsdom
  */
+import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { ModelListResponse } from "@pathfinder/shared/generated/types/ModelListResponse";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -35,6 +39,21 @@ const BALANCED = {
 const TIERS = {
   presets: { pathfinder: { openai: { balanced: BALANCED } } },
   ownKeyPresets: { pathfinder: { openai: { balanced: BALANCED } } },
+};
+
+const RETIRED = "openai:gpt-6-sol";
+
+const CATALOG: ModelListResponse = {
+  models: [OPENAI_SMALL, DEFAULT_MODEL, OPENAI_FLAGSHIP].map((model) => ({
+    id: model.id,
+    name: model.name,
+    modelName: model.modelName,
+    provider: "openai",
+    rank: "standard",
+  })),
+  defaultProvider: "openai",
+  defaultTier: "balanced",
+  phaseDefaults: {},
 };
 
 /** Answer the calls a send makes, and record the chat bodies. */
@@ -81,6 +100,46 @@ beforeEach(() => {
 });
 
 describe("the phase picks a turn carries", () => {
+  it("sends no stored pick of a model the catalog no longer lists", async () => {
+    window.localStorage.setItem(
+      "pathfinder-settings-20260625",
+      JSON.stringify({
+        state: {
+          phaseModels: { lead: RETIRED, frame: DEFAULT_MODEL.id },
+          phaseReasoning: { lead: "high", frame: "medium" },
+        },
+        version: 0,
+      }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    const chat = stubSendFetch();
+
+    const client = new QueryClient();
+    client.setQueryData(listModelsQueryOptions().queryKey, CATALOG);
+    const { result } = renderHook(
+      () => useChatRuntime({ conversationId: CONVERSATION_ID }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+    await act(async () => {
+      void result.current.chat.sendMessage({ text: "kinases in P. falciparum" });
+    });
+    await waitFor(() => {
+      expect(result.current.chat.status).not.toBe("submitted");
+    });
+
+    expect([chat[0]?.["phaseModels"], chat[0]?.["phaseReasoning"]]).toEqual([
+      { frame: DEFAULT_MODEL.id },
+      { frame: "medium" },
+    ]);
+    expect(useSettingsStore.getState().phaseModels).toEqual({
+      frame: DEFAULT_MODEL.id,
+    });
+  });
+
   it("sends no stored pick for the repair role", async () => {
     window.localStorage.setItem(
       "pathfinder-settings-20260625",
