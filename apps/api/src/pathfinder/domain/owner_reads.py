@@ -59,6 +59,10 @@ def without_owner_reads(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _hidden(chunk: dict[str, Any], kind: str) -> dict[str, Any]:
+    if kind == "tool-input-delta":
+        return {**chunk, "inputTextDelta": ""}
+    if kind == "tool-input-available":
+        return {**chunk, "input": {}}
     if kind == "tool-output-available":
         return {**chunk, "output": NOT_SHARED}
     if kind == "tool-output-error":

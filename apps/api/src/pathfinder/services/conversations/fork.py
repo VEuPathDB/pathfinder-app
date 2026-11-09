@@ -259,8 +259,8 @@ async def _thread_from(
             branch=fork,
             snapshot=snapshot,
             strategy_row=source_strategy_row,
-            new_conversation_id=new_conv_id,
             anchor_message_id=UUID(messages.of(str(anchor.id))),
+            same_account=branch,
         )
     except Exception:
         await delete_released_document(document)

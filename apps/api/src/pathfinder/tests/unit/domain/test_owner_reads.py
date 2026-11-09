@@ -167,3 +167,30 @@ def test_a_failed_owner_read_loses_its_error_text() -> None:
         "toolCallId": "c-3",
         "errorText": NOT_SHARED,
     }
+
+
+def test_an_owner_read_loses_its_input() -> None:
+    chunks: list[dict[str, object]] = [
+        {
+            "type": "tool-input-start",
+            "toolCallId": "c-4",
+            "toolName": "read_control_set",
+        },
+        {
+            "type": "tool-input-delta",
+            "toolCallId": "c-4",
+            "inputTextDelta": '{"name": "',
+        },
+        {
+            "type": "tool-input-available",
+            "toolCallId": "c-4",
+            "toolName": "read_control_set",
+            "input": {"name": "Gametocyte markers"},
+        },
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert shown[1]["inputTextDelta"] == ""
+    assert shown[2]["input"] == {}
+    assert "Gametocyte markers" not in str(shown)

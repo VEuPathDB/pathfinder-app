@@ -78,8 +78,8 @@ async def write_forked_strategy(
     branch: Conversation,
     snapshot: StrategyRevisionView,
     strategy_row: ConversationStrategy,
-    new_conversation_id: UUID,
     anchor_message_id: UUID,
+    same_account: bool,
 ) -> None:
     """Push the snapshot as the fork's own WDK strategy and store it.
 
@@ -91,7 +91,7 @@ async def write_forked_strategy(
     # is pushed, and a WDK refusal leaves the branch holding the plan.
     materialized = await materialize_strategy_snapshot(
         site_id=branch.site_id,
-        conversation_id=new_conversation_id,
+        conversation_id=branch.id,
         name=branch.name,
         strategy_ast=snapshot.strategy_ast,
         record_type=snapshot.record_type,
@@ -106,7 +106,7 @@ async def write_forked_strategy(
     try:
         session.add(
             ConversationStrategy(
-                conversation_id=new_conversation_id,
+                conversation_id=branch.id,
                 record_type=materialized.record_type,
                 strategy_ast=materialized.strategy_ast,
                 step_count=materialized.step_count,
@@ -119,16 +119,18 @@ async def write_forked_strategy(
                 wdk_strategy_created_here=materialized.created_wdk_strategy,
                 # The fork still embeds the imported subtrees, so it keeps
                 # the references.
-                imported_saved_strategy_ids=list(
-                    source_strategy.imported_saved_strategy_ids,
+                imported_saved_strategy_ids=(
+                    list(source_strategy.imported_saved_strategy_ids)
+                    if same_account
+                    else []
                 ),
             ),
         )
         await session.flush()
         await StrategyRevisionRepository(session).record(
-            new_conversation_id,
+            branch.id,
             strategy_view_of(
-                await session.get(ConversationStrategy, new_conversation_id),
+                await session.get(ConversationStrategy, branch.id),
             ),
             message_id=anchor_message_id,
         )
