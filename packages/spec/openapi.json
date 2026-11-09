@@ -8627,13 +8627,18 @@
           "allowCopy": {
             "type": "boolean",
             "title": "Allowcopy"
+          },
+          "includeAccountReads": {
+            "type": "boolean",
+            "title": "Includeaccountreads"
           }
         },
         "type": "object",
         "required": [
           "token",
           "public",
-          "allowCopy"
+          "allowCopy",
+          "includeAccountReads"
         ],
         "title": "ConversationShareView"
       },
@@ -18103,6 +18108,11 @@
           "allowCopy": {
             "type": "boolean",
             "title": "Allowcopy"
+          },
+          "includeAccountReads": {
+            "type": "boolean",
+            "title": "Includeaccountreads",
+            "default": false
           }
         },
         "type": "object",

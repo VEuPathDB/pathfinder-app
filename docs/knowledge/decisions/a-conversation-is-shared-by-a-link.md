@@ -25,7 +25,10 @@ opens `/shared/<token>`, inside the website that frames PathFinder.
   read outside the thread (`domain/owner_reads.py`: the owner's WDK strategies, saved strategies,
   other threads, gene sets, control sets, audits, memories and download links) keeps its call and
   loses its output, and a turn's recalled memories are emptied, both in what the link serves and
-  in a copy. A test classes every tool an agent carries as an owner read or not, so a new tool
+  in a copy, unless the owner ticks "Include what it read from your account"
+  (`conversation_shares.include_account_reads`, off by default). A copy drops the owner's
+  control sets and gene sets from its saved state either way, since they work only in the
+  owner's account. A test classes every tool an agent carries as an owner read or not, so a new tool
   cannot slip past.
 - **Live.** The page asks `GET /api/v1/shared/{token}` every few seconds for the end of the
   thread's completed history and whether a turn is running, and reads the thread again

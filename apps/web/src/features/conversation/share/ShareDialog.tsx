@@ -27,7 +27,11 @@ import { hostingSite } from "@/lib/sites/hostingSite";
 
 import { shareUrl } from "./shareUrl";
 
-const NO_SETTINGS: ShareSettings = { public: false, allowCopy: false };
+const NO_SETTINGS: ShareSettings = {
+  public: false,
+  allowCopy: false,
+  includeAccountReads: false,
+};
 
 export function ShareDialog({
   conversationId,
@@ -73,7 +77,13 @@ export function ShareDialog({
 
   const share = state.data?.share ?? null;
   const settings: ShareSettings =
-    share === null ? draft : { public: share.public, allowCopy: share.allowCopy };
+    share === null
+      ? draft
+      : {
+          public: share.public,
+          allowCopy: share.allowCopy,
+          includeAccountReads: share.includeAccountReads,
+        };
   const busy = save.isPending || renew.isPending || stop.isPending;
   const change = (next: ShareSettings) =>
     share === null ? setDraft(next) : save.mutate(next);
@@ -106,6 +116,15 @@ export function ShareDialog({
                 checked={settings.allowCopy}
                 disabled={busy}
                 onChange={(value) => change({ ...settings, allowCopy: value })}
+              />
+              <Choice
+                label="Include what it read from your account"
+                hint="Control sets, gene sets, saved strategies, other conversations and memories it looked up. Otherwise they show as not shared."
+                checked={settings.includeAccountReads === true}
+                disabled={busy}
+                onChange={(value) =>
+                  change({ ...settings, includeAccountReads: value })
+                }
               />
             </div>
             {share === null ? (

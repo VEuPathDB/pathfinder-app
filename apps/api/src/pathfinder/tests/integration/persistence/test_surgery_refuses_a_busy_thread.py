@@ -16,7 +16,11 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.thread_refusals import ForkRefusedError, RevertRefusedError
-from pathfinder.services.conversations.fork import copy_conversation, fork_conversation
+from pathfinder.services.conversations.fork import (
+    CopyTerms,
+    copy_conversation,
+    fork_conversation,
+)
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 from pathfinder.services.conversations.thread_lock import (
     hold_thread,
@@ -115,7 +119,10 @@ async def _copy(thread: FourTurns, user_id: UUID) -> None:
         source = await session.get(Conversation, thread.conversation_id)
         assert source is not None
         await copy_conversation(
-            session, source=source, user_id=user_id, rewrite=rewrite
+            session,
+            source=source,
+            user_id=user_id,
+            terms=CopyTerms(rewrite=rewrite, keep_owner_reads=False),
         )
         await session.commit()
 

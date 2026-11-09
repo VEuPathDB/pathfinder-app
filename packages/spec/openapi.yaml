@@ -5466,11 +5466,15 @@ components:
         allowCopy:
           type: boolean
           title: Allowcopy
+        includeAccountReads:
+          type: boolean
+          title: Includeaccountreads
       type: object
       required:
       - token
       - public
       - allowCopy
+      - includeAccountReads
       title: ConversationShareView
     CreateConversationRequest:
       properties:
@@ -11906,6 +11910,10 @@ components:
         allowCopy:
           type: boolean
           title: Allowcopy
+        includeAccountReads:
+          type: boolean
+          title: Includeaccountreads
+          default: false
       type: object
       required:
       - public

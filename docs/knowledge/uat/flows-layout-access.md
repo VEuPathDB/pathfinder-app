@@ -73,4 +73,5 @@ Two browsers: the owner signed in, and a second browser signed out.
 | 5 | Owner | Send a message | Second browser: `The conversation is answering. The reply shows here when it is done.`, then the reply within a few seconds of the owner seeing it end |
 | 6 | Owner | Tick `Anyone with the link can open it` | The password lines go away; a fresh second browser opens the link with no password |
 | 7 | Owner | Tick `Let people copy it into their own account` | A signed-out viewer sees `Sign in to make a copy`; a signed-in viewer sees `Make a copy`, which opens `<name> (copy)` in their own list |
-| 8 | Owner | `Stop sharing` | The link answers `This link is no longer shared.` |
+| 8 | Owner, in a conversation that listed its control sets | Tick `Include what it read from your account` | The viewer's reload shows the list; unticked, the call shows `Not shared: this read the owner's account.` |
+| 9 | Owner | `Stop sharing` | The link answers `This link is no longer shared.` |

@@ -19,6 +19,7 @@ interface Stored {
   token: string;
   public: boolean;
   allowCopy: boolean;
+  includeAccountReads: boolean;
 }
 
 function serve(initial: Stored | null) {
@@ -29,10 +30,10 @@ function serve(initial: Stored | null) {
   server.use(
     http.get(SHARE, () => HttpResponse.json({ share: stored })),
     http.put(SHARE, async ({ request }) => {
-      const body = (await request.json()) as { public: boolean; allowCopy: boolean };
+      const body = (await request.json()) as Omit<Stored, "token">;
       puts.push(body);
       const mint = !body.public && (stored === null || stored.public);
-      stored = { token: TOKEN, public: body.public, allowCopy: body.allowCopy };
+      stored = { token: TOKEN, ...body };
       minted += mint ? 1 : 0;
       return HttpResponse.json({
         share: stored,
@@ -80,7 +81,9 @@ describe("ShareDialog", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Create link" }));
 
-    expect(puts).toEqual([{ public: false, allowCopy: false }]);
+    expect(puts).toEqual([
+      { public: false, allowCopy: false, includeAccountReads: false },
+    ]);
     expect(await screen.findByLabelText("Password")).toHaveValue("pw-1");
     expect(screen.getByLabelText("Link")).toHaveValue(
       `http://localhost:3000/pathfinder/shared/${TOKEN}`,
@@ -101,13 +104,15 @@ describe("ShareDialog", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Create link" }));
 
-    expect(puts).toEqual([{ public: true, allowCopy: true }]);
+    expect(puts).toEqual([
+      { public: true, allowCopy: true, includeAccountReads: false },
+    ]);
     await screen.findByLabelText("Link");
     expect(screen.queryByLabelText("Password")).toBeNull();
   });
 
   it("copies the link", async () => {
-    serve({ token: TOKEN, public: true, allowCopy: false });
+    serve({ token: TOKEN, public: true, allowCopy: false, includeAccountReads: false });
     open();
 
     await userEvent.click(await screen.findByRole("button", { name: "Copy link" }));
@@ -118,7 +123,12 @@ describe("ShareDialog", () => {
   });
 
   it("says a private link's password is not shown again and makes a new one", async () => {
-    serve({ token: TOKEN, public: false, allowCopy: false });
+    serve({
+      token: TOKEN,
+      public: false,
+      allowCopy: false,
+      includeAccountReads: false,
+    });
     open();
 
     expect(await screen.findByTestId("share-password-hidden")).toHaveTextContent(
@@ -130,7 +140,12 @@ describe("ShareDialog", () => {
   });
 
   it("saves a changed box at once", async () => {
-    const { puts } = serve({ token: TOKEN, public: true, allowCopy: false });
+    const { puts } = serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+    });
     open();
 
     await userEvent.click(
@@ -139,11 +154,42 @@ describe("ShareDialog", () => {
       }),
     );
 
-    await waitFor(() => expect(puts).toEqual([{ public: true, allowCopy: true }]));
+    await waitFor(() =>
+      expect(puts).toEqual([
+        { public: true, allowCopy: true, includeAccountReads: false },
+      ]),
+    );
+  });
+
+  it("shares what it read from the owner's account only when that box is ticked", async () => {
+    const { puts } = serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+    });
+    open();
+
+    await userEvent.click(
+      await screen.findByRole("checkbox", {
+        name: "Include what it read from your account",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(puts).toEqual([
+        { public: true, allowCopy: false, includeAccountReads: true },
+      ]),
+    );
   });
 
   it("stops sharing", async () => {
-    const { deletes } = serve({ token: TOKEN, public: true, allowCopy: false });
+    const { deletes } = serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+    });
     open();
 
     await userEvent.click(await screen.findByRole("button", { name: "Stop sharing" }));

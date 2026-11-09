@@ -15,7 +15,11 @@ from pathfinder.persistence.repositories.conversation import ConversationReposit
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.conversations.fork import copy_conversation, fork_conversation
+from pathfinder.services.conversations.fork import (
+    CopyTerms,
+    copy_conversation,
+    fork_conversation,
+)
 from pathfinder.tests.integration.persistence._thread_surgery import (
     four_turn_thread,
     install_fake_push,
@@ -65,7 +69,10 @@ async def test_a_copy_drops_the_owners_imports_and_a_branch_keeps_them(
         source = await session.get(Conversation, thread.conversation_id)
         assert source is not None
         copy = await copy_conversation(
-            session, source=source, user_id=viewer, rewrite=rewrite
+            session,
+            source=source,
+            user_id=viewer,
+            terms=CopyTerms(rewrite=rewrite, keep_owner_reads=False),
         )
         branch = await fork_conversation(
             session,

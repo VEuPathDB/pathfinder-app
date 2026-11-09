@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from uuid import UUID, uuid4
 
 from assistant_core.conversation.authz import owned_by_caller
@@ -98,12 +99,18 @@ async def fork_conversation(
     )
 
 
+@dataclass(frozen=True)
+class CopyTerms:
+    rewrite: ChannelRewrite
+    keep_owner_reads: bool
+
+
 async def copy_conversation(
     session: AsyncSession,
     *,
     source: Conversation,
     user_id: UUID,
-    rewrite: ChannelRewrite,
+    terms: CopyTerms,
 ) -> Conversation:
     """Copy the whole thread into ``user_id``'s account, with no parent link."""
     last = await session.scalar(
@@ -121,7 +128,7 @@ async def copy_conversation(
         from_message_id=last,
         user_id=user_id,
         name=f"{source.name} (copy)",
-        for_another_account=rewrite,
+        for_another_account=terms,
     )
 
 
@@ -132,7 +139,7 @@ async def _thread_from(
     from_message_id: UUID,
     user_id: UUID,
     name: str,
-    for_another_account: ChannelRewrite | None,
+    for_another_account: CopyTerms | None,
 ) -> Conversation:
     source_conversation_id = source.id
     branch = for_another_account is None
@@ -230,7 +237,10 @@ async def _thread_from(
         rewrite=EventRewrite(
             note_id_map=note_id_map,
             messages=messages,
-            hide_owner_reads=not branch,
+            hide_owner_reads=(
+                for_another_account is not None
+                and not for_another_account.keep_owner_reads
+            ),
         ),
     )
     await StrategyRevisionRepository(session).copy_prefix(
@@ -247,7 +257,7 @@ async def _thread_from(
     )
     if for_another_account is not None:
         await rewrite_channels(
-            session, thread_id=str(new_conv_id), rewrite=for_another_account
+            session, thread_id=str(new_conv_id), rewrite=for_another_account.rewrite
         )
     # The copied log carries the binding states of the turns it holds.
     document = await branch_thread_binding(session, conversation_id=new_conv_id)

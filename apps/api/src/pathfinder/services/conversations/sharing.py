@@ -27,7 +27,11 @@ from pathfinder.platform.errors import (
     ForbiddenError,
     NotFoundError,
 )
-from pathfinder.services.conversations.fork import ForkError, copy_conversation
+from pathfinder.services.conversations.fork import (
+    CopyTerms,
+    ForkError,
+    copy_conversation,
+)
 from pathfinder.services.conversations.new_thread import settle_new_thread
 from pathfinder.services.conversations.responses import ConversationResponse
 from pathfinder.services.conversations.turn_liveness import turn_is_in_flight
@@ -36,12 +40,14 @@ from pathfinder.services.conversations.turn_liveness import turn_is_in_flight
 class ShareSettings(CamelModel):
     public: bool
     allow_copy: bool
+    include_account_reads: bool = False
 
 
 class ConversationShareView(CamelModel):
     token: str
     public: bool
     allow_copy: bool
+    include_account_reads: bool
 
 
 class ShareState(CamelModel):
@@ -68,7 +74,10 @@ def _hash(password: str) -> str:
 
 def _view(row: ConversationShare) -> ConversationShareView:
     return ConversationShareView(
-        token=row.token, public=row.public, allow_copy=row.allow_copy
+        token=row.token,
+        public=row.public,
+        allow_copy=row.allow_copy,
+        include_account_reads=row.include_account_reads,
     )
 
 
@@ -120,6 +129,7 @@ async def set_share(
         password = secrets.token_urlsafe(12)
     row.public = settings.public
     row.allow_copy = settings.allow_copy
+    row.include_account_reads = settings.include_account_reads
     if settings.public:
         row.password_hash = None
     elif password is not None:
@@ -209,8 +219,10 @@ async def read_shared(
 async def shared_snapshot(
     session: AsyncSession, *, token: str, password: str
 ) -> EventsSnapshot:
-    _share, conversation = await _opened(session, token, password)
+    share, conversation = await _opened(session, token, password)
     snapshot = await fetch_snapshot_chunks(conversation.id)
+    if share.include_account_reads:
+        return snapshot
     return snapshot.model_copy(update={"chunks": without_owner_reads(snapshot.chunks)})
 
 
@@ -231,7 +243,12 @@ async def copy_shared(
         )
     try:
         copy = await copy_conversation(
-            session, source=conversation, user_id=user_id, rewrite=rewrite
+            session,
+            source=conversation,
+            user_id=user_id,
+            terms=CopyTerms(
+                rewrite=rewrite, keep_owner_reads=share.include_account_reads
+            ),
         )
     except ForkError as exc:
         raise NotFoundError(code=ErrorCode.SHARE_NOT_FOUND, title=str(exc)) from exc
