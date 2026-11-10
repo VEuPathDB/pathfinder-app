@@ -14,6 +14,10 @@
   set of genes or records the sites hold starts from `search_for_searches`.
 * **PubMed takes an NCBI key.** `NCBI_API_KEY` reaches the research server as
   `RESEARCH_MCP_NCBI_API_KEY`.
+* **The agent finds only the searches each site's ontology offers.** `veupathdb-mcp`
+  0.9.0b7 keeps a search out of the listings, the categories and the ranking of
+  `search_for_searches` unless the site's Categories ontology names it with no scope or a
+  scope that holds `webservice` or `menu`.
 * **The EDA filter sheet carries the site's definition of each variable.** A rank and the
   direction of a score are read from the study, not guessed from a name. A range filter
   whose two ends are equal reads as the one value it keeps, because the subsetting service
