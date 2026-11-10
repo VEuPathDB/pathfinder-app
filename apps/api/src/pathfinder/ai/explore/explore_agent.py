@@ -38,10 +38,15 @@ from pathfinder.ai.lead.lead_pins import (
 )
 from pathfinder.ai.lead.lead_reads import get_live_strategy_state
 from pathfinder.ai.lead.lead_tools import list_gene_sets
+from pathfinder.ai.lead.linked_pages import pinned_linked_pages
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.gene_record import (
     offered_where_genes_are_held,
     read_gene_record,
+)
+from pathfinder.ai.tools.standalone.record_reads import (
+    list_record_columns,
+    read_search_table,
 )
 from pathfinder.ai.tools.toolsets import eda
 from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
@@ -64,6 +69,8 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
                 description=READINGS_CARD_DESCRIPTION,
             ),
             *catalog_reads(),
+            Tool(list_record_columns),
+            Tool(read_search_table),
             Tool(read_gene_record, prepare=offered_where_genes_are_held),
             Tool(get_live_strategy_state),
             Tool(list_gene_sets),
@@ -137,6 +144,7 @@ def build_explore_agent() -> ExploreAgent:
         pinned_memory_index,
         pinned_conversation,
         pinned_user_prompt,
+        pinned_linked_pages,
         pinned_run_budget,
         pinned_off_topic_redirect,
     ):

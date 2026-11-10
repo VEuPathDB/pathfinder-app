@@ -3,12 +3,13 @@ from __future__ import annotations
 import inspect
 import re
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Annotated, Any
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 from pydantic_ai import ModelRetry, RunContext, Tool
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResult
@@ -16,6 +17,7 @@ from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResul
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import catalog, catalog_discovery
+from pathfinder.ai.tools.standalone.record_reads import record_columns_block
 from pathfinder.ai.tools.standalone.search_reads import resolved_search
 from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
 from pathfinder.domain.strategy.reading_plan import OfferedReading
@@ -116,9 +118,14 @@ async def search_for_searches(
     category: str | None = None,
     limit: int = 20,
 ) -> ToolReturn[list[JSONObject]]:
-    return await catalog.search_for_searches(
+    found = await catalog.search_for_searches(
         inner_context(ctx), query, record_type, keywords, category, limit
     )
+    block = await record_columns_block(ctx.deps.site_id, query)
+    if block is None:
+        return found
+    rows = TypeAdapter(list[JSONObject]).validate_python(found.return_value)
+    return replace(found, return_value=[*rows, block])
 
 
 async def get_search_overview(

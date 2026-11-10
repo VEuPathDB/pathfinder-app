@@ -26,6 +26,7 @@ from pathfinder.ai.tools.toolsets import eda
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_keys import attach_keyring
+from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
     allow_requests_to_the_wire,
@@ -57,6 +58,8 @@ def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
         "search_for_searches",
         "get_search_overview",
         "get_parameter_options",
+        "list_record_columns",
+        "read_search_table",
         "read_gene_record",
         "get_live_strategy_state",
         "list_gene_sets",
@@ -213,3 +216,9 @@ def test_the_leads_card_keeps_its_own_description() -> None:
     lead = unwrap_function_toolset(build_lead_toolset()).tools["consult_user"]
 
     assert (lead.description or "").startswith("Ask the user design questions")
+
+
+def test_explore_reads_the_pages_the_message_links_to() -> None:
+    pinned = pinned_instructions(build_explore_agent())
+
+    assert pinned.index("pinned_linked_pages") == pinned.index("pinned_user_prompt") + 1

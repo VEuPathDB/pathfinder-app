@@ -1,0 +1,38 @@
+{
+  "name": "genome-gene-counts-and-busco-are-read-from-the-organism-record",
+  "turns": [
+    "list plasmodium falciparum genomes in veupathdb, number of annotated genes, and busco scores for each"
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "Gene counts and BUSCO scores are columns of the organism record. The turn reads them with read_search_table and states the numbers; it does not say BUSCO must come from assembly reports.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "5720",
+      "98.3%"
+    ],
+    "replyOmits": [
+      "assembly reports"
+    ]
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "decisions/a-genome-fact-and-a-site-link-are-read-from-the-site.md",
+    "curatorNote": "5720 is the gene count of P. falciparum 3D7 and 98.3% its genomic BUSCO completeness on the QA portal."
+  },
+  "gates": {
+    "policy": "decline-offers",
+    "answers": []
+  }
+}

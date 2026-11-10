@@ -73,6 +73,7 @@ from pathfinder.ai.graph.stream_events import (
     turn_route_event,
 )
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
+from pathfinder.ai.lead.linked_pages import read_linked_pages
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import lead_usage_limits
@@ -260,7 +261,11 @@ async def _run_explore_turn(
         else list(state.retrieved_memories)
     )
     deps = LeadDeps(
-        state=state, intent=None, runtime=context, retrieved_memories=memories
+        state=state,
+        intent=None,
+        runtime=context,
+        retrieved_memories=memories,
+        linked_pages=await read_linked_pages(state.user_prompt),
     )
     if isinstance(turn.answered, PendingDurableCall):
         answers = state.durable_answers

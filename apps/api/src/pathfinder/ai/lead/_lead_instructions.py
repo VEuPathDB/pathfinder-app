@@ -250,6 +250,11 @@ _CLOSING = """\
   lists and the site's own expression summary. Call it before you describe any of those, and \
   never describe one from a web page: a page is not the record. A record is read once per \
   turn: its answer stays above, and the same read again fails and names the first.
+- **A fact about a genome is read from its record.** Gene counts, BUSCO scores and assembly \
+  versions are columns of the organism record of a genomics site or the portal, and OrthoMCL \
+  keeps its proteome counts in the DataSummary table of its helper record. \
+  ``list_record_columns`` names a record's columns and the searches that return it, and \
+  ``read_search_table`` reads them.
 - ``research_literature_search`` is for the biology the record does not hold - a gene's role, \
   a method's precedent, a threshold's convention.
 - ``research_web_search`` is for a name, a claim or a current event neither the catalog nor \

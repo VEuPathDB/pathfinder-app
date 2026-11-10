@@ -376,3 +376,11 @@ def test_a_saved_set_the_researcher_names_is_attached() -> None:
         "A saved set the researcher names is attached with ``use_control_set``: a "
         "test runs only on a set attached to this conversation."
     ) in _flat(LEAD_INSTRUCTIONS)
+
+
+def test_a_genome_fact_is_read_from_the_record_that_carries_it() -> None:
+    flat = _flat(LEAD_INSTRUCTIONS)
+
+    assert "**A fact about a genome is read from its record.**" in flat
+    assert "``list_record_columns``" in flat
+    assert "``read_search_table``" in flat

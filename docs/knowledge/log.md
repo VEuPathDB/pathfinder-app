@@ -1,5 +1,16 @@
 # Log
 
+## 2026-11-10
+
+* **A genome fact and a site link are read from the site.** Explore and the Lead read
+  records that are not genes with `list_record_columns` and `read_search_table`, Explore's
+  catalog lookup names the nearest record columns, and a fresh turn reads the VEuPathDB
+  links its message holds. The rows a table read returns are facts beside the reply. The
+  message reader reads a question about the figures each genome or proteome carries as a
+  look-up, and the pinned spec asks for `frame_problem` only on a turn that asks for a
+  build. See
+  [the decision](decisions/a-genome-fact-and-a-site-link-are-read-from-the-site.md).
+
 ## 2026-11-09
 
 * **A structured output Claude cannot compile is asked for as prompted JSON.** Anthropic refuses a

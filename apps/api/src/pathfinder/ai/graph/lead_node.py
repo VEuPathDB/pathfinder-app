@@ -108,6 +108,7 @@ from pathfinder.ai.lead.deleted_steps import ask_about_the_removals
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
+from pathfinder.ai.lead.linked_pages import read_linked_pages
 from pathfinder.ai.lead.recorded_cards import completed_hint
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -384,6 +385,7 @@ async def _run_lead_turn(
         retrieved_memories=memories,
         record_sub_agent_usage=record_sub_agent_usage,
         sub_agent_usage_by_call=capture.sub_agent_usage_by_call,
+        linked_pages=await read_linked_pages(state.user_prompt),
     )
 
     with decisions_spend_to(partial(absorb_outside_spend, capture)):

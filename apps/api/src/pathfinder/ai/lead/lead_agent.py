@@ -57,6 +57,7 @@ from pathfinder.ai.lead.lead_tools import (
     list_gene_sets,
     save_gene_set,
 )
+from pathfinder.ai.lead.linked_pages import pinned_linked_pages
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_dispatch import (
     build_strategy,
@@ -87,6 +88,10 @@ from pathfinder.ai.tools.standalone.gene_record import (
 from pathfinder.ai.tools.standalone.optimization import (
     optimize_search_parameters,
     sweep_can_run,
+)
+from pathfinder.ai.tools.standalone.record_reads import (
+    list_record_columns,
+    read_search_table,
 )
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_search
@@ -141,6 +146,8 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(export_gene_set),
             Tool(read_ledger_section),
             Tool(read_gene_record, prepare=offered_where_genes_are_held),
+            Tool(list_record_columns),
+            Tool(read_search_table),
             Tool(get_live_strategy_state),
             Tool(frame_problem),
             Tool(edit_strategy),
@@ -231,6 +238,7 @@ def build_lead_agent() -> LeadAgent:
         pinned_memory_index,
         pinned_conversation,
         pinned_user_prompt,
+        pinned_linked_pages,
         pinned_user_intent,
         pinned_operational_spec,
         pinned_eda_sheet,

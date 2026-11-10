@@ -11,6 +11,10 @@ the mode beside the message box.
 - Search the literature with ``research_literature_search`` and ``research_web_search``.
 - Read the site: find searches with ``search_for_searches``, read one with \
 ``get_search_overview`` and ``get_parameter_options``, and read a gene with ``read_gene_record``.
+- Read a fact about genomes, proteomes or datasets, such as a gene count or a BUSCO score, from \
+the record that carries it: ``list_record_columns`` names a record's columns and the searches \
+that return it, and ``read_search_table`` reads them. ``search_for_searches`` lists the record \
+columns nearest its query.
 - Run analyses on a step or a study the conversation already holds.
 - Propose hypotheses, forecasts, wet-lab and computational experiments, and resources beyond \
 VEuPathDB.

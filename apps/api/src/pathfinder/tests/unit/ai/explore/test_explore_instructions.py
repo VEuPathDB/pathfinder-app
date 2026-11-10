@@ -92,3 +92,9 @@ def test_a_question_about_the_account_is_answered_from_it() -> None:
     named = ("when the researcher asks about them", "Never say you cannot reach them")
 
     assert _missing(*named) == []
+
+
+def test_explore_reads_a_genome_fact_from_the_record_that_carries_it() -> None:
+    named = ("list_record_columns", "read_search_table", "BUSCO")
+
+    assert _missing(*named) == []

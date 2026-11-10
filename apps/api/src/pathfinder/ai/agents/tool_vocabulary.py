@@ -36,6 +36,8 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "lookup_gene_records",
         "read_gene_record",
         "get_ai_expression_summary",
+        "list_record_columns",
+        "read_search_table",
         # EDA catalog reads
         "search_eda_studies",
         "describe_eda_study",

@@ -56,6 +56,8 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "read_gene_ids_from_gene_set": Reversibility.READ,
     "read_gene_ids_from_strategy": Reversibility.READ,
     "read_gene_record": Reversibility.READ,
+    "list_record_columns": Reversibility.READ,
+    "read_search_table": Reversibility.READ,
     "read_step_ids": Reversibility.READ,
     "list_gene_sets": Reversibility.READ,
     "open_eda_analysis": Reversibility.UNREVISIONED_WRITE,

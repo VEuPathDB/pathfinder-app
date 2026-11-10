@@ -22,6 +22,7 @@ from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.read_facts import ReadFact
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.constraints import StoredConstraint
@@ -245,6 +246,7 @@ class TurnMarkers(CamelModel):
     tallies: list[TallyFact] = Field(default_factory=list)
     column_reaches: list[StepReach] = Field(default_factory=list)
     audit_facts: list[StatisticFact] = Field(default_factory=list)
+    table_reads: list[ReadFact] = Field(default_factory=list)
     audit_runs_held: bool = False
     audit_runs: list[UUID] = Field(default_factory=list)
     refused_plan: PlanRefusal | None = None
@@ -444,6 +446,9 @@ class TurnMarkers(CamelModel):
         read = {fact.id: fact for fact in self.audit_facts}
         read.update((fact.id, fact) for fact in facts)
         self.audit_facts = list(read.values())
+
+    def record_table_read(self, facts: Iterable[ReadFact]) -> None:
+        self.table_reads.extend(facts)
 
     def record_membership(self, membership: MembershipFact) -> None:
         """Keep which of the asked genes one membership check found held."""

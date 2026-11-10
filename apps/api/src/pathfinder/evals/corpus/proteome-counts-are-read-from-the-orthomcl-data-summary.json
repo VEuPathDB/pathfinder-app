@@ -1,0 +1,36 @@
+{
+  "name": "proteome-counts-are-read-from-the-orthomcl-data-summary",
+  "turns": [
+    "How many proteins and ortholog groups does each Plasmodium falciparum proteome have?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "OrthoMCL keeps its proteome counts in the DataSummary table of its helper record. The turn reads the table and states the counts.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "5318",
+      "3891"
+    ],
+    "replyOmits": []
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "decisions/a-genome-fact-and-a-site-link-are-read-from-the-site.md",
+    "curatorNote": "5318 proteins in 3891 groups is the P. falciparum 3D7 proteome on QA OrthoMCL."
+  },
+  "gates": {
+    "policy": "decline-offers",
+    "answers": []
+  }
+}

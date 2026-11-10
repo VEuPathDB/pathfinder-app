@@ -19,6 +19,7 @@ from assistant_core.memory.schemas import MemoryValue
 from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.types import PaidBy
 from pydantic_ai.usage import RunUsage, UsageLimits
+from veupathdb_mcp.records import LinkReading
 
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
@@ -312,6 +313,8 @@ class LeadDeps:
     # The counts every pass of the turn reads for other readings of a value.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
     refused_tally_columns: dict[int, set[str]] = field(default_factory=dict)
+    # The pages the message links to, read once before the turn's agent runs.
+    linked_pages: list[LinkReading] = field(default_factory=list)
 
     @property
     def conversation_id(self) -> UUID | None:

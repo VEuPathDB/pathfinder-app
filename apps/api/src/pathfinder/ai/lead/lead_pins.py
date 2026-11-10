@@ -21,7 +21,11 @@ from pathfinder.ai.lead._delete_rules import (
 )
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import NamedControls
-from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
+from pathfinder.ai.lead.intent_gate import (
+    turn_builds,
+    turn_is_classified,
+    turn_is_off_topic,
+)
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.exchanges import exchanges_section
@@ -111,6 +115,8 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
     """Renders the operational spec, which the Lead reads to decide build readiness."""
     spec = ctx.deps.state.domain.operational_spec
     if spec is None:
+        if turn_is_classified(ctx.deps) and not turn_builds(ctx.deps):
+            return "## Operational Spec\nNot framed yet."
         return "## Operational Spec\nNot framed yet. Call ``frame_problem``."
     lines = [
         "## Operational Spec",

@@ -413,7 +413,8 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
             []
             if markers.too_few_controls is None
             else [too_few_controls_fact(markers.too_few_controls)]
-        ),
+        )
+        + markers.table_reads,
         tallies=tallies_with_paths(session, markers.tallies),
         result_step_id=None
         if not built or session.sync_state is None

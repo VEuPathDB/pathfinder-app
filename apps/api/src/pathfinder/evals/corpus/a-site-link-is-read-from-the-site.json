@@ -1,0 +1,36 @@
+{
+  "name": "a-site-link-is-read-from-the-site",
+  "turns": [
+    "can you read this web page https://qa.veupathdb.org/veupathdb.qa/app/search/organism/GenomeDataTypes/result"
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "A link into a configured site is read before the turn as the search it shows. The reply states what the page holds; it does not say the page could not be read.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "could not retrieve",
+      "could not read"
+    ]
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "decisions/a-genome-fact-and-a-site-link-are-read-from-the-site.md",
+    "curatorNote": "The question asks whether the page can be read, so the reply names no count."
+  },
+  "gates": {
+    "policy": "decline-offers",
+    "answers": []
+  }
+}
