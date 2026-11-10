@@ -1,0 +1,32 @@
+{
+  "name": "audit-a-replaced-intron-is-a-shifted-splice-site",
+  "turns": [
+    "The site shows no RNA-seq junction reads for the first intron of Afu8g00850 in A. fumigatus Af293. Check its intron support. Is the gene model right?"
+  ],
+  "siteId": "fungidb",
+  "assistantId": "audit",
+  "rationale": "A case of the answer key from the recorded unspliced sample: the RNA-seq reads support another intron in place of the annotated one. The audit keeps the error and names the splice site in its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "Afu8g00850": "error"
+    },
+    "verdictCauses": {
+      "Afu8g00850": [
+        "splice"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "fungidb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is shifted_splice_site."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

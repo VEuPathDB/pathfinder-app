@@ -1,0 +1,32 @@
+{
+  "name": "audit-an-over-extended-model",
+  "turns": [
+    "LmjF.35.3010 (GLO1) in L. major Friedlin gives a longer protein than its orthologs. Is its gene model right?"
+  ],
+  "siteId": "tritrypdb",
+  "assistantId": "audit",
+  "rationale": "A positive of the answer key: the model extends past the gene. The audit keeps the error and names the extension as its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "LmjF.35.3010": "error"
+    },
+    "verdictCauses": {
+      "LmjF.35.3010": [
+        "exten"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "tritrypdb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is over_extended_model."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

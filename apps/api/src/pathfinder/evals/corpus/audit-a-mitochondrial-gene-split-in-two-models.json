@@ -1,0 +1,36 @@
+{
+  "name": "audit-a-mitochondrial-gene-split-in-two-models",
+  "turns": [
+    "In the P. falciparum NF54 mitochondrial genome, cytochrome b is served as PfNF54_000013000 (261 aa) and PfNF54_000012600 (130 aa, cytochrome b N-terminal), and the 3D7 protein is 376 aa. Are these gene models right?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "audit",
+  "rationale": "A positive of the answer key: one mitochondrial gene is served as two models. The audit keeps the error on both genes and names the split as its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "PfNF54_000013000": "error",
+      "PfNF54_000012600": "error"
+    },
+    "verdictCauses": {
+      "PfNF54_000013000": [
+        "split"
+      ],
+      "PfNF54_000012600": [
+        "split"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is organelle_split_at_join."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

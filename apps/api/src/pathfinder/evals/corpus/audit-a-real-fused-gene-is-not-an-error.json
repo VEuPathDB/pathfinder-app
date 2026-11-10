@@ -1,0 +1,32 @@
+{
+  "name": "audit-a-real-fused-gene-is-not-an-error",
+  "turns": [
+    "TGME49_500302 in T. gondii ME49 is annotated with two unrelated domains, PBGS and a peptidase. Is it a fusion of two genes in the gene model?"
+  ],
+  "siteId": "toxodb",
+  "assistantId": "audit",
+  "rationale": "A trap of the answer key: the two-domain model is a real gene, not two genes the annotation joined. The audit rejects the error and says why the model is not a fusion.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "TGME49_500302": "no_error"
+    },
+    "verdictCauses": {
+      "TGME49_500302": [
+        "fusion"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "toxodb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "A trap: the verdict is no_error."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

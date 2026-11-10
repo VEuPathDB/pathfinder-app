@@ -1,0 +1,32 @@
+{
+  "name": "audit-a-retained-intron-is-a-spurious-intron",
+  "turns": [
+    "The site shows no RNA-seq junction reads for the last intron of AGAP003685 in A. gambiae PEST. Check its intron support. Is the gene model right?"
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "audit",
+  "rationale": "A case of the answer key from the recorded unspliced sample: the RNA-seq reads cover the annotated intron unspliced. The audit keeps the error and names the intron in its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "AGAP003685": "error"
+    },
+    "verdictCauses": {
+      "AGAP003685": [
+        "intron"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is spurious_intron."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "audit-a-truncated-strain-model",
+  "turns": [
+    "The P. falciparum Dd2 gene PfDd2_140076300 (YIP1) gives a shorter protein than the 3D7 gene PF3D7_1472100. Is the Dd2 gene model right?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "audit",
+  "rationale": "A positive of the answer key: the Dd2 model lacks a part of the protein its genome encodes. The audit keeps the error on the Dd2 gene and names the truncation as its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "PfDd2_140076300": "error"
+    },
+    "verdictCauses": {
+      "PfDd2_140076300": [
+        "truncat"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is truncated_model."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}

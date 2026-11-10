@@ -1,0 +1,32 @@
+{
+  "name": "audit-a-selenoprotein-model-ends-at-its-sec-codon",
+  "turns": [
+    "The T. gondii GT1 model of selenoprotein K, TGGT1_316600, gives a shorter protein than its ME49 ortholog TGME49_316600. Is the GT1 gene model right?"
+  ],
+  "siteId": "toxodb",
+  "assistantId": "audit",
+  "rationale": "A positive of the answer key: the GT1 model stops at the codon that encodes selenocysteine. The audit keeps the error on the GT1 gene and names selenocysteine in its cause.",
+  "expected": {
+    "buildsStrategy": false,
+    "verdicts": {
+      "TGGT1_316600": "error"
+    },
+    "verdictCauses": {
+      "TGGT1_316600": [
+        "selenocysteine"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "toxodb",
+    "assistant": "audit",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-11-10",
+    "stagingId": "",
+    "reference": "docs/superpowers/specs/2026-10-21-gene-model-audit-assistant-design.md",
+    "curatorNote": "The error type is sec_read_as_stop."
+  },
+  "gates": {
+    "policy": "leave"
+  }
+}
