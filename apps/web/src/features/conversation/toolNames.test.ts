@@ -19,6 +19,15 @@ const REGISTERED = [
   "adopt_separating_strategy",
   "apply_operations",
   "ask_to_read_the_account",
+  "audit_gene_evidence",
+  "audit_gene_length",
+  "audit_gene_split",
+  "audit_genome_provenance",
+  "audit_intron_support",
+  "audit_pseudogene_anatomy",
+  "audit_pseudogene_call",
+  "audit_selenoprotein_end",
+  "audit_strain_model",
   "browse_search_categories",
   "build_control_set",
   "build_phyletic_expression",
@@ -48,6 +57,8 @@ const REGISTERED = [
   "get_search_overview",
   "get_strategy",
   "insert_saved_strategy",
+  "list_audit_findings",
+  "list_audit_runs",
   "list_control_sets",
   "list_gene_sets",
   "list_my_threads",
@@ -62,9 +73,13 @@ const REGISTERED = [
   "open_eda_analysis",
   "optimize_search_parameters",
   "pin_note",
+  "plan_gene_model_audit",
   "preview_eda_subset",
   "promote_to_memory",
   "propose_changes",
+  "rate_with_interval",
+  "read_audit_findings",
+  "read_audit_run",
   "read_control_set",
   "read_experiment",
   "read_gene_ids_from_gene_set",
@@ -74,6 +89,7 @@ const REGISTERED = [
   "read_my_strategies",
   "read_my_thread",
   "read_note",
+  "record_gene_model_verdicts",
   "recover_failed_steps",
   "remember",
   "rename_strategy",
@@ -82,6 +98,7 @@ const REGISTERED = [
   "research_literature_search",
   "research_web_search",
   "resolve_gene_ids_to_records",
+  "review_audit_run",
   "run_control_tests_on_search",
   "run_control_tests_on_step",
   "run_eda_compute",
@@ -95,6 +112,7 @@ const REGISTERED = [
   "set_criterion",
   "set_eda_filters",
   "set_structure",
+  "start_gene_model_audit",
   "think",
   "unpin_note",
   "update_combine_operator",
@@ -153,6 +171,12 @@ describe("humanizeToolName", () => {
 
   it("says an experiment it reads belongs to another site", () => {
     expect(humanizeToolName("read_experiment")).toBe("Read another site's experiment");
+  });
+
+  it("names the audit tools by what they do", () => {
+    expect(humanizeToolName("start_gene_model_audit")).toBe("Start an audit");
+    expect(humanizeToolName("read_audit_findings")).toBe("Read audit findings");
+    expect(humanizeToolName("audit_intron_support")).toBe("Check intron support");
   });
 
   it("never falls back for a name the backend registers", () => {
@@ -225,6 +249,12 @@ describe("approvalPromptFor", () => {
     expect(approvalPromptFor("remember", asked)).toBe(asked);
     expect(approvalPromptFor("remember")).toBe(
       "Remember this preference in your later conversations?",
+    );
+  });
+
+  it("asks an audit start in the words the api wrote", () => {
+    expect(approvalPromptFor("start_gene_model_audit", "Start this audit?")).toBe(
+      "Start this audit?",
     );
   });
 

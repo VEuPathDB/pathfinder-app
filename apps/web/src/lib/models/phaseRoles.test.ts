@@ -19,6 +19,8 @@ describe("phase role metadata", () => {
       verification: "Checking",
       recover_failed_steps: "Repairing",
       explore: "Exploring",
+      auditor: "Auditing",
+      audit_review: "Reviewing",
     });
   });
 
@@ -45,6 +47,13 @@ describe("phase role metadata", () => {
   it("offers a pick for the explore role", () => {
     expect(isPickableRole("explore")).toBe(true);
     expect(phaseLabel("explore")).toBe("Exploring");
+  });
+
+  it("labels the audit roles and offers no pick for them", () => {
+    expect(phaseLabel("auditor")).toBe("Auditing");
+    expect(phaseLabel("audit_review")).toBe("Reviewing");
+    expect(isPickableRole("auditor")).toBe(false);
+    expect(isPickableRole("audit_review")).toBe(false);
   });
 
   it("falls back to the role name for a label", () => {

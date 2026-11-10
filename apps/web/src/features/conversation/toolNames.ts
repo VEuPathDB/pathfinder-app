@@ -94,6 +94,25 @@ export const TOOL_LABELS: Record<string, string> = {
   list_my_threads: "List your conversations",
   read_my_thread: "Read a conversation",
   read_gene_set: "Read a gene set",
+  // Gene model audits
+  plan_gene_model_audit: "Plan an audit",
+  start_gene_model_audit: "Start an audit",
+  list_audit_runs: "List audits",
+  read_audit_run: "Read an audit",
+  review_audit_run: "Review an audit",
+  list_audit_findings: "List audit findings",
+  read_audit_findings: "Read audit findings",
+  record_gene_model_verdicts: "Record gene model verdicts",
+  rate_with_interval: "Rate with interval",
+  audit_gene_length: "Check gene length",
+  audit_gene_split: "Check a split gene",
+  audit_strain_model: "Check a strain model",
+  audit_pseudogene_call: "Check a pseudogene call",
+  audit_pseudogene_anatomy: "Read a pseudogene's break",
+  audit_selenoprotein_end: "Check a selenoprotein end",
+  audit_intron_support: "Check intron support",
+  audit_gene_evidence: "Read a gene's evidence",
+  audit_genome_provenance: "Read a genome's source",
   // Research, served by the research tool source
   research_web_search: "Web search",
   research_literature_search: "Literature search",
@@ -132,6 +151,7 @@ const ASKED_BY_THE_API: ReadonlySet<string> = new Set([
   "delete_step",
   "replace_subtree",
   "remember",
+  "start_gene_model_audit",
 ]);
 
 /** The line that names what one call acts on, when the api wrote one for it. */

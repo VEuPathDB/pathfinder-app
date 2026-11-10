@@ -18,6 +18,7 @@ const PDF_TYPE = "application/pdf";
 /** The role whose model reads the user's message, per assistant. */
 const PROMPT_ROLES: Readonly<Record<string, string>> = {
   pathfinder: "lead",
+  audit: "auditor",
 };
 
 interface FileFacts {

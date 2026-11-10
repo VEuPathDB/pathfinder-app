@@ -120,6 +120,12 @@ describe("readerModel", () => {
     expect(readerModel("helper", {}, defaults, CATALOG)).toBe(FLASH);
   });
 
+  it("reads the auditor's model for an audit thread", () => {
+    expect(readerModel("audit", {}, { auditor: READER.id }, CATALOG)?.id).toBe(
+      READER.id,
+    );
+  });
+
   it("is unknown while the catalog has not loaded", () => {
     expect(readerModel("pathfinder", {}, defaults, [])).toBe(undefined);
   });

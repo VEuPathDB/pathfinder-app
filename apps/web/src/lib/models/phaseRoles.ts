@@ -10,6 +10,8 @@ export const PHASE_LABELS: Record<string, string> = {
   verification: "Checking",
   recover_failed_steps: "Repairing",
   explore: "Exploring",
+  auditor: "Auditing",
+  audit_review: "Reviewing",
 };
 
 export function phaseLabel(phase: string): string {
