@@ -10,6 +10,7 @@ import type { SiteResponse } from "@pathfinder/shared";
 import { sitesOptions } from "@/lib/api/sites";
 import type { TraceRowStatus } from "@veupathdb/assistant-client";
 
+import { RUN, SAMPLE_RUN } from "../__fixtures__/auditReads";
 import { TraceRow } from "./TraceRow";
 import type { TraceRowView } from "./traceTypes";
 
@@ -257,6 +258,30 @@ describe("TraceRow", () => {
     expect(
       screen.queryAllByRole("button", { name: "Related experiments" }),
     ).toHaveLength(0);
+  });
+
+  it("links an audit read to its report", () => {
+    render(
+      <TraceRow
+        row={row({
+          toolName: "read_audit_run",
+          summary: "Audit run finished",
+          input: { run_id: RUN },
+          output: { answer: SAMPLE_RUN },
+        })}
+        showRaw={false}
+        nameFor={label}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Open the audit report" })).toHaveAttribute(
+      "href",
+      `/audits/${RUN}`,
+    );
+  });
+
+  it("draws no report link on a row that is not an audit read", () => {
+    render(<TraceRow row={row({})} showRaw={false} nameFor={label} />);
+    expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
   it("keeps the tool call part testid the thread has always carried", () => {

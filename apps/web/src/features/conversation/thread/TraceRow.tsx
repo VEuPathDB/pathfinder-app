@@ -1,11 +1,13 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useState, type ReactElement } from "react";
 
 import { ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { cn } from "@/lib/utils/cn";
 
+import { auditReportLink } from "./auditReportLink";
 import { otherSiteExperiments } from "./otherSites";
 import { RelatedExperiments } from "./RelatedExperiments";
 import { TRACE_GLYPHS } from "./traceGlyphs";
@@ -57,6 +59,7 @@ export function TraceRow({
   const [open, setOpen] = useState(false);
   const [relatedOpen, setRelatedOpen] = useState(false);
   const related = otherSiteExperiments(row.output);
+  const report = auditReportLink(row);
   const glyph = TRACE_GLYPHS[row.status];
   const detail = detailOf(row, stoppedLabel);
   return (
@@ -76,6 +79,14 @@ export function TraceRow({
           >
             {detail}
           </span>
+        )}
+        {report !== null && (
+          <Link
+            href={report.href}
+            className="shrink-0 text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            {report.label}
+          </Link>
         )}
         {related.length > 0 && (
           <button
