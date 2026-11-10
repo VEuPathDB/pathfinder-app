@@ -109,6 +109,7 @@ def _entry(
         entity_display_name=entity_name,
         variable_id=out.variable_id,
         display_name=out.display_name,
+        definition=out.definition,
         filter_type=filter_type,
         is_multi_valued=out.is_multi_valued,
         vocabulary=vocabulary,

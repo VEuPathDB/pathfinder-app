@@ -14,6 +14,10 @@
   set of genes or records the sites hold starts from `search_for_searches`.
 * **PubMed takes an NCBI key.** `NCBI_API_KEY` reaches the research server as
   `RESEARCH_MCP_NCBI_API_KEY`.
+* **The EDA filter sheet carries the site's definition of each variable.** A rank and the
+  direction of a score are read from the study, not guessed from a name. A range filter
+  whose two ends are equal reads as the one value it keeps, because the subsetting service
+  includes both ends.
 
 * **A genome fact and a site link are read from the site.** Explore and the Lead read
   records that are not genes with `list_record_columns` and `read_search_table`, Explore's

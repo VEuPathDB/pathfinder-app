@@ -39,6 +39,7 @@ class EdaFilterSheetEntry(CamelModel):
     entity_display_name: str = ""
     variable_id: str
     display_name: str
+    definition: str = ""
     filter_type: EdaFilterType
     is_multi_valued: bool = False
     vocabulary: list[str] = Field(default_factory=list)

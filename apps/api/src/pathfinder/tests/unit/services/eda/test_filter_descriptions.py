@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from veupathdb.eda import (
+    EdaNumberRangeFilter,
     EdaStringSetFilter,
     EdaStudyDetail,
     EdaStudyDetailResponse,
@@ -81,3 +82,27 @@ def test_filter_summaries_reads_the_name_display_names_supplies() -> None:
         display_names=display_names(_phenotype_study().study),
     )
     assert summaries == ["Species is one of P. berghei"]
+
+
+def test_a_range_with_equal_ends_reads_as_the_one_value_it_keeps() -> None:
+    summaries = filter_summaries(
+        [
+            EdaNumberRangeFilter(
+                entity_id=_ENTITY, variable_id="VAR_rank", min=1.0, max=1.0
+            ),
+            EdaNumberRangeFilter(
+                entity_id=_ENTITY, variable_id="VAR_score", min=-6.9, max=-3.0
+            ),
+        ],
+        display_names={
+            (_ENTITY, "VAR_rank"): "Phenotype Rank",
+            (_ENTITY, "VAR_score"): "Mean Phenotype Score",
+        },
+    )
+    assert summaries == [
+        (
+            "Phenotype Rank is exactly 1.0: both ends of the range are equal, so "
+            "no other value passes"
+        ),
+        "Mean Phenotype Score is between -6.9 and -3.0",
+    ]

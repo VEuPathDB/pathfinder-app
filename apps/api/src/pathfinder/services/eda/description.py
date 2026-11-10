@@ -49,6 +49,7 @@ class EdaVariableOut(CamelModel):
     entity_id: str
     variable_id: str
     display_name: str
+    definition: str = ""
     variable_type: str
     filter_type: EdaFilterType | None = None
     data_shape: str | None = None
@@ -108,6 +109,7 @@ class EdaVariableFacts(BaseModel):
     id: str
     type: str
     display_name: str = ""
+    definition: str = ""
     display_type: str = "default"
     data_shape: str | None = None
     is_multi_valued: bool = False
@@ -119,6 +121,11 @@ class EdaVariableFacts(BaseModel):
     @classmethod
     def _no_vocabulary_is_an_empty_one(cls, value: object) -> object:
         return [] if value is None else value
+
+    @field_validator("definition", mode="before")
+    @classmethod
+    def _no_definition_is_an_empty_one(cls, value: object) -> object:
+        return "" if value is None else value
 
 
 class _Authorization(BaseModel):
@@ -262,6 +269,7 @@ def variable_out(
         entity_id=entity_id,
         variable_id=facts.id,
         display_name=facts.display_name,
+        definition=facts.definition,
         variable_type=facts.type,
         filter_type=filter_type,
         data_shape=facts.data_shape,
@@ -405,6 +413,11 @@ def _summary(facts: EdaFilterFacts, name: str) -> str:
     match facts.type:
         case "stringSet" | "numberSet" | "dateSet":
             return _one_of(name, _members(facts))
+        case "numberRange" | "dateRange" if facts.min == facts.max:
+            return (
+                f"{name} is exactly {facts.min}: both ends of the range are "
+                "equal, so no other value passes"
+            )
         case "numberRange" | "dateRange":
             return f"{name} is between {facts.min} and {facts.max}"
         case "longitudeRange":
