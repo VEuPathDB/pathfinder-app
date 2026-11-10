@@ -13,7 +13,6 @@ from veupathdb_mcp.separation import TooFewControls
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.stored_verdicts import StoredList
-from pathfinder.domain.audit.planning import PlanRefusal
 from pathfinder.domain.column_fit import ColumnFit
 from pathfinder.domain.column_reach import StepReach
 from pathfinder.domain.comparison_facts import ComparisonFact
@@ -24,7 +23,6 @@ from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.read_facts import ReadFact
 from pathfinder.domain.record_facts import OrthologFact, SourceFact
-from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.constraints import StoredConstraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
@@ -245,11 +243,7 @@ class TurnMarkers(CamelModel):
     memberships: list[MembershipFact] = Field(default_factory=list)
     tallies: list[TallyFact] = Field(default_factory=list)
     column_reaches: list[StepReach] = Field(default_factory=list)
-    audit_facts: list[StatisticFact] = Field(default_factory=list)
     table_reads: list[ReadFact] = Field(default_factory=list)
-    audit_runs_held: bool = False
-    audit_runs: list[UUID] = Field(default_factory=list)
-    refused_plan: PlanRefusal | None = None
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -434,18 +428,6 @@ class TurnMarkers(CamelModel):
             ),
             None,
         )
-
-    @property
-    def started_an_audit(self) -> bool:
-        return any(fact.kind == "audit_start" for fact in self.audit_facts)
-
-    def record_audit_runs(self, run_ids: Iterable[UUID]) -> None:
-        self.audit_runs = list(dict.fromkeys([*self.audit_runs, *run_ids]))
-
-    def record_audit_facts(self, facts: Iterable[StatisticFact]) -> None:
-        read = {fact.id: fact for fact in self.audit_facts}
-        read.update((fact.id, fact) for fact in facts)
-        self.audit_facts = list(read.values())
 
     def record_table_read(self, facts: Iterable[ReadFact]) -> None:
         self.table_reads.extend(facts)

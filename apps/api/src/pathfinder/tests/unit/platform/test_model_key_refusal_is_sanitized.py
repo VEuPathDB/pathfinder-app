@@ -48,6 +48,7 @@ def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
     monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", _SENTINEL)
+    monkeypatch.setattr(settings, "anthropic_api_key", _SENTINEL)
 
 
 def _printed(error: BaseException) -> str:

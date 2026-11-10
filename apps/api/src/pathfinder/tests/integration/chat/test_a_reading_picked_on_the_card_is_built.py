@@ -33,7 +33,6 @@ from pathfinder.tests.integration.chat._helpers import (
     turn_modes,
     types,
 )
-from pathfinder.tests.integration.http._lead_audit_turns import domain_of
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
 
 BUILD_ARC_TOKEN = "[[arc:echo]]"
@@ -75,7 +74,7 @@ async def test_the_pick_is_a_requirement(
         connector=in_memory_jobs,
         body=answer_card(cid, asked, [SECOND_READING], mode="explore"),
     )
-    domain = await domain_of(cid)
+    domain = (await checkpointed(cid)).domain
     assert [(c.kind, c.requested_value, c.source) for c in domain.requirements] == [
         (ConstraintKind.UNTYPED, SECOND_READING, ConstraintSource.USER_EXPLICIT)
     ]
@@ -104,7 +103,7 @@ async def test_the_pick_does_not_set_the_request_aside(
         connector=in_memory_jobs,
         body=answer_card(cid, asked, [FIRST_READING], mode="auto"),
     )
-    domain = await domain_of(cid)
+    domain = (await checkpointed(cid)).domain
     assert EXPLORE_PROMPT in domain.request_messages
     assert domain.reading_labels() == [FIRST_READING, SECOND_READING]
 
@@ -127,7 +126,7 @@ async def test_a_typed_reply_over_the_readings_card_keeps_the_offer_in_the_excha
         prompt=f"the second one {BUILD_ARC_TOKEN}",
         conversation_id=cid,
     )
-    domain = await domain_of(cid)
+    domain = (await checkpointed(cid)).domain
     assert domain.exchanges[0].card == (
         f"Readings offered: {FIRST_READING} ({recorded_count(SIGNAL_PEPTIDE_REPORT)} genes); "
         f"{SECOND_READING} ({recorded_count(GENE_TYPE_REPORT)} genes)"
@@ -179,7 +178,7 @@ async def test_a_typed_message_over_the_readings_card_in_build_mode_is_a_new_mes
         conversation_id=cid,
         mode="build",
     )
-    domain = await domain_of(cid)
+    domain = (await checkpointed(cid)).domain
     assert routes(chunks) == ["build"]
     assert [(await checkpointed(cid)).pending_approval] == [None]
     assert [(e.kind, e.said) for e in domain.exchanges[1:]] == [

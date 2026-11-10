@@ -14,7 +14,7 @@ from pathfinder.domain.audit.scope import GeneName, OrganismName
 from pathfinder.domain.statistic_facts import Identifier, Sentence, Share
 
 VerdictKind = Literal["error", "no_error", "undecided"]
-VerdictOrigin = Literal["auditor", "lead", "verification", "review"]
+VerdictOrigin = Literal["auditor", "review"]
 LiteratureStatus = Literal["known", "not_found", "not_searched"]
 ReviewStatus = Literal["waiting", "reviewing", "synthesized", "stopped"]
 MAX_CAUSE = 600

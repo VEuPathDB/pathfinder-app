@@ -411,10 +411,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         statistics=list(domain.statistics),
         reads=[
             read_fact(fact)
-            for fact in (
-                *markers.audit_facts,
-                *(held.fact() for held in domain.computed_comparisons.values()),
-            )
+            for fact in (held.fact() for held in domain.computed_comparisons.values())
         ]
         + (
             []

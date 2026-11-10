@@ -45,8 +45,7 @@ same ids (`domain/unmet_requirements.py`). It makes the matching constraint of t
 requirement the researcher stated blocks. The same gap makes
 `VerificationDigest.blames_the_tree` true, so the build may change the tree after the
 check and the verify delta drops the card-only next step. The `unmet_requirement` rule
-refuses a reply that ends the turn `complete` while a requirement blocks, except on a
-turn `TurnRecord.audit_turn` names. That the reply
+refuses a reply that ends the turn `complete` while a requirement blocks. That the reply
 never calls the strategy correct is the one part no typed signal carries, so the Lead's
 instructions say it beside the Constraints rule.
 

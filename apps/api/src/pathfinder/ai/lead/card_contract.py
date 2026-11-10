@@ -14,7 +14,6 @@ from pydantic_ai.tools import (
     ToolDenied,
 )
 
-from pathfinder.ai.audit.run_tools import START_TOOL
 from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardCallReply
 from pathfinder.ai.lead.deleted_steps import DELETE_TOOL
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
@@ -36,7 +35,6 @@ CARD_TOOLS: frozenset[str] = frozenset(
         DELETE_TOOL,
         PARAMETER_SWEEP.tool_name,
         SEPARATION.tool_name,
-        START_TOOL,
         *OFFER_TOOLS,
     }
 )

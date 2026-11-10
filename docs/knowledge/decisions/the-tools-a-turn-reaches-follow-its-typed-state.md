@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The tools a turn reaches follow its typed state, never its classification
-description: The Lead's classification is a typed record the turn and FRAME read, and the tools a turn reaches are decided by typed preconditions alone; withholding the building tools or the audit tools by the classification's label, refusing a reclassification and holding a classification to word heuristics were rejected.
+description: The Lead's classification is a typed record the turn and FRAME read, and the tools a turn reaches are decided by typed preconditions alone; withholding the building tools by the classification's label, refusing a reclassification and holding a classification to word heuristics were rejected.
 tags: [lead, intent, tools, classification]
 generated: { by: claude-code/opus-5.5, at: 2026-10-27T00:00:00Z }
 status: stable
@@ -13,12 +13,12 @@ status: stable
 precondition: `unmet_preconditions` (a strategy with a step is edited, never framed
 again; a build needs no strategy step; recovery needs a failed build; a check needs a step
 and runs once; an EDA step needs a counted subset; a turn refused for want of a check
-reaches the check alone; after a check a change waits for a card) and a turn that started
-an audit, which ends. Nothing reads the classification's label to decide reach: an
-unclassified turn, a question, a context statement and an off-topic message reach the
-same tools, the audit tools included. A write that needs the researcher's consent stays
-behind its approval card (`consult_user`, `propose_changes`, `delete_step`,
-`start_gene_model_audit` and the rest), so consent does not depend on the label either.
+reaches the check alone; after a check a change waits for a card). Nothing reads the
+classification's label to decide reach: an unclassified turn, a question, a context
+statement and an off-topic message reach the same tools. A write that needs the
+researcher's consent stays behind its approval card (`consult_user`, `propose_changes`,
+`delete_step` and the rest), so consent does not depend on the label either. The Lead
+holds no audit tool ([audits are offered on the dev sites only](audits-are-offered-on-the-dev-sites-only.md)).
 
 The classification is a typed record: the turn's markers, the requirements it states,
 the questions it answers, the ledger and FRAME's work order read it. It is read from the
@@ -36,7 +36,7 @@ Every error the harness caught came from typed state and the site's own answers.
 
 # Rejected
 
-- **Withholding the building and audit tools until a building or audit label.** It makes
+- **Withholding the building tools until a building label.** It makes
   a wrong label a wrong turn, and the model cannot see why a tool is missing.
 - **Refusing a reclassification after the turn wrote, or a repeated one.** It froze a
   wrong label in place; a later write keeps the work the turn did without it.
@@ -46,5 +46,4 @@ Every error the harness caught came from typed state and the site's own answers.
 # What would prove this wrong
 
 `tests/unit/ai/lead/test_intent_gate.py` holds every classification, and none, to the same
-building tools on a fresh thread and the gene record read; `tests/unit/ai/lead/test_the_lead_audits.py`
-holds every classification to the audit tools and a started audit to none.
+building tools on a fresh thread and the gene record read.

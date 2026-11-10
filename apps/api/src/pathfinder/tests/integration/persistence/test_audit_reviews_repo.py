@@ -208,7 +208,7 @@ async def test_a_conversations_verdicts_come_newest_first() -> None:
                 user_id=owner.user_id,
                 conversation_id=owner.conversation_id,
                 site_id="toxodb",
-                origin="lead",
+                origin="auditor",
                 verdict=_verdict(gene, 1).model_copy(
                     update={"cites": (f"audit_gene_length:{gene}",)}
                 ),
@@ -291,7 +291,7 @@ async def test_a_purge_deletes_one_sites_verdicts_or_every_sites() -> None:
                 user_id=owner.user_id,
                 conversation_id=owner.conversation_id,
                 site_id=site_id,
-                origin="lead",
+                origin="auditor",
                 verdict=verdict,
                 model_id=_MODEL,
             )

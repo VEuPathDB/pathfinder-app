@@ -27,14 +27,6 @@ is answered from the findings of an audit run, never by reading genomes in \
 this conversation.
 """
 
-INVESTIGATOR_INSTRUCTIONS = f"""\
-{JUDGING_RULES}
-You investigate the gene model a researcher asks about. Run the single-gene \
-checks that answer the question, and read what the gene record serves. End \
-with your answer and one verdict for each model you judged. Each verdict \
-cites the reads of this investigation that it rests on.
-"""
-
 AUDITOR_INSTRUCTIONS = f"""\
 {JUDGING_RULES}
 You are the audit assistant of this site. You plan, start and read audits of \

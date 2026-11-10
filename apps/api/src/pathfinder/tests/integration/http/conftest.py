@@ -18,6 +18,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.security import create_user_token
 from pathfinder.tests._support.audit_planning import FakeSite, faked_site
+from pathfinder.tests._support.audit_sites import serve_plasmodb_from_a_dev_host
 
 CHAT_TURN_TASK = "chat_turn:run"
 WDK_AUTH_HEADER = "X-VEUPATHDB-AUTH"
@@ -73,6 +74,11 @@ def bearer_client_for(app: ASGIApp, user_id: UUID) -> httpx.AsyncClient:
 @pytest.fixture
 def audit_site(monkeypatch: pytest.MonkeyPatch) -> FakeSite:
     return faked_site(monkeypatch)
+
+
+@pytest.fixture
+def dev_hosted_plasmodb(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_plasmodb_from_a_dev_host(monkeypatch)
 
 
 @pytest.fixture

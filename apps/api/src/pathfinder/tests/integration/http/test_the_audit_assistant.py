@@ -54,7 +54,11 @@ from pathfinder.tests.integration.jobs._audit_jobs import (
 )
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "audit_site"
+    "patch_app_db_engine",
+    "db_cleaner",
+    "signed_in_to_veupathdb",
+    "audit_site",
+    "dev_hosted_plasmodb",
 )
 
 _OK = 200

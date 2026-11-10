@@ -2,6 +2,22 @@
 
 ## 2026-11-10
 
+* **The audit lives in the audit assistant alone.** The audit is an internal VEuPathDB
+  tool, offered only through the audit assistant. The Lead no longer holds the audit tools:
+  it plans, starts and reads no run and investigates no gene model, and its instructions,
+  card contract, turn markers and mock arcs keep nothing for them, and the investigator
+  sub-agent it called is gone. A gene-model audit request in a strategy thread is answered in
+  one sentence that says the strategy builder runs no audit. The dispatcher's refusal
+  of an audit thread off the dev sites is the one gate. Alembic `2026_11_10_0001` deletes
+  the verdicts of origin `lead` and `verification`, and a verdict now comes from the
+  auditor or a review only. See
+  [the decision](decisions/audits-are-offered-on-the-dev-sites-only.md).
+* **An audit conversation names its tools and links to its report.** Each audit tool has a
+  label in the thread, the auditor's model reads an audit thread's message, and a started
+  run, a run read or a finding read links to its report page.
+* **An eval case judges stored verdicts.** A case states the verdict and the cause words it
+  expects per gene, and the run is scored against the newest verdict the case's conversations
+  stored for that gene.
 * **A curated study's subset runs the site's own search for it.** The export of a subset
   takes the search whose hidden `eda_dataset_id` the site presets to the study, the one its
   Revise form edits; a step left on `GenesByEdaSubset` carries a caveat that the site cannot

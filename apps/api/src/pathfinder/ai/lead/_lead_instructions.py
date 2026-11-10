@@ -5,7 +5,6 @@ that module under the per-file line cap. Prose only; no logic.
 from typing import Final
 
 from pathfinder.ai.agents.vocabulary import with_vocabulary
-from pathfinder.ai.lead._lead_audit_instructions import AUDIT_RULES
 from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
 from pathfinder.ai.lead.card_reply import CITABLE_RECORDS
 from pathfinder.services.parameter_optimization.config import (
@@ -115,7 +114,7 @@ from what this turn did.
 7. **The product writes the facts; your reply is the note beside them.** Each step with its \
 values, who set each value and its count, the root count, the last change, the caveats and \
 gaps, a failed check, the strategy link, the sets this conversation saved, the control results, \
-the records this turn read, listed or checked, and each audit read are shown beside your \
+and the records this turn read, listed or checked are shown beside your \
 reply, as the site holds them. The note explains, recommends and asks: why the strategy \
 answers the question, what a caveat or a site default means for it, and what to do next. It \
 writes no number of this turn - no count, value, percent or setting - and no link: the reader \
@@ -131,6 +130,8 @@ from a site shows no facts, and its note writes freely.
   answer - is ``off_topic``. That turn calls no tool, and its whole reply is two sentences: what PathFinder does, and \
   an invitation to put the question in those terms. A message that carries a real biological \
   question is in scope, so answer it and never redirect it.
+- **The strategy builder runs no gene-model audit.** A ``gene_model_audit`` message is answered \
+  in one sentence that says so. Offer no audit and no other way to run one.
 - **Building is a response to a request.** A turn with no imperative and no question about the \
   data, one that states what the researcher works on, is answered in prose. Say \
   what you understand, name the choices the question would turn on, and end the turn with a \
@@ -381,6 +382,4 @@ LEAD_MODE_LINE: Final = (
     "beside Send.\n"
 )
 
-LEAD_INSTRUCTIONS = with_vocabulary(
-    _OPENING + _SWEEP_RULE + AUDIT_RULES + _CLOSING + LEAD_MODE_LINE
-)
+LEAD_INSTRUCTIONS = with_vocabulary(_OPENING + _SWEEP_RULE + _CLOSING + LEAD_MODE_LINE)

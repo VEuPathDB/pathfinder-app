@@ -40,22 +40,12 @@ earlier message unlocks nothing.
 `BUILDING_TOOLS` - the five dispatch tools plus `open_eda_analysis`,
 `set_eda_filters`, `run_eda_compute` and `create_eda_step`.
 
-**An audit starts only from an audit turn.** `AUDIT_START_TOOLS`
-(`start_gene_model_audit`) is withheld on every classified turn whose
-classification is not `gene_model_audit`, unless the turn answers that card. The
-audit reads and `investigate_gene_models` follow the rule for tools that are not
-building tools: any classified turn that is not off topic reaches them. Their
-schemas are on the request only when the turn reads audits: a `gene_model_audit`
-turn, a turn that answers the start card, or a thread that holds a run
-(`intent_gate.turn_reads_audits`). A `gene_model_audit` message records no
-requirement, no withdrawal and no request text on the thread
-(`intent.UNRECORDED_INTENTS`).
-
-**A turn that started an audit reaches no tool.** Once the turn holds an
-`audit_start` fact (`TurnMarkers.started_an_audit`), `tools_the_turn_offers` offers
-nothing, so the reply says the run started and the turn ends. The run works in the
-background and is read on a later turn; an audit is not a durable task, so the
-deferral that parks a durable call does not apply.
+**An audit request is no strategy request.** The Lead holds no audit tool; the
+audit is offered only through the audit assistant
+([audits are offered on the dev sites only](audits-are-offered-on-the-dev-sites-only.md)).
+A `gene_model_audit` message records no requirement, no withdrawal and no request
+text on the thread (`intent.UNRECORDED_INTENTS`), and its turn shows no failed
+check of the strategy (`intent_gate.turn_is_an_audit`).
 
 **The classification gate holds the records the conversation showed last.** A
 named gene id passes the gate when the message types it, when a file it attaches

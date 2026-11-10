@@ -20,11 +20,6 @@ from assistant_core.models.scripted import (
 from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
-from pathfinder.ai.audit.mock_investigation import (
-    INVESTIGATOR,
-    PSEUDOGENE_CALL,
-    investigator_script,
-)
 from pathfinder.ai.models.mock.arc import Arc, Role, Script
 from pathfinder.ai.models.mock.consult_arc import CONSULT
 from pathfinder.ai.models.mock.directive import ArcDirective
@@ -55,7 +50,6 @@ _ROLES: tuple[RoleMarkers, ...] = (
     RoleMarkers(
         role="execution", markers=frozenset({"update_leaf_params", "replace_subtree"})
     ),
-    RoleMarkers(role=INVESTIGATOR, markers=frozenset({PSEUDOGENE_CALL})),
 )
 
 
@@ -119,7 +113,6 @@ PATHFINDER_SCRIPT = ScriptedModel(
             for role in ("lead", "frame", "verification", "execution")
         },
         "explore": explore_script,
-        INVESTIGATOR: investigator_script,
     },
     unknown=_unmarked,
 )

@@ -151,8 +151,6 @@ def turn_is_an_audit(deps: LeadDeps) -> bool:
 
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
-    if deps.state.turn_markers.started_an_audit:
-        return frozenset()
     unmet = unmet_preconditions(deps)
     return frozenset(name for name in names if name not in unmet)
 

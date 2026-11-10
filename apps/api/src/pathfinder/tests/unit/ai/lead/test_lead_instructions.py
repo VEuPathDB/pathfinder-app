@@ -35,6 +35,14 @@ def test_the_instructions_send_a_comparison_to_the_compute_not_to_a_sample_subse
     assert "selects samples, not genes" in LEAD_INSTRUCTIONS
 
 
+def test_the_instructions_answer_an_audit_request_with_one_sentence() -> None:
+    flat = _flat(LEAD_INSTRUCTIONS)
+
+    assert "**The strategy builder runs no gene-model audit.**" in flat
+    assert "``gene_model_audit`` message is answered in one sentence" in flat
+    assert "Offer no audit and no other way to run one." in flat
+
+
 def test_the_instructions_make_a_question_a_search_answers_a_build() -> None:
     assert "A question a search answers is a build" in LEAD_INSTRUCTIONS
     assert "How many genes" in LEAD_INSTRUCTIONS

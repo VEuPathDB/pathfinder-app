@@ -26,7 +26,6 @@ from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.verification import build_verification_agent
 from pathfinder.ai.audit.auditor import build_auditor_agent
-from pathfinder.ai.audit.investigator import build_investigator_agent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.standalone import (
     eda_compute,
@@ -90,7 +89,6 @@ _AGENT_BUILDERS: tuple[Callable[[], Agent[Any, Any]], ...] = (
     build_verification_agent,
     build_lead_agent,
     build_auditor_agent,
-    build_investigator_agent,
 )
 
 

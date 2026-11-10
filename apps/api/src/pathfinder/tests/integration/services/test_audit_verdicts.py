@@ -63,7 +63,7 @@ async def test_a_verdict_with_no_thread_is_in_no_conversation() -> None:
     )
 
     verdict_id = await record_verdict(
-        caller=caller, origin="lead", verdict=_VERDICT, model_id=_MODEL
+        caller=caller, origin="auditor", verdict=_VERDICT, model_id=_MODEL
     )
 
     assert verdict_id > 0

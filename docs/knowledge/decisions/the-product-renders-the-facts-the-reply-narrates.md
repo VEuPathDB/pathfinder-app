@@ -72,11 +72,9 @@ It holds:
 - which of the asked genes each membership check held (`memberships`, the
   `domain/membership_facts.py::MembershipFact` that `genes_in_search` records): held, not held
   and past the capped read, each gene linked to its record page;
-- each read with no card of its own (`reads`, a `domain/read_facts.py::ReadFact`): an audit read
-  of this turn (a run, a list of runs, a page of findings, a finding with its stored certainty
-  and evidence, a plan, a start, a rate, a gene check) and a computed comparison the thread
-  holds; its title and the rows of its answer at most two named fields deep, each labeled in
-  words, with no link and at most forty rows;
+- each read with no card of its own (`reads`, a `domain/read_facts.py::ReadFact`): a computed
+  comparison the thread holds; its title and the rows of its answer at most two named fields
+  deep, each labeled in words, with no link and at most forty rows;
 - the column tallies the turn ran (`tallies`), which their card draws; their text form is "In
   all", "Values" and one "value: count" line each;
 - the records the conversation showed last (`shown_before`, the `TurnFacts.shown_records` of the

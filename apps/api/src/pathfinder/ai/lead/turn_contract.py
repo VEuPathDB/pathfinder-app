@@ -78,7 +78,6 @@ MismatchKind = Literal[
     "off_topic_essay",
     "unfollowed_reach",
     "unmet_requirement",
-    "unplanned_audit",
 ]
 
 
@@ -170,7 +169,6 @@ _RULES: tuple[_Rule, ...] = (
     ("off_topic_essay", _off_topic_essay),
     ("unfollowed_reach", _unfollowed_reach),
     ("unmet_requirement", _unmet_requirement),
-    ("unplanned_audit", lambda r, t: t.unplanned_audit(asked=bool(r.asked_questions))),
 )
 
 

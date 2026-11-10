@@ -151,7 +151,8 @@ highest first and unweighed last, on an index in that order.
 
 **A model's judgement is a verdict row.** `audit_verdicts` (alembic
 `2026_10_23_0001`) holds one row per judgement a model made about a gene model,
-with its origin (`auditor`, `lead`, `verification` or `review`), the site, the
+with its origin (`auditor` or `review`; alembic `2026_11_10_0001` deleted the
+`lead` and `verification` rows when the strategy builder lost its audit tools), the site, the
 model that wrote it and the thread it was made in. A review names the finding it
 judged and the run that holds it, and a finding holds at most one review; a
 review takes its owner, application, thread and site from its run. A chat

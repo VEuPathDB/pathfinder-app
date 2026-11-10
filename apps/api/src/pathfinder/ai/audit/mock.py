@@ -25,13 +25,11 @@ from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.profiles import ModelProfile
 
-from pathfinder.ai.audit.mock_investigation import (
-    INVESTIGATOR,
+from pathfinder.ai.audit.mock_checks import (
     PSEUDOGENE_CALL,
     PSEUDOGENE_QUESTION,
     check_read,
     gene_pair,
-    investigator_script,
     last_tool_return,
     pseudogene_verdict,
 )
@@ -191,11 +189,8 @@ def _title_script(messages: list[ModelMessage]) -> ScriptedPart:
 
 
 _SCRIPT = ScriptedModel(
-    roles=(
-        RoleMarkers(role=AUDITOR, markers=frozenset({PLAN_TOOL})),
-        RoleMarkers(role=INVESTIGATOR, markers=frozenset({PSEUDOGENE_CALL})),
-    ),
-    scripts={AUDITOR: _auditor_script, INVESTIGATOR: investigator_script},
+    roles=(RoleMarkers(role=AUDITOR, markers=frozenset({PLAN_TOOL})),),
+    scripts={AUDITOR: _auditor_script},
     unknown=_title_script,
 )
 

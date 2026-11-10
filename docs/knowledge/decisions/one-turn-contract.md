@@ -47,15 +47,11 @@ The two answer one failure from opposite ends: the pass that asks about nothing,
 that reports what the pass never wrote.
 
 A standing failed check is a notice of the facts part (`TurnFacts.failed_check`), and an
-audit turn shows none: an audit turn reaches no building tool and answers about the audit, not
-the strategy. A digest whose strategy the site no longer holds is dropped by
+audit turn shows none: a `gene_model_audit` message asks nothing of the strategy, and the
+Lead holds no audit tool to answer it with. A digest whose strategy the site no longer holds is dropped by
 `pre_turn.forget_the_verdict_of_a_dropped_strategy`: the read of the strategy answers 404 and a
 listing of the user's strategies succeeds without it. A 404 alone is no proof, because a site
 that is redeploying answers 404 too.
-
-An audit run's state has no prose rule. The facts part shows each audit read of the turn
-(`TurnFacts.reads`), and a plan that cannot start is refused to the Lead with its reason, so no
-card and no run follow from it.
 
 No rule reads the prose's words. The prose is a note beside the facts part: its instruction
 asks it to write no number of the turn, it names a record only as `[record:<id>]`, which

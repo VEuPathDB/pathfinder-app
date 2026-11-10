@@ -177,10 +177,6 @@ class ScopeProposal(CamelModel):
             raise ValueError(msg)
         return self
 
-    @property
-    def replannable(self) -> bool:
-        return bool(self.unresolved)
-
     @model_validator(mode="after")
     def _suggestions_for_the_unresolved(self) -> Self:
         unsuggested = [n for n in self.unresolved if n not in self.suggestions]
@@ -191,13 +187,6 @@ class ScopeProposal(CamelModel):
             )
             raise ValueError(msg)
         return self
-
-
-class PlanRefusal(CamelModel):
-    model_config = ConfigDict(frozen=True)
-
-    sentence: str
-    replannable: bool
 
 
 class AuditStartCard(CamelModel):

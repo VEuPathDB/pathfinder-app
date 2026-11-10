@@ -24,7 +24,10 @@ from pathfinder.tests.integration.chat._helpers import (
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb"
+    "patch_app_db_engine",
+    "db_cleaner",
+    "signed_in_to_veupathdb",
+    "dev_hosted_plasmodb",
 )
 
 

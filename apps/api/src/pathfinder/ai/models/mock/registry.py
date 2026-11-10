@@ -32,12 +32,6 @@ from pathfinder.ai.models.mock.arc_readings import (
     read_as,
     stated,
 )
-from pathfinder.ai.models.mock.audit_arcs import (
-    audit_finding,
-    audit_investigation,
-    audit_plan,
-    audit_start,
-)
 from pathfinder.ai.models.mock.calls import lead_final, narrated
 from pathfinder.ai.models.mock.consult_arc import (
     consult,
@@ -196,8 +190,6 @@ def _unstated_property(state: PipelineState, words: str) -> UserIntent:
     )
 
 
-_AUDIT = read_as(IntentClassification.GENE_MODEL_AUDIT)
-
 ARCS: dict[str, Arc] = {
     "single": _built(default_frame),
     "intersect": _built(noted(spec_frame(strategy_specs.intersect_spec))),
@@ -303,10 +295,6 @@ ARCS: dict[str, Arc] = {
         _arc(operator_reading, operator_card, frame=spec_frame(union_of_the_stated)),
         operators=read_as_intersect,
     ),
-    "audit": _arc(_AUDIT, lead(audit_start)),
-    "audit-plan": _arc(_AUDIT, lead(audit_plan)),
-    "audit-finding": _arc(_AUDIT, lead(audit_finding)),
-    "audit-investigation": _arc(_AUDIT, lead(audit_investigation)),
 }
 
 

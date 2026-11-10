@@ -68,11 +68,11 @@ async def test_a_site_purge_deletes_that_sites_verdicts_and_no_one_elses(
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     gone = await _judged(db_session, seed_user.id, SITE, "auditor")
-    kept = await _judged(db_session, seed_user.id, OTHER_SITE, "lead")
+    kept = await _judged(db_session, seed_user.id, OTHER_SITE, "auditor")
     stranger = User(id=uuid4())
     db_session.add(stranger)
     await db_session.commit()
-    theirs = await _judged(db_session, stranger.id, SITE, "verification")
+    theirs = await _judged(db_session, stranger.id, SITE, "auditor")
 
     resp = await api_client.request(
         "DELETE", "/api/v1/user/data", params={"siteId": SITE}
@@ -90,7 +90,7 @@ async def test_a_site_purge_deletes_that_sites_verdicts_and_no_one_elses(
                 (theirs, stranger.id),
             )
         ]
-    assert left == [[], ["lead"], ["verification"]]
+    assert left == [[], ["auditor"], ["auditor"]]
 
 
 async def test_clearing_all_data_deletes_every_sites_verdicts(
@@ -99,7 +99,7 @@ async def test_clearing_all_data_deletes_every_sites_verdicts(
     seed_user: User,
 ) -> None:
     await _judged(db_session, seed_user.id, SITE, "auditor")
-    await _judged(db_session, seed_user.id, OTHER_SITE, "lead")
+    await _judged(db_session, seed_user.id, OTHER_SITE, "auditor")
 
     resp = await api_client.request("DELETE", "/api/v1/user/data")
 

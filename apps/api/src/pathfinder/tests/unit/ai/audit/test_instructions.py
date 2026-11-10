@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathfinder.ai.audit.instructions import (
     AUDITOR_INSTRUCTIONS,
-    INVESTIGATOR_INSTRUCTIONS,
     JUDGING_RULES,
     REVIEWER_INSTRUCTIONS,
     SYNTHESIS_INSTRUCTIONS,
@@ -26,7 +25,6 @@ _SERVED_EVIDENCE = (
     "phenotype screens",
 )
 _ROLES = (
-    INVESTIGATOR_INSTRUCTIONS,
     AUDITOR_INSTRUCTIONS,
     REVIEWER_INSTRUCTIONS,
     SYNTHESIS_INSTRUCTIONS,
@@ -47,9 +45,9 @@ def test_the_judging_rules_hold_the_verdicts_and_the_auditor_its_note() -> None:
 
 
 def test_every_role_reads_the_judging_rules_first() -> None:
-    assert [text.startswith(JUDGING_RULES) for text in _ROLES] == [True] * 4
-    assert len({text.removeprefix(JUDGING_RULES) for text in _ROLES}) == 4
+    assert [text.startswith(JUDGING_RULES) for text in _ROLES] == [True] * 3
+    assert len({text.removeprefix(JUDGING_RULES) for text in _ROLES}) == 3
 
 
 def test_every_instruction_is_ascii() -> None:
-    assert [text.isascii() for text in (JUDGING_RULES, *_ROLES)] == [True] * 5
+    assert [text.isascii() for text in (JUDGING_RULES, *_ROLES)] == [True] * 4

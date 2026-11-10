@@ -951,7 +951,7 @@ class AuditVerdict(Base):
     __table_args__ = (
         UniqueConstraint("finding_id", name="uq_audit_verdicts_finding_id"),
         CheckConstraint(
-            "origin IN ('auditor', 'lead', 'verification', 'review')",
+            "origin IN ('auditor', 'review')",
             name="ck_audit_verdicts_origin",
         ),
         CheckConstraint(

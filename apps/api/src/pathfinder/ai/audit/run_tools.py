@@ -32,7 +32,6 @@ from pathfinder.ai.audit.held_genomes import genomes_of_the_site
 from pathfinder.ai.fact_sources import warm_fact_schemas
 from pathfinder.domain.audit.planning import (
     PlanAsk,
-    PlanRefusal,
     PlanRequest,
     RunEstimate,
     ScopeProposal,
@@ -154,12 +153,6 @@ def planner_refusal(proposal: ScopeProposal) -> str:
     return f"The planner starts no audit: {unheld}. {GENOME_RULE} {NOTHING_STARTED}"
 
 
-class PlanRefused(CallRefused):
-    def __init__(self, refusal: PlanRefusal) -> None:
-        super().__init__(refusal.sentence)
-        self.refusal = refusal
-
-
 def _planned(scope: AuditScope, cost: RunEstimate) -> str:
     return (
         f"{count_noun(len(scope.genomes), 'genome')} and "
@@ -183,10 +176,7 @@ async def plan_gene_model_audit_tool(
     proposal = await plan_gene_model_audit(ctx.deps.caller, request)
     scope, cost = proposal.scope, proposal.estimate
     if scope is None or cost is None:
-        sentence = planner_refusal(proposal)
-        raise PlanRefused(
-            PlanRefusal(sentence=sentence, replannable=proposal.replannable)
-        )
+        raise CallRefused(planner_refusal(proposal))
     fact = plan_fact(proposal)
     ctx.deps.facts.append(fact)
     genes = (gene for target in scope.targets for gene in target.genes)

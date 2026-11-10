@@ -83,7 +83,6 @@ QUESTIONS = [
     "list-ids",
     "derived-count",
 ]
-AUDITS = ["audit", "audit-plan", "audit-finding", "audit-investigation"]
 
 
 def _state(site_id: str, said: str, *, framed: bool = False) -> PipelineState:
@@ -139,11 +138,6 @@ def test_a_new_request_arc_reads_a_new_strategy(arc: str) -> None:
 @pytest.mark.parametrize("arc", QUESTIONS)
 def test_a_question_arc_reads_a_question(arc: str) -> None:
     assert _read(arc).classification is QUESTION
-
-
-@pytest.mark.parametrize("arc", AUDITS)
-def test_an_audit_arc_reads_an_audit(arc: str) -> None:
-    assert _read(arc).classification is IntentClassification.GENE_MODEL_AUDIT
 
 
 @pytest.mark.parametrize(
