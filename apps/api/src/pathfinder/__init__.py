@@ -1,3 +1,3 @@
 """Pathfinder - VEuPathDB Strategy Builder Chatbot API."""
 
-__version__ = "0.9.0b11"
+__version__ = "0.9.0b12"
