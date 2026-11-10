@@ -198,9 +198,10 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         default=600_000,
         ge=1,
         description=(
-            "Tokens the Lead's own run may spend in one turn. A sub-agent pass "
-            "the Lead dispatches carries a ceiling of its own and is not "
-            "counted here. A run that reaches it ends with a reply that says so."
+            "Tokens the Lead's own run may count in one turn: fresh input and "
+            "output in full, a cache read at a tenth. A sub-agent pass the Lead "
+            "dispatches carries a ceiling of its own and is not counted here. A "
+            "run that reaches it ends with a reply that says so."
         ),
     )
 

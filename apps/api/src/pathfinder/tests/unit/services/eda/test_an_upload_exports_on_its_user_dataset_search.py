@@ -11,7 +11,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.export import ExportReading
-from pathfinder.services.eda.steps import eda_step_node, on_the_user_dataset_search
+from pathfinder.services.eda.steps import eda_step_node, on_the_sites_own_search
 from pathfinder.tests._support.eda_step_doubles import de_analysis
 from pathfinder.tests._support.user_dataset_doubles import (
     UPLOAD_DATASET,
@@ -40,7 +40,7 @@ async def test_a_volcano_export_of_an_upload_runs_the_deseq_user_dataset_search(
         reading=ExportReading(),
     )
 
-    routed = await on_the_user_dataset_search("plasmodb", plan)
+    routed = await on_the_sites_own_search("plasmodb", plan)
 
     assert routed.node.search_name == "GenesByDESeqUserDataset"
     assert routed.node.parameters == plan.node.parameters
@@ -60,7 +60,7 @@ async def test_a_curated_study_keeps_the_generic_export_and_reads_no_uploads(
         reading=ExportReading(),
     )
 
-    routed = await on_the_user_dataset_search("plasmodb", plan)
+    routed = await on_the_sites_own_search("plasmodb", plan)
 
     assert routed.node.search_name == COMPUTE_QUERY
     plasmodb.assert_not_awaited()

@@ -98,3 +98,11 @@ def test_explore_reads_a_genome_fact_from_the_record_that_carries_it() -> None:
     named = ("list_record_columns", "read_search_table", "BUSCO")
 
     assert _missing(*named) == []
+
+
+def test_a_question_the_sites_answer_starts_from_the_site() -> None:
+    named = (
+        "starts from the site's catalog",
+        "the literature then supports, explains or extends",
+    )
+    assert _missing(*named) == []

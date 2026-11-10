@@ -20,6 +20,7 @@ from pathfinder.ai.lead.ledger_sections import (
 from pathfinder.ai.lead.reply_claims import machine_words
 from pathfinder.ai.lead.turn_budget import (
     budget_stop_report,
+    lead_token_budget,
     lead_turn_budget_message,
     lead_usage_limits,
 )
@@ -36,7 +37,9 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     ADDED_LINE,
     AT_THE_CALLS,
     BUDGET,
+    BUILT_BUDGET,
     CHANGED_NOTHING,
+    CHECKED_BUDGET,
     NOT_VERIFIED,
     OBJECTION,
     QUESTION,
@@ -70,14 +73,17 @@ def configured_limit(monkeypatch: pytest.MonkeyPatch) -> Iterator[int]:
 def test_the_turn_budget_is_the_configured_token_ceiling(
     configured_limit: int,
 ) -> None:
-    assert lead_usage_limits().total_tokens_limit == configured_limit
+    assert lead_token_budget().limit == configured_limit
 
 
 def test_the_turn_budget_covers_the_leads_own_calls_and_tokens() -> None:
     limits = lead_usage_limits()
 
     assert (limits.request_limit, limits.tool_calls_limit) == (80, 80)
-    assert limits.total_tokens_limit == _DEFAULT_LIMIT
+    assert (limits.total_tokens_limit, lead_token_budget().limit) == (
+        None,
+        _DEFAULT_LIMIT,
+    )
 
 
 def test_each_turn_gets_its_own_limits_object() -> None:
@@ -101,9 +107,13 @@ def test_each_turn_gets_its_own_limits_object() -> None:
 def test_the_turn_budget_message_names_the_limit_the_turn_spent(
     spent: RunUsage, limit: str
 ) -> None:
-    assert lead_turn_budget_message(spent, lead_usage_limits()) == (
-        f"I stopped this turn at its budget of {limit}. {_TAIL}"
-    )
+    assert lead_turn_budget_message(
+        spent,
+        lead_usage_limits(),
+        token_limit=_DEFAULT_LIMIT,
+        built=False,
+        checked=False,
+    ) == (f"I stopped this turn at its budget of {limit}. {_TAIL}")
 
 
 def _ledger(
@@ -157,7 +167,7 @@ def test_a_budget_stop_reports_the_step_the_turn_built() -> None:
             ADDED_LINE,
             f"Verification objected: {OBJECTION}",
             QUESTION,
-            BUDGET,
+            CHECKED_BUDGET,
         ]
     )
 
@@ -179,14 +189,16 @@ def test_a_budget_stop_reports_a_passed_check() -> None:
     report = _report(built(), passed, built_session())
 
     assert report == "\n\n".join(
-        [STRATEGY_LINE, ADDED_LINE, "Verification passed.", BUDGET]
+        [STRATEGY_LINE, ADDED_LINE, "Verification passed.", CHECKED_BUDGET]
     )
 
 
 def test_a_budget_stop_before_any_check_says_the_turn_did_not_verify() -> None:
     report = _report(built(), None, built_session())
 
-    assert report == "\n\n".join([STRATEGY_LINE, ADDED_LINE, NOT_VERIFIED, BUDGET])
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, NOT_VERIFIED, BUILT_BUDGET]
+    )
 
 
 def test_a_budget_stop_that_built_nothing_says_so() -> None:
@@ -251,7 +263,7 @@ def test_an_edit_that_added_no_step_says_the_strategy_changed() -> None:
             STRATEGY_LINE,
             "This turn changed the strategy and added no step.",
             NOT_VERIFIED,
-            BUDGET,
+            BUILT_BUDGET,
         ]
     )
 
@@ -298,7 +310,7 @@ def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
     report = _report(built(), naming, built_session())
 
     assert report == "\n\n".join(
-        [STRATEGY_LINE, ADDED_LINE, "Verification objected.", BUDGET]
+        [STRATEGY_LINE, ADDED_LINE, "Verification objected.", CHECKED_BUDGET]
     )
 
 

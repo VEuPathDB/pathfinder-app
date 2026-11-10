@@ -150,7 +150,10 @@ async def test_an_export_with_no_spec_states_one(
     assert spec.structure == SpecStructure(root=_node(exported))
     assert ctx.deps.state.domain.answered_spec == spec
     assert _graph(ctx).words.analysis_kinds == {
-        exported: StampedKind(search_name="GenesByEdaSubset", kind=AnalysisKind.SUBSET)
+        exported: StampedKind(
+            search_name="GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC",
+            kind=AnalysisKind.SUBSET,
+        )
     }
 
 

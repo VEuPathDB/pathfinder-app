@@ -2,6 +2,19 @@
 
 ## 2026-11-10
 
+* **A curated study's subset runs the site's own search for it.** The export of a subset
+  takes the search whose hidden `eda_dataset_id` the site presets to the study, the one its
+  Revise form edits; a step left on `GenesByEdaSubset` carries a caveat that the site cannot
+  revise it. See [the decision](decisions/an-eda-analysis-is-a-criterion-of-the-spec.md).
+* **A turn's token budget counts tokens as they cost.** Fresh input and output count in full
+  and a cache read at a tenth, checked before each model request of the Lead or Explore.
+  A turn stopped after it built asks the researcher to say continue. See
+  [the decision](decisions/an-off-topic-turn-reaches-no-tool.md).
+* **Explore starts a question the sites answer from the site.** A question whose answer is a
+  set of genes or records the sites hold starts from `search_for_searches`.
+* **PubMed takes an NCBI key.** `NCBI_API_KEY` reaches the research server as
+  `RESEARCH_MCP_NCBI_API_KEY`.
+
 * **A genome fact and a site link are read from the site.** Explore and the Lead read
   records that are not genes with `list_record_columns` and `read_search_table`, Explore's
   catalog lookup names the nearest record columns, and a fresh turn reads the VEuPathDB

@@ -16,11 +16,16 @@ comparison and its method, the direction, both thresholds, the subset as one
 sentence per filter, the words that say all of that, and the step's own
 parameters as `step_parameters`, carried the way a saved strategy's subtree is.
 `resolved_params` stays empty, so the document never appears where a spec
-value is read. The criterion's search is the export's own
-(`GenesByEdaVizWithCompute` for a compute export, `GenesByEdaSubset` for a
-subset export). `create_eda_step` takes no search name: a dataset-specific
-EDA-backed search is one FRAME meets in the catalog and turns into a waiting
-criterion, never one an export writes. `Criterion.step_parameters` is what a build or an edit writes
+value is read. The criterion's search is the export's own:
+`GenesByEdaVizWithCompute` for a compute export, and for a subset export the
+search whose hidden `eda_dataset_id` the site presets to the study, or
+`GenesByEdaSubset` when the site lists none
+(`services/eda/dataset_searches.py`). The site's Revise form edits the filter
+only of a search on the `GenesByEdaSubsetGeneric` query (web-monorepo
+`genomics-site/.../pluginConfig.tsx`, `isPhenotypeSubsetSearch`), which every
+preset search runs, so a step on the generic search shows a read-only filter
+there, and the facts part says so. `create_eda_step` takes no search name: the
+study decides the search. `Criterion.step_parameters` is what a build or an edit writes
 on its step, and the fold never treats one export as an option of another.
 
 **The kind is stored with the step, and the reader is pure.** WDK picks a

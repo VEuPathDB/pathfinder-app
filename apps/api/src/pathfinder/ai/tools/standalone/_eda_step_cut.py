@@ -21,7 +21,7 @@ from pathfinder.services.eda.gene_subset import (
 from pathfinder.services.eda.steps import (
     EdaStepPlan,
     eda_step_node,
-    on_the_user_dataset_search,
+    on_the_sites_own_search,
 )
 
 
@@ -59,7 +59,7 @@ async def _planned_export(
             f"then export the genes that pass its thresholds."
         )
         raise ModelRetry(msg) from exc
-    return await on_the_user_dataset_search(binding.site_id, plan)
+    return await on_the_sites_own_search(binding.site_id, plan)
 
 
 class Rescaled(NamedTuple):

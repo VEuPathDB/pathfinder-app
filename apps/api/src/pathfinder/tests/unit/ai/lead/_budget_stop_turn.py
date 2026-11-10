@@ -29,6 +29,14 @@ BUDGET = (
     "I stopped this turn at its budget of 80 model calls. "
     "Narrow the request and send it again, and I will start a fresh turn on it."
 )
+BUILT_BUDGET = (
+    "I stopped this turn at its budget of 80 model calls. The strategy above is "
+    "built but not yet checked. Say continue and I will check it and explain it."
+)
+CHECKED_BUDGET = (
+    "I stopped this turn at its budget of 80 model calls. The strategy above is "
+    "built and checked. Say continue and I will go on from there."
+)
 WORDS = "genes higher at 24 h than at 18 h and 36 h"
 ADDED = AddedSearch(step_id=STEP, search_display_name=TITLE, criterion_text=WORDS)
 ADDED_LINE = f'This turn added 1 step: "{TITLE}" ({WORDS}).'

@@ -112,7 +112,7 @@ from pathfinder.ai.lead.linked_pages import read_linked_pages
 from pathfinder.ai.lead.recorded_cards import completed_hint
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_budget import lead_usage_limits
+from pathfinder.ai.lead.turn_budget import lead_token_budget, lead_usage_limits
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.strategy.questions import OpenQuestion
 
@@ -287,7 +287,7 @@ async def _drive_lead_stream(
                 deps=deps,
                 message_history=resume_messages,
                 deferred_tool_results=deferred_results,
-                capabilities=[RepetitionGuard(guard=guard)],
+                capabilities=[RepetitionGuard(guard=guard), lead_token_budget()],
                 usage_limits=limits,
                 usage=usage_acc,
             ) as events:

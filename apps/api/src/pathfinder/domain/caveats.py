@@ -18,6 +18,7 @@ from pathfinder.domain.site_checks import SiteCheckGap
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
+from pathfinder.domain.unrevisable_subset import UnrevisableSubsetCaveat
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
     ChoiceCaveat,
@@ -257,6 +258,7 @@ Caveat = Annotated[
     | PhraseCaveat
     | ReadingCaveat
     | ZeroCombineCaveat
+    | UnrevisableSubsetCaveat
     | RecordsOrganismCaveat,
     Discriminator("kind"),
 ]

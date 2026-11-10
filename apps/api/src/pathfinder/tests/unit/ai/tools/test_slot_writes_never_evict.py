@@ -141,7 +141,10 @@ class TestAnEdaExportIntoASlot:
         result = returned(answer, eda_step.EdaStepCreated)
         exported = result.step_id
         assert graph.steps["step_c1"].secondary_input_id == exported
-        assert graph.steps[exported].search_name == "GenesByEdaSubset"
+        assert (
+            graph.steps[exported].search_name
+            == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+        )
         assert stub_api.named("create_step") != []
         stated = run_ctx.deps.state.domain.operational_spec
         assert stated is not None

@@ -1,5 +1,3 @@
-"""Reads of records that are not genes: their columns, and one search's rows."""
-
 from __future__ import annotations
 
 from typing import Protocol
@@ -35,8 +33,6 @@ _COLUMNS_NOTE = (
 
 
 class RecordReader(Protocol):
-    """What a record read needs of its caller: the site the turn runs on."""
-
     @property
     def site_id(self) -> str: ...
 
@@ -137,11 +133,6 @@ async def _column_sites(site_id: str) -> list[str]:
 
 
 async def record_columns_block(site_id: str, query: str) -> JSONObject | None:
-    """The record columns nearest a catalog query, or None when none is close.
-
-    A site that holds no genes also ranks the portal's columns, which carry
-    every genomics site's genomes.
-    """
     found: list[ColumnMatch] = []
     try:
         for site in await _column_sites(site_id):

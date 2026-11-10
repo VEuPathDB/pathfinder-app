@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
 from veupathdb.domain.strategy import StrategyStep
+from veupathdb_mcp.catalog import SUBSET_QUERY
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.derive import derive_ledger
@@ -61,6 +62,7 @@ from pathfinder.domain.turn_facts import (
     StrategyLinkFact,
     TurnFacts,
 )
+from pathfinder.domain.unrevisable_subset import unrevisable_subset_caveats
 from pathfinder.domain.zero_combine import zero_combine_caveats
 from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.strategies.result_list import live_result_list_url
@@ -376,6 +378,11 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
                 else zero_combine_caveats(
                     graph.steps, session.sync_state.step_counts, noun
                 )
+            ),
+            *(
+                []
+                if graph is None
+                else unrevisable_subset_caveats(graph.steps, SUBSET_QUERY)
             ),
         ],
         gaps=gaps,

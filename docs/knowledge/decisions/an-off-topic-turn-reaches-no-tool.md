@@ -37,14 +37,19 @@ turn, a reply that carries a fenced code block or passes
 where the prose is.
 
 **The turn has a token ceiling.** `Settings.lead_turn_token_limit` (600000) is
-what the Lead's own run may spend in one turn, enforced by pydantic-ai through
-the `UsageLimits` each turn builds. It does not cover a sub-agent pass: FRAME,
+what the Lead's or Explore's own run may count in one turn: fresh input and
+output in full and a cache read at a tenth, as the providers price them.
+`TurnTokenBudget` (`ai/lead/turn_budget.py`) checks it before each model
+request, so a stop never discards an answer already returned; the 80 model
+calls and 80 tool calls stay in the `UsageLimits` each turn builds. It does not cover a sub-agent pass: FRAME,
 BUILD and VERIFY each run with a `RunUsage` of their own under
 `phase_usage_limits`, and their tokens reach the turn total through
 `_lead_capture`, not through this ceiling. A turn that reaches it ends with
 `budget_stop_report`: the strategy it holds, the final step's title, count and
 site link from the ledger, the verification verdict and any open question FRAME
-recorded, and then the budget sentence. A build the ledger marks stale cites
+recorded, and then the budget sentence. After a turn that built or changed the
+strategy, the sentence asks the researcher to say continue rather than to
+narrow the request. A build the ledger marks stale cites
 no count and no link, and the report says the recorded count is out of date.
 The report also says what this turn wrote, from its markers: each step it
 added, "This turn changed the strategy and added no step.", or "This turn

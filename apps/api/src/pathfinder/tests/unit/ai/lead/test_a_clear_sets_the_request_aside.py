@@ -29,7 +29,7 @@ from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead._answered_draft import QUESTION, framed
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     AT_THE_CALLS,
-    BUDGET,
+    BUILT_BUDGET,
     TITLE,
     URL,
     built_outcome,
@@ -144,7 +144,7 @@ async def test_a_budget_stop_after_a_clear_cites_no_cleared_link() -> None:
         f'The strategy holds 1 step; the final step is "{TITLE}".',
         "This turn changed the strategy and added no step.",
         "The strategy was not verified this turn.",
-        BUDGET,
+        BUILT_BUDGET,
     ]
 
 

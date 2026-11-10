@@ -23,6 +23,7 @@ from pathfinder.services.eda.compute import (
     analysis_comparison,
     stored_volcano_cut,
 )
+from pathfinder.services.eda.dataset_searches import dataset_subset_search
 from pathfinder.services.eda.direction import direction_sentence
 from pathfinder.services.eda.export import (
     ExportReading,
@@ -112,15 +113,25 @@ def eda_step_node(
     return EdaStepPlan(node=node, is_compute_backed=is_compute_backed, binding=binding)
 
 
-async def on_the_user_dataset_search(site_id: str, plan: EdaStepPlan) -> EdaStepPlan:
-    """The plan on the site's user-dataset search when the study is the researcher's upload.
-
-    That search takes the same two parameters and answers the same genes, and the
-    site opens it where the researcher edits the analysis.
-    """
-    search_name = await user_dataset_export_search(
-        site_id, plan.binding.dataset_id, reads_a_volcano=plan.is_compute_backed
+async def _own_search(site_id: str, plan: EdaStepPlan) -> str | None:
+    dataset_id = plan.binding.dataset_id
+    uploaded = await user_dataset_export_search(
+        site_id, dataset_id, reads_a_volcano=plan.is_compute_backed
     )
+    if uploaded is not None or plan.is_compute_backed:
+        return uploaded
+    return await dataset_subset_search(site_id, dataset_id)
+
+
+async def on_the_sites_own_search(site_id: str, plan: EdaStepPlan) -> EdaStepPlan:
+    """The plan on the site's own search of the study, when the site has one.
+
+    An upload runs the user-dataset search of its type, and a curated study's
+    subset the search the site presets to that study. Each takes the same two
+    parameters and answers the same genes, and the site opens it where the
+    researcher edits the analysis.
+    """
+    search_name = await _own_search(site_id, plan)
     if search_name is None:
         return plan
     return replace(plan, node=plan.node.model_copy(update={"search_name": search_name}))
@@ -151,7 +162,7 @@ async def export_analysis_step(
         analysis=analysis,
         thresholds=thresholds,
     )
-    plan = await on_the_user_dataset_search(
+    plan = await on_the_sites_own_search(
         binding.site_id,
         eda_step_node(
             analysis,

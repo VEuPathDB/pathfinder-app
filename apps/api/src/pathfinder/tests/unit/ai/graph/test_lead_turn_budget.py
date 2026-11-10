@@ -59,6 +59,7 @@ from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_mo
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     ADDED_LINE,
     BUDGET,
+    CHECKED_BUDGET,
     OBJECTION,
     SEARCH,
     SITE_ID,
@@ -340,6 +341,6 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
             STRATEGY_LINE,
             ADDED_LINE,
             f"Verification objected: 'the reference group': {OBJECTION}",
-            BUDGET.replace("80 model calls", "2 model calls"),
+            CHECKED_BUDGET.replace("80 model calls", "2 model calls"),
         ]
     )

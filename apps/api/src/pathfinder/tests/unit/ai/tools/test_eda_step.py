@@ -88,7 +88,7 @@ def _wire(
     return counted
 
 
-async def test_a_subset_export_uses_the_generic_subset_search(
+async def test_a_subset_export_uses_the_studys_own_subset_search(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
@@ -97,14 +97,19 @@ async def test_a_subset_export_uses_the_generic_subset_search(
     answer = await eda_step.create_eda_step(lead_ctx)
 
     step = applied[0][0].step
-    assert step.search_name == "GenesByEdaSubset"
+    assert (
+        step.search_name == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+    )
     assert step.parameters["eda_dataset_id"].value == PHENOTYPE_DATASET
     spec = json.loads(step.parameters["eda_analysis_spec"].value)
     assert spec["studyId"] == PHENOTYPE_DATASET
     assert spec["descriptor"]["subset"]["descriptor"][0]["stringSet"] == ["P. berghei"]
     assert step.display_name == "berghei subset"
     result = returned(answer, eda_step.EdaStepCreated)
-    assert result.search_name == "GenesByEdaSubset"
+    assert (
+        result.search_name
+        == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+    )
     assert result.is_compute_backed is False
     assert result.step_id == step.id
     assert "330423363" in result.guidance
@@ -147,7 +152,11 @@ def test_the_export_takes_no_search_name() -> None:
     ("detail", "significance", "search"),
     [
         (_COMPUTED, 0.05, "GenesByEdaVizWithCompute"),
-        (phenotype_subset(), None, "GenesByEdaSubset"),
+        (
+            phenotype_subset(),
+            None,
+            "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC",
+        ),
     ],
     ids=["a cut writes the compute search", "no cut writes the subset search"],
 )
@@ -368,7 +377,10 @@ async def test_the_exported_step_becomes_a_criterion_of_the_spec(
     result = returned(answer, eda_step.EdaStepCreated)
     assert [c.id for c in spec.criteria] == [result.step_id]
     criterion = spec.criteria[0]
-    assert criterion.search_name == "GenesByEdaSubset"
+    assert (
+        criterion.search_name
+        == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+    )
     assert criterion.analysis is not None
     assert criterion.text == criterion.analysis.words
     assert criterion.analysis.words.startswith(

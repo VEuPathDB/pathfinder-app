@@ -76,7 +76,7 @@ from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.lead.linked_pages import read_linked_pages
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_budget import lead_usage_limits
+from pathfinder.ai.lead.turn_budget import lead_token_budget, lead_usage_limits
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.reply_note import render_note
 from pathfinder.domain.strategy.reading_plan import OfferedReading
@@ -161,6 +161,7 @@ async def _stream(stream: _Stream, run: _ExploreRun, writer: Any) -> CardHold:
                 deferred_tool_results=turn.results,
                 capabilities=[
                     RepetitionGuard(guard=guard),
+                    lead_token_budget(),
                     stream.meter.on(stream.model.model_id),
                 ],
                 usage_limits=limits,

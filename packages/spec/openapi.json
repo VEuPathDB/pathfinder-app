@@ -30517,6 +30517,7 @@
                   "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "unrevisable_subset": "#/components/schemas/UnrevisableSubsetCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
                 },
                 "propertyName": "kind"
@@ -30554,6 +30555,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnrevisableSubsetCaveat"
                 },
                 {
                   "$ref": "#/components/schemas/RecordsOrganismCaveat"
@@ -30939,6 +30943,31 @@
         "title": "UnmeasuredValueCaveat",
         "type": "object"
       },
+      "UnrevisableSubsetCaveat": {
+        "properties": {
+          "kind": {
+            "const": "unrevisable_subset",
+            "default": "unrevisable_subset",
+            "title": "Kind",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "sentence"
+        ],
+        "title": "UnrevisableSubsetCaveat",
+        "type": "object"
+      },
       "UnsavedSetFact": {
         "properties": {
           "count": {
@@ -31318,6 +31347,7 @@
                   "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "unrevisable_subset": "#/components/schemas/UnrevisableSubsetCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
                 },
                 "propertyName": "kind"
@@ -31355,6 +31385,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnrevisableSubsetCaveat"
                 },
                 {
                   "$ref": "#/components/schemas/RecordsOrganismCaveat"
@@ -31485,6 +31518,7 @@
                   "records_organism": "#/components/schemas/RecordsOrganismCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "unrevisable_subset": "#/components/schemas/UnrevisableSubsetCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
                 },
                 "propertyName": "kind"
@@ -31522,6 +31556,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnrevisableSubsetCaveat"
                 },
                 {
                   "$ref": "#/components/schemas/RecordsOrganismCaveat"
@@ -33045,26 +33082,14 @@
             "type": "boolean"
           },
           "studyVersion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Studyversion"
+            "default": "",
+            "title": "Studyversion",
+            "type": "string"
           },
           "apiVersion": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Apiversion"
+            "default": "",
+            "title": "Apiversion",
+            "type": "string"
           },
           "descriptor": {
             "$ref": "#/components/schemas/EdaAnalysisDescriptor"

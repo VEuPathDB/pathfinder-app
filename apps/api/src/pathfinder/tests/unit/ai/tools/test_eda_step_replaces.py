@@ -96,7 +96,10 @@ class TestAnExportThatTakesAStepsPlace:
         op = applied[0][0]
         assert op.kind == "replaceSubtree"
         assert op.step_id == "step_k2"
-        assert op.subtree.search_name == "GenesByEdaSubset"
+        assert (
+            op.subtree.search_name
+            == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+        )
 
     async def test_the_result_names_the_step_it_replaced(
         self, monkeypatch: pytest.MonkeyPatch
@@ -181,7 +184,10 @@ class TestAReplacementThatReachesTheCommit:
         assert spec is not None
         assert [c.id for c in spec.criteria] == ["step_k1", exported]
         exported_criterion = spec.criteria[1]
-        assert exported_criterion.search_name == "GenesByEdaSubset"
+        assert (
+            exported_criterion.search_name
+            == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+        )
         assert exported_criterion.analysis is not None
         assert exported_criterion.analysis.dataset_id == PHENOTYPE_DATASET
         assert exported_criterion.text == exported_criterion.analysis.words

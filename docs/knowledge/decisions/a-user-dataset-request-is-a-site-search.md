@@ -34,8 +34,9 @@ status: stable
   workflow's criteria (see [an EDA analysis is a criterion of the spec](an-eda-analysis-is-a-criterion-of-the-spec.md)).
   The export of an upload's study writes the same two parameters on the user-dataset search of the
   upload's type that reads the export's kind: a volcano cut on the search the site gives a DE
-  notebook (`edaNotebookType`), a subset on one it gives none (`services/eda/steps.py::on_the_user_dataset_search`).
-  A curated study, and a subset of counts, keep `GenesByEdaVizWithCompute` and `GenesByEdaSubset`.
+  notebook (`edaNotebookType`), a subset on one it gives none (`services/eda/steps.py::on_the_sites_own_search`).
+  A curated study's volcano cut keeps `GenesByEdaVizWithCompute`; its subset runs the search the site
+  presets to the study's dataset, or `GenesByEdaSubset` when it lists none.
   The step then opens on the site as "RNA-Seq Differential Expression (User Datasets)", in the
   notebook where the researcher edits the groups and the cut.
 - **The cut is not a parameter.** `GenesByDESeqUserDataset` has no threshold parameters: it

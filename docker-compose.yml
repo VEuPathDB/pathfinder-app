@@ -174,7 +174,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b3
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b6
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -252,7 +252,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b3
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b6
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m
@@ -274,6 +274,7 @@ services:
       # Empty admits nothing.
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       RESEARCH_MCP_S2_API_KEY: ${S2_API_KEY:-}
+      RESEARCH_MCP_NCBI_API_KEY: ${NCBI_API_KEY:-}
       # The metasearch asked first for a web search.
       RESEARCH_MCP_SEARXNG_URL: ${RESEARCH_MCP_SEARXNG_URL:-http://searxng:8080}
       # A mailbox Crossref reads out of the User-Agent, which routes the call

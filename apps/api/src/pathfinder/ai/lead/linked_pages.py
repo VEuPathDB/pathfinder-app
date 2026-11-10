@@ -1,5 +1,3 @@
-"""The VEuPathDB pages a message links to, read once before the turn's agent runs."""
-
 from __future__ import annotations
 
 import asyncio
@@ -40,7 +38,6 @@ async def _read(url: str) -> LinkReading:
 
 
 async def read_linked_pages(prompt: str) -> list[LinkReading]:
-    """Read the first links the message holds into configured sites."""
     return [await _read(url) for url in find_site_links(prompt)[:MAX_LINKS]]
 
 
@@ -54,7 +51,6 @@ def _table_lines(table: SearchTable) -> list[str]:
 
 
 def pinned_linked_pages(ctx: RunContext[LeadDeps]) -> str | None:
-    """The readings of the pages the message links to, when it links to any."""
     readings = ctx.deps.linked_pages
     if not readings:
         return None

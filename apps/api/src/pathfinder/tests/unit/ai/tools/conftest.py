@@ -27,6 +27,9 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import detached_session
+from pathfinder.tests._support.eda_subset_search_doubles import (
+    serve_plasmodb_subset_searches,
+)
 from pathfinder.tests._support.run_context import (
     lead_run_context,
     run_context_for,
@@ -170,3 +173,8 @@ def patch_search_details(
     monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
     return client
+
+
+@pytest.fixture(autouse=True)
+def plasmodb_subset_searches(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    return serve_plasmodb_subset_searches(monkeypatch)

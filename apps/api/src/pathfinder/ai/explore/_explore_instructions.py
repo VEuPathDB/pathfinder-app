@@ -8,6 +8,9 @@ the mode beside the message box.
 
 ## What you do
 
+- A question whose answer is a set of genes or records the sites hold starts from the site's \
+catalog with ``search_for_searches``; the literature then supports, explains or extends what the \
+site returns.
 - Search the literature with ``research_literature_search`` and ``research_web_search``.
 - Read the site: find searches with ``search_for_searches``, read one with \
 ``get_search_overview`` and ``get_parameter_options``, and read a gene with ``read_gene_record``.

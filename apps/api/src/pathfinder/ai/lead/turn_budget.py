@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from assistant_core.graph.tool_summary import count_noun
+from pydantic_ai import RunContext
+from pydantic_ai.capabilities import AbstractCapability
+from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.models import ModelRequestContext
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.graph.state import VerificationDigest
@@ -26,6 +32,7 @@ from pathfinder.services.strategies.result_list import live_result_list_url
 # One turn's ceiling on the Lead's own model requests, and on the tool calls
 # they make. A sub-agent pass runs under a ceiling of its own.
 LEAD_TURN_CALL_LIMIT = 80
+CACHE_READ_WEIGHT = 0.1
 
 
 def lead_usage_limits() -> UsageLimits:
@@ -33,24 +40,71 @@ def lead_usage_limits() -> UsageLimits:
     return UsageLimits(
         request_limit=LEAD_TURN_CALL_LIMIT,
         tool_calls_limit=LEAD_TURN_CALL_LIMIT,
-        total_tokens_limit=get_settings().lead_turn_token_limit,
     )
 
 
-def _spent_limit(spent: RunUsage, limits: UsageLimits) -> str:
-    tokens, calls = limits.total_tokens_limit, limits.request_limit
-    if tokens is not None and spent.total_tokens > tokens:
-        return f"{tokens} tokens"
+def counted_tokens(usage: RunUsage) -> int:
+    cached = usage.cache_read_tokens
+    fresh = usage.input_tokens - cached + usage.output_tokens
+    return fresh + round(cached * CACHE_READ_WEIGHT)
+
+
+@dataclass
+class TurnTokenBudget(AbstractCapability[Any]):
+    limit: int
+
+    async def before_model_request(
+        self, ctx: RunContext[Any], request_context: ModelRequestContext
+    ) -> ModelRequestContext:
+        spent = counted_tokens(ctx.usage)
+        if spent > self.limit:
+            msg = f"The turn counted {spent} tokens, over its budget of {self.limit}."
+            raise UsageLimitExceeded(msg)
+        return request_context
+
+
+def lead_token_budget() -> TurnTokenBudget:
+    return TurnTokenBudget(limit=get_settings().lead_turn_token_limit)
+
+
+def _spent_limit(spent: RunUsage, limits: UsageLimits, token_limit: int) -> str:
+    calls = limits.request_limit
+    if counted_tokens(spent) > token_limit:
+        return f"{token_limit} tokens"
     if calls is not None and spent.requests >= calls:
         return count_noun(calls, "model call")
     return f"{limits.tool_calls_limit} tool calls"
 
 
-def lead_turn_budget_message(spent: RunUsage, limits: UsageLimits) -> str:
+_AFTER_A_BUILD = (
+    "The strategy above is built but not yet checked. Say continue and I will "
+    "check it and explain it."
+)
+_AFTER_A_CHECK = (
+    "The strategy above is built and checked. Say continue and I will go on from there."
+)
+_NARROW = "Narrow the request and send it again, and I will start a fresh turn on it."
+
+
+def _advice(*, built: bool, checked: bool) -> str:
+    if not built:
+        return _NARROW
+    return _AFTER_A_CHECK if checked else _AFTER_A_BUILD
+
+
+def lead_turn_budget_message(
+    spent: RunUsage,
+    limits: UsageLimits,
+    *,
+    token_limit: int,
+    built: bool,
+    checked: bool,
+) -> str:
     """What the user reads when a turn spends a ceiling it runs under."""
+    advice = _advice(built=built, checked=checked)
     return (
-        f"I stopped this turn at its budget of {_spent_limit(spent, limits)}. "
-        "Narrow the request and send it again, and I will start a fresh turn on it."
+        f"I stopped this turn at its budget of "
+        f"{_spent_limit(spent, limits, token_limit)}. {advice}"
     )
 
 
@@ -166,6 +220,12 @@ def budget_stop_report(
         _this_turn(turn),
         *_verification(ledger, session),
         *(q.question for q in questions),
-        lead_turn_budget_message(spent, limits),
+        lead_turn_budget_message(
+            spent,
+            limits,
+            token_limit=get_settings().lead_turn_token_limit,
+            built=turn.built or turn.changed_strategy,
+            checked=ledger.verification.digest is not None,
+        ),
     ]
     return "\n\n".join(parts)

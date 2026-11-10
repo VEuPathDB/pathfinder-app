@@ -157,6 +157,7 @@ uncomment the line (a pull request to `webservices-quadlets`).
 | `GEMINI_API_KEY` | api, worker | Lets the deployment pay for Gemini models. |
 | `SERVICE_TOKENS` (as `PATHFINDER_SERVICE_TOKENS`) | api | Applications that call the api in the `X-PathFinder-Service-Token` header, as `app_id:secret[,...]`. Rotating one breaks only that caller. |
 | `S2_API_KEY` (as `RESEARCH_MCP_S2_API_KEY`) | research-mcp | Raises the Semantic Scholar rate limit. |
+| `NCBI_API_KEY` (as `RESEARCH_MCP_NCBI_API_KEY`) | research-mcp | Raises the NCBI E-utilities (PubMed) rate limit. |
 
 ## Routine checks
 

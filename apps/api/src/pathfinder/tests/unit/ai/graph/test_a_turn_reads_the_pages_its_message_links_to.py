@@ -1,5 +1,3 @@
-"""A fresh turn reads the VEuPathDB pages its message links to before its agent runs."""
-
 from __future__ import annotations
 
 import asyncio

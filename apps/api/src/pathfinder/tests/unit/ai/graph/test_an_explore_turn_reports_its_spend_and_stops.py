@@ -90,7 +90,13 @@ async def test_a_turn_at_its_budget_says_it_stopped(
     command = await run_explore(explore_state(EXPLORE_PROMPT))
 
     [reply] = doubles.replies()
-    budget = lead_turn_budget_message(RunUsage(requests=1), _ONE_CALL)
+    budget = lead_turn_budget_message(
+        RunUsage(requests=1),
+        _ONE_CALL,
+        token_limit=600_000,
+        built=False,
+        checked=False,
+    )
     assert reply.endswith(budget)
     assert domain_of(command).exchanges[-1].reply == reply
     assert "pending_approval" not in update_of(command)
