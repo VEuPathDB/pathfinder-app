@@ -74,9 +74,11 @@ from pathfinder.evals.scoring import (
 )
 from pathfinder.evals.store import attachment_paths, load_corpus
 from pathfinder.evals.summary import CaseResult, EvalRunSummary, judged
+from pathfinder.evals.verdict_scoring import ObservedVerdict, newest_verdicts
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.services.audit.verdicts import conversation_verdicts
 from pathfinder.services.user_data import purge_memories
 from pathfinder.services.wdk_build import site_build
 
@@ -134,6 +136,21 @@ async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
 
 
 @dataclass(frozen=True)
+class CaseThreads:
+    conversation_ids: list[UUID]
+    user_id: UUID
+
+
+async def stored_verdicts(threads: CaseThreads) -> dict[str, ObservedVerdict]:
+    views = [
+        view
+        for conversation_id in threads.conversation_ids
+        for view in await conversation_verdicts(conversation_id, threads.user_id)
+    ]
+    return newest_verdicts(views)
+
+
+@dataclass(frozen=True)
 class TurnsShown:
     """What the case's turns showed: each reply, the facts part beside each,
     the last facts part any turn showed, and the counts of the latest review.
@@ -148,7 +165,7 @@ class TurnsShown:
 
 
 async def observe(
-    conversation_id: UUID,
+    threads: CaseThreads,
     turns: TurnsShown,
     *,
     step_ids_unchanged: bool | None = None,
@@ -161,6 +178,7 @@ async def observe(
     """
     reply_text = turns.replies[-1] if turns.replies else ""
     last_facts = turns.facts[-1] if turns.facts else ""
+    conversation_id = threads.conversation_ids[-1]
     async with async_session_factory() as session:
         strategy = await ConversationRepository(session).get_strategy(conversation_id)
     built = bool(strategy.strategy_ast)
@@ -196,6 +214,7 @@ async def observe(
         refused_tools=refused_tools,
         assumed=unshown_assumed_values(checkpointed, turns.last_facts),
         consult_options=turns.consult_options,
+        verdicts=await stored_verdicts(threads),
     )
 
 
@@ -349,6 +368,7 @@ async def _run_turns(case: EvalCase, run: _CaseRun) -> ObservedOutcome:
     answer writes its own run directory under the turn's.
     """
     conversation_id = uuid4()
+    opened = [conversation_id]
     last = len(case.turns) - 1
     before: set[int] = set()
     replies: list[str] = []
@@ -363,6 +383,7 @@ async def _run_turns(case: EvalCase, run: _CaseRun) -> ObservedOutcome:
         prompt, inline = _turn_message(case, index)
         if index in case.new_conversation_before:
             conversation_id = uuid4()
+            opened.append(conversation_id)
             reviewed = None
         if index == last and last > 0:
             before = await persisted_wdk_step_ids(conversation_id)
@@ -406,7 +427,7 @@ async def _run_turns(case: EvalCase, run: _CaseRun) -> ObservedOutcome:
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)
     return await observe(
-        conversation_id,
+        CaseThreads(conversation_ids=opened, user_id=run.user_id),
         TurnsShown(
             replies=replies,
             facts=shown_facts,
@@ -578,6 +599,7 @@ async def run_corpus(
 
 __all__ = [
     "HARNESS",
+    "CaseThreads",
     "TurnsShown",
     "assumed_label",
     "build_dataset",
@@ -588,4 +610,5 @@ __all__ = [
     "refusals_label",
     "run_corpus",
     "run_one_case",
+    "stored_verdicts",
 ]

@@ -193,14 +193,14 @@ async def test_the_runner_keeps_the_records_each_turn_showed(
         return set()
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        del conversation_id, step_ids_unchanged, ends_on, refused_tools
+        del threads, step_ids_unchanged, ends_on, refused_tools
         observed.append(turns.record_ids)
         return ObservedOutcome(built_strategy=True)
 

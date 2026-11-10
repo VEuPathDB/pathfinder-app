@@ -16,6 +16,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from veupathdb.domain.parameters import PhyleticExpression
 from veupathdb.errors import ValidationError
 
+from pathfinder.domain.audit.verdicts import VerdictKind
 from pathfinder.evals.redaction import assert_redacted
 
 CaseOrigin = Literal["promoted", "cataloged-failure", "uat-flow"]
@@ -190,6 +191,16 @@ class ExpectedOutcome(CamelModel):
     expressions: dict[str, list[str]] = Field(default_factory=dict)
     consult_options_min: int | None = Field(default=None, ge=1)
     consult_option_mentions: list[str] = Field(default_factory=list)
+    verdicts: dict[str, VerdictKind] = Field(default_factory=dict)
+    verdict_causes: dict[str, list[str]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _causes_name_an_expected_gene(self) -> ExpectedOutcome:
+        unexpected = sorted(set(self.verdict_causes) - set(self.verdicts))
+        if unexpected:
+            msg = f"verdict causes name genes no verdict expects: {unexpected}"
+            raise ValueError(msg)
+        return self
 
     @field_validator("expressions")
     @classmethod
@@ -281,6 +292,7 @@ class EvalCase(CamelModel):
             *(v for values in expected.parameters.values() for v in values.values()),
             *(w for writings in expected.expressions.values() for w in writings),
             *expected.consult_option_mentions,
+            *(p for phrases in expected.verdict_causes.values() for p in phrases),
             *(name for names in self.attachments.values() for name in names),
             *(answer.comment for answer in answers if answer.comment is not None),
             *(pick for answer in answers for pick in answer.picks or []),

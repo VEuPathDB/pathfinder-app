@@ -26,6 +26,7 @@ from pathfinder.evals.distance import (
 )
 from pathfinder.evals.expressions import expression_differences
 from pathfinder.evals.phrases import PhraseTexts, phrase_differences, shown
+from pathfinder.evals.verdict_scoring import ObservedVerdict, verdict_differences
 
 NO_STRATEGY = "(none)"
 
@@ -165,6 +166,7 @@ class ObservedOutcome(CamelModel):
     # Applied values the request did not state, or None when nothing counted them.
     assumed: int | None = None
     consult_options: list[str] = Field(default_factory=list)
+    verdicts: dict[str, ObservedVerdict] = Field(default_factory=dict)
 
 
 class CaseScore(CamelModel):
@@ -417,6 +419,7 @@ def score_case(
         + _title_differences(case, observed)
         + check_differences(case.expected, observed.checks)
         + _record_differences(case, observed)
+        + verdict_differences(case.expected, observed.verdicts)
     )
     return CaseScore(
         name=case.name,

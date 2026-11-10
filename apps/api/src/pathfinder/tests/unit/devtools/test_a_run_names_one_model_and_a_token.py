@@ -479,14 +479,14 @@ async def test_the_eval_driver_attaches_the_named_token_on_every_turn_and_answer
         return set()
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        del conversation_id, turns, step_ids_unchanged, ends_on
+        del threads, turns, step_ids_unchanged, ends_on
         return ObservedOutcome(built_strategy=True, refused_tools=refused_tools)
 
     monkeypatch.setattr(eval_runner, "drive_run", _drive)

@@ -83,14 +83,14 @@ def _install(
         del conversation_id
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        del conversation_id
+        del threads
         return ObservedOutcome(
             built_strategy=True,
             reply_text=turns.replies[-1],

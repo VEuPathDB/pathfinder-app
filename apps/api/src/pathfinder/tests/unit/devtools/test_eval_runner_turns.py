@@ -119,14 +119,14 @@ def _install(
         return reviewed.pop(0) if reviewed else None
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        del conversation_id
+        del threads
         return ObservedOutcome(
             built_strategy=True,
             reply_text=turns.replies[-1],
@@ -829,14 +829,14 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
     observed_on: list[UUID] = []
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        observed_on.append(conversation_id)
+        observed_on.append(threads.conversation_ids[-1])
         return ObservedOutcome(
             built_strategy=False,
             reply_text=turns.replies[-1],
@@ -1061,14 +1061,14 @@ async def test_a_turn_is_observed_as_its_reply_and_the_facts_part_beside_it(
         )
 
     async def _observe(
-        conversation_id: UUID,
+        threads: eval_runner.CaseThreads,
         turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
         refused_tools: list[str],
     ) -> ObservedOutcome:
-        del conversation_id, step_ids_unchanged
+        del threads, step_ids_unchanged
         observed.append(turns)
         return ObservedOutcome(
             built_strategy=True, ends_on=ends_on, refused_tools=refused_tools
