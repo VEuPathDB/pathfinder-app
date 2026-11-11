@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
 )
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
+from pathfinder.tests._support.eda_doubles import no_description
 from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.recorded_vdi import no_own_datasets
 from pathfinder.tests._support.run_context import lead_run_context
@@ -113,6 +114,7 @@ def stubbed_services(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda_catalog, "search_studies", _studies)
     monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _phenotype_study)
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
 
 

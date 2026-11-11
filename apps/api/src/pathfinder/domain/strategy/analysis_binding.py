@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal, assert_never
 
 from pydantic import ConfigDict, Field
 from veupathdb.domain.parameters import ParamValue
@@ -43,6 +44,25 @@ class CutTallies(CamelModel):
     at_any_significance: int
 
 
+class SubsetBasis(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    filter: str
+    basis: Literal["study", "stated", "card"]
+    picked: str = ""
+
+    def clause(self) -> str:
+        match self.basis:
+            case "study":
+                return f"{self.filter}: the study's own class"
+            case "stated":
+                return f"{self.filter}: the researcher's words"
+            case "card":
+                return f'{self.filter}: picked on a card, "{self.picked}"'
+            case _:
+                assert_never(self.basis)
+
+
 class AnalysisBinding(CamelModel):
     """The genes one exported analysis selects, and the document that selects them.
 
@@ -69,10 +89,12 @@ class AnalysisBinding(CamelModel):
     shown_subset: list[str] = Field(default_factory=list)
     value_variable_name: str = ""
     tallies: CutTallies | None = None
+    subset_basis: list[SubsetBasis] = Field(default_factory=list)
 
     def meaning(self) -> AnalysisBinding:
         """The binding as its document states it, without the document itself,
-        the words that name it, or what the export read beside it."""
+        the words that name it, what the export read beside it, or what its
+        subset rests on."""
         return self.model_copy(
             update={
                 "words": "",
@@ -80,6 +102,7 @@ class AnalysisBinding(CamelModel):
                 "shown_subset": [],
                 "value_variable_name": "",
                 "tallies": None,
+                "subset_basis": [],
             }
         )
 
@@ -94,3 +117,6 @@ class AnalysisBinding(CamelModel):
         """The subset in the study's own names, or by variable id when no read
         of the study named them."""
         return self.shown_subset or self.subset
+
+    def basis_line(self) -> str:
+        return "; ".join(basis.clause() for basis in self.subset_basis)

@@ -73,6 +73,7 @@ class ThreadRequirements(BaseModel):
     named_readings: list[ChosenReading] = Field(default_factory=list)
     offered_readings: dict[str, OfferedReading] = Field(default_factory=dict)
     picked_readings: list[str] = Field(default_factory=list)
+    card_picks: list[str] = Field(default_factory=list)
     organism_picks: list[OrganismPick] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -102,6 +103,10 @@ class ThreadRequirements(BaseModel):
     def pick_reading(self, label: str) -> None:
         if label not in self.picked_readings:
             self.picked_readings.append(label)
+
+    def pick_on_a_card(self, label: str) -> None:
+        if label not in self.card_picks:
+            self.card_picks.append(label)
 
     def reading_labels(self) -> list[str]:
         return list(

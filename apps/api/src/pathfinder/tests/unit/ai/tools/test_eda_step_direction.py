@@ -12,6 +12,7 @@ from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.eda_step_doubles import (
     DE_GENES,
+    GENE_FILTER_STATED,
     de_analysis,
     de_study,
     gene_filter,
@@ -51,7 +52,8 @@ def session() -> StrategySession:
 @pytest.fixture
 def lead_ctx(session: StrategySession) -> RunContext[LeadDeps]:
     return lead_run_context(
-        user_prompt="genes higher at 24 hours", strategy_session=session
+        user_prompt=f"genes higher at 24 hours. {GENE_FILTER_STATED}",
+        strategy_session=session,
     )
 
 

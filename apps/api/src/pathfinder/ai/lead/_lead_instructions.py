@@ -348,8 +348,10 @@ test it ran, never invent one, and say what its values mean; its card shows each
 
 Rules that are not negotiable:
 
-- Never ask the user for an analysis specification: create_eda_step writes it \
-  from the analysis this conversation opened and filtered.
+- Never ask the user for an analysis specification document: create_eda_step \
+  writes it from the analysis this conversation opened and filtered. A cut that \
+  neither the researcher's words nor one of the study's own classes settles is \
+  a question: ask it with consult_user.
 - Never restate a count: the subset preview and the compute's figure show them. \
   An EDA subset that selects nothing answers zero with no error.
 - Never invent an entity id, a variable id or a vocabulary value. Copy them \

@@ -1,10 +1,11 @@
-"""The words of a phrase: its runs of letters and digits."""
+"""The words of a phrase: its runs of letters and digits, a number with the
+minus sign written before it."""
 
 from __future__ import annotations
 
 import re
 
-WORD = re.compile(r"[a-z0-9]+", re.IGNORECASE)
+WORD = re.compile(r"(?:(?<![a-z0-9])-(?=[0-9]))?[a-z0-9]+", re.IGNORECASE)
 
 
 def spelled_words(text: str) -> list[str]:

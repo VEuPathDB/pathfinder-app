@@ -16,6 +16,7 @@ from pathfinder.services.eda.compute import retained_summary
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.tests._support.eda_step_doubles import (
     DE_GENES,
+    GENE_FILTER_STATED,
     de_analysis,
     de_study,
     gene_filter,
@@ -58,6 +59,7 @@ async def _exported_cut(
         pushing_commit(applied, session=session, count=50),
     )
     ctx = lead_run_context(user_prompt=said, strategy_session=session)
+    ctx.deps.state.domain.original_request = GENE_FILTER_STATED
 
     answer = await eda_step.create_eda_step(
         ctx,

@@ -13,7 +13,8 @@ status: stable
 **An export is a criterion stated by what it selects.** `Criterion.analysis`
 is a `domain/strategy/analysis_binding.py::AnalysisBinding`: the dataset, the
 comparison and its method, the direction, both thresholds, the subset as one
-sentence per filter, the words that say all of that, and the step's own
+sentence per filter, what each filter rests on (`subset_basis`, which the
+diff ignores), the words that say all of that, and the step's own
 parameters as `step_parameters`, carried the way a saved strategy's subtree is.
 `resolved_params` stays empty, so the document never appears where a spec
 value is read. The criterion's search is the export's own:

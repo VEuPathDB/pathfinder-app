@@ -76,6 +76,8 @@ def _strategy_link(
 
 
 def _reason(criterion: Criterion | None) -> str:
+    if criterion is not None and criterion.analysis is not None:
+        return criterion.analysis.basis_line()
     if criterion is None or criterion.rationale is None:
         return ""
     return criterion.rationale.facts_line()

@@ -109,7 +109,11 @@ class TestTheUnbuiltEdaCriterionRule:
         assert "set_eda_filters" in sentence
         assert "preview_eda_subset" in sentence
         assert 'create_eda_step(criterion_id="c_essential")' in sentence
-        assert "Never ask the user for an analysis specification" in sentence
+        assert "Never ask the user for an analysis specification document" in sentence
+        assert (
+            "A cut that neither the researcher's words nor one of the study's "
+            "own classes settles is a question: ask it with consult_user."
+        ) in sentence
 
     def test_a_turn_that_opened_the_analysis_stands(self) -> None:
         deps = eda_deps()

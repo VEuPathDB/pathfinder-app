@@ -10,6 +10,7 @@ from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
+from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.strategy.value_source import value_source
 from pathfinder.domain.turn_facts import ParameterFact
@@ -103,15 +104,27 @@ def _cut_note(name: str, at: str, tallies: CutTallies | None, noun: str) -> str 
             return None
 
 
+def _subset_source(binding: AnalysisBinding) -> ValueSource | None:
+    bases = {basis.basis for basis in binding.subset_basis}
+    if not bases or "study" in bases:
+        return None
+    if len(binding.subset_basis) != len(binding.subset):
+        return None
+    return "card" if "card" in bases else "stated"
+
+
 def analysis_parameters(
     binding: AnalysisBinding, said: Sequence[str], noun: str
 ) -> list[ParameterFact]:
     """The compute's values, each stated when a researcher message holds it on
     the scale the researcher wrote it. A value the researcher did not state
-    shows the counts the compute holds for it, where it holds any."""
+    shows the counts the compute holds for it, where it holds any. A subset
+    whose every filter the researcher stated or picked on a card takes that
+    source."""
     facts: list[ParameterFact] = []
     for name, shown, value, label in _analysis_values(binding):
-        source = value_source(
+        based = _subset_source(binding) if name == "subset" else None
+        source = based or value_source(
             value,
             placeholder=False,
             unset=False,

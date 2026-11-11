@@ -321,6 +321,7 @@ async def create_eda_step(
         analysis,
         VolcanoAsk(effect_size_threshold, significance_threshold, effect_direction),
         ctx.deps.state.researcher_messages(),
+        ctx.deps.state.domain.card_picks,
     )
     comparison = compared_groups(analysis, thresholds)
     node = plan.node

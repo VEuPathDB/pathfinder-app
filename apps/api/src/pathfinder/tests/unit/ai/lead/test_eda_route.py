@@ -136,7 +136,11 @@ class TestTheRouteThePinPrints:
         assert "set_eda_filters" in pinned
         assert "preview_eda_subset" in pinned
         assert 'create_eda_step(criterion_id="c_essential")' in pinned
-        assert "Never ask the user for an analysis specification" in pinned
+        assert "Never ask the user for an analysis specification document" in pinned
+        assert (
+            "A cut that neither the researcher's words nor one of the study's "
+            "own classes settles is a question: ask it with consult_user."
+        ) in pinned
 
     def test_two_waiting_criteria_on_one_dataset_are_each_routed(self) -> None:
         """One dataset holds as many comparisons as the request states."""

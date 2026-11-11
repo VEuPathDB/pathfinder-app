@@ -28,12 +28,17 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaAnalysisOpened,
     EdaFiltersResult,
 )
-from pathfinder.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
+from pathfinder.domain.eda_parts import (
+    EdaAnalysisState,
+    EdaFilterSheetEntry,
+    OpenEdaSheet,
+)
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda import binding
 from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
     RevisionCounter,
+    no_description,
     permission_entry,
     phenotype_study,
     study_of,
@@ -100,6 +105,7 @@ async def _applied(
 
 def serve_phenotype_study(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
 
 
@@ -300,7 +306,10 @@ class TestThePinnedSheetIsBounded:
         self, lead_ctx: RunContext[LeadDeps]
     ) -> None:
         lead_ctx.deps.state.domain.pin_eda_sheet(
-            PHENOTYPE_DATASET, _wide_sheet(variables=4, value_width=200)
+            OpenEdaSheet(
+                dataset_id=PHENOTYPE_DATASET,
+                entries=_wide_sheet(variables=4, value_width=200),
+            )
         )
 
         pinned = _rendered(lead_ctx)
@@ -313,7 +322,10 @@ class TestThePinnedSheetIsBounded:
     ) -> None:
         """What is left is everything a filter needs but the value itself."""
         lead_ctx.deps.state.domain.pin_eda_sheet(
-            PHENOTYPE_DATASET, _wide_sheet(variables=4, value_width=200)
+            OpenEdaSheet(
+                dataset_id=PHENOTYPE_DATASET,
+                entries=_wide_sheet(variables=4, value_width=200),
+            )
         )
 
         pinned = _rendered(lead_ctx)
@@ -326,7 +338,10 @@ class TestThePinnedSheetIsBounded:
         self, lead_ctx: RunContext[LeadDeps]
     ) -> None:
         lead_ctx.deps.state.domain.pin_eda_sheet(
-            PHENOTYPE_DATASET, _wide_sheet(variables=1, value_width=20)
+            OpenEdaSheet(
+                dataset_id=PHENOTYPE_DATASET,
+                entries=_wide_sheet(variables=1, value_width=20),
+            )
         )
 
         pinned = _rendered(lead_ctx)
@@ -337,7 +352,10 @@ class TestThePinnedSheetIsBounded:
         self, lead_ctx: RunContext[LeadDeps]
     ) -> None:
         lead_ctx.deps.state.domain.pin_eda_sheet(
-            PHENOTYPE_DATASET, _wide_sheet(variables=2, value_width=20)
+            OpenEdaSheet(
+                dataset_id=PHENOTYPE_DATASET,
+                entries=_wide_sheet(variables=2, value_width=20),
+            )
         )
 
         pinned = _rendered(lead_ctx)

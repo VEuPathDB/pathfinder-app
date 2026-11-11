@@ -34,7 +34,7 @@ from pathfinder.ai.models.mock import role_script
 from pathfinder.ai.models.mock.arc import Role
 from pathfinder.ai.models.mock.faults import made_by_a_fault
 from pathfinder.ai.models.mock.site_values import SiteValues
-from pathfinder.domain.eda_parts import EdaFilterSheetEntry
+from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -199,9 +199,9 @@ class _Tools:
         if "filters" in args:
             self.lead_ctx.deps.state.domain.close_eda_sheet()
             return {"applied": True}
-        self.lead_ctx.deps.state.domain.pin_eda_sheet(
-            str(args["dataset_id"]),
-            [
+        sheet = OpenEdaSheet(
+            dataset_id=str(args["dataset_id"]),
+            entries=[
                 EdaFilterSheetEntry(
                     entity_id="sample",
                     variable_id="genotype",
@@ -212,6 +212,7 @@ class _Tools:
                 )
             ],
         )
+        self.lead_ctx.deps.state.domain.pin_eda_sheet(sheet)
         return {"sheetPinned": True}
 
     def answer(self, call: ToolCallPart) -> object:

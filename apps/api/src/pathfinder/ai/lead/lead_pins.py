@@ -69,7 +69,14 @@ _EDA_CUT_NOTE = (
 
 def _eda_block(sheet: OpenEdaSheet) -> str:
     entries = [entry.model_dump(by_alias=True, mode="json") for entry in sheet.entries]
-    return f"### filter sheet for {sheet.dataset_id}\n{json.dumps(entries)}"
+    described = (
+        [f"Study description: {sheet.study_description}"]
+        if sheet.study_description
+        else []
+    )
+    return "\n".join(
+        [f"### filter sheet for {sheet.dataset_id}", *described, json.dumps(entries)]
+    )
 
 
 def _eda_block_without_values(sheet: OpenEdaSheet) -> str:
@@ -224,8 +231,13 @@ def _eda_route_block(waiting: Criterion, unbuilt: list[str]) -> str:
                 f"places the step, so name no other placement."
             ),
             (
-                "Never ask the user for an analysis specification, and never "
-                "answer that this criterion cannot be built or mapped."
+                "Never ask the user for an analysis specification document, and "
+                "never answer that this criterion cannot be built or mapped."
+            ),
+            (
+                "A cut that neither the researcher's words nor one of the "
+                "study's own classes settles is a question: ask it with "
+                "consult_user."
             ),
         ],
     )

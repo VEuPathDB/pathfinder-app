@@ -177,7 +177,8 @@ def apply_option_bindings(
     A value binds, an operator rewires its combine and a withdrawal retires;
     typed words, a picked reading a framing pass named and the note, never
     another offered label, become a requirement on the dimension ``asked`` names. That requirement replaces
-    each one ``replaced`` holds under the question's prompt.
+    each one ``replaced`` holds under the question's prompt. Every picked label
+    is kept as a card pick, which states a cut an EDA export rests on.
     """
     domain = state.domain
     entry = domain.operational_spec
@@ -192,6 +193,7 @@ def apply_option_bindings(
         words: list[str] = []
         domain.record_request_text(answer.note)
         for label in answer.chosen_labels:
+            domain.pick_on_a_card(label)
             option = options.get(label)
             if option is not None:
                 _apply(state, option, sheets)

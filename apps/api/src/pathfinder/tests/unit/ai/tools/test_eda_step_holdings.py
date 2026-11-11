@@ -20,6 +20,7 @@ from pathfinder.tests._support.eda_doubles import no_gene_study
 from pathfinder.tests._support.eda_step_doubles import (
     COUNTS_ENTITY,
     DE_GENES,
+    GENE_FILTER_STATED,
     SAMPLE_ONLY_RETRY,
     CountedSubset,
     StudyReader,
@@ -40,7 +41,7 @@ def lead_ctx() -> RunContext[LeadDeps]:
     session = StrategySession(site_id="vectorbase")
     session.add_graph(StrategyGraph("g1", "Test", "vectorbase"))
     return lead_run_context(
-        user_prompt="genes up at 24 h against 18 h and 36 h",
+        user_prompt=f"genes up at 24 h against 18 h and 36 h. {GENE_FILTER_STATED}",
         strategy_session=session,
     )
 

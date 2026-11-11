@@ -38,6 +38,7 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR, recorded_distribution
 from veupathdb_mcp.catalog import COMPUTE_QUERY
 
+from pathfinder.ai.tools.standalone import _eda_step_guard
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategySession
@@ -268,6 +269,9 @@ def sample_filter() -> EdaStringSetFilter:
     )
 
 
+GENE_FILTER_STATED = "Keep the genes with at least 1000 sense reads."
+
+
 def gene_filter() -> EdaNumberRangeFilter:
     """Counts rows with at least 1000 sense reads, a filter on the gene entity."""
     return EdaNumberRangeFilter(
@@ -385,12 +389,14 @@ def wire_gene_count(
 def wire_export_reads(
     monkeypatch: pytest.MonkeyPatch, *, study: StudyReader = phenotype_study
 ) -> None:
-    """The study an export names its variables by, and its compute's statistics."""
+    """The study an export names and checks its variables by, and its compute's
+    statistics."""
 
     async def _statistics(*_args: object, **_kwargs: object) -> VolcanoStatsResponse:
         return VolcanoStatsResponse.model_validate(fixture("volcano_statistics"))
 
     monkeypatch.setattr(export, "get_study_detail_for_dataset", study)
+    monkeypatch.setattr(_eda_step_guard, "get_study_detail_for_dataset", study)
     monkeypatch.setattr(compute, "read_statistics", _statistics)
 
 

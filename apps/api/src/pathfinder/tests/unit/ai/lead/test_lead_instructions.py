@@ -176,6 +176,10 @@ def test_the_user_is_never_asked_for_an_analysis_specification() -> None:
 
     assert "Never ask the user for an analysis specification" in section
     assert "create_eda_step writes it" in section
+    assert (
+        "A cut that neither the researcher's words nor one of the study's "
+        "own classes settles is a question: ask it with consult_user."
+    ) in section
 
 
 def test_the_lead_removes_a_step_with_the_delete_tool() -> None:

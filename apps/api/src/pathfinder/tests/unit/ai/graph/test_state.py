@@ -13,6 +13,7 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.domain.eda_parts import OpenEdaSheet
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -211,21 +212,21 @@ def test_no_eda_sheet_is_open_until_one_is_pinned(
 def test_a_second_sheet_replaces_the_one_the_thread_holds(
     base_state: PipelineState,
 ) -> None:
-    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
-    base_state.domain.pin_eda_sheet("DS_eeca6a5476", [])
+    base_state.domain.pin_eda_sheet(OpenEdaSheet(dataset_id="DS_53f554ec6a"))
+    base_state.domain.pin_eda_sheet(OpenEdaSheet(dataset_id="DS_eeca6a5476"))
 
     assert _sheeted_studies(base_state.domain) == ["DS_eeca6a5476"]
 
 
 def test_an_applied_subset_closes_the_sheet(base_state: PipelineState) -> None:
-    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.pin_eda_sheet(OpenEdaSheet(dataset_id="DS_53f554ec6a"))
     base_state.domain.close_eda_sheet()
 
     assert _sheeted_studies(base_state.domain) == []
 
 
 def test_opening_another_study_closes_the_sheet(base_state: PipelineState) -> None:
-    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.pin_eda_sheet(OpenEdaSheet(dataset_id="DS_53f554ec6a"))
     base_state.domain.close_eda_sheet_of_another_study("DS_eeca6a5476")
 
     assert _sheeted_studies(base_state.domain) == []
@@ -233,7 +234,7 @@ def test_opening_another_study_closes_the_sheet(base_state: PipelineState) -> No
 
 def test_reopening_the_same_study_keeps_its_sheet(base_state: PipelineState) -> None:
     """The sheet describes the study, which a fresh analysis does not change."""
-    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.pin_eda_sheet(OpenEdaSheet(dataset_id="DS_53f554ec6a"))
     base_state.domain.close_eda_sheet_of_another_study("DS_53f554ec6a")
 
     assert _sheeted_studies(base_state.domain) == ["DS_53f554ec6a"]

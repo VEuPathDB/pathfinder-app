@@ -22563,6 +22563,13 @@
                 "type": "null"
               }
             ]
+          },
+          "subsetBasis": {
+            "items": {
+              "$ref": "#/components/schemas/SubsetBasis"
+            },
+            "title": "Subsetbasis",
+            "type": "array"
           }
         },
         "required": [
@@ -30120,6 +30127,34 @@
           "state"
         ],
         "title": "SubAgentStepPayload",
+        "type": "object"
+      },
+      "SubsetBasis": {
+        "properties": {
+          "filter": {
+            "title": "Filter",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "study",
+              "stated",
+              "card"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "picked": {
+            "default": "",
+            "title": "Picked",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filter",
+          "basis"
+        ],
+        "title": "SubsetBasis",
         "type": "object"
       },
       "TallyFact": {

@@ -7,7 +7,7 @@ from pydantic import JsonValue
 from veupathdb.domain import walk_entities
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.domain.eda_parts import EdaFilterSheetEntry
+from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.services.eda import EdaStudyDetail
 from pathfinder.services.eda.description import (
     EdaVariableOut,
@@ -69,7 +69,7 @@ def _sub_filter_example(variable_id: str, first_values: dict[str, str]) -> JSONO
     return {"variableId": variable_id, "stringSet": members}
 
 
-def _sheet_entries(study: EdaStudyDetail) -> list[EdaFilterSheetEntry]:
+def sheet_entries(study: EdaStudyDetail) -> list[EdaFilterSheetEntry]:
     """Every filterable variable of the study, with an example to copy."""
     described: list[tuple[str, EdaVariableOut]] = []
     first_values: dict[str, str] = {}
@@ -128,8 +128,15 @@ def open_sheet(
     domain: StrategyDomainState,
     study: EdaStudyDetail,
     dataset_id: str,
+    study_description: str,
 ) -> int:
     """Pin the filter sheet for one study and answer with how many variables."""
-    entries = _sheet_entries(study)
-    domain.pin_eda_sheet(dataset_id, entries)
+    entries = sheet_entries(study)
+    domain.pin_eda_sheet(
+        OpenEdaSheet(
+            dataset_id=dataset_id,
+            entries=entries,
+            study_description=study_description,
+        )
+    )
     return len(entries)

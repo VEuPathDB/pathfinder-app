@@ -7,7 +7,11 @@ from uuid import uuid4
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
+from pathfinder.domain.strategy.analysis_binding import (
+    AnalysisBinding,
+    CutTallies,
+    SubsetBasis,
+)
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import ParameterFact
@@ -194,3 +198,47 @@ def test_each_chosen_cut_shows_its_count_beside_the_count_at_the_other_reading()
             )
         ],
     )
+
+
+def _subset_on(shown: str, basis: SubsetBasis, prompt: str) -> tuple[str, str]:
+    based = binding().model_copy(
+        update={
+            "subset": [shown],
+            "shown_subset": [shown],
+            "subset_basis": [basis],
+        }
+    )
+    [step] = turn_facts(_deps(prompt, based)).steps
+    [row] = [p for p in step.parameters if p.name == "subset"]
+    return step.reason, row.source
+
+
+def test_a_subset_on_the_studys_class_states_that_basis() -> None:
+    shown = "Phenotype is one of Essential"
+
+    assert _subset_on(
+        shown,
+        SubsetBasis(filter=shown, basis="study"),
+        "Genes essential in any experiment.",
+    ) == ("Phenotype is one of Essential: the study's own class", "chosen")
+
+
+def test_a_subset_the_researcher_wrote_states_their_words() -> None:
+    shown = "Mean Phenotype Score is between -6.89 and -1.0"
+
+    assert _subset_on(
+        shown,
+        SubsetBasis(filter=shown, basis="stated"),
+        "Genes with a fitness below -1.",
+    ) == (f"{shown}: the researcher's words", "stated")
+
+
+def test_a_subset_picked_on_a_card_names_the_pick() -> None:
+    shown = "Mean Phenotype Score is between -6.89 and -2.0"
+    picked = "Mean Phenotype Score at most -2"
+
+    assert _subset_on(
+        shown,
+        SubsetBasis(filter=shown, basis="card", picked=picked),
+        "Genes essential in the lytic screen.",
+    ) == (f'{shown}: picked on a card, "{picked}"', "card")

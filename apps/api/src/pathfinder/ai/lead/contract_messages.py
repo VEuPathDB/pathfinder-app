@@ -62,9 +62,11 @@ def eda_criterion_not_built_message(waiting: Criterion) -> str:
         f"preview_eda_subset, then create_eda_step("
         f'criterion_id="{waiting.id}"), which puts the step where the '
         f"structure places it. Never ask the user for an analysis "
-        f"specification, and never answer that the criterion cannot be built "
-        f"or mapped: create_eda_step writes that document from the analysis "
-        f"you filtered."
+        f"specification document, and never answer that the criterion cannot "
+        f"be built or mapped: create_eda_step writes that document from the "
+        f"analysis you filtered. A cut that neither the researcher's words nor "
+        f"one of the study's own classes settles is a question: ask it with "
+        f"consult_user."
     )
 
 

@@ -28,6 +28,7 @@ from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
     SPECIES_VARIABLE,
     RevisionCounter,
+    no_description,
     permission_entry,
     phenotype_study,
     study_of,
@@ -191,6 +192,7 @@ async def test_a_first_call_with_no_filters_returns_the_sheet(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     result = returned(answer, EdaFiltersResult)
@@ -203,6 +205,7 @@ async def test_the_sheet_names_the_exact_filter_type_per_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     species = next(e for e in _pinned(lead_ctx) if e.variable_id == SPECIES_VARIABLE)
@@ -223,6 +226,7 @@ async def test_a_date_example_carries_the_time_part_the_service_requires(
     monkeypatch.setattr(
         eda_analysis, "get_study_detail_for_dataset", _date_and_number_study
     )
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     collected = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_collected")
@@ -245,6 +249,7 @@ async def test_a_longitude_variable_is_not_a_number_variable(
 ) -> None:
     """A longitude takes left and right, so a numberRange on it selects wrongly."""
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _longitude_study)
+    monkeypatch.setattr(eda_analysis, "study_description", no_description)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     longitude = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_lon")

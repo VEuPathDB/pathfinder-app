@@ -31,7 +31,7 @@ from pathfinder.ai.lead.intent import REQUEST_INTENTS, UNRECORDED_INTENTS, UserI
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
-from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
+from pathfinder.domain.eda_parts import OpenEdaSheet
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, OpenEdaAnalysis
 from pathfinder.domain.evidence import (
     EvidenceCard,
@@ -274,6 +274,7 @@ class StrategyDomainState(ThreadRequirements):
         self.open_questions = []
         self.named_readings = []
         self.picked_readings = []
+        self.card_picks = []
         self.original_request = ""
         self.request_messages = []
         self.last_build_outcome = None
@@ -428,11 +429,9 @@ class StrategyDomainState(ThreadRequirements):
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
         spec.criteria.append(criterion)
 
-    def pin_eda_sheet(
-        self, dataset_id: str, entries: list[EdaFilterSheetEntry]
-    ) -> None:
+    def pin_eda_sheet(self, sheet: OpenEdaSheet) -> None:
         """Open the filter sheet for a study, replacing anything it holds."""
-        self.open_eda_sheet = OpenEdaSheet(dataset_id=dataset_id, entries=entries)
+        self.open_eda_sheet = sheet
 
     def close_eda_sheet(self) -> None:
         """Drop the sheet whose subset is now applied."""

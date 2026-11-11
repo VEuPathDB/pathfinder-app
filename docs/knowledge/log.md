@@ -2,6 +2,12 @@
 
 ## 2026-11-11
 
+* **An EDA cut is stated or asked.** `create_eda_step` refuses a number or date range that no
+  researcher message states and no card picked (`value_source`); a set filter on the study's
+  own class passes. The pinned sheet carries the study's description, a number keeps its
+  minus sign when it is read as stated (`words.WORD`), and the facts row states each filter's
+  basis as the step's reason. See
+  [the decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
 * **A genome reading names the genomes it counts.** The genome reading card names its group
   from the site's phyletic tree ("the 28 Oomycota genomes"), joins the criterion text without
   a doubled stop, and the pick writes the reading into the criterion text; a rebind to the

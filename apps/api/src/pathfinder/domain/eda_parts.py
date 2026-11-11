@@ -71,6 +71,7 @@ class OpenEdaSheet(CamelModel):
 
     dataset_id: str
     entries: list[EdaFilterSheetEntry] = Field(default_factory=list)
+    study_description: str = ""
 
 
 class EdaEntityCount(CamelModel):

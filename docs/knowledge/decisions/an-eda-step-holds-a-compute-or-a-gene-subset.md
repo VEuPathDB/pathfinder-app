@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An EDA step holds a compute or a gene subset
-description: A step exports genes, so a subset export (the agent's or the tab's) needs a study with one gene entity (the entity that carries VEUPATHDB_GENE_ID) and a filter on it that selects at least one distinct gene id; a compute export needs a comparison, the analysis's first complete differential expression, and an effect_direction needs both thresholds on a compared analysis; an analysis with no filter and no computation has no eda_analysis_spec and never reaches the graph. A gene count is the distinct gene ids under the subset, never the gene entity's rows. Counting rows of the gene entity was rejected, because on a gene-by-sample counts entity a row is one gene in one sample.
+description: A step exports genes, so a subset export (the agent's or the tab's) needs a study with one gene entity (the entity that carries VEUPATHDB_GENE_ID) and a filter on it that selects at least one distinct gene id; a compute export needs a comparison, the analysis's first complete differential expression, and an effect_direction needs both thresholds on a compared analysis; an analysis with no filter and no computation has no eda_analysis_spec and never reaches the graph. A subset's range cut is exported only when a researcher message states its bounds or a card answer picked them; a set filter rests on the study's own class, and the pinned filter sheet carries the study's own description. A gene count is the distinct gene ids under the subset, never the gene entity's rows. Counting rows of the gene entity was rejected, because on a gene-by-sample counts entity a row is one gene in one sample. A top-N cut on a rank or a score that no one stated was rejected, because it reads a property the study does not define.
 tags: [eda, export, strategy, agent]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-23T20:00:00Z }
@@ -60,6 +60,21 @@ sample.
 - `effect_direction` defaults to unset. A direction on an analysis with no
   comparison, or without both thresholds, is refused
   (`refuse_a_direction_without_a_volcano`).
+- A subset's range cut is stated or asked. Before anything is planned,
+  `ai/tools/standalone/_eda_step_guard.py::subset_basis` reads each filter of
+  the analysis against the study's sheet. A `numberRange` or `dateRange` bound
+  at or past the variable's own end is open; every other bound must be stated
+  by a researcher message or by a label the researcher picked on a card, read
+  with the same `value_source` and `stated_words` that a search parameter is
+  read with (`domain.card_picks` holds every picked label). Otherwise
+  `create_eda_step` raises a retry that names the study's own classes and the
+  variable's range and says to ask with `consult_user`; nothing is written. A
+  set filter rests on the study's own class. The basis of each filter rides
+  the binding (`AnalysisBinding.subset_basis`), and the facts part states it as
+  the step's reason; a subset whose every filter is stated or picked takes
+  that source. `set_eda_filters` pins the study's description from the catalog
+  row beside the sheet, because a study defines its classes there (P. knowlesi
+  A1H1 calls a gene with no CDS insertion `nonmutable` and essential).
 - `serialize_spec` raises `EmptyAnalysisError` for an analysis with no filter
   and no computation, so neither the tool nor the tab's export route can build
   a step whose `eda_analysis_spec` is empty. The push refusal in
@@ -81,6 +96,14 @@ the service's own error, not the group, so the refusal it words for the
 researcher is the one it would word for a single read.
 
 # What was rejected
+
+**Let the agent pick a top-N cut on a rank or a score.** A request stated only
+as a property ("essential in any experiment") gave four studies a `Rank 1..100`
+cut each: 100 genes per study whatever the study measured, while the one study
+that defines essential (`Mutability in CDS = nonmutable`) holds 2,009 such
+genes. A cut is a question when neither the researcher's words nor the study's
+own class settles it. Never asking the researcher, which the route block once
+said, still holds for the analysis document only.
 
 **Keep one computation in the analysis.** The write replaced the whole list,
 so a compute run deleted the plots a researcher made in the site's EDA app,

@@ -389,6 +389,11 @@ async def _listed_study(site_id: str, study_id: str) -> EdaStudyOverview | None:
     return next((s for s in await list_studies(site_id) if s.id == study_id), None)
 
 
+async def study_description(site_id: str, study_id: str) -> str:
+    overview = await _listed_study(site_id, study_id)
+    return "" if overview is None else _plain(overview.description)
+
+
 async def unfiltered_entity_count(
     site_id: str,
     *,

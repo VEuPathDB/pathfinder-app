@@ -142,3 +142,8 @@ async def no_gene_study(
         "vocabulary": ["a", "b"],
     }
     return permission_entry(results_all=False), study_of([sample], entity_id="E")
+
+
+async def no_description(_site: str, _study_id: str) -> str:
+    """A study the catalog lists with no description."""
+    return ""

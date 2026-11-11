@@ -49,6 +49,7 @@ from pathfinder.services.eda.binding import (
 from pathfinder.services.eda.catalog import (
     UnknownEdaDatasetError,
     get_study_detail_for_dataset,
+    study_description,
 )
 from pathfinder.services.eda.description import (
     EdaPermissionFacts,
@@ -211,8 +212,9 @@ async def set_eda_filters(
     site_id = ctx.deps.runtime.site_id
     bound = await _bound_or_retry(ctx, dataset_id)
     if filters is None:
-        _entry, study = await _study(site_id, dataset_id)
-        variables = open_sheet(ctx.deps.state.domain, study, dataset_id)
+        entry, study = await _study(site_id, dataset_id)
+        description = await study_description(site_id, entry.study_id)
+        variables = open_sheet(ctx.deps.state.domain, study, dataset_id, description)
         return with_summary(
             EdaFiltersResult(
                 analysis_id=bound.analysis_id,
