@@ -16,8 +16,10 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
     study_organisms,
 )
+from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.domain.strategy.named_taxa import organism_trees
+from pathfinder.domain.strategy.organism_scope import NAMES_ONLY, SiteTaxa
 from pathfinder.domain.strategy.validate import first_cross_organism_refusal
 from pathfinder.services.strategies.record_classes import search_record_types
 
@@ -108,16 +110,16 @@ async def tree_organism_parameters(
     )
 
 
-async def organism_taxa(
-    site_id: str, organism_params: Mapping[str, str]
-) -> dict[str, frozenset[str]]:
+async def organism_taxa(site_id: str, organism_params: Mapping[str, str]) -> SiteTaxa:
     """The organisms under each entry of the organism tree of every marked search.
 
-    A search the catalog does not list, or cannot read, gives none, so its entries
-    stand for themselves.
+    When a search the catalog does not list or cannot read leaves a tree unread,
+    the organisms the site lists are read too, so an entry neither names is known
+    to be unplaced.
     """
     taxa: dict[str, frozenset[str]] = {}
     listed = await search_record_types(site_id, organism_params)
+    unread = set(organism_params) - set(listed)
     for search_name, listed_under in sorted(listed.items()):
         try:
             definition = await read_search_definition(
@@ -127,11 +129,22 @@ async def organism_taxa(
             logger.warning(
                 "organism tree unreadable", search_name=search_name, error=str(exc)
             )
+            unread.add(search_name)
             continue
         tree = organism_trees(definition).get(organism_params[search_name])
         if tree is not None:
             taxa.update(tree.parents)
-    return taxa
+    if not unread:
+        return SiteTaxa(under=taxa)
+    return SiteTaxa(under=taxa, listed=frozenset(await _site_organisms(site_id)))
+
+
+async def _site_organisms(site_id: str) -> list[str]:
+    try:
+        return await list_organisms(site_id)
+    except (VEuPathDBError, OSError) as exc:
+        logger.warning("site organisms unreadable", site_id=site_id, error=str(exc))
+        return []
 
 
 async def tree_cross_organism_refusal(
@@ -151,9 +164,9 @@ async def tree_taxa(
     root: StrategyStepNode,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
-) -> dict[str, frozenset[str]]:
+) -> SiteTaxa:
     """The organisms under each entry of the organism trees a tree reads, or none
     when no INTERSECT of the tree joins two scopes that differ by name."""
     if first_cross_organism_refusal(root, organism_params, dataset_organisms) is None:
-        return {}
+        return NAMES_ONLY
     return await organism_taxa(site_id, organism_params)

@@ -10,6 +10,7 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 from veupathdb.wdk import WDKSearch
 
+from pathfinder.domain.strategy.organism_scope import SiteTaxa
 from pathfinder.services.strategies import organism_params
 from pathfinder.services.strategies.organism_params import (
     organism_taxa,
@@ -94,10 +95,12 @@ async def test_the_tree_gives_the_organisms_under_each_entry(
 ) -> None:
     taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
 
-    assert taxa == {
-        "Babesiidae": frozenset({_BOVIS}),
-        "Theileria": frozenset({_PARVA}),
-    }
+    assert taxa == SiteTaxa(
+        under={
+            "Babesiidae": frozenset({_BOVIS}),
+            "Theileria": frozenset({_PARVA}),
+        }
+    )
     assert definitions_read == [_TAXON_SEARCH]
 
 
@@ -144,4 +147,4 @@ async def test_a_search_the_catalog_does_not_list_reads_no_tree(
 
     taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
 
-    assert (taxa, definitions_read) == ({}, [])
+    assert (taxa, definitions_read) == (SiteTaxa(listed=frozenset()), [])

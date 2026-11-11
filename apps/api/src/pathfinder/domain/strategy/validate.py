@@ -9,8 +9,9 @@ from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from pathfinder.domain.strategy.organism_remedy import remedy_for, scope_text
 from pathfinder.domain.strategy.organism_scope import (
-    NO_TAXA,
-    organisms_of,
+    NAMES_ONLY,
+    SelectedOrganisms,
+    SiteTaxa,
     output_organisms,
 )
 
@@ -21,14 +22,15 @@ def cross_organism_refusal(
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
     *,
-    taxa: Mapping[str, frozenset[str]] = NO_TAXA,
+    taxa: SiteTaxa = NAMES_ONLY,
 ) -> str | None:
     """Why the combine returns nothing, or None when its inputs can meet.
 
     Gene ids from different organisms never match, so an INTERSECT of two known
     and disjoint scopes is always empty. A search reads its organism from the
     parameter it marks, or from its dataset when it marks none. ``taxa`` gives
-    the organisms under each entry of the organism tree that holds some.
+    the organisms under each entry of the organism tree that holds some; a scope
+    with an entry the site does not place is not known, so it is not refused.
     """
     if combine.operator is not CombineOp.INTERSECT:
         return None
@@ -42,7 +44,9 @@ def cross_organism_refusal(
     )
     if primary is None or secondary is None:
         return None
-    if not organisms_of(primary, taxa).isdisjoint(organisms_of(secondary, taxa)):
+    held = SelectedOrganisms(entries=frozenset(primary), taxa=taxa)
+    other = SelectedOrganisms(entries=frozenset(secondary), taxa=taxa)
+    if held.unplaced or other.unplaced or held.meets(other):
         return None
     remedy = remedy_for(
         root, combine, (primary, secondary), organism_params, dataset_organisms
@@ -60,7 +64,7 @@ def first_cross_organism_refusal(
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
     *,
-    taxa: Mapping[str, frozenset[str]] = NO_TAXA,
+    taxa: SiteTaxa = NAMES_ONLY,
 ) -> str | None:
     """Why the first INTERSECT of the tree that can never meet is refused, or None."""
     for node in _nodes(root):
@@ -115,7 +119,7 @@ class StrategyValidator:
         available_transforms: list[str] | None = None,
         *,
         dataset_organisms: Mapping[str, frozenset[str]] | None = None,
-        taxa: Mapping[str, frozenset[str]] = NO_TAXA,
+        taxa: SiteTaxa = NAMES_ONLY,
     ) -> None:
         """Builds a validator. Searches are keyed by record type,
         ``dataset_organisms`` names the organisms of each step's dataset by step
@@ -307,7 +311,7 @@ def validate_strategy(
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]] | None = None,
     *,
-    taxa: Mapping[str, frozenset[str]] = NO_TAXA,
+    taxa: SiteTaxa = NAMES_ONLY,
 ) -> ValidationResult:
     """Validates a strategy tree with the default validator."""
     validator = StrategyValidator(

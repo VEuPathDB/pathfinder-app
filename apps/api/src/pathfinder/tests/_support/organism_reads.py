@@ -10,6 +10,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKRecordType, WDKSearch
 
 from pathfinder.ai.tools.standalone import _frame_organisms, frame_structure
+from pathfinder.domain.strategy.organism_scope import SiteTaxa
 from pathfinder.services.strategies import (
     data_marks,
     organism_params,
@@ -141,12 +142,10 @@ def serve_organism_trees(
     under each entry. Each read is recorded as the organism parameters it named."""
     read: list[dict[str, str]] = []
 
-    async def _taxa(
-        site_id: str, organism_params: Mapping[str, str]
-    ) -> dict[str, frozenset[str]]:
+    async def _taxa(site_id: str, organism_params: Mapping[str, str]) -> SiteTaxa:
         del site_id
         read.append(dict(organism_params))
-        return dict(taxa)
+        return SiteTaxa(under=taxa)
 
     monkeypatch.setattr(organism_params, "organism_taxa", _taxa)
     monkeypatch.setattr(_frame_organisms, "organism_taxa", _taxa)

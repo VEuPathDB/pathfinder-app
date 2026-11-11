@@ -6,6 +6,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
+from pathfinder.domain.strategy.organism_scope import SiteTaxa
 from pathfinder.domain.strategy.validate import (
     cross_organism_refusal,
     first_cross_organism_refusal,
@@ -20,11 +21,14 @@ _TG = "Toxoplasma gondii ME49"
 _STRAIN = "Aspergillus nidulans FGSC A4"
 _SPECIES = "Aspergillus nidulans"
 _MARKED = {"GenesByGoTerm": "organism"}
-_TAXA = {
-    "Apicomplexa": frozenset({_PF, _PK, _TG}),
-    "Plasmodium": frozenset({_PF, _PK}),
-    _SPECIES: frozenset({_STRAIN}),
-}
+_TAXA = SiteTaxa(
+    under={
+        "Apicomplexa": frozenset({_PF, _PK, _TG}),
+        "Plasmodium": frozenset({_PF, _PK}),
+        _SPECIES: frozenset({_STRAIN}),
+    }
+)
+_LISTED_ONLY = SiteTaxa(listed=frozenset({_PF, _PK, _TG}))
 
 
 def _annotated(step_id: str, organism: str) -> StrategyStepNode:
@@ -124,3 +128,20 @@ def test_the_validator_reads_the_taxa() -> None:
         by_organism.valid,
         by_organism.errors,
     ) == ([_refused("Apicomplexa", _PK)], True, [])
+
+
+def test_a_taxon_the_site_tree_does_not_expand_is_not_refused() -> None:
+    root = combine("c", _annotated("a", "Apicomplexa"), _annotated("b", _PK))
+
+    assert (
+        cross_organism_refusal(root, root, _MARKED, {}),
+        cross_organism_refusal(root, root, _MARKED, {}, taxa=_LISTED_ONLY),
+    ) == (_refused("Apicomplexa", _PK), None)
+
+
+def test_two_listed_organisms_without_the_site_tree_are_refused() -> None:
+    root = combine("c", _annotated("a", _PF), _annotated("b", _TG))
+
+    assert cross_organism_refusal(
+        root, root, _MARKED, {}, taxa=_LISTED_ONLY
+    ) == _refused(_PF, _TG)

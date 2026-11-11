@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Sequence
 from typing import Any
 
 import pytest
-from veupathdb.wdk import WDKRecordType, WDKStrategyDetails
+from veupathdb.wdk import WDKRecordType, WDKSearch, WDKStrategyDetails
 
 from pathfinder.ai.lead import evidence_card, sub_agent_tools, verify_checks
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.services.strategies import record_classes
+from pathfinder.services.strategies import organism_params, record_classes
 from pathfinder.services.strategies.site_counts import SiteCounts
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import final_result_model
@@ -37,7 +38,10 @@ def serve_the_site(
     monkeypatch: pytest.MonkeyPatch,
     details: WDKStrategyDetails,
     record_types: list[WDKRecordType],
+    definitions: Sequence[WDKSearch] = (),
 ) -> None:
+    served = {search.url_segment: search for search in definitions}
+
     async def strategy(site_id: str, wdk_strategy_id: int) -> WDKStrategyDetails:
         assert wdk_strategy_id == details.strategy_id
         return details
@@ -51,9 +55,17 @@ def serve_the_site(
     async def listed(site_id: str) -> list[WDKRecordType]:
         return record_types
 
+    async def listed_under(site_id: str, names: Collection[str]) -> dict[str, str]:
+        return {name: "transcript" for name in names if name in served}
+
+    async def definition(site_id: str, record_type: str, name: str) -> WDKSearch:
+        return served[name]
+
     monkeypatch.setattr(verify_checks, "read_site_strategy", strategy)
     monkeypatch.setattr(evidence_card, "read_step_counts", counts)
     monkeypatch.setattr(record_classes, "get_raw_record_types", listed)
+    monkeypatch.setattr(organism_params, "search_record_types", listed_under)
+    monkeypatch.setattr(organism_params, "read_search_definition", definition)
 
 
 async def verify(

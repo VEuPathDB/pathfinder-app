@@ -6,20 +6,56 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Mapping
 from types import MappingProxyType
 
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import StrategyStepNode, extract_output_organisms
 
 from pathfinder.domain.strategy.operational_spec import Criterion
-
-# No entry of an organism tree is known to hold organisms.
-NO_TAXA: Mapping[str, frozenset[str]] = MappingProxyType({})
+from pathfinder.domain.strategy.words import words_of
 
 
-def organisms_of(
-    scope: Collection[str], taxa: Mapping[str, frozenset[str]]
-) -> set[str]:
-    """The organisms a scope stands for: an entry of the organism tree that holds
-    organisms stands for those under it."""
-    return {organism for entry in scope for organism in taxa.get(entry, {entry})}
+class SiteTaxa(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    under: Mapping[str, frozenset[str]] = Field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    listed: frozenset[str] | None = None
+
+    def below(self, entry: str) -> frozenset[str]:
+        return self.under.get(entry, frozenset({entry}))
+
+    def places(self, entry: str) -> bool:
+        return self.listed is None or entry in self.under or entry in self.listed
+
+
+NAMES_ONLY = SiteTaxa()
+
+
+class SelectedOrganisms(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    entries: frozenset[str]
+    taxa: SiteTaxa
+
+    @property
+    def organisms(self) -> frozenset[str]:
+        return frozenset(
+            organism for entry in self.entries for organism in self.taxa.below(entry)
+        )
+
+    @property
+    def unplaced(self) -> frozenset[str]:
+        return frozenset(e for e in self.entries if not self.taxa.places(e))
+
+    def meets(self, other: SelectedOrganisms) -> bool:
+        return not self.organisms.isdisjoint(other.organisms)
+
+    def holds(self, organism: str) -> bool:
+        named = words_of(organism)
+        return any(words_of(selected) == named for selected in self.organisms)
+
+    def names(self, entry: str) -> bool:
+        return all(self.holds(organism) for organism in self.taxa.below(entry))
 
 
 def organism_params_of(criteria: Iterable[Criterion]) -> dict[str, str]:

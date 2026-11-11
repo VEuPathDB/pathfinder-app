@@ -40,8 +40,9 @@ The entry is compared by equality:
 - grounding: a criterion whose organism parameter selects the entry realizes
   it; a criterion that links the requirement and holds a taxon pick realizes the
   taxon;
-- the organism check: a requirement whose entry the strategy selects carries the
-  result organism check, and one with no entry is `unchecked`;
+- the organism check: a requirement whose organisms the strategy selects, by
+  the entry itself or under an entry of the organism tree, carries the result
+  organism check, and one with no entry is `unchecked`;
 - FRAME's bind refusal names the entries the live requirements hold
   (`match_exact_option`), and a requirement with no entry names none;
 - the organism drop is met when the dropped criterion links only organism

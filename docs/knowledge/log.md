@@ -1,5 +1,14 @@
 # Log
 
+## 2026-11-11
+
+* **A clade selects the organisms under it.** VERIFY's organism check and the
+  cross-organism refusal compare a record's organism with the organisms under each selected
+  entry of the site's organism tree (`SelectedOrganisms`), so a clade passes its own
+  organisms and a strain admits no sibling its name begins. When the tree cannot be read, an
+  entry that names no listed organism leaves the check unchecked instead of failing it. See
+  [the decision](decisions/an-organism-scope-is-the-organisms-a-name-stands-for.md).
+
 ## 2026-11-10
 
 * **The audit lives in the audit assistant alone.** The audit is an internal VEuPathDB

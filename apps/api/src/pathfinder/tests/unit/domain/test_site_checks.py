@@ -31,6 +31,11 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
 )
+from pathfinder.domain.strategy.organism_scope import (
+    NAMES_ONLY,
+    SelectedOrganisms,
+    SiteTaxa,
+)
 from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.recorded_counts import recorded_count
@@ -208,7 +213,9 @@ def _pf(strain: str) -> str:
 
 
 def test_a_record_of_an_organism_the_strategy_does_not_select_fails() -> None:
-    selected = frozenset({_pf("falciparum 3D7")})
+    selected = SelectedOrganisms(
+        entries=frozenset({_pf("falciparum 3D7")}), taxa=NAMES_ONLY
+    )
     found = _counted((_pf("falciparum 3D7"), 819), (_pf("falciparum IT"), 21))
 
     check = organism_check("P. falciparum 3D7", "organism:x", selected, found)
@@ -229,7 +236,16 @@ def test_a_species_selected_whole_holds_its_strains() -> None:
     check = organism_check(
         "the organisms of the result",
         "",
-        frozenset({"Plasmodium falciparum"}),
+        SelectedOrganisms(
+            entries=frozenset({"Plasmodium falciparum"}),
+            taxa=SiteTaxa(
+                under={
+                    "Plasmodium falciparum": frozenset(
+                        {_pf("falciparum 3D7"), _pf("falciparum IT")}
+                    )
+                }
+            ),
+        ),
         found,
     )
 
@@ -237,7 +253,9 @@ def test_a_species_selected_whole_holds_its_strains() -> None:
 
 
 def test_an_organism_count_the_site_cut_short_or_did_not_read_is_unchecked() -> None:
-    selected = frozenset({_pf("falciparum 3D7")})
+    selected = SelectedOrganisms(
+        entries=frozenset({_pf("falciparum 3D7")}), taxa=NAMES_ONLY
+    )
 
     refused = UnreadOrganisms(why="no_check", evidence="the site refused the column")
     unanswered = UnreadOrganisms(

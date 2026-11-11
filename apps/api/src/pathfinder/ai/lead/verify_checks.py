@@ -43,6 +43,7 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
 )
 from pathfinder.domain.strategy.organism_scope import (
+    SelectedOrganisms,
     dataset_organisms_of,
     organism_params_of,
     output_organisms,
@@ -59,6 +60,7 @@ from pathfinder.services.experiment.paged_tally import (
 from pathfinder.services.experiment.reporter_refusals import ReporterRefusedError
 from pathfinder.services.experiment.step_tally import CountedStep, run_step_tally
 from pathfinder.services.site_errors import answered_with_a_status
+from pathfinder.services.strategies.organism_params import organism_taxa
 from pathfinder.services.strategies.site_changes import (
     values_the_site_holds_otherwise,
 )
@@ -244,16 +246,25 @@ async def _organism_checks(
     root = judged.root
     if spec is None or ast is None or root is None:
         return []
-    found = output_organisms(
-        ast.root, organism_params_of(spec.criteria), dataset_organisms_of(spec.criteria)
+    marks = organism_params_of(spec.criteria)
+    found = output_organisms(ast.root, marks, dataset_organisms_of(spec.criteria))
+    selected = (
+        None
+        if found is None
+        else SelectedOrganisms(
+            entries=frozenset(found), taxa=await organism_taxa(judged.site_id, marks)
+        )
     )
-    selected = None if found is None else frozenset(found)
     counted = None if selected is None else await _counted_organisms(judged, root)
     checks: list[SiteCheck] = []
     carried = False
     for held in asked:
         c = held.constraint
-        names = selected is not None and c.organism in selected
+        names = (
+            selected is not None
+            and c.organism is not None
+            and selected.names(c.organism)
+        )
         carried = carried or names
         checks.append(
             organism_check(c.requested_value, c.id, selected, counted)

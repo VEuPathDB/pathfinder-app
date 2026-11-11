@@ -24,6 +24,7 @@ from veupathdb.wdk import (
 )
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.organism_scope import SiteTaxa
 from pathfinder.domain.strategy.record_class_check import step_class_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.strategy_description import strategy_description
@@ -368,7 +369,7 @@ def _validate_graph(
     record_type: str,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
-    taxa: Mapping[str, frozenset[str]],
+    taxa: SiteTaxa,
 ) -> None:
     validation_result = validate_strategy(
         root_step, record_type, organism_params, dataset_organisms, taxa=taxa

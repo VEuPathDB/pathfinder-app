@@ -11,7 +11,7 @@ from veupathdb.domain.strategy.validation import StepValidation
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.strategy.constraints import ConstraintKind, StoredKind
-from pathfinder.domain.strategy.words import words_of
+from pathfinder.domain.strategy.organism_scope import SelectedOrganisms
 from pathfinder.domain.tally_facts import TallyFact
 
 type CheckStatus = Literal["pass", "fail", "unchecked"]
@@ -375,11 +375,6 @@ class CountedOrganisms(CamelModel):
     rows: list[OrganismCount]
 
 
-def _under(organism: str, selected: str) -> bool:
-    named = words_of(selected)
-    return bool(named) and words_of(organism)[: len(named)] == named
-
-
 def _listed(rows: Sequence[OrganismCount]) -> str:
     return ", ".join(f"{row.organism} ({row.count:,})" for row in rows)
 
@@ -387,7 +382,7 @@ def _listed(rows: Sequence[OrganismCount]) -> str:
 def organism_check(
     subject: str,
     requirement: str,
-    selected: frozenset[str] | None,
+    selected: SelectedOrganisms | None,
     read: CountedOrganisms | UnreadOrganisms | None,
 ) -> SiteCheck:
     def judged(
@@ -413,11 +408,14 @@ def organism_check(
                 "no step of the strategy selects the organism of its result",
                 "no_check",
             )
-    outside = [
-        row
-        for row in found.rows
-        if not any(_under(row.organism, chosen) for chosen in selected)
-    ]
+    if selected.unplaced:
+        return judged(
+            "unchecked",
+            "the site's organism list could not be read, so the organisms under "
+            f"{', '.join(sorted(selected.unplaced))} are not known",
+            "no_check",
+        )
+    outside = [row for row in found.rows if not selected.holds(row.organism)]
     if outside:
         held = sum(row.count for row in outside)
         return judged(

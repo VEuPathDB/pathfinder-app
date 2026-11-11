@@ -9,6 +9,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.ai.lead import held_intent
 from pathfinder.services.audit import planning
+from pathfinder.services.strategies import organism_params
 from pathfinder.tests._support.qa_recording import qa_recording
 
 _RECORDED = Path(__file__).resolve().parents[1] / "fixtures" / "organisms"
@@ -40,7 +41,8 @@ def serve_recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
 
 def serve_planned_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Serve the audit planner each recorded site's organisms, and none elsewhere."""
+    """Serve the audit planner and the organism-tree reader each recorded site's
+    organisms, and none elsewhere."""
 
     async def _organisms(site_id: str) -> list[str]:
         if not (_RECORDED / f"{site_id}.json").exists():
@@ -48,3 +50,4 @@ def serve_planned_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
         return recorded_organisms(site_id)
 
     monkeypatch.setattr(planning, "list_organisms", _organisms)
+    monkeypatch.setattr(organism_params, "list_organisms", _organisms)
