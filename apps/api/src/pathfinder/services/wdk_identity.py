@@ -67,20 +67,15 @@ def identity_sites(site_id: str) -> list[str]:
     return list(dict.fromkeys([*named, *([peer] if peer else []), site_id]))
 
 
-_SERVER_ERROR = 500
-
-
 async def identity_or_unavailable[T](site_id: str, read: Awaitable[T]) -> T:
     """Await an identity read of ``site_id``, refusing the request on an outage.
 
-    A server status means the site did not answer, so the refusal is a 503
-    that names the site. A client status propagates unchanged.
+    The read returns None for a token the site refuses, so any status it raises
+    means the site did not serve the read, and the refusal is a 503 naming it.
     """
     try:
         return await read
     except WDKError as error:
-        if error.status < _SERVER_ERROR:
-            raise
         reason = site_failure_reason(error.__cause__ or error)
         raise SiteUnavailableError(site_id, reason) from error
 

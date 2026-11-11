@@ -94,14 +94,15 @@ privileged answer. So `require_session_matches_wdk_identity` takes the site the
 request names - the optional `siteId` on
 `transport/http/deps.py::require_registered_wdk_identity`, the body's site on
 `POST /api/v1/chat`, the configured default when a request names none - and
-`services/wdk_identity.py::identity_site` hands the read to the first loaded
-site whenever the named one is degraded. A request that names a degraded site is
+`services/wdk_identity.py::identity_sites` hands the read to the first loaded
+site whenever the named one is degraded or does not serve the read. A request that names a degraded site is
 refused 503 `SITE_UNAVAILABLE` by that same dependency, before the read.
 `fetch_current_user` (`veupathdb-py` v0.1.0a14) makes one attempt under a 10 s
 deadline and returns `None` only for a request with no token or a token the site
-refuses (401/403); a site that does not answer raises `WDKError` with a server
-status. The identity read is itself a route that answers 503 on an outage:
-`services/wdk_identity.py::identity_or_unavailable` turns that `WDKError` into
+refuses (401/403); a site that does not serve the read raises `WDKError`, with a
+server status on an outage and a client status (404) when the site's service is
+not deployed. The identity read is itself a route that answers 503 on an outage:
+`services/wdk_identity.py::identity_or_unavailable` turns any such `WDKError` into
 `SiteUnavailableError` naming the site, on the identity gate, on
 `GET /api/v1/veupathdb/auth/status` and on `POST /api/v1/veupathdb/auth/refresh`,
 so an outage is never a sign-out and never a silent pass. A token the site

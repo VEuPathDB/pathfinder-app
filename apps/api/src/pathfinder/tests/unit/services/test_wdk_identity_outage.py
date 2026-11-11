@@ -79,13 +79,18 @@ class TestTheMapping:
         assert refusal.value.code == ErrorCode.SITE_UNAVAILABLE
         assert refusal.value.detail == f"Could not connect to plasmodb ({reason})."
 
-    async def test_a_client_error_propagates_unchanged(self) -> None:
-        error = WDKError("not found", status=404)
+    @pytest.mark.parametrize("status", [400, 404])
+    async def test_a_client_status_is_a_site_that_did_not_serve_the_read(
+        self, status: int
+    ) -> None:
+        error = _outage(status, _site_status(status))
 
-        with pytest.raises(WDKError) as raised:
+        with pytest.raises(SiteUnavailableError) as refusal:
             await wdk_identity.identity_or_unavailable("plasmodb", _raises(error))
 
-        assert raised.value is error
+        assert refusal.value.detail == (
+            "Could not connect to plasmodb (the site answered with an error)."
+        )
 
     @pytest.mark.parametrize("value", ["researcher@upenn.edu", None])
     async def test_an_answer_passes_through(self, value: str | None) -> None:
@@ -165,6 +170,31 @@ class TestASiteThatDoesNotAnswerHandsTheReadOn:
         )
 
         assert (seen, user_id) == (["plasmodb", "toxodb"], SESSION_USER)
+
+    async def test_a_loaded_peer_answers_when_the_named_site_is_not_served(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        readiness = get_readiness()
+        readiness.mark_catalog_ready("veupathdb")
+        readiness.mark_catalog_ready("toxodb")
+        seen: list[str] = []
+
+        async def registered_email(token: str, site_id: str) -> str | None:
+            del token
+            seen.append(site_id)
+            if site_id == "veupathdb":
+                raise _outage(404, _site_status(404))
+            return "researcher@upenn.edu"
+
+        monkeypatch.setattr(wdk_identity, "resolve_registered_email", registered_email)
+        monkeypatch.setattr(wdk_identity, "get_or_create_user_id", _user_id_of)
+        monkeypatch.setattr(wdk_identity, "async_session_factory", _NoSession)
+
+        user_id = await wdk_identity.resolve_veupathdb_user_id(
+            REGISTERED_TOKEN, "veupathdb"
+        )
+
+        assert (seen, user_id) == (["veupathdb", "toxodb"], SESSION_USER)
 
     async def test_the_last_sites_refusal_stands_when_none_answers(
         self, monkeypatch: pytest.MonkeyPatch

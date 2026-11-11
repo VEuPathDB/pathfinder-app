@@ -2,6 +2,13 @@
 
 ## 2026-11-11
 
+* **An identity read moves on from a site that does not serve it.** The identity read returns
+  None for a token the site refuses, so every status it raises now means the site did not serve
+  the read: a client status (the 404 of a site whose service is not deployed) is a 503 naming the
+  site, and the read moves on to a loaded peer, as an outage already did. Before, the portal's
+  404 refused every request on a deployment whose configured site is the portal. See
+  [the decision](decisions/a-site-that-is-down-is-down-on-its-own.md).
+
 * **A research question keeps its tools.** The message reader's guide names PathFinder's
   research role. `off_topic` now leaves out the pathogens, hosts and vectors the sites cover, their
   biology and the literature on them, so a literature question about a covered pathogen is not
