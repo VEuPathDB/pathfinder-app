@@ -217,7 +217,7 @@ async def _judged(
         if reason is None:
             kept.append(target)
         else:
-            refused.append(RefusedTarget(key=target.key, reason=reason))
+            refused.append(RefusedTarget(target=target, reason=reason))
     return tuple(kept), tuple(refused)
 
 

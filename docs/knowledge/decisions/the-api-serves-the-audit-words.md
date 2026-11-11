@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The API serves the audit words, and the web holds only words no backend table holds
-description: Every audit word with a backend table in `domain/audit/words.py` reaches the web from the API, on a finding (`checkTitle`, `errorTitle`, `verdictText`) or from `GET /api/v1/audits/words` when no finding is at hand; the web keeps a table only for a value no backend table names. A TypeScript copy of each backend table held equal by a test was rejected.
+description: Every audit word with a backend table in `domain/audit/words.py` reaches the web from the API, on a finding (`checkTitle`, `errorTitle`, `verdictText`), on the audit start card (`checkTitles`, a refused target's `title`), or from `GET /api/v1/audits/words` when no finding is at hand; the web keeps a table only for a value no backend table names. A TypeScript copy of each backend table held equal by a test was rejected.
 tags: [audit, web, words, openapi]
 generated: { by: claude-code/opus-5, at: 2026-10-24T00:00:00Z }
 status: stable
@@ -14,7 +14,9 @@ status: stable
 `ERROR_TYPE_DESCRIPTIONS`), a finding's status (`UNCHECKED_SENTENCES`), the
 unresolved count by status (`UNRESOLVED_WORDS`), why a run halted
 (`HALT_SENTENCES`), and a review's verdict, literature status and progress.
-A page shows the words a finding carries when it has the finding. When it has
+A page shows the words a finding carries when it has the finding. The approval
+card of an audit start shows the words the start card carries
+(`AuditStartCard.checkTitles`, and each refused target's `title`). When it has
 no finding (a filter label, a legend, a count by status, a halted run), it reads
 `GET /api/v1/audits/words`.
 

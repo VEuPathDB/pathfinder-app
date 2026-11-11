@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, MessageSquare, ShieldAlert, X } from "lucide-react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import { ToolInput } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export interface ApprovalCardProps {
   subject?: string | null;
   /** Each other step the approved call removes, listed under the question. */
   removes?: readonly string[];
+  details?: ReactNode;
 }
 
 const DECIDED = {
@@ -61,6 +62,7 @@ export function ApprovalCard({
   decision,
   subject = null,
   removes = [],
+  details = null,
 }: ApprovalCardProps): ReactElement {
   if (decision !== "pending") {
     return <Decision decision={decision} subject={subject} />;
@@ -77,6 +79,9 @@ export function ApprovalCard({
         <ShieldAlert className="size-3.5 text-warning" aria-hidden />
         {prompt}
       </p>
+      {details === null ? null : (
+        <div data-testid="approval-card-details">{details}</div>
+      )}
       {removes.length > 0 ? (
         <div data-testid="approval-card-cascade" className="text-xs">
           <p className="text-muted-foreground">It also removes:</p>

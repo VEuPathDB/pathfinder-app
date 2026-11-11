@@ -15,6 +15,9 @@
 * **An audit conversation names its tools and links to its report.** Each audit tool has a
   label in the thread, the auditor's model reads an audit thread's message, and a started
   run, a run read or a finding read links to its report page.
+* **The approval card of an audit start draws the start card.** `AuditStartCard.checkTitles`
+  and a refused target's `title` are API words, a refused target holds its gene target
+  instead of an internal key, and `data-audit-start` joins the known data-part kinds.
 * **An eval case judges stored verdicts.** A case states the verdict and the cause words it
   expects per gene, and the run is scored against the newest verdict the case's conversations
   stored for that gene.

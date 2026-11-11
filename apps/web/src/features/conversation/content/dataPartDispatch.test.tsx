@@ -20,6 +20,7 @@ import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersCon
 import { AssistantMessage, UserMessage } from "./MessageRenderer";
 import { coreDataPartComponents } from "./coreDataParts";
 import { edaDataPartComponents } from "./edaDataParts";
+import { auditDataPartComponents } from "./auditDataParts";
 import { strategyDataPartComponents } from "./strategyDataParts";
 import { dataPartComponents } from "./contentComponents";
 import { EVIDENCE_CARD } from "./parts/evidenceCardFixture";
@@ -84,20 +85,28 @@ describe("dataPartComponents merge", () => {
     }
   });
 
-  it("keeps the three sources disjoint", () => {
+  it("contains every audit renderer", () => {
+    for (const kind of Object.keys(auditDataPartComponents)) {
+      expect(Object.hasOwn(dataPartComponents, kind)).toBe(true);
+    }
+  });
+
+  it("keeps the four sources disjoint", () => {
     const kinds = [
       ...Object.keys(coreDataPartComponents),
       ...Object.keys(strategyDataPartComponents),
       ...Object.keys(edaDataPartComponents),
+      ...Object.keys(auditDataPartComponents),
     ];
     expect(kinds).toHaveLength(new Set(kinds).size);
   });
 
-  it("adds nothing beyond the three sources", () => {
+  it("adds nothing beyond the four sources", () => {
     const sources = new Set([
       ...Object.keys(coreDataPartComponents),
       ...Object.keys(strategyDataPartComponents),
       ...Object.keys(edaDataPartComponents),
+      ...Object.keys(auditDataPartComponents),
     ]);
     expect(new Set(Object.keys(dataPartComponents))).toEqual(sources);
   });

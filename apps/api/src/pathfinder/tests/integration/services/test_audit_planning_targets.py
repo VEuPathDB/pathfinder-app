@@ -67,7 +67,7 @@ async def test_a_target_without_a_junction_track_is_refused() -> None:
     assert proposal.scope.targets == (RNA_KEPT,)
     assert proposal.refused_targets == (
         RefusedTarget(
-            key=RNA_REFUSED.key,
+            target=RNA_REFUSED,
             reason=f"{SITE_NAME} serves no RNA-seq junction track for the genome of EXB_0001",
         ),
     )
@@ -85,7 +85,7 @@ async def test_a_sec_target_whose_reference_holds_no_selenocysteine_is_refused()
     assert proposal.scope.targets == (SEC_KEPT, SEC_UNSERVED)
     assert proposal.refused_targets == (
         RefusedTarget(
-            key=SEC_REFUSED.key,
+            target=SEC_REFUSED,
             reason=(
                 "the reference protein of EXA_0012 holds no selenocysteine, "
                 "so its lineage reads no Sec codon"
@@ -149,7 +149,7 @@ async def test_a_failed_sec_read_refuses_only_its_target(
     assert proposal.scope.targets == (RNA_KEPT,)
     assert proposal.refused_targets == (
         RefusedTarget(
-            key=SEC_KEPT.key, reason=f"{SITE_NAME} did not answer the read of EXR_0002"
+            target=SEC_KEPT, reason=f"{SITE_NAME} did not answer the read of EXR_0002"
         ),
     )
 
@@ -165,7 +165,7 @@ async def test_a_gene_the_site_cannot_read_refuses_only_its_target(
     assert proposal.scope is not None
     assert proposal.scope.targets == (SEC_KEPT,)
     assert proposal.refused_targets == (
-        RefusedTarget(key=RNA_KEPT.key, reason=f"{SITE_NAME} could not read EXA_0007"),
+        RefusedTarget(target=RNA_KEPT, reason=f"{SITE_NAME} could not read EXA_0007"),
     )
 
 
@@ -190,7 +190,7 @@ async def test_a_failed_read_says_whether_the_site_answered(
 
     proposal = await propose_scope(plan_request(targets=(RNA_KEPT,)))
 
-    assert proposal.refused_targets == (RefusedTarget(key=RNA_KEPT.key, reason=reason),)
+    assert proposal.refused_targets == (RefusedTarget(target=RNA_KEPT, reason=reason),)
 
 
 @pytest.mark.usefixtures("site")
@@ -277,7 +277,7 @@ async def test_a_sec_read_that_times_out_is_not_answered(
 
     assert proposal.refused_targets == (
         RefusedTarget(
-            key=SEC_KEPT.key, reason=f"{SITE_NAME} did not answer the read of EXR_0002"
+            target=SEC_KEPT, reason=f"{SITE_NAME} did not answer the read of EXR_0002"
         ),
     )
 

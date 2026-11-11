@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping, Sequence
 from typing import Self, get_args
 
-from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from pathfinder.domain.audit.findings import EvidenceKind
@@ -21,6 +21,7 @@ from pathfinder.domain.audit.scope import (
     ScreenedCheck,
 )
 from pathfinder.domain.audit.verdicts import AGREEMENT_SAMPLE, MAX_REVIEWS_PER_RUN
+from pathfinder.domain.audit.words import CHECK_TITLES, target_words
 from pathfinder.domain.statistic_facts import Sentence
 
 START_LABEL = "Start this audit?"
@@ -108,8 +109,12 @@ class PlanRequest(PlanAsk):
 class RefusedTarget(CamelModel):
     model_config = ConfigDict(frozen=True)
 
-    key: str
+    target: GeneTarget
     reason: Sentence
+
+    @computed
+    def title(self) -> str:
+        return target_words(self.target)
 
 
 class RunEstimate(CamelModel):
@@ -206,6 +211,10 @@ class AuditStartCard(CamelModel):
     hours: float
     hours_at_most: float
     model_reviews: int
+
+    @computed
+    def check_titles(self) -> list[str]:
+        return [CHECK_TITLES[check] for check in self.checks]
 
 
 def _by_name(genomes: Sequence[SiteGenome]) -> dict[str, SiteGenome]:

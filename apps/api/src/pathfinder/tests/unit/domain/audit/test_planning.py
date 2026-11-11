@@ -33,6 +33,7 @@ from pathfinder.domain.audit.scope import (
     OrganelleTarget,
     SingleGeneTarget,
 )
+from pathfinder.domain.audit.words import CHECK_TITLES
 
 STRAINS = tuple(f"Examplea alpha {letter}" for letter in "ABCDEFGHI")
 ALPHA_R = "Examplea alpha R"
@@ -67,6 +68,7 @@ LIST_TARGETS = (
     GenePairTarget(check="strain_model", genes=("EXA_0004", "EXR_0004")),
     SingleGeneTarget(check="intron_support", genes=("EXA_0007",)),
 )
+REFUSED = SingleGeneTarget(check="intron_support", genes=("EXB_0001",))
 MISSING = MissingGeneTarget(
     check="missing_gene", genes=("EXR_0005",), absent_organism=STRAINS[1]
 )
@@ -225,9 +227,7 @@ def _proposal() -> ScopeProposal:
         scope=SCOPE,
         estimate=estimate(SCOPE, run_hours=6.0, costs=_costs()),
         left_out=STRAINS[7:],
-        refused_targets=(
-            RefusedTarget(key="intron_support:EXB_0001", reason="no junction track"),
-        ),
+        refused_targets=(RefusedTarget(target=REFUSED, reason="no junction track"),),
     )
 
 
@@ -252,14 +252,32 @@ def test_the_card_carries_the_proposal_fields() -> None:
         ),
         targets=6,
         left_out=STRAINS[7:],
-        refused_targets=(
-            RefusedTarget(key="intron_support:EXB_0001", reason="no junction track"),
-        ),
+        refused_targets=(RefusedTarget(target=REFUSED, reason="no junction track"),),
         wdk_requests=133,
         store_reads=5,
         hours=102 / 3600,
         hours_at_most=6.0,
         model_reviews=60,
+    )
+
+
+def test_the_start_card_carries_its_check_titles() -> None:
+    card = start_card(_proposal(), tool_call_id="call_1").model_copy(
+        update={"checks": ("gene_length", "intron_support")}
+    )
+
+    assert card.model_dump(by_alias=True, mode="json")["checkTitles"] == [
+        CHECK_TITLES["gene_length"],
+        CHECK_TITLES["intron_support"],
+    ]
+
+
+def test_a_refused_target_is_titled_in_the_api_words() -> None:
+    card = start_card(_proposal(), tool_call_id="call_1")
+
+    assert (
+        card.model_dump(by_alias=True, mode="json")["refusedTargets"][0]["title"]
+        == f"{CHECK_TITLES['intron_support']}, EXB_0001"
     )
 
 

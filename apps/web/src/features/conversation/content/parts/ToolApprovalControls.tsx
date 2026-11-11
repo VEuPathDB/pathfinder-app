@@ -9,6 +9,8 @@ import {
 } from "ai";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
+import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
+import { auditStartCardSchema } from "@pathfinder/shared/generated/zod/auditStartCardSchema";
 import { deleteCascadePayloadSchema } from "@pathfinder/shared/generated/zod/deleteCascadePayloadSchema";
 import { toolApprovalPayloadSchema } from "@pathfinder/shared/generated/zod/toolApprovalPayloadSchema";
 import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
@@ -32,6 +34,7 @@ import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
 import { answeredInALaterMessage, isOpenCard } from "./cardAnswers";
 import { ACCOUNT_READ_TOOL, AccountReadCard, accountReadWhat } from "./AccountReadCard";
+import { AuditStartDetails } from "./AuditStartDetails";
 
 /** The tools whose approval their own card answers. */
 const CARD_TOOLS: ReadonlySet<string> = new Set([
@@ -49,6 +52,7 @@ export interface ToolApprovalView {
   asked: string | null;
   /** Each other step the call removes, as the api named it when it asked. */
   removes: string[];
+  auditStart: AuditStartCard | null;
 }
 
 function decisionOf(part: ToolUIPart | DynamicToolUIPart): ApprovalDecision {
@@ -91,6 +95,22 @@ function removedSteps(messages: UIMessage[], toolCallId: string): string[] {
     }
   }
   return [];
+}
+
+export function auditStartCardOf(
+  messages: UIMessage[],
+  toolCallId: string,
+): AuditStartCard | null {
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "data-audit-start") continue;
+      const parsed = auditStartCardSchema.safeParse(part.data);
+      if (parsed.success && parsed.data.toolCallId === toolCallId) {
+        return parsed.data;
+      }
+    }
+  }
+  return null;
 }
 
 function recordedAnswer(
@@ -138,6 +158,7 @@ export function findToolApproval(
         input: part.input,
         asked: firstSummaryLine(messages, toolCallId),
         removes: removedSteps(messages, toolCallId),
+        auditStart: auditStartCardOf(messages, toolCallId),
       };
     }
   }
@@ -198,6 +219,11 @@ export function ToolApprovalCard({
       decision={approval.decision}
       subject={approvalSubjectFor(approval.toolName, approval.asked)}
       removes={approval.removes}
+      details={
+        approval.auditStart === null ? null : (
+          <AuditStartDetails card={approval.auditStart} />
+        )
+      }
     />
   );
 }

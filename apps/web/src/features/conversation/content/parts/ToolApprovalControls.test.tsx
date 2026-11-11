@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
 import type { UIMessage } from "ai";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -213,6 +214,24 @@ describe("findToolApproval", () => {
 
 const ASKED = "Delete step 'Transform by Orthology' (GenesByOrthologs, 142 genes)?";
 
+const AUDIT_START: AuditStartCard = {
+  toolCallId: "call-1",
+  siteId: "exampledb",
+  genomes: ["Examplea alpha A"],
+  comparison: [],
+  referenceGenome: null,
+  checks: ["gene_length"],
+  checkTitles: ["Gene length against orthologs"],
+  targets: 0,
+  leftOut: [],
+  refusedTargets: [],
+  wdkRequests: 240,
+  storeReads: 12,
+  hours: 1.5,
+  hoursAtMost: 6,
+  modelReviews: 50,
+};
+
 function summaryPart(summary: string): UIMessage["parts"][number] {
   return {
     type: "data-tool-summary",
@@ -243,6 +262,49 @@ describe("ToolApprovalControls", () => {
     expect(
       screen.getAllByTestId("approval-card-cascade-step").map((li) => li.textContent),
     ).toEqual(removes);
+  });
+
+  it("draws the audit start card under its question", () => {
+    renderControls([
+      pendingPart("tool-start_gene_model_audit"),
+      summaryPart("Start this audit?"),
+      { type: "data-audit-start", id: "call-1", data: AUDIT_START },
+    ]);
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
+      "Start this audit?",
+    );
+    expect(screen.getByTestId("approval-card-details")).toHaveTextContent(
+      "Genomes: Examplea alpha A",
+    );
+    expect(screen.getByTestId("approval-card-details")).toHaveTextContent(
+      "Up to 50 model reviews",
+    );
+  });
+
+  it("asks an audit start alone when no start card was drawn", () => {
+    renderControls([
+      pendingPart("tool-start_gene_model_audit"),
+      summaryPart("Start this audit?"),
+    ]);
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
+      "Start this audit?",
+    );
+    expect(screen.queryByTestId("approval-card-details")).toBeNull();
+  });
+
+  it("draws no start card another call drew", () => {
+    renderControls([
+      pendingPart("tool-start_gene_model_audit"),
+      summaryPart("Start this audit?"),
+      {
+        type: "data-audit-start",
+        id: "call-2",
+        data: { ...AUDIT_START, toolCallId: "call-2" },
+      },
+    ]);
+    expect(screen.getByTestId("approval-card").textContent).toBe(
+      "Start this audit? Deny Approve",
+    );
   });
 
   it("draws no cascade for a delete that removes only its own step", () => {

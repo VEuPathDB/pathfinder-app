@@ -5,6 +5,7 @@
  */
 
 import type {
+  AuditStartCard,
   AuthStatusResponse,
   BackgroundTaskStarted,
   ColocationParams,
@@ -428,6 +429,7 @@ export type KnownDataPartKind =
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-tool-approval"
+  | "data-audit-start"
   | "data-eda.analysis-state"
   | "data-eda.subset-preview"
   | "data-eda.viz"
@@ -478,6 +480,7 @@ export interface DataPartPayloadMap {
   "data-lead-usage": DataLeadUsagePayload;
   "data-tool-summary": ToolSummaryPayload;
   "data-tool-approval": ToolApprovalPayload;
+  "data-audit-start": AuditStartCard;
   "data-eda.analysis-state": EdaAnalysisState;
   "data-eda.subset-preview": EdaSubsetPreviewPart;
   "data-eda.viz": EdaVizPart;

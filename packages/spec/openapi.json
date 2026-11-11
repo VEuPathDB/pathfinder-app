@@ -22740,6 +22740,14 @@
           "modelReviews": {
             "title": "Modelreviews",
             "type": "integer"
+          },
+          "checkTitles": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "title": "Checktitles",
+            "type": "array"
           }
         },
         "required": [
@@ -22756,7 +22764,8 @@
           "storeReads",
           "hours",
           "hoursAtMost",
-          "modelReviews"
+          "modelReviews",
+          "checkTitles"
         ],
         "title": "AuditStartCard",
         "type": "object"
@@ -27820,19 +27829,52 @@
       },
       "RefusedTarget": {
         "properties": {
-          "key": {
-            "title": "Key",
-            "type": "string"
+          "target": {
+            "discriminator": {
+              "mapping": {
+                "gene_fusion": "#/components/schemas/SingleGeneTarget",
+                "gene_length": "#/components/schemas/SingleGeneTarget",
+                "gene_split": "#/components/schemas/GenePairTarget",
+                "intron_support": "#/components/schemas/SingleGeneTarget",
+                "missing_gene": "#/components/schemas/MissingGeneTarget",
+                "organelle_join": "#/components/schemas/OrganelleTarget",
+                "pseudogene_call": "#/components/schemas/GenePairTarget",
+                "selenoprotein_end": "#/components/schemas/GenePairTarget",
+                "strain_model": "#/components/schemas/GenePairTarget"
+              },
+              "propertyName": "check"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SingleGeneTarget"
+              },
+              {
+                "$ref": "#/components/schemas/GenePairTarget"
+              },
+              {
+                "$ref": "#/components/schemas/MissingGeneTarget"
+              },
+              {
+                "$ref": "#/components/schemas/OrganelleTarget"
+              }
+            ],
+            "title": "Target"
           },
           "reason": {
             "format": "sentence",
             "title": "Reason",
             "type": "string"
+          },
+          "title": {
+            "readOnly": true,
+            "title": "Title",
+            "type": "string"
           }
         },
         "required": [
-          "key",
-          "reason"
+          "target",
+          "reason",
+          "title"
         ],
         "title": "RefusedTarget",
         "type": "object"
