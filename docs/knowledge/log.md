@@ -2,6 +2,15 @@
 
 ## 2026-11-11
 
+* **The EDA cut card is built by code.** A range cut no message states and no card picked now
+  records a card built from the study's own distributions, read with no filter: the classes of
+  each small `stringSet` variable of the cut's entity with their counts, and the lowest and the
+  highest 5% and 10% of the cut's variable, each ending at the first bin edge that reaches the
+  share and labelled with the bound and the count its own range filter selects. `consult_user` asks it as
+  recorded. A picked tail holds its rule, and a later study's cut is accepted at that study's own
+  edge for the rule, with a retry naming the edge for any other bound. See
+  [the decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
 * **An open tab is told of a new web build.** The web image names its build by a hash of its
   sources, serves it at `GET /api/v1/web-build` and sets it as Next's `deploymentId`. An open tab
   checks it every five minutes and on focus and shows a Reload banner when the build it loaded is

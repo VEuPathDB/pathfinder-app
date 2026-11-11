@@ -3,13 +3,13 @@ names, and the step that cut plans."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import replace
 from typing import NamedTuple
 
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.eda import EdaAnalysisDetail
 
+from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     the_subset_basis,
     volcano_thresholds,
@@ -103,15 +103,15 @@ async def the_cut(
     analysis: EdaAnalysisDetail,
     ask: VolcanoAsk,
     said: list[str],
-    picks: Sequence[str],
+    thread: ThreadRequirements,
 ) -> tuple[VolcanoThresholds | None, EdaStepPlan, Rescaled | None]:
     """The cut the export writes, its plan with what its subset rests on, and
     the rescaling a number the researcher wrote on the other scale took. A
-    subset cut that no message states and no card picked is refused before
-    the export is planned."""
+    subset cut that no message states, no card picked and no picked tail rule
+    meets is refused before the export is planned."""
     thresholds = volcano_thresholds(analysis, *ask)
     bases = await the_subset_basis(
-        binding.site_id, binding.dataset_id, analysis, said=said, picks=picks
+        binding.site_id, binding.dataset_id, analysis, said=said, thread=thread
     )
     plan = await _planned_export(binding, analysis, thresholds=thresholds)
     rescaled = _on_the_computes_scale(

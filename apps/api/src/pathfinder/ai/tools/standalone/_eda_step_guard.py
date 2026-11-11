@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Container, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Literal
 
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
@@ -16,7 +18,9 @@ from veupathdb.eda import (
     differential_expression_computations,
 )
 
+from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.tools.standalone._eda_sheet import sheet_entries
+from pathfinder.domain.eda_cut import TailEdge
 from pathfinder.domain.eda_parts import (
     EdaComparison,
     EdaEffectDirection,
@@ -24,15 +28,21 @@ from pathfinder.domain.eda_parts import (
 )
 from pathfinder.domain.strategy.analysis_binding import SubsetBasis
 from pathfinder.domain.strategy.operational_spec import ValueSource
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.value_source import stated_words, value_source
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
+from pathfinder.services.eda.cut_offer import (
+    OfferedCut,
+    counted_noun,
+    study_cut_question,
+    study_tail_edges,
+)
 from pathfinder.services.eda.description import display_names, filter_summaries
 from pathfinder.services.eda.export import exported_dataset
 
 _CLASS_SIZE = 8
-_CLASSES_OFFERED = 4
 
 
 def refuse_a_direction_without_a_volcano(
@@ -140,19 +150,27 @@ def _date(text: str) -> str:
     return text.split("T", 1)[0]
 
 
+type _Side = Literal["min", "max"]
+
+
 def _cut_bounds(
     cut: EdaNumberRangeFilter | EdaDateRangeFilter, entry: EdaFilterSheetEntry | None
-) -> list[ParamValue]:
+) -> list[tuple[_Side, ParamValue]]:
+    sides: tuple[_Side, _Side] = ("min", "max")
     match cut:
         case EdaNumberRangeFilter(min=low, max=high):
             ends = (None, None) if entry is None else (entry.range_min, entry.range_max)
-            return [NumberValue(value=b) for b in (low, high) if _inside(b, *ends)]
+            return [
+                (side, NumberValue(value=b))
+                for side, b in zip(sides, (low, high), strict=True)
+                if _inside(b, *ends)
+            ]
         case EdaDateRangeFilter(min=low, max=high):
             dates = (None, None) if entry is None else (entry.date_min, entry.date_max)
             first, last = (None if d is None else _date(d) for d in dates)
             return [
-                StringValue(value=_date(b))
-                for b in (low, high)
+                (side, StringValue(value=_date(b)))
+                for side, b in zip(sides, (low, high), strict=True)
                 if _inside(_date(b), first, last)
             ]
 
@@ -172,31 +190,39 @@ def _bound_source(
     return source, picked
 
 
-def _span(entry: EdaFilterSheetEntry | None) -> str:
-    if entry is None:
-        return ""
-    if entry.range_min is not None and entry.range_max is not None:
-        return f" across its range {entry.range_min:g} to {entry.range_max:g}"
-    if entry.date_min is not None and entry.date_max is not None:
-        return f" across its range {entry.date_min} to {entry.date_max}"
-    return ""
+@dataclass(frozen=True, slots=True)
+class UnstatedCut:
+    shown: str
+    entity_id: str
+    variable_id: str
+    variable_name: str
+    at_least: float | None
+    at_most: float | None
+
+    @property
+    def numeric(self) -> bool:
+        return self.at_least is not None or self.at_most is not None
 
 
-def _unstated_cut(
+def _unstated(
+    cut: EdaNumberRangeFilter | EdaDateRangeFilter,
     shown: str,
-    entry: EdaFilterSheetEntry | None,
-    entries: Sequence[EdaFilterSheetEntry],
-) -> ModelRetry:
-    classes = [
-        f"{e.display_name}: {', '.join(e.vocabulary)}"
-        for e in entries
-        if e.filter_type == "stringSet" and 0 < e.vocabulary_total <= _CLASS_SIZE
-    ][:_CLASSES_OFFERED]
-    offered = f"the study's own classes ({'; '.join(classes)}) and " if classes else ""
-    return ModelRetry(
-        f"{shown} is a cut no researcher message states and no card picked. "
-        f"Nothing was written. Ask the researcher with consult_user, offering "
-        f"{offered}a few cuts{_span(entry)}, each counted with preview_eda_subset."
+    name: str,
+    chosen: Container[str],
+) -> UnstatedCut:
+    match cut:
+        case EdaNumberRangeFilter(min=low, max=high):
+            at_least = low if "min" in chosen else None
+            at_most = high if "max" in chosen else None
+        case EdaDateRangeFilter():
+            at_least = at_most = None
+    return UnstatedCut(
+        shown=shown,
+        entity_id=cut.entity_id,
+        variable_id=cut.variable_id,
+        variable_name=name,
+        at_least=at_least,
+        at_most=at_most,
     )
 
 
@@ -206,7 +232,7 @@ def _range_basis(
     entries: Sequence[EdaFilterSheetEntry],
     said: Sequence[str],
     picks: Sequence[str],
-) -> SubsetBasis | None:
+) -> SubsetBasis | UnstatedCut | None:
     entry = next(
         (
             e
@@ -216,12 +242,16 @@ def _range_basis(
         None,
     )
     name = cut.variable_id if entry is None else entry.display_name
-    sources = [_bound_source(b, name, said, picks) for b in _cut_bounds(cut, entry)]
+    sources = [
+        (side, *_bound_source(b, name, said, picks))
+        for side, b in _cut_bounds(cut, entry)
+    ]
     if not sources:
         return None
-    if any(source == "chosen" for source, _picked in sources):
-        raise _unstated_cut(shown, entry, entries)
-    picked = next((p for source, p in sources if source == "card"), "")
+    chosen = {side for side, source, _picked in sources if source == "chosen"}
+    if chosen:
+        return _unstated(cut, shown, name, chosen)
+    picked = next((p for _side, source, p in sources if source == "card"), "")
     if picked:
         return SubsetBasis(filter=shown, basis="card", picked=picked)
     return SubsetBasis(filter=shown, basis="stated")
@@ -233,7 +263,7 @@ def _filter_basis(
     entries: Sequence[EdaFilterSheetEntry],
     said: Sequence[str],
     picks: Sequence[str],
-) -> SubsetBasis | None:
+) -> SubsetBasis | UnstatedCut | None:
     match each:
         case EdaLongitudeRangeFilter():
             return None
@@ -249,7 +279,7 @@ def subset_basis(
     *,
     said: Sequence[str],
     picks: Sequence[str],
-) -> list[SubsetBasis]:
+) -> list[SubsetBasis | UnstatedCut]:
     entries = sheet_entries(study)
     shown = filter_summaries(filters, display_names=display_names(study))
     bases = [
@@ -259,15 +289,110 @@ def subset_basis(
     return [basis for basis in bases if basis is not None]
 
 
+def _rule_retry(
+    cut: UnstatedCut, edges: Mapping[str, TailEdge], noun: str
+) -> ModelRetry:
+    rules = " ".join(
+        f'The researcher picked "{label}" on a card, the {edge.rule.end}est '
+        f"{edge.rule.percent}% of a study. On this study's {cut.variable_name} "
+        f"that is {edge.cut(noun)}, so send {edge.wire_end}={edge.bound:g}."
+        for label, edge in edges.items()
+    )
+    return ModelRetry(
+        f"{cut.shown} is a cut no researcher message states. {rules} "
+        f"Nothing was written."
+    )
+
+
+def _asked_retry(cut: UnstatedCut, question: OpenQuestion) -> ModelRetry:
+    if not question.options:
+        return ModelRetry(
+            f"{cut.shown} is a cut no researcher message states and no card "
+            f"picked, and this study counts no cut to offer. Nothing was written. "
+            f"Ask the researcher for the cut in their own words with "
+            f"consult_user, in a question with no options."
+        )
+    return ModelRetry(
+        f"{cut.shown} is a cut no researcher message states and no card "
+        f'picked. Nothing was written. Call consult_user: the card asks "'
+        f'{question.question}" with the cuts this study counts, as recorded, '
+        f"so write no question or option of your own for this cut."
+    )
+
+
+async def _resolved(
+    site_id: str,
+    dataset_id: str,
+    study: EdaStudyDetail,
+    held: SubsetBasis | UnstatedCut,
+    thread: ThreadRequirements,
+) -> SubsetBasis:
+    match held:
+        case SubsetBasis():
+            return held
+        case UnstatedCut() as cut:
+            return await _asked_or_met(site_id, dataset_id, study, cut, thread)
+
+
+async def _asked_or_met(
+    site_id: str,
+    dataset_id: str,
+    study: EdaStudyDetail,
+    cut: UnstatedCut,
+    thread: ThreadRequirements,
+) -> SubsetBasis:
+    edges = await study_tail_edges(
+        site_id,
+        dataset_id=dataset_id,
+        entity_id=cut.entity_id,
+        variable_id=cut.variable_id,
+        rules=thread.tail_rules if cut.numeric else {},
+    )
+    met = next(
+        (label for label, e in edges.items() if e.binds(cut.at_least, cut.at_most)),
+        "",
+    )
+    if met:
+        return SubsetBasis(filter=cut.shown, basis="card", picked=met)
+    if edges:
+        raise _rule_retry(cut, edges, counted_noun(study, cut.entity_id))
+    classes = [
+        (e.variable_id, e.display_name)
+        for e in sheet_entries(study)
+        if e.entity_id == cut.entity_id
+        and e.filter_type == "stringSet"
+        and 0 < e.vocabulary_total <= _CLASS_SIZE
+    ]
+    question = await study_cut_question(
+        site_id,
+        dataset_id=dataset_id,
+        study=study,
+        cut=OfferedCut(
+            entity_id=cut.entity_id,
+            variable_id=cut.variable_id,
+            variable_name=cut.variable_name,
+            numeric=cut.numeric,
+            classes=classes,
+        ),
+    )
+    if question.options:
+        thread.record_questions([question])
+    raise _asked_retry(cut, question)
+
+
 async def the_subset_basis(
     site_id: str,
     dataset_id: str,
     analysis: EdaAnalysisDetail,
     *,
     said: Sequence[str],
-    picks: Sequence[str],
+    thread: ThreadRequirements,
 ) -> list[SubsetBasis]:
     _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    return subset_basis(
-        analysis.descriptor.subset.descriptor, study, said=said, picks=picks
+    held = subset_basis(
+        analysis.descriptor.subset.descriptor,
+        study,
+        said=said,
+        picks=thread.card_picks,
     )
+    return [await _resolved(site_id, dataset_id, study, each, thread) for each in held]

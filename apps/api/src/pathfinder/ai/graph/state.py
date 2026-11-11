@@ -275,6 +275,7 @@ class StrategyDomainState(ThreadRequirements):
         self.named_readings = []
         self.picked_readings = []
         self.card_picks = []
+        self.tail_rules = {}
         self.original_request = ""
         self.request_messages = []
         self.last_build_outcome = None

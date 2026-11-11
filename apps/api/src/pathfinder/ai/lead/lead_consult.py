@@ -35,6 +35,8 @@ from pathfinder.domain.strategy.genome_group_steps import spec_read_on_genomes
 from pathfinder.domain.strategy.operator_reading import with_operator
 from pathfinder.domain.strategy.question_options import (
     Keep,
+    PickClass,
+    PickTail,
     ReadGenomes,
     SaveComputedGroups,
     SetOperator,
@@ -153,6 +155,8 @@ def _apply(
             domain.name_organism(named, organism)
         case ReadGenomes(criterion_id=criterion, group=group) if spec is not None:
             domain.operational_spec = spec_read_on_genomes(spec, criterion, group)
+        case PickTail(rule=rule):
+            domain.hold_tail_rule(option.label, rule)
         case (
             SetValues()
             | ReadValues()
@@ -160,6 +164,7 @@ def _apply(
             | SaveComputedGroups()
             | SetOperator()
             | ReadGenomes()
+            | PickClass()
         ):
             pass
 
@@ -178,7 +183,8 @@ def apply_option_bindings(
     typed words, a picked reading a framing pass named and the note, never
     another offered label, become a requirement on the dimension ``asked`` names. That requirement replaces
     each one ``replaced`` holds under the question's prompt. Every picked label
-    is kept as a card pick, which states a cut an EDA export rests on.
+    is kept as a card pick, which states a cut an EDA export rests on, and a
+    picked tail is held as a rule that each later study's own edge meets.
     """
     domain = state.domain
     entry = domain.operational_spec

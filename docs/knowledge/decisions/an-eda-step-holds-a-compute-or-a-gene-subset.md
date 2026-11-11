@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: An EDA step holds a compute or a gene subset
-description: A step exports genes, so a subset export (the agent's or the tab's) needs a study with one gene entity (the entity that carries VEUPATHDB_GENE_ID) and a filter on it that selects at least one distinct gene id; a compute export needs a comparison, the analysis's first complete differential expression, and an effect_direction needs both thresholds on a compared analysis; an analysis with no filter and no computation has no eda_analysis_spec and never reaches the graph. A subset's range cut is exported only when a researcher message states its bounds or a card answer picked them; a set filter rests on the study's own class, and the pinned filter sheet carries the study's own description. A gene count is the distinct gene ids under the subset, never the gene entity's rows. Counting rows of the gene entity was rejected, because on a gene-by-sample counts entity a row is one gene in one sample. A top-N cut on a rank or a score that no one stated was rejected, because it reads a property the study does not define.
+description: A step exports genes, so a subset export (the agent's or the tab's) needs a study with one gene entity (the entity that carries VEUPATHDB_GENE_ID) and a filter on it that selects at least one distinct gene id; a compute export needs a comparison, the analysis's first complete differential expression, and an effect_direction needs both thresholds on a compared analysis; an analysis with no filter and no computation has no eda_analysis_spec and never reaches the graph. A subset's range cut is exported only when a researcher message states its bounds, a card answer picked them, or a picked tail rule gives them on that study; the card that asks is built by code from the study's own distributions; a set filter rests on the study's own class, and the pinned filter sheet carries the study's own description. A gene count is the distinct gene ids under the subset, never the gene entity's rows. Counting rows of the gene entity was rejected, because on a gene-by-sample counts entity a row is one gene in one sample. A top-N cut on a rank or a score that no one stated was rejected, because it reads a property the study does not define; so were options the model writes and a cutoff parsed from a study's description.
 tags: [eda, export, strategy, agent]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-23T20:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-11-11T00:00:00Z }
 status: stable
 ---
 
@@ -67,8 +67,35 @@ sample.
   by a researcher message or by a label the researcher picked on a card, read
   with the same `value_source` and `stated_words` that a search parameter is
   read with (`domain.card_picks` holds every picked label). Otherwise
-  `create_eda_step` raises a retry that names the study's own classes and the
-  variable's range and says to ask with `consult_user`; nothing is written. A
+  `create_eda_step` writes nothing and the guard builds the card itself
+  (`services/eda/cut_offer.py`, `domain/eda_cut.py`), recorded in
+  `domain.open_questions`, which `consult_user` asks as recorded. The options
+  come from structured EDA data only, each distribution read with no filter
+  through `preview_subset`, so each count is the study's own:
+  - one option per class of each `stringSet` variable of the cut's entity with
+    1 to 8 values, counted from its categorical histogram;
+  - on a numeric cut, the lowest and the highest 5% and 10% of the variable.
+    Each tail ends at the first bin edge where the cumulative count reaches the
+    share. The label states the bound, then the count the bound's own range
+    filter selects, read with one more `preview_subset` and never summed from
+    the bins: a bin leaves out its upper edge and a range filter keeps its
+    bound, so the two differ for every value on the edge. The share is that
+    count over the records with a value. Counts are in genes on the gene entity and else in the entity's plural, for
+    example `Lowest 6.5% of Mean Phenotype Score: at most -3 (65 genes)`. No
+    edge is interpolated. A tail that holds every record is no cut, and a tail
+    whose edge another share already reached is offered once. Both ends are
+    offered, since code cannot know which end the researcher means.
+
+  Tails come first and the card holds 8 options at most. A picked tail label
+  states its bound, so it binds as a card pick, and its `PickTail` binding
+  holds the rule (`domain.tail_rules`: the end and the share, under the picked
+  label). On a later study an unstated range cut on that end is accepted when
+  its bound equals that study's own edge for the rule, computed the same way;
+  any other bound is refused with a retry that names the study's edge, and no
+  second card is asked. A picked class is that study's own value and binds as a
+  set filter; it holds no rule, because vocabularies differ across studies.
+  With no option to offer, the retry asks for the cut in the researcher's
+  words. A
   set filter rests on the study's own class. The basis of each filter rides
   the binding (`AnalysisBinding.subset_basis`), and the facts part states it as
   the step's reason; a subset whose every filter is stated or picked takes
@@ -104,6 +131,15 @@ that defines essential (`Mutability in CDS = nonmutable`) holds 2,009 such
 genes. A cut is a question when neither the researcher's words nor the study's
 own class settles it. Never asking the researcher, which the route block once
 said, still holds for the analysis document only.
+
+**Let the model write the cut card's options.** An option the model writes
+can name a cut in words with no number. Its pick then binds no bound, and the
+question comes back for each study. Code builds the options, so each label
+carries the bound it binds, and a picked tail carries over to the next study.
+
+**Read a published cutoff from the study's description.** A description is
+prose, and reading a cutoff from it needs a model to understand the text. The
+offer reads distributions only.
 
 **Keep one computation in the analysis.** The write replaced the whole list,
 so a compute run deleted the plots a researcher made in the site's EDA app,

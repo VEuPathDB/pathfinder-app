@@ -72,6 +72,29 @@ class ReadGenomes(CamelModel):
     group: GenomeGroup
 
 
+class TailRule(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    end: Literal["low", "high"]
+    percent: Literal[5, 10]
+
+
+class PickTail(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["pick_tail"] = "pick_tail"
+    rule: TailRule
+
+
+class PickClass(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["pick_class"] = "pick_class"
+    entity_id: str
+    variable_id: str
+    value: str
+
+
 OptionBinding = Annotated[
     SetValues
     | ReadValues
@@ -80,7 +103,9 @@ OptionBinding = Annotated[
     | SetOrganism
     | SaveComputedGroups
     | SetOperator
-    | ReadGenomes,
+    | ReadGenomes
+    | PickTail
+    | PickClass,
     Discriminator("kind"),
 ]
 
@@ -140,11 +165,9 @@ def binding_key(option: TypedOption) -> tuple[str, ...]:
             )
         case Withdraw(constraint_id=key) | Keep(constraint_id=key):
             return (option.binding.kind, key)
-        case SetOrganism(constraint_id=key, organism=organism):
-            return (option.binding.kind, key, organism)
-        case SaveComputedGroups(handle=handle, save=save):
-            return (option.binding.kind, handle, str(save))
         case SetOperator(criteria=criteria, operator=operator):
             return (option.binding.kind, *sorted(criteria), operator.value)
         case ReadGenomes(criterion_id=criterion_id, group=group):
             return (option.binding.kind, criterion_id, group.reading)
+        case SetOrganism() | SaveComputedGroups() | PickTail() | PickClass():
+            return (option.binding.kind, option.binding.model_dump_json())

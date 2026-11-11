@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.organism_picks import OrganismPick, unnamed_organisms
+from pathfinder.domain.strategy.question_options import TailRule
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
@@ -74,6 +75,7 @@ class ThreadRequirements(BaseModel):
     offered_readings: dict[str, OfferedReading] = Field(default_factory=dict)
     picked_readings: list[str] = Field(default_factory=list)
     card_picks: list[str] = Field(default_factory=list)
+    tail_rules: dict[str, TailRule] = Field(default_factory=dict)
     organism_picks: list[OrganismPick] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -107,6 +109,9 @@ class ThreadRequirements(BaseModel):
     def pick_on_a_card(self, label: str) -> None:
         if label not in self.card_picks:
             self.card_picks.append(label)
+
+    def hold_tail_rule(self, label: str, rule: TailRule) -> None:
+        self.tail_rules[label] = rule
 
     def reading_labels(self) -> list[str]:
         return list(
