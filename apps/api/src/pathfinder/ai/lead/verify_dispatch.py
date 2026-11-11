@@ -29,6 +29,10 @@ from pathfinder.ai.lead.evidence_card import (
 from pathfinder.ai.lead.ledger import build_contradiction
 from pathfinder.ai.lead.ledger_sections import unexpressed_gaps
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.sample_by_steps import (
+    sampled_by_their_steps,
+    steps_decide,
+)
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -162,15 +166,21 @@ async def run_verification(
     )
     columns = await read_the_columns(deps, agent_deps)
     checks = [*await site_checks(deps), *columns.unanswered]
+    steps = steps_decide(deps)
     run = PhaseRun(
         "verification",
-        work_order(
-            reason,
-            scope.controls,
-            root_sample(deps),
-            checks,
-            _live_fits(deps),
-            columns.notes,
+        "\n".join(
+            [
+                work_order(
+                    reason,
+                    scope.controls,
+                    root_sample(deps),
+                    checks,
+                    _live_fits(deps),
+                    columns.notes,
+                ),
+                *steps.lines(),
+            ]
         ),
     )
     delta = await stream_sub_agent(
@@ -197,7 +207,8 @@ async def run_verification(
     if delta is None:
         return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)
-    digest = _decided(deps, delta.digest, checks)
+    review = await sampled_by_their_steps(deps, steps, delta.digest.review)
+    digest = _decided(deps, delta.digest.model_copy(update={"review": review}), checks)
     revision = strategy_revision(live_tree(graph))
     deps.state.domain.record_verdict(digest, revision=revision)
     markers.verification_stopped = False

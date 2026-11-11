@@ -131,9 +131,13 @@ async def test_a_review_the_turn_backs_passes() -> None:
     assert [g.gene_id for g in digest.digest.review.sampled_genes] == list(_READ)
 
 
-def test_membership_in_the_strategy_is_not_a_genes_fit() -> None:
+def test_the_record_judges_only_what_no_step_decides() -> None:
+    told = " ".join(_VERIFICATION_INSTRUCTIONS.split())
+
     assert (
-        "Membership in the strategy is not evidence of fit: a gene fits only when "
-        "its record shows what the request names, and is ``unclear`` when the "
-        "record does not show it."
-    ) in " ".join(_VERIFICATION_INSTRUCTIONS.split())
+        "The runtime decides each requirement the work order says a step "
+        "decides, by whether that step holds the gene. Judge a gene only on the "
+        "other requirements: it fits only when its record shows what they name, "
+        "and is ``unclear`` when the record does not show it."
+    ) in told
+    assert "Membership in the strategy is not evidence of fit" not in told

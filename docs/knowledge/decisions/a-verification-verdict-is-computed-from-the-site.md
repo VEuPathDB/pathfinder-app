@@ -80,6 +80,29 @@ eight gene records and may cite sources; its prose and its sampled genes are
 notes. The output validator still refuses a sampled gene, a source or a count
 no read of the turn returned.
 
+A stated requirement that a criterion of the spec answers (`Criterion.answers`,
+a link that is not a result size) is decided for each sampled gene by the steps
+that hold it, never by the checker (`ai/lead/sample_by_steps.py`,
+`domain/step_membership.py`). The work order lists each such requirement with
+its steps, and the checker judges a gene from its record only on the others.
+A sampled gene is in the root's answer, so the combine tree implies most of it
+with no read (`implied_holdings`): the gene is in every input of an INTERSECT
+on the root path and in the kept input of a MINUS, out of its subtracted input,
+and out of every branch of a UNION that is subtracted. A transform or a
+colocation stops the walk, since its input holds other records. Only a step
+the tree does not settle, a branch of a UNION the gene reaches, is read, once
+per verdict for all sampled ids, by listing the step's ids
+(`services/evidence/step_answers.py`, the read `read_step_ids` makes). A
+branch above 5000 records is not listed: its requirement is left to the
+checker, and each row says so. A requirement is met as the strategy's own
+operators combine its steps: any branch of a UNION, every input of an
+INTERSECT, and absence from a subtracted step. The gene's fit is `no` when one
+requirement is unmet, `unclear` when a step was not answered or the checker's
+judgement of the rest is, and `yes` otherwise; its `why` names each deciding
+step ("In the step 'P. berghei experimentally essential genes' (experimentally
+essential)") before the checker's own words. VERIFY writes nothing to the
+researcher's account for this.
+
 A stored verdict now lives in `StrategyDomainState.site_verdict`, so a verdict an
 earlier build stored under `verification_digest` is dropped on load and the next
 check writes it again ([a saved conversation outlives the build that saved it](a-saved-conversation-outlives-the-build-that-saved-it.md)).
@@ -105,6 +128,17 @@ check writes it again ([a saved conversation outlives the build that saved it](a
   no check can fail, so a verdict computed from failures alone passes a strategy
   nothing checked. An unanswered read is a typed reason, not a failure, because
   the strategy is not shown wrong either.
+- **The checker judging a requirement a step states.** No record field shows
+  an essentiality screen or an ortholog outside the gene's own component site,
+  and the instructions forbade membership as evidence, so every sampled gene of
+  a strategy built from such steps was `unclear` by construction.
+- **Reading a large step to test membership.** A conservation step holds
+  hundreds of thousands of genes, and a gene of the root is in it by
+  construction when the root intersects it.
+- **Asking a step's answer for the sampled ids with an id-list intersection.**
+  The only served way builds temporary steps and uploads a dataset in the
+  researcher's account, which a check must never write; a `primary_key` column
+  filter is a 400 (WDK-FILTER-006).
 - **Failing an organism requirement whose entry is no organism the strategy
   selects.** An organism a request names can be the target of an ortholog
   pattern and not the organism of the result, so such a requirement is
@@ -123,4 +157,8 @@ requirement with no site entry left unchecked,
 counted from the records of a small result by gene, left refused on a large
 one and not sent again while the refusal is held, and
 `tests/unit/ai/lead/test_verify_dispatch_digest.py` a checker that objects to a
-passing check.
+passing check, and `tests/unit/ai/lead/test_a_sampled_gene_fits_by_its_steps.py`
+the fits the steps decide: an intersected step and a subtracted step settled
+with no read, only the UNION branches listed, a branch over the cap left to the
+checker, a branch the site did not list, and a requirement no step states left
+to the checker.

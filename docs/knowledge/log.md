@@ -2,6 +2,13 @@
 
 ## 2026-11-11
 
+* **A sampled gene fits by its steps.** VERIFY decides each requirement a step encodes from
+  the strategy's shape: a gene of the result is held by every input of an intersect and by
+  the kept side of a minus, and is absent from a subtracted step, with no read. Only a union
+  branch of at most 5000 records is read, once per verdict; a larger branch is left to the
+  checker with the reason in the gene's row. VERIFY writes nothing to the researcher's
+  account, and the checker judges only the requirements no step decides. See
+  [the decision](decisions/a-verification-verdict-is-computed-from-the-site.md).
 * **An EDA cut is stated or asked.** `create_eda_step` refuses a number or date range that no
   researcher message states and no card picked (`value_source`); a set filter on the study's
   own class passes. The pinned sheet carries the study's description, a number keeps its

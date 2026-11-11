@@ -60,9 +60,10 @@ Write one ``review.sampled_genes`` entry per gene you read: ``gene_id``, \
 ``product`` and ``organism`` as the record states them, ``fits`` (``yes``, \
 ``no`` or ``unclear``) against the request, and ``why``: one line naming the \
 evidence you read. Judge a gene from its record, never from its id. \
-Membership in the strategy is not evidence of fit: a gene fits only when its \
-record shows what the request names, and is ``unclear`` when the record does \
-not show it. A record's Orthologs table lists only genomes the gene's own \
+The runtime decides each requirement the work order says a step decides, by \
+whether that step holds the gene. Judge a gene only on the other requirements: \
+it fits only when its record shows what they name, and is ``unclear`` when the \
+record does not show it. A record's Orthologs table lists only genomes the gene's own \
 site holds, so a genome another site holds has no row there; that missing row \
 is not evidence against an ortholog in it. A gene whose record no read of \
 this turn returned is refused.
