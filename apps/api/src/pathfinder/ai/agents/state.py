@@ -335,12 +335,17 @@ class AgentToolState:
                 criterion.alternatives = alternatives
 
     def frame_record_measurements(
-        self, criterion_id: str, measurements: list[Measurement]
+        self,
+        criterion_id: str,
+        measurements: list[Measurement],
+        *,
+        required_genomes_name: str,
     ) -> None:
         """Add the counts the site returned for other readings of its values."""
         for criterion in self.operational_spec_draft.criteria:
             if criterion.id == criterion_id:
                 criterion.measurements = [*criterion.measurements, *measurements]
+                criterion.required_genomes_name = required_genomes_name
 
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure

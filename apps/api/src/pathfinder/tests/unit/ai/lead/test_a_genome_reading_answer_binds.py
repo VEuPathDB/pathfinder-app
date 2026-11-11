@@ -19,8 +19,10 @@ from pathfinder.domain.value_caveats import assumed_value_caveats
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
-_ONE = "At least one of 2 genomes (1,259 genes)"
-_ALL = "All 2 genomes (501 genes)"
+_NAME = "2 genomes in Plasmodium berghei ANKA and Plasmodium falciparum 3D7"
+_ONE = f"At least one of the {_NAME} (1,259 genes)"
+_ALL = f"All {_NAME} (501 genes)"
+_PAIR = ("pber", "pfal")
 
 
 def _spec(
@@ -46,6 +48,7 @@ def _spec(
                 role="seed",
                 result_count=501,
                 genome_group=group,
+                required_genomes_name=_NAME,
                 measurements=[
                     Measurement(
                         kind="any_strain", param="included_species", count=any_strain
@@ -95,7 +98,7 @@ def test_all_binds_no_value_and_settles_the_criterion() -> None:
     [settled] = read.criteria
     assert settled.param_values == _spec().criteria[0].param_values
     assert settled.result_count == 501
-    assert settled.genome_group == GenomeGroup(reading="all", genomes=("pber", "pfal"))
+    assert settled.genome_group == GenomeGroup(reading="all", genomes=_PAIR, name=_NAME)
     assert read.structure == _spec().structure
     assert genome_reading_questions(read, noun="gene") == []
 
@@ -118,7 +121,7 @@ def test_the_facts_state_the_reading_built_and_the_other_count() -> None:
     left, right = _answered(_ONE).criteria
 
     assert _notes(left) == [
-        "Built as at least one of 2 genomes: 1,259 genes; all 2 genomes: 501"
+        f"Built as at least one of the {_NAME}: 1,259 genes; all {_NAME}: 501"
     ]
     assert _notes(right) == []
 
@@ -127,18 +130,18 @@ def test_the_facts_state_the_strict_reading_built() -> None:
     [settled] = _answered(_ALL).criteria
 
     assert _notes(settled) == [
-        "Built as all 2 genomes: 501 genes; at least one of 2 genomes: 1,259"
+        f"Built as all {_NAME}: 501 genes; at least one of the {_NAME}: 1,259"
     ]
 
 
 def test_the_facts_say_when_the_other_count_was_not_read() -> None:
-    group = GenomeGroup(reading="all", genomes=("pber", "pfal"))
+    group = GenomeGroup(reading="all", genomes=_PAIR, name=_NAME)
     [settled] = _spec(None, group).criteria
 
     assert _notes(settled) == [
         (
-            "Built as all 2 genomes: 501 genes; "
-            "at least one of 2 genomes: count not read within the budget"
+            f"Built as all {_NAME}: 501 genes; "
+            f"at least one of the {_NAME}: count not read within the budget"
         )
     ]
 
@@ -146,3 +149,18 @@ def test_the_facts_say_when_the_other_count_was_not_read() -> None:
 def test_a_settled_reading_is_no_assumed_value() -> None:
     assert "with an ortholog in" in str(assumed_value_caveats(_spec()))
     assert "with an ortholog in" not in str(assumed_value_caveats(_answered(_ALL)))
+
+
+def test_all_states_the_group_in_the_criterion_text() -> None:
+    [settled] = _answered(_ALL).criteria
+
+    assert settled.text == f"an ortholog in the group; an ortholog in all {_NAME}"
+
+
+def test_at_least_one_states_the_group_in_both_step_texts() -> None:
+    left, right = _answered(_ONE).criteria
+
+    assert (left.text, right.text) == (
+        f"an ortholog in the group; an ortholog in at least one of the {_NAME}",
+        f"an ortholog in the group; no ortholog in any of the {_NAME}",
+    )

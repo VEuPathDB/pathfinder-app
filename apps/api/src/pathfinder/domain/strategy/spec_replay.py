@@ -94,7 +94,9 @@ def criterion_rebound(
             "record_class": None,
             "saved_strategy_ref": None,
             "analysis": None,
+            "text": criterion.unread_text,
             "genome_group": None,
+            "required_genomes_name": "",
             "resolved_params": bind_values(
                 sheet_bound(node.parameters, sheet), "held", sheet or ()
             ),

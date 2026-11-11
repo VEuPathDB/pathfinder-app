@@ -73,6 +73,7 @@ _MESSAGE = (
 )
 _LEFT = "%hsap:N%"
 _RIGHT = "%hsap:N%pber:N%pfal:N%"
+_PAIR_NAME = "2 genomes in Plasmodium berghei ANKA and Plasmodium falciparum 3D7"
 _STRICT = "%hsap:N%pber:Y%pfal:Y%"
 _COUNTS = {_LEFT: 1832, _RIGHT: 1335, _STRICT: 484}
 
@@ -303,8 +304,8 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     draft = state.operational_spec_draft
     [asked] = held.questions(draft)
     assert [o.label for o in asked.options] == [
-        "At least one of 2 genomes (497 genes)",
-        "All 2 genomes (484 genes)",
+        f"At least one of the {_PAIR_NAME} (497 genes)",
+        f"All {_PAIR_NAME} (484 genes)",
     ]
     assert wire(draft.criteria[0].param_values, "profile_pattern") == _STRICT
 

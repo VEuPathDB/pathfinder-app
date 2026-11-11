@@ -316,7 +316,13 @@ class Criterion(CamelModel):
     # can state. Each is reported unmet until a search states it.
     accepted_reading: AcceptedReading | None = None
     genome_group: GenomeGroup | None = None
+    required_genomes_name: str = ""
     absence_of: str = ""
+
+    @property
+    def unread_text(self) -> str:
+        group = self.genome_group
+        return self.text if group is None else group.unstated_in(self.text)
 
     @property
     def bound(self) -> bool:

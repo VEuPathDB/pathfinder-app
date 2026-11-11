@@ -2,6 +2,12 @@
 
 ## 2026-11-11
 
+* **A genome reading names the genomes it counts.** The genome reading card names its group
+  from the site's phyletic tree ("the 28 Oomycota genomes"), joins the criterion text without
+  a doubled stop, and the pick writes the reading into the criterion text; a rebind to the
+  same values keeps that text and its rationale. A group stored before the name existed is
+  named on its next measure. See
+  [the decision](decisions/a-required-genome-list-is-asked-from-its-counts.md).
 * **A gene page says which genomes its Orthologs table lists.** A gene record read names the
   site whose genomes the table covers, from the record's project, and the gene's OrthoMCL
   group (`orthomcl_name`). The tool, the Lead and VERIFY no longer read a missing row for

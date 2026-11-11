@@ -89,7 +89,7 @@ def _left_of(criterion: Criterion, group: GenomeGroup) -> Criterion:
     left = criterion.model_copy(update={"resolved_params": params})
     if _wire_of(left) == _wire_of(criterion):
         return criterion
-    return left.model_copy(update={"result_count": None})
+    return left.model_copy(update={"result_count": None, "required_genomes_name": ""})
 
 
 def _right_of(left: Criterion, group: GenomeGroup, right_id: str) -> Criterion:
@@ -102,11 +102,12 @@ def _right_of(left: Criterion, group: GenomeGroup, right_id: str) -> Criterion:
     return left.model_copy(
         update={
             "id": right_id,
-            "text": f"{left.text} (none of {len(group.genomes)} genomes)",
+            "text": group.absent_in(left.text),
             "role": "exclude",
             "answers": [],
             "absence_of": left.id,
             "genome_group": None,
+            "required_genomes_name": "",
             "measurements": [],
             "alternatives": [],
             "open_params": [],
@@ -199,12 +200,18 @@ def spec_with_group_steps(spec: OperationalSpec) -> OperationalSpec:
     )
 
 
+def _settled_on(criterion: Criterion, group: GenomeGroup) -> Criterion:
+    named = group if group.named else group.named_as(criterion.required_genomes_name)
+    return criterion.model_copy(
+        update={"genome_group": named, "text": named.stated_in(criterion.text)}
+    )
+
+
 def spec_read_on_genomes(
     spec: OperationalSpec, criterion_id: str, group: GenomeGroup
 ) -> OperationalSpec:
     settled = [
-        c.model_copy(update={"genome_group": group}) if c.id == criterion_id else c
-        for c in spec.criteria
+        _settled_on(c, group) if c.id == criterion_id else c for c in spec.criteria
     ]
     return spec_with_group_steps(spec.model_copy(update={"criteria": settled}))
 
@@ -215,13 +222,22 @@ def _holds_every_genome(criterion: Criterion, group: GenomeGroup) -> bool:
 
 def criterion_keeping_its_reading(held: Criterion, bound: Criterion) -> Criterion:
     group = held.genome_group
+    same = _wire_of(bound) == _wire_of(held)
     if (
         group is None
         or bound.search_name != held.search_name
-        or not (_holds_every_genome(bound, group) or _wire_of(bound) == _wire_of(held))
+        or not (_holds_every_genome(bound, group) or same)
     ):
         return bound
-    return bound.model_copy(update={"genome_group": group})
+    text = held.text if same else bound.text
+    rationale = held.rationale if same else bound.rationale
+    return bound.model_copy(
+        update={
+            "genome_group": group,
+            "text": group.stated_in(text),
+            "rationale": rationale,
+        }
+    )
 
 
 def _subtracted(node: StructureNode, left_id: str, right_id: str) -> bool:
@@ -259,6 +275,7 @@ def _criterion_kept(criterion: Criterion, standing: set[str]) -> Criterion:
         return criterion
     return criterion.model_copy(
         update={
+            "text": criterion.unread_text,
             "genome_group": None,
             "measurements": [
                 m for m in criterion.measurements if m.kind not in _STRAIN_KINDS

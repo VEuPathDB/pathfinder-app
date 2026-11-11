@@ -50,6 +50,9 @@ from pathfinder.services.conversations.thread_activity import (
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.data_marks import read_data_marks
+from pathfinder.services.strategies.genome_group_names import (
+    spec_with_its_genomes_named,
+)
 from pathfinder.services.strategies.live_counts import (
     counts_the_site_holds,
     the_site_dropped_the_strategy,
@@ -194,6 +197,7 @@ async def refresh_live_strategy_state(
     )
     await _class_every_step(context)
     await _stamp_the_analysis_kinds(context)
+    await _name_every_genome_group(working_state.domain, context.site_id)
     await _answer_what_was_written_outside(working_state, context)
     await hydrate_spec_from_the_strategy(working_state, context)
     _state_every_analysis(working_state, context.strategy_session.get_graph(None))
@@ -229,6 +233,15 @@ def _record_the_strategy_at_arrival(state: PipelineState, context: Context) -> N
     state.turn_markers.record_arrival(
         None if graph is None else graph.primary_root_id(),
         {} if session.sync_state is None else session.sync_state.step_counts,
+    )
+
+
+async def _name_every_genome_group(domain: StrategyDomainState, site_id: str) -> None:
+    domain.operational_spec = await spec_with_its_genomes_named(
+        domain.operational_spec, site_id=site_id
+    )
+    domain.answered_spec = await spec_with_its_genomes_named(
+        domain.answered_spec, site_id=site_id
     )
 
 

@@ -24609,6 +24609,11 @@
               }
             ]
           },
+          "requiredGenomesName": {
+            "default": "",
+            "title": "Requiredgenomesname",
+            "type": "string"
+          },
           "absenceOf": {
             "default": "",
             "title": "Absenceof",
@@ -25980,6 +25985,11 @@
             "minItems": 2,
             "title": "Genomes",
             "type": "array"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
           }
         },
         "required": [

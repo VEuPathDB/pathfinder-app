@@ -16174,6 +16174,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/GenomeGroup'
           - type: 'null'
+        requiredGenomesName:
+          default: ''
+          title: Requiredgenomesname
+          type: string
         absenceOf:
           default: ''
           title: Absenceof
@@ -17200,6 +17204,10 @@ components:
           minItems: 2
           title: Genomes
           type: array
+        name:
+          default: ''
+          title: Name
+          type: string
       required:
       - reading
       - genomes

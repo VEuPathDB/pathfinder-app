@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.genome_group_steps import (
     spec_read_on_genomes,
     spec_with_group_steps,
 )
+from pathfinder.domain.strategy.genome_set_names import genome_set_name
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     Measurement,
@@ -44,6 +45,7 @@ from pathfinder.domain.strategy.spec_hydration import StepReading
 from pathfinder.domain.strategy.spec_replay import spec_replaying
 from pathfinder.domain.strategy.spec_to_operations import operations_for
 from pathfinder.domain.strategy.spec_tree import build_step_tree, renumber_criteria
+from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.recorded_counts import CRYPTO_IOWA, TGON_STRAINS
 from pathfinder.tests._support.recorded_searches import suite_search
@@ -114,7 +116,19 @@ def _spec(criterion: Criterion) -> OperationalSpec:
 
 
 def _at_least_one(*genomes: str) -> GenomeGroup:
-    return GenomeGroup(reading="at_least_one", genomes=genomes)
+    return GenomeGroup(
+        reading="at_least_one",
+        genomes=genomes,
+        name=genome_set_name(_TREE or PhyleticTree(), genomes),
+    )
+
+
+def _all_of(*genomes: str) -> GenomeGroup:
+    return GenomeGroup(
+        reading="all",
+        genomes=genomes,
+        name=genome_set_name(_TREE or PhyleticTree(), genomes),
+    )
 
 
 def _lists(criterion: Criterion) -> dict[str, str]:
@@ -135,12 +149,12 @@ def test_the_recorded_tree_holds_the_group_of_61() -> None:
 def test_all_leaves_the_binding_and_the_step_count_and_settles() -> None:
     spec = _spec(_profile([*_PLASMODIUM], [*TGON_STRAINS]))
 
-    read = _read(spec, GenomeGroup(reading="all", genomes=_PLASMODIUM))
+    read = _read(spec, _all_of(*_PLASMODIUM))
 
     [settled] = read.criteria
     assert settled.param_values == spec.criteria[0].param_values
     assert settled.result_count == 501
-    assert settled.genome_group == GenomeGroup(reading="all", genomes=_PLASMODIUM)
+    assert settled.genome_group == _all_of(*_PLASMODIUM)
     assert read.structure == spec.structure
     assert build_step_tree(read).root.operator is None
 
@@ -343,6 +357,44 @@ def test_a_step_moved_outside_retires_the_reading_and_keeps_both_steps() -> None
 
     assert [c.id for c in replayed.criteria] == [left.id, right.id]
     assert [c.genome_group for c in replayed.criteria] == [None, None]
+    assert replayed.criteria[0].text == "an ortholog in the group"
     assert [c.absence_of for c in replayed.criteria] == ["", ""]
     assert [m.kind for c in replayed.criteria for m in c.measurements] == []
     assert spec_with_group_steps(replayed) is replayed
+
+
+def test_a_rebind_of_changed_values_states_the_kept_group_after_its_text() -> None:
+    read = _read(_spec(_profile(["pber", "pfal"], ["mmus"])), _all_of(*_PAIR))
+    rebound = _profile(["pber", "pfal"], ["hsap"]).model_copy(
+        update={"text": "an ortholog in both."}
+    )
+
+    kept = criterion_keeping_its_reading(read.criteria[0], rebound)
+
+    assert kept.text == (
+        "an ortholog in both; an ortholog in all 2 genomes in "
+        "Plasmodium berghei ANKA and Plasmodium falciparum 3D7"
+    )
+
+
+def _why(term: str) -> SearchRationale:
+    return SearchRationale(
+        search_name="GenesByOrthologPattern",
+        basis="parameter",
+        term=term,
+        reason=f"sets Included Species to {term}",
+        query="orthologs in the group",
+        tool_call_id="call_1",
+    )
+
+
+def test_a_rebind_to_the_same_values_keeps_the_held_rationale() -> None:
+    read = _read(_spec(_profile(["pber", "pfal"], ["mmus"])), _all_of(*_PAIR))
+    held = read.criteria[0].model_copy(update={"rationale": _why("the group")})
+    rebound = held.model_copy(
+        update={"genome_group": None, "rationale": _why("all 28 other genomes")}
+    )
+
+    kept = criterion_keeping_its_reading(held, rebound)
+
+    assert kept.rationale == _why("the group")

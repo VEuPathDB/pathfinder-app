@@ -20,6 +20,7 @@ from pathfinder.ai.tools.standalone._frame_count import record_and_count_criteri
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
+from pathfinder.domain.strategy.genome_set_names import required_genomes_name
 from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
@@ -97,6 +98,7 @@ async def record_measurements(
     ``params`` are the values the count sent. A binding that counted nothing
     records each value the site or the model set as not measured.
     """
+    tree = await phyletic_tree_for_search(ctx.deps.site_id, definition)
     measured = await measure_binding(
         ctx.deps.agent_state.turn_counts,
         MeasuredBinding(
@@ -109,13 +111,17 @@ async def record_measurements(
         ),
         values=criterion.resolved_params,
         infos=infos,
-        tree=await phyletic_tree_for_search(ctx.deps.site_id, definition),
+        tree=tree,
     )
     overview = ctx.deps.agent_state.get_overview(criterion.search_name)
     reads = overview.options_reads() if overview else []
     measured = [*measured, *read_picks(criterion, reads)]
     state = ctx.deps.agent_state
-    state.frame_record_measurements(criterion.id, measured)
+    state.frame_record_measurements(
+        criterion.id,
+        measured,
+        required_genomes_name=required_genomes_name(criterion, tree),
+    )
     stored = next(
         c for c in state.operational_spec_draft.criteria if c.id == criterion.id
     )

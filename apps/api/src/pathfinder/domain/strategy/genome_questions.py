@@ -9,6 +9,7 @@ from pathfinder.domain.strategy.genome_group import (
     MIN_GROUP_GENOMES,
     GenomeGroup,
     GenomeReading,
+    without_stop,
 )
 from pathfinder.domain.strategy.genome_group_steps import required_genomes
 from pathfinder.domain.strategy.operational_spec import (
@@ -48,6 +49,7 @@ def _asks(criterion: Criterion, named: frozenset[str]) -> bool:
         and criterion.genome_group is None
         and not criterion.absence_of
         and not criterion.open_params
+        and bool(criterion.required_genomes_name)
         and len(required_genomes(criterion)) >= MIN_GROUP_GENOMES
         and bool(read)
         and _at_least_one_count(read) != criterion.result_count
@@ -61,8 +63,10 @@ def _option(
     count: int | None,
     noun: str,
 ) -> TypedOption:
-    group = GenomeGroup(reading=reading, genomes=tuple(genomes))
-    words = group.built_words.capitalize()
+    group = GenomeGroup(
+        reading=reading, genomes=tuple(genomes), name=criterion.required_genomes_name
+    )
+    words = f"{group.built_words[:1].upper()}{group.built_words[1:]}"
     label = words if count is None else f"{words} ({counted(count, noun)})"
     return TypedOption(
         id=option_id(label),
@@ -75,8 +79,9 @@ def _question(criterion: Criterion, noun: str) -> SlotQuestion:
     genomes = required_genomes(criterion)
     return SlotQuestion(
         question=(
-            f"This step requires an ortholog in each of {len(genomes)} genomes: "
-            f"{criterion.text}. Which reading should it build?"
+            f"This step requires an ortholog in each of the "
+            f"{criterion.required_genomes_name}: {without_stop(criterion.text)}. "
+            f"Which reading should it build?"
         ),
         dimension=ConstraintKind.ORTHOLOG,
         criterion_id=criterion.id,
