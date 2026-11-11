@@ -64,8 +64,13 @@ async def read_gene_record(
     site lists for it, and the site's own expression summary. Call it before you
     state any of those; the facts beside the reply show the record it read. A
     web page is not a record. ``orthologsShown`` says which rows of the ortholog
-    table the answer holds; a gene's ortholog in one organism is read with
-    ``ortholog_organism``, never from the first rows.
+    table the answer holds; a gene's ortholog in one organism the table lists is
+    read with ``ortholog_organism``, never from the first rows. The Orthologs
+    table lists only genomes the gene's own site holds, named in
+    ``orthologScope``: a genome another site holds has no row, and a missing
+    row there is no evidence of a missing ortholog. Orthology to a genome on
+    another site is the gene's OrthoMCL group (``orthologGroup``) and
+    membership in an ortholog-pattern step.
 
     Args:
         gene_id: A gene source id on this site, for example 'PF3D7_1133400'.
@@ -104,7 +109,10 @@ async def read_sampled_gene_record(
     turn, for a criterion no column shows. A control's record is never read:
     the control test states whether the strategy returned it. A criterion on an
     ortholog in one organism passes that organism as ``ortholog_organism``, so
-    the answer holds every row of it.
+    the answer holds every row of it. The Orthologs table lists only genomes
+    the gene's own site holds (``orthologScope``); orthology to a genome on
+    another site is the gene's OrthoMCL group and membership in an
+    ortholog-pattern step, never a missing row.
 
     Args:
         gene_id: A gene id the sample returned, for example 'PF3D7_1133400'.

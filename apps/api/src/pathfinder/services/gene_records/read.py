@@ -30,6 +30,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.gene_sets.homes import genomics_site_of
 from pathfinder.services.record_pages import record_page_url
 
 GENE_RECORD_TYPE = "gene"
@@ -48,6 +49,8 @@ WANTED_ATTRIBUTES = (
     "chromosome",
     "exon_count",
     "transcript_count",
+    "orthomcl_name",
+    "project_id",
 )
 
 
@@ -129,7 +132,19 @@ class GeneRecordSummary(CamelModel):
     # The organism whose every row ``orthologs`` holds, None for the first rows.
     ortholog_organism: str | None = None
     nearest_ortholog_organisms: list[str] = Field(default_factory=list)
+    ortholog_site: str | None = None
+    ortholog_group: str | None = None
     expression: ExpressionSummary | None = None
+
+    @computed
+    def ortholog_scope(self) -> str:
+        site = self.ortholog_site or "the gene's own site"
+        group = "" if self.ortholog_group is None else f" {self.ortholog_group}"
+        return (
+            f"The Orthologs table lists only genomes {site} holds. Orthology to a "
+            f"genome on another site is the gene's OrthoMCL group{group} and "
+            f"membership in an ortholog-pattern step."
+        )
 
     @computed
     def orthologs_shown(self) -> str:
@@ -199,6 +214,8 @@ class _GeneAttributes(BaseModel):
     chromosome: PlainText | None = None
     exon_count: OptionalCount = None
     transcript_count: OptionalCount = None
+    orthomcl_name: PlainText | None = None
+    project_id: str | None = None
 
 
 class _OrthologTableRow(BaseModel):
@@ -332,6 +349,7 @@ async def read_the_gene_record(
         raise UnknownGeneRecordError(site_id, gene_id) from refused
     stated = _GeneAttributes.model_validate(_attribute_texts(record))
     rows = _RecordTables.model_validate(record.tables).orthologs
+    home = genomics_site_of(site_id, stated.project_id)
     return GeneRecordSummary(
         site_id=site_id,
         gene_id=gene_id,
@@ -346,5 +364,7 @@ async def read_the_gene_record(
         ortholog_count=len(rows),
         ortholog_organism=ortholog_organism,
         nearest_ortholog_organisms=_nearest_organisms(rows, ortholog_organism),
+        ortholog_site=None if home is None else get_site(home).name,
+        ortholog_group=stated.orthomcl_name,
         expression=await _expression_of(site_id, gene_id),
     )

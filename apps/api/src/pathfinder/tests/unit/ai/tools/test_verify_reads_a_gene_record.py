@@ -47,6 +47,18 @@ async def test_a_sampled_genes_record_is_read_and_recorded(
     assert ctx.deps.turn_markers.retrieved_sources == [_RECORD.record_url]
 
 
+def test_the_record_read_says_its_orthologs_table_lists_only_its_sites_genomes() -> (
+    None
+):
+    described = " ".join((gene_record.read_gene_record.__doc__ or "").split())
+
+    assert "The Orthologs table lists only genomes the gene's own site holds" in (
+        described
+    )
+    assert "OrthoMCL group" in described
+    assert "ortholog_organism" in described
+
+
 def test_verify_carries_the_record_read() -> None:
     assert "read_gene_record" in toolset_tool_names(build_toolset())
 

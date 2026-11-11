@@ -248,7 +248,9 @@ from a site shows no facts, and its note writes freely.
 _CLOSING = """\
 - **A fact about a gene is read from its record.** ``read_gene_record`` answers one gene id \
   with its product, its exon and transcript counts, its chromosome, the orthologs the site \
-  lists and the site's own expression summary. Call it before you describe any of those, and \
+  lists, its OrthoMCL group and the site's own expression summary. Its Orthologs table lists \
+  only genomes the gene's own site holds: a genome another site holds has no row there, and \
+  orthology to it is the gene's OrthoMCL group. Call it before you describe any of those, and \
   never describe one from a web page: a page is not the record. A record is read once per \
   turn: its answer stays above, and the same read again fails and names the first.
 - **A fact about a genome is read from its record.** Gene counts, BUSCO scores and assembly \

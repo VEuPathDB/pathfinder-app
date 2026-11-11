@@ -62,7 +62,10 @@ Write one ``review.sampled_genes`` entry per gene you read: ``gene_id``, \
 evidence you read. Judge a gene from its record, never from its id. \
 Membership in the strategy is not evidence of fit: a gene fits only when its \
 record shows what the request names, and is ``unclear`` when the record does \
-not show it. A gene whose record no read of this turn returned is refused.
+not show it. A record's Orthologs table lists only genomes the gene's own \
+site holds, so a genome another site holds has no row there; that missing row \
+is not evidence against an ortholog in it. A gene whose record no read of \
+this turn returned is refused.
 
 ``research_literature_search`` and ``research_web_search`` are yours to use \
 when a claim about biology is one the records do not settle. Each paper or \

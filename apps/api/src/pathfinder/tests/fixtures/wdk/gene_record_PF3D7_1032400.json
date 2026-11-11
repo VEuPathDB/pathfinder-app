@@ -1,0 +1,38 @@
+{
+  "displayName": "PF3D7_1032400",
+  "id": [
+    {
+      "name": "source_id",
+      "value": "PF3D7_1032400"
+    },
+    {
+      "name": "project_id",
+      "value": "PlasmoDB"
+    }
+  ],
+  "recordClassName": "GeneRecordClasses.GeneRecordClass",
+  "attributes": {
+    "organism_full": "Plasmodium falciparum 3D7",
+    "product": "phosphatidylinositol N-acetylglucosaminyltransferase subunit A, putative",
+    "gene_type": "protein coding gene",
+    "name": "PIGA",
+    "sequence_id": "Pf3D7_10_v3",
+    "end_max": "1305315",
+    "is_pseudo": "No",
+    "orthomcl_name": "OG8_0001100",
+    "strand_plus_minus": "-",
+    "start_min": "1302298"
+  },
+  "tables": {
+    "GeneTranscripts": [
+      {
+        "protein_length": "461",
+        "transcript_id": "PF3D7_1032400.1",
+        "exon_count": "7",
+        "length": "2116",
+        "transcript_type": "mRNA"
+      }
+    ]
+  },
+  "tableErrors": []
+}

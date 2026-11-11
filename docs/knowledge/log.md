@@ -2,6 +2,10 @@
 
 ## 2026-11-11
 
+* **A gene page says which genomes its Orthologs table lists.** A gene record read names the
+  site whose genomes the table covers, from the record's project, and the gene's OrthoMCL
+  group (`orthomcl_name`). The tool, the Lead and VERIFY no longer read a missing row for
+  another site's genome as a missing ortholog.
 * **A strategy stays flat, so each step revises.** A combine PathFinder builds puts a lone
   step on the secondary side and the group on the primary, with the operator mirrored
   (`domain/strategy/combine_order.py::flat_join`), on the build, an edit and an export. The

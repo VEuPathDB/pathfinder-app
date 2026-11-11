@@ -184,6 +184,16 @@ def _genomics_sites() -> _GenomicsSites:
     return _GenomicsSites(by_project=by_project, by_domain=by_domain)
 
 
+def genomics_site_of(site_id: str, project_id: str | None) -> str | None:
+    match site_kind(site_id):
+        case "genomics":
+            return site_id
+        case "portal":
+            return _genomics_sites().by_project.get(project_id or "")
+        case "orthomcl":
+            return None
+
+
 def _homes(
     records: Sequence[WDKRecordInstance], site_id: str, kind: SiteKind
 ) -> dict[str, GeneHome]:
@@ -229,6 +239,7 @@ __all__ = [
     "IdListSearch",
     "StepGenes",
     "gene_homes",
+    "genomics_site_of",
     "read_genes_of",
     "read_step_genes",
     "site_kind",
