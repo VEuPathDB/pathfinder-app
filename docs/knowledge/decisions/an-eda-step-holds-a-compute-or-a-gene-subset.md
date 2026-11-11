@@ -69,7 +69,12 @@ sample.
   read with (`domain.card_picks` holds every picked label). Otherwise
   `create_eda_step` writes nothing and the guard builds the card itself
   (`services/eda/cut_offer.py`, `domain/eda_cut.py`), recorded in
-  `domain.open_questions`, which `consult_user` asks as recorded. The options
+  `domain.open_questions`, which `consult_user` asks as recorded. The Lead
+  reaches the same card before it writes any filter with `ask_eda_cut`
+  (`ai/tools/standalone/eda_cut.py`), which takes the variable of the open
+  analysis: a model does not send a filter whose bound it was not told, so a
+  card raised only by a refused export is never reached. With a tail rule held,
+  `ask_eda_cut` returns that study's edge for the rule instead of a card. The options
   come from structured EDA data only, each distribution read with no filter
   through `preview_subset`, so each count is the study's own:
   - one option per class of each `stringSet` variable of the cut's entity with
@@ -79,7 +84,9 @@ sample.
     share. The label states the bound, then the count the bound's own range
     filter selects, read with one more `preview_subset` and never summed from
     the bins: a bin leaves out its upper edge and a range filter keeps its
-    bound, so the two differ for every value on the edge. The share is that
+    bound, so the two differ for every value on the edge. The filter's open
+    end is the variable's declared range, since the outer bins can reach past
+    it and the service refuses a bound outside that range. The share is that
     count over the records with a value. Counts are in genes on the gene entity and else in the entity's plural, for
     example `Lowest 6.5% of Mean Phenotype Score: at most -3 (65 genes)`. No
     edge is interpolated. A tail that holds every record is no cut, and a tail
@@ -136,6 +143,13 @@ said, still holds for the analysis document only.
 can name a cut in words with no number. Its pick then binds no bound, and the
 question comes back for each study. Code builds the options, so each label
 carries the bound it binds, and a picked tail carries over to the next study.
+
+**Raise the card only from a refused export.** The guard builds the card
+when `create_eda_step` sends a filter whose bound no one stated. With no
+stated cut the model sent the export with no filter at all, which is refused
+as a subset that names no gene entity, and then wrote its own question. An
+instruction to send a guessed filter did not change that, so the card has a
+tool of its own.
 
 **Read a published cutoff from the study's description.** A description is
 prose, and reading a cutoff from it needs a model to understand the text. The

@@ -22,8 +22,10 @@ from veupathdb.eda import (
 from pathfinder.ai.lead.lead_consult import apply_option_bindings
 from pathfinder.ai.lead.recorded_cards import the_card_asked
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import _eda_step_guard
+from pathfinder.ai.tools.standalone import _eda_step_guard, eda_cut
 from pathfinder.ai.tools.standalone._eda_step_guard import the_subset_basis
+from pathfinder.ai.tools.standalone.eda_cut import ask_eda_cut
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.analysis_binding import SubsetBasis
 from pathfinder.domain.strategy.question_options import TailRule
 from pathfinder.services.eda import cut_offer
@@ -34,6 +36,7 @@ from pathfinder.tests._support.eda_doubles import (
     study_of,
 )
 from pathfinder.tests._support.eda_wire import PHENOTYPE_ENTITY
+from pathfinder.tests._support.tool_returns import returned
 
 _ESSENTIAL = "apicomplexan genes that are essential in any experiment"
 _LYTIC = "DS_lytic"
@@ -173,6 +176,7 @@ def _inside(dataset_id: str, each: EdaFilter) -> int:
 @pytest.fixture(autouse=True)
 def _wired(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(_eda_step_guard, "get_study_detail_for_dataset", _study)
+    monkeypatch.setattr(eda_cut, "get_study_detail_for_dataset", _study)
     monkeypatch.setattr(cut_offer, "preview_subset", _preview)
 
 
@@ -324,3 +328,52 @@ async def test_a_picked_class_binds_as_the_studys_own_class_and_holds_no_rule(
     assert await _basis(lead_ctx, _analysis_of([essential])) == [
         SubsetBasis(filter="Phenotype is one of Essential", basis="study")
     ]
+
+
+def _open(monkeypatch: pytest.MonkeyPatch, dataset_id: str) -> None:
+    view = ConversationAnalysisView(
+        site_id="plasmodb", dataset_id=dataset_id, analysis_id=ANALYSIS_ID, revision=1
+    )
+
+    async def bound(_ctx: RunContext[LeadDeps]) -> ConversationAnalysisView:
+        return view
+
+    monkeypatch.setattr(eda_cut, "bound_analysis", bound)
+
+
+async def test_asking_a_cut_records_the_card_of_the_studys_own_cuts(
+    lead_ctx: RunContext[LeadDeps], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _open(monkeypatch, _LYTIC)
+
+    said = returned(await ask_eda_cut(lead_ctx, variable_id=_SCORE), str)
+
+    [card] = the_card_asked([], lead_ctx.deps.state.domain.open_questions)
+    assert [o.label for o in card.options] == _OFFERED
+    assert "consult_user" in said
+
+
+async def test_asking_a_cut_under_a_picked_rule_names_the_studys_edge(
+    lead_ctx: RunContext[LeadDeps], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _pick_the_low_tail(lead_ctx)
+    asked = list(lead_ctx.deps.state.domain.open_questions)
+    _open(monkeypatch, _BLOOD)
+
+    said = returned(await ask_eda_cut(lead_ctx, variable_id=_FITNESS), str)
+
+    assert "at most -4 (7 genes)" in said
+    assert "max=-4" in said
+    assert lead_ctx.deps.state.domain.open_questions == asked
+
+
+async def test_asking_a_cut_on_a_variable_the_study_lacks_is_refused(
+    lead_ctx: RunContext[LeadDeps], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _open(monkeypatch, _BLOOD)
+
+    with pytest.raises(ModelRetry) as refusal:
+        await ask_eda_cut(lead_ctx, variable_id=_SCORE)
+
+    assert "Relative Growth Rate" in str(refusal.value)
+    assert lead_ctx.deps.state.domain.open_questions == []

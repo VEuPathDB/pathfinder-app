@@ -21,7 +21,7 @@ from pathfinder.domain.eda_cut import (
 )
 from pathfinder.domain.strategy.question_options import TailRule
 from pathfinder.domain.strategy.questions import OpenQuestion
-from pathfinder.services.eda.authoring import preview_subset
+from pathfinder.services.eda.authoring import declared_ranges, preview_subset
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,17 +42,25 @@ def tail_edges_of(distribution: EdaDistributionResponse | None) -> list[TailEdge
     return tail_edges(_bins(distribution))
 
 
+def _ends(
+    study: EdaStudyDetail, entity_id: str, variable_id: str, bins: Sequence[NumericBin]
+) -> tuple[float, float]:
+    declared = declared_ranges(study)
+    if (entity_id, variable_id) in declared:
+        return declared[(entity_id, variable_id)]
+    return min(b.bin_start for b in bins), max(b.bin_end for b in bins)
+
+
 async def _counted(
     site_id: str,
     *,
     dataset_id: str,
     entity_id: str,
     variable_id: str,
-    bins: Sequence[NumericBin],
+    ends: tuple[float, float],
     edge: TailEdge,
 ) -> TailEdge:
-    first = min(b.bin_start for b in bins)
-    last = max(b.bin_end for b in bins)
+    first, last = ends
     low, high = (first, edge.bound) if edge.rule.end == "low" else (edge.bound, last)
     preview = await preview_subset(
         site_id,
@@ -115,6 +123,7 @@ async def study_tail_edges(
     site_id: str,
     *,
     dataset_id: str,
+    study: EdaStudyDetail,
     entity_id: str,
     variable_id: str,
     rules: Mapping[str, TailRule],
@@ -128,7 +137,7 @@ async def study_tail_edges(
             dataset_id=dataset_id,
             entity_id=entity_id,
             variable_id=variable_id,
-            bins=bins,
+            ends=_ends(study, entity_id, variable_id, bins),
             edge=edge,
         )
         for label, rule in rules.items()
@@ -154,7 +163,7 @@ async def study_cut_question(
             dataset_id=dataset_id,
             entity_id=cut.entity_id,
             variable_id=cut.variable_id,
-            bins=bins,
+            ends=_ends(study, cut.entity_id, cut.variable_id, bins),
             edge=edge,
         )
         for edge in tail_edges(bins)

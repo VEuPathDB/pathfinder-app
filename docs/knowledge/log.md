@@ -11,6 +11,13 @@
   edge for the rule, with a retry naming the edge for any other bound. See
   [the decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
 
+* **The Lead asks a cut with `ask_eda_cut`.** The tool takes a variable of the open analysis and
+  records the same code-built card before any filter is written, or returns the study's edge for
+  a held tail rule. The Lead's instructions, the filter sheet guidance and the refusal of an
+  export with no gene filter name it. A tail's recount now ends at the variable's declared range,
+  not at the outer bin edge, which can lie past it. See
+  [the decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
 * **An open tab is told of a new web build.** The web image names its build by a hash of its
   sources, serves it at `GET /api/v1/web-build` and sets it as Next's `deploymentId`. An open tab
   checks it every five minutes and on focus and shows a Reload banner when the build it loaded is

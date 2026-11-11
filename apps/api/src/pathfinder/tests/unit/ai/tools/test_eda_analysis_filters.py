@@ -198,6 +198,9 @@ async def test_a_first_call_with_no_filters_returns_the_sheet(
     result = returned(answer, EdaFiltersResult)
     assert result.sheet_pinned is True
     assert result.applied is False
+    assert result.guidance.endswith(
+        "For a cut no message states, call ask_eda_cut first; write no cut question."
+    )
     assert _pinned(lead_ctx)
 
 

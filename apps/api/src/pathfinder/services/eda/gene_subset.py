@@ -169,7 +169,8 @@ def _no_gene_filter(subset: GeneSubset, comparisons: int) -> NoGeneSubsetError:
         retry=(
             f"{held} {named} Call run_eda_compute to run the comparison and "
             f"export the genes that pass its thresholds, or call set_eda_filters "
-            f"with a filter on {gene}."
+            f"with a filter on {gene}. When no message states where to cut it, "
+            f"call ask_eda_cut first."
         ),
     )
 

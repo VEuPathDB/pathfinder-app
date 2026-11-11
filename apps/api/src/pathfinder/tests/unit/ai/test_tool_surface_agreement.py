@@ -66,6 +66,7 @@ _TOOL_NAME_TOKENS = frozenset(
         "add_step_filter",
         "apply_operations",
         "build_strategy",
+        "ask_eda_cut",
         "clear_strategy",
         "create_eda_step",
         "delete_step",

@@ -181,6 +181,7 @@ async def test_a_held_rule_reads_the_studys_own_edge(
     edges = await study_tail_edges(
         "plasmodb",
         dataset_id=_DATASET,
+        study=EdaStudyDetailResponse.model_validate(_study_with_a_score()).study,
         entity_id=_ENTITY,
         variable_id=_SCORE,
         rules={

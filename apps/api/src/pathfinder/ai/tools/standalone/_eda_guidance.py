@@ -7,7 +7,8 @@ from pathfinder.services.eda.gene_subset import GeneCount, GeneSubset
 
 SHEET_GUIDANCE = (
     "The sheet is pinned under 'Open EDA filter sheet' in your instructions. "
-    "Send the whole filters array back, then call preview_eda_subset."
+    "Send the whole filters array back, then call preview_eda_subset. "
+    "For a cut no message states, call ask_eda_cut first; write no cut question."
 )
 
 APPLIED_GUIDANCE = (

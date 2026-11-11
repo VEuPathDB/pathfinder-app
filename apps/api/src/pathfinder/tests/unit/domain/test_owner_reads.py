@@ -26,6 +26,7 @@ THREAD_TOOLS = frozenset(
         "add_step_filter",
         "adopt_separating_strategy",
         "apply_operations",
+        "ask_eda_cut",
         "ask_to_read_the_account",
         "audit_gene_evidence",
         "audit_gene_length",

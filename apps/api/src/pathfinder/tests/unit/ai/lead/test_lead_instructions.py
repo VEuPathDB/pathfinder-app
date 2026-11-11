@@ -68,6 +68,16 @@ def test_the_instructions_forbid_describing_a_subset_before_a_preview() -> None:
     assert "before you describe the subset" in LEAD_INSTRUCTIONS
 
 
+def test_an_unstated_cut_is_asked_with_the_card_code_counts() -> None:
+    flat = _flat(LEAD_INSTRUCTIONS)
+    assert (
+        "When the researcher has not said where to cut a variable, call "
+        "``ask_eda_cut`` with it before any filter on it, then ``consult_user``, "
+        "which asks the card of the study's own counted cuts; write no question "
+        "or option about the cut yourself."
+    ) in flat
+
+
 def test_the_instructions_say_the_compute_runs_before_the_step() -> None:
     index_compute = LEAD_INSTRUCTIONS.index("run_eda_compute")
     index_step = LEAD_INSTRUCTIONS.index("create_eda_step")

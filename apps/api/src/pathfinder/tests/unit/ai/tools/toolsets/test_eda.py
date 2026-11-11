@@ -29,10 +29,11 @@ _EDA_TOOLS = {
     "run_eda_dimensionality_reduction",
     "read_eda_statistics",
     "create_eda_step",
+    "ask_eda_cut",
 }
 
 
-def test_the_toolset_carries_exactly_the_nine_contract_tools() -> None:
+def test_the_toolset_carries_exactly_the_ten_contract_tools() -> None:
     tools = unwrap_function_toolset(build_toolset()).tools
     assert set(tools) == _EDA_TOOLS
 

@@ -109,7 +109,8 @@ SAMPLE_ONLY_RETRY = (
     "entity selects no genes, so nothing was written. The gene entity is "
     "pfal3D7 htseq counts (ENT_fd574cd6). Call run_eda_compute to run the "
     "comparison and export the genes that pass its thresholds, or call "
-    "set_eda_filters with a filter on pfal3D7 htseq counts."
+    "set_eda_filters with a filter on pfal3D7 htseq counts. When no message "
+    "states where to cut it, call ask_eda_cut first."
 )
 
 Commit = Callable[..., Awaitable[CommitResult]]

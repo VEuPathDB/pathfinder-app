@@ -20,6 +20,11 @@ from veupathdb.eda import (
 
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.tools.standalone._eda_sheet import sheet_entries
+from pathfinder.ai.tools.standalone.eda_cut import (
+    ask_sentence,
+    cut_card,
+    picked_rule_sentences,
+)
 from pathfinder.domain.eda_cut import TailEdge
 from pathfinder.domain.eda_parts import (
     EdaComparison,
@@ -33,16 +38,9 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.value_source import stated_words, value_source
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
-from pathfinder.services.eda.cut_offer import (
-    OfferedCut,
-    counted_noun,
-    study_cut_question,
-    study_tail_edges,
-)
+from pathfinder.services.eda.cut_offer import counted_noun, study_tail_edges
 from pathfinder.services.eda.description import display_names, filter_summaries
 from pathfinder.services.eda.export import exported_dataset
-
-_CLASS_SIZE = 8
 
 
 def refuse_a_direction_without_a_volcano(
@@ -292,12 +290,7 @@ def subset_basis(
 def _rule_retry(
     cut: UnstatedCut, edges: Mapping[str, TailEdge], noun: str
 ) -> ModelRetry:
-    rules = " ".join(
-        f'The researcher picked "{label}" on a card, the {edge.rule.end}est '
-        f"{edge.rule.percent}% of a study. On this study's {cut.variable_name} "
-        f"that is {edge.cut(noun)}, so send {edge.wire_end}={edge.bound:g}."
-        for label, edge in edges.items()
-    )
+    rules = picked_rule_sentences(edges, cut.variable_name, noun)
     return ModelRetry(
         f"{cut.shown} is a cut no researcher message states. {rules} "
         f"Nothing was written."
@@ -305,18 +298,9 @@ def _rule_retry(
 
 
 def _asked_retry(cut: UnstatedCut, question: OpenQuestion) -> ModelRetry:
-    if not question.options:
-        return ModelRetry(
-            f"{cut.shown} is a cut no researcher message states and no card "
-            f"picked, and this study counts no cut to offer. Nothing was written. "
-            f"Ask the researcher for the cut in their own words with "
-            f"consult_user, in a question with no options."
-        )
     return ModelRetry(
         f"{cut.shown} is a cut no researcher message states and no card "
-        f'picked. Nothing was written. Call consult_user: the card asks "'
-        f'{question.question}" with the cuts this study counts, as recorded, '
-        f"so write no question or option of your own for this cut."
+        f"picked. Nothing was written. {ask_sentence(question)}"
     )
 
 
@@ -344,6 +328,7 @@ async def _asked_or_met(
     edges = await study_tail_edges(
         site_id,
         dataset_id=dataset_id,
+        study=study,
         entity_id=cut.entity_id,
         variable_id=cut.variable_id,
         rules=thread.tail_rules if cut.numeric else {},
@@ -356,24 +341,14 @@ async def _asked_or_met(
         return SubsetBasis(filter=cut.shown, basis="card", picked=met)
     if edges:
         raise _rule_retry(cut, edges, counted_noun(study, cut.entity_id))
-    classes = [
-        (e.variable_id, e.display_name)
-        for e in sheet_entries(study)
-        if e.entity_id == cut.entity_id
-        and e.filter_type == "stringSet"
-        and 0 < e.vocabulary_total <= _CLASS_SIZE
-    ]
-    question = await study_cut_question(
+    question = await cut_card(
         site_id,
-        dataset_id=dataset_id,
-        study=study,
-        cut=OfferedCut(
-            entity_id=cut.entity_id,
-            variable_id=cut.variable_id,
-            variable_name=cut.variable_name,
-            numeric=cut.numeric,
-            classes=classes,
-        ),
+        dataset_id,
+        study,
+        entity_id=cut.entity_id,
+        variable_id=cut.variable_id,
+        variable_name=cut.variable_name,
+        numeric=cut.numeric,
     )
     if question.options:
         thread.record_questions([question])

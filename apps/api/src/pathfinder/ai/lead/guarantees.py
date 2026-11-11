@@ -36,6 +36,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "clear_strategy": Reversibility.GATED_DESTRUCTIVE,
     "compare_search_variants": Reversibility.READ,
     "compare_variants_scored": Reversibility.UNREVISIONED_WRITE,
+    "ask_eda_cut": Reversibility.IN_STATE,
     "consult_user": Reversibility.IN_STATE,
     "count_search": Reversibility.READ,
     "count_by_column": Reversibility.READ,

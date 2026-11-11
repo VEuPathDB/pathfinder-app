@@ -83,6 +83,7 @@ LEAD_TOOL_NAMES = frozenset(
         "run_eda_dimensionality_reduction",
         "read_eda_statistics",
         "create_eda_step",
+        "ask_eda_cut",
         "propose_changes",
         "separate_controls",
         "adopt_separating_strategy",

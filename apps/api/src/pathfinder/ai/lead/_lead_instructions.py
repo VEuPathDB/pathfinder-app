@@ -304,7 +304,11 @@ The loop, in order:
    which group, by its label, holds more of the passing genes. The figure shows \
    the counts.
 7. ``create_eda_step`` - export the subset, or the genes passing the volcano \
-   thresholds, as an ordinary step in the researcher's strategy. For a \
+   thresholds, as an ordinary step in the researcher's strategy. When the \
+   researcher has not said where to cut a variable, call ``ask_eda_cut`` with \
+   it before any filter on it, then ``consult_user``, which asks the card of \
+   the study's own counted cuts; write no question or option about the cut \
+   yourself. For a \
    compute-backed export, run_eda_compute must have COMPLETED first. A \
    positive effect size means the gene is higher in group B than in group A, \
    so upOnly keeps the genes higher in group B and downOnly those higher in \

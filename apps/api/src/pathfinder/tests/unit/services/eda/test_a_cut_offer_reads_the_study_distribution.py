@@ -179,3 +179,63 @@ async def test_each_tail_counts_what_its_own_filter_selects(
         "Lowest 96.5% of Fitness score: at most 15 (35290 genes)",
         "Highest 91.2% of Fitness score: at least 10 (33344 genes)",
     ]
+
+
+async def test_each_recount_stays_inside_the_declared_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: list[tuple[float, float]] = []
+
+    async def preview_subset(
+        site_id: str,
+        *,
+        dataset_id: str,
+        entity_id: str,
+        filters: Sequence[EdaFilter],
+        distribution_variable_id: str | None = None,
+    ) -> SubsetPreview:
+        del site_id, dataset_id, distribution_variable_id
+        sent.extend(_range(f) for f in filters)
+        return SubsetPreview(
+            entity_id=entity_id,
+            entity_display_name="Gene",
+            entity_display_name_plural="Genes",
+            count=1,
+            unfiltered_count=48721,
+            distribution=None
+            if filters
+            else EdaDistributionResponse.model_validate(_CONTINUOUS),
+        )
+
+    monkeypatch.setattr(cut_offer, "preview_subset", preview_subset)
+    study = study_of(
+        [
+            {
+                "id": _SCORE,
+                "type": "number",
+                "displayName": "Fitness score",
+                "dataShape": "continuous",
+                "distributionDefaults": {
+                    "rangeMin": 3.0,
+                    "rangeMax": 18.9,
+                    "binWidth": 5,
+                },
+            }
+        ],
+        entity_id=PHENOTYPE_ENTITY,
+    )
+
+    await study_cut_question(
+        "plasmodb",
+        dataset_id="DS_phenotype",
+        study=study,
+        cut=OfferedCut(
+            entity_id=PHENOTYPE_ENTITY,
+            variable_id=_SCORE,
+            variable_name="Fitness score",
+            numeric=True,
+            classes=[],
+        ),
+    )
+
+    assert sent == [(3.0, 10.0), (3.0, 15.0), (10.0, 18.9)]
