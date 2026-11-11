@@ -2,6 +2,16 @@
 
 ## 2026-11-11
 
+* **A research question keeps its tools.** The message reader's guide names PathFinder's
+  research role. `off_topic` now leaves out the pathogens, hosts and vectors the sites cover, their
+  biology and the literature on them, so a literature question about a covered pathogen is not
+  off topic. An off-topic Explore turn keeps its tools, is pinned the redirect, and is refused
+  once when its reply is longer than the Lead's redirect cap. The Lead, Explore and VERIFY name
+  the research reads only when the turn resolved the `research` source; otherwise they are told
+  that literature and web search are unavailable this turn. Each declared source a turn does not
+  resolve is counted under `pathfinder_tool_source_errors_total{stage="unresolved"}` and logged
+  with its reason. See
+  [the decision](decisions/a-thread-answers-in-explore-or-build.md).
 * **A sampled gene fits by its steps.** VERIFY decides each requirement a step encodes from
   the strategy's shape: a gene of the result is held by every input of an intersect and by
   the kept side of a minus, and is absent from a subtracted step, with no read. Only a union

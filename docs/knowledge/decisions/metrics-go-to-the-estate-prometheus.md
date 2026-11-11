@@ -37,7 +37,7 @@ more of it, so the series live on a server the app does not serve.
 | `pathfinder_chat_turns_finished_total` | worker | assistant, outcome (`completed`, `failed`, `stopped`), the model that read the prompt |
 | `pathfinder_chat_turn_duration_seconds` | worker | assistant, outcome |
 | `pathfinder_model_tokens_total`, `pathfinder_model_cost_usd_total` | worker | model, payer (`deployment` or `user`) |
-| `pathfinder_tool_source_errors_total` | worker | admitted source id, stage (`open` or `call`) |
+| `pathfinder_tool_source_errors_total` | worker | admitted source id, stage (`open`, `call`, or `unresolved` for a declared source a turn did not resolve) |
 
 The worker reads a turn's spend from the usage chunks the turn already writes
 (`jobs/turn_metrics.py`): the Lead's usage and each sub-agent dispatch under their

@@ -23,7 +23,8 @@ holds no audit tool ([audits are offered on the dev sites only](audits-are-offer
 The classification is a typed record: the turn's markers, the requirements it states,
 the questions it answers, the ledger and FRAME's work order read it. It is read from the
 message before the Lead runs ([A message is read before the Lead runs](a-message-is-read-before-the-lead.md)).
-The off-topic reply is an instruction (two sentences, no tool), not a tool removal.
+The off-topic reply is an instruction (two sentences, no tool), not a tool removal, in Build
+and in Explore.
 
 # Why
 

@@ -4,16 +4,19 @@ from typing import Final
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
-from pydantic_ai.capabilities import PrepareTools, ProcessHistory
+from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.ai.agents._instructions import pinned_run_budget, pinned_user_memories
+from pathfinder.ai.agents.research_reads import research_reads, research_served
 from pathfinder.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.ai.explore._explore_instructions import (
     EXPLORE_INSTRUCTIONS,
     EXPLORE_OFF_TOPIC_REDIRECT,
+    EXPLORE_RESEARCH_READS,
 )
 from pathfinder.ai.explore.account_reads import (
     ask_to_read_the_account,
@@ -40,6 +43,12 @@ from pathfinder.ai.lead.lead_reads import get_live_strategy_state
 from pathfinder.ai.lead.lead_tools import list_gene_sets
 from pathfinder.ai.lead.linked_pages import pinned_linked_pages
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import (
+    Mismatch,
+    correct_once,
+    correction_for,
+    off_topic_essay,
+)
 from pathfinder.ai.tools.standalone.gene_record import (
     offered_where_genes_are_held,
     read_gene_record,
@@ -110,10 +119,27 @@ def pinned_off_topic_redirect(ctx: RunContext[LeadDeps]) -> str | None:
     return EXPLORE_OFF_TOPIC_REDIRECT if turn_is_off_topic(ctx.deps) else None
 
 
-async def _no_tool_off_topic(
-    ctx: RunContext[LeadDeps], tool_defs: list[ToolDefinition]
-) -> list[ToolDefinition]:
-    return [] if turn_is_off_topic(ctx.deps) else tool_defs
+def pinned_research_reads(ctx: RunContext[LeadDeps]) -> str:
+    return research_reads(
+        EXPLORE_RESEARCH_READS, served=research_served(ctx.deps.runtime.tool_sources)
+    )
+
+
+def hold_the_redirect_short(
+    ctx: RunContext[LeadDeps], output: str | DeferredToolRequests
+) -> str | DeferredToolRequests:
+    if not isinstance(output, str):
+        return output
+    sentence = off_topic_essay(output, off_topic=turn_is_off_topic(ctx.deps))
+    found = (
+        []
+        if sentence is None
+        else [Mismatch(kind="off_topic_essay", sentence=sentence)]
+    )
+    mismatches = correct_once(ctx, found)
+    if mismatches:
+        raise ModelRetry(correction_for(mismatches))
+    return output
 
 
 def build_explore_agent() -> ExploreAgent:
@@ -131,7 +157,6 @@ def build_explore_agent() -> ExploreAgent:
         capabilities=agent_capabilities(
             [
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
-                PrepareTools[LeadDeps](_no_tool_off_topic),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
         ),
@@ -146,7 +171,9 @@ def build_explore_agent() -> ExploreAgent:
         pinned_user_prompt,
         pinned_linked_pages,
         pinned_run_budget,
+        pinned_research_reads,
         pinned_off_topic_redirect,
     ):
         agent.instructions(fn)
+    agent.output_validator(hold_the_redirect_short)
     return agent

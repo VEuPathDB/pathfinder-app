@@ -5,7 +5,10 @@ from __future__ import annotations
 import re
 
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
-from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead._lead_instructions import (
+    LEAD_INSTRUCTIONS,
+    LEAD_RESEARCH_READS,
+)
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.lead_proposal import propose_changes
 
@@ -225,7 +228,7 @@ def test_a_fact_about_a_gene_is_read_from_its_record() -> None:
 
 
 def test_the_two_research_reads_answer_what_the_record_does_not() -> None:
-    instructions = _flat(LEAD_INSTRUCTIONS)
+    instructions = _flat(LEAD_RESEARCH_READS)
 
     assert "the biology the record does not hold" in instructions
     assert (

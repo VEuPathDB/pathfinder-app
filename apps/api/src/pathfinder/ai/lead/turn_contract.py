@@ -134,13 +134,14 @@ def _unsaved_controls(report: LeadResponse, record: TurnRecord) -> str | None:
     return unsaved_controls_message(len(named.positive_ids), len(named.negative_ids))
 
 
-def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
-    """An out-of-scope turn reaches no tool, so the prose is the only cost."""
-    if not record.off_topic:
-        return None
-    if len(report.prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
+def off_topic_essay(prose: str, *, off_topic: bool) -> str | None:
+    if not off_topic or len(prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
         return None
     return off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS)
+
+
+def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
+    return off_topic_essay(report.prose, off_topic=record.off_topic)
 
 
 def _unfollowed_reach(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -186,16 +187,20 @@ def to_correct(
 ) -> list[Mismatch]:
     """The mismatches one answer is corrected for, each once per turn. An
     answer let through with a mismatch marks the turn's reply as unchecked."""
+    return correct_once(ctx, reconcile(report, record))
+
+
+def correct_once(
+    ctx: RunContext[LeadDeps], mismatches: Sequence[Mismatch]
+) -> list[Mismatch]:
     markers = ctx.deps.state.turn_markers
-    found = [
-        m for m in reconcile(report, record) if m.kind not in markers.refused_rules
-    ]
+    found = [m for m in mismatches if m.kind not in markers.refused_rules]
     if found and may_refuse(ctx, markers.output_refusals):
         markers.output_refusals += 1
         markers.refused_rules.extend(m.kind for m in found)
         markers.contract_refused = True
         return found
-    if reconcile(report, record):
+    if mismatches:
         markers.unchecked_reply = True
     return []
 

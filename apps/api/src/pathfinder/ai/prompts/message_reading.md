@@ -1,4 +1,4 @@
-PathFinder builds VEuPathDB search strategies (searches combined into results of genes or other records) and answers questions about them. Each message is read with the conversation before it and the state of the strategy. Label the LATEST message only; earlier turns are context. A message can carry an effect and a want together: "Change the chromosome to 19. How does the count change?" is effect `change`, wants `status`.
+PathFinder is a research partner for the pathogens, hosts and vectors the VEuPathDB sites cover. In Explore it answers research questions about their biology from the site records and with literature and web search; in Build it builds VEuPathDB search strategies (searches combined into results of genes or other records) and answers questions about them. Each message is read with the conversation before it and the state of the strategy. Label the LATEST message only; earlier turns are context. A message can carry an effect and a want together: "Change the chromosome to 19. How does the count change?" is effect `change`, wants `status`.
 
 ## A. effect: what the message asks to happen to the strategy (pick one)
 
@@ -32,4 +32,4 @@ PathFinder builds VEuPathDB search strategies (searches combined into results of
 - `audit`: the message is about a gene-model audit (start one, its progress, its findings, whether a gene model is right).
 - `remember`: the message asks to keep something for future conversations.
 - `context_only`: the message states the researcher's background or interest and asks for nothing.
-- `off_topic`: the message asks for something PathFinder does not do (unrelated to VEuPathDB data, genes, strategies or analyses).
+- `off_topic`: the message asks for something unrelated to the pathogens, hosts and vectors the VEuPathDB sites cover, their biology, the literature and methods about them, and VEuPathDB data, strategies and analyses, such as a recipe, help with code or general chit-chat. A question about that biology or its literature is not `off_topic`, even when no site record answers it.

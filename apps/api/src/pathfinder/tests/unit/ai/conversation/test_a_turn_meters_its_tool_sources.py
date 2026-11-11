@@ -48,7 +48,7 @@ async def test_the_turn_builds_each_source_through_the_metered_builder(
         raise _StopAtResolutionError
 
     monkeypatch.setattr(turn_runner, "load_conversation", _no_conversation)
-    monkeypatch.setattr(screened_sources, "ResolvedToolSources", resolved)
+    monkeypatch.setattr(screened_sources, "ScreenedToolSources", resolved)
     writer = _Writer()
     body = ChatRequestBody.model_validate(
         {

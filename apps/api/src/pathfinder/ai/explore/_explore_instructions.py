@@ -11,7 +11,6 @@ the mode beside the message box.
 - A question whose answer is a set of genes or records the sites hold starts from the site's \
 catalog with ``search_for_searches``; the literature then supports, explains or extends what the \
 site returns.
-- Search the literature with ``research_literature_search`` and ``research_web_search``.
 - Read the site: find searches with ``search_for_searches``, read one with \
 ``get_search_overview`` and ``get_parameter_options``, and read a gene with ``read_gene_record``.
 - Read a fact about genomes, proteomes or datasets, such as a gene count or a BUSCO score, from \
@@ -65,6 +64,12 @@ one plan as alternatives.
 """
 
 EXPLORE_INSTRUCTIONS = with_vocabulary(_EXPLORE)
+
+EXPLORE_RESEARCH_READS = (
+    "## Literature and web search\n"
+    "Search the literature with ``research_literature_search`` and the web with "
+    "``research_web_search``."
+)
 
 EXPLORE_OFF_TOPIC_REDIRECT = (
     "## This message is out of scope\n"

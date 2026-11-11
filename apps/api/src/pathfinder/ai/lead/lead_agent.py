@@ -19,10 +19,14 @@ from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.research_reads import research_reads, research_served
 from pathfinder.ai.agents.tool_vocabulary import READ_ONLY_TOOLS, RECORD_READS
 from pathfinder.ai.capabilities.site_reads import SiteReadFailures
 from pathfinder.ai.graph.runtime import one_toolset
-from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead._lead_instructions import (
+    LEAD_INSTRUCTIONS,
+    LEAD_RESEARCH_READS,
+)
 from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
@@ -112,6 +116,12 @@ from pathfinder.platform.refusals import agent_capabilities
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
     """The servers this turn resolved, as the tools of this run, recording what they return."""
     return recording_retrievals(one_toolset(ctx.deps.runtime.tool_sources), ctx.deps)
+
+
+def pinned_research_reads(ctx: RunContext[LeadDeps]) -> str:
+    return research_reads(
+        LEAD_RESEARCH_READS, served=research_served(ctx.deps.runtime.tool_sources)
+    )
 
 
 def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
@@ -237,6 +247,7 @@ def build_lead_agent() -> LeadAgent:
         pinned_ledger_summary,
         pinned_statistics,
         pinned_run_budget,
+        pinned_research_reads,
     ):
         agent.instructions(stable.section(fn))
     agent.instructions(machine_guarantees_pin(agent.toolsets))

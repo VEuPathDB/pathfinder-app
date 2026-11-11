@@ -20,9 +20,15 @@ from pathfinder.ai.agents.verification import (
     _VERIFICATION_INSTRUCTIONS,
     build_verification_agent,
 )
-from pathfinder.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
+from pathfinder.ai.explore._explore_instructions import (
+    EXPLORE_INSTRUCTIONS,
+    EXPLORE_RESEARCH_READS,
+)
 from pathfinder.ai.explore.explore_agent import build_explore_agent
-from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead._lead_instructions import (
+    LEAD_INSTRUCTIONS,
+    LEAD_RESEARCH_READS,
+)
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.toolsets.verification import build_toolset
 from pathfinder.platform.tool_sources import RESEARCH_TOOL_SOURCE
@@ -145,8 +151,8 @@ _SURFACES: dict[str, tuple[Callable[[], Agent[Any, Any]], str]] = {
     "frame": (build_frame_agent, _FRAME_INSTRUCTIONS),
     "execution": (build_execution_agent, _EXECUTION_INSTRUCTIONS),
     "verification": (build_verification_agent, _VERIFICATION_INSTRUCTIONS),
-    "lead": (build_lead_agent, LEAD_INSTRUCTIONS),
-    "explore": (build_explore_agent, EXPLORE_INSTRUCTIONS),
+    "lead": (build_lead_agent, LEAD_INSTRUCTIONS + LEAD_RESEARCH_READS),
+    "explore": (build_explore_agent, EXPLORE_INSTRUCTIONS + EXPLORE_RESEARCH_READS),
 }
 
 

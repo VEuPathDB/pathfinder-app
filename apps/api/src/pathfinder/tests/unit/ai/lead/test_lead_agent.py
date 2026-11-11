@@ -102,6 +102,7 @@ PINNED_INSTRUCTIONS = [
     "pinned_ledger_summary",
     "pinned_statistics",
     "pinned_run_budget",
+    "pinned_research_reads",
     "pinned_machine_guarantees",
     "pinned_withheld_tools",
     "pinned_turn_briefing",

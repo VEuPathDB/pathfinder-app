@@ -79,8 +79,17 @@ reuses the Lead's stop replies and its model usage part.
 A new Explore message is read by the same message reader as the Lead's
 (`ai/graph/_lead_reading.py::classify_the_words`, on the Explore model and metered to the turn),
 which records only its classification: Explore keeps no requirement and names no organism. A
-message read as `off_topic` is offered no tool (`PrepareTools`) and the instruction to answer
-in two sentences with what PathFinder does (`EXPLORE_OFF_TOPIC_REDIRECT`), as the Lead's is.
+message read as `off_topic` keeps its tools and is pinned the instruction to answer in two
+sentences with what PathFinder does (`EXPLORE_OFF_TOPIC_REDIRECT`), as the Lead's is; a reply
+longer than the Lead's redirect cap (`OFF_TOPIC_REPLY_MAX_CHARS`) is refused once through the
+Lead's own correction (`turn_contract.py::correct_once`). An empty tool list under instructions
+that still name tools made the model write tool calls as text. The reader keeps the pathogens,
+hosts and vectors the sites cover, their biology and the literature about them in scope, so a
+literature question is not `off_topic` (`message_reading.md`). The research reads are named
+only by an instruction pinned when this turn resolved the `research` source
+(`ai/agents/research_reads.py`); a turn without it is pinned that literature and web search are
+unavailable, so the reply says so instead of answering from memory. The Lead and VERIFY pin
+theirs the same way.
 Explore writes markdown, and links a paper or a page only by the exact url a research read of
 the turn returned; see
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).

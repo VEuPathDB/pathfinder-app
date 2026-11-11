@@ -255,7 +255,9 @@ journalctl -u pathfinder-worker@dev --since -15m
 A worker that logs "the injection judge did not build" cannot reach its model; check
 `OPENAI_API_KEY`. If the worker runs but turns stay queued, look at the queue with the
 `procrastinate_jobs` query under [Releases](#releases). A tool server that refuses the worker
-shows in `pathfinder_tool_source_errors_total`; check its token pair.
+shows in `pathfinder_tool_source_errors_total`; check its token pair. Stage `unresolved` counts
+each turn that ran without a declared source, and the worker logs "Tool source is unavailable this
+turn" with the source id and the reason.
 
 **The page answers 404.**
 

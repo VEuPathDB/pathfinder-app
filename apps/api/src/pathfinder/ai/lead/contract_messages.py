@@ -15,11 +15,10 @@ def off_topic_essay_message(max_chars: int) -> str:
     """Why an out-of-scope reply that answers the request anyway is refused."""
     return (
         f"This turn asks for something PathFinder does not do, and your reply "
-        f"answers it. Write the redirect instead: two sentences, under "
-        f"{max_chars} characters, naming what PathFinder does - strategies on "
-        f"the VEuPathDB sites, EDA, exports - and inviting the "
-        f"user to rephrase. No code block, no draft, no answer to what was "
-        f"asked."
+        f"answers it. Write the redirect your instructions give instead: two "
+        f"sentences, under {max_chars} characters, naming what PathFinder does "
+        f"and inviting the user to rephrase. No code block, no draft, no answer "
+        f"to what was asked."
     )
 
 

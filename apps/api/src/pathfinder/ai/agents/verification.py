@@ -16,6 +16,7 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.research_reads import research_reads
 from pathfinder.ai.agents.scratchpad_guidance import (
     PATHFINDER_SCRATCHPAD_GUIDANCE,
     PROMOTED_NOTE_KIND,
@@ -67,12 +68,6 @@ record does not show it. A record's Orthologs table lists only genomes the gene'
 site holds, so a genome another site holds has no row there; that missing row \
 is not evidence against an ortholog in it. A gene whose record no read of \
 this turn returned is refused.
-
-``research_literature_search`` and ``research_web_search`` are yours to use \
-when a claim about biology is one the records do not settle. Each paper or \
-page you rely on goes in ``review.sources`` with its url, DOI or PMID exactly \
-as the search returned it and one line of ``why``. A source no read of this \
-turn returned is refused.
 
 ## Tools
 
@@ -131,6 +126,15 @@ identifier in backticks, **bold** the key number in a finding, and keep each \
 """
 )
 
+_VERIFY_RESEARCH_READS = (
+    "## Literature and web search\n"
+    "``research_literature_search`` and ``research_web_search`` are yours to use "
+    "when a claim about biology is one the records do not settle. Each paper or "
+    "page you rely on goes in ``review.sources`` with its url, DOI or PMID exactly "
+    "as the search returned it and one line of ``why``. A source no read of this "
+    "turn returned is refused."
+)
+
 VERIFICATION_MODEL = DEFAULT_MODEL_ID
 
 VerificationAgent = Agent[AgentDeps, VerificationDelta | DeferredToolRequests]
@@ -146,6 +150,12 @@ def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
             "## The researcher's request",
             *(f"{number}. {text}" for number, text in enumerate(scope.messages, 1)),
         ]
+    )
+
+
+def pinned_research_reads(ctx: RunContext[AgentDeps]) -> str:
+    return research_reads(
+        _VERIFY_RESEARCH_READS, served=ctx.deps.tool_sources is not None
     )
 
 
@@ -192,6 +202,7 @@ def build_verification_agent() -> VerificationAgent:
         pinned_ledger,
         pinned_discovered_searches,
         pinned_run_budget,
+        pinned_research_reads,
     ):
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_digest_to_the_evidence)

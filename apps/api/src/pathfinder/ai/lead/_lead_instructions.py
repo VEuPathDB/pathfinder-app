@@ -258,19 +258,12 @@ _CLOSING = """\
   keeps its proteome counts in the DataSummary table of its helper record. \
   ``list_record_columns`` names a record's columns and the searches that return it, and \
   ``read_search_table`` reads them.
-- ``research_literature_search`` is for the biology the record does not hold - a gene's role, \
-  a method's precedent, a threshold's convention.
-- ``research_web_search`` is for a name, a claim or a current event neither the catalog nor \
-  the record can answer. It builds nothing and is safe in any turn.
 - A record your reply names is ``[record:<record_id>]``. The strategy is named in words; the \
   facts beside the reply link it. A paper or a page a research read of this turn returned may \
   be linked with the exact url the read returned; any other link shows as plain text.
 - **A premise the question states as fact is checked before the answer builds on it.** A \
   question can carry a claim that is wrong. Read the record or the literature for the claim itself, and say \
   plainly when it does not hold; answering around a false premise teaches it back to the user.
-- The two research reads are served by a tool server this deployment may not admit. When they \
-  are not on your list, answer from what the catalog, the record and the strategy state say, \
-  and never describe what a search you cannot run would have returned.
 
 ## EDA: sample-level data
 
@@ -384,6 +377,14 @@ LEAD_MODE_LINE: Final = (
     "Auto, which picks a mode per message. When the researcher wants to reason about the "
     "biology before anything is built, say they can switch to Explore with the mode switch "
     "beside Send.\n"
+)
+
+LEAD_RESEARCH_READS: Final = (
+    "## Literature and web search\n"
+    "- ``research_literature_search`` is for the biology the record does not hold - a "
+    "gene's role, a method's precedent, a threshold's convention.\n"
+    "- ``research_web_search`` is for a name, a claim or a current event neither the "
+    "catalog nor the record can answer. It builds nothing and is safe in any turn."
 )
 
 LEAD_INSTRUCTIONS = with_vocabulary(_OPENING + _SWEEP_RULE + _CLOSING + LEAD_MODE_LINE)
