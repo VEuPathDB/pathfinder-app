@@ -2,6 +2,11 @@
 
 ## 2026-11-11
 
+* **An open tab is told of a new web build.** The web image names its build by a hash of its
+  sources, serves it at `GET /api/v1/web-build` and sets it as Next's `deploymentId`. An open tab
+  checks it every five minutes and on focus and shows a Reload banner when the build it loaded is
+  no longer served. See [the decision](decisions/an-open-tab-is-told-of-a-new-web-build.md).
+
 * **An identity read moves on from a site that does not serve it.** The identity read returns
   None for a token the site refuses, so every status it raises now means the site did not serve
   the read: a client status (the 404 of a site whose service is not deployed) is a 503 naming the

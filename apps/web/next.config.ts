@@ -4,8 +4,12 @@ import path from "path";
 import { BASE_PATH } from "./src/lib/basePath";
 import { getConfiguredServerApiBaseUrl } from "./src/lib/config/apiBase";
 
+const webBuild = process.env.PATHFINDER_WEB_BUILD ?? "";
+
 const nextConfig: NextConfig = {
   basePath: BASE_PATH,
+  ...(webBuild === "" ? {} : { deploymentId: webBuild }),
+  env: { PATHFINDER_WEB_BUILD: webBuild },
   reactStrictMode: true,
   reactCompiler: true,
   // The dev-tools indicator button sits in a page corner and takes the pointer

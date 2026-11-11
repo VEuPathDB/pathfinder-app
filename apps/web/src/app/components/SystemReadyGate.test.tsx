@@ -56,6 +56,7 @@ describe("SystemReadyGate", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it("requests the sites and the models before the app renders", async () => {
@@ -162,5 +163,25 @@ describe("SystemReadyGate", () => {
       expect(screen.getByTestId("app-content")).toBeInTheDocument();
     });
     expect(screen.queryByText(/starting up/i)).not.toBeInTheDocument();
+  });
+
+  it("tells a ready app's tab that a newer build is served", async () => {
+    mockSystemReady.mockResolvedValue(READY);
+    vi.stubEnv("PATHFINDER_WEB_BUILD", "3f9a1c0be2d4");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        new URL(input).pathname === "/pathfinder/api/v1/web-build"
+          ? Promise.resolve(Response.json({ build: "77b0e5a91c3f" }))
+          : new Promise<Response>(() => {}),
+      ),
+    );
+
+    await renderGate();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "PathFinder has been updated.",
+    );
+    expect(screen.getByTestId("app-content")).toBeInTheDocument();
   });
 });

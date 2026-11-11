@@ -9,6 +9,7 @@ import { systemReadyQueryOptions } from "@pathfinder/shared/generated/hooks/useS
 import { sitesOptions } from "@/lib/api/sites";
 import { BusyWorkerBanner } from "./BusyWorkerBanner";
 import { LoadingScreen } from "./LoadingScreen";
+import { NewReleaseBanner } from "./NewReleaseBanner";
 import { STARTUP_GRACE_MS, StartupScreen, startupStatus } from "./StartupScreen";
 
 export function SystemReadyGate({ children }: { children: React.ReactNode }) {
@@ -32,7 +33,14 @@ export function SystemReadyGate({ children }: { children: React.ReactNode }) {
     </>
   );
 
-  if (ready) return app;
+  if (ready) {
+    return (
+      <div className="flex h-full flex-col">
+        <NewReleaseBanner />
+        <div className="min-h-0 flex-1">{app}</div>
+      </div>
+    );
+  }
 
   const status = startupStatus({
     data,
@@ -45,6 +53,7 @@ export function SystemReadyGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-full flex-col">
         <BusyWorkerBanner />
+        <NewReleaseBanner />
         <div className="min-h-0 flex-1">{app}</div>
       </div>
     );
