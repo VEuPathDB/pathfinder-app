@@ -9,10 +9,9 @@ from pathfinder.services.eda.export import ExportReading
 from pathfinder.services.eda.steps import eda_step_node, on_the_sites_own_search
 from pathfinder.tests._support.eda_step_doubles import de_analysis, phenotype_subset
 from pathfinder.tests._support.eda_subset_search_doubles import (
+    PHENOTYPE_SUBSET_SEARCH,
     serve_plasmodb_subset_searches,
 )
-
-_OWN = "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
 
 
 @pytest.fixture
@@ -33,10 +32,10 @@ async def test_a_subset_of_a_curated_study_runs_the_datasets_own_search(
 
     routed = await on_the_sites_own_search("plasmodb", plan)
 
-    assert routed.node.search_name == _OWN
+    assert routed.node.search_name == PHENOTYPE_SUBSET_SEARCH
     assert routed.node.parameters == plan.node.parameters
     assert (routed.stamped.search_name, routed.stamped.kind) == (
-        _OWN,
+        PHENOTYPE_SUBSET_SEARCH,
         AnalysisKind.SUBSET,
     )
 

@@ -210,8 +210,9 @@ async def test_a_preference_is_stored_only_after_the_researchers_yes(
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
     app_memory_store: object,
+    memory_turned_on: None,
 ) -> None:
-    del app_memory_store
+    del app_memory_store, memory_turned_on
     seen: list[list[tuple[str, Any]]] = []
     read_as(monkeypatch, "memory_request")
     monkeypatch.setattr(

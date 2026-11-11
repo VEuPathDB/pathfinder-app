@@ -62,6 +62,7 @@ from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
+from pathfinder.tests._support.eda_subset_search_doubles import PHENOTYPE_SUBSET_SEARCH
 from pathfinder.tests._support.eda_wire import (
     distribution_response,
     fixture,
@@ -98,7 +99,6 @@ _VARIABLE = "VAR_035294d0"
 _ANALYSIS = "t4fszEJ"
 _PURPOSE = "P. berghei rows"
 _WDK_USER = "424242"
-_SUBSET_SEARCH = "GenesByEdaSubset"
 _FILTER = {
     "entityId": _ENTITY,
     "variableId": _VARIABLE,
@@ -489,7 +489,9 @@ def _assert_step_snapshot(rows: list[dict[str, Any]]) -> None:
     types = [row["type"] for row in rows]
     snapshots = _of_type(rows, "data-graph-snapshot")
     assert len(snapshots) == 1
-    assert [n["searchName"] for n in snapshots[0]["data"]["nodes"]] == [_SUBSET_SEARCH]
+    assert [n["searchName"] for n in snapshots[0]["data"]["nodes"]] == [
+        PHENOTYPE_SUBSET_SEARCH
+    ]
     order = [
         types.index("data-eda.analysis-state"),
         len(types) - 1 - types[::-1].index("data-eda.analysis-state"),
@@ -501,7 +503,7 @@ def _assert_step_snapshot(rows: list[dict[str, Any]]) -> None:
 
 def _assert_step_persisted(strategy: StrategyAst) -> None:
     root = strategy.root
-    assert root.search_name == _SUBSET_SEARCH
+    assert root.search_name == PHENOTYPE_SUBSET_SEARCH
     assert root.display_name == _PURPOSE
     assert string_param(root, "eda_dataset_id") == _DATASET
     spec = json.loads(string_param(root, "eda_analysis_spec"))
@@ -540,7 +542,7 @@ async def test_the_conversation_persists_every_eda_chunk_in_order(
     # The model read the numbers it was given.
     prose = "".join(row["delta"] for row in _of_type(rows, "text-delta"))
     assert f"{_FILTERED} of {_UNFILTERED} gene phenotype rows" in prose
-    assert _SUBSET_SEARCH in prose
+    assert PHENOTYPE_SUBSET_SEARCH in prose
 
 
 @pytest.mark.live_wdk
@@ -561,12 +563,12 @@ async def test_the_step_lands_on_live_wdk(
 
     assert "error" not in [row["type"] for row in rows]
     created = _tool_output(rows, "create_eda_step")
-    assert created["search_name"] == _SUBSET_SEARCH
+    assert created["search_name"] == PHENOTYPE_SUBSET_SEARCH
     assert created["wdk_strategy_id"] is not None
     _assert_step_persisted(strategy)
     assert strategy.root.id in (strategy.wdk_step_ids or {})
     assert strategy.step_counts is not None
     assert strategy.step_counts[strategy.root.id] > 0
     snapshot = _of_type(rows, "data-graph-snapshot")[-1]["data"]
-    assert snapshot["nodes"][0]["searchName"] == _SUBSET_SEARCH
+    assert snapshot["nodes"][0]["searchName"] == PHENOTYPE_SUBSET_SEARCH
     assert snapshot["geneCount"] == strategy.step_counts[strategy.root.id]

@@ -10,9 +10,12 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.eda_subset_search_doubles import (
+    PHENOTYPE_SUBSET_SEARCH,
+)
 from pathfinder.tests._support.eda_wire import AnalysisStore
 from pathfinder.tests._support.qa_recording import needs_client_eda_recordings
 from pathfinder.tests.integration.http._conversation_eda import (
@@ -82,7 +85,7 @@ async def test_export_step_on_a_thread_with_no_strategy_begins_it(
     )
     assert response.status_code == 200
     step = response.json()["step"]
-    assert [leaf["searchName"] for leaf in step["steps"]] == [SUBSET_QUERY]
+    assert [leaf["searchName"] for leaf in step["steps"]] == [PHENOTYPE_SUBSET_SEARCH]
     assert step["rootStepId"] == step["steps"][0]["id"]
 
 

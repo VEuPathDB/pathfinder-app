@@ -44,7 +44,11 @@ def _types(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 @pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "app_memory_store"
+    "patch_app_db_engine",
+    "db_cleaner",
+    "signed_in_to_veupathdb",
+    "app_memory_store",
+    "memory_turned_on",
 )
 async def test_a_remember_request_stores_and_builds_nothing(
     app: FastAPI,

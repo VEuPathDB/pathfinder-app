@@ -61,7 +61,7 @@
   },
   {
     "data": {
-      "contextTokens": 50,
+      "contextTokens": 0,
       "contextWindow": 0,
       "costUsd": "0",
       "modelId": "mock:lead",
@@ -119,7 +119,7 @@
   },
   {
     "data": {
-      "contextTokens": 50,
+      "contextTokens": 0,
       "contextWindow": 0,
       "costUsd": "0",
       "modelId": "mock:lead",

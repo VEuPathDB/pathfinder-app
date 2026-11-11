@@ -15,7 +15,6 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 from veupathdb.eda import EdaAnalysisDetail
-from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -172,5 +171,5 @@ async def added_step(conversation_id: UUID) -> StrategyStepNode:
         node
         for root in roots
         for node in _walk(root)
-        if node.search_name in {SUBSET_QUERY, COMPUTE_QUERY}
+        if "eda_analysis_spec" in node.parameters
     )

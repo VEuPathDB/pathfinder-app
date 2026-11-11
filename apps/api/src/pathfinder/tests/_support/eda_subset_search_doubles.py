@@ -13,6 +13,8 @@ from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "wdk"
 
+PHENOTYPE_SUBSET_SEARCH = "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+
 
 class _Definitions:
     def __init__(self, by_name: dict[str, WDKSearch]) -> None:

@@ -12,7 +12,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
 from veupathdb.eda import EdaAnalysisDetail, EdaVolcanoConfiguration
-from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -28,6 +28,9 @@ from pathfinder.tests._support.eda_step_doubles import (
     de_analysis,
     phenotype_subset,
     sample_filter,
+)
+from pathfinder.tests._support.eda_subset_search_doubles import (
+    PHENOTYPE_SUBSET_SEARCH,
 )
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
@@ -52,7 +55,7 @@ __all__ = ["hermetic_wdk", "open_analysis", "thread"]
 Open = Callable[[UUID, EdaAnalysisDetail], Awaitable[AnalysisStore]]
 
 
-async def test_a_subset_export_adds_the_generic_subset_step(
+async def test_a_subset_export_adds_the_studys_own_subset_step(
     thread: tuple[UUID, UUID],
     open_analysis: Open,
     hermetic_wdk: list[Any],
@@ -70,7 +73,7 @@ async def test_a_subset_export_adds_the_generic_subset_step(
         )
 
     step = await added_step(conversation_id)
-    assert step.search_name == SUBSET_QUERY
+    assert step.search_name == PHENOTYPE_SUBSET_SEARCH
     assert string_param(step, "eda_dataset_id") == PHENOTYPE_DATASET
     spec = json.loads(string_param(step, "eda_analysis_spec"))
     assert spec["studyId"] == PHENOTYPE_DATASET
@@ -146,7 +149,7 @@ async def test_the_exported_step_is_persisted_on_the_thread(
             )
         )
     assert stored is not None
-    assert SUBSET_QUERY in json.dumps(stored)
+    assert PHENOTYPE_SUBSET_SEARCH in json.dumps(stored)
 
 
 async def test_a_subset_of_samples_is_refused_and_writes_no_step(
@@ -257,7 +260,9 @@ async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_n
 
     ast = await persisted_ast(conversation_id)
     assert ast.root.search_name == "GenesByTaxon"
-    assert [root.search_name for root in ast.detached_roots] == [SUBSET_QUERY]
+    assert [root.search_name for root in ast.detached_roots] == [
+        PHENOTYPE_SUBSET_SEARCH
+    ]
 
     pushed = hermetic_wdk[-1]
     assert search_names(pushed) == ["GenesByTaxon"]
@@ -308,9 +313,9 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
         )
 
     ast = await persisted_ast(conversation_id)
-    assert ast.root.search_name == SUBSET_QUERY
+    assert ast.root.search_name == PHENOTYPE_SUBSET_SEARCH
     assert ast.detached_roots == []
-    assert search_names(hermetic_wdk[-1]) == [SUBSET_QUERY]
+    assert search_names(hermetic_wdk[-1]) == [PHENOTYPE_SUBSET_SEARCH]
     payload = ConversationResponse.model_validate(refreshed)
     assert payload.root_step_id == ast.root.id
-    assert [step.search_name for step in payload.steps] == [SUBSET_QUERY]
+    assert [step.search_name for step in payload.steps] == [PHENOTYPE_SUBSET_SEARCH]

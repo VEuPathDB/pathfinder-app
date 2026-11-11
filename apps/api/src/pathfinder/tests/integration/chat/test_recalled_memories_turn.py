@@ -128,8 +128,9 @@ async def test_one_turn_writes_one_recalled_part_with_one_row_per_memory(
     in_memory_jobs: InMemoryConnector,
     signed_in_to_veupathdb: None,
     seeded: dict[str, UUID],
+    memory_turned_on: None,
 ) -> None:
-    del signed_in_to_veupathdb
+    del signed_in_to_veupathdb, memory_turned_on
     await run_one_chat_turn(
         app=app,
         user_id=authed_user_id,

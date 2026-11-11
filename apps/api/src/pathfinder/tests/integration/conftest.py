@@ -29,6 +29,9 @@ from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.tests._support.decisions import answer_no_decisions
+from pathfinder.tests._support.eda_subset_search_doubles import (
+    serve_plasmodb_subset_searches,
+)
 from pathfinder.tests._support.network_guard import refuse_veupathdb
 from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
@@ -61,8 +64,8 @@ def no_veupathdb(
 
     CI runs this tier with no VEuPathDB credential, so a live read here passes
     only on a machine that holds one. Such a test holds no site login, and it
-    reads each search's organism parameter, record classes and site organisms
-    from the recorded catalog answers.
+    reads each search's organism parameter, record classes, site organisms and
+    EDA-backed searches from the recorded catalog answers.
     """
     if request.node.get_closest_marker("live_wdk") is None:
         refuse_veupathdb(monkeypatch, request.node.nodeid)
@@ -71,6 +74,7 @@ def no_veupathdb(
         serve_catalog_marks(monkeypatch)
         serve_record_classes(monkeypatch)
         serve_planned_organisms(monkeypatch)
+        serve_plasmodb_subset_searches(monkeypatch)
 
 
 @pytest.fixture(scope="session", autouse=True)
