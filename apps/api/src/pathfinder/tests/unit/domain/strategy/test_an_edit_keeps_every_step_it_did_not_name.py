@@ -12,6 +12,7 @@ from hypothesis import assume, given, settings, strategies
 from veupathdb.domain.parameters import NumberValue, ParamValue, to_wire
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStepNode
 
+from pathfinder.domain.strategy.combine_order import flat_join
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -29,7 +30,6 @@ from pathfinder.tests.unit.domain.strategy._builders import (
     graph_of,
     leaf,
     plan,
-    shape,
     spec_joined,
     spec_leaf,
     spec_of,
@@ -56,17 +56,38 @@ def _replaced(
     )
 
 
-def _structure_shape(node: StructureNode) -> str:
-    """The structure rendered the way ``shape`` renders a live graph."""
+def _flat(left: tuple[str, bool], right: tuple[str, bool], operator: CombineOp) -> str:
+    join = flat_join(
+        left[0], right[0], operator, left_nests=left[1], right_nests=right[1]
+    )
+    return f"({join.primary} {join.operator} {join.secondary})"
+
+
+def _structure_shape(node: StructureNode) -> tuple[str, bool]:
+    """The structure rendered the way ``_graph_shape`` renders a live graph."""
     if node.kind == "leaf":
-        return node.criterion_id or "?"
+        return node.criterion_id or "?", False
     if node.kind == "transform":
-        inner = _structure_shape(node.inputs[0])
-        return f"{node.criterion_id}[{inner}]"
+        inner, _ = _structure_shape(node.inputs[0])
+        return f"{node.criterion_id}[{inner}]", True
     rendered = _structure_shape(node.inputs[0])
     for extra in node.inputs[1:]:
-        rendered = f"({rendered} {node.operator} {_structure_shape(extra)})"
+        rendered = _flat(rendered, _structure_shape(extra), node.combine_operator), True
     return rendered
+
+
+def _graph_shape(graph: StrategyGraph, step_id: str) -> tuple[str, bool]:
+    step = graph.steps[step_id]
+    if step.kind is StepKind.COMBINE and step.operator is not None:
+        left, right = step.input_ids()
+        joined = _flat(
+            _graph_shape(graph, left), _graph_shape(graph, right), step.operator
+        )
+        return joined, True
+    if step.primary_input_id is not None:
+        inner, _ = _graph_shape(graph, step.primary_input_id)
+        return f"{step_id}[{inner}]", True
+    return step_id, False
 
 
 def _reachable(graph: StrategyGraph) -> set[str]:
@@ -226,7 +247,9 @@ def _kept_everything(
 
 def _holds_the_shape(after: OperationalSpec, after_graph: StrategyGraph) -> None:
     assert after.structure is not None
-    assert shape(after_graph) == _structure_shape(after.structure.root)
+    root_id = after_graph.primary_root_id()
+    assert root_id is not None
+    assert _graph_shape(after_graph, root_id) == _structure_shape(after.structure.root)
     assert _reachable(after_graph) == set(after_graph.steps)
 
 

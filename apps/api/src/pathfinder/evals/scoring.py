@@ -50,6 +50,8 @@ def structure_signature(ast: StrategyAst) -> str:
 # The combines whose result does not depend on which input comes first.
 _ORDER_FREE = frozenset({"INTERSECT", "UNION"})
 
+_MIRRORED = {"RMINUS": "MINUS", "RONLY": "LONLY"}
+
 
 def _operands(node: ComparisonNode, operator: str) -> list[str]:
     if node.is_combine and node.operator == operator:
@@ -64,6 +66,8 @@ def _canonical(node: ComparisonNode) -> str:
             first = f"({first} {node.operator} {operand})"
         return first
     inputs = [_canonical(child) for child in node.children]
+    if node.is_combine and node.operator in _MIRRORED:
+        return f"({inputs[1]} {_MIRRORED[node.operator]} {inputs[0]})"
     if node.is_combine:
         return f"({inputs[0]} {node.operator} {inputs[1]})"
     if inputs:

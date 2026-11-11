@@ -19,12 +19,13 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.domain.strategy.combine_naming import combine_display_name
+from pathfinder.domain.strategy.combine_order import flat_join, wired_in_place
 from pathfinder.domain.strategy.edit_plan import (
     COPY_UNSTATED,
     EditPlan,
     UnsupportedEditError,
-    combine_step_id,
     criterion_for,
+    live_join,
     node_for,
     restructure,
 )
@@ -44,7 +45,6 @@ from pathfinder.domain.strategy.operations import (
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
-    WireInputOp,
 )
 from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
 from pathfinder.domain.strategy.orthology import round_trip_refusal
@@ -351,32 +351,36 @@ def _resolve_combine(node: StructureNode, plan: EditPlan) -> str:
 
 def _join(plan: EditPlan, left_id: str, right_id: str, operator: CombineOp) -> str:
     """The combine over the two branches: the live one, or a new one."""
-    existing = combine_step_id(plan.graph, left_id, right_id)
+    existing = live_join(plan.graph, left_id, right_id, operator)
     if existing is not None:
-        if plan.graph.steps[existing].operator is not operator:
-            plan.emit(UpdateCombineOperatorOp(step_id=existing, operator=operator))
-        return existing
+        if plan.graph.steps[existing.step_id].operator is not existing.operator:
+            plan.emit(
+                UpdateCombineOperatorOp(
+                    step_id=existing.step_id, operator=existing.operator
+                )
+            )
+        return existing.step_id
     consumer = plan.graph.parent_of(left_id)
+    join = flat_join(
+        left_id,
+        right_id,
+        operator,
+        left_nests=plan.graph.steps[left_id].primary_input_id is not None,
+        right_nests=plan.graph.steps[right_id].primary_input_id is not None,
+    )
     new_id = generate_step_id()
     plan.emit(
         AddCombineOp(
             step=StrategyStepNode(
                 id=new_id,
                 search_name=COMBINE_SEARCH_NAME,
-                operator=operator,
-                display_name=combine_display_name(operator),
+                operator=join.operator,
+                display_name=combine_display_name(join.operator),
             ),
-            left_id=left_id,
-            right_id=right_id,
+            left_id=join.primary,
+            right_id=join.secondary,
         )
     )
-    if consumer is not None:
-        parent, _ = consumer
-        plan.emit(
-            WireInputOp(
-                target_step_id=parent.id,
-                slot="primary" if parent.primary_input_id == left_id else "secondary",
-                source_step_id=new_id,
-            )
-        )
+    for op in wired_in_place(plan.graph, consumer, new_id):
+        plan.emit(op)
     return new_id

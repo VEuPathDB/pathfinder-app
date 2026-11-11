@@ -40,9 +40,12 @@ that turns the strategy the turn started from into the one the request asks for.
 - A structure the live wiring does not hold - a re-nesting of the steps that
   stay, or a transform moved onto another input - is planned again as one
   `ReplaceSubtreeOp` at the strategy's root. The restated tree reuses the step
-  id of every leaf, and of every combine whose ordered input pair the new shape
+  id of every leaf, and of every combine whose input pair the new shape
   leaves alone; the push planner diffs trees, so the unchanged leaves are
-  skipped and only the combines are recreated.
+  skipped and only the combines are recreated. A live combine over the same
+  pair in the other order is the same combine when the operator mirrors
+  (`edit_plan.py::live_join`), so a strategy the build put group first, or
+  one a site shows leaf first, is not rebuilt for the order alone.
 - `ai/lead/edit_dispatch.py::run_edit` reads the strategy revision before FRAME
   runs, refuses the commit if it moved, and hands the batch to
   `services/strategies/commit.py::apply_operations_and_commit`, which patches

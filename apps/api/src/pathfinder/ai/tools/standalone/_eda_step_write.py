@@ -16,6 +16,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_spec import criterion_note
+from pathfinder.domain.strategy.combine_order import flat_join, wired_in_place
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
@@ -26,7 +27,6 @@ from pathfinder.domain.strategy.operations.types import (
     AttachNewRoot,
     AttachPoint,
     ReplaceSubtreeOp,
-    WireInputOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 
@@ -160,39 +160,38 @@ def join_write(
 ) -> ExportWrite:
     """Add the export, combine it with the joined step, and give the combine
     the place that step held."""
-    inputs = (node.id, join.step_id) if join.export_first else (join.step_id, node.id)
+    left, right = (
+        (node.id, join.step_id) if join.export_first else (join.step_id, node.id)
+    )
+    nests = graph.steps[join.step_id].primary_input_id is not None
+    placed = flat_join(
+        left,
+        right,
+        join.operator,
+        left_nests=nests and not join.export_first,
+        right_nests=nests and join.export_first,
+    )
     combine = AddCombineOp(
         step=StrategyStepNode(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
-            operator=join.operator,
+            operator=placed.operator,
         ),
-        left_id=inputs[0],
-        right_id=inputs[1],
+        left_id=placed.primary,
+        right_id=placed.secondary,
     )
     ops: list[GraphOperation] = [
         AddLeafOp(step=node, attach=AttachNewRoot()),
         combine,
+        *wired_in_place(graph, graph.parent_of(join.step_id), combine.step.id),
     ]
-    consumer = graph.parent_of(join.step_id)
-    if consumer is not None:
-        parent, _ = consumer
-        ops.append(
-            WireInputOp(
-                target_step_id=parent.id,
-                slot="primary"
-                if parent.primary_input_id == join.step_id
-                else "secondary",
-                source_step_id=combine.step.id,
-            )
-        )
     return ExportWrite(
         ops=ops,
         join=ExportJoin(
             combine_step_id=combine.step.id,
-            operator=join.operator,
+            operator=placed.operator,
             joined_step_id=join.step_id,
-            export_first=join.export_first,
+            export_first=placed.primary == node.id,
         ),
     )
 

@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.domain.strategy.combine_naming import combine_display_name
+from pathfinder.domain.strategy.combine_order import MIRRORED_OPERATORS, flat_join
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -19,16 +20,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from pathfinder.domain.strategy.step_naming import criterion_title
-
-# Swapping a combine's operands mirrors the operator that is not symmetric.
-_MIRRORED_OPERATORS = {
-    CombineOp.INTERSECT: CombineOp.INTERSECT,
-    CombineOp.UNION: CombineOp.UNION,
-    CombineOp.MINUS: CombineOp.RMINUS,
-    CombineOp.RMINUS: CombineOp.MINUS,
-    CombineOp.LONLY: CombineOp.RONLY,
-    CombineOp.RONLY: CombineOp.LONLY,
-}
 
 
 class _Operand(NamedTuple):
@@ -156,8 +147,16 @@ def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:
     strategy, so an operand that names one moves there and the operator
     mirrors to keep the question the same.
     """
-    if left.saved is not None and right.saved is None:
-        mirrored = _MIRRORED_OPERATORS.get(operator)
+    if left.saved is None and right.saved is None:
+        left, right, operator = flat_join(
+            left,
+            right,
+            operator,
+            left_nests=left.step.primary_input is not None,
+            right_nests=right.step.primary_input is not None,
+        )
+    elif left.saved is not None and right.saved is None:
+        mirrored = MIRRORED_OPERATORS.get(operator)
         if mirrored is None:
             msg = (
                 f"{operator.value} cannot take a saved strategy on its left "

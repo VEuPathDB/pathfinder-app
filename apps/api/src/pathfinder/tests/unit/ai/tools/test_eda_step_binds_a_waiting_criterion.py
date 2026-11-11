@@ -268,9 +268,9 @@ async def test_a_place_inside_a_branch_joins_the_step_that_branch_holds(
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
     assert graph.roots == {"step_c1"}
-    assert shape(graph) == f"(step_k1 INTERSECT (step_k2 UNION {exported.step_id}))"
+    assert shape(graph) == f"((step_k2 UNION {exported.step_id}) INTERSECT step_k1)"
     assert exported.join == ExportJoin(
-        combine_step_id=graph.steps["step_c1"].secondary_input_id or "",
+        combine_step_id=graph.steps["step_c1"].primary_input_id or "",
         operator=CombineOp.UNION,
         joined_step_id="step_k2",
         export_first=False,

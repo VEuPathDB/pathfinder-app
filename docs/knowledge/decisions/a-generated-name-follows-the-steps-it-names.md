@@ -75,11 +75,35 @@ gives every combine whose secondary input is a combine, and that names no saved
 strategy, the names of the steps in that group in tree order, cut on a word at
 60 code points, after the operator's label when every combine in the group has
 one operator. It runs after every build and every commit, so the name follows
-the steps. A create or a name write sends it by a PATCH, without `expanded`. A
-saved strategy's own name, and a name the site imports with `expanded` set,
-are kept.
+the steps. A create or a name write sends it by a PATCH with `expanded` set, so
+the site draws the group open and every step in it offers Revise
+(`wdk-client` `StepBoxes.tsx`, where a nested box has `allowRevise` false and
+`ExpandedSteps` draws the inner steps only when `expanded` is true). A saved
+strategy's own name, and a name the site imports with `expanded` set, are kept.
+
+**A lone step takes the secondary side.** When one input of a combine
+PathFinder builds is one step and the other has an input of its own, the group
+is the primary input and the step the secondary, and the operator mirrors to
+keep the question (`domain/strategy/combine_order.py::flat_join`: MINUS becomes
+RMINUS, LONLY becomes RONLY). The build (`spec_tree.py`), the restated tree of
+an edit (`edit_plan.py`), a combine an edit adds (`spec_to_operations.py`) and
+an export's join (`_eda_step_write.py::join_write`) all place their inputs
+through it, and a group an edit or an export grows on the secondary side of a
+combine over a lone step moves that combine's inputs the same way
+(`wired_in_place`). The site then draws the strategy flat. A group stays on the
+secondary side only when both inputs are groups, when the operator has no
+mirror (COLOCATE), when the input is a saved strategy, or when the combine holds
+a filter, whose value names its inputs by side. INTERSECT and UNION return the
+same records in either order; measured on QA PlasmoDB, an INTERSECT of a leaf
+and a UNION group returned 1551 genes in both orders and a UNION 3951, each
+with the same default `gene_boolean_filter_array`.
 
 # Gaps accepted
+
+- A group a researcher collapsed on the site opens again at the next name
+  write PathFinder sends for its combine.
+- A combine the researcher or the model adds by a graph operation (the canvas,
+  `apply_operations`) keeps the order it names.
 
 - A name a person gives a nested group on the site and then collapses is not
   read back, so the next write of that combine sends the generated name.
@@ -110,3 +134,7 @@ costs a title call.
 
 **Never rename.** The name states a filter the strategy no longer applies, and
 it travels to WDK and to the gene set the thread imported.
+
+**Keep the stated input order and only send groups expanded.** The steps show,
+but inside a nested box the researcher can collapse, after which they offer no
+Revise again. A flat strategy has no box to collapse.

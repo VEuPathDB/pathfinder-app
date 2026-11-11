@@ -7,6 +7,7 @@ structure that re-nests the steps that stay is restated as one tree instead.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -21,6 +22,7 @@ from pathfinder.domain.strategy.combine_naming import (
     combine_display_name,
     combine_name,
 )
+from pathfinder.domain.strategy.combine_order import MIRRORED_OPERATORS, flat_join
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     StructureNode,
@@ -33,9 +35,10 @@ from pathfinder.domain.strategy.step_naming import criterion_title
 __all__ = [
     "COPY_UNSTATED",
     "EditPlan",
+    "LiveJoin",
     "UnsupportedEditError",
-    "combine_step_id",
     "criterion_for",
+    "live_join",
     "node_for",
     "restructure",
 ]
@@ -49,6 +52,11 @@ COPY_UNSTATED = (
     "the edited structure holds a copy whose criteria are not all bound; a copy "
     "is stated as criteria of its own once every criterion it restates binds"
 )
+
+
+class LiveJoin(NamedTuple):
+    step_id: str
+    operator: CombineOp
 
 
 @dataclass
@@ -149,38 +157,52 @@ def _target_join(
     operator: CombineOp,
 ) -> StrategyStepNode:
     """The combine over the two branches: the live one, or a new one."""
-    existing = combine_step_id(plan.graph, left.id, right.id)
+    existing = live_join(plan.graph, left.id, right.id, operator)
     if existing is None:
+        join = flat_join(
+            left,
+            right,
+            operator,
+            left_nests=left.primary_input is not None,
+            right_nests=right.primary_input is not None,
+        )
         return StrategyStepNode(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
-            operator=operator,
-            display_name=combine_display_name(operator),
-            primary_input=left,
-            secondary_input=right,
+            operator=join.operator,
+            display_name=combine_display_name(join.operator),
+            primary_input=join.primary,
+            secondary_input=join.secondary,
         )
-    live = plan.graph.steps[existing]
-    return rebuild_tree(existing, plan.graph.steps).model_copy(
+    live = plan.graph.steps[existing.step_id]
+    primary, secondary = (
+        (left, right) if live.primary_input_id == left.id else (right, left)
+    )
+    return rebuild_tree(live.id, plan.graph.steps).model_copy(
         update={
-            "operator": operator,
-            "display_name": combine_name(live.display_name, live.search_name, operator),
-            "colocation_params": (
-                live.colocation_params if live.operator is operator else None
+            "operator": existing.operator,
+            "display_name": combine_name(
+                live.display_name, live.search_name, existing.operator
             ),
-            "primary_input": left,
-            "secondary_input": right,
+            "colocation_params": (
+                live.colocation_params if live.operator is existing.operator else None
+            ),
+            "primary_input": primary,
+            "secondary_input": secondary,
         }
     )
 
 
-def combine_step_id(graph: StrategyGraph, left_id: str, right_id: str) -> str | None:
-    return next(
-        (
-            step.id
-            for step in graph.steps.values()
-            if step.kind is StepKind.COMBINE
-            and step.primary_input_id == left_id
-            and step.secondary_input_id == right_id
-        ),
-        None,
-    )
+def live_join(
+    graph: StrategyGraph, left_id: str, right_id: str, operator: CombineOp
+) -> LiveJoin | None:
+    for step in graph.steps.values():
+        if step.kind is not StepKind.COMBINE:
+            continue
+        held = (step.primary_input_id, step.secondary_input_id)
+        if held == (left_id, right_id):
+            return LiveJoin(step.id, operator)
+        mirrored = MIRRORED_OPERATORS.get(operator)
+        if held == (right_id, left_id) and mirrored is not None:
+            return LiveJoin(step.id, mirrored)
+    return None

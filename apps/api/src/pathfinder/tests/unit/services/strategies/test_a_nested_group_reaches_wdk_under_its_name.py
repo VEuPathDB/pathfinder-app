@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb.wdk import PatchStepSpec
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_words import StepWords
@@ -84,7 +85,7 @@ async def test_the_create_patches_the_name_onto_the_group_s_combine(
 
     (patch,) = api.named("update_step_properties")
     assert patch.kwargs["spec"].expanded_name == _NAME
-    assert patch.kwargs["spec"].expanded is None
+    assert patch.kwargs["spec"].expanded is True
 
 
 async def test_a_colocation_over_a_group_carries_its_name(api: StubAPI) -> None:
@@ -106,6 +107,7 @@ async def test_a_colocation_over_a_group_carries_its_name(api: StubAPI) -> None:
         "update_step_properties",
     ]
     assert api.calls[1].kwargs["spec"].expanded_name == _NAME
+    assert api.calls[1].kwargs["spec"].expanded is True
 
 
 async def test_a_combine_over_no_group_patches_nothing(api: StubAPI) -> None:
@@ -150,6 +152,22 @@ async def test_the_name_write_carries_the_group_name(api: StubAPI) -> None:
     assert patch.kwargs["step_id"] == _WDK_IDS["root"]
     assert patch.kwargs["spec"].custom_name == "Intersect"
     assert patch.kwargs["spec"].expanded_name == _NAME
+    assert patch.kwargs["spec"].expanded is True
+
+
+async def test_a_name_write_over_no_group_leaves_the_display_alone(
+    api: StubAPI,
+) -> None:
+    await step_wdk_push._execute_patch(
+        WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
+        "plasmodb",
+        _root(None),
+        "transcript",
+        PatchAction(search_config=False, name=True),
+    )
+
+    (patch,) = api.named("update_step_properties")
+    assert patch.kwargs["spec"] == PatchStepSpec(custom_name="Intersect")
 
 
 def test_the_build_names_the_group_in_the_graph() -> None:

@@ -130,7 +130,7 @@ async def _push_combine_step(
         await api.update_step_properties(
             wdk_result.id,
             spec=PatchStepSpec(
-                expanded=True if step.expanded_strategy_id is not None else None,
+                expanded=True,
                 expanded_name=step.expanded_name,
             ),
         )
@@ -206,6 +206,8 @@ async def _patch_name(
     await api.update_step_properties(
         step_id=sync_state.wdk_step_ids[step.id],
         spec=PatchStepSpec(
-            custom_name=step.display_name, expanded_name=step.expanded_name or None
+            custom_name=step.display_name,
+            expanded=True if step.expanded_name else None,
+            expanded_name=step.expanded_name or None,
         ),
     )

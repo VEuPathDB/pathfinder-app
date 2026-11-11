@@ -173,9 +173,9 @@ async def test_four_exports_under_a_union_end_on_the_planned_tree(
     pkno, pf3d7, toxo, pberghei = (created.step_id for created in exported)
     assert shapes == [
         f"(step_t1 INTERSECT {pkno})",
-        f"(step_t1 INTERSECT ({pkno} UNION {pf3d7}))",
-        f"(step_t1 INTERSECT (({pkno} UNION {pf3d7}) UNION {toxo}))",
-        f"(step_t1 INTERSECT ((({pkno} UNION {pf3d7}) UNION {toxo}) UNION {pberghei}))",
+        f"(({pkno} UNION {pf3d7}) INTERSECT step_t1)",
+        f"((({pkno} UNION {pf3d7}) UNION {toxo}) INTERSECT step_t1)",
+        f"(((({pkno} UNION {pf3d7}) UNION {toxo}) UNION {pberghei}) INTERSECT step_t1)",
     ]
     assert answered == [
         SpecStructure(
@@ -191,7 +191,7 @@ async def test_four_exports_under_a_union_end_on_the_planned_tree(
     assert second is not None
     assert third is not None
     assert graph.roots == {first.combine_step_id}
-    union = graph.steps[first.combine_step_id].secondary_input_id
+    union = graph.steps[first.combine_step_id].primary_input_id
     assert [first, second, third, fourth] == [
         ExportJoin(
             combine_step_id=first.combine_step_id,
@@ -242,7 +242,7 @@ async def test_the_exports_join_in_the_order_they_arrive(
     pkno = await _exported(ctx, "c_essential_pkno")
 
     assert shape(_graph(ctx)) == (
-        f"(step_t1 INTERSECT ({toxo.step_id} UNION {pkno.step_id}))"
+        f"(({toxo.step_id} UNION {pkno.step_id}) INTERSECT step_t1)"
     )
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
@@ -276,6 +276,33 @@ async def test_the_first_input_of_a_minus_is_the_first_input_of_its_combine(
     )
 
 
+async def test_an_export_stated_first_beside_a_group_takes_the_secondary_side(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held = combine("step_c1", leaf("step_k1"), leaf("step_k2"))
+    plan = spec_joined(
+        CombineOp.MINUS,
+        spec_leaf(_WAITING),
+        spec_joined(CombineOp.INTERSECT, spec_leaf("step_k1"), spec_leaf("step_k2")),
+    )
+    ctx = _thread(monkeypatch, held, _spec(plan, _WAITING))
+
+    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+
+    exported = returned(answer, eda_step.EdaStepCreated)
+    graph = _graph(ctx)
+    assert shape(graph) == f"((step_k1 INTERSECT step_k2) RMINUS {exported.step_id})"
+    assert exported.join == ExportJoin(
+        combine_step_id=graph.primary_root_id() or "",
+        operator=CombineOp.RMINUS,
+        joined_step_id="step_c1",
+        export_first=False,
+    )
+    assert summary_of(answer).data["summary"] == (
+        f"Step {exported.step_id} combined with step_c1 (RMINUS)"
+    )
+
+
 async def test_a_join_below_the_root_keeps_the_root_and_names_the_joined_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -292,9 +319,9 @@ async def test_a_join_below_the_root_keeps_the_root_and_names_the_joined_step(
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
     assert graph.roots == {"step_c1"}
-    assert shape(graph) == f"(step_k1 INTERSECT (step_k2 UNION {exported.step_id}))"
+    assert shape(graph) == f"((step_k2 UNION {exported.step_id}) INTERSECT step_k1)"
     assert exported.join == ExportJoin(
-        combine_step_id=graph.steps["step_c1"].secondary_input_id or "",
+        combine_step_id=graph.steps["step_c1"].primary_input_id or "",
         operator=CombineOp.UNION,
         joined_step_id="step_k2",
         export_first=False,

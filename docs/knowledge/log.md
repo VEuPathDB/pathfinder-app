@@ -2,6 +2,12 @@
 
 ## 2026-11-11
 
+* **A strategy stays flat, so each step revises.** A combine PathFinder builds puts a lone
+  step on the secondary side and the group on the primary, with the operator mirrored
+  (`domain/strategy/combine_order.py::flat_join`), on the build, an edit and an export. The
+  site draws a group on the secondary side as a nested box that offers no Revise. A group
+  that stays nested is sent `expanded`. See
+  [the decision](decisions/a-generated-name-follows-the-steps-it-names.md).
 * **A clade selects the organisms under it.** VERIFY's organism check and the
   cross-organism refusal compare a record's organism with the organisms under each selected
   entry of the site's organism tree (`SelectedOrganisms`), so a clade passes its own

@@ -109,6 +109,8 @@ def _combined(
         return left & right
     if operator is CombineOp.UNION:
         return left | right
+    if operator is CombineOp.RMINUS:
+        return right - left
     return left - right
 
 

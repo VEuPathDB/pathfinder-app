@@ -176,7 +176,7 @@ class TestTheSeam:
 
 
 class TestNestedBranchesReachWdk:
-    """A UNION branch on the secondary input must survive to the step tree.
+    """A UNION branch must survive to the step tree.
 
     ``A INTERSECT (B UNION C)`` is representable in a WDK step tree. Flattening
     it to ``(A INTERSECT B) UNION C`` asks a different question.
@@ -199,16 +199,16 @@ class TestNestedBranchesReachWdk:
             ),
         )
 
-    def test_the_union_stays_on_the_secondary_input(self) -> None:
+    def test_the_union_takes_the_primary_input(self) -> None:
         root = _step_tree(self._spec())
 
         assert root.operator == CombineOp.INTERSECT
-        branch = root.secondary_input
+        branch = root.primary_input
         assert branch is not None
         assert branch.operator == CombineOp.UNION
 
     def test_the_branch_keeps_both_of_its_own_leaves(self) -> None:
-        branch = _step_tree(self._spec()).secondary_input
+        branch = _step_tree(self._spec()).primary_input
 
         assert branch is not None
         assert branch.primary_input is not None
@@ -219,8 +219,8 @@ class TestNestedBranchesReachWdk:
     def test_the_intersect_side_is_not_rewritten(self) -> None:
         root = _step_tree(self._spec())
 
-        assert root.primary_input is not None
-        assert root.primary_input.search_name == "GenesByInterpro"
+        assert root.secondary_input is not None
+        assert root.secondary_input.search_name == "GenesByInterpro"
 
 
 def _abc_spec(root: StructureNode) -> OperationalSpec:

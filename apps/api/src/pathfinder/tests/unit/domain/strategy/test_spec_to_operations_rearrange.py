@@ -72,7 +72,7 @@ def test_a_rearrangement_of_the_steps_that_stay_replaces_the_combines() -> None:
     assert isinstance(op, ReplaceSubtreeOp)
     assert op.step_id == "step_c2"
     assert shape(applied(root, ops)) == (
-        "(step_text INTERSECT (step_go INTERSECT step_expr))"
+        "((step_go INTERSECT step_expr) INTERSECT step_text)"
     )
 
 
@@ -87,7 +87,7 @@ def test_a_rearrangement_keeps_every_leaf_step_id() -> None:
 
 
 def test_a_rearrangement_reuses_the_combine_whose_inputs_do_not_move() -> None:
-    """A combine over an unchanged ordered pair keeps its id and its WDK step."""
+    """A combine over an unchanged pair keeps its id and its WDK step."""
     root = combine(
         "step_c3",
         combine("step_c1", text_leaf(), go_leaf()),
@@ -111,9 +111,10 @@ def test_a_rearrangement_reuses_the_combine_whose_inputs_do_not_move() -> None:
 
     assert graph.steps["step_c1"].primary_input_id == "step_text"
     assert graph.steps["step_c1"].secondary_input_id == "step_go"
-    assert "step_c2" not in graph.steps
+    assert graph.steps["step_c2"].primary_input_id == "step_expr"
+    assert graph.steps["step_c2"].secondary_input_id == "step_tm"
     assert shape(graph) == (
-        "((step_text INTERSECT step_go) UNION (step_tm INTERSECT step_expr))"
+        "((step_text INTERSECT step_go) UNION (step_expr INTERSECT step_tm))"
     )
 
 
@@ -187,7 +188,7 @@ def test_a_rearrangement_builds_the_criterion_the_strategy_never_held() -> None:
 
     assert graph.steps["c_unbuilt"].search_name == "GenesByTaxon"
     assert shape(graph) == (
-        "(c_unbuilt INTERSECT (step_text INTERSECT (step_go INTERSECT step_expr)))"
+        "(((step_go INTERSECT step_expr) INTERSECT step_text) INTERSECT c_unbuilt)"
     )
 
 
