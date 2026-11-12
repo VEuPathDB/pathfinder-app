@@ -9,7 +9,11 @@ from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import ConfigDict
 from veupathdb.domain.parameters import to_wire
-from veupathdb.domain.strategy import CombineOp, extract_output_organisms
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyStepNode,
+    extract_output_organisms,
+)
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
@@ -174,7 +178,7 @@ class OrganismDrop(CamelModel):
     text: str
     organisms: tuple[str, ...]
     met: bool
-    carrier_id: str
+    carrier_ids: tuple[str, ...]
     records: int | None = None
     links: tuple[str, ...] = ()
     requirements: tuple[Constraint, ...] = ()
@@ -184,14 +188,16 @@ class OrganismDrop(CamelModel):
         """The drop and the requirement's fate, in one sentence each."""
         named = ", ".join(self.organisms)
         head = f"{self.criterion_id} ('{self.text}') is dropped:"
+        runs = "runs" if len(self.carrier_ids) == 1 else "run"
+        carriers = f"{', '.join(self.carrier_ids)} already {runs} on"
         if self.met:
             return (
                 f"{head} it links only the organism {named}, which "
-                f"{self.carrier_id} already runs on, so that organism value meets it."
+                f"{carriers}, so that organism value meets it."
             )
         dropped = (
             f"{head} it matches all {self.records:,} genes of {named}, which "
-            f"{self.carrier_id} already runs on, so it narrows nothing."
+            f"{carriers}, so it narrows nothing."
         )
         if not self.requirements:
             return dropped
@@ -264,15 +270,23 @@ class _OrganismReading:
         steps = projected_steps(node, self.by_id)
         return frozenset(extract_output_organisms(steps, self.marked) or ())
 
-    def carrier_of(self, node: StructureNode) -> str:
-        """The criterion whose organism the subtree's output carries.
+    def carriers_of(self, node: StructureNode) -> tuple[str, ...]:
+        """The criteria whose organisms the subtree's output carries.
 
-        A combine's output is its primary input's; a transform's is its own.
+        A combine's output is that of an input with the same organisms, else
+        that of both inputs; a transform's is its own.
         """
-        step = projected_steps(node, self.by_id)
-        while step.primary_input is not None and step.secondary_input is not None:
-            step = step.primary_input
-        return step.id
+        return self._carriers(projected_steps(node, self.by_id))
+
+    def _carriers(self, step: StrategyStepNode) -> tuple[str, ...]:
+        below, beside = step.primary_input, step.secondary_input
+        if below is None or beside is None:
+            return (step.id,)
+        whole = extract_output_organisms(step, self.marked)
+        for side in (below, beside):
+            if extract_output_organisms(side, self.marked) == whole:
+                return self._carriers(side)
+        return self._carriers(below) + self._carriers(beside)
 
     def redundancy(self, node: StructureNode) -> _Redundant | None:
         """The organisms a droppable leaf holds, and why it is redundant."""
@@ -371,7 +385,7 @@ def _organism_folded(node: StructureNode, reading: _OrganismReading) -> Structur
                 text=reading.by_id[candidate.named_criterion].text,
                 organisms=tuple(sorted(found.organisms)),
                 met=found.records is None,
-                carrier_id=reading.carrier_of(carrier),
+                carrier_ids=reading.carriers_of(carrier),
                 records=found.records,
                 links=tuple(
                     link.requirement

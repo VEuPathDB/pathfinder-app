@@ -77,35 +77,13 @@ def dataset_organisms_of(criteria: Iterable[Criterion]) -> dict[str, frozenset[s
     }
 
 
-def dataset_leaf(
-    step: StrategyStepNode,
-    organism_params: Mapping[str, str],
-    dataset_organisms: Mapping[str, frozenset[str]],
-) -> StrategyStepNode | None:
-    """The leaf whose dataset states the organism of the step, or None.
-
-    ``dataset_organisms`` is keyed by step id: one generic search runs every
-    study, so its name does not name a dataset. A step on the primary path that
-    marks an organism parameter states the organism itself.
-    """
-    path = [step]
-    while (below := path[-1].primary_input) is not None:
-        path.append(below)
-    if any(node.search_name in organism_params for node in path):
-        return None
-    return path[-1] if path[-1].id in dataset_organisms else None
-
-
 def output_organisms(
     step: StrategyStepNode,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
 ) -> set[str] | None:
     """The organism scope of the output of the step, or None when it is unknown."""
-    leaf = dataset_leaf(step, organism_params, dataset_organisms)
-    if leaf is None:
-        return extract_output_organisms(step, organism_params)
-    return set(dataset_organisms[leaf.id])
+    return extract_output_organisms(step, organism_params, dataset_organisms)
 
 
 def selected_organisms(criterion: Criterion) -> frozenset[str]:

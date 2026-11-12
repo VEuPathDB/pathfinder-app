@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.domain.strategy import StrategyStepNode, walk
 
-from pathfinder.domain.strategy.organism_scope import dataset_leaf, output_organisms
+from pathfinder.domain.strategy.organism_scope import output_organisms
 
 
 def scope_text(scope: set[str]) -> str:
@@ -43,28 +43,49 @@ def _transforms_above(
     return found
 
 
+def _experiments(
+    side: StrategyStepNode, datasets: Mapping[str, frozenset[str]]
+) -> list[str]:
+    if output_organisms(side, {}, datasets) is None:
+        return []
+    return sorted(
+        {
+            node.search_name
+            for node in walk(side)
+            if node.id in datasets
+            and output_organisms(
+                side, {}, {k: v for k, v in datasets.items() if k != node.id}
+            )
+            is None
+        }
+    )
+
+
 def _dataset_remedy(
     combine: StrategyStepNode,
     scopes: tuple[set[str], set[str]],
-    marked: Mapping[str, str],
     datasets: Mapping[str, frozenset[str]],
 ) -> str | None:
-    """The transform that maps a side whose dataset fixes its organism, or None
-    when no side runs on a dataset."""
-    leaves = [dataset_leaf(side, marked, datasets) for side in combine.inputs()]
-    if all(leaf is not None for leaf in leaves):
+    """The transform that maps a side whose datasets fix its organism, or None
+    when a parameter states some of the organism of each side."""
+    sides = [_experiments(side, datasets) for side in combine.inputs()]
+    if all(sides):
         return (
             "Each side runs on an experiment, and no parameter changes its "
             "organism. Map one side to the organism of the other with a "
             "GenesByOrthologs transform."
         )
-    for leaf, own, other in zip(leaves, scopes, reversed(scopes), strict=True):
-        if leaf is not None:
+    for searches, own, other in zip(sides, scopes, reversed(scopes), strict=True):
+        if searches:
+            runs = (
+                "searches run on experiments"
+                if len(searches) > 1
+                else "search runs on an experiment"
+            )
             return (
-                f"The {leaf.search_name} search runs on an experiment of "
-                f"{scope_text(own)}, and no parameter changes that organism. "
-                f"Map that side to {scope_text(other)} with a GenesByOrthologs "
-                f"transform."
+                f"The {', '.join(searches)} {runs} of {scope_text(own)}, and no "
+                f"parameter changes that organism. Map that side to "
+                f"{scope_text(other)} with a GenesByOrthologs transform."
             )
     return None
 
@@ -84,7 +105,7 @@ def remedy_for(
                     f"Move the {scope_text(side)} criteria above the "
                     f"{search_name} transform."
                 )
-    by_dataset = _dataset_remedy(combine, scopes, marked, datasets)
+    by_dataset = _dataset_remedy(combine, scopes, datasets)
     if by_dataset is not None:
         return by_dataset
     return (

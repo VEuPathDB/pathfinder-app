@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: An organism scope is the organisms a name stands for
-description: The check that refuses an INTERSECT of two organism scopes and VERIFY's organism check both compare the organisms under each entry of the site's organism tree, so a taxon or a species entry stands for the organisms the tree holds under it and an organism entry stands only for itself. The refusal reads the tree only when two scopes differ by name. Comparing the names, a remedy that tells the pass to narrow the taxon, and storing each criterion's organisms on the spec were rejected.
+description: The check that refuses an INTERSECT of two organism scopes and VERIFY's organism check both compare the organisms under each entry of the site's organism tree, so a taxon or a species entry stands for the organisms the tree holds under it and an organism entry stands only for itself. The refusal reads the tree only when two scopes differ by name. The scope of a combine reads both of its inputs. Comparing the names, a remedy that tells the pass to narrow the taxon, storing each criterion's organisms on the spec, and the primary input alone as the scope of a combine were rejected.
 tags: [strategy, organism, validation, frame, commit]
 generated: { by: claude-code/opus-5.5, at: 2026-10-12T00:00:00Z }
-verified: { by: claude-code/opus-5.5, at: 2026-11-11T00:00:00Z }
+verified: { by: claude-code/opus-5.5, at: 2026-11-12T00:00:00Z }
 status: stable
 ---
 
@@ -48,6 +48,29 @@ refusal does not refuse an INTERSECT with an unplaced side. A selection of
 listed organisms is still compared by name. With no tree to read, every name
 stands for itself.
 
+**The scope of a combine reads both of its inputs.**
+`domain/strategy/organism_scope.py::output_organisms` is the client library's
+`extract_output_organisms` with the dataset organisms of each search that marks
+no organism parameter (`dataset_organisms_of`, keyed by step id). UNION and
+INTERSECT take the organisms of both inputs and are unknown when one input is
+unknown, MINUS and LONLY take the primary input, RMINUS and RONLY the secondary
+input, and a colocation the input its output names
+(`veupathdb-py: docs/knowledge/decisions/a-combine-scope-folds-both-inputs.md`).
+No reader walks the primary input alone:
+
+- VERIFY's organism check and the INTERSECT refusal compare that scope, so the
+  verdict does not depend on which input is the primary one.
+- The refusal's remedy names the searches whose datasets alone give a side its
+  scope (`organism_remedy.py::_experiments`); a side where a parameter states
+  some organism gets the general remedy.
+- The organism fold names as carriers the criteria whose organisms the
+  sibling's output holds (`spec_fold.py::_OrganismReading.carriers_of`): an
+  input with the whole scope, else both inputs.
+- The records-organism caveat compares the root's scope with the scope of the
+  same tree with each transform replaced by its input
+  (`orthology.py::organism_change`), so a UNION of two organisms changes no
+  organism.
+
 # What was rejected
 
 **Comparing the names.** `Apicomplexa` and `Plasmodium knowlesi strain H` share
@@ -74,6 +97,17 @@ pass to change what the researcher asked for across the taxon.
 **The organisms of each criterion stored on the spec.** A step the site or the
 canvas adds has no such record, and the commit would read the tree for it anyway.
 
+**The primary input alone as the scope of a combine.** An INTERSECT of a UNION
+of four experiments on three organisms with an ortholog search on `Apicomplexa`
+had the scope of the first experiment, so the check failed the records of the
+other two organisms. With the inputs swapped, the scope was `Apicomplexa`, and
+the check passed.
+
+**The intersection of the expanded scopes of an INTERSECT.** An INTERSECT
+returns only records that both inputs return, so a record's organism is in the
+scope of each input. A check against the intersection fails no record that a
+check against the union passes, and it needs the site's tree for every entry.
+
 # Anchors
 
 `domain/strategy/organism_scope.py::SelectedOrganisms`,
@@ -86,4 +120,5 @@ canvas adds has no such record, and the commit would read the tree for it anyway
 `tests/unit/domain/strategy/test_a_taxon_meets_the_organisms_under_it.py`,
 `tests/unit/services/strategies/test_a_taxon_scope_is_read_from_the_sites_tree.py`,
 `tests/unit/ai/tools/test_set_structure_reads_a_taxon_from_the_sites_tree.py`,
-`tests/unit/ai/lead/test_a_clade_selects_its_organisms.py`.
+`tests/unit/ai/lead/test_a_clade_selects_its_organisms.py`,
+`tests/unit/domain/strategy/test_a_combine_scope_reads_both_inputs.py`.

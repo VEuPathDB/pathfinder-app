@@ -176,8 +176,8 @@ def test_a_leaf_that_links_only_the_organism_is_dropped_and_met() -> None:
     )
 
     assert folded.structure.root == _leaf("c_signal")
-    assert [(d.criterion_id, d.met, d.carrier_id) for d in folded.dropped] == [
-        ("c_pest", True, "c_signal")
+    assert [(d.criterion_id, d.met, d.carrier_ids) for d in folded.dropped] == [
+        ("c_pest", True, ("c_signal",))
     ]
     assert folded.dropped[0].fate == (
         f"c_pest ('{PEST} genes') is dropped: it links only the organism {PEST}, "
@@ -490,6 +490,6 @@ def test_an_ortholog_transform_carries_the_organism_it_maps_to() -> None:
 
     folded = _fold(root, _pest_universe(), _signal(PF), ortho)
 
-    assert [(d.criterion_id, d.carrier_id) for d in folded.dropped] == [
-        ("c_pest", "c_ortho")
+    assert [(d.criterion_id, d.carrier_ids) for d in folded.dropped] == [
+        ("c_pest", ("c_ortho",))
     ]

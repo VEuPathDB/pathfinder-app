@@ -73,17 +73,26 @@ def organism_change(
 ) -> OrganismChange | None:
     """How the root's organisms differ from the seed's, or None when they agree.
 
-    The seed is the deepest primary leaf. Either side unknown is no change.
-    ``organism_params`` names the parameter each search marks as its organism.
+    The seed is the tree with each transform replaced by its input. Either side
+    unknown is no change. ``organism_params`` names the parameter each search
+    marks as its organism.
     """
-    seed = root
-    while seed.primary_input is not None:
-        seed = seed.primary_input
-    searched = extract_output_organisms(seed, organism_params)
+    searched = extract_output_organisms(_searched(root), organism_params)
     answered = extract_output_organisms(root, organism_params)
     if not searched or not answered or searched == answered:
         return None
     return OrganismChange(seed=sorted(searched), records=sorted(answered))
+
+
+def _searched(step: StrategyStepNode) -> StrategyStepNode:
+    below, beside = step.primary_input, step.secondary_input
+    if below is None:
+        return step
+    if beside is None:
+        return _searched(below)
+    return step.model_copy(
+        update={"primary_input": _searched(below), "secondary_input": _searched(beside)}
+    )
 
 
 def organism_move_refusal(

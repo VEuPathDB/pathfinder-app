@@ -2,6 +2,16 @@
 
 ## 2026-11-12
 
+* **The organism scope of a combine reads both of its inputs.** `output_organisms` is now the
+  client library's fold with the dataset organisms of each experiment step: UNION and INTERSECT
+  take the organisms of both inputs, MINUS and LONLY the primary input, RMINUS and RONLY the
+  secondary input. VERIFY's organism check and the INTERSECT refusal no longer depend on which
+  input is the primary one. The refusal's remedy names every search whose dataset alone fixes a
+  side, the organism fold names each criterion that carries the sibling's organisms
+  (`OrganismDrop.carrier_ids`), and the records-organism caveat compares the root with the same
+  tree without its transforms. See
+  [the decision](decisions/an-organism-scope-is-the-organisms-a-name-stands-for.md).
+
 * **Only a refusal for a missing check narrows the turn to the check.** The gate reads which rule
   refused (`refused_rules`) instead of a flag every rule set, so a refusal for an unbuilt EDA
   criterion leaves the tools that build it; `unverified_build` waits until no criterion waits
