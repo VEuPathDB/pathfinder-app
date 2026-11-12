@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import (
     DecisionRequest,
     DecisionResponse,
+    DecisionsTransport,
     use_decisions_transport,
 )
 
@@ -117,7 +118,7 @@ def _answering(choice: str, confidence: float) -> dict[str, Any]:
     return response
 
 
-async def _read(deps: LeadDeps, service: _Service) -> OperationalSpec:
+async def _read(deps: LeadDeps, service: DecisionsTransport) -> OperationalSpec:
     use_decisions_transport(service)
     spec = deps.state.domain.operational_spec
     assert spec is not None
@@ -267,3 +268,57 @@ async def test_a_frame_pass_that_disagrees_ends_on_the_operator_card(
         [q.prompt for q in result.card_questions],
         False,
     )
+
+
+_LATER = "Make that a union: kinases or gametocyte expression, either one."
+
+
+class _ByMessages:
+    def __init__(self, newest: str, history: str) -> None:
+        self.answers = {True: newest, False: history}
+        self.sent: list[str] = []
+
+    async def __call__(self, request: DecisionRequest) -> DecisionResponse | None:
+        self.sent.append(request.input)
+        newest_alone = _MESSAGE not in request.input
+        return DecisionResponse.model_validate(
+            _answering(self.answers[newest_alone], 0.9)
+        )
+
+
+def _edited() -> LeadDeps:
+    domain = StrategyDomainState(
+        requirements=[_KINASES, _GAMETOCYTES, _ASSUMED],
+        operational_spec=_spec(),
+        original_request=_MESSAGE,
+    )
+    return lead_deps(pipeline_state(user_prompt=_LATER, domain=domain))
+
+
+async def test_the_newest_message_that_states_an_operator_wins() -> None:
+    deps = _edited()
+    service = _ByMessages(newest="union", history="intersect")
+
+    read = await _read(deps, service)
+
+    assert (
+        len(service.sent),
+        _MESSAGE in service.sent[0],
+        questions_for_the_card(deps, FrameResult(), []),
+        operator_source(read, _BOTH),
+        read.ready_to_build,
+    ) == (1, False, [], "stated", True)
+
+
+async def test_a_newest_message_that_states_no_operator_reads_the_history() -> None:
+    deps = _edited()
+    service = _ByMessages(newest="not_stated", history="intersect")
+
+    read = await _read(deps, service)
+
+    assert (
+        len(service.sent),
+        _MESSAGE in service.sent[1],
+        len(questions_for_the_card(deps, FrameResult(), [])),
+        read.ready_to_build,
+    ) == (2, True, 1, False)

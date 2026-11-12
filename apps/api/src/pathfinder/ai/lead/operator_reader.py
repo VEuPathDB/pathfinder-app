@@ -116,6 +116,20 @@ async def _read(
     )
 
 
+async def _newest_first(
+    branches: Branches,
+    messages: Sequence[str],
+    ask: DecisionsTransport,
+    floor: float,
+) -> OperatorReading | None:
+    newest = await _read(branches, messages[-1:], ask, floor)
+    if len(messages) == 1 or (
+        newest is not None and newest.read in ("agrees", "disagrees")
+    ):
+        return newest
+    return await _read(branches, messages, ask, floor)
+
+
 async def read_the_operators(
     spec: OperationalSpec,
     deps: LeadDeps,
@@ -129,5 +143,7 @@ async def read_the_operators(
     )
     floor = get_settings().decisions_vocab_min_confidence
     messages = state.researcher_messages()
-    read = await asyncio.gather(*(_read(b, messages, ask, floor) for b in asked))
+    read = await asyncio.gather(
+        *(_newest_first(b, messages, ask, floor) for b in asked)
+    )
     return with_readings(spec, [r for r in read if r is not None])

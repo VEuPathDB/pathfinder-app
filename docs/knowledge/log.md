@@ -2,6 +2,11 @@
 
 ## 2026-11-12
 
+* **The newest message decides a combine's operator.** The operator reader reads the newest
+  message alone first and keeps its reading when it states an operator over the floor; only a
+  newest message that states none sends the question over the whole history. See
+  [the decision](decisions/operators-come-from-frames-tree.md).
+
 * **A picked EDA tail holds only for its variable's name.** The tail a card answer picked is held
   with the display name of the variable it was picked on (`domain.tail_picks`), and a later study's
   cut takes it only on a variable of that name; any other variable gets its own counted card. See

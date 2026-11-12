@@ -29,6 +29,11 @@ runs over the draft, never inside FRAME's own tool loop (`ai/lead/frame_dispatch
   else. The choices are intersect, union, left minus right, right minus left,
   colocated, not combined directly and not stated; a combine of more than two
   inputs is asked intersect, union, not combined directly or not stated.
+- The newest message is read first, alone (`operator_reader._newest_first`). When
+  it states an operator at or above the floor, that reading stands and the history
+  is not read; otherwise the question is asked again over every message, oldest
+  first. A message that changes a combine therefore overrides the words that built
+  it, and the order is enforced by code, not by asking the model which message won.
 - The answer is typed on the spec as an `OperatorReading` keyed by the combine's
   criteria and the operator FRAME built: `agrees`, `disagrees` (an other operator
   at or above `DECISIONS_VOCAB_MIN_CONFIDENCE`), `unsure` (below it), `not_stated`
@@ -74,6 +79,10 @@ settle.
   the researcher's and needs word matching to find its members.
 - **Reading connective words.** "and", "or", "but not" and "with" are read wrong in
   both directions; the rules grew per failure and still missed phrasings.
+- **Reading the whole history in one question.** When a later message changes how
+  two branches combine, one answer over every message has no right reading, and an
+  older message outvoted the newest at a confidence over the floor, so an explicit
+  edit was held behind a card. Neither is a message's text parsed for an operator.
 - **Asking on every combine.** A combine over an assumed definition has no words of
   the researcher to read, and a card on every build asks what the researcher never
   said.
