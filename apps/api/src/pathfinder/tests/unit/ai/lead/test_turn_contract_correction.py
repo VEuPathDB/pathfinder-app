@@ -66,7 +66,7 @@ class TestTheOneCorrection:
         with pytest.raises(ModelRetry):
             hold_the_turn_contract(run_context_for(deps), report)
 
-        assert deps.state.turn_markers.contract_refused is True
+        assert deps.state.turn_markers.refused_rules != []
         assert hold_the_turn_contract(run_context_for(deps), report) == reply(
             ASKING_REPLY
         )
@@ -77,7 +77,7 @@ class TestTheOneCorrection:
         report = reply(CLEAN_REPLY)
 
         assert hold_the_turn_contract(run_context_for(deps), report) == report
-        assert deps.state.turn_markers.contract_refused is False
+        assert deps.state.turn_markers.refused_rules == []
 
     def test_a_deferred_request_is_not_prose(self) -> None:
         output = DeferredToolRequests()

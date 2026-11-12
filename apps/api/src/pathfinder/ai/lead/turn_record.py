@@ -53,6 +53,7 @@ class TurnRecord(CamelModel):
     build_unverified: bool
     build_outcome: BuildOutcome | None
     eda_criterion_pending: Criterion | None
+    eda_workflow_started: bool
     turn_builds: bool
     framed: bool
     off_topic: bool
@@ -85,23 +86,18 @@ class TurnRecord(CamelModel):
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
-    """The criterion waiting for an analysis this turn did not open, or None.
+    """The first criterion no step exports yet, or None."""
+    return next(iter(pending_analyses(deps.state.domain.operational_spec)), None)
 
-    An analysis the thread already holds open on that dataset counts: the
-    filters and the export act on it.
-    """
+
+def _eda_workflow_started(deps: LeadDeps) -> bool:
+    """Whether an analysis is open on the dataset of a criterion that waits."""
     opened = set(deps.state.turn_markers.eda_datasets_opened)
     analysis = deps.state.domain.open_eda_analysis
     if analysis is not None:
         opened.add(analysis.dataset_id)
-    return next(
-        (
-            waiting
-            for waiting in pending_analyses(deps.state.domain.operational_spec)
-            if waiting.needs_analysis_on not in opened
-        ),
-        None,
-    )
+    waiting = pending_analyses(deps.state.domain.operational_spec)
+    return any(criterion.needs_analysis_on in opened for criterion in waiting)
 
 
 def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
@@ -144,6 +140,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         build_unverified=deps.build_unverified,
         build_outcome=deps.state.domain.last_build_outcome,
         eda_criterion_pending=_pending_eda_criterion(deps),
+        eda_workflow_started=_eda_workflow_started(deps),
         turn_builds=turn_builds(deps),
         framed=markers.framed,
         off_topic=turn_is_off_topic(deps),

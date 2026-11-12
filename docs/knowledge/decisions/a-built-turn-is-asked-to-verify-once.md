@@ -4,7 +4,7 @@ title: A built turn is asked to verify once
 description: An output validator on the Lead refuses the first answer of a turn that built steps and neither dispatched nor passed verification, and it fires at most once per turn so a second answer stating why a check is impossible still reaches the user. Instruction prose and a hard block that ends the turn were both rejected.
 tags: [agents, lead, verification, ergonomics]
 generated: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-10-22T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-11-12T00:00:00Z }
 status: stable
 ---
 
@@ -50,8 +50,7 @@ The rule lives in the Lead's turn contract as the unverified-build rule
 (`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`).
 
 **It fires at most once per turn**: each rule of the contract is asked once
-per turn, its kind kept on `TurnMarkers.refused_rules`, and `contract_refused`
-says a rule refused an answer of this turn. The second answer goes
+per turn, its kind kept on `TurnMarkers.refused_rules`. The second answer goes
 through even when it carries no accepted reason, marked as unchecked: only the model knows whether a check is
 possible on this turn, so the contract compels the attempt and not the outcome.
 A verification that returned a review that failed is not asked again either:

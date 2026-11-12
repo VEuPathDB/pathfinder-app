@@ -114,7 +114,7 @@ def test_a_turn_with_no_check_offers_the_edit() -> None:
 def test_a_refused_reply_after_a_tree_failure_reaches_only_the_check() -> None:
     """The refusal and the card rule each withdraw tools; neither adds one."""
     deps = _checked(_digest(success=False, cause=FailureCause.STRUCTURE_VIOLATION))
-    deps.state.turn_markers.contract_refused = True
+    deps.state.turn_markers.refused_rules = ["unverified_build"]
 
     assert _offered(deps) == {PROPOSAL_TOOL, "verify_strategy"}
 

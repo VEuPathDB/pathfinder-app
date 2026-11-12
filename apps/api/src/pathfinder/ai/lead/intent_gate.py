@@ -92,7 +92,11 @@ def verification_pending(deps: LeadDeps) -> bool:
     turn keeps the one way out until a verification succeeds.
     """
     markers = deps.state.turn_markers
-    return markers.contract_refused and markers.built and not markers.verified
+    return (
+        "unverified_build" in markers.refused_rules
+        and markers.built
+        and not markers.verified
+    )
 
 
 def change_waits_for_a_card(deps: LeadDeps) -> bool:

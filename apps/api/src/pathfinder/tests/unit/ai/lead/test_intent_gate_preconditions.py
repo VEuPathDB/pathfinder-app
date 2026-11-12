@@ -19,11 +19,12 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.ai.lead.turn_contract import LeadResponse, Mismatch, correct_once
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -149,7 +150,7 @@ def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
         with_steps=True,
     )
     deps.state.turn_markers.built = True
-    deps.state.turn_markers.contract_refused = True
+    deps.state.turn_markers.refused_rules = ["unverified_build"]
 
     offered = _offered(deps)
 
@@ -165,7 +166,7 @@ def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
         with_steps=True,
     )
     deps.state.turn_markers.built = True
-    deps.state.turn_markers.contract_refused = True
+    deps.state.turn_markers.refused_rules = ["unverified_build"]
     deps.state.turn_markers.verification_dispatched = True
 
     assert _offered(deps) & BUILDING_TOOLS == {"verify_strategy"}
@@ -394,3 +395,17 @@ def test_a_refused_reply_leaves_verification_as_the_only_building_tool() -> None
 
     assert isinstance(result.output, LeadResponse)
     assert seen.steps[1] & BUILDING_TOOLS == {"verify_strategy"}
+
+
+def test_a_refusal_for_an_unbuilt_eda_criterion_keeps_the_tools_that_build_it() -> None:
+    """Only a refusal for a missing check narrows the turn to the check."""
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+        with_steps=True,
+    )
+    deps.state.turn_markers.built = True
+    refusal = Mismatch(kind="unbuilt_eda_criterion", sentence="Build it now.")
+    correct_once(run_context_for(deps), [refusal])
+
+    assert {"open_eda_analysis", "set_eda_filters"} <= _offered(deps)

@@ -99,6 +99,8 @@ def _unverified_build(report: LeadResponse, record: TurnRecord) -> str | None:
     """
     if not record.build_unverified or record.ends_on_a_card:
         return None
+    if record.turn_builds and record.eda_criterion_pending is not None:
+        return None
     if report.unverified_reason.strip() and record.check_could_not_finish:
         return None
     return unverified_build_message(
@@ -112,6 +114,8 @@ def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | No
     """Only the EDA tools build a criterion waiting for its analysis."""
     del report
     if not record.turn_builds or record.eda_criterion_pending is None:
+        return None
+    if record.ends_on_a_card and record.eda_workflow_started:
         return None
     return eda_criterion_not_built_message(record.eda_criterion_pending)
 
@@ -198,7 +202,6 @@ def correct_once(
     if found and may_refuse(ctx, markers.output_refusals):
         markers.output_refusals += 1
         markers.refused_rules.extend(m.kind for m in found)
-        markers.contract_refused = True
         return found
     if mismatches:
         markers.unchecked_reply = True

@@ -25,6 +25,7 @@ from pathfinder.ai.lead.intent_gate import (
     turn_builds,
     turn_is_classified,
     turn_is_off_topic,
+    unmet_preconditions,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
@@ -249,6 +250,8 @@ def eda_route_blocks(ctx: RunContext[LeadDeps]) -> list[str]:
     spec = ctx.deps.state.domain.operational_spec
     waiting = pending_analyses(spec)
     if not waiting or spec is None or not turn_builds(ctx.deps):
+        return []
+    if "open_eda_analysis" in unmet_preconditions(ctx.deps):
         return []
     graph = ctx.deps.runtime.strategy_session.get_graph(None)
     unbuilt = _criteria_with_no_step(spec, graph)

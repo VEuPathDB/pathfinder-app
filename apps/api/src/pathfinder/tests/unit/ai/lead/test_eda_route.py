@@ -356,3 +356,15 @@ class TestTheStepsOutsideTheStrategy:
         assert (
             pinned_detached_steps(run_context_for(_deps(session, spec=_spec()))) is None
         )
+
+
+def test_no_route_is_pinned_while_the_turn_withholds_its_tools() -> None:
+    deps = _deps(
+        _session(StrategyStepNode(id="step_k1", search_name="GenesByText")),
+        spec=_spec(),
+    )
+    markers = deps.state.turn_markers
+    markers.built = True
+    markers.refused_rules = ["unverified_build"]
+
+    assert eda_route_blocks(run_context_for(deps)) == []

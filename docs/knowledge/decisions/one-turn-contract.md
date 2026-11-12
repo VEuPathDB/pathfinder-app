@@ -22,7 +22,7 @@ status: stable
   class, in a fixed order. Each `Mismatch` carries its `kind` and the sentence the existing
   message function in `dispatch_messages.py` renders.
 - `hold_the_turn_contract` - the single output validator on the Lead agent. It reconciles
-  once per turn, latched on `TurnMarkers.contract_refused`, and raises one `ModelRetry`
+  once per turn, each rule kind kept on `TurnMarkers.refused_rules`, and raises one `ModelRetry`
   listing every mismatch under one heading.
 
 Seven rules covered what seven validators covered: an unverified build, a misreported change in
@@ -59,10 +59,17 @@ asks it to write no number of the turn, it names a record only as `[record:<id>]
 turn vouches for its address. See [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)
 and [a refusal rests on typed state](a-refusal-rests-on-typed-state.md).
 
-The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
-`contract_refused and built and not verified`, the condition the deleted `verification_nudged`
-carried, so a turn corrected before a check passed reaches `verify_strategy` and no other tool
-that writes.
+The precondition gate reads which rule refused: `intent_gate.verification_pending` is
+`"unverified_build" in refused_rules and built and not verified`, so a turn corrected for want
+of a check reaches `verify_strategy` and no other tool that writes. A refusal by any other rule
+narrows nothing; a refusal for an unbuilt EDA criterion leaves the EDA tools that build it.
+A build is finished before it is checked: `unverified_build` does not fire while a criterion
+waits for its export, because `unbuilt_eda_criterion` answers that reply. That rule asks for an
+export, not for an opened analysis: a final reply is refused while any waiting criterion has no
+exported step, and a reply that ends on a card is refused only when no analysis is open on the
+dataset of a waiting criterion, so a cut card asked during the build stands and a card asked
+instead of the build does not. The pinned route of a waiting criterion is printed only while the
+gate offers `open_eda_analysis`, so the briefing never names a tool the turn withholds.
 
 `unrecorded_question` reads where the reply ends. A reply whose prose ends with a question (the
 last non-empty paragraph ends with `?`, closing emphasis, code, bracket and quote marks read

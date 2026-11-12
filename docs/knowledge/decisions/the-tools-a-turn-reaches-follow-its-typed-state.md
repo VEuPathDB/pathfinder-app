@@ -12,8 +12,9 @@ status: stable
 `ai/lead/intent_gate.py::tools_the_turn_offers` withholds a tool only for a typed
 precondition: `unmet_preconditions` (a strategy with a step is edited, never framed
 again; a build needs no strategy step; recovery needs a failed build; a check needs a step
-and runs once; an EDA step needs a counted subset; a turn refused for want of a check
-reaches the check alone; after a check a change waits for a card). Nothing reads the
+and runs once; an EDA step needs a counted subset; a turn refused by `unverified_build`
+reaches the check alone, and a refusal by any other rule narrows nothing; after a check a
+change waits for a card). Nothing reads the
 classification's label to decide reach: an unclassified turn, a question, a context
 statement and an off-topic message reach the same tools. A write that needs the
 researcher's consent stays behind its approval card (`consult_user`, `propose_changes`,

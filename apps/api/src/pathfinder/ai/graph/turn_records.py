@@ -202,8 +202,6 @@ class TurnMarkers(CamelModel):
     verification_dispatched: bool = False
     # The last check of this turn has no digest: it stopped, raised or still runs.
     verification_stopped: bool = False
-    # A reply that did not match the turn's record is corrected once.
-    contract_refused: bool = False
     output_refusals: int = 0
     refused_rules: list[str] = Field(default_factory=list)
     unchecked_reply: bool = False

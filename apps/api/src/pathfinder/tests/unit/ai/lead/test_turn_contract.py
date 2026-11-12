@@ -93,6 +93,17 @@ class TestTheUnverifiedBuildRule:
     def test_a_turn_that_built_nothing_is_no_mismatch(self) -> None:
         assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
 
+    def test_a_build_that_still_owes_an_eda_criterion_is_asked_the_build_first(
+        self,
+    ) -> None:
+        record = turn_record(run_context_for(eda_deps()))
+
+        unverified = record.model_copy(update={"build_unverified": True})
+
+        assert [m.kind for m in reconcile(reply(EDA_PROSE), unverified)] == [
+            "unbuilt_eda_criterion"
+        ]
+
 
 class TestTheUnbuiltEdaCriterionRule:
     def test_a_turn_that_opened_no_analysis_is_a_mismatch(self) -> None:
@@ -115,19 +126,37 @@ class TestTheUnbuiltEdaCriterionRule:
             "own classes settles is a question: ask it with consult_user."
         ) in sentence
 
-    def test_a_turn_that_opened_the_analysis_stands(self) -> None:
+    def test_an_opened_analysis_that_exported_no_step_is_a_mismatch(self) -> None:
         deps = eda_deps()
         deps.state.turn_markers.record_eda_dataset_opened(DATASET)
 
-        assert kinds(deps, reply(EDA_PROSE)) == []
+        assert kinds(deps, reply(EDA_PROSE)) == ["unbuilt_eda_criterion"]
 
-    def test_an_analysis_the_thread_already_holds_open_stands(self) -> None:
+    def test_an_analysis_held_open_that_exported_no_step_is_a_mismatch(self) -> None:
         deps = eda_deps()
         deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
             dataset_id=DATASET, analysis_id="an-1"
         )
 
-        assert kinds(deps, reply(EDA_PROSE)) == []
+        assert kinds(deps, reply(EDA_PROSE)) == ["unbuilt_eda_criterion"]
+
+    def test_a_card_asked_once_the_workflow_started_stands(self) -> None:
+        deps = eda_deps()
+        deps.state.turn_markers.record_eda_dataset_opened(DATASET)
+        record = turn_record(run_context_for(deps))
+
+        on_a_card = record.model_copy(update={"ends_on_a_card": True})
+
+        assert reconcile(reply(EDA_PROSE), on_a_card) == []
+
+    def test_a_card_asked_before_any_analysis_opened_is_a_mismatch(self) -> None:
+        record = turn_record(run_context_for(eda_deps()))
+
+        on_a_card = record.model_copy(update={"ends_on_a_card": True})
+
+        assert [m.kind for m in reconcile(reply(EDA_PROSE), on_a_card)] == [
+            "unbuilt_eda_criterion"
+        ]
 
     def test_an_analysis_on_another_dataset_is_still_a_mismatch(self) -> None:
         deps = eda_deps()

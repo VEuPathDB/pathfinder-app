@@ -2,6 +2,13 @@
 
 ## 2026-11-12
 
+* **Only a refusal for a missing check narrows the turn to the check.** The gate reads which rule
+  refused (`refused_rules`) instead of a flag every rule set, so a refusal for an unbuilt EDA
+  criterion leaves the tools that build it; `unverified_build` waits until no criterion waits
+  for its export; a final reply is refused while a waiting criterion has no exported step, and a
+  card only when no analysis was opened for a waiting criterion; the route pin is printed only
+  while its tools are offered. See [the turn contract](decisions/one-turn-contract.md).
+
 * **The newest message decides a combine's operator.** The operator reader reads the newest
   message alone first and keeps its reading when it states an operator over the floor; only a
   newest message that states none sends the question over the whole history. See

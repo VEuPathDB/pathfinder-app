@@ -49,14 +49,14 @@ def unverified_build_message(
 def eda_criterion_not_built_message(waiting: Criterion) -> str:
     """Refuse an answer that leaves a criterion waiting for its analysis.
 
-    Only the EDA tools write the analysis document, so a turn that opened no
-    analysis on the criterion's dataset has not tried to build it.
+    Only the EDA tools write the analysis document, and only an export puts
+    the criterion's step in the strategy.
     """
     dataset = waiting.needs_analysis_on
     return (
         f"The spec holds [{waiting.id}] {waiting.text!r}, which only the "
-        f"analysis workflow builds, and this turn opened no EDA analysis on "
-        f"dataset {dataset}. Build it now: open_eda_analysis("
+        f"analysis workflow builds, and no step exports it yet from dataset "
+        f"{dataset}. Build it now: open_eda_analysis("
         f'dataset_id="{dataset}"), then set_eda_filters, then '
         f"preview_eda_subset, then create_eda_step("
         f'criterion_id="{waiting.id}"), which puts the step where the '

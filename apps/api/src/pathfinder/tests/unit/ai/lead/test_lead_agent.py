@@ -261,7 +261,7 @@ def test_a_built_turn_that_never_verified_is_asked_once() -> None:
     assert "verify_strategy" in script.retries[0]
     assert "1 step(s) on VEuPathDB" in script.retries[0]
     assert "root count 1543" in script.retries[0]
-    assert deps.state.turn_markers.contract_refused is True
+    assert deps.state.turn_markers.refused_rules == ["unverified_build"]
 
 
 def test_the_second_answer_goes_through_even_when_it_still_declines() -> None:
@@ -273,7 +273,7 @@ def test_a_verified_turn_is_never_asked() -> None:
     deps = _nudge_deps(built=True, verified=True)
 
     assert _run(deps).retries == []
-    assert deps.state.turn_markers.contract_refused is False
+    assert deps.state.turn_markers.refused_rules == []
 
 
 def test_a_verification_that_ran_and_failed_is_never_asked_again() -> None:
@@ -296,7 +296,7 @@ def test_a_card_turn_that_owes_nothing_parks_unasked() -> None:
 
     assert isinstance(result.output, DeferredToolRequests)
     assert [call.tool_name for call in result.output.approvals] == ["consult_user"]
-    assert deps.state.turn_markers.contract_refused is False
+    assert deps.state.turn_markers.refused_rules == []
 
 
 def test_a_built_card_turn_that_never_verified_parks_unasked() -> None:
@@ -312,7 +312,7 @@ def test_a_built_card_turn_that_never_verified_parks_unasked() -> None:
     assert [call.tool_name for call in result.output.approvals] == ["consult_user"]
     assert script.retries == []
     markers = deps.state.turn_markers
-    assert (markers.contract_refused, markers.unchecked_reply) == (False, False)
+    assert (markers.refused_rules, markers.unchecked_reply) == ([], False)
 
 
 _SERVED_PAPER = (
