@@ -78,7 +78,7 @@ DOMAIN_FIELDS = {
     "offered_readings",
     "picked_readings",
     "card_picks",
-    "tail_rules",
+    "tail_picks",
     "organism_picks",
     "original_request",
     "request_messages",

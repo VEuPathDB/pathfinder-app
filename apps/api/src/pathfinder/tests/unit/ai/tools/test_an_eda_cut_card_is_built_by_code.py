@@ -27,7 +27,7 @@ from pathfinder.ai.tools.standalone._eda_step_guard import the_subset_basis
 from pathfinder.ai.tools.standalone.eda_cut import ask_eda_cut
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.analysis_binding import SubsetBasis
-from pathfinder.domain.strategy.question_options import TailRule
+from pathfinder.domain.strategy.question_options import PickTail, TailRule
 from pathfinder.services.eda import cut_offer
 from pathfinder.services.eda.authoring import SubsetPreview
 from pathfinder.tests._support.eda_doubles import (
@@ -41,6 +41,8 @@ from pathfinder.tests._support.tool_returns import returned
 _ESSENTIAL = "apicomplexan genes that are essential in any experiment"
 _LYTIC = "DS_lytic"
 _BLOOD = "DS_blood"
+_RANKED = "DS_ranked"
+_RANK = "VAR_rank"
 _SCORE = "VAR_score"
 _FITNESS = "VAR_fitness"
 _PHENOTYPE = "VAR_phenotype"
@@ -86,9 +88,18 @@ def _lytic() -> EdaStudyDetail:
 
 def _blood() -> EdaStudyDetail:
     return study_of(
-        [_GENE, _continuous(_FITNESS, "Relative Growth Rate")],
+        [_GENE, _continuous(_FITNESS, "Mean Phenotype Score")],
         entity_id=PHENOTYPE_ENTITY,
     )
+
+
+def _ranked() -> EdaStudyDetail:
+    return study_of(
+        [_GENE, _continuous(_RANK, "Phenotype Rank")], entity_id=PHENOTYPE_ENTITY
+    )
+
+
+_STUDIES = {_LYTIC: _lytic, _BLOOD: _blood, _RANKED: _ranked}
 
 
 def _numeric(start: int, counts: Sequence[int]) -> EdaDistributionResponse:
@@ -122,13 +133,14 @@ _DISTRIBUTIONS = {
     (_LYTIC, _SCORE): _numeric(-7, [5, 10, 20, 30, 35, 400, 300, 150, 50, 0]),
     (_LYTIC, _PHENOTYPE): _classes({"Essential": 120, "Dispensable": 880}),
     (_BLOOD, _FITNESS): _numeric(-6, [3, 4, 5, 8, 30, 30, 8, 5, 4, 3]),
+    (_RANKED, _RANK): _numeric(-7, [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]),
 }
 
 
 async def _study(
     _site: str, dataset_id: str
 ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
-    return permission_entry(), _lytic() if dataset_id == _LYTIC else _blood()
+    return permission_entry(), _STUDIES[dataset_id]()
 
 
 async def _preview(
@@ -265,8 +277,10 @@ async def test_a_picked_tail_label_binds_its_bound(
 ) -> None:
     await _pick_the_low_tail(lead_ctx)
 
-    assert lead_ctx.deps.state.domain.tail_rules == {
-        _LOW_5: TailRule(end="low", percent=5)
+    assert lead_ctx.deps.state.domain.tail_picks == {
+        _LOW_5: PickTail(
+            rule=TailRule(end="low", percent=5), variable_name="Mean Phenotype Score"
+        )
     }
     assert await _basis(lead_ctx, _at_most(_LYTIC, _SCORE, -3)) == [
         SubsetBasis(
@@ -285,7 +299,7 @@ async def test_a_picked_rule_accepts_another_studys_own_edge(
 
     assert await _basis(lead_ctx, _at_most(_BLOOD, _FITNESS, -4)) == [
         SubsetBasis(
-            filter="Relative Growth Rate is between -7.0 and -4.0",
+            filter="Mean Phenotype Score is between -7.0 and -4.0",
             basis="card",
             picked=_LOW_5,
         )
@@ -324,7 +338,7 @@ async def test_a_picked_class_binds_as_the_studys_own_class_and_holds_no_rule(
         entity_id=PHENOTYPE_ENTITY, variable_id=_PHENOTYPE, string_set=["Essential"]
     )
 
-    assert (state.domain.card_picks, state.domain.tail_rules) == ([picked], {})
+    assert (state.domain.card_picks, state.domain.tail_picks) == ([picked], {})
     assert await _basis(lead_ctx, _analysis_of([essential])) == [
         SubsetBasis(filter="Phenotype is one of Essential", basis="study")
     ]
@@ -375,5 +389,30 @@ async def test_asking_a_cut_on_a_variable_the_study_lacks_is_refused(
     with pytest.raises(ModelRetry) as refusal:
         await ask_eda_cut(lead_ctx, variable_id=_SCORE)
 
-    assert "Relative Growth Rate" in str(refusal.value)
+    assert "Mean Phenotype Score (VAR_fitness)" in str(refusal.value)
     assert lead_ctx.deps.state.domain.open_questions == []
+
+
+async def test_a_picked_rule_never_reaches_a_variable_of_another_name(
+    lead_ctx: RunContext[LeadDeps],
+) -> None:
+    await _pick_the_low_tail(lead_ctx)
+
+    with pytest.raises(ModelRetry) as refusal:
+        await _basis(lead_ctx, _at_most(_RANKED, _RANK, -6))
+
+    asked = the_card_asked([], lead_ctx.deps.state.domain.open_questions)
+    assert asked[-1].prompt == "Which cut of Phenotype Rank selects the genes you mean?"
+    assert "consult_user" in str(refusal.value)
+
+
+async def test_asking_a_cut_of_another_name_under_a_picked_rule_asks_its_own_card(
+    lead_ctx: RunContext[LeadDeps], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _pick_the_low_tail(lead_ctx)
+    _open(monkeypatch, _RANKED)
+
+    said = returned(await ask_eda_cut(lead_ctx, variable_id=_RANK), str)
+
+    assert "Which cut of Phenotype Rank" in said
+    assert "picked" not in said

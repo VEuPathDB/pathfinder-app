@@ -116,7 +116,9 @@ async def ask_eda_cut(
         raise ModelRetry(msg)
     thread = ctx.deps.state.domain
     numeric = entry.filter_type == "numberRange"
-    rules: Mapping[str, TailRule] = thread.tail_rules if numeric else {}
+    rules: Mapping[str, TailRule] = (
+        thread.tail_rules_on(entry.display_name) if numeric else {}
+    )
     edges = await study_tail_edges(
         site_id,
         dataset_id=bound.dataset_id,

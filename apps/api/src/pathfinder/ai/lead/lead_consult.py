@@ -155,8 +155,8 @@ def _apply(
             domain.name_organism(named, organism)
         case ReadGenomes(criterion_id=criterion, group=group) if spec is not None:
             domain.operational_spec = spec_read_on_genomes(spec, criterion, group)
-        case PickTail(rule=rule):
-            domain.hold_tail_rule(option.label, rule)
+        case PickTail() as pick:
+            domain.hold_tail_pick(option.label, pick)
         case (
             SetValues()
             | ReadValues()

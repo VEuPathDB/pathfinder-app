@@ -27,7 +27,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.named_groups import GroupScope
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.organism_picks import OrganismPick, unnamed_organisms
-from pathfinder.domain.strategy.question_options import TailRule
+from pathfinder.domain.strategy.question_options import PickTail, TailRule
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
@@ -75,7 +75,7 @@ class ThreadRequirements(BaseModel):
     offered_readings: dict[str, OfferedReading] = Field(default_factory=dict)
     picked_readings: list[str] = Field(default_factory=list)
     card_picks: list[str] = Field(default_factory=list)
-    tail_rules: dict[str, TailRule] = Field(default_factory=dict)
+    tail_picks: dict[str, PickTail] = Field(default_factory=dict)
     organism_picks: list[OrganismPick] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -110,8 +110,15 @@ class ThreadRequirements(BaseModel):
         if label not in self.card_picks:
             self.card_picks.append(label)
 
-    def hold_tail_rule(self, label: str, rule: TailRule) -> None:
-        self.tail_rules[label] = rule
+    def hold_tail_pick(self, label: str, pick: PickTail) -> None:
+        self.tail_picks[label] = pick
+
+    def tail_rules_on(self, variable_name: str) -> dict[str, TailRule]:
+        return {
+            label: pick.rule
+            for label, pick in self.tail_picks.items()
+            if pick.variable_name == variable_name
+        }
 
     def reading_labels(self) -> list[str]:
         return list(

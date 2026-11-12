@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-12
+
+* **A picked EDA tail holds only for its variable's name.** The tail a card answer picked is held
+  with the display name of the variable it was picked on (`domain.tail_picks`), and a later study's
+  cut takes it only on a variable of that name; any other variable gets its own counted card. See
+  [the decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
 ## 2026-11-11
 
 * **The EDA cut card is built by code.** A range cut no message states and no card picked now

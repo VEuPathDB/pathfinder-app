@@ -4,7 +4,7 @@ title: An EDA step holds a compute or a gene subset
 description: A step exports genes, so a subset export (the agent's or the tab's) needs a study with one gene entity (the entity that carries VEUPATHDB_GENE_ID) and a filter on it that selects at least one distinct gene id; a compute export needs a comparison, the analysis's first complete differential expression, and an effect_direction needs both thresholds on a compared analysis; an analysis with no filter and no computation has no eda_analysis_spec and never reaches the graph. A subset's range cut is exported only when a researcher message states its bounds, a card answer picked them, or a picked tail rule gives them on that study; the card that asks is built by code from the study's own distributions; a set filter rests on the study's own class, and the pinned filter sheet carries the study's own description. A gene count is the distinct gene ids under the subset, never the gene entity's rows. Counting rows of the gene entity was rejected, because on a gene-by-sample counts entity a row is one gene in one sample. A top-N cut on a rank or a score that no one stated was rejected, because it reads a property the study does not define; so were options the model writes and a cutoff parsed from a study's description.
 tags: [eda, export, strategy, agent]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-11-11T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-11-12T00:00:00Z }
 status: stable
 ---
 
@@ -95,11 +95,13 @@ sample.
 
   Tails come first and the card holds 8 options at most. A picked tail label
   states its bound, so it binds as a card pick, and its `PickTail` binding
-  holds the rule (`domain.tail_rules`: the end and the share, under the picked
-  label). On a later study an unstated range cut on that end is accepted when
-  its bound equals that study's own edge for the rule, computed the same way;
-  any other bound is refused with a retry that names the study's edge, and no
-  second card is asked. A picked class is that study's own value and binds as a
+  holds the rule and the variable's display name (`domain.tail_picks`, under
+  the picked label). On a later study an unstated range cut of a variable with
+  the same display name is accepted when its bound equals that study's own
+  edge for the rule, computed the same way; any other bound is refused with a
+  retry that names the study's edge, and no second card is asked. A variable
+  of another name gets its own card: the end that means the same thing can
+  differ between two variables, for example a fitness score and a rank of it. A picked class is that study's own value and binds as a
   set filter; it holds no rule, because vocabularies differ across studies.
   With no option to offer, the retry asks for the cut in the researcher's
   words. A
@@ -150,6 +152,12 @@ stated cut the model sent the export with no filter at all, which is refused
 as a subset that names no gene entity, and then wrote its own question. An
 instruction to send a guessed filter did not change that, so the card has a
 tool of its own.
+
+**Carry a picked tail to any numeric variable.** A low tail picked on a
+fitness score, where more negative is a stronger defect, was applied as the
+lowest values of a rank on another study. Whether rank 1 is the strongest
+defect is the study's own convention, which code cannot read, so the rule
+holds only for a variable of the same display name.
 
 **Read a published cutoff from the study's description.** A description is
 prose, and reading a cutoff from it needs a model to understand the text. The

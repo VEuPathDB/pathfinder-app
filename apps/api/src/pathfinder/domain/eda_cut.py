@@ -118,7 +118,10 @@ def cut_question(
     classes: Sequence[ClassCount],
 ) -> OpenQuestion:
     options = [
-        *(_option(e.label(name, noun), PickTail(rule=e.rule)) for e in tails),
+        *(
+            _option(e.label(name, noun), PickTail(rule=e.rule, variable_name=name))
+            for e in tails
+        ),
         *(
             _option(
                 c.label(noun),

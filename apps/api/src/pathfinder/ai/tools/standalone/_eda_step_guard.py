@@ -331,7 +331,7 @@ async def _asked_or_met(
         study=study,
         entity_id=cut.entity_id,
         variable_id=cut.variable_id,
-        rules=thread.tail_rules if cut.numeric else {},
+        rules=thread.tail_rules_on(cut.variable_name) if cut.numeric else {},
     )
     met = next(
         (label for label, e in edges.items() if e.binds(cut.at_least, cut.at_most)),
