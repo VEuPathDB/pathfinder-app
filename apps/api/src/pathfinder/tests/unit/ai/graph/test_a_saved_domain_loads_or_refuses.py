@@ -63,5 +63,5 @@ def test_a_domain_this_build_cannot_read_is_refused_on_load() -> None:
     stored: dict[str, Any] = {"answered_questions": [{"question": "q", "options": 5}]}
     with pytest.raises(ConversationFromEarlierBuildError) as caught:
         _loaded(StrategyDomainState.model_construct(**stored))
-    assert "saved by an earlier version of PathFinder" in str(caught.value.detail)
+    assert "saved by an earlier version of Strategist" in str(caught.value.detail)
     assert "answered_questions" in str(caught.value.detail)

@@ -2,9 +2,9 @@
 okf_version: "0.2"
 ---
 
-# PathFinder Knowledge Bundle
+# Strategist Knowledge Bundle
 
-Curated, durable knowledge about PathFinder in [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) v0.2. Plain markdown with YAML frontmatter, no tooling required: if you can `cat` a file you can read it.
+Curated, durable knowledge about Strategist in [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) v0.2. Plain markdown with YAML frontmatter, no tooling required: if you can `cat` a file you can read it.
 
 This is not a replacement for `CLAUDE.md` (rules an agent must follow every session) or for code comments (why this line is this way). It holds what neither can: decisions with their reasoning, work we know is outstanding, and how VEuPathDB's WDK behaves, pinned to the upstream that can prove it wrong.
 
@@ -22,11 +22,11 @@ This is not a replacement for `CLAUDE.md` (rules an agent must follow every sess
 
 ## WDK
 
-- WDK (`veupathdb-py: docs/knowledge/wdk/`) - how WDK works, how PathFinder maps onto it, and the rules that must hold
+- WDK (`veupathdb-py: docs/knowledge/wdk/`) - how WDK works, how Strategist maps onto it, and the rules that must hold
 
 ## EDA
 
-- [EDA](eda/) - how PathFinder adopts VEuPathDB's Exploratory Data Analysis platform: the two seams and the layer placement
+- [EDA](eda/) - how Strategist adopts VEuPathDB's Exploratory Data Analysis platform: the two seams and the layer placement
 - [Integration concept](eda/pathfinder-integration-concept.md) - the two seams, an EDA tab of its own, and how models get EDA knowledge
 - [Architecture fit](eda/pathfinder-architecture-fit.md) - where every EDA concern lands in the layer model, the durable-tool mapping piece by piece, the MCP/SDK placement, and the SSOT for the analysis spec
 

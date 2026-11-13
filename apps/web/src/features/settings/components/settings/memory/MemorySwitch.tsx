@@ -26,7 +26,7 @@ export function MemorySwitch() {
       title="Memory"
       description={
         <span data-testid="memory-switch-copy">
-          When this is off, PathFinder neither recalls nor saves memories in your
+          When this is off, Strategist neither recalls nor saves memories in your
           conversations. The memories below stay until you turn it back on.
         </span>
       }

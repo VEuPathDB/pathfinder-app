@@ -20,7 +20,7 @@ export function NewReleaseBanner() {
       className="flex items-center justify-center gap-3 border-b border-border bg-muted px-4 py-2 text-xs text-muted-foreground"
     >
       <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-      <span>PathFinder has been updated.</span>
+      <span>Strategist has been updated.</span>
       <Button
         size="sm"
         variant="outline"

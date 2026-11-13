@@ -17,8 +17,8 @@ and a wrong doc is worse than a missing one because it gets believed.
 
 # Why WDK is the exception
 
-Every other candidate for reference material describes PathFinder, and PathFinder's own
-code is the better description of PathFinder. WDK is different: it is a system we do not
+Every other candidate for reference material describes Strategist, and Strategist's own
+code is the better description of Strategist. WDK is different: it is a system we do not
 control, whose behavior we must match exactly, and whose truth lives in someone else's
 repository. Reading our code tells you what we do. It cannot tell you whether what we do
 is correct.
@@ -69,7 +69,7 @@ unauthenticated `GET /users/current` calls returned three different user ids, an
 three sharing a cookie jar returned one. A client that drops its token is a stream of
 strangers, so strategies list empty, steps 404, and any flow spanning several requests
 produces exactly the "well-formed request, 200 response, empty answer" shape the JSESSIONID
-note describes. PathFinder's `JSESSIONID` handling and its `Authorization` handling were
+note describes. Strategist's `JSESSIONID` handling and its `Authorization` handling were
 written in the same period, so a fix credited to one may have been delivered by the other.
 
 **This makes the case for the bundle stronger, not weaker.** The thesis was that scattered,
@@ -111,7 +111,7 @@ the reminder; the bundle carries the evidence.
 # The condition attached
 
 The exception is narrow, and it is enforced rather than promised. A WDK rule carries
-upstream evidence pinned to a commit sha, a PathFinder anchor, and a conformance status.
+upstream evidence pinned to a commit sha, a Strategist anchor, and a conformance status.
 `scripts/check-wdk-rules.mjs` fails the build on an unpinned citation, a moved anchor, or
 a named test that no longer exists. Without that script this decision would be an
 optimistic one; with it, a rule that has gone stale is a red build.

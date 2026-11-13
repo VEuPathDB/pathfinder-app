@@ -40,12 +40,12 @@ never read.
 | The analysis the assistant runs on a study | study | analysis workflow | researcher | The glossary in [the user-facing vocabulary](../decisions/user-facing-vocabulary.md). |
 | A strategy's run against saved control sets | scored run | scored experiment | all | Experiment names a site's experiment card; the settings already call these runs. |
 | What a step returns | results | result set | all | VEuPathDB shows a step's results. |
-| A saved set of genes PathFinder holds | gene set | gene list | all | The API, the table and every panel say gene set. |
-| The person using PathFinder | researcher | user | researcher | Copy addresses them as "you" and names them researcher. |
+| A saved set of genes Strategist holds | gene set | gene list | all | The API, the table and every panel say gene set. |
+| The person using Strategist | researcher | user | researcher | Copy addresses them as "you" and names them researcher. |
 | A question the assistant asks before it builds | question | consult | researcher | Consult is the tool's name. |
 | The assistant the researcher talks to | assistant | agent | researcher | The composer and the empty states say assistant; agent is the code's word. |
 | The models a conversation runs on, set in the Model tab of Settings | model | engine, orchestrator | researcher | The Settings tab is called Model; no tab is called AI Engine, and orchestrator is the code's word for the Lead. |
-| A site PathFinder cannot reach now | couldn't reach | not responding | researcher | The notice says "Couldn't reach" and the site's short name. |
+| A site Strategist cannot reach now | couldn't reach | not responding | researcher | The notice says "Couldn't reach" and the site's short name. |
 | A conversation the researcher deleted, restorable from the sidebar | recently deleted | dismissed | researcher | The sidebar's list is called Recently deleted; dismissed is the column's name in the code. |
 
 # Exemptions

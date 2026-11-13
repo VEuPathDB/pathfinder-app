@@ -61,7 +61,7 @@ Times are the measured wall time of the same turns with `openai:gpt-5.6-luna` at
 | 2 | Nav rail `Saved strategies` | `Delete saved strategy` on each UAT row | `No saved strategies yet.` |
 | 3 | Settings, `Memory` | Delete every row UAT wrote (confirm each) | Every section `No items stored yet.`, or only rows that predate UAT |
 | 4 | Composer | `/export`, `Latest gene set on this site (CSV)` on each site | `No gene sets to export.` |
-| 5 | Each VEuPathDB site, signed in as the account | My Strategies; My Data Sets; the study analyses | No strategy, dataset or analysis UAT made, except the three `pathfinder-uat-*` uploads the UD flows read ([sites and accounts](sites-and-accounts.md#user-datasets-of-the-dev-account)). PathFinder never deletes datasets or analyses: delete them there |
+| 5 | Each VEuPathDB site, signed in as the account | My Strategies; My Data Sets; the study analyses | No strategy, dataset or analysis UAT made, except the three `pathfinder-uat-*` uploads the UD flows read ([sites and accounts](sites-and-accounts.md#user-datasets-of-the-dev-account)). Strategist never deletes datasets or analyses: delete them there |
 | 6 | A dedicated UAT account only | Settings, `Data`, `Clear ALL data + VEuPathDB`, type `delete my data`, `Confirm` | Toast `Data cleared`; steps 1 to 4 read empty again |
 
 ## Bug template

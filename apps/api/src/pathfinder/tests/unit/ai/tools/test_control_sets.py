@@ -254,7 +254,7 @@ async def test_the_check_lists_the_attached_sets_the_user_saved_on_the_site(
 
 
 class TestAWdkStrategyIdIsARetry:
-    """The import tool takes a PathFinder UUID while the conversation is full
+    """The import tool takes a Strategist UUID while the conversation is full
     of WDK numeric ids; ``UUID()`` on one raises ValueError, which ends the
     turn with a message the user cannot act on."""
 
@@ -321,4 +321,4 @@ async def test_read_control_set_refuses_an_id_that_is_not_a_control_set() -> Non
     with pytest.raises(ModelRetry) as raised:
         await read_control_set(detached_lead_context(), _WDK_STRATEGY_ID)
 
-    assert "control_set_id must be a PathFinder control set id" in str(raised.value)
+    assert "control_set_id must be a Strategist control set id" in str(raised.value)

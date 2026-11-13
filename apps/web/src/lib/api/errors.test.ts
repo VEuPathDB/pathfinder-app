@@ -65,7 +65,7 @@ const IDENTITY_MISMATCH_BODY = {
   title: "VEuPathDB account changed",
   status: 401,
   detail:
-    "Signed in to VEuPathDB as a different account than this PathFinder session. Sign in again.",
+    "Signed in to VEuPathDB as a different account than this Strategist session. Sign in again.",
   code: "WDK_IDENTITY_MISMATCH",
 };
 

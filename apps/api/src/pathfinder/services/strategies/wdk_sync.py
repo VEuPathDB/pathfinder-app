@@ -75,7 +75,7 @@ async def fetch_and_convert(
     """Fetches a WDK strategy and converts it to the internal payload. Parameter
     normalization failures are logged, and the raw values are kept.
 
-    WDK stores no PathFinder metadata, so each EDA step's analysis kind is read
+    WDK stores no Strategist metadata, so each EDA step's analysis kind is read
     from the site's catalog here.
     """
     wdk_strategy = await api.get_strategy(wdk_id)

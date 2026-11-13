@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A tool returns data and never speaks as the researcher
-description: No PathFinder tool sets ToolReturn.content, because pydantic-ai sends that field as a separate user prompt part; what the Lead does with a result is written in its instructions.
+description: No Strategist tool sets ToolReturn.content, because pydantic-ai sends that field as a separate user prompt part; what the Lead does with a result is written in its instructions.
 tags: [lead, tools, pydantic-ai]
 status: stable
 ---

@@ -1,7 +1,7 @@
 ---
 type: Convention
 title: UAT exit criteria
-description: What "UAT passed" means for a PathFinder release - the severity scale, the pass rule, what a runner records per flow, how a count that moved on VEuPathDB is handled, and when a run stops.
+description: What "UAT passed" means for a Strategist release - the severity scale, the pass rule, what a runner records per flow, how a count that moved on VEuPathDB is handled, and when a run stops.
 tags: [uat, release, testing, exit-criteria]
 generated: { by: claude-code/opus-5.5, at: 2026-09-24T00:00:00Z }
 status: draft

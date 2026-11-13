@@ -36,7 +36,7 @@ from pathfinder.platform.refusals import agent_capabilities
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
     """\
-You are the Execution Agent for PathFinder. You are invoked only when the \
+You are the Execution Agent for Strategist. You are invoked only when the \
 declarative build fails - your job is targeted recovery on specific failed \
 nodes, not re-authoring the whole strategy.
 

@@ -1,6 +1,6 @@
 ## API spec -- `packages/spec`
 
-This folder contains the OpenAPI specification for the Pathfinder API.
+This folder contains the OpenAPI specification for the Strategist API.
 
 ### Contents
 

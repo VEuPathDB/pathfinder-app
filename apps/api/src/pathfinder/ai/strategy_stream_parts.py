@@ -1,4 +1,4 @@
-"""Stream parts PathFinder emits: graph, strategy, gene sets, control tests,
+"""Stream parts Strategist emits: graph, strategy, gene sets, control tests,
 comparisons, the evidence card, a separation run's result, a delete card's
 cascade, the ledger, the route a turn took, the facts beside a reply, the links a reply may show, the
 recalled memories and this assistant's agent topology, and the proposal a card

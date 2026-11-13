@@ -104,7 +104,7 @@ not the thread's). The runtime defers every durable job on one queue per
 process, so an audit holds one of the slots the turns and the durable tools
 share, and nothing caps the number of runs reading at once. A wait for a site
 needs a scheduled continuation, which `start_host_task` cannot express, so
-PathFinder would keep a copy of it with one more argument. Each continuation
+Strategist would keep a copy of it with one more argument. Each continuation
 writes a `background_tasks` row on the thread, one for every wait, which the
 Tasks panel lists and marks complete while the run is still unfinished. The
 run's state is already on `audit_runs`, so a task row duplicates it.

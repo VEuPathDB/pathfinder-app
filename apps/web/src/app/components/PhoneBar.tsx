@@ -26,7 +26,7 @@ export function PhoneBar({ onOpenSettings }: { onOpenSettings: () => void }) {
 
   return (
     <nav
-      aria-label="PathFinder"
+      aria-label="VEuPathDB Strategist"
       className="no-scrollbar flex h-12 shrink-0 items-center gap-0.5 overflow-x-auto border-t border-border bg-sidebar px-1"
     >
       <Button

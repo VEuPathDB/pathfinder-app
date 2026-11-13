@@ -125,12 +125,12 @@ describe("SettingsPage tabs", () => {
 });
 
 describe("SettingsPage release", () => {
-  it("names no release, which the PathFinder mark carries instead", async () => {
+  it("names no release, which the Strategist mark carries instead", async () => {
     const queryClient = renderSettings("model");
 
     await waitFor(() =>
       expect(queryClient.getQueryState(healthCheckQueryKey())).toBe(undefined),
     );
-    expect(screen.queryByText(/PathFinder v/)).toBeNull();
+    expect(screen.queryByText(/Strategist v/)).toBeNull();
   });
 });

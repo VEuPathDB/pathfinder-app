@@ -109,7 +109,7 @@ describe("messageRefusal", () => {
 describe("readerModel", () => {
   const defaults = { lead: BLIND.id, frame: READER.id, helper: FLASH.id };
 
-  it("reads the Lead's model for a PathFinder thread", () => {
+  it("reads the Lead's model for a Strategist thread", () => {
     expect(readerModel("pathfinder", {}, defaults, CATALOG)).toBe(BLIND);
     expect(readerModel("pathfinder", { lead: READER.id }, defaults, CATALOG)).toBe(
       READER,
@@ -159,7 +159,7 @@ describe("notAcceptedSentence", () => {
       `${ANTHROPIC_SMALL.name} does not read images or PDFs; choose a model that does in Settings.`,
     );
     expect(notAcceptedSentence(READER)).toBe(
-      "PathFinder reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.",
+      "Strategist reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.",
     );
   });
 });

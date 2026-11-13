@@ -17,7 +17,7 @@ Superseded on 2026-09-12 by [a saved conversation outlives the build that saved 
 
 The first call here was to skip the migration plan's checkpoint TRUNCATE, on two grounds: it would destroy valid conversations, and old checkpoints degrade harmlessly because Pydantic ignores unknown keys.
 
-The first ground was wrong. PathFinder has not shipped, so there is no conversation history worth protecting, and a compatibility shim for it is exactly the pre-release legacy this project refuses to carry.
+The first ground was wrong. Strategist has not shipped, so there is no conversation history worth protecting, and a compatibility shim for it is exactly the pre-release legacy this project refuses to carry.
 
 The second ground was worse than wrong, because it was the bandaid. "Old checkpoints degrade harmlessly" is a description of a **compatibility shim**: `PipelineState` left `extra` at its permissive default, so any key the model does not declare was silently dropped. That is the same disease as an `as Step` cast. It does not just tolerate the dead five-phase shape; it means the **next** field rename half-lands, with writers setting a key readers quietly ignore, and nothing failing.
 

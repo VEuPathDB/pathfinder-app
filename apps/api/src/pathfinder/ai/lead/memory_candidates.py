@@ -1,4 +1,4 @@
-"""What a finished PathFinder turn is worth remembering.
+"""What a finished Strategist turn is worth remembering.
 
 Turns the turn's spec, gene sets and verification digest into memory
 candidates with deterministic keys, so a later turn updates a memory rather

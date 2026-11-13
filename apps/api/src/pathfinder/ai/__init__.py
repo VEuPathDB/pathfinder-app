@@ -1,1 +1,1 @@
-"""PathFinder's agents, tools, conversation runtime and graph."""
+"""Strategist's agents, tools, conversation runtime and graph."""

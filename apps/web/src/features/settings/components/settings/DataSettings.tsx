@@ -148,7 +148,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
             label="Clear ALL data + VEuPathDB"
             hint={
               <span data-testid="wdk-purge-description">
-                Everything above, plus the strategies PathFinder created in VEuPathDB.
+                Everything above, plus the strategies Strategist created in VEuPathDB.
                 This cannot be undone.
               </span>
             }
@@ -176,7 +176,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
             <div className="mb-3 space-y-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
               <p className="flex items-start gap-2 text-xs font-medium text-destructive">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                This permanently deletes the strategies PathFinder created in your
+                This permanently deletes the strategies Strategist created in your
                 VEuPathDB account, on every site. Strategies you made in VEuPathDB
                 yourself are kept.
               </p>

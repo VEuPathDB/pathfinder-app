@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A private dataset is uploaded on the site and analysed here
-description: A researcher uploads RNA-Seq counts on VEuPathDB's own My Data Sets page, which PathFinder links to; PathFinder lists the account's own uploads under the researcher's token, opens an installed one as a study, and keeps curated rows only in its shared study cache. Uploading through PathFinder, polling from the browser and deleting datasets automatically were rejected.
+description: A researcher uploads RNA-Seq counts on VEuPathDB's own My Data Sets page, which Strategist links to; Strategist lists the account's own uploads under the researcher's token, opens an installed one as a study, and keeps curated rows only in its shared study cache. Uploading through Strategist, polling from the browser and deleting datasets automatically were rejected.
 tags: [vdi, eda, user-datasets, privacy, veupathdb, product-line]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-PathFinder shows what the AI did and why. VEuPathDB is where a researcher edits by hand, so a
+Strategist shows what the AI did and why. VEuPathDB is where a researcher edits by hand, so a
 screen the site already has is a link to the site, not a copy of it. The upload page is such a
 screen.
 
@@ -19,7 +19,7 @@ screen.
   links that path as "My Datasets" (`web-monorepo:
   packages/sites/genomics-site/.../records/gene-list-export-utils.tsx`), and its upload form is
   the same page's `/new` route. The site uploads, validates, annotates the samples and installs.
-  PathFinder sends no byte of a file.
+  Strategist sends no byte of a file.
 - **The listing.** `GET /api/v1/eda/datasets?siteId=` reads VDI's owned listing for the site's
   project, `GET /datasets?install_target=<project>&ownership=owned`, under the request's own
   registered token. The client refuses a call that carries none, and the deployment's service
@@ -50,13 +50,13 @@ screen.
   count. No model is involved.
 
 The runtime's host-started task (`declare_durable_tool(..., host_started=True)` and
-`start_host_task`) is released in `assistant-core` and is not used by PathFinder for now.
+`start_host_task`) is released in `assistant-core` and is not used by Strategist for now.
 
 # What was rejected
 
-- **Uploading through PathFinder.** A form in the tab that streams the files to VDI and a worker
+- **Uploading through Strategist.** A form in the tab that streams the files to VDI and a worker
   task that polls the install. It is a copy of the site's page: every rule the site's form
-  checks would be checked twice, and PathFinder would hold or stream research data it has no
+  checks would be checked twice, and Strategist would hold or stream research data it has no
   business handling. The site's page also owns the reference-genome choice, the sample-details
   annotation and the account's quota.
 - **Polling VDI from the browser.** VDI sends no CORS header

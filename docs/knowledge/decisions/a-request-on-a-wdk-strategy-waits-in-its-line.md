@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A request on a WDK strategy waits in that strategy's line
-description: WDK saves a strategy back on every read, so a read that overlaps a step-tree write can restore the tree the write replaced. veupathdb-py passes every request on one strategy through a gate the host installs, and the api and the worker install veupathdb-mcp's Postgres line there, so one request per strategy runs at a time across the deployment; a step-tree write fails when the read that follows it does not answer the tree written. Ordering the refresh behind the thread's lock, a lock at each PathFinder call site, and a bounded resend were rejected.
+description: WDK saves a strategy back on every read, so a read that overlaps a step-tree write can restore the tree the write replaced. veupathdb-py passes every request on one strategy through a gate the host installs, and the api and the worker install veupathdb-mcp's Postgres line there, so one request per strategy runs at a time across the deployment; a step-tree write fails when the read that follows it does not answer the tree written. Ordering the refresh behind the thread's lock, a lock at each Strategist call site, and a bounded resend were rejected.
 tags: [wdk, strategy, sync, postgres, gene-sets]
 generated: { by: claude-code/opus-5.5, at: 2026-10-31T00:00:00Z }
 verified: { by: claude-code/opus-5.5, at: 2026-10-31T00:00:00Z }
@@ -32,7 +32,7 @@ same line. Each request holds the Postgres advisory lock `wdk-strategy:<site>:<s
 on a connection of the line's own pool (`STRATEGY_LINE_POOL_SIZE`,
 `STRATEGY_LINE_MAX_OVERFLOW`, `STRATEGY_LINE_POOL_TIMEOUT_SECONDS`, 1, 0 and none by
 default), so the line never takes a connection from the request pool. One place covers
-PathFinder's reads, its name and saved-mark `PATCH`es, its deletes, its step-tree writes
+Strategist's reads, its name and saved-mark `PATCH`es, its deletes, its step-tree writes
 and every strategy read inside veupathdb-mcp, such as the control tests' copy of a step's
 tree. The gene-set refresh's read is ordered behind a save's step-tree write this way,
 without the thread's lock.
@@ -52,7 +52,7 @@ across its write, but a turn's writes do not, and taking it in the refresh was a
 rejected because a turn sent after an edit waited about 30 s behind the gene read
 ([the refresh decision](the-strategy-gene-set-refreshes-in-a-job.md)).
 
-**A lock at each PathFinder call site.** It needed one wrap per strategy request, about
+**A lock at each Strategist call site.** It needed one wrap per strategy request, about
 twenty, and could not reach the requests veupathdb-mcp sends.
 
 **A bounded resend of the tree.** It hides the cause, and a reader that keeps the old tree

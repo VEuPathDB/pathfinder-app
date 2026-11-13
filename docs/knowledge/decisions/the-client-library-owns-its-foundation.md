@@ -142,4 +142,4 @@ changed a `ProblemDetail` code or a status. `uv run lint-imports` fails if the
 catalog move reverses.
 
 The MCP server's module set imports this foundation rather than duplicating it;
-see [the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md).
+see [the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md).

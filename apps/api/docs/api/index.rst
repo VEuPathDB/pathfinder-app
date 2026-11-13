@@ -1,7 +1,7 @@
 API Reference
 =============
 
-This section documents the main public APIs used by the Pathfinder chatbot.
+This section documents the main public APIs used by the Strategist chatbot.
 Modules are grouped by purpose. Each module's reference includes:
 
 - **Module docstring** — purpose and usage

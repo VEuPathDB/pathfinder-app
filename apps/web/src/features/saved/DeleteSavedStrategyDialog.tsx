@@ -35,7 +35,7 @@ export function DeleteSavedStrategyDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{`Delete "${name}"?`}</AlertDialogTitle>
           <AlertDialogDescription>
-            {`This also deletes the strategy on ${siteShortName(siteId)}, and PathFinder cannot restore it.`}
+            {`This also deletes the strategy on ${siteShortName(siteId)}, and Strategist cannot restore it.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

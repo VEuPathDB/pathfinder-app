@@ -56,7 +56,7 @@ describe("MemorySwitch", () => {
     shown();
 
     expect(await screen.findByTestId("memory-switch-copy")).toHaveTextContent(
-      "When this is off, PathFinder neither recalls nor saves memories in your conversations. The memories below stay until you turn it back on.",
+      "When this is off, Strategist neither recalls nor saves memories in your conversations. The memories below stay until you turn it back on.",
     );
   });
 });

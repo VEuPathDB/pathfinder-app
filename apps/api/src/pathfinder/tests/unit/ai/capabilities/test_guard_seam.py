@@ -1,6 +1,6 @@
 """The seam between the guard mechanisms and the tools they watch.
 
-Both guards key on tool names. The names are PathFinder's, so they arrive as
+Both guards key on tool names. The names are Strategist's, so they arrive as
 constructor arguments; a guard built with no vocabulary watches nothing rather
 than watching another product's tools by accident. Every watched name must be
 a tool one of the four agents offers, or the guard watches nothing that runs.

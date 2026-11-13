@@ -5,7 +5,7 @@ import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/use
 
 /**
  * Reads whether the backend has a model provider, the deployment's site, its
- * sign-in address and the website page that frames PathFinder. Suspends until the config loads; the nearest ErrorBoundary (app
+ * sign-in address and the website page that frames Strategist. Suspends until the config loads; the nearest ErrorBoundary (app
  * shell) catches a failure.
  */
 export function useSystemConfig(): {

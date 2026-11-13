@@ -1,4 +1,4 @@
-"""The repetition guard over PathFinder's own vocabulary.
+"""The repetition guard over Strategist's own vocabulary.
 
 The mechanism refuses the Nth consecutive identical read-only call and ends
 the run if the model makes that call again in a later request. These cases

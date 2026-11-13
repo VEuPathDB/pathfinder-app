@@ -21,7 +21,7 @@ spec and the lockfile, for `yarn build` only. `next.config.ts` inlines it with
 server runs, with `Cache-Control: no-store`. `NewReleaseBanner`, inside
 `SystemReadyGate`, reads it every five minutes and when the tab regains focus
 (`lib/api/webBuild.ts`). When the served build differs from the tab's own
-(`lib/webBuild.ts::aNewerBuildIsServed`), the banner says "PathFinder has been
+(`lib/webBuild.ts::aNewerBuildIsServed`), the banner says "Strategist has been
 updated." with a Reload button.
 
 The tab reads its build as `process.env.PATHFINDER_WEB_BUILD`, with a dot.

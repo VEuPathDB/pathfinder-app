@@ -62,7 +62,7 @@ Measured: exactly the numbers above, 146 s, $0.070 (through the worker). The evi
 |---|---|---|---|
 | 1 | The E2 tab | `Open in PlasmoDB` | A new tab at `https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/<analysis id>` showing the same subset and comparison |
 | 2 | The site | Remove the genotype filter and save | - |
-| 3 | PathFinder tab | Reload | `No filters: the subset is the whole study.`, `12 of 12 Sample`: the tab reads the site's document |
+| 3 | Strategist tab | Reload | `No filters: the subset is the whole study.`, `12 of 12 Sample`: the tab reads the site's document |
 | 4 | Composer | Send `What is the subset of the open study now?` | The assistant may still describe the old subset: the backlog item "A site edit reaches the Lead's briefing", a known limit |
 
 ## E6 - Your own uploaded dataset - plasmodb
@@ -75,7 +75,7 @@ Needs a counts file the site accepts: an RNA-Seq count matrix with a sample-deta
 |---|---|---|---|
 | 1 | Tab, `Your datasets` | `Upload on VEuPathDB` | The site's own My Data Sets page opens in a new tab (`https://plasmodb.org/plasmo/app/workspace/datasets`) |
 | 2 | The site | Upload the matrix | The site accepts it (measured: 202 in 1.5 s, installed in 67.5 to 68.8 s over four runs) |
-| 3 | PathFinder tab | Reopen the tab while it installs, then after | The row reads `Installing on VEuPathDB`, then `Your upload` (clickable) |
+| 3 | Strategist tab | Reopen the tab while it installs, then after | The row reads `Installing on VEuPathDB`, then `Your upload` (clickable) |
 | 4 | Row | Click | The study opens like a curated one; its source type reads `user_submitted` |
 | 5 | Composer | Ask for the same wild type against delta-DHC mutant comparison | The same 201 genes as E2 (measured in the live check: identical gene sets from the upload and from `DS_e973eadd57`) |
 | 6 | Account B | Open the tab's `Your datasets` | A's upload is not listed |

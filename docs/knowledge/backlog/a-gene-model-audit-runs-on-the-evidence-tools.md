@@ -9,7 +9,7 @@ status: proposed
 
 # A gene-model audit runs on the evidence tools
 
-**Coming question.** PathFinder stores an audit run unit by unit (`audit_runs`,
+**Coming question.** Strategist stores an audit run unit by unit (`audit_runs`,
 `audit_genomes`, `audit_findings`, `audit_evidence`), carries it through collect,
 screen, confirm and tie-break in jobs on the `audit` queue, and serves it
 at `GET /api/v1/audits` and its findings routes, starts a stored run again at

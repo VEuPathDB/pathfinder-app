@@ -33,7 +33,7 @@ sample.
   its comparison is read, and `thresholds: null` for an analysis that holds a
   filter and no figure; a refused subset shows the 422 detail under the button.
   The tab edits neither the subset nor the comparison
-  ([PathFinder shows what the AI did](pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
+  ([Strategist shows what the AI did](pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
 - The analysis's comparison is its first complete differential expression
   (`differential_expression_computations`). An analysis the site's own EDA app
   edited also holds a `pass` compute for each plain plot, and can hold a

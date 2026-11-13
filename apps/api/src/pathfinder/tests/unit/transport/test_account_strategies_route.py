@@ -113,7 +113,7 @@ async def test_a_strategy_the_researcher_deleted_is_not_offered(
 async def test_a_helper_strategy_this_deployment_wrote_is_not_offered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """PathFinder writes its own strategies into the same WDK account."""
+    """Strategist writes its own strategies into the same WDK account."""
     _install(
         monkeypatch,
         [

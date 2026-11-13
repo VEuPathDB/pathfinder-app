@@ -1,4 +1,4 @@
-"""What a WDK refusal is, and what PathFinder keeps of it.
+"""What a WDK refusal is, and what Strategist keeps of it.
 
 One mapper converts the exceptions WDK raises deliberately into responses, so
 for those the status code is the whole diagnosis, and every body is

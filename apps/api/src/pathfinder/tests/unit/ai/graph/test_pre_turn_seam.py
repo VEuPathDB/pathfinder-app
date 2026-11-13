@@ -1,7 +1,7 @@
 """The seam between the turn node and the outside world it refreshes from.
 
 The turn node runs an agent. Reading WDK to see what the user changed since
-the last build is PathFinder's business, so it arrives as a hook the graph is
+the last build is Strategist's business, so it arrives as a hook the graph is
 built with, not as an import inside the node.
 """
 

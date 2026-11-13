@@ -1,6 +1,6 @@
-# Operating PathFinder
+# Operating Strategist
 
-This runbook is for the PathFinder estate stack: the `pathfinder` folder of
+This runbook is for the Strategist estate stack: the `pathfinder` folder of
 `VEuPathDB/webservices-quadlets`. The units are root templated podman quadlets. The instance
 name `%i` is the stage (`dev` today, `qa` next), so `pathfinder-api@dev.service` runs the
 container `pathfinder-api-dev`. Puppet decides which stage runs on which host.
@@ -35,7 +35,7 @@ entrypoint (8443). Apache on the website's vhost proxies `/pathfinder` to
 `https://pathfinder-<stage>.local.apidb.org:8443/pathfinder` (`set_pathfinder_proxy` in
 `Containers.pm` of `puppet-ebrc_httpd_setup`, the same shape as `set_jbrowse2_proxy`). The dev
 stage is served at `https://muharram.veupathdb.org/pathfinder`, qa at
-`https://qa.veupathdb.org/pathfinder`. PathFinder builds every link it hands out as a path
+`https://qa.veupathdb.org/pathfinder`. Strategist builds every link it hands out as a path
 under `/pathfinder`, so it needs no setting for its own address.
 
 Restarting one unit alone:
@@ -54,7 +54,7 @@ Restarting one unit alone:
 1. Puppet creates the nine secrets (see [Secrets](#secrets)) and installs the units.
 2. The first start of each container pulls its image; the units allow 900 s for that.
 3. The db initializes the empty volume with `POSTGRES_USER`, `POSTGRES_DB` and the password secret.
-4. The api migrates the database to the latest revision of three Alembic chains: PathFinder's
+4. The api migrates the database to the latest revision of three Alembic chains: Strategist's
    own, then the tool server's (`veupathdb_mcp.migrate.OWNED_TABLES`: the embedding tables),
    then the runtime's (`assistant_core.migrate.OWNED_TABLES`: conversations, messages, events,
    tasks and usage). The worker does not migrate. The graph checkpointer and the memory store
@@ -141,7 +141,7 @@ need randomness: `openssl rand -hex 32`.
 | name | used by | what it does | rotating it |
 |---|---|---|---|
 | `POSTGRES_PASSWORD` | db, api, worker, wdk-mcp | Password of the `pathfinder` role. The db image applies it only when it initializes an empty volume; the other three build their database address from it, `POSTGRES_USER`, `POSTGRES_DB` and the host `pathfinder-db`. | Changing the secret alone does nothing on an existing volume. Run `podman exec pathfinder-db-dev psql -U pathfinder -d pathfinder -c "ALTER ROLE pathfinder PASSWORD '<new>'"`, then change this secret and restart api, worker and wdk-mcp. |
-| `API_SECRET_KEY` | api, worker | Signs PathFinder bearer tokens and the mock stack's dev-login cookie (HS256, valid 24 h). A browser signs in with the website's login and carries no PathFinder token. At least 32 characters; the api and the worker refuse to start on a shorter value or one containing `example`, `placeholder` or `change-me`. | Every PathFinder bearer token stops verifying. Researchers in a browser are not affected; nothing stored is lost. |
+| `API_SECRET_KEY` | api, worker | Signs Strategist bearer tokens and the mock stack's dev-login cookie (HS256, valid 24 h). A browser signs in with the website's login and carries no Strategist token. At least 32 characters; the api and the worker refuse to start on a shorter value or one containing `example`, `placeholder` or `change-me`. | Every Strategist bearer token stops verifying. Researchers in a browser are not affected; nothing stored is lost. |
 | `OPENAI_API_KEY` | api, worker, wdk-mcp | The deployment's OpenAI account: the default chat models, the injection judge and every embedding (memories and the catalog index). | Restart all three. Without it the worker refuses to start, because it cannot build the injection judge, and the api reports `embedding_backend` not ready. |
 | `ANTHROPIC_API_KEY` | api, worker | Lets the deployment pay for Claude Haiku 5.5. Sonnet 5.5 and Opus 5.5 run only on a researcher's own key. | Restart api and worker. Without it, Claude models need a researcher's key. |
 | `PROVIDER_KEY_ENCRYPTION_KEY` | api, worker | Seals the model keys researchers store in Settings (AES-256-GCM). The base64url encoding of 32 random bytes: `python3 -c 'import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'`. Empty turns the feature off. A malformed value stops both processes. | Every stored key stops opening. At the researcher's next turn the worker marks the key unreadable and refuses a turn that needs it; the deployment's key never stands in. Each researcher enters the key again in Settings. Keep this secret with the database backups. |
@@ -269,8 +269,8 @@ turn" with the source id and the reason.
 - Test each hop: `curl -sk https://pathfinder-dev.local.apidb.org:8443/pathfinder/health` from
   the web host, then the public URL.
 
-**Sign-in fails.** PathFinder has no login of its own. It reads the website's `Authorization`
-cookie, which the browser sends only to the website's own host, so PathFinder must be opened at
+**Sign-in fails.** Strategist has no login of its own. It reads the website's `Authorization`
+cookie, which the browser sends only to the website's own host, so Strategist must be opened at
 `https://<website>/pathfinder`, never at the Traefik host. The researcher signs in on the website
 with a registered account; a guest is refused (401 `WDK_LOGIN_REQUIRED`). If
 `/api/v1/veupathdb/auth/status` answers 503, the website's service did not answer the identity

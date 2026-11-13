@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The two knowledge bundles cite each other, they do not link
-description: A markdown link that crosses the boundary between this bundle and veupathdb-py's is replaced by a backticked citation of the sibling repository path, because the two repositories are never checked out side by side. 45 relative links died in a standalone copy of veupathdb-py; 30 became citations, 15 left with the two PathFinder proposals that moved back here, and 98 links in the reverse direction became citations too. GitHub URLs into the other repository were rejected.
+description: A markdown link that crosses the boundary between this bundle and veupathdb-py's is replaced by a backticked citation of the sibling repository path, because the two repositories are never checked out side by side. 45 relative links died in a standalone copy of veupathdb-py; 30 became citations, 15 left with the two Strategist proposals that moved back here, and 98 links in the reverse direction became citations too. GitHub URLs into the other repository were rejected.
 tags: [veupathdb-py, split, knowledge-bundle, okf, docs, check-knowledge]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -25,9 +25,9 @@ boundary never appears in either direction.
 
 Two documents were not citations to write but files in the wrong bundle.
 `eda/pathfinder-architecture-fit.md` and `eda/pathfinder-integration-concept.md`
-are proposals about PathFinder's layers, tools and durable jobs, not facts about
+are proposals about Strategist's layers, tools and durable jobs, not facts about
 EDA, so they moved to `docs/knowledge/eda/` here. The library's `eda/index.md`
-lost its `## PathFinder` section; this bundle's root index gained an EDA section.
+lost its `## Strategist` section; this bundle's root index gained an EDA section.
 
 The `- anchor:`, `- status:`, `- upstream:` and `- reason:` fields of a `rules/*.md`
 block carry filesystem paths that `scripts/check-wdk-rules.mjs` resolves, not links

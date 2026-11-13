@@ -18,7 +18,7 @@ the same query as `GroupsByGenomeCount` ("Number of Taxa"), with an empty descri
 group, OG8_0011231, holds 1,255 proteins in 13 taxa. A researcher who picks the search on the
 site, or an assistant that trusts its name, gets every group in the taxa range.
 
-PathFinder's search note steers the model off this search, and FRAME builds single copy with
+Strategist's search note steers the model off this search, and FRAME builds single copy with
 `build_phyletic_expression` as a pattern that holds exactly one protein in each genome
 (`each_genome_of` X, `proteins` `exactly` 1); single copy often returns few groups.
 
@@ -29,7 +29,7 @@ On QA PlasmoDB, `GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCPercentile`
 the site log shows `WdkEmptyEnumListException: No item returned by the query
 [GeneVQ.GenericPercentileSamples] of FlatVocabParam [geneParams.samples_percentile_generic]`.
 An invalid `profileset_generic` answers a clean 422 that names the value. The 500 hides which
-value is wrong. PathFinder no longer sends a hidden value the website would not send
+value is wrong. Strategist no longer sends a hidden value the website would not send
 (veupathdb-mcp 0.2.0b40), so this is reported for WDK's own error contract.
 
 ## The phyletic expression parser recurses with no bound
@@ -42,7 +42,7 @@ and time with operators times length. `phyletic_expression` declares no length
 `GroupsByPhyleticPattern` request of 2,598,778 characters (250 terms) left the whole
 OrthoMCL Tomcat instance unresponsive, its `catalina.out` ending in repeated
 `parseNode(ExpressionParser.java:69)` frames, until the instance was restarted. Every webapp
-in the instance stops with it. PathFinder caps the expressions it writes at measured-safe
+in the instance stops with it. Strategist caps the expressions it writes at measured-safe
 sizes (veupathdb-mcp 0.2.0b47), so this is reported for the parser's own bound.
 
 # Change

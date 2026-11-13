@@ -60,7 +60,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   siteId: [DEFAULT_SITE, { option: true, scope: "worker" }],
 
   /**
-   * Each worker signs in as its own PathFinder user (`/dev/login?user_id=worker-{N}`)
+   * Each worker signs in as its own Strategist user (`/dev/login?user_id=worker-{N}`)
    * and carries the registered VEuPathDB token in the `Authorization` cookie.
    */
   workerStorageState: [

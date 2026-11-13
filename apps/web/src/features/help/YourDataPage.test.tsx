@@ -19,7 +19,7 @@ const HEADINGS = [
   "In brief",
   "What goes to AI model providers",
   "Other services",
-  "What PathFinder keeps, and who can see it",
+  "What Strategist keeps, and who can see it",
   "Deleting your data",
   "Learning from your strategies",
   "Using your own key",
@@ -32,15 +32,15 @@ describe("YourDataPage", () => {
     render(<YourDataPage />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Your data in PathFinder" }),
+      screen.getByRole("heading", { level: 1, name: "Your data in Strategist" }),
     ).toBeVisible();
     expect(screen.getByText("Last updated: October 9, 2026")).toBeVisible();
   });
 
-  it("shows the PathFinder logo above its title", () => {
+  it("shows the Strategist logo above its title", () => {
     render(<YourDataPage />);
 
-    const logo = screen.getByRole("img", { name: "PathFinder" });
+    const logo = screen.getByRole("img", { name: "VEuPathDB Strategist" });
     const title = screen.getByRole("heading", { level: 1 });
     expect(logo.compareDocumentPosition(title)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -48,8 +48,8 @@ describe("YourDataPage", () => {
   it("gives the logo a line of its own under the back link", () => {
     render(<YourDataPage />);
 
-    const logo = screen.getByRole("img", { name: "PathFinder" });
-    const back = screen.getByRole("link", { name: "Back to PathFinder" });
+    const logo = screen.getByRole("img", { name: "VEuPathDB Strategist" });
+    const back = screen.getByRole("link", { name: "Back to Strategist" });
     expect(logo.parentElement?.tagName).toBe("DIV");
     expect(logo.parentElement?.children).toHaveLength(1);
     expect(back.compareDocumentPosition(logo)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -59,7 +59,9 @@ describe("YourDataPage", () => {
   it("pulls the logo left by its drawn margin so it lines up with the text", () => {
     render(<YourDataPage />);
 
-    const wrapper = screen.getByRole("img", { name: "PathFinder" }).parentElement;
+    const wrapper = screen.getByRole("img", {
+      name: "VEuPathDB Strategist",
+    }).parentElement;
     expect(wrapper?.style.marginLeft).toBe("-18.2px");
   });
 
@@ -127,7 +129,7 @@ describe("YourDataPage", () => {
     expect(container.textContent.split(/\s+/).length).toBeLessThan(1350);
   });
 
-  it("names audits among what PathFinder keeps", () => {
+  it("names audits among what Strategist keeps", () => {
     const { container } = render(<YourDataPage />);
 
     expect(container.querySelector("section#kept")).toHaveTextContent(
@@ -151,7 +153,7 @@ describe("YourDataPage", () => {
     const { container } = render(<YourDataPage />);
 
     expect(container.querySelector("section#deleting")).toHaveTextContent(
-      "A deleted memory leaves a fingerprint of its content, so that PathFinder does not save it again on its own.",
+      "A deleted memory leaves a fingerprint of its content, so that Strategist does not save it again on its own.",
     );
   });
 
@@ -173,7 +175,7 @@ describe("YourDataPage", () => {
     const { container } = render(<YourDataPage />);
 
     expect(container.querySelector("section#your-key")).toHaveTextContent(
-      "It opens the key only when a reply starts, in the part of PathFinder that runs the assistant, and only for that reply.",
+      "It opens the key only when a reply starts, in the part of Strategist that runs the assistant, and only for that reply.",
     );
   });
 

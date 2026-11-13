@@ -12,7 +12,7 @@ status: stable
 Gene counts, BUSCO scores and assembly versions are columns of the organism record
 (`genecount`, `busco_genome`, `busco_protein`, `busco_lineage_dataset`), and OrthoMCL keeps
 its proteome counts in the `DataSummary` table of its `helper` record. A search ranking never
-finds a column, so PathFinder read them from nowhere.
+finds a column, so Strategist read them from nowhere.
 
 - `list_record_columns` and `read_search_table` (`ai/tools/standalone/record_reads.py`) wrap
   the tool server's records package for Explore and the Lead

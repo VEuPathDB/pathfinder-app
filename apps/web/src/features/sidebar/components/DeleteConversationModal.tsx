@@ -47,8 +47,8 @@ export function DeleteConversationModal({
     : "It moves to Recently deleted and can be restored later.";
   const whose =
     target?.chat.wdkStrategyCreatedHere === true
-      ? `PathFinder created this strategy in ${dbName}.`
-      : `PathFinder has no record of creating this strategy in ${dbName}, so it may be one you made there yourself.`;
+      ? `Strategist created this strategy in ${dbName}.`
+      : `Strategist has no record of creating this strategy in ${dbName}, so it may be one you made there yourself.`;
 
   return (
     <Dialog

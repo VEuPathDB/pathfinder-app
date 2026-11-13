@@ -202,7 +202,7 @@ class ConversationFromEarlierBuildError(AppError):
             status=409,
             detail=(
                 "This conversation was saved by an earlier version of "
-                "PathFinder and cannot be continued. Start a new conversation; "
+                "Strategist and cannot be continued. Start a new conversation; "
                 f"the strategy and gene sets it built are still yours. "
                 f"(conversation {conversation_id}: {reasons})"
             ),
@@ -274,7 +274,7 @@ class WDKIdentityMismatchError(AppError):
             status=401,
             detail=(
                 "Signed in to VEuPathDB as a different account than this "
-                "PathFinder session. Sign in again."
+                "Strategist session. Sign in again."
             ),
         )
 

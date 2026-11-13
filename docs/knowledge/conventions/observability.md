@@ -18,7 +18,7 @@ default). With no endpoint it installs nothing. It instruments every pydantic-ai
 agent run, both httpx distributions and, where the host passes it, the SQLAlchemy
 engine.
 
-PathFinder's `platform/observability.py` calls it once per process: the api as
+Strategist's `platform/observability.py` calls it once per process: the api as
 `pathfinder-api` (with its engine), the worker as `pathfinder-worker`. It adds the
 Authorization header Langfuse's ingress reads, built from `LANGFUSE_PUBLIC_KEY`
 and `LANGFUSE_SECRET_KEY`. `create_app` instruments the routes through
@@ -76,7 +76,7 @@ when a thread's first message creates it.
 
 Both processes log JSON lines through the runtime's `setup_logging`, whose stdlib
 bridge runs `merge_contextvars` too, so a line from procrastinate, httpx, a library
-or pydantic-ai written inside a bound block carries the same keys as PathFinder's
+or pydantic-ai written inside a bound block carries the same keys as Strategist's
 own. The keys are the fields of `platform/log_ids.py::LogIds`, which refuses any
 value that is not an id. The bound keys are ids only; no line carries a prompt, a
 message, an attachment, an email, a token, a cookie or a key; exception messages
@@ -90,7 +90,7 @@ and tracebacks stay as system text.
 | An audit job | `services/audit/job.py::carry_run` | `run_id`, `user_id`, `conversation_id`, `site_id` |
 | An API request | `transport/http/deps.py::bind_request_log_ids`, an app dependency | `method`, `route` (the template), `conversation_id` from the path |
 
-On an API request PathFinder also sets two runtime context variables the
+On an API request Strategist also sets two runtime context variables the
 runtime's processors put on every line: `request_id` in the request middleware
 (`main.py`), taken from `X-Request-ID` only when it is at most 64 letters,
 digits and dashes and otherwise a fresh UUID, and `user_id` in

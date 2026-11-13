@@ -391,7 +391,7 @@ async def test_run_once_leaves_the_global_logger_config_alone(tmp_path: Path) ->
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner", "helper_assistant")
 async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -> None:
-    """A worker run of the second assistant must not defer PathFinder's turn."""
+    """A worker run of the second assistant must not defer Strategist's turn."""
     conversation_id = uuid4()
     args = parse_run_args(
         [

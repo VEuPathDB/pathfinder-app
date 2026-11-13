@@ -1,4 +1,4 @@
-"""A separation run's result as the report PathFinder shows and the offer it builds.
+"""A separation run's result as the report Strategist shows and the offer it builds.
 
 The spec is the measured tree itself: each leaf is a criterion bound to the
 candidate's own search and wire parameters, and each carries the counts its

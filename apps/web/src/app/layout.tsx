@@ -11,7 +11,7 @@ import { Providers } from "./components/Providers";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "PathFinder",
+  title: "VEuPathDB Strategist",
   description: "AI-powered search strategy builder for VEuPathDB",
   icons: BRAND_ICONS,
 };

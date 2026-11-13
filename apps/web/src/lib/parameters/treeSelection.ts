@@ -88,7 +88,7 @@ export function ancestorsOfSelected(
   return out;
 }
 
-/** The vocabulary term PathFinder shows as the "All" root. */
+/** The vocabulary term Strategist shows as the "All" root. */
 const ALL_TERM = "@@fake@@";
 
 /**

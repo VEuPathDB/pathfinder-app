@@ -2,6 +2,15 @@
 
 ## 2026-11-13
 
+* **The product is named VEuPathDB Strategist on every screen.** Every string a researcher
+  reads, the prompts, the names of the helper strategies written into a WDK account, the export
+  header, the OpenAPI title and the docs say VEuPathDB Strategist where the name stands alone
+  and Strategist in running text. The lockup sets `VEuPathDB` above `Strategist` beside the
+  unchanged mark. A source scan on each side refuses the old name in readable strings.
+  Identifiers that another system reads keep `pathfinder`; see
+  [the decision](decisions/the-product-is-named-veupathdb-strategist.md) and
+  [the backlog item](backlog/the-identifiers-take-the-strategist-name.md).
+
 * **A saved conversation loads under this build or ends its turn with a plain refusal.** A
   thread's domain state is validated again on every load (`revalidate_instances` on
   `ThreadRequirements`), so a record the checkpoint serializer left as a mapping is rebuilt before

@@ -89,7 +89,7 @@ async def test_a_read_after_the_site_edits_the_analysis_carries_the_edit(
     session_maker: async_sessionmaker[AsyncSession],
     phenotype_wired: AnalysisStore,
 ) -> None:
-    """The site and PathFinder share one document, and every read takes it anew."""
+    """The site and Strategist share one document, and every read takes it anew."""
     client, conversation_id = thread
     await bind_thread(session_maker, conversation_id)
     first = await client.get(f"/api/v1/conversations/{conversation_id}/eda")

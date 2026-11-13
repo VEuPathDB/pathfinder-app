@@ -27,9 +27,9 @@ describe("PathFinderLogo", () => {
   });
 
   it("is one named image when it carries a label", () => {
-    render(<PathFinderLogo size={24} label="PathFinder" />);
+    render(<PathFinderLogo size={24} label="Strategist" />);
 
     expect(screen.getAllByRole("img")).toHaveLength(1);
-    expect(screen.getByRole("img", { name: "PathFinder" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Strategist" })).toBeVisible();
   });
 });

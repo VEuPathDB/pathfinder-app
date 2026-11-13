@@ -1,4 +1,4 @@
-"""PathFinder as one assistant: its graph, state, parts, memory and identity."""
+"""Strategist as one assistant: its graph, state, parts, memory and identity."""
 
 from __future__ import annotations
 

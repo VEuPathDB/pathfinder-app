@@ -1,7 +1,7 @@
 ---
 type: Rules
-title: PathFinder mapping rules
-description: The ten invariants that keep PathFinder's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
+title: Strategist mapping rules
+description: The ten invariants that keep Strategist's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
 tags: [wdk-alignment, rules, layering, types, import-linter]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -11,7 +11,7 @@ status: stable
 # WDK-MAP - correspondence, ownership, and what actually checks them
 
 Every rule here is `CONTRACT`: none of them is a fact about WDK, all of them are
-invariants PathFinder holds so that its own types keep meaning what WDK's mean.
+invariants Strategist holds so that its own types keep meaning what WDK's mean.
 The `upstream` field names the WDK definition each one is a mapping *of*, so the
 rule is falsified when that definition changes.
 
@@ -36,11 +36,11 @@ about these invariants; what they can and cannot see is in
 That there are eleven types, and that `ParamKind` is exactly those eleven, is
 WDK-PARAM-001 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
 Not restated here. This rule asserts only what that one does not: **which
-direction of drift PathFinder would notice.**
+direction of drift Strategist would notice.**
 
 The cost of getting it wrong is on WDK's side. `ParamFormatterFactory.getFormatter`
 is a chain of `instanceof` checks ending in `throw new IllegalArgumentException`,
-so a `type` PathFinder invented locally corresponds to no WDK class and to no
+so a `type` Strategist invented locally corresponds to no WDK class and to no
 formatter - there is no lenient path.
 
 **Removing a member is caught, by mypy over `values.py` itself.**
@@ -69,7 +69,7 @@ The correspondence, cell by cell, is in
 
 Upstream keeps one type. `ParameterBase` carries `initialDisplayValue` alongside
 `dependentParams`, `isVisible` and the rest, so a wdk-client `Parameter` is the
-declaration and the current value at once. PathFinder splits them, and both
+declaration and the current value at once. Strategist splits them, and both
 halves are the client library's: the declaration is `WDKParameter` in
 `veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`, the value is `ParamValue` in
 `veupathdb-py: src/veupathdb/domain/parameters/values.py`.
@@ -114,7 +114,7 @@ green, because nothing about it would be an import at all.
 `formatAsStepTree` writes a node as `stepId` plus optional `primaryInput` and
 `secondaryInput` and nothing else, and the client type says the same
 ([`StepTree`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150)).
-The data lives in a sibling `steps` map. PathFinder holds the same separation
+The data lives in a sibling `steps` map. Strategist holds the same separation
 internally, with `flatten_tree` producing a step map that carries parent pointers
 instead of children, and `rebuild_tree` reconstructing the nested form for the WDK
 projection ([nested-tree-at-the-wire-boundary](../../../decisions/nested-tree-at-the-wire-boundary.md)).
@@ -215,11 +215,11 @@ The call that broke the rule was in `transport/http/routers/veupathdb_auth.py`, 
 it, carrying no cookie jar and no `Authorization` header - so by
 WDK-AUTH-001 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`) the
 request was served as a fresh guest and `processLogout` took its early return.
-That route is gone: a deployed PathFinder signs no one in or out, the website does
+That route is gone: a deployed Strategist signs no one in or out, the website does
 (WDK-AUTH-004, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`,
 records that a WDK logout leaves the bearer token valid).
 
-### WDK-MAP-006 - A WDK step id is an integer stored beside PathFinder's own string id, never in place of it
+### WDK-MAP-006 - A WDK step id is an integer stored beside Strategist's own string id, never in place of it
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150
@@ -228,7 +228,7 @@ records that a WDK logout leaves the bearer token valid).
 
 Every WDK id is a number - `StepTree.stepId`, `Step.id`, `Strategy.rootStepId` -
 and an `input-step` value is that number stringified
-(WDK-PARAM-009, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). PathFinder's own ids are
+(WDK-PARAM-009, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). Strategist's own ids are
 strings, because a step exists in a conversation before WDK has one. `StepResponse`
 therefore carries `id: str` and `wdk_step_id: int | None` as separate fields, and
 `StrategyAst.wdk_step_ids` is the map between them.
@@ -278,7 +278,7 @@ if a genuine WDK response model were exposed from `services/`. See
 [WDK-MAP-002](#wdk-map-002---a-parameters-declaration-and-its-value-are-separate-types-and-only-the-value-reaches-the-wire),
 which has the same gap for the same reason.
 
-### WDK-MAP-008 - `Strategy`, `Step`, `Search` and `RecordType` in `@pathfinder/shared` are PathFinder types wearing WDK names
+### WDK-MAP-008 - `Strategy`, `Step`, `Search` and `RecordType` in `@pathfinder/shared` are Strategist types wearing WDK names
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L59-L79
@@ -290,19 +290,19 @@ Four names collide with `wdk-client` and none of them means the same thing.
 | `@pathfinder/shared` | is | `wdk-client`'s type of that name is |
 |---|---|---|
 | `Strategy` | a `ConversationResponse` with its steps inlined | a `StrategyDetails`: `stepTree` plus a `steps` map |
-| `Step` | a `StepResponse`, which may exist only in PathFinder | a WDK step, which exists because WDK created it |
+| `Step` | a `StepResponse`, which may exist only in Strategist | a WDK step, which exists because WDK created it |
 | `Search` | four fields from a listing endpoint | a `Question`: `paramNames`, `groups`, allowed input record classes, default attributes |
 | `RecordType` | three fields from a listing endpoint | a `RecordClass`: attributes, tables, formats, searches |
 
 The collision is not accidental and not wrong - the browser is a client for
-PathFinder, not for WDK ([deliberate-divergences](../deliberate-divergences.md)).
+Strategist, not for WDK ([deliberate-divergences](../deliberate-divergences.md)).
 It is recorded as a rule because the failure mode is a reviewer reading
 `Step.id` in frontend code and reasoning about it as a WDK step id, which
 [WDK-MAP-006](#wdk-map-006---a-wdk-step-id-is-an-integer-stored-beside-pathfinders-own-string-id-never-in-place-of-it)
 says it is not.
 
 The named test reads `packages/shared-ts/src/types.ts` and asserts that each of
-the four names aliases its PathFinder response (`ConversationResponse`,
+the four names aliases its Strategist response (`ConversationResponse`,
 `StepResponse`, `SearchResponse`, `RecordTypeResponse`) and carries none of the
 field that marks the `wdk-client` type of that name (`stepTree`, `searchConfig`,
 `paramNames`, `attributes`). `check-boundaries.mjs` polices feature isolation, not
@@ -402,7 +402,7 @@ internal strategy, because a step outside a strategy cannot be run, and every
 intersection of a run reads the one dataset the run uploaded, because a dataset
 is bound to its owner and not to a step.
 
-PathFinder's half is the offer (`services/separation/offer.py`): each leaf becomes
+Strategist's half is the offer (`services/separation/offer.py`): each leaf becomes
 a criterion bound to the measured search and its wire parameters, the right input
 of a MINUS is an `exclude` criterion, and the tree is the spec's structure, so
 `build_step_tree` mints the steps that were measured and nothing a model chose.

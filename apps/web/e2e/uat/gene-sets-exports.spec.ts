@@ -29,7 +29,7 @@ import { printed, readConversation, siteGeneIdPrefix } from "../fixtures/site-re
 import type { ChatPage } from "../pages/chat.page";
 
 const DELETE_NOTICE =
-  "PathFinder removes this gene set and cannot restore it. A dataset published from it stays in your VEuPathDB workspace.";
+  "Strategist removes this gene set and cannot restore it. A dataset published from it stays in your VEuPathDB workspace.";
 
 /** Ask for the strategy's genes as a gene set named `name`; returns its figure. */
 async function saveGeneSet(

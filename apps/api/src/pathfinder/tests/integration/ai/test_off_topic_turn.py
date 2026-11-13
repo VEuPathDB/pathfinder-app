@@ -1,4 +1,4 @@
-"""A turn PathFinder does no part of is classified, redirected and ended.
+"""A turn Strategist does no part of is classified, redirected and ended.
 
 The scripted model drives the real Lead agent, so the tool list, the pins and
 the turn contract are the ones a served turn runs under.

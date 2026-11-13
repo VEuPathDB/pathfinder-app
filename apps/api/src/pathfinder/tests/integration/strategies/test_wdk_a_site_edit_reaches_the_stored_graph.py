@@ -66,7 +66,7 @@ async def built(
     session_maker: async_sessionmaker[AsyncSession],
     db_cleaner: None,
 ) -> AsyncGenerator[_Built]:
-    """A one-step kinase strategy PathFinder built, then revised on the site."""
+    """A one-step kinase strategy Strategist built, then revised on the site."""
     del patch_app_db_engine, db_cleaner
     reset = veupathdb_auth_token_ctx.set(require_wdk_creds)
     user_id, conv_id = uuid4(), uuid4()

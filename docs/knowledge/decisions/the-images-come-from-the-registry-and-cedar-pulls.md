@@ -9,7 +9,7 @@ status: stable
 
 # What was decided
 
-PathFinder runs the way every VEuPathDB estate service runs: an image pipeline
+Strategist runs the way every VEuPathDB estate service runs: an image pipeline
 the estate shares, a registry every estate host already pulls from, and units the
 systems team deploys.
 
@@ -37,8 +37,8 @@ team deploys them as it deploys every estate service. They name
 sets, `PATHFINDER_TAG`; the worker and the two MCP servers run the api image with a
 command of their own
 ([The estate stack holds only deployment facts](the-estate-stack-holds-only-deployment-facts.md)). The website's own host forwards `/pathfinder` to the
-stage's web container, which is what makes PathFinder same-origin with the
-website ([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+stage's web container, which is what makes Strategist same-origin with the
+website ([Strategist signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
 The units and the secrets are not in this repository.
 
 **The development stage follows `main`; QA and production follow tags.** The

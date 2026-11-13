@@ -36,7 +36,7 @@ contents:
   request-scoped session are the runtime's; `init_db`, which runs alembic
   against `alembic.ini`, is the application's and became
   `platform/migrations.py`. `errors.py` and `principal.py` stayed: their
-  taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens. The
+  taxonomies name WDK, VEuPathDB bearers and Strategist service tokens. The
   WDK half of both later moved down into the client library, and
   `veupathdb_auth_token_ctx` with it; see [the client library owns its
   foundation](the-client-library-owns-its-foundation.md).
@@ -76,7 +76,7 @@ generated here describes only what this application's chain owns.
 
 **The thread lost its relationship to the science.** `Conversation.strategy`
 and `Conversation.strategy_view` named `ConversationStrategy`, which is
-PathFinder's; a package class cannot. Callers that want both now ask:
+Strategist's; a package class cannot. Callers that want both now ask:
 `ConversationRepository.get_with_strategy` and the two listings select the
 thread beside its projection in one outer join, `get_strategy` reads the
 projection alone, and `build_conversation_response` / `build_conversation_summary`
@@ -85,7 +85,7 @@ take it as an argument. `Conversation.user` went the same way, but
 product-to-package is legal, and without it the unit of work has no reason to
 insert a user before the thread that references it.
 
-**An assistant's turn-context factory became async.** PathFinder's factory read
+**An assistant's turn-context factory became async.** Strategist's factory read
 `conversation.strategy_view` from the row the runtime handed it; with the
 relationship gone it has to read its own projection, and a synchronous factory
 cannot. `TurnContextFactory` is now
@@ -144,6 +144,6 @@ fails if the dependency edge reverses or the two source trees merge.
 root.
 
 The same measurement drained the MCP server's outbound edges; see
-[the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md)
+[the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md)
 and [the embedding index belongs to the MCP
 unit](the-embedding-index-belongs-to-the-mcp-unit.md).

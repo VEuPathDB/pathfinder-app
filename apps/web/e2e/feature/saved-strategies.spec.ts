@@ -71,7 +71,7 @@ test.describe("Saved strategies", () => {
     await page.getByTestId(`saved-strategy-delete-${id}`).click();
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toContainText(
-      `This also deletes the strategy on ${siteShortName(siteId)}, and PathFinder cannot restore it.`,
+      `This also deletes the strategy on ${siteShortName(siteId)}, and Strategist cannot restore it.`,
     );
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog).toHaveCount(0);

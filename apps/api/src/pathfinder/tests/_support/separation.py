@@ -41,7 +41,7 @@ def recorded_separation(name: str) -> SeparationResult:
 
 
 def recorded_offer(name: str = SIGNAL_PEPTIDE) -> SeparationOffer:
-    """The offer PathFinder reads from one recorded run."""
+    """The offer Strategist reads from one recorded run."""
     offer = separation_report(
         recorded_separation(name), task_id=TASK_ID, sheets={}, radio_pairs={}
     ).offer

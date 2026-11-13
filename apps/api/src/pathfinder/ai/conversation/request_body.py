@@ -39,10 +39,10 @@ def _without_stream_facts(entry: dict[str, object]) -> dict[str, object]:
 
 
 class ChatRequestBody(CamelModel):
-    """Typed body for ``POST /api/v1/chat`` (AI SDK v6 + PathFinder extras).
+    """Typed body for ``POST /api/v1/chat`` (AI SDK v6 + Strategist extras).
 
     The shape matches ``@ai-sdk/react``'s ``useChat`` submit payload
-    (``trigger``, ``id``, ``messages``) with PathFinder-scoped fields
+    (``trigger``, ``id``, ``messages``) with Strategist-scoped fields
     (``conversationId``, ``siteId``, ``mode``) layered on
     via ``body`` on the client transport. The authenticated user UUID still
     comes from the website login the request carries. ``messages`` uses pydantic-ai's

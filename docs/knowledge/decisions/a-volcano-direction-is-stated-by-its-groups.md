@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A volcano direction is stated by the groups it keeps
-description: A positive effect size in the EDA differential-expression app is higher in group B than in group A, and the WDK plugin keeps a positive raw effect size for upOnly, so upOnly keeps group B's genes. PathFinder keeps the app's upOnly/downOnly/upAndDown wire values and states every direction in the groups' labels wherever a model or a researcher reads it; one function in services/eda/direction.py names a compute export's step, and create_eda_step requires a caption for a one-sided export whose first whole-word label is the kept group's. Renaming the wire values was rejected.
+description: A positive effect size in the EDA differential-expression app is higher in group B than in group A, and the WDK plugin keeps a positive raw effect size for upOnly, so upOnly keeps group B's genes. Strategist keeps the app's upOnly/downOnly/upAndDown wire values and states every direction in the groups' labels wherever a model or a researcher reads it; one function in services/eda/direction.py names a compute export's step, and create_eda_step requires a caption for a one-sided export whose first whole-word label is the kept group's. Renaming the wire values was rejected.
 tags: [eda, volcano, differential-expression, export, agent]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }

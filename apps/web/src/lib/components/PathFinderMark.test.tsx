@@ -42,7 +42,7 @@ describe("PathFinderMark", () => {
     );
     renderMark();
 
-    const mark = screen.getByRole("img", { name: "PathFinder" });
+    const mark = screen.getByRole("img", { name: "VEuPathDB Strategist" });
     const sources = Array.from(mark.querySelectorAll("img")).map((img) =>
       img.getAttribute("src"),
     );
@@ -50,8 +50,8 @@ describe("PathFinderMark", () => {
       "/pathfinder/brand/pathfinder-mark-light.svg",
       "/pathfinder/brand/pathfinder-mark-dark.svg",
     ]);
-    expect(screen.queryByRole("link", { name: "PathFinder" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "PathFinder" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "VEuPathDB Strategist" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "VEuPathDB Strategist" })).toBeNull();
   });
 
   it("names the release the api reports on hover", async () => {
@@ -64,10 +64,10 @@ describe("PathFinderMark", () => {
       expect(queryClient.getQueryState(healthCheckQueryKey())?.status).toBe("success"),
     );
 
-    await userEvent.hover(screen.getByRole("img", { name: "PathFinder" }));
+    await userEvent.hover(screen.getByRole("img", { name: "VEuPathDB Strategist" }));
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "PathFinder v0.2.0b15",
+      "Strategist v0.2.0b15",
     );
   });
 
@@ -83,11 +83,11 @@ describe("PathFinderMark", () => {
 
     await userEvent.pointer({
       keys: "[TouchA]",
-      target: screen.getByRole("img", { name: "PathFinder" }),
+      target: screen.getByRole("img", { name: "VEuPathDB Strategist" }),
     });
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "PathFinder v0.2.0b15",
+      "Strategist v0.2.0b15",
     );
   });
 
@@ -101,9 +101,9 @@ describe("PathFinderMark", () => {
       expect(queryClient.getQueryState(healthCheckQueryKey())?.status).toBe("error"),
     );
 
-    await userEvent.hover(screen.getByRole("img", { name: "PathFinder" }));
+    await userEvent.hover(screen.getByRole("img", { name: "VEuPathDB Strategist" }));
 
     const tooltip = await screen.findByRole("tooltip");
-    expect(tooltip).toHaveTextContent(/^PathFinder$/);
+    expect(tooltip).toHaveTextContent(/^Strategist$/);
   });
 });

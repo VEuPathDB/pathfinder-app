@@ -18,7 +18,7 @@ emptied every account that held memory on, so those follow the deployment until 
 researcher sets the switch again; an account that turned memory off keeps it off, so a
 deployment that turns memory on never overrides a researcher who declined it.
 Every context a turn runs in asks `services/memory_setting.py::the_researchers_store` for its
-memory store: the PathFinder turn (`assistants/pathfinder_spec.py`), the durable task
+memory store: the Strategist turn (`assistants/pathfinder_spec.py`), the durable task
 (`jobs/runtime.py`) and the audit turn (`ai/audit/turn.py`). With the switch off the context
 holds no store. Every memory reader and writer already treats a missing store as no memory:
 the pinned preferences and the memory index read nothing, `search_memory` recalls nothing,

@@ -2,7 +2,7 @@
 
 VEuPathDB serves the WDK service to registered users only, so a request with no
 token, or with a guest one, is answered before it reaches WDK. The refusals ride
-a PathFinder bearer, which names no website login, so the WDK gate is what
+a Strategist bearer, which names no website login, so the WDK gate is what
 refuses; a session cookie with no website login is refused earlier, by the
 principal, in ``test_principal_auth``.
 """

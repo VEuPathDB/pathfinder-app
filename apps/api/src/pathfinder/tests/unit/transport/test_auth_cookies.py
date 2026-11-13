@@ -1,4 +1,4 @@
-"""PathFinder writes no session of its own and leaves the website login alone."""
+"""Strategist writes no session of its own and leaves the website login alone."""
 
 from __future__ import annotations
 

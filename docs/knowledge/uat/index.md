@@ -261,7 +261,7 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 
 Where each rule, card, background tool, thread part, command, settings tab and refusal is exercised. `code only` marks an invariant no screen can show; its test in the repository holds it.
 
-### WDK-MAP rules ([PathFinder mapping rules](../wdk/pathfinder/rules/pathfinder-mapping.md))
+### WDK-MAP rules ([Strategist mapping rules](../wdk/pathfinder/rules/pathfinder-mapping.md))
 
 | Rule | Flows |
 |---|---|
@@ -269,10 +269,10 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 | WDK-MAP-002, only a value reaches the wire | S9, R2 |
 | WDK-MAP-003, the nested tree only at the WDK boundary | V1 step 7, S7, S8 |
 | WDK-MAP-004, a tool reaches WDK through a served function | code only |
-| WDK-MAP-005, no PathFinder module opens a WDK connection | code only |
-| WDK-MAP-006, a WDK step id beside PathFinder's own | S9 step 1, F8 step 2 |
+| WDK-MAP-005, no Strategist module opens a WDK connection | code only |
+| WDK-MAP-006, a WDK step id beside Strategist's own | S9 step 1, F8 step 2 |
 | WDK-MAP-007, WDK-shaped browser types owned by the domain | code only |
-| WDK-MAP-008, shared types are PathFinder types with WDK names | code only |
+| WDK-MAP-008, shared types are Strategist types with WDK names | code only |
 | WDK-MAP-009, the orthology round trip | S6 |
 | WDK-MAP-010, a separation offers bindable leaves counted in a strategy | V4 |
 

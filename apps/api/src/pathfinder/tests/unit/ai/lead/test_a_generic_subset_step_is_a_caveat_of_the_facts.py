@@ -32,6 +32,6 @@ def test_a_step_on_the_generic_subset_search_is_a_caveat() -> None:
     ] == [
         (
             "The site's Revise form cannot edit the dataset filter of "
-            "'CRISPR screen subset'; ask PathFinder to change it."
+            "'CRISPR screen subset'; ask Strategist to change it."
         )
     ]

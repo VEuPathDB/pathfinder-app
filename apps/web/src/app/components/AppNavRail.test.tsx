@@ -76,7 +76,7 @@ describe("AppNavRail section links", () => {
 
   it("never shows a site control", async () => {
     draw();
-    await screen.findByRole("img", { name: "PathFinder" });
+    await screen.findByRole("img", { name: "VEuPathDB Strategist" });
 
     expect(
       screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
@@ -93,26 +93,28 @@ describe("AppNavRail section links", () => {
 });
 
 describe("AppNavRail bottom group", () => {
-  it("opens the rail with the sidebar toggle and ends it with the PathFinder mark", async () => {
+  it("opens the rail with the sidebar toggle and ends it with the Strategist mark", async () => {
     draw();
 
     const toggle = await screen.findByRole("button", {
       name: "Open conversation sidebar",
     });
     expect(toggle.parentElement?.firstElementChild).toBe(toggle);
-    expect(screen.getByRole("img", { name: "PathFinder" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "VEuPathDB Strategist" }),
+    ).toBeInTheDocument();
   });
 
   it("carries no spending meter", async () => {
     draw();
-    await screen.findByRole("img", { name: "PathFinder" });
+    await screen.findByRole("img", { name: "VEuPathDB Strategist" });
 
     expect(screen.queryByRole("img", { name: "Monthly spend" })).toBe(null);
   });
 
   it("offers no model settings button of its own", async () => {
     draw();
-    await screen.findByRole("img", { name: "PathFinder" });
+    await screen.findByRole("img", { name: "VEuPathDB Strategist" });
 
     expect(screen.queryAllByRole("button", { name: "AI model settings" })).toHaveLength(
       0,

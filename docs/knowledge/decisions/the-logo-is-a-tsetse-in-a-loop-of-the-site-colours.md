@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The logo is a tsetse in a loop of the site colours
-description: The PathFinder mark is a tsetse fly whose proboscis rests on the orange point where a search starts, search waves spreading from it, inside a three-part loop (frame, build, verify) coloured through the fourteen VEuPathDB site colours and notched once per site. A mosquito, a Toxoplasma rosette, the portal's navy, orange and rust, and site-coloured nodes were rejected because each reads as an existing VEuPathDB mark. One file set in assets/brand is the source; the web app names its copies in one module.
+description: The Strategist mark is a tsetse fly whose proboscis rests on the orange point where a search starts, search waves spreading from it, inside a three-part loop (frame, build, verify) coloured through the fourteen VEuPathDB site colours and notched once per site. A mosquito, a Toxoplasma rosette, the portal's navy, orange and rust, and site-coloured nodes were rejected because each reads as an existing VEuPathDB mark. One file set in assets/brand is the source; the web app names its copies in one module.
 tags: [frontend, brand]
 generated: { by: claude-code/opus-5.5, at: 2026-10-15T00:00:00Z }
 status: stable

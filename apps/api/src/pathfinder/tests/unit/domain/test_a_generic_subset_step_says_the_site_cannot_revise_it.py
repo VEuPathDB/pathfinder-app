@@ -27,6 +27,6 @@ def test_a_step_on_the_generic_subset_search_says_the_site_cannot_revise_it() ->
     assert [c.sentence for c in unrevisable_subset_caveats(steps, _GENERIC)] == [
         (
             "The site's Revise form cannot edit the dataset filter of "
-            "'CRISPR screen subset'; ask PathFinder to change it."
+            "'CRISPR screen subset'; ask Strategist to change it."
         )
     ]

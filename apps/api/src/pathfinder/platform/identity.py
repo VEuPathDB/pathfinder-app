@@ -19,7 +19,7 @@ VEUPATHDB_USER_AGENT = (
 # The prefix every helper strategy this deployment writes already carries.
 INTERNAL_STRATEGY_NAME_PREFIX = "__pathfinder_internal__:"
 
-_PRODUCT = "Pathfinder"
+_PRODUCT = "Strategist"
 
 CONTROL_TEST_STRATEGY_NAME = f"{_PRODUCT} control test"
 STEP_COUNTS_STRATEGY_NAME = f"{_PRODUCT} step counts"

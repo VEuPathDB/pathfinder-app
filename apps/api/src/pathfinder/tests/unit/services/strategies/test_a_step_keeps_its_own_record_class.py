@@ -35,7 +35,7 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 )
 
 _UNSENT = (
-    "The site lists no record type for Unlisted, so PathFinder cannot address "
+    "The site lists no record type for Unlisted, so Strategist cannot address "
     "the step and did not send it."
 )
 

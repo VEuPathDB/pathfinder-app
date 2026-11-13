@@ -46,7 +46,7 @@ class StrategyGraph:
         self.history: list[StrategyHistoryEntry] = []
         self.last_step_id: str | None = None
         # The researcher's words, the search choice, the analysis kind and the
-        # name PathFinder gave each step, keyed by step id.
+        # name Strategist gave each step, keyed by step id.
         self.words = StepWords()
         # The searches whose catalog read failed. Each turn builds its own graph,
         # so this holds for one turn, and it is never stored.
@@ -55,7 +55,7 @@ class StrategyGraph:
     def note_words(self, newer: StepWords) -> None:
         """Take the words for the steps the graph holds, and forget the rest.
 
-        A step that carries the name PathFinder gave it takes the newer name,
+        A step that carries the name Strategist gave it takes the newer name,
         less the label of any value the step no longer holds.
         """
         titles = {

@@ -1,4 +1,4 @@
-"""Sphinx configuration for Pathfinder API documentation."""
+"""Sphinx configuration for Strategist API documentation."""
 
 import os
 import sys
@@ -18,7 +18,7 @@ os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "default")
 
 # -- Project information -----------------------------------------------------
 
-project = "PathFinder API"
+project = "Strategist API"
 copyright = "2026, Ahmed Muharram"  # noqa: A001
 author = "Ahmed Muharram"
 version = "0.1.0-alpha"
@@ -129,7 +129,7 @@ html_css_files = ["custom.css"]
 
 # Announcement banner
 html_theme_options["announcement"] = (
-    "PathFinder is a research prototype for "
+    "Strategist is a research prototype for "
     "<b>VEuPathDB strategy construction via LLM agents</b>. "
     '<a href="https://github.com/VEuPathDB/pathfinder-app">View on GitHub</a>'
 )

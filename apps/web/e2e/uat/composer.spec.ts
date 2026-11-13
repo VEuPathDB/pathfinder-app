@@ -78,7 +78,7 @@ const EXPORT_OPTIONS = [
 const ACCEPT_ALL =
   ".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain,image/png,image/jpeg,image/webp,image/gif,application/pdf";
 const NOT_ACCEPTED =
-  "PathFinder reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.";
+  "Strategist reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.";
 const IMAGE_QUESTION = "Which genes are in this image?";
 const PDF_QUESTION = "Which genes are in this document?";
 
@@ -462,7 +462,7 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
       (message) => message.role,
     );
     expect(roles.filter((role) => role === "user")).toHaveLength(1);
-    expect(lines[0]).toBe("# PathFinder conversation export");
+    expect(lines[0]).toBe("# VEuPathDB Strategist conversation export");
     expect(
       lines.filter((line) => line === "## user" || line === "## assistant"),
     ).toEqual(roles.map((role) => `## ${role}`));
@@ -661,7 +661,7 @@ test.describe("Attachments", () => {
     await expect(chip).toHaveText("table.pdf", { timeout: 60_000 });
   });
 
-  test("C15 - A kind PathFinder refuses", async ({ page, apiClient, siteId }) => {
+  test("C15 - A kind Strategist refuses", async ({ page, apiClient, siteId }) => {
     const zip = { name: "table.zip", mimeType: "application/zip", buffer: ZIP };
     await expect(page.getByTestId("add-attachment")).toHaveAccessibleName(
       "Attach a gene-ID list, an image or a PDF",
@@ -675,7 +675,7 @@ test.describe("Attachments", () => {
     expect(await refused.json()).toMatchObject({
       code: "ATTACHMENT_NOT_READABLE",
       detail:
-        "table.zip is application/zip; PathFinder reads PNG, JPEG, WebP and GIF images and PDF documents.",
+        "table.zip is application/zip; Strategist reads PNG, JPEG, WebP and GIF images and PDF documents.",
     });
   });
 

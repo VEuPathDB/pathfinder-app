@@ -36,12 +36,12 @@ async def purge_user_data_endpoint(
 
     When ``deleteWdk=false`` (default): every chat is **dismissed** (soft
     delete) so WDK sync won't re-import them; the strategies remain on
-    VEuPathDB but PathFinder ignores them. No chat is hard-deleted.
+    VEuPathDB but Strategist ignores them. No chat is hard-deleted.
 
-    When ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created
+    When ``deleteWdk=true``: on VEuPathDB the strategies Strategist created
     there are deleted, and everything whose strategy is gone is hard-deleted
     locally. A strategy the user made on the website stays. A chat whose
-    strategy PathFinder could not delete - the site did not answer, the
+    strategy Strategist could not delete - the site did not answer, the
     request names no registered VEuPathDB user, or the delete was refused -
     is dismissed instead of deleted, and a run in the same position keeps its
     row in the workbench, so a later purge can finish the job.

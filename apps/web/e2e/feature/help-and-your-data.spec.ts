@@ -11,15 +11,15 @@ test.describe("Help and the data statement", () => {
     await page.getByRole("link", { name: "Help", exact: true }).click();
     await expect(page).toHaveURL(`${BASE_URL}/help`, { timeout: ROUTE_TIMEOUT_MS });
     await expect(page.getByRole("heading", { level: 1, name: "Help" })).toBeVisible();
-    await expect(page.getByText(/Here, PathFinder works on/)).toBeVisible();
+    await expect(page.getByText(/Here, Strategist works on/)).toBeVisible();
     await expect(page.getByText(/Switch site/)).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Your data in PathFinder" }).click();
+    await page.getByRole("link", { name: "Your data in Strategist" }).click();
     await expect(page).toHaveURL(`${BASE_URL}/help/your-data`, {
       timeout: ROUTE_TIMEOUT_MS,
     });
     await expect(
-      page.getByRole("heading", { level: 1, name: "Your data in PathFinder" }),
+      page.getByRole("heading", { level: 1, name: "Your data in Strategist" }),
     ).toBeVisible();
     await expect(page.getByText("Last updated: October 9, 2026")).toBeVisible();
     await expect(

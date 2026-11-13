@@ -45,7 +45,7 @@ class StampedKind(CamelModel):
 class StepWords(CamelModel):
     """The metadata a stored strategy carries per step id: the researcher's
     words, why the step runs its search, which plugin reads the analysis
-    document an EDA step carries, and the name PathFinder gave the step.
+    document an EDA step carries, and the name Strategist gave the step.
 
     A stored kind, reason or name that does not parse is absent.
     """

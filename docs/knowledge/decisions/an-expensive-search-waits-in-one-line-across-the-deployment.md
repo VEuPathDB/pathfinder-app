@@ -65,6 +65,6 @@ starts. `pathfinder_wdk_search_wait_seconds{site,kind}` counts every wait by lin
   on PlasmoDB QA took 26 to 33 seconds. Two concurrent reads of one QA strategy finished
   together in 1.2 to 1.5 seconds, and in 2.06 to 2.49 seconds once its search was marked.
   A High Speed SNP search still holds the line on every request.
-- **A PathFinder copy of the line.** The served tool server is a process of the same
-  deployment and cannot import PathFinder; one implementation in the tool server keeps
+- **A Strategist copy of the line.** The served tool server is a process of the same
+  deployment and cannot import Strategist; one implementation in the tool server keeps
   the lock name and its behaviour the same in every process.

@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-The three libraries are repositories. PathFinder names each one by URL and one
+The three libraries are repositories. Strategist names each one by URL and one
 commit, and nothing in this repository copies or resolves to a folder of theirs.
 On 2026-09-06 the folders `veupathdb-py/`, `veupathdb-mcp/` and
 `assistant-platform/` were deleted from this repository, so the repositories are

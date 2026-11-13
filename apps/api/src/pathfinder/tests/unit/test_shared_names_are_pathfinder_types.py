@@ -1,5 +1,5 @@
 """Four names in ``@pathfinder/shared`` collide with ``wdk-client`` and mean
-something else. The browser is a client for PathFinder, not for WDK.
+something else. The browser is a client for Strategist, not for WDK.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ _TYPES_TS = (
     Path(__file__).resolve().parents[6] / "packages" / "shared-ts" / "src" / "types.ts"
 )
 
-# What each name is in PathFinder: an alias of a PathFinder response type.
+# What each name is in Strategist: an alias of a Strategist response type.
 _PATHFINDER_SOURCE = {
     "Search": "SearchResponse",
     "RecordType": "RecordTypeResponse",

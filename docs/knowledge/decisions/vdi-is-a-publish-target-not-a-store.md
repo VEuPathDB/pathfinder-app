@@ -11,8 +11,8 @@ status: stable
 # What was decided
 
 A gene set can be published, once and on request, as a `genelist` user dataset in the
-researcher's own VEuPathDB workspace. PathFinder keeps the set; the row gains a nullable
-`vdi_id` that points at the published artifact. Nothing PathFinder does next depends on
+researcher's own VEuPathDB workspace. Strategist keeps the set; the row gains a nullable
+`vdi_id` that points at the published artifact. Nothing Strategist does next depends on
 the publication.
 
 - Client: `veupathdb/wdk/vdi/` (`client.py`, `models.py`), httpx, reaching only
@@ -25,14 +25,14 @@ the publication.
   per-site override.
 - Service: `services/gene_sets/vdi.py`, two functions. `publish_to_vdi` loads the set,
   uploads it and records the id. `vdi_publication_status` reads the three status axes on
-  demand. PathFinder runs no polling loop for a published gene set. A researcher's own
+  demand. Strategist runs no polling loop for a published gene set. A researcher's own
   uploads are listed the same way, on demand
   ([A private dataset is uploaded on the site and analysed here](a-private-dataset-is-uploaded-on-the-site-and-analysed-here.md)).
 - Transport: `POST` and `GET /api/v1/gene-sets/{id}/vdi-publication`, both behind the
   registered-login gate.
 - UI: one button on the gene-set figure in the thread (`content/parts/DataGeneSet.tsx`),
   beside its delete, with a visibility select and a confirm step, because the action creates
-  a durable artifact outside PathFinder.
+  a durable artifact outside Strategist.
 
 # What the probe measured
 
@@ -50,7 +50,7 @@ obtained exactly as `veupathdb/wdk/auth_login.py::password_login` obtains it:
 | `GET /datasets`, `Authorization` cookie | 200 |
 | `GET /datasets`, `?access_token=<token>` | 200 |
 
-So S3's open question 4 is settled: PathFinder's own token clears VDI's
+So S3's open question 4 is settled: Strategist's own token clears VDI's
 `@Authenticated(allowGuests=false)`. Three credential forms work, which is exactly what
 `AuthFilter.findAuthUser` reads (header, `access_token` query parameter, `Authorization`
 cookie). The client sends the bearer header.
@@ -65,14 +65,14 @@ wait on it.
 
 - **Replacing the `gene_sets` table with VDI.** 214 lines of storage would be replaced by
   a larger client, and every gene-set read would become a cross-service call against a
-  service whose writes complete asynchronously through six hops. PathFinder's gene sets
+  service whose writes complete asynchronously through six hops. Strategist's gene sets
   are working state inside a turn; VDI's are published artifacts installed into twelve
   production databases. Different lifetimes.
 - **Feeding a VDI id back into a WDK search.** `DatasetParam.java` requires the stable
   value to pass `FormatUtil.isInteger` and to resolve through `getDatasetWithOwner(long,
   userId)`. A `VdiId` matches `^[a-zA-Z0-9_-]+$` (the probe's was `soV5JEQEcF00p`), so it
   is not a legal `DatasetParam` value. This is `WDK-PARAM-009`: the handle is one WDK
-  issues, never one a client composes. PathFinder keeps minting `sourceType: "idList"`.
+  issues, never one a client composes. Strategist keeps minting `sourceType: "idList"`.
   The search that does consume a published list, `GenesByUserDatasetGeneList`, takes a
   flat vocabulary term that exists only after the per-site install finishes.
 - **An agent tool.** Publishing creates a durable artifact in the researcher's account on

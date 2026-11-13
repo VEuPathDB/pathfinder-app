@@ -73,12 +73,12 @@ The Lead's history is compacted at 100,000 estimated tokens (about 400,000 chara
 
 ## R7 - VEuPathDB slow at the sign-in check
 
-Signing in is the website's own page, so a slow login is the website's. PathFinder only reads which account the website login names: on the site the page names, and on another site whose catalog loaded when that one does not answer in 10 s. The account is the same on every site.
+Signing in is the website's own page, so a slow login is the website's. Strategist only reads which account the website login names: on the site the page names, and on another site whose catalog loaded when that one does not answer in 10 s. The account is the same on every site.
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Signed in, while the page's site answers the account read slowly | Reload PathFinder | Still signed in: the read answers on another site. No signed-out panel |
-| 2 | Signed in, while no site answers the account read | Reload PathFinder | Not the signed-out panel: the rail and the sidebar stay, and the content area shows `Couldn't reach <site name>` with the F3 step 2 text |
+| 1 | Signed in, while the page's site answers the account read slowly | Reload Strategist | Still signed in: the read answers on another site. No signed-out panel |
+| 2 | Signed in, while no site answers the account read | Reload Strategist | Not the signed-out panel: the rail and the sidebar stay, and the content area shows `Couldn't reach <site name>` with the F3 step 2 text |
 | 3 | Same, once a site answers again | Wait, no reload | Within a minute the notice goes and the page shows again, still signed in |
 
 Not measured: an operator cannot slow the account read without also failing the site's catalog, which is R1. Expected: measure when a site is slow on its own.

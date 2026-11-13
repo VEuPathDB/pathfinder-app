@@ -40,7 +40,7 @@ export function PrivacySettings() {
         description={
           <>
             <span data-testid="privacy-learning-copy">
-              PathFinder may use copies of your conversations and strategies to improve
+              Strategist may use copies of your conversations and strategies to improve
               it for everyone. A copy used beyond review never carries your name or
               account. Turning this off deletes the copies waiting for review.
             </span>{" "}
@@ -48,14 +48,14 @@ export function PrivacySettings() {
               href={yourDataUrl("learning")}
               className="text-foreground underline underline-offset-2"
             >
-              Your data in PathFinder
+              Your data in Strategist
             </Link>
           </>
         }
       >
         {data != null && (
           <SettingsSwitch
-            label="Let PathFinder learn from my strategies"
+            label="Let Strategist learn from my strategies"
             checked={data.evalDataConsent}
             disabled={setConsent.isPending}
             onCheckedChange={(next) => setConsent.mutate(next)}

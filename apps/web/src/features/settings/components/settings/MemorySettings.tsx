@@ -71,7 +71,7 @@ export function MemorySettings() {
 
   const handleDelete = (mem: MemoryItem) => {
     const ok = window.confirm(
-      `Delete "${mem.value.name}"? PathFinder will not save it again on its own.`,
+      `Delete "${mem.value.name}"? Strategist will not save it again on its own.`,
     );
     if (!ok) return;
     deleteMutation.mutate(mem);

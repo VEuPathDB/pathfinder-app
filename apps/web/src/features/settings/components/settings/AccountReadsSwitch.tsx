@@ -27,11 +27,11 @@ export function AccountReadsSwitch() {
   return (
     <SettingsSection
       title="Reading your account"
-      description="PathFinder asks before it reads your saved strategies, your other conversations or your gene sets. With this on, it reads them without asking."
+      description="Strategist asks before it reads your saved strategies, your other conversations or your gene sets. With this on, it reads them without asking."
     >
       {data != null && (
         <SettingsSwitch
-          label="Always let PathFinder read my account in every conversation"
+          label="Always let Strategist read my account in every conversation"
           checked={data.always}
           disabled={setAlways.isPending}
           onCheckedChange={(next) => setAlways.mutate(next)}

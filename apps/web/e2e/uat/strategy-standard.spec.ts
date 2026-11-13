@@ -279,7 +279,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
   });
 
-  test("S8 - A strategy made on the site, opened in PathFinder", async ({
+  test("S8 - A strategy made on the site, opened in Strategist", async ({
     chatPage,
     apiClient,
     page,

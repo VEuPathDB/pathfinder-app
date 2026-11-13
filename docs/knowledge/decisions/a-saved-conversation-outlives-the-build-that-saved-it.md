@@ -12,7 +12,7 @@ The state a conversation keeps between turns is rebuilt by the build that resume
 the resuming build no longer declares is dropped. Every field it still declares is rebuilt as
 its model at the turn's entry (`ai/graph/rebuild.py`). A value the build cannot read ends the
 turn with one sentence the researcher can act on ("This conversation was saved by an earlier
-version of PathFinder and cannot be continued. Start a new conversation; the strategy and gene
+version of Strategist and cannot be continued. Start a new conversation; the strategy and gene
 sets it built are still yours."), never with an attribute error from the middle of a turn.
 
 ## Why

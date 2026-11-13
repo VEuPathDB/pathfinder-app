@@ -32,7 +32,7 @@ answers, and nothing on a turn with no words (a durable result, a card click).
   other calls and used when the top probability of effect or wants is below 0.6, or when
   no Decisions answer came; otherwise it is cancelled.
 
-The guide describes PathFinder as a research partner for the pathogens, hosts and vectors the
+The guide describes Strategist as a research partner for the pathogens, hosts and vectors the
 sites cover as well as a strategy builder. `off_topic` is only a message unrelated to that
 biology, the literature and methods about it and the sites' data, strategies and analyses, so a
 literature question about a covered pathogen is in scope even when no site record answers it.

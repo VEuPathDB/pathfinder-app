@@ -1,7 +1,7 @@
 """A publication survives a reload.
 
-The VDI id points at an artifact PathFinder does not own. Losing the pointer
-would leave the researcher with a dataset on the site that PathFinder can no
+The VDI id points at an artifact Strategist does not own. Losing the pointer
+would leave the researcher with a dataset on the site that Strategist can no
 longer name, and a second publish would make a duplicate.
 """
 

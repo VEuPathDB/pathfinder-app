@@ -1,4 +1,4 @@
-"""What PathFinder tells a sub-agent about keeping notes.
+"""What Strategist tells a sub-agent about keeping notes.
 
 The runtime renders the index and defines the tools; the coaching is this
 product's, because it names the work a pathogen researcher's agent does.

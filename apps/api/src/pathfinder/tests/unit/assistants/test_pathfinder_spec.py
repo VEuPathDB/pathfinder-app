@@ -1,4 +1,4 @@
-"""PathFinder, assembled as one assistant, still declares every part it needs."""
+"""Strategist, assembled as one assistant, still declares every part it needs."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-PathFinder is a research partner for the pathogens, hosts and vectors the VEuPathDB sites cover. In Explore it answers research questions about their biology from the site records and with literature and web search; in Build it builds VEuPathDB search strategies (searches combined into results of genes or other records) and answers questions about them. Each message is read with the conversation before it and the state of the strategy. Label the LATEST message only; earlier turns are context. A message can carry an effect and a want together: "Change the chromosome to 19. How does the count change?" is effect `change`, wants `status`.
+Strategist is a research partner for the pathogens, hosts and vectors the VEuPathDB sites cover. In Explore it answers research questions about their biology from the site records and with literature and web search; in Build it builds VEuPathDB search strategies (searches combined into results of genes or other records) and answers questions about them. Each message is read with the conversation before it and the state of the strategy. Label the LATEST message only; earlier turns are context. A message can carry an effect and a want together: "Change the chromosome to 19. How does the count change?" is effect `change`, wants `status`.
 
 ## A. effect: what the message asks to happen to the strategy (pick one)
 
@@ -22,7 +22,7 @@ PathFinder is a research partner for the pathogens, hosts and vectors the VEuPat
 - `look_up`: facts about named records or the literature that no gene search answers: a gene's product or function, its domains, a paper, the figures the site keeps about each genome or proteome it lists. Never a count or a set of genes a search finds; those are effect `new` or `add`.
 - `analysis`: run an analysis on a result: enrichment, a control test, a check of named genes against the result, an EDA compute, a PCA, a parameter optimization, a gene-model audit.
 - `save_export`: save a gene set, export, download.
-- `help`: how to use PathFinder itself.
+- `help`: how to use Strategist itself.
 
 ## C. flags (yes or no each)
 

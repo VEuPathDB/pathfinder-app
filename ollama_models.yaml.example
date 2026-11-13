@@ -1,4 +1,4 @@
-# Local Ollama models available in the PathFinder model picker.
+# Local Ollama models available in the Strategist model picker.
 #
 # Copy to `ollama_models.yaml` and edit to match your installed models:
 #   cp ollama_models.yaml.example ollama_models.yaml

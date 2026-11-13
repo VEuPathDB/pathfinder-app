@@ -1,7 +1,7 @@
 # EDA
 
-How PathFinder adopts VEuPathDB's Exploratory Data Analysis platform. These two
-documents are proposals about PathFinder, not facts about EDA: what EDA is, and
+How Strategist adopts VEuPathDB's Exploratory Data Analysis platform. These two
+documents are proposals about Strategist, not facts about EDA: what EDA is, and
 every wire value they cite, is the client library's bundle at
 `veupathdb-py: docs/knowledge/eda/`.
 

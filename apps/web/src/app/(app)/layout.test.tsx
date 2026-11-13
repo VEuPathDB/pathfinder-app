@@ -208,7 +208,7 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     });
     drawSession(true);
 
-    const bar = screen.getByRole("navigation", { name: "PathFinder" });
+    const bar = screen.getByRole("navigation", { name: "VEuPathDB Strategist" });
     expect(within(bar).getByRole("button", { name: "Settings" })).toBeVisible();
     window.matchMedia = wide;
   });

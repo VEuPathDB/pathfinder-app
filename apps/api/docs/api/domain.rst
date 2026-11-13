@@ -3,7 +3,7 @@ Domain Logic
 
 Pure domain logic with no I/O or framework dependencies. The strategy authoring
 model, the parameter model and the WDK value types ship in the
-``veupathdb-py`` distribution; what remains here is PathFinder's own reading of them.
+``veupathdb-py`` distribution; what remains here is Strategist's own reading of them.
 
 Overview
 --------

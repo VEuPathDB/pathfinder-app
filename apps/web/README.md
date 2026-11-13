@@ -1,6 +1,6 @@
-## Pathfinder Web (`apps/web`)
+## Strategist Web (`apps/web`)
 
-Next.js UI for PathFinder. It provides:
+Next.js UI for Strategist. It provides:
 
 - **Chat interface**: a durable, resumable thread that renders the agent's reply, its tool trace, its figures and its background tasks
 - **Strategy graph editing**: visual strategy builder with node/edge operations, combine steps, and parameter editing
@@ -162,7 +162,7 @@ From `package.json`:
 
 ### E2E testing
 
-PathFinder uses a 3-tier Playwright E2E test architecture:
+Strategist uses a 3-tier Playwright E2E test architecture:
 
 - **Feature tests** (`e2e/feature/`) - individual feature verification (chat, strategy graph, gene sets, settings). Run in parallel.
 - **Cross-feature tests** (`e2e/cross-feature/`) - multi-feature workflows. Run serially due to WDK rate limits.

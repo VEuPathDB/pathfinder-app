@@ -177,7 +177,7 @@ async def add_experiment(
     site_id: str,
     wdk_strategy_id: int,
 ) -> str:
-    """One stored run whose persisted strategy PathFinder created on the site."""
+    """One stored run whose persisted strategy Strategist created on the site."""
     experiment_id = f"exp-{wdk_strategy_id}"
     session.add(
         ExperimentRow(

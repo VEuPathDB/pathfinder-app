@@ -39,7 +39,7 @@ from pathfinder.platform.refusals import agent_capabilities
 
 _VERIFICATION_INSTRUCTIONS = with_vocabulary(
     """\
-You are the Verification Agent for PathFinder. The runtime has already checked \
+You are the Verification Agent for Strategist. The runtime has already checked \
 the built strategy on the site: each step's validity, the values the site holds, \
 the counts of each combine, the result's count and organisms, the record class \
 of the result, and each requirement the researcher stated. The work order lists \

@@ -12,10 +12,10 @@ status: stable
 A conversation has at most one share link (`conversation_shares`, keyed by the conversation).
 The owner makes, changes and ends it from the Share button at the top of the conversation
 (`PUT`, `GET`, `DELETE /api/v1/conversations/{id}/share`). The link names a random token and
-opens `/shared/<token>`, inside the website that frames PathFinder.
+opens `/shared/<token>`, inside the website that frames Strategist.
 
 - **Who can open it.** With "Anyone with the link can open it" ticked, the token is enough.
-  Otherwise the link needs a password PathFinder generates (`POST .../share/password` makes a new
+  Otherwise the link needs a password Strategist generates (`POST .../share/password` makes a new
   one, which locks out the old). The password is shown once and stored as its SHA-256; the
   viewer's page sends it in the `X-Share-Password` header.
 - **What a viewer sees.** The thread as its owner sees it, read-only: the messages, the trace,
@@ -41,7 +41,7 @@ opens `/shared/<token>`, inside the website that frames PathFinder.
   delete never reach the viewer's copy. The copy's saved state is rewritten for its new account
   (`assistants/copies.py`): `StrategyDomainState.for_another_account` drops the owner's control
   sets, attached controls, separation offers, gene sets and memory counts, and the recalled
-  memories are emptied. Only PathFinder's own threads can be copied. A copy waits for a settled
+  memories are emptied. Only Strategist's own threads can be copied. A copy waits for a settled
   thread, and its refusals speak to the viewer.
 - **Ending it.** Stop sharing deletes the row; the old link then answers 404. Deleting the
   conversation deletes its link.

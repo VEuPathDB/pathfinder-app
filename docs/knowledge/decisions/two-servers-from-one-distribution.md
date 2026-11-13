@@ -17,7 +17,7 @@ One repository, one lock, one image repository with two build targets: `wdk`
 serves seventeen WDK tools on 8100 and `research` serves `web_search` and
 `literature_search` on 8110.
 
-PathFinder consumes them the way it consumes every served tool: an
+Strategist consumes them the way it consumes every served tool: an
 `AdmissionRecord` with `source_id` `veupathdb-research-mcp`, part namespace
 `research` and a 60 second budget (`platform/tool_sources.py`), and a
 `ToolSourceDeclaration` named `research` on the assistant

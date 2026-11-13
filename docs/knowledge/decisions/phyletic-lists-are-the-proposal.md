@@ -115,7 +115,7 @@ it fired and was answered rather than only that the run ended well.
 Re-run on the final image (`.pf-runs/phyletic/turn2`): the model proposed a genus
 three times before it proposed a node, each time answered by a retry naming the
 nearest codes and labels, and the step then bound the same `%hsap:N%pfal:Y%` with
-`defaulted_params: []` - nothing on that step was WDK's choice or PathFinder's.
+`defaulted_params: []` - nothing on that step was WDK's choice or Strategist's.
 Three retries on one criterion is the cost this design pays, and it is why the
 retry text now says a genus or common name is not a node and points at
 `lookup_phyletic_codes`.
@@ -128,7 +128,7 @@ answers `500 Internal Error` when the context carries `organism` together with
 `profile_pattern` and omits `phyletic_indent_map` and `phyletic_term_map`;
 either map alone is still a 500, both together are a 200 with
 `validation: {level: SEMANTIC, isValid: true}`. "Display purposes only" is a
-statement about the query, not about the read. PathFinder now adds the published
+statement about the query, not about the read. Strategist now adds the published
 default of **every** hidden parameter that allows empty to a metadata read's
 context, by shape rather than by name, at all three read sites
 (`veupathdb_mcp/catalog/search_context.py:context_for_metadata_read`). The table is in

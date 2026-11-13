@@ -48,7 +48,7 @@ status: stable
 
 **The EDA compute plus the generic export for every user-dataset request.** A researcher on cedar
 asked for DESeq2 on an uploaded A. gambiae RNA-Seq study and then for "log2 fold change > 5 and
-p-value < 1e-10". PathFinder ran the compute and exported `GenesByEdaVizWithCompute`, 0 genes, and
+p-value < 1e-10". Strategist ran the compute and exported `GenesByEdaVizWithCompute`, 0 genes, and
 never considered the site's three user-dataset searches. Measured on build 71 (2026-09-29) on the
 dev account's own uploads:
 

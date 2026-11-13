@@ -119,7 +119,7 @@ def test_a_kind_no_model_reads_here_is_refused() -> None:
         read_attachments([_part("text/html", 10, "page.html")], READER)
 
     assert refused.value.detail == (
-        "page.html is text/html; PathFinder reads PNG, JPEG, WebP and GIF images "
+        "page.html is text/html; Strategist reads PNG, JPEG, WebP and GIF images "
         "and PDF documents."
     )
 

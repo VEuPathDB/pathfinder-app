@@ -1,6 +1,6 @@
 """Publishing a gene set to the researcher's VEuPathDB workspace.
 
-Publication is opt-in and one-way: PathFinder keeps the set, and the VDI id it
+Publication is opt-in and one-way: Strategist keeps the set, and the VDI id it
 records is a pointer to a durable artifact that lives on the site.
 """
 
@@ -126,7 +126,7 @@ class TestPublishing:
         )
 
         assert "2 genes" in fake.sent[0].summary
-        assert "PathFinder" in fake.sent[0].summary
+        assert "Strategist" in fake.sent[0].summary
 
     async def test_the_returned_id_is_written_onto_the_gene_set(
         self, monkeypatch: pytest.MonkeyPatch

@@ -10,7 +10,7 @@ status: stable
 
 # What was found
 
-Batch C had to remove PathFinder's vocabulary from the runtime: the four
+Batch C had to remove Strategist's vocabulary from the runtime: the four
 phase roles, the tool names the guards key on, the strategy instruction
 renderers, and the four memory kinds. Most of that vocabulary is only read
 in-process, and moving it to a constructor argument or an explicit import

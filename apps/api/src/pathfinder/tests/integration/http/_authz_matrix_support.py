@@ -75,7 +75,7 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
         "POST",
         "/api/v1/product-events",
     ): "Langfuse product event: the id names the Langfuse session, and the "
-    "route reads and writes no PathFinder-owned resource.",
+    "route reads and writes no Strategist-owned resource.",
 }
 
 

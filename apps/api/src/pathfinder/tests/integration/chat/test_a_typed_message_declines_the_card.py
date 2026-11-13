@@ -1,6 +1,6 @@
 """A message typed past a card the Lead raised declines the card; a typed yes runs it.
 
-The whole PathFinder assistant over the real chat route, the real turn graph
+The whole Strategist assistant over the real chat route, the real turn graph
 and the checkpoint. Only the model is a double: it raises one card, then
 answers whatever reaches it next.
 """

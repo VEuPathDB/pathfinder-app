@@ -44,7 +44,7 @@ Run once, on plasmodb, on a conversation that holds S2 and its evidence card. A 
 
 ## L4 - Dark mode - once
 
-PathFinder has no dark-mode switch and does not follow the operating system; its dark colours apply when a host page that embeds it sets `data-theme="dark"` on the document (`apps/web/src/styles/globals.css`).
+Strategist has no dark-mode switch and does not follow the operating system; its dark colours apply when a host page that embeds it sets `data-theme="dark"` on the document (`apps/web/src/styles/globals.css`).
 
 | Step | Where | Do | Expect |
 |---|---|---|---|

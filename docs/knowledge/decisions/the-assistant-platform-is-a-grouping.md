@@ -94,6 +94,6 @@ lost its cursor seeds the resume without tailing from `0`.
 
 It is not one distribution with shared tooling. Each package keeps its own lock,
 its own gates and its own CI job, and `assistant-core`'s suite still runs with no
-application installed. The `packages/` directory that remains in PathFinder
+application installed. The `packages/` directory that remains in Strategist
 holds `spec` and `shared-ts`, which are generated from the FastAPI app and
 belong to it.

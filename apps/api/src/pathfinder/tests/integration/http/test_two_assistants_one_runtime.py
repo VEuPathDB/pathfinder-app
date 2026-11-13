@@ -1,6 +1,6 @@
 """Two assistants answer through one runtime, each under its own architecture.
 
-PathFinder needs a registered VEuPathDB login and runs its lead graph; the
+Strategist needs a registered VEuPathDB login and runs its lead graph; the
 second assistant needs no WDK identity at all and runs a single agent. Both
 are dispatched, worked and streamed by the same pipeline.
 """
@@ -78,7 +78,7 @@ async def test_the_same_request_against_pathfinder_still_needs_a_login(
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
 ) -> None:
-    """PathFinder's refusal is unchanged, on the same route, with the same body."""
+    """Strategist's refusal is unchanged, on the same route, with the same body."""
     del patch_app_db_engine, in_memory_jobs
     owner = await make_user(db_session)
     body = chat_post_body(uuid4(), SITES_PROMPT)

@@ -1,6 +1,6 @@
-# PathFinder brand
+# Strategist brand
 
-The PathFinder logo is a mark with no name: a tsetse fly whose proboscis rests on
+The Strategist logo is a mark with no name: a tsetse fly whose proboscis rests on
 the orange point where a search starts, search waves spreading from that point, and
 a loop around both. The loop has three parts, one each for frame, build and verify,
 and runs through the colours of the fourteen VEuPathDB sites. It turns while the

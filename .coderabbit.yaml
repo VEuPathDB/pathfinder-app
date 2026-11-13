@@ -185,11 +185,11 @@ knowledge_base:
   linked_repositories:
     - repository: "VEuPathDB/WDK"
       instructions: |
-        WDK is the upstream platform PathFinder wraps. It is the highest authority
+        WDK is the upstream platform Strategist wraps. It is the highest authority
         for domain models, REST API contracts, and the parameter system.
-        When PathFinder disagrees with WDK, PathFinder is wrong.
+        When Strategist disagrees with WDK, Strategist is wrong.
     - repository: "VEuPathDB/web-monorepo"
       instructions: |
         Contains wdk-client TypeScript types that define the canonical frontend
         data shapes (Step, Strategy, StepTree, SearchConfig, Parameter union).
-        PathFinder's shared types must align with these.
+        Strategist's shared types must align with these.

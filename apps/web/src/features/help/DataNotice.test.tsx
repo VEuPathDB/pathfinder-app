@@ -63,7 +63,7 @@ describe("DataNotice", () => {
     render(<DataNotice />);
 
     const notice = await screen.findByRole("alertdialog", {
-      name: "Your data in PathFinder",
+      name: "Your data in Strategist",
     });
     expect([...notice.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
       ...YOUR_DATA_IN_BRIEF,
@@ -76,7 +76,7 @@ describe("DataNotice", () => {
     render(<DataNotice />);
 
     const notice = await screen.findByRole("alertdialog", {
-      name: "Your data in PathFinder",
+      name: "Your data in Strategist",
     });
     expect(notice).toHaveClass("sm:max-w-3xl", "overflow-hidden");
     expect(notice).not.toHaveClass("overflow-y-auto");
@@ -102,11 +102,11 @@ describe("DataNotice", () => {
     render(<DataNotice />);
 
     const box = await screen.findByRole("checkbox", {
-      name: "Let PathFinder learn from my strategies",
+      name: "Let Strategist learn from my strategies",
     });
     expect(box).toBeChecked();
     expect(box).toHaveAccessibleDescription(
-      "Copies of your conversations and strategies may be read by the team and used, without your name or account, to improve PathFinder for everyone. You can change this later in Settings, on the Privacy tab.",
+      "Copies of your conversations and strategies may be read by the team and used, without your name or account, to improve Strategist for everyone. You can change this later in Settings, on the Privacy tab.",
     );
   });
 
@@ -130,7 +130,7 @@ describe("DataNotice", () => {
     render(<DataNotice />);
     fireEvent.click(
       await screen.findByRole("checkbox", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));

@@ -217,7 +217,7 @@ describe("SavedStrategiesPage", () => {
       'Delete "Kinase sweep"?',
     );
     expect(dialog).toHaveTextContent(
-      "This also deletes the strategy on PlasmoDB, and PathFinder cannot restore it.",
+      "This also deletes the strategy on PlasmoDB, and Strategist cannot restore it.",
     );
     expect(mockDelete.mock.calls).toEqual([]);
   });

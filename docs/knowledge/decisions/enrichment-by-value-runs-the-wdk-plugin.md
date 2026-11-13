@@ -8,7 +8,7 @@ verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 status: superseded
 ---
 
-> Superseded in v0.2.0a15: PathFinder runs no enrichment. GO, pathway and word
+> Superseded in v0.2.0a15: Strategist runs no enrichment. GO, pathway and word
 > enrichment are analyses the site runs on a step, from the link on the evidence card
 > ([VERIFY shows its evidence](verify-shows-its-evidence.md)). The by-value path stays
 > in `veupathdb-mcp` (`veupathdb_mcp/wdk/enrichment/`), and
@@ -35,12 +35,12 @@ It would answer with a different background than the site's own pages.
 The plugin's background is the site database.
 [`GoEnrichmentPlugin.validateFilteredGoTerms`](https://github.com/VEuPathDB/ApiCommonWebsite/blob/830bb57fe07fc2e4dd37b6ea2e3baae0eaee5bee/Model/src/main/java/org/apidb/apicommon/model/stepanalysis/GoEnrichmentPlugin.java#L100-L130)
 counts terms in `webready.GoTermSummary_p`, filtered by evidence category, by
-ontology and by GO slim membership. PathFinder holds none of that, and an
+ontology and by GO slim membership. Strategist holds none of that, and an
 approximation of it would put a number next to a term that the researcher can
 read differently on the same site the same afternoon.
 
 `run_custom_enrichment` keeps its in-process test, because its background is an
-experiment PathFinder itself computed.
+experiment Strategist itself computed.
 
 # Rejected: a background the caller supplies as a gene list
 
@@ -62,6 +62,6 @@ one; a form offering several is refused
 
 The call costs one dataset, one step, one strategy and one analysis lifecycle per
 type, which is why the gene list is capped
-(`MAX_ENRICHMENT_GENE_IDS`). WDK validates the organism, so PathFinder does not
+(`MAX_ENRICHMENT_GENE_IDS`). WDK validates the organism, so Strategist does not
 re-check it against a vocabulary; a wrong one is a WDK rejection carrying the
 organisms the result does hold.

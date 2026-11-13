@@ -18,7 +18,7 @@ export function SetupRequiredScreen({ onRetry }: SetupRequiredScreenProps) {
         <div>
           <h1 className="text-lg font-semibold">Setup Required</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            PathFinder could not find a configured model backend for this runtime
+            Strategist could not find a configured model backend for this runtime
             profile.
           </p>
         </div>

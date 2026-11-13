@@ -34,7 +34,7 @@ override, the persisted conversation state, or the role default.
 Scripted Model
 --------------
 
-**Purpose:** PathFinder's script for the deterministic test model. The Lead
+**Purpose:** Strategist's script for the deterministic test model. The Lead
 routes on the latest user message and drives a scripted FRAME, BUILD and
 VERIFY flow, so an end-to-end run costs nothing and repeats exactly.
 

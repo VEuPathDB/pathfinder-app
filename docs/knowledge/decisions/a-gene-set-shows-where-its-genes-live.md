@@ -56,7 +56,7 @@ dataset bound to `GeneByLocusTag` (`ds_gene_ids`) or `ByIdList` (`source_ids`).
 # What was rejected
 
 - **Every set stays on its own site.** The OrthoMCL to PlasmoDB question then has
-  no path inside PathFinder: the researcher copies ids out of one site and pastes
+  no path inside Strategist: the researcher copies ids out of one site and pastes
   them into the other, and an OrthoMCL protein id (`PF3D7_1352300.1-p1`) does not
   resolve on PlasmoDB.
 - **Translate ids between any two sites.** Genomics sites share no genes, so a set

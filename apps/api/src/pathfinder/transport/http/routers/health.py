@@ -37,7 +37,7 @@ async def health_check() -> HealthResponse:
 @router.get("/health/config", response_model=SystemConfigResponse)
 async def system_config() -> SystemConfigResponse:
     """Report the model providers, the deployment's site, its sign-in address and
-    the website page that frames PathFinder.
+    the website page that frames Strategist.
 
     This is unauthenticated so the frontend can show a setup-required
     screen before asking users to log in.

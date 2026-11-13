@@ -1,4 +1,4 @@
-"""Pinned instructions that describe PathFinder's strategy work: the system
+"""Pinned instructions that describe Strategist's strategy work: the system
 prompt, the in-progress spec, the open parameter sheets, the live graph, the
 ledger and the searches FRAME inspected."""
 

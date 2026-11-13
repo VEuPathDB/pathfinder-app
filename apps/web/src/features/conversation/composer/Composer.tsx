@@ -39,7 +39,7 @@ const DEFAULT_PLACEHOLDER = "Ask about strategies, genes, or data... (try /help)
 const ANSWER_PLACEHOLDER = "Or type your own answer";
 
 const AI_NOTICE =
-  "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
+  "Strategist is an AI assistant and can make mistakes. Double-check important results.";
 
 function ComposerFooter() {
   return (

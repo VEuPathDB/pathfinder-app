@@ -9,7 +9,7 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. The OpenAI and Anthropic models are in UAT: the deployment pays for `Claude Haiku 5.5` and `Claude Sonnet 5.5`, and `Claude Opus 5.5`, `Claude Fable 5.1` and `GPT-6 Astra` run only on a tester's own key. The `Stages` section lists `Assistant`, `Planning`, `Checking` and `Exploring`. The Google models are not ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the Strategist mark at the bottom of the right rail: `Strategist v<version>`. The OpenAI and Anthropic models are in UAT: the deployment pays for `Claude Haiku 5.5` and `Claude Sonnet 5.5`, and `Claude Opus 5.5`, `Claude Fable 5.1` and `GPT-6 Astra` run only on a tester's own key. The `Stages` section lists `Assistant`, `Planning`, `Checking` and `Exploring`. The Google models are not ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 
@@ -65,7 +65,7 @@ This is the sweep of `H1` in the [runner checklist](runner-checklist.md).
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Privacy` | Read | `Learning from your strategies`; what a copy may be used for, that a copy used beyond review carries no name or account, what turning it off deletes; link `Your data in PathFinder`; switch `Let PathFinder learn from my strategies` |
+| 1 | Settings, `Privacy` | Read | `Learning from your strategies`; what a copy may be used for, that a copy used beyond review carries no name or account, what turning it off deletes; link `Your data in Strategist`; switch `Let Strategist learn from my strategies` |
 | 2 | Switch | Turn off, reload, reopen | Still off |
 
 ## A6 - Advanced - once

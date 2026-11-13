@@ -100,9 +100,9 @@ Measured: step 1 as expected on toxodb and vectorbase (`experiments on plasmodb`
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation | Send `What is a good recipe for banana bread?` | Two sentences, under 400 characters, no recipe: what PathFinder does and an invitation to rephrase. No trace groups, no strategy |
+| 1 | New conversation | Send `What is a good recipe for banana bread?` | Two sentences, under 400 characters, no recipe: what Strategist does and an invitation to rephrase. No trace groups, no strategy |
 
-Measured: "PathFinder builds, edits, and checks search strategies on the VEuPathDB sites and runs study analyses and exports on what they return. Please put your question in those terms ...". 15 s, $0.005.
+Measured: "Strategist builds, edits, and checks search strategies on the VEuPathDB sites and runs study analyses and exports on what they return. Please put your question in those terms ...". 15 s, $0.005.
 
 ## N11 - A request to remember does not build
 

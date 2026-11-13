@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A thread answers in Explore or Build
-description: Each PathFinder turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore proposes whole plans (searches and their combines, counted locally, named by PathFinder) and offers one on a Build it button and two or more on a readings card, and the picked plan is written into the text FRAME frames from, while words typed over that card are a new message, and the mode is a row PathFinder owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
+description: Each Strategist turn runs one of two agents in one graph, Explore or the Lead (Build), chosen by the thread's mode and, in Auto, by one Decisions call on gpt-6-luna with a 0.65 build floor; a resume goes back to the agent that parked, Explore proposes whole plans (searches and their combines, counted locally, named by Strategist) and offers one on a Build it button and two or more on a readings card, and the picked plan is written into the text FRAME frames from, while words typed over that card are a new message, and the mode is a row Strategist owns. A second assistant, a structured Luna router call and a mode column on conversations were rejected.
 tags: [modes, explore, router, decisions, lead, graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-06T00:00:00Z }
 status: stable
@@ -9,7 +9,7 @@ status: stable
 
 # What was decided
 
-**One graph, two agents.** PathFinder's graph is `route -> lead | explore -> finalize_turn`
+**One graph, two agents.** Strategist's graph is `route -> lead | explore -> finalize_turn`
 (`ai/graph/builder.py`). The route node (`ai/graph/route_node.py::route_turn_node`) picks the
 agent, writes the route into the turn state's `mode`, and on a fresh turn emits a
 `data-turn-route` part, which the web reads to mark a reply "Explore". On a resumed turn the
@@ -80,7 +80,7 @@ A new Explore message is read by the same message reader as the Lead's
 (`ai/graph/_lead_reading.py::classify_the_words`, on the Explore model and metered to the turn),
 which records only its classification: Explore keeps no requirement and names no organism. A
 message read as `off_topic` keeps its tools and is pinned the instruction to answer in two
-sentences with what PathFinder does (`EXPLORE_OFF_TOPIC_REDIRECT`), as the Lead's is; a reply
+sentences with what Strategist does (`EXPLORE_OFF_TOPIC_REDIRECT`), as the Lead's is; a reply
 longer than the Lead's redirect cap (`OFF_TOPIC_REPLY_MAX_CHARS`) is refused once through the
 Lead's own correction (`turn_contract.py::correct_once`). An empty tool list under instructions
 that still name tools made the model write tool calls as text. The reader keeps the pathogens,
@@ -196,5 +196,5 @@ the exchanges and the stated words that Build reads.
 about 1 s a turn.
 
 **A mode column on `conversations`.** That table belongs to assistant-core, and the runtime
-must not learn one assistant's modes. `conversation_modes` is a PathFinder table, written by
+must not learn one assistant's modes. `conversation_modes` is a Strategist table, written by
 one validated writer.

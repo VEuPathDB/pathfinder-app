@@ -24,7 +24,7 @@ entries are the answer's prefix entry for entry.
 **The other-site lane is one trailing entry.** The tool server ranks the dataset
 records of every other component site (`rank_experiments_elsewhere`: cosine
 only, at most one card per site, three sites, nothing under the semantic
-floor, nothing from the portal). PathFinder appends them as
+floor, nothing from the portal). Strategist appends them as
 
 ```json
 {"otherSites": {
@@ -110,7 +110,7 @@ a transform to the card's organism runs on the portal.
   anything reaches WDK). The build would fail or answer nothing.
 - **Composing the two lanes inside the tool server's `search_for_searches`.**
   Every host would get a changed own-site answer. The lane is the host's
-  presentation, so the tool server serves two functions and PathFinder composes
+  presentation, so the tool server serves two functions and Strategist composes
   them.
 - **Indexing other sites' searches instead of their datasets.** A search is the
   thing that cannot be bound; the dataset record carries the organism, the

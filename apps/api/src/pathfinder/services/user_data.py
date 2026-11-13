@@ -76,7 +76,7 @@ async def purge_user_data(
 
     Without ``delete_wdk``, chats are dismissed rather than deleted, so WDK
     sync does not re-import them. With ``delete_wdk``, chats are deleted, and
-    so are the VEuPathDB strategies PathFinder created for them. A strategy
+    so are the VEuPathDB strategies Strategist created for them. A strategy
     the user made on the website stays. A chat whose VEuPathDB strategy is
     still there is dismissed instead of deleted, and a run in the same
     position keeps its row, so a later purge can finish the job. Gene sets,
@@ -262,7 +262,7 @@ async def purge_memories(
 def _strategies_built_by(
     conversations: Sequence[Row[tuple[UUID, str, ConversationStrategy | None]]],
 ) -> dict[str, set[int]]:
-    """Group by site the WDK strategies PathFinder created for these conversations.
+    """Group by site the WDK strategies Strategist created for these conversations.
 
     A strategy the user made on the website and opened here is left out, and
     so is one whose row predates the record of who created it.
@@ -299,7 +299,7 @@ async def _strategies_built_for_runs(
     user_id: UUID,
     site_id: str | None,
 ) -> list[_RunStrategy]:
-    """The strategies PathFinder created on VEuPathDB to persist a run.
+    """The strategies Strategist created on VEuPathDB to persist a run.
 
     A run creates its strategy itself, so no conversation names it.
     """
@@ -356,9 +356,9 @@ async def _purge_wdk_strategies(
     *,
     delete_wdk: bool,
 ) -> WdkPurgeOutcome:
-    """Delete on VEuPathDB the strategies PathFinder created there, and no others.
+    """Delete on VEuPathDB the strategies Strategist created there, and no others.
 
-    A site PathFinder cannot reach, or cannot act on because the request names
+    A site Strategist cannot reach, or cannot act on because the request names
     no registered VEuPathDB user, keeps every strategy it holds. A wanted
     strategy the site does not list is already gone.
     """
@@ -415,7 +415,7 @@ async def _purge_related_data(
 ) -> tuple[int, int, int]:
     """Delete the calling application's gene sets, experiments and control sets.
 
-    A run's persisted VEuPathDB strategy goes with its row: PathFinder created
+    A run's persisted VEuPathDB strategy goes with its row: Strategist created
     it, and nothing else names it. A run named in ``kept_runs`` still holds
     its strategy on the site, so its row stays and a later purge can finish.
     """

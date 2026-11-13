@@ -19,10 +19,10 @@ beforeEach(() => {
 });
 
 describe("PhoneBar", () => {
-  it("holds every way around PathFinder in one bar that scrolls sideways", () => {
+  it("holds every way around Strategist in one bar that scrolls sideways", () => {
     render(<PhoneBar onOpenSettings={() => {}} />);
 
-    const bar = screen.getByRole("navigation", { name: "PathFinder" });
+    const bar = screen.getByRole("navigation", { name: "VEuPathDB Strategist" });
     expect(bar).toHaveClass("overflow-x-auto");
     expect(
       within(bar)

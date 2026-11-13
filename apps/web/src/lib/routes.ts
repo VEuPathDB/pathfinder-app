@@ -1,6 +1,6 @@
 /**
  * Central URL builders. The site is never in the path: the website that frames
- * PathFinder decides it. Never inline ``/conversation/...``; always go through
+ * Strategist decides it. Never inline ``/conversation/...``; always go through
  * a helper here so the path format stays in one place.
  */
 

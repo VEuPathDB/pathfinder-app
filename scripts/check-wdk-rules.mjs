@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Conformance check for PathFinder's own WDK mapping rules.
+ * Conformance check for Strategist's own WDK mapping rules.
  *
  * The WDK model, REST and rule bundles are the client library's, under
  * the client repository's own bundle; that tree carries its own copy of this
- * script. What is checked here is the mapping PathFinder holds onto WDK.
+ * script. What is checked here is the mapping Strategist holds onto WDK.
  *
  * A WDK rule is admissible only because upstream can falsify it. This script
  * is what makes that true in practice: it fails the build when a citation is

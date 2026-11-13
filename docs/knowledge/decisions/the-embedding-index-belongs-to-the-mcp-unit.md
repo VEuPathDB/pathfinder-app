@@ -54,7 +54,7 @@ and the five `EMBEDDING_*` variables under their existing names, with the
 `use_embedding_settings_source` / `get_embedding_settings` pattern batches 1 and
 2 used; `pathfinder.platform.config.Settings` subclasses it and installs itself.
 `veupathdb_mcp/embeddings/db.py` is the same shape for sessions: the index opens
-one through `embedding_session()`, PathFinder's API and worker install
+one through `embedding_session()`, Strategist's API and worker install
 `assistant_core.platform.db.async_session_factory` so the index shares their
 pool, and a process that installs nothing builds its own engine from
 `DATABASE_URL`. That is what the MCP server does today and will do after the
@@ -63,9 +63,9 @@ split.
 `RuntimeSettings.embedding_input_char_limit` stays, because
 `assistant_core/embeddings/openai_embedder.py` still reads it.
 
-**The migration stays PathFinder's.**
+**The migration stays Strategist's.**
 `alembic/versions/2026_08_29_0001_add_embedding_record_manager.py` writes frozen
-DDL and imports no model, so it needed no rewrite. PathFinder's alembic still
+DDL and imports no model, so it needed no rewrite. Strategist's alembic still
 creates both tables for this deployment; the MCP unit's own alembic directory is
 a later batch's, when the folder exists.
 
@@ -131,6 +131,6 @@ caller untranslated.
 The same split drained the client library's and the MCP server's outbound edges;
 see [the client library owns its
 foundation](the-client-library-owns-its-foundation.md) and [the MCP server
-writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md). What
+writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md). What
 the index itself does is [embeddings are an API call and a record
 manager](embeddings-are-an-api-and-a-record-manager.md).

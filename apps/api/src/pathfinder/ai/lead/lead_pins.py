@@ -188,7 +188,7 @@ def _listed(label: str, ids: list[str]) -> list[str]:
 
 _OFF_TOPIC_REDIRECT = (
     "## This turn is out of scope\n"
-    "Answer in two sentences and call no tool. Say that PathFinder builds, "
+    "Answer in two sentences and call no tool. Say that Strategist builds, "
     "edits and checks search strategies on the VEuPathDB sites and runs "
     "EDA and exports on what they return, then invite the user to "
     "put their question in those terms. Write nothing else: no code, no draft, "

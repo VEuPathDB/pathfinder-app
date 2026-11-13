@@ -1,7 +1,7 @@
 ---
 type: TestPlan
 title: UAT flows - composer
-description: Every slash command, and attachments - a gene-id list, an image, a PDF, a kind PathFinder refuses, and the size and count caps - with the exact sentences of each refusal.
+description: Every slash command, and attachments - a gene-id list, an image, a PDF, a kind Strategist refuses, and the size and count caps - with the exact sentences of each refusal.
 tags: [uat, flows, composer, slash-commands, attachments]
 generated: { by: claude-code/opus-5.5, at: 2026-09-24T00:00:00Z }
 status: draft
@@ -38,7 +38,7 @@ On plasmodb. The input's placeholder is `Ask about strategies, genes, or data...
 | C2 | `/new` | Pick it | A new draft conversation, default assistant |
 | C3 | `/rename` | Pick it, type `UAT rename C3`, `Next` | Toast `Renamed to "UAT rename C3".`; empty name: `Name cannot be empty.` |
 | C4 | `/export` | Pick it on a conversation with no strategy, choose `Current strategy (JSON)` | Toast `This conversation has no strategy yet.`; nothing downloads |
-| C5 | `/export` | On the S2 conversation: `This conversation (Markdown)`, then `This conversation (JSON)`, then `Current strategy (JSON)` | Downloads `chat-<conversation id>.md` (starts `# PathFinder conversation export`, one `## user` / `## assistant` per message), `chat-<id>.json`, `strategy-<id>.json`; toasts `Conversation exported.`, `Strategy downloaded.` |
+| C5 | `/export` | On the S2 conversation: `This conversation (Markdown)`, then `This conversation (JSON)`, then `Current strategy (JSON)` | Downloads `chat-<conversation id>.md` (starts `# Strategist conversation export`, one `## user` / `## assistant` per message), `chat-<id>.json`, `strategy-<id>.json`; toasts `Conversation exported.`, `Strategy downloaded.` |
 | C6 | `/export` | `Latest gene set on this site (CSV)`, then `(TXT)`, after G1 | Toast `Downloading <file name>`; the CSV holds the gene set's 116 ids. With no gene set: `No gene sets to export.` |
 | C7 | `/import` | Name `UAT import C7`, ids `PF3D7_0102600` newline `PF3D7_0709000, PF3D7_1133400`, `Continue` | Toast `Imported "UAT import C7" with 3 gene IDs.`; empty name `Name required.`; no ids `Paste at least one gene ID.` |
 | C8 | `/clear` | On the S2 conversation | Sends `Clear the current strategy by calling clear_strategy with confirm=true.`; the approval card of S13 |
@@ -72,12 +72,12 @@ Measured: step 2 listed the three genes in 2 of 2 runs (about 18 s, $0.009). Ste
 |---|---|---|---|
 | 1 | New conversation | Attach `table.pdf`, send `Which genes are in this document?` | A file chip `table.pdf` in the user message; the reply lists the three genes. Measured: 26 s, $0.011 |
 
-## C15 - A kind PathFinder refuses
+## C15 - A kind Strategist refuses
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Composer | `Attach`, pick `table.zip` | The chooser does not offer it; when forced, toast `PathFinder reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.` |
-| 2 | The chat api (from a script, when the composer cannot send it) | Send it anyway | 422 `ATTACHMENT_NOT_READABLE`, detail `table.zip is application/zip; PathFinder reads PNG, JPEG, WebP and GIF images and PDF documents.` (measured) |
+| 1 | Composer | `Attach`, pick `table.zip` | The chooser does not offer it; when forced, toast `Strategist reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.` |
+| 2 | The chat api (from a script, when the composer cannot send it) | Send it anyway | 422 `ATTACHMENT_NOT_READABLE`, detail `table.zip is application/zip; Strategist reads PNG, JPEG, WebP and GIF images and PDF documents.` (measured) |
 
 ## C16 - The size and count caps
 

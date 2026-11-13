@@ -58,7 +58,7 @@ describe("SiteUnavailableNotice", () => {
     expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "PathFinder cannot use this site right now: the site did not answer in time. It keeps trying every minute, so this may clear on its own.",
+        "Strategist cannot use this site right now: the site did not answer in time. It keeps trying every minute, so this may clear on its own.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryAllByRole("link")).toEqual([]);
@@ -70,7 +70,7 @@ describe("SiteUnavailableNotice", () => {
     expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "PathFinder cannot use this site right now. It keeps trying every minute, so this may clear on its own.",
+        "Strategist cannot use this site right now. It keeps trying every minute, so this may clear on its own.",
       ),
     ).toBeInTheDocument();
   });

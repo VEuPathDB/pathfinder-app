@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An off-topic turn reaches no tool
-description: The classification the Lead makes first is what puts a request outside PathFinder's scope, and that turn is offered no tool, is pinned a two-sentence redirect and is refused if it answers anyway; the whole-turn ceiling is its only budget. A prompt-only redirect, a pre-turn topic classifier and a token ceiling of its own were rejected.
+description: The classification the Lead makes first is what puts a request outside Strategist's scope, and that turn is offered no tool, is pinned a two-sentence redirect and is refused if it answers anyway; the whole-turn ceiling is its only budget. A prompt-only redirect, a pre-turn topic classifier and a token ceiling of its own were rejected.
 tags: [agents, intent, scope, budget]
 generated: { by: claude-code/opus-5, at: 2026-09-13T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-10-05T00:00:00Z }
@@ -24,7 +24,7 @@ other classification.
 
 **The pin adds the redirect to the turn briefing.** `lead_pins.pinned_turn_briefing`
 renders what moved on the thread and then the redirect: two sentences, what
-PathFinder does, an invitation to rephrase, nothing else. The catch-up keeps
+Strategist does, an invitation to rephrase, nothing else. The catch-up keeps
 its place because one of its sections is windowed on the newest assistant
 message (`services/conversations/thread_activity.py`): a task that finished
 before an off-topic turn falls out of the next turn's window, so a turn that

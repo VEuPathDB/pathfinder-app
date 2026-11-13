@@ -15,10 +15,10 @@ A runner who meets one of these records the flow as `pass` (or `blocked` where n
 
 | Behaviour at UAT | Flow | Decided in |
 |---|---|---|
-| The study tab is read-only: no subset editor, no comparison form, no threshold controls. The subset, the comparison and the cut are edited on the site through `Open in <Site>` | E1, E3, E5 | [PathFinder shows what the AI did, and the site edits](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md) |
-| A dataset is uploaded on the site's My Data Sets page (`Upload on VEuPathDB`), never through PathFinder; PathFinder never deletes a dataset | E6, G3 | [A private dataset is uploaded on the site and analysed here](../decisions/a-private-dataset-is-uploaded-on-the-site-and-analysed-here.md) |
+| The study tab is read-only: no subset editor, no comparison form, no threshold controls. The subset, the comparison and the cut are edited on the site through `Open in <Site>` | E1, E3, E5 | [Strategist shows what the AI did, and the site edits](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md) |
+| A dataset is uploaded on the site's My Data Sets page (`Upload on VEuPathDB`), never through Strategist; Strategist never deletes a dataset | E6, G3 | [A private dataset is uploaded on the site and analysed here](../decisions/a-private-dataset-is-uploaded-on-the-site-and-analysed-here.md) |
 | Publishing a gene set is a button a person presses, never something the assistant does; a published dataset is not a search input | G3 | [VDI is a publish target, not a store](../decisions/vdi-is-a-publish-target-not-a-store.md) |
-| Enrichment is not run in PathFinder; the evidence card links `Run GO, pathway or word enrichment in <Site>` | V1, G2 | [VERIFY shows its evidence](../decisions/verify-shows-its-evidence.md) |
+| Enrichment is not run in Strategist; the evidence card links `Run GO, pathway or word enrichment in <Site>` | V1, G2 | [VERIFY shows its evidence](../decisions/verify-shows-its-evidence.md) |
 | Another site's experiment appears as a labelled line (`experiments on <site>`) and is never bound | N9, X2 | [Another site's experiment informs a criterion and never binds](../decisions/another-site-informs-and-never-binds.md) |
 | A down site is refused on its own routes with `Couldn't reach <site>`; the other sites work | F3, R1 | [A site that is down is down on its own](../decisions/a-site-that-is-down-is-down-on-its-own.md) |
 | Every WDK-backed feature needs a registered VEuPathDB login; a guest is refused | F1 | [A WDK-backed feature requires a registered VEuPathDB login](../decisions/wdk-requires-registered-login.md) |

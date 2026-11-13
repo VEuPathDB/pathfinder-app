@@ -69,7 +69,7 @@ existing tests run through the rule and none is refused by it.
 - **A synteny rule.** It fits one word to one search pair, and the next dropped
   qualifier needs its own rule.
 - **A list of qualifier words.** It goes stale as the sites add parameters, and it
-  is PathFinder's vocabulary put in place of WDK's.
+  is Strategist's vocabulary put in place of WDK's.
 - **Words the model declares.** The measured miss is the model dropping the word,
   so a declaration the model writes checks nothing.
 - **A similarity threshold between the text and a parameter.** A cosine cut picks

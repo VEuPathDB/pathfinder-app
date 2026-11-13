@@ -14,7 +14,7 @@ status: superseded
 
 # What was found
 
-Batches A through C separated the assistant runtime from PathFinder's science by
+Batches A through C separated the assistant runtime from Strategist's science by
 type and by wiring, and left every file where it was. The result was a runtime
 whose membership existed only in reviewers' heads: `ai/memory/` imported no
 product module, `ai/graph/turn_state.py` held the generic turn, and nothing in

@@ -1,6 +1,6 @@
 """The strategy row records who made the WDK strategy it names.
 
-A purge deletes on VEuPathDB only what PathFinder minted there, so the flag
+A purge deletes on VEuPathDB only what Strategist minted there, so the flag
 is written by the sync that minted it and by nothing else.
 """
 

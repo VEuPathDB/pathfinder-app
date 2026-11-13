@@ -180,7 +180,7 @@ describe("SystemReadyGate", () => {
     await renderGate();
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "PathFinder has been updated.",
+      "Strategist has been updated.",
     );
     expect(screen.getByTestId("app-content")).toBeInTheDocument();
   });

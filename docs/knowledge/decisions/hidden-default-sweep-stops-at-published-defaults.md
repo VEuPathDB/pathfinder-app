@@ -57,7 +57,7 @@ Two things the sweep already does make the study unnecessary:
 # What this costs
 
 A hidden required default that returns zero rows on one of the 219 unmeasured
-searches is not known today, and PathFinder would fill it
+searches is not known today, and Strategist would fill it
 (`veupathdb-py: src/veupathdb/domain/parameters/specs.py:fill_hidden_required_defaults`). The protection
 against that is not this sweep: it is that a filled hidden default is reported to
 the user as a value nobody chose

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The estate stack holds only deployment facts
-description: The estate units run both MCP servers from the pathfinder-api image with a command of their own, mount each stage's sites file from the services repository, and set only the values that differ from the code's defaults or name the stage, so a PathFinder release needs no change to the services repository. A separate MCP tag in the stack's environment, MCP images built from this repository's Jenkinsfile and sites files baked into the public api image were rejected.
+description: The estate units run both MCP servers from the pathfinder-api image with a command of their own, mount each stage's sites file from the services repository, and set only the values that differ from the code's defaults or name the stage, so a Strategist release needs no change to the services repository. A separate MCP tag in the stack's environment, MCP images built from this repository's Jenkinsfile and sites files baked into the public api image were rejected.
 tags: [deployment, quadlets, docker, jenkins, mcp, sites]
 generated: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
 status: stable
@@ -9,7 +9,7 @@ status: stable
 
 # What was decided
 
-A release of PathFinder is a tag of this repository and nothing else. The units in
+A release of Strategist is a tag of this repository and nothing else. The units in
 `VEuPathDB/webservices-quadlets` change only when the deployment changes: a host, a
 secret, a network, a memory limit, a site URL.
 
@@ -38,12 +38,12 @@ cannot default is set by the api image itself: `API_ENV=production`, over the
 `development` its `config.toml` holds for a host run; `PATHFINDER_CHAT_PROVIDER=default`,
 because an empty value fails startup; and `VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX`,
 because the wdk-mcp container otherwise reads the client's own prefix and not
-PathFinder's.
+Strategist's.
 
 # What would falsify this
 
 A stage whose MCP servers report another version on `/health` than the
-`veupathdb-mcp` the api has installed; a PathFinder release that cannot reach a stage
+`veupathdb-mcp` the api has installed; a Strategist release that cannot reach a stage
 without a change to the services repository; or a stage that serves another site list
 than its file under `pathfinder/config/` in the services repository.
 
@@ -62,5 +62,5 @@ not use its images.
 
 **Sites files baked into the api image.** The images are public, so a baked file
 publishes every stage's hosts, a development site's address among them, to anyone who
-pulls the image. A site URL change also needed a release of PathFinder, though it is a
+pulls the image. A site URL change also needed a release of Strategist, though it is a
 fact of the deployment.

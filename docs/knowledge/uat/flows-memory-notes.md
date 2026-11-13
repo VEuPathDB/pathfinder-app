@@ -59,7 +59,7 @@ Measured: every S2 build saved and pinned one note ("Note saved: Signal peptide 
 | 3 | The row | Click | Dialog `Edit memory`: `Name`, `Summary`, `Tags (comma-separated)`, `Content (JSON)`, `Auto-retrieve in future conversations`; `Cancel` / `Save` |
 | 4 | Dialog | Change the summary to `UAT edited summary`, `Save` | The row shows the new summary; the next turn's recall uses it |
 | 5 | `Content (JSON)` | Enter `[1]` | `Invalid JSON - must be an object.`; `Save` disabled |
-| 6 | A `Cases` row (from S2) | `Delete <name>` | Browser confirm `Delete "<name>"? PathFinder will not save it again on its own.`; OK removes it |
+| 6 | A `Cases` row (from S2) | `Delete <name>` | Browser confirm `Delete "<name>"? Strategist will not save it again on its own.`; OK removes it |
 | 7 | New conversation | Send the S2 prompt again and wait for the evidence card | The deleted case is not written back: the `Cases` count is unchanged |
 
 ## M6 - A preference remembered across conversations - core on plasmodb
@@ -84,9 +84,9 @@ Measured: "You prefer the **Su et al. strand-specific RNA-seq dataset** for *Pla
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | A new conversation, mode Explore | Send `Have I looked at gametocyte kinases before?` | A card `Let PathFinder read your strategies, other conversations or gene sets?` naming what it wants to read; boxes `Always allow in this conversation` and `Always allow in all conversations`; `Allow`, `Don't allow` |
+| 1 | A new conversation, mode Explore | Send `Have I looked at gametocyte kinases before?` | A card `Let Strategist read your strategies, other conversations or gene sets?` naming what it wants to read; boxes `Always allow in this conversation` and `Always allow in all conversations`; `Allow`, `Don't allow` |
 | 2 | Card | `Don't allow` | The reply answers without your other conversations |
 | 3 | Same conversation | Send the message again, tick `Always allow in this conversation`, `Allow` | The reply names your earlier conversation |
 | 4 | Same conversation | Send a third question that needs your gene sets | No card; the reply reads them |
-| 5 | Settings, `Privacy` | Read | `Reading your account` with the switch `Always let PathFinder read my account in every conversation`, off |
+| 5 | Settings, `Privacy` | Read | `Reading your account` with the switch `Always let Strategist read my account in every conversation`, off |
 

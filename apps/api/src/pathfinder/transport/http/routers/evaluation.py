@@ -4,7 +4,7 @@ Thin HTTP adapter; all business logic lives in
 ``pathfinder.services.eval``.
 
 Read-only from the application's perspective (creates WDK strategies but does
-not affect PathFinder's own data).  Used by thesis/eval/scripts/ only.
+not affect Strategist's own data).  Used by thesis/eval/scripts/ only.
 """
 
 from typing import Any
@@ -78,7 +78,7 @@ async def build_gold_strategy_endpoint(
 
 
 class FetchGeneIdsRequest(CamelModel):
-    """Fetch gene IDs from an existing PathFinder strategy."""
+    """Fetch gene IDs from an existing Strategist strategy."""
 
     strategy_id: UUID
     site_id: SiteId
@@ -90,7 +90,7 @@ async def strategy_gene_ids_endpoint(
     session: DBSession,
     user_id: CurrentUser,
 ) -> dict[str, Any]:
-    """Fetch all gene IDs from a PathFinder strategy's WDK root step."""
+    """Fetch all gene IDs from a Strategist strategy's WDK root step."""
     result = await get_strategy_gene_ids(
         session,
         request.strategy_id,

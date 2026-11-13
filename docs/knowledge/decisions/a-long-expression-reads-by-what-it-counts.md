@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A long expression reads by what it counts
-description: A phyletic expression whose described reading passes 200 characters is read from its parsed terms and the taxonomy, folded to a species, a genus or a clade only where the terms cover that group, with a stepped comparison read as a comparison; PathFinder computes this over the library's public names. Raising the limit, folding inside the library's describe, and checking the reply were rejected.
+description: A phyletic expression whose described reading passes 200 characters is read from its parsed terms and the taxonomy, folded to a species, a genus or a clade only where the terms cover that group, with a stepped comparison read as a comparison; Strategist computes this over the library's public names. Raising the limit, folding inside the library's describe, and checking the reply were rejected.
 tags: [orthomcl, phyletic, facts, strategy]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable

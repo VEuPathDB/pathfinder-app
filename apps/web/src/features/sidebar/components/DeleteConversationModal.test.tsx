@@ -159,7 +159,7 @@ describe("DeleteConversationModal", () => {
     expect(onConfirmDelete.mock.calls).toEqual([[{ deleteLinkedStrategy: false }]]);
   });
 
-  it("names a strategy PathFinder created", () => {
+  it("names a strategy Strategist created", () => {
     render(
       <DeleteConversationModal
         target={makeItem({ wdkStrategyId: 555, wdkStrategyCreatedHere: true })}
@@ -170,11 +170,11 @@ describe("DeleteConversationModal", () => {
     );
 
     expect(screen.getByTestId("delete-linked-strategy-note")).toHaveTextContent(
-      "PathFinder created this strategy in PlasmoDB. Deleting it is permanent, and the conversation will not be recoverable.",
+      "Strategist created this strategy in PlasmoDB. Deleting it is permanent, and the conversation will not be recoverable.",
     );
   });
 
-  it("says only what the record supports when PathFinder did not claim the strategy", () => {
+  it("says only what the record supports when Strategist did not claim the strategy", () => {
     render(
       <DeleteConversationModal
         target={makeItem({ wdkStrategyId: 555, wdkStrategyCreatedHere: false })}
@@ -185,7 +185,7 @@ describe("DeleteConversationModal", () => {
     );
 
     expect(screen.getByTestId("delete-linked-strategy-note")).toHaveTextContent(
-      "PathFinder has no record of creating this strategy in PlasmoDB, so it may be one you made there yourself. Deleting it is permanent, and the conversation will not be recoverable.",
+      "Strategist has no record of creating this strategy in PlasmoDB, so it may be one you made there yourself. Deleting it is permanent, and the conversation will not be recoverable.",
     );
   });
 });

@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: Thread surgery is a runtime primitive
-description: Fork and revert are copy code in PathFinder that must track rules owned by assistant-core, LangGraph and WDK; move fork into the runtime as fork_thread, make revert a fork without the tail, and give external effects a compensating saga.
+description: Fork and revert are copy code in Strategist that must track rules owned by assistant-core, LangGraph and WDK; move fork into the runtime as fork_thread, make revert a fork without the tail, and give external effects a compensating saga.
 tags: [fork, revert, assistant-core, architecture]
 generated: { by: claude-code/opus-5.5, at: 2026-10-26T00:00:00Z }
 status: proposed
@@ -15,4 +15,4 @@ The safety fixes (thread lock, liveness refusals, scoped message upsert, compens
 
 ## Done when
 
-A written design is approved before any code; then fork_thread in assistant-core with a PathFinder hook, and revert implemented as fork without the tail.
+A written design is approved before any code; then fork_thread in assistant-core with a Strategist hook, and revert implemented as fork without the tail.

@@ -3,7 +3,7 @@
 Without the stamp a transcript reporting "2,862 transcripts at fold-change 1"
 keeps reading as current after the threshold is edited to 2 and the strategy
 returns 587. The stamp is the only thing the UI can compare against the live
-revision to mark those numbers historical. It is PathFinder's turn epilogue,
+revision to mark those numbers historical. It is Strategist's turn epilogue,
 so an assistant with no strategy emits nothing.
 """
 

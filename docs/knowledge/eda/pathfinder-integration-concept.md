@@ -1,14 +1,14 @@
 ---
 type: Proposal
-title: PathFinder EDA integration concept
-description: The two seams by which PathFinder can adopt EDA, what an EDA tab of its own would be, and how models are fed EDA knowledge. Concept and surface map only; no execution plan.
+title: Strategist EDA integration concept
+description: The two seams by which Strategist can adopt EDA, what an EDA tab of its own would be, and how models are fed EDA knowledge. Concept and surface map only; no execution plan.
 tags: [eda, pathfinder, integration, proposal, agents]
 generated: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 verified: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 status: accepted
 ---
 
-# PathFinder EDA integration concept
+# Strategist EDA integration concept
 
 Status: implemented. The facts it
 stands on are in `veupathdb-py: docs/knowledge/eda/what-eda-is.md`,
@@ -16,14 +16,14 @@ stands on are in `veupathdb-py: docs/knowledge/eda/what-eda-is.md`,
 
 ## The one-sentence position
 
-EDA is already reachable from PathFinder's existing machinery, because
+EDA is already reachable from Strategist's existing machinery, because
 upstream chose to expose it as ordinary WDK searches with a JSON parameter;
 the integration work is therefore agent capability and UI, not transport.
 
 ## Seam 1: EDA-backed steps in existing strategies (small)
 
 `GenesByEdaSubset`, `GenesByEdaVizWithCompute`, and the per-dataset
-`GenesBy*EdaSubset_*` searches are ordinary transcript searches. PathFinder's
+`GenesBy*EdaSubset_*` searches are ordinary transcript searches. Strategist's
 step creation, combining, and strategy persistence need zero changes; the
 live proof in `veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md` ran through the same
 answer API our services call. What is missing is authoring:
@@ -45,7 +45,7 @@ answer API our services call. What is missing is authoring:
   `studyId` in the spec must equal `eda_dataset_id`; a study must carry
   exactly one `VEUPATHDB_GENE_ID` variable or the search fails.
 - **Compute-backed steps and pending answers.** WDK signals an unfinished
-  compute with a delayed result rather than an answer. The clean PathFinder
+  compute with a delayed result rather than an answer. The clean Strategist
   path is to drive the compute itself first (`POST /computes/{name}
   ?autostart=true`, poll `{status}` inside a `@durable_tool` job, which is
   exactly our background-task architecture), and only create the step once
@@ -61,7 +61,7 @@ answer API our services call. What is missing is authoring:
 ## Seam 2: an EDA tab of its own (large)
 
 The genomics sites embed EDA as a notebook inside a question form; ClinEpiDB
-ships a full workspace. PathFinder's version of "build the EDA, then use it in
+ships a full workspace. Strategist's version of "build the EDA, then use it in
 strategies" is a new frontend feature (a tab of its own) that renders
 a read-only view of the analysis the agent built, over our own EDA client:
 
@@ -74,7 +74,7 @@ a read-only view of the analysis the agent built, over our own EDA client:
   sentence, read-only. The agent writes them (`set_eda_filters`, the durable
   `run_eda_compute`); a researcher edits them in the site's own notebook, which
   the tab links. The editing cells that copied the notebook were removed
-  ([PathFinder shows what the AI did](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
+  ([Strategist shows what the AI did](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
 - **Visualization cell**: renders the server-computed data with our own
   ECharts components, in `apps/web/src/features/eda/cells/VizCell.tsx`; EDA
   sends data, not images, so we are not importing web-monorepo React. The
@@ -88,7 +88,7 @@ a read-only view of the analysis the agent built, over our own EDA client:
   thread with no strategy the export begins one.
 - **Persistence**: saves through `/users/{uid}/analyses/{project}` so analyses
   are visible on the VEuPathDB site too. Upstream stays the SSOT for user
-  artifacts, as with strategies; PathFinder stores only the
+  artifacts, as with strategies; Strategist stores only the
   `conversation_analyses` binding and its revision counter.
 
 Upstream's notebook presets (`differentialExpression`, `wgcnaCorrelation`,

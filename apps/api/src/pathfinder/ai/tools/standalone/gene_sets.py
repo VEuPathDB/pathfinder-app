@@ -254,7 +254,7 @@ async def save_gene_set(
             ),
             message=(
                 f"Gene set '{gs.name}' with {len(gs.gene_ids)} genes has been "
-                f"saved in PathFinder. A conversation on "
+                f"saved in Strategist. A conversation on "
                 f"{_or(sites_that_list(gs.site_id, gs.homes))} can start from it; "
                 "it reaches the VEuPathDB workspace only when it is published."
                 + ("" if gs.wdk_step_id is not None else f" {_NO_WDK_STEP}")

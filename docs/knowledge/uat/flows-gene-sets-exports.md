@@ -39,8 +39,8 @@ The Strategy panel and the canvas topbar read `Open strategy on <Site>`, the `St
 |---|---|---|---|
 | 1 | The `UAT G1` figure | `Publish to VEuPathDB workspace` | A `Visibility` select (`private` preselected, `protected`, `public`), `Confirm publish`, `Cancel` |
 | 2 | Same | `Confirm publish` | `Publishing...`, toast `Published 116 genes`; a status line `Reading publication status...`, then `Upload <state>, import <state>`, then `Installed on PlasmoDB` |
-| 3 | Status line | `Open dataset` | The site's dataset page; its summary reads `116 genes published from the PathFinder gene set 'UAT G1'.` |
-| 4 | Cleanup | Delete the dataset on the site; then the figure's `Delete`, `Delete` in `Delete UAT G1?` | `Gene set deleted`; the dialog said `PathFinder removes this gene set and cannot restore it. A dataset published from it stays in your VEuPathDB workspace.` |
+| 3 | Status line | `Open dataset` | The site's dataset page; its summary reads `116 genes published from the Strategist gene set 'UAT G1'.` |
+| 4 | Cleanup | Delete the dataset on the site; then the figure's `Delete`, `Delete` in `Delete UAT G1?` | `Gene set deleted`; the dialog said `Strategist removes this gene set and cannot restore it. A dataset published from it stays in your VEuPathDB workspace.` |
 
 A five-gene list installed on PlasmoDB 7.6 s after its upload was accepted (2026-09-04, the VDI decision); measure the 116-gene install time at UAT.
 

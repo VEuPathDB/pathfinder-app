@@ -129,7 +129,7 @@ runs on a step.
 Separation
 ----------
 
-**Purpose:** A separation run's result as the report PathFinder shows and the
+**Purpose:** A separation run's result as the report Strategist shows and the
 offer it builds: the measured tree as a spec, each criterion's counts, and what
 each criterion adds.
 

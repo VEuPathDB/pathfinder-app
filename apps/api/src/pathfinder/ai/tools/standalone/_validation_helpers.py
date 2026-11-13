@@ -167,7 +167,7 @@ class StepOkResponse(CamelModel):
 def get_graph(session: StrategySession, graph_id: str | None) -> StrategyGraph | None:
     """Returns the graph this id addresses, or the active graph when none is given.
 
-    The id is PathFinder's graph id or the VEuPathDB strategy id the graph was
+    The id is Strategist's graph id or the VEuPathDB strategy id the graph was
     pushed to. An unknown id returns None; the active graph is never
     substituted for it.
     """

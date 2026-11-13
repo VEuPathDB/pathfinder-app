@@ -142,7 +142,7 @@ async def _upload_curated_counts() -> str:
             type=RNASEQRC,
             install_targets=[_PROJECT],
             name=_UPLOAD_NAME,
-            summary="Created by the PathFinder live lane and deleted after the check.",
+            summary="Created by the Strategist live lane and deleted after the check.",
         ),
         upload=RnaSeqRcUpload(
             counts=(

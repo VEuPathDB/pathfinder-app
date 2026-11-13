@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A generated name follows the seed it was written over
-description: A generated strategy name records its seed, the wire value of each parameter of each step it covers, and is generated anew when a seed step is gone or a seed value moved; a step name PathFinder made records the search and the labels it was made from, and is made again when a value moves. A name a person wrote is never rewritten. Reading the name's words against the wire values, renaming on every edit and never renaming were rejected.
+description: A generated strategy name records its seed, the wire value of each parameter of each step it covers, and is generated anew when a seed step is gone or a seed value moved; a step name Strategist made records the search and the labels it was made from, and is made again when a value moves. A name a person wrote is never rewritten. Reading the name's words against the wire values, renaming on every edit and never renaming were rejected.
 tags: [naming, strategy-graph, persistence]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
@@ -46,7 +46,7 @@ over an empty seed. The first turn end that finds steps records their seed,
 with no title call. A strategy that loses every step keeps its name and records
 an empty seed, so the next build is covered again.
 
-**A step name PathFinder made follows the values it labels.** A criterion
+**A step name Strategist made follows the values it labels.** A criterion
 titles its step by the search's display name and the site's vocabulary labels
 of the values it binds, which the binding pass reads
 (`step_naming.criterion_title`; `domain/strategy/step_naming.py::StepTitle`). A label
@@ -59,7 +59,7 @@ it), a vocabulary half bound to `N/A` has no label and the free-text half
 is labelled by its own value, so `ec_wildcard=*` beside `ec_number_pattern=N/A`
 titles the step "EC Number: *". `StepWords.titles` stores that title per step
 id in the strategy's metadata. A step whose name equals its stored title is
-PathFinder's: `StrategyGraph.note_words` gives it the newer title, and a
+Strategist's: `StrategyGraph.note_words` gives it the newer title, and a
 parameter write (`_apply_update_params`) gives it its own title less the label
 of every value it no longer holds (`StepTitle.kept`). A step whose name is not
 its stored title, because a person renamed it, a model wrote it, the site holds
@@ -82,7 +82,7 @@ the site draws the group open and every step in it offers Revise
 strategy's own name, and a name the site imports with `expanded` set, are kept.
 
 **A lone step takes the secondary side.** When one input of a combine
-PathFinder builds is one step and the other has an input of its own, the group
+Strategist builds is one step and the other has an input of its own, the group
 is the primary input and the step the secondary, and the operator mirrors to
 keep the question (`domain/strategy/combine_order.py::flat_join`: MINUS becomes
 RMINUS, LONLY becomes RONLY). The build (`spec_tree.py`), the restated tree of
@@ -101,7 +101,7 @@ with the same default `gene_boolean_filter_array`.
 # Gaps accepted
 
 - A group a researcher collapsed on the site opens again at the next name
-  write PathFinder sends for its combine.
+  write Strategist sends for its combine.
 - A combine the researcher or the model adds by a graph operation (the canvas,
   `apply_operations`) keeps the order it names.
 

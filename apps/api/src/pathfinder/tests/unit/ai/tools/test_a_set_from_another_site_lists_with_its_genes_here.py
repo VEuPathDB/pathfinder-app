@@ -67,7 +67,7 @@ async def test_a_saved_set_says_where_a_conversation_can_start_from_it(
     )
 
     assert saved.message == (
-        "Gene set 'kinases' with 1 genes has been saved in PathFinder. A "
+        "Gene set 'kinases' with 1 genes has been saved in Strategist. A "
         "conversation on PlasmoDB, VEuPathDB or OrthoMCL can start from it; it "
         "reaches the VEuPathDB workspace only when it is published. It holds gene "
         "IDs only: this conversation has no pushed strategy step behind them."

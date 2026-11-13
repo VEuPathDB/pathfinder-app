@@ -21,12 +21,12 @@ initial-state factory (`TurnStart -> TurnState`), a turn-context factory
 (`TurnContextRequest -> TurnContext`), a mock-model factory, `checkpoint_types`,
 a stream-part registration hook, `memory_kinds`, an identity gate, and a turn
 epilogue. Every one of them replaces something the pipeline previously
-hard-coded about PathFinder. The spec module imports `persistence.models` and
+hard-coded about Strategist. The spec module imports `persistence.models` and
 `platform.types` and nothing else outside core; the pinned core-surface test
 fails if that grows.
 
 **The graph is a factory, not a shape.** The runtime never names a node, an
-edge, a phase or an agent. PathFinder hands it a graph that routes each turn to the Lead
+edge, a phase or an agent. Strategist hands it a graph that routes each turn to the Lead
 or to Explore over `PipelineState`; an assistant with a single agent loop and a bare `TurnState`
 hands it that, and the runtime cannot tell them apart.
 
@@ -56,7 +56,7 @@ resume reads it back off the row.
 
 **Identity is per assistant, enforced in transport.** The chat route's
 dependency resolves the assistant and then runs `spec.identity_gate` when the
-assistant declares one. PathFinder declares
+assistant declares one. Strategist declares
 `services/wdk_identity.py::require_registered_wdk_login`, so its refusal is
 the same 401 `WDK_LOGIN_REQUIRED` on the same route, byte for byte. An
 assistant that declares no gate is served to any authenticated caller - the
@@ -81,7 +81,7 @@ It was rejected because a config-shaped Lead is still a Lead. Every assistant
 would inherit a turn structure built for multi-phase strategy work: a
 supervisor step it does not need, a state slot it leaves empty, a dispatch
 vocabulary it never uses, and a set of switches that only make sense to
-someone who knows PathFinder. The cost lands twice - on the simple assistant,
+someone who knows Strategist. The cost lands twice - on the simple assistant,
 which pays orchestration it did not ask for, and on the runtime, which cannot
 change the lead shape without breaking assistants that never used it. A
 factory returning a compiled graph costs one field and lets the simple
@@ -117,7 +117,7 @@ The runtime gained a stock graph for the simple case:
 `assistant_core/graph/single_agent.py::single_agent_graph`, an agent node plus
 the runtime's finalize node, usable by any assistant whose turn is one agent.
 It is a helper an assistant may take, not a shape the runtime imposes - the
-spec still carries a factory, and PathFinder does not use it.
+spec still carries a factory, and Strategist does not use it.
 
 **The finalize step is a second node, not the tail of the first.** The
 assistant message row is reduced from the chunks the durable log holds for the

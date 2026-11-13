@@ -23,7 +23,7 @@ describe("renderChatMarkdown", () => {
   it("writes one section per message and keeps only the text parts", () => {
     expect(renderChatMarkdown(MESSAGES)).toBe(
       [
-        "# PathFinder conversation export",
+        "# VEuPathDB Strategist conversation export",
         "",
         "## user",
         "Which kinases have a signal peptide?",
@@ -40,6 +40,6 @@ describe("renderChatMarkdown", () => {
   });
 
   it("writes the header alone for an empty transcript", () => {
-    expect(renderChatMarkdown([])).toBe("# PathFinder conversation export\n");
+    expect(renderChatMarkdown([])).toBe("# VEuPathDB Strategist conversation export\n");
   });
 });

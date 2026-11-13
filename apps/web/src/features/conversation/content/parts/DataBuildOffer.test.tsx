@@ -77,7 +77,7 @@ describe("DataBuildOffer", () => {
     );
   });
 
-  it("writes the plan PathFinder generated under the title", () => {
+  it("writes the plan Strategist generated under the title", () => {
     offered();
 
     expect(screen.getByTestId("build-offer-plan")).toHaveTextContent(

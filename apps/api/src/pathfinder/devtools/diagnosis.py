@@ -194,7 +194,7 @@ def _wdk_service_errors(calls: list[CapturedToolCall]) -> list[Anomaly]:
                 message=(
                     f"{tool} hit a WDK server error (5xx){where} {len(hits)} times "
                     f"- the agent retried an unavailable search instead of routing "
-                    f"around it. Likely an upstream outage, not a PathFinder bug."
+                    f"around it. Likely an upstream outage, not a Strategist bug."
                 ),
                 evidence=_evidence(hits),
                 details={"tool": tool, "search_name": search, "count": len(hits)},

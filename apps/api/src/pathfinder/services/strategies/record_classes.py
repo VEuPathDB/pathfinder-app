@@ -109,7 +109,7 @@ def unclassed_step_failure(step_id: str, search_name: str) -> StepPushFailure:
         search_name=search_name,
         error=(
             f"The site lists no record type for {search_name or step_id}, so "
-            f"PathFinder cannot address the step and did not send it."
+            f"Strategist cannot address the step and did not send it."
         ),
     )
 

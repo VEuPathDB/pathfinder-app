@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Pathfinder API",
+    "title": "VEuPathDB Strategist API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
     "version": "0.9.0b23"
   },
@@ -34,7 +34,7 @@
           "health"
         ],
         "summary": "System Config",
-        "description": "Report the model providers, the deployment's site, its sign-in address and\nthe website page that frames PathFinder.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
+        "description": "Report the model providers, the deployment's site, its sign-in address and\nthe website page that frames Strategist.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
         "operationId": "system_config_health_config_get",
         "responses": {
           "200": {
@@ -5150,7 +5150,7 @@
           "user"
         ],
         "summary": "Purge User Data Endpoint",
-        "description": "Purge user data from all local stores.\n\nWhen ``deleteWdk=false`` (default): every chat is **dismissed** (soft\ndelete) so WDK sync won't re-import them; the strategies remain on\nVEuPathDB but PathFinder ignores them. No chat is hard-deleted.\n\nWhen ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created\nthere are deleted, and everything whose strategy is gone is hard-deleted\nlocally. A strategy the user made on the website stays. A chat whose\nstrategy PathFinder could not delete - the site did not answer, the\nrequest names no registered VEuPathDB user, or the delete was refused -\nis dismissed instead of deleted, and a run in the same position keeps its\nrow in the workbench, so a later purge can finish the job.\n``wdkStrategiesKept`` counts those strategies.\n\nAlways deletes: gene sets, control sets, audit runs, audit verdicts, the\nruns whose strategy is gone, and the user's investigations still waiting\nfor curation. An audit run, an audit verdict and a staged investigation\neach name a site, so a purge of one site clears only that site's;\n``auditRuns``, ``auditVerdicts`` and ``stagedEvalCases`` count them.\n\nA memory names no site, so a purge of everything also deletes the user's\nmemories and the tombstones that hold them out; a purge of one site\nleaves them.\n\nPass ``?siteId=X`` to limit to one site, or omit for everything.",
+        "description": "Purge user data from all local stores.\n\nWhen ``deleteWdk=false`` (default): every chat is **dismissed** (soft\ndelete) so WDK sync won't re-import them; the strategies remain on\nVEuPathDB but Strategist ignores them. No chat is hard-deleted.\n\nWhen ``deleteWdk=true``: on VEuPathDB the strategies Strategist created\nthere are deleted, and everything whose strategy is gone is hard-deleted\nlocally. A strategy the user made on the website stays. A chat whose\nstrategy Strategist could not delete - the site did not answer, the\nrequest names no registered VEuPathDB user, or the delete was refused -\nis dismissed instead of deleted, and a run in the same position keeps its\nrow in the workbench, so a later purge can finish the job.\n``wdkStrategiesKept`` counts those strategies.\n\nAlways deletes: gene sets, control sets, audit runs, audit verdicts, the\nruns whose strategy is gone, and the user's investigations still waiting\nfor curation. An audit run, an audit verdict and a staged investigation\neach name a site, so a purge of one site clears only that site's;\n``auditRuns``, ``auditVerdicts`` and ``stagedEvalCases`` count them.\n\nA memory names no site, so a purge of everything also deletes the user's\nmemories and the tombstones that hold them out; a purge of one site\nleaves them.\n\nPass ``?siteId=X`` to limit to one site, or omit for everything.",
         "operationId": "purge_user_data_endpoint_api_v1_user_data_delete",
         "security": [
           {
@@ -5306,7 +5306,7 @@
           "eval"
         ],
         "summary": "Strategy Gene Ids Endpoint",
-        "description": "Fetch all gene IDs from a PathFinder strategy's WDK root step.",
+        "description": "Fetch all gene IDs from a Strategist strategy's WDK root step.",
         "operationId": "strategy_gene_ids_endpoint_api_v1_eval_strategy_gene_ids_post",
         "security": [
           {
@@ -7941,7 +7941,7 @@
           "conversationId"
         ],
         "title": "ChatRequestBody",
-        "description": "Typed body for ``POST /api/v1/chat`` (AI SDK v6 + PathFinder extras).\n\nThe shape matches ``@ai-sdk/react``'s ``useChat`` submit payload\n(``trigger``, ``id``, ``messages``) with PathFinder-scoped fields\n(``conversationId``, ``siteId``, ``mode``) layered on\nvia ``body`` on the client transport. The authenticated user UUID still\ncomes from the website login the request carries. ``messages`` uses pydantic-ai's\n``UIMessage`` so deferred-tool approval-responded parts deserialize into\nthe discriminated union and ``iter_tool_approval_responses`` works."
+        "description": "Typed body for ``POST /api/v1/chat`` (AI SDK v6 + Strategist extras).\n\nThe shape matches ``@ai-sdk/react``'s ``useChat`` submit payload\n(``trigger``, ``id``, ``messages``) with Strategist-scoped fields\n(``conversationId``, ``siteId``, ``mode``) layered on\nvia ``body`` on the client transport. The authenticated user UUID still\ncomes from the website login the request carries. ``messages`` uses pydantic-ai's\n``UIMessage`` so deferred-tool approval-responded parts deserialize into\nthe discriminated union and ``iter_tool_approval_responses`` works."
       },
       "CheckWords": {
         "properties": {
@@ -10826,7 +10826,7 @@
           "siteId"
         ],
         "title": "FetchGeneIdsRequest",
-        "description": "Fetch gene IDs from an existing PathFinder strategy."
+        "description": "Fetch gene IDs from an existing Strategist strategy."
       },
       "FileUIPart": {
         "properties": {

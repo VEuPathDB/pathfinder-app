@@ -21,7 +21,7 @@ class TooManyGenesError(ValidationError):
             title="Too many genes",
             detail=(
                 f"It holds {count:,} records, more than the {cap:,} "
-                "PathFinder reads into one list, so none were read. Use a "
+                "Strategist reads into one list, so none were read. Use a "
                 "smaller step or list, or download the result."
             ),
         )

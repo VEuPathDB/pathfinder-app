@@ -1,1 +1,1 @@
-"""Tests for Pathfinder API."""
+"""Tests for Strategist API."""

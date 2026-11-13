@@ -19,7 +19,7 @@ provider's cheapest catalog model through the construction a turn uses
 5xx is `PROVIDER_UNREACHABLE` (503); any other refusal is
 `PROVIDER_KEY_REFUSED` (422). A deployment with no key secret answers
 `PROVIDER_KEYS_DISABLED` as a 403: the refusal stands until an operator sets
-the secret, so it is not an outage a caller may wait out. The route answers the PathFinder application
+the secret, so it is not an outage a caller may wait out. The route answers the Strategist application
 alone and is rate limited to 10 an hour, because each call spends on the key it
 names. No response carries the key: the listing names its last four characters.
 The request validation handler logs and answers the place and the reason of a
@@ -109,7 +109,7 @@ rows and not the turn's total.
 - **One payer per turn**: a stronger model for the reasoning roles on the
   researcher's key beside the deployment's cheaper model is the reason to add
   a key, and every charge already knows its model.
-- **A PathFinder table for own-key spend**: it would split one monthly ledger
+- **A Strategist table for own-key spend**: it would split one monthly ledger
   across two owners.
 - **A regex scrub of log lines for key shapes**: the key reaches no logger by
   construction, a pattern list goes stale, and

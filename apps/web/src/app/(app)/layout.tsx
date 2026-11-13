@@ -88,7 +88,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
   if (access.kind === "pending") return <LoadingScreen />;
 
-  // A site PathFinder cannot reach cannot authenticate anyone, so the notice
+  // A site Strategist cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
   const siteDown = access.kind === "down";
   const showsElsewhere = elsewhereSite !== null && conversationId !== null;

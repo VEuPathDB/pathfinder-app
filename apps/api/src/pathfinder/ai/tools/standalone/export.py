@@ -50,7 +50,7 @@ async def export_gene_set(
     The URL expires after 10 minutes.
 
     Args:
-        gene_set_id: PathFinder gene set ID.
+        gene_set_id: Strategist gene set ID.
         output_format: Export format: csv or txt.
     """
     if output_format not in ("csv", "txt"):

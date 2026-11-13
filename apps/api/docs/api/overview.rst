@@ -1,7 +1,7 @@
 Architecture Overview
 =====================
 
-This page describes the PathFinder backend as it is built: how one chat turn
+This page describes the Strategist backend as it is built: how one chat turn
 travels from the HTTP route to the worker, what the Lead agent and its three
 phase sub-agents do, and which layer is allowed to call which.
 
@@ -95,7 +95,7 @@ How One Chat Turn Runs
 Lead and the Phase Sub-agents
 -----------------------------
 
-PathFinder's graph has two nodes, ``lead`` and ``finalize_turn``. The Lead is
+Strategist's graph has two nodes, ``lead`` and ``finalize_turn``. The Lead is
 the only voice the user hears and the only LLM the graph itself runs. A phase
 is a tool the Lead calls, not a node it hands control to.
 
@@ -143,7 +143,7 @@ Turn Chunks
 -----------
 
 The turn speaks the Vercel AI SDK v6 UI Message Stream protocol. Beside the
-protocol's own text, reasoning and tool parts, PathFinder emits typed
+protocol's own text, reasoning and tool parts, Strategist emits typed
 ``data-*`` parts that the frontend renders as message content, among them:
 
 .. list-table:: Typed data parts

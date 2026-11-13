@@ -178,7 +178,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         default=10_000,
         ge=1,
         description=(
-            "Most records PathFinder reads out of one step into a list: a saved "
+            "Most records Strategist reads out of one step into a list: a saved "
             "gene set or a control list. A larger step is counted and not read."
         ),
     )

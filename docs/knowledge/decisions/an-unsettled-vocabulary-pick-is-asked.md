@@ -56,7 +56,7 @@ cannot bind a wrong entry silently.
 
 - **Refusing the binding until FRAME writes the question.** It is one more model retry
   that may be answered with another wording; the question is built from typed state,
-  so PathFinder writes it.
+  so Strategist writes it.
 - **Binding the pick silently.** An unsettled pick is a recorded doubt, and a strategy
   built on it reports a count for a requirement the researcher may not mean.
 - **Keeping the chosen entries bound beside the question.** The spec then reads ready to

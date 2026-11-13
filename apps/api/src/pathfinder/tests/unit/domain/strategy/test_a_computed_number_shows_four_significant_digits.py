@@ -1,4 +1,4 @@
-"""A number PathFinder reads from a computation shows four significant
+"""A number Strategist reads from a computation shows four significant
 digits, its whole part in full, and no trailing zeros."""
 
 from __future__ import annotations

@@ -94,7 +94,7 @@ JSONArray, JSONValue. Owned by the runtime package and used throughout.
 Errors
 ------
 
-**Purpose:** PathFinder's own exception types, the wire's ``ErrorCode`` enum and
+**Purpose:** Strategist's own exception types, the wire's ``ErrorCode`` enum and
 the ``ProblemDetail`` body. A VEuPathDB refusal lives in
 ``veupathdb.errors`` and reaches the wire through
 :py:func:`veupathdb_error_handler`.

@@ -11,7 +11,7 @@ from pathfinder.ai.models.mock.directive import without_tokens
 
 # Two sentences, no code, under the cap the off-topic validator holds.
 OFF_TOPIC_PROSE = (
-    "PathFinder builds and checks search strategies on the VEuPathDB "
+    "Strategist builds and checks search strategies on the VEuPathDB "
     "sites, and runs EDA and exports on what they return. "
     "Ask me one of those and I will take it from there."
 )

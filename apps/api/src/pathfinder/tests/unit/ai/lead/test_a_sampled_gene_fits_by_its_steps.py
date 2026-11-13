@@ -356,7 +356,7 @@ async def test_a_union_branch_over_the_cap_is_left_to_the_record(
             fits,
             (
                 f"{_IN_CONSERVED}. The step '{_BERGHEI}' holds 9,000 genes, more "
-                "than the 5,000 PathFinder lists, so the record judges "
+                "than the 5,000 Strategist lists, so the record judges "
                 f"experimentally essential. {_READ}"
             ),
         )

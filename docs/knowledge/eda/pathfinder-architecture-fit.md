@@ -1,6 +1,6 @@
 ---
 type: Proposal
-title: How EDA fits PathFinder's architecture
+title: How EDA fits Strategist's architecture
 description: Where every EDA concern lands in the layer model, how an EDA compute maps onto the durable-tool machinery piece by piece, how EDA capabilities reach the MCP/SDK program as an admitted tool source, and the single Pydantic model set that keeps the analysis spec from being written three times.
 tags: [eda, pathfinder, architecture, layering, durable-tools, mcp, sdk, proposal, ssot]
 generated: { by: claude-code/opus-5, at: 2026-08-27T00:00:00Z }
@@ -8,14 +8,14 @@ verified: { by: claude-code/opus-5, at: 2026-08-27T00:00:00Z }
 status: accepted
 ---
 
-# How EDA fits PathFinder's architecture
+# How EDA fits Strategist's architecture
 
 Status: built. It deepens
 [pathfinder-integration-concept.md](pathfinder-integration-concept.md), which
 states the two seams; this document states where each piece of code goes, which
 existing mechanism it reuses, and what it must not duplicate.
 
-Every PathFinder claim below cites a file read in this repository on
+Every Strategist claim below cites a file read in this repository on
 2026-08-27. Every EDA claim cites `veupathdb-py: docs/knowledge/eda/what-eda-is.md`,
 `veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md`, `veupathdb-py: docs/knowledge/eda/rest-surface.md` or
 `veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`, each of which
@@ -23,7 +23,7 @@ names its upstream.
 
 ## The position in one paragraph
 
-EDA needs no new architectural concept in PathFinder. It needs one integration
+EDA needs no new architectural concept in Strategist. It needs one integration
 client, one service package, thin tool wrappers, one durable job, and one
 namespace in the stream-part registry. The reason is that EDA's two hard parts
 are already solved here for WDK: a typed client over a foreign REST surface
@@ -34,7 +34,7 @@ boundaries.
 
 ## 1. Layering
 
-PathFinder's layer rule is `transport -> services -> domain -> persistence`,
+Strategist's layer rule is `transport -> services -> domain -> persistence`,
 enforced by the `forbidden` contracts under `[tool.importlinter]` in
 `apps/api/pyproject.toml`. **`integrations/` left this repository**: the WDK and
 EDA clients are the `veupathdb-py` distribution, so every `integrations/...`
@@ -75,8 +75,8 @@ Modules, and the endpoints each covers (see
 | `analyses.py` | `/users/{uid}/analyses/{project}` CRUD, `/public/analyses`, `/import-analysis` |
 
 No new credential path. The EDA service accepts the same registered WDK token
-PathFinder already holds: the website's `Authorization` cookie brings it
-([PathFinder signs in through the site that hosts it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+Strategist already holds: the website's `Authorization` cookie brings it
+([Strategist signs in through the site that hosts it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
 `veupathdb.auth_context.veupathdb_auth_token_ctx` carries it per request,
 `main.py`'s request middleware sets it from the request and
 `platform/security.py::_veupathdb_principal` sets it for a bearer caller, and
@@ -98,7 +98,7 @@ The argument, and it is a real fork:
 
 *The case for `domain/`.* The analysis document is the central concept of the
 whole integration, it has a closed algebra (filters compose by AND across an
-array), and PathFinder authors it rather than merely reading it. All three are
+array), and Strategist authors it rather than merely reading it. All three are
 true.
 
 *Why it loses anyway.* Three reasons, in order of weight.
@@ -117,7 +117,7 @@ true.
 3. **The existing precedent is unambiguous.** WDK's own most conceptual
    shapes - `WDKStepTree`, `WDKSearchConfig`, `WDKStep` - live in
    `integrations/veupathdb/wdk_models.py`, while `domain/parameters/specs.py`
-   and `domain/parameters/values.py` hold PathFinder's own pure parameter
+   and `domain/parameters/values.py` hold Strategist's own pure parameter
    model. The split is not "important goes in domain"; it is "ours goes in
    domain, theirs goes at the boundary".
 
@@ -189,7 +189,7 @@ already exist:
 
 ### 1.5 `persistence/` - references only
 
-PathFinder stores a reference to the upstream artifact and nothing else. The
+Strategist stores a reference to the upstream artifact and nothing else. The
 EDA user service is the SSOT for an analysis, exactly as WDK is for a strategy;
 the precedent is
 [a conversation is a thread, its strategy is an attachment](../decisions/conversation-thread-and-strategy-split.md),
@@ -215,7 +215,7 @@ The two runtime seams EDA uses are already generic:
 - **The stream-part registry.** `assistant_core/conversation/stream_parts/registry.py`
   is an open registry whose `_schema_name` maps `data-<ns>.<name>` to an
   identifier by replacing `.` and `-` (design doc
-  `docs/design/2026-08-23-mcp-and-sdk-program.md` section 1.2). PathFinder
+  `docs/design/2026-08-23-mcp-and-sdk-program.md` section 1.2). Strategist
   registers `data-eda.*` kinds from the product side; the runtime learns a
   string, not a concept.
 - **The tool-source declaration.** `assistant_core/mcp/declaration.py`
@@ -232,7 +232,7 @@ is keyed by a hash of its inputs so identical requests share a cached result.
 created too early: `GeneEdaVizWithComputePlugin` throws WDK's
 `DelayedResultException` on `queued` or `in-progress`.
 
-That is why the compute is driven before the step exists, and PathFinder
+That is why the compute is driven before the step exists, and Strategist
 already owns the machinery. The mapping, naming the real mechanisms:
 
 | Step | Mechanism, with its file |
@@ -294,7 +294,7 @@ section 3.1). `service-eda` is exactly such a service.
 
 So a `veupathdb-eda-mcp` source is the design doc's **P5, "the second server"**
 (section 8.2), whose exit criterion is "a second team ships a server without a
-PathFinder engineer in the loop". PathFinder's half is an admission record and
+Strategist engineer in the loop". Strategist's half is an admission record and
 a declaration, both of which already have their shapes:
 
 ```python
@@ -314,7 +314,7 @@ record today. The decision
 the admitted tool sources are installed by the host (`assistant-platform: docs/knowledge/decisions/admitted-tool-sources-are-installed-by-the-host.md`)
 fixes that seam: the set is a value, installed once at process start, with no
 argument a request could travel through. The related decision
-[PathFinder admits veupathdb-wdk-mcp from two settings, and only with both](../decisions/pathfinder-admits-its-own-mcp-server-from-two-settings.md)
+[Strategist admits veupathdb-wdk-mcp from two settings, and only with both](../decisions/pathfinder-admits-its-own-mcp-server-from-two-settings.md)
 fixes the shape of the configuration: an endpoint and its credential, both
 required, so half a configuration admits nothing. An EDA source follows both
 without amendment.
@@ -401,12 +401,12 @@ The design doc's own example of a namespaced kind is, verbatim,
 call. A ClinEpiDB assistant declares the same `veupathdb-eda-mcp` source with a
 different allowlist, and inherits the credential, the approval predicate, the
 untrusted-output wrapper and the per-turn session with no code in common with
-PathFinder.
+Strategist.
 
 Zero genomics coupling, structurally, because the genomics-specific half is not
 in the source. The bridge is: `VEUPATHDB_GENE_ID`, the dataset-to-presenter
 mapping, `eda_analysis_spec` as a WDK parameter, and step creation. All four are
-PathFinder's own in-process tools over `services/eda/` plus
+Strategist's own in-process tools over `services/eda/` plus
 `services/strategies/`, not tools on the EDA source. ClinEpiDB has no gene
 column and no strategy, and it needs none of them.
 
@@ -416,18 +416,18 @@ and a tool source's session belongs to the turn (`assistant-platform: docs/knowl
 (`ResolvedToolSources` at `assistant_core/mcp/resolution.py:64` opens and closes
 every declared source around the whole drive).
 
-### 3.6 What PathFinder should not export
+### 3.6 What Strategist should not export
 
 The WDK MCP server is the `veupathdb-mcp` distribution, which this application
 installs and calls in process
 ([the wdk-mcp server is a product module of the api](../decisions/the-wdk-mcp-server-is-a-product-module.md)
 records the earlier reading and says it is superseded).
-It is tempting to add EDA tools to it. **Do not.** An EDA tool there would make PathFinder a
+It is tempting to add EDA tools to it. **Do not.** An EDA tool there would make Strategist a
 proxy in front of a Java service that should publish its own MCP endpoint, and
 the program's whole argument - "the science stays with its owners" - would be
 inverted for the one domain that is most obviously theirs. The exception, if any
 is needed as a bridge before P5 lands, is a **bridge tool** rather than an EDA
-tool: something like `create_eda_backed_step`, which is genuinely PathFinder's
+tool: something like `create_eda_backed_step`, which is genuinely Strategist's
 because it needs WDK step creation. Even that is an in-process tool first; it
 becomes an MCP tool only if a second consumer asks.
 
@@ -437,7 +437,7 @@ becomes an MCP tool only if a second consumer asks.
 
 The same JSON document is: (a) the body stored by the EDA user service under
 `/users/{uid}/analyses/{project}`, (b) the string value of the WDK
-`eda_analysis_spec` parameter, (c) the thing PathFinder authors. **One Pydantic
+`eda_analysis_spec` parameter, (c) the thing Strategist authors. **One Pydantic
 model set in `integrations/eda/models.py` is the SSOT, and there are exactly two
 serialization boundaries.**
 
@@ -524,7 +524,7 @@ question property is what selects one (three values live:
 
 The io-ts definitions in
 `web-monorepo/packages/libs/eda/src/lib/core/types/{analysis,filter}.ts` and the
-RAML in `service-eda` `schema/library.raml` are upstream truth. PathFinder's
+RAML in `service-eda` `schema/library.raml` are upstream truth. Strategist's
 Pydantic models are a mirror, and a mirror drifts.
 
 **The drift risk is not hypothetical, and it is already measured in two places.**
@@ -553,10 +553,10 @@ for the same split applied to conformance).
 
 The question is whether `integrations/eda/models.py` is hand-written or
 generated from `service-eda`'s RAML. **Hand-write it**, consistently with how
-PathFinder already mirrors WDK. Five reasons, the first two decisive:
+Strategist already mirrors WDK. Five reasons, the first two decisive:
 
 1. **A generator would produce a model that rejects real responses.** RAML says
-   `additionalProperties: false` and marks fields required; PathFinder needs
+   `additionalProperties: false` and marks fields required; Strategist needs
    `extra="ignore"` and tolerant optionality, because 24 of 880 live permission
    entries omit a declared-required field. Generating and then patching the
    output is the "one way to generate types" failure this repository already
@@ -570,7 +570,7 @@ PathFinder already mirrors WDK. Five reasons, the first two decisive:
 3. **We call a small fraction of the surface.** `service-eda`'s `api.raml` is
    about 2,100 lines of resources and `schema/library.raml` about 3,460 lines of
    types; most of it is MicrobiomeDB and MapVEu visualization payloads
-   PathFinder will never request. Generating all of it produces dead types that
+   Strategist will never request. Generating all of it produces dead types that
    still have to be reviewed and still break the build when upstream edits them.
 4. **The filter union is better by hand.** Seven members discriminated on
    `type` is exactly what `Discriminator("type")` is for, and a generated
@@ -613,7 +613,7 @@ contradicted.
 ## 7. What the client bundle's EDA pages mean here
 
 Three sections left `veupathdb-py: docs/knowledge/eda/` when that bundle stopped
-naming this application. They are architecture claims about PathFinder, so they
+naming this application. They are architecture claims about Strategist, so they
 belong beside the rest of this page.
 
 ### 7.1 From `veupathdb-py: docs/knowledge/eda/computes-and-jobs.md`

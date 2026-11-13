@@ -1,7 +1,7 @@
 """How this application runs the turn a finished durable task opens.
 
 The runtime reads the parked call and gathers the answers; this turns that
-into the request body a PathFinder turn runs under.
+into the request body a Strategist turn runs under.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 ---
 type: Decision
-title: The client library is a distribution, so PathFinder cannot reach into it
+title: The client library is a distribution, so Strategist cannot reach into it
 description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a tag; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository. The authoring model the client carried at first came back to this application at v0.1.0a7.
 tags: [veupathdb-py, split, architecture, packaging, import-linter, wdk, eda]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -39,7 +39,7 @@ the WDK test-account credential reader and the live lane's drift log.
 cd veupathdb-py && rm -rf .venv && uv sync --frozen && uv run pytest tests/unit
 ```
 
-in a shell where PathFinder is not installed. A module that imported `pathfinder`
+in a shell where Strategist is not installed. A module that imported `pathfinder`
 would fail to resolve, not fail a lint rule. `tests/unit/test_package_boundary.py`
 walks every module and asserts the same thing per module, so the failure names the
 module rather than the run.
@@ -58,7 +58,7 @@ exemption.
 
 # The authoring model came back
 
-The client shipped PathFinder's authoring model for one release line, because
+The client shipped Strategist's authoring model for one release line, because
 `veupathdb.wdk` named it. At `v0.1.0a7` it left: `operational_spec.py`,
 `constraints.py`, `spec_diff.py`, `session.py`, `combination_check.py`,
 `build_outcome.py`, `operations/`, `types.py`, the step lifecycle
@@ -85,7 +85,7 @@ owner is publishing `veupathdb-py` as its own GitHub repository, so a rule a lin
 applies inside one checkout proves nothing about the artifact anyone installs.
 
 **Split the knowledge bundle by subject.** Rejected after measuring: 15 rule blocks and
-39 `status` lines name PathFinder code, and the WDK model prose cites the rules they
+39 `status` lines name Strategist code, and the WDK model prose cites the rules they
 belong to, so a subject split breaks 51 fields and 15 citations. What moved is the
 whole WDK and EDA bundle; what stayed is `wdk/pathfinder/`, whose `WDK-MAP` rules
 are invariants of the application rather than facts about WDK. A rule the library cannot

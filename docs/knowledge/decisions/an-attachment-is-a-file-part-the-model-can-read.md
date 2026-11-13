@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An attachment is a file part the model can read
-description: An image or a PDF the researcher attaches rides the message as an AI SDK v6 file part with a data URL, is stored in the event log with the message, and is refused by the composer and by the api when the model that reads the message does not read that kind or the message is over its caps. Which models read which kind is measured with one PNG and one PDF per catalog model. Uploading to PathFinder storage, converting images to text in the browser, and sending a file to a model that cannot read it were rejected.
+description: An image or a PDF the researcher attaches rides the message as an AI SDK v6 file part with a data URL, is stored in the event log with the message, and is refused by the composer and by the api when the model that reads the message does not read that kind or the message is over its caps. Which models read which kind is measured with one PNG and one PDF per catalog model. Uploading to Strategist storage, converting images to text in the browser, and sending a file to a model that cannot read it were rejected.
 tags: [decision, attachments, models, chat, security]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 status: stable
@@ -35,7 +35,7 @@ problem detail before it is stored: 413 `ATTACHMENT_TOO_LARGE`, or 422
 inline file, or a kind the reader does not read (`ai/conversation/attachments.py`,
 `transport/http/routers/chat.py::refuse_unreadable_attachments`).
 
-**The reader is the role that reads the message.** For PathFinder that is the
+**The reader is the role that reads the message.** For Strategist that is the
 Lead; for a one-agent assistant it is its one agent (`assistants/registry.py::prompt_reader_model`,
 `lib/models/attachments.ts::readerModel`). A pick for another role does not
 decide what may be attached.
@@ -96,7 +96,7 @@ the person who hid it.
 
 # What was rejected
 
-- **Uploading the file to PathFinder storage and sending a reference.** It adds
+- **Uploading the file to Strategist storage and sending a reference.** It adds
   a store, a retention policy and an access check for bytes that the provider
   needs inline anyway; the event log already carries the message it belongs to.
 - **Converting an image to text in the browser (OCR) and sending the text.** It

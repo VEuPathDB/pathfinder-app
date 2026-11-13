@@ -1,4 +1,4 @@
-"""No string a researcher can read names PathFinder's internals.
+"""No string a researcher can read names Strategist's internals.
 
 The glossary is `docs/knowledge/decisions/user-facing-vocabulary.md`. A tool
 summary, an error title or detail, and a refusal that can reach a

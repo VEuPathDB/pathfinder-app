@@ -1,4 +1,4 @@
-"""A PathFinder turn that repeats one catalog read is stopped by the guard.
+"""A Strategist turn that repeats one catalog read is stopped by the guard.
 
 The scripted FRAME arc asks for the same listing on every step. The guard
 refuses the third identical call and ends the sub-agent's pass on the fourth,

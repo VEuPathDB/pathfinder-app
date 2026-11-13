@@ -40,7 +40,7 @@ describe("RailFoot", () => {
     expect(help.nextElementSibling).toBe(gear);
     expect(
       gear.nextElementSibling?.contains(
-        screen.getByRole("img", { name: "PathFinder" }),
+        screen.getByRole("img", { name: "VEuPathDB Strategist" }),
       ),
     ).toBe(true);
   });

@@ -1,4 +1,4 @@
-"""The seam between the memory store and what PathFinder remembers.
+"""The seam between the memory store and what Strategist remembers.
 
 Storing, ranking and tombstoning a memory is generic. Which kinds exist, and
 which of a finished turn's artifacts are worth keeping, are the product's, so

@@ -48,5 +48,5 @@ def test_a_record_left_as_a_mapping_is_rebuilt_as_its_model() -> None:
 def test_a_value_this_build_cannot_read_ends_the_turn_with_a_sentence() -> None:
     with pytest.raises(ConversationFromEarlierBuildError) as caught:
         rebuilt_state(_constructed_without_validation(5))
-    assert "saved by an earlier version of PathFinder" in str(caught.value.detail)
+    assert "saved by an earlier version of Strategist" in str(caught.value.detail)
     assert "last_build_outcome" in str(caught.value.detail)

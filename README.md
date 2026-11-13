@@ -4,12 +4,12 @@
       <source media="(prefers-color-scheme: dark)" srcset="assets/brand/pathfinder-mark-dark.svg" />
       <img
         src="assets/brand/pathfinder-mark-light.svg"
-        alt="PathFinder"
+        alt="VEuPathDB Strategist"
         height="32"
         style="vertical-align: middle; margin-right: 8px;"
       />
     </picture>
-    PathFinder
+    VEuPathDB Strategist
   </h1>
   <p>An open-source tool-calling LLM agent for constructing VEuPathDB search strategies.</p>
   <p><strong><em>How Underspecified Prompts Shape Tool-Calling LLM Agents in Scientific Workflows</em></strong></p>
@@ -26,17 +26,17 @@
     <img src="https://img.shields.io/badge/Gemini-8E75B2?logo=google-gemini&logoColor=white" alt="Google Gemini" />
     <img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" />
   </p>
-  <img src="assets/pathfinder.png" alt="PathFinder" width="100%" />
+  <img src="assets/pathfinder.png" alt="VEuPathDB Strategist" width="100%" />
 
 </div>
 
-PathFinder's goal is to make complex query/strategy construction **easier, faster, and more reliable** by combining:
+Strategist's goal is to make complex query/strategy construction **easier, faster, and more reliable** by combining:
 
 - **A Lead agent with specialist sub-agents** (the Lead is the only voice the user hears; it frames the problem, builds, and verifies through sub-agents it invokes as tools)
 - **Execution with real tools** (build/edit a real strategy graph via validated tool calls)
 - **Catalog grounding** (live WDK catalog for discovery and examples)
 
-PathFinder is served at `/pathfinder` on a VEuPathDB website's own host by the estate's
+Strategist is served at `/pathfinder` on a VEuPathDB website's own host by the estate's
 container stack, and signs researchers in through that website's login. How the stack is run is
 [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
@@ -44,7 +44,7 @@ container stack, and signs researchers in through that website's login. How the 
 
 This repo is organized as:
 
-- **`apps/api/`**: FastAPI backend ("Pathfinder API")
+- **`apps/api/`**: FastAPI backend ("Strategist API")
   - Chat endpoint (`/api/v1/chat`) that defers the turn to the worker and returns an SSE tail of the durable event log.
   - The agents themselves, the WDK client, the services, and the procrastinate worker.
 - **`apps/web/`**: Next.js UI
@@ -54,13 +54,13 @@ This repo is organized as:
 - **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
 - **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
-- **`assets/brand/`**: the PathFinder logo in every form (marks, favicons, app icons, a link preview), with its rules and a guide page. The web app and the API documentation take their logo from here.
+- **`assets/brand/`**: the Strategist logo in every form (marks, favicons, app icons, a link preview), with its rules and a guide page. The web app and the API documentation take their logo from here.
 
 Three libraries are repositories of their own, consumed by URL at a release tag
 (`apps/api/pyproject.toml` `[tool.uv.sources]`, `apps/web/package.json`):
 
-- **[ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client)**: the VEuPathDB WDK and EDA client (`veupathdb`), which knows nothing about PathFinder. Its README documents the client, and the WDK and EDA knowledge bundle lives with it.
-- **[ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp)**: the WDK catalog, parameter and gene tools served over MCP (`veupathdb_mcp`), with the semantic index they own. PathFinder installs it and calls the same functions in process.
+- **[ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client)**: the VEuPathDB WDK and EDA client (`veupathdb`), which knows nothing about Strategist. Its README documents the client, and the WDK and EDA knowledge bundle lives with it.
+- **[ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp)**: the WDK catalog, parameter and gene tools served over MCP (`veupathdb_mcp`), with the semantic index they own. Strategist installs it and calls the same functions in process.
 - **[ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform)**: the runtime (`assistant_core`), the headless TypeScript client (`@veupathdb/assistant-client`, no React), the conformance suite an MCP tool server passes before a deployment admits it, and `PROTOCOL.md`, the wire between the first two.
 
 The API also includes: gene set management, an experiment engine (metrics, cross-validation, enrichment), export tools, a model catalog with token metrics, cross-thread memory, and an MCP server.
@@ -144,7 +144,7 @@ The repo now ships with two explicit profiles:
   - compose: [`docker-compose.dev.yml`](docker-compose.dev.yml)
   - local Langfuse: [`docker-compose.observability.dev.yml`](docker-compose.observability.dev.yml)
 
-The base profile is intentionally fail-closed. PathFinder will not boot until you explicitly provide:
+The base profile is intentionally fail-closed. Strategist will not boot until you explicitly provide:
 
 - `API_SECRET_KEY`
 - `DATABASE_URL`
@@ -159,7 +159,7 @@ generated on demand (see [Option C](#option-c-test--e2e-profile)).
 
 ### Local models (Ollama)
 
-PathFinder supports local LLMs via [Ollama](https://ollama.com). To add local models:
+Strategist supports local LLMs via [Ollama](https://ollama.com). To add local models:
 
 1. Install and start Ollama (`ollama serve`).
 2. Pull any models you want (e.g. `ollama pull qwen3:8b`).
@@ -403,7 +403,7 @@ CI and the pre-commit hooks check the result rather than writing it, so a stale 
 
 ## Roadmap / what's missing
 
-PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
+Strategist is a research-driven prototype. These are the biggest gaps you should expect today:
 
 - **Production**: no production stage runs yet.
 - **Contribution docs**: no `CONTRIBUTING.md`, no governance.
@@ -412,7 +412,7 @@ PathFinder is a research-driven prototype. These are the biggest gaps you should
 
 ## Thesis context: "How Underspecified Prompts Shape Tool-Calling LLM Agents in Scientific Workflows"
 
-PathFinder is built around the idea that ambiguous or underspecified requests are normal when humans describe complex strategies. The system therefore emphasizes:
+Strategist is built around the idea that ambiguous or underspecified requests are normal when humans describe complex strategies. The system therefore emphasizes:
 
 - **integrated framing** (the Lead binds an underspecified request to a real specification before anything is built, and says what it assumed)
 - **catalog grounding** (reduce hallucinated tool names/parameters)
@@ -421,7 +421,7 @@ PathFinder is built around the idea that ambiguous or underspecified requests ar
 
 ## Acknowledgements
 
-PathFinder builds on:
+Strategist builds on:
 
 - **VEuPathDB / WDK** concepts and APIs (strategy graphs, searches, parameter specs)
 - **FastAPI** (API) and **Next.js** (web UI)

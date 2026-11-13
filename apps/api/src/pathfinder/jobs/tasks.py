@@ -1,4 +1,4 @@
-"""Procrastinate task registrations for the Pathfinder worker.
+"""Procrastinate task registrations for the Strategist worker.
 
 All tasks register on import via the ``@procrastinate_app.task`` decorator.
 ``ensure_registered`` is a no-op call-site marker used by the bootstrap

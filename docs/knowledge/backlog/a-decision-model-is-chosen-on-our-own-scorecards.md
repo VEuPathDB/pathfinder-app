@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A decision model is chosen on our own scorecards
-description: Cloudflare's open-weight Clef and Clef-flash answer the same typed questions as TypeSafe's Jev; the Jev scorecards are rerun on both before any decision model is wired into PathFinder.
+description: Cloudflare's open-weight Clef and Clef-flash answer the same typed questions as TypeSafe's Jev; the Jev scorecards are rerun on both before any decision model is wired into Strategist.
 tags: [models, decision-models, injection, verify, catalog]
 generated: { by: claude-code/opus-5, at: 2026-10-04T00:00:00Z }
 status: proposed
@@ -26,7 +26,7 @@ Jev's 32k, and reads images.
 
 ## What is known
 
-Jev was measured on five PathFinder uses. None shipped. In rank order:
+Jev was measured on five Strategist uses. None shipped. In rank order:
 
 1. A second injection screen on tool results. The injection judge on Luna
    caught 108 of 117 attacks; the judge OR Jev at confidence 0.85 or more

@@ -119,7 +119,7 @@ async def test_a_build_step_the_site_lists_under_no_class_is_not_sent(
         [],
         [
             (
-                "The site lists no record type for Unlisted, so PathFinder cannot "
+                "The site lists no record type for Unlisted, so Strategist cannot "
                 "address the step and did not send it."
             )
         ],

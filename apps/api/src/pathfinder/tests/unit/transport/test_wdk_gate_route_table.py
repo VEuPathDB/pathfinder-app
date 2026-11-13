@@ -24,7 +24,7 @@ SPEC_GATED: dict[tuple[str, str], str] = {
     (
         "POST",
         "/api/v1/chat",
-    ): "The turn's assistant declares the requirement; PathFinder's spec "
+    ): "The turn's assistant declares the requirement; Strategist's spec "
     "names the registered login, and the dependency runs it before dispatch, "
     "so the worker never builds a strategy without the user's token.",
 }

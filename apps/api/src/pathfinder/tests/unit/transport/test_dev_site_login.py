@@ -1,4 +1,4 @@
-"""The development sign-in sets the site cookie and returns under PathFinder."""
+"""The development sign-in sets the site cookie and returns under Strategist."""
 
 from __future__ import annotations
 

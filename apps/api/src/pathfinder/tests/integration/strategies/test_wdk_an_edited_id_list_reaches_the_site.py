@@ -58,7 +58,7 @@ async def built(
     session_maker: async_sessionmaker[AsyncSession],
     db_cleaner: None,
 ) -> AsyncGenerator[_Built]:
-    """A one-step id-list strategy PathFinder built on PlasmoDB."""
+    """A one-step id-list strategy Strategist built on PlasmoDB."""
     del patch_app_db_engine, db_cleaner
     reset = veupathdb_auth_token_ctx.set(require_wdk_creds)
     api = get_strategy_api(_SITE)

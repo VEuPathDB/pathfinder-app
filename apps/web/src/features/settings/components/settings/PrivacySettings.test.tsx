@@ -46,14 +46,14 @@ describe("PrivacySettings", () => {
 
     expect(
       await screen.findByRole("switch", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     ).toBeChecked();
     expect(screen.getByTestId("privacy-learning-copy")).toHaveTextContent(
-      "PathFinder may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
+      "Strategist may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
     );
     expect(
-      screen.getByRole("link", { name: "Your data in PathFinder" }),
+      screen.getByRole("link", { name: "Your data in Strategist" }),
     ).toHaveAttribute("href", "/help/your-data#learning");
   });
 
@@ -63,7 +63,7 @@ describe("PrivacySettings", () => {
     render(<PrivacySettings />);
 
     const toggle = await screen.findByRole("switch", {
-      name: "Let PathFinder learn from my strategies",
+      name: "Let Strategist learn from my strategies",
     });
     expect(toggle).toBeChecked();
   });
@@ -75,7 +75,7 @@ describe("PrivacySettings", () => {
 
     expect(
       await screen.findByRole("switch", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     ).not.toBeChecked();
   });
@@ -87,7 +87,7 @@ describe("PrivacySettings", () => {
     render(<PrivacySettings />);
     fireEvent.click(
       await screen.findByRole("switch", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     );
 
@@ -96,7 +96,7 @@ describe("PrivacySettings", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByRole("switch", { name: "Let PathFinder learn from my strategies" }),
+        screen.getByRole("switch", { name: "Let Strategist learn from my strategies" }),
       ).not.toBeChecked();
     });
   });
@@ -108,7 +108,7 @@ describe("PrivacySettings", () => {
     render(<PrivacySettings />);
     fireEvent.click(
       await screen.findByRole("switch", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     );
 
@@ -117,7 +117,7 @@ describe("PrivacySettings", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByRole("switch", { name: "Let PathFinder learn from my strategies" }),
+        screen.getByRole("switch", { name: "Let Strategist learn from my strategies" }),
       ).toBeChecked();
     });
   });
@@ -148,7 +148,7 @@ describe("PrivacySettings", () => {
     render(<PrivacySettings />);
     fireEvent.click(
       await screen.findByRole("switch", {
-        name: "Let PathFinder learn from my strategies",
+        name: "Let Strategist learn from my strategies",
       }),
     );
 

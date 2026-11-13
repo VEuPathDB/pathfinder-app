@@ -83,7 +83,7 @@ class UnlistedStep(CamelModel):
     def sentence(self) -> str:
         return (
             f"The step '{self.title}' holds {self.count:,} genes, more than the "
-            f"{self.listed_at_most:,} PathFinder lists, so the record judges "
+            f"{self.listed_at_most:,} Strategist lists, so the record judges "
             f"{self.requirement}"
         )
 

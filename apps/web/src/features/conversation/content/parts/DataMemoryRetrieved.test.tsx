@@ -174,7 +174,7 @@ describe("DataMemoryRetrieved on a part an earlier version wrote", () => {
   it("shows the stale-part notice and prints no date", () => {
     const { container } = render(<DataMemoryRetrieved data={WITHOUT_CREATED_AT} />);
     expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
-      "Recalled memories from an earlier version of PathFinder can't be shown.",
+      "Recalled memories from an earlier version of Strategist can't be shown.",
     );
     expect(container.textContent).not.toContain("Invalid Date");
     expect(screen.queryByTestId("data-memory-retrieved")).toBeNull();

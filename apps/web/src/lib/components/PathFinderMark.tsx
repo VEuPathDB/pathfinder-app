@@ -11,14 +11,14 @@ import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 
 export function PathFinderMark() {
   const { data } = useQuery(healthCheckQueryOptions());
-  const name = data === undefined ? "PathFinder" : `PathFinder v${data.version}`;
+  const name = data === undefined ? "Strategist" : `Strategist v${data.version}`;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip tapToOpen>
         <TooltipTrigger asChild>
           <span
             role="img"
-            aria-label="PathFinder"
+            aria-label="VEuPathDB Strategist"
             tabIndex={0}
             className="flex size-9 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >

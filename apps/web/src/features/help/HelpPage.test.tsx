@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 const HEADINGS = [
-  "What PathFinder does",
+  "What Strategist does",
   "Signing in and your site",
   "How a conversation works",
   "What to check",
@@ -42,7 +42,7 @@ describe("HelpPage", () => {
     ).toEqual(HEADINGS);
   });
 
-  it("names what PathFinder can do beyond building a strategy", () => {
+  it("names what Strategist can do beyond building a strategy", () => {
     const { container } = render(<HelpPage siteId="plasmodb" />);
 
     expect(
@@ -62,7 +62,7 @@ describe("HelpPage", () => {
     const { container } = render(<HelpPage siteId="plasmodb" />);
 
     expect(section(container, "sign-in")).toHaveTextContent(
-      "Here, PathFinder works on PlasmoDB.",
+      "Here, Strategist works on PlasmoDB.",
     );
     expect(container).not.toHaveTextContent("Switch site");
   });
@@ -73,7 +73,7 @@ describe("HelpPage", () => {
     expect(section(container, "sign-in")).toHaveTextContent(
       "Each conversation stays on the site where you started it.",
     );
-    expect(container).not.toHaveTextContent("Here, PathFinder works on");
+    expect(container).not.toHaveTextContent("Here, Strategist works on");
   });
 
   it("names the answers each card waits for and the stop control", () => {
@@ -91,7 +91,7 @@ describe("HelpPage", () => {
     render(<HelpPage siteId="plasmodb" />);
 
     expect(
-      screen.getByRole("link", { name: "Your data in PathFinder" }),
+      screen.getByRole("link", { name: "Your data in Strategist" }),
     ).toHaveAttribute("href", "/help/your-data");
   });
 
@@ -99,14 +99,14 @@ describe("HelpPage", () => {
     render(<HelpPage siteId="plasmodb" />);
 
     expect(
-      screen.getByRole("link", { name: "what PathFinder does when a model declines" }),
+      screen.getByRole("link", { name: "what Strategist does when a model declines" }),
     ).toHaveAttribute("href", "/help/your-data#declined");
   });
 
   it("leads back to the app", () => {
     render(<HelpPage siteId="plasmodb" />);
 
-    expect(screen.getByRole("link", { name: "Back to PathFinder" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Back to Strategist" })).toHaveAttribute(
       "href",
       "/",
     );

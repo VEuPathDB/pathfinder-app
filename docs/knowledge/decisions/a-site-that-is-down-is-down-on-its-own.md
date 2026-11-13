@@ -19,7 +19,7 @@ readiness body read every subsystem `ready: true`, `catalogs.veupathdb.ready:
 false`, `not_ready: ["catalog:veupathdb"]`, at 1.65 GB with no OOM. Compose
 declared the api unhealthy after its probe window, its dependents never started,
 and the e2e job died before Playwright ran, twice. One VEuPathDB site being down
-took PathFinder down for every site.
+took Strategist down for every site.
 
 Measured the same day inside the api container, loading the portal's catalog
 into an empty cache directory: the load raised `WDKError` after 375.0 s, the
@@ -112,7 +112,7 @@ that carries a site id spells it `siteId`, on the wire as well as in a path
 template, which is what lets one dependency bind it.
 
 **A degraded site is never swapped for another.** The site a page works on is
-the website that frames PathFinder
+the website that frames Strategist
 ([the site comes from the website](the-site-comes-from-the-website-that-frames-pathfinder.md)),
 so no entry point chooses a site for the researcher. A degraded current site
 shows its notice in the shell.
@@ -194,5 +194,5 @@ still open, which are this deployment's own rows.
 **Keeping the per-site retry inside `veupathdb_mcp`.** `DiscoveryService.preload_all`
 is the served MCP process's own startup path and its pyproject names no
 `pathfinder`. The budget and the retry belong to the caller that owns the
-readiness report, so PathFinder's warm-up drives `get_catalog` per site and
+readiness report, so Strategist's warm-up drives `get_catalog` per site and
 leaves the distribution alone.

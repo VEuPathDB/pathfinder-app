@@ -14,7 +14,7 @@ import { createTestWrapper } from "@/lib/query/testing";
 
 import { AccountReadsSwitch } from "./AccountReadsSwitch";
 
-const LABEL = "Always let PathFinder read my account in every conversation";
+const LABEL = "Always let Strategist read my account in every conversation";
 
 function shown() {
   const { Wrapper } = createTestWrapper();

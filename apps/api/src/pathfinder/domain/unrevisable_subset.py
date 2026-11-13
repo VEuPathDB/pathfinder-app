@@ -18,7 +18,7 @@ class UnrevisableSubsetCaveat(CamelModel):
     def sentence(self) -> str:
         return (
             f"The site's Revise form cannot edit the dataset filter of "
-            f"'{self.step}'; ask PathFinder to change it."
+            f"'{self.step}'; ask Strategist to change it."
         )
 
     def texts(self) -> list[str]:

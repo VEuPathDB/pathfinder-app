@@ -1,5 +1,5 @@
 """The separation part of the evidence facade: one run on the site, read as the
-report PathFinder shows and the offer it builds."""
+report Strategist shows and the offer it builds."""
 
 from uuid import UUID
 

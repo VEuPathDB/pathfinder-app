@@ -55,7 +55,7 @@ _PROBLEM = {
         "schema": {"$ref": "#/components/schemas/ProblemDetail"}
     }
 }
-# Every key route refuses a calling application that is not PathFinder, and
+# Every key route refuses a calling application that is not Strategist, and
 # storing a key is refused where the deployment takes none.
 _KEY_REFUSALS: dict[int | str, dict[str, Any]] = {
     403: {"description": "Forbidden", "content": _PROBLEM},

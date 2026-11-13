@@ -15,7 +15,7 @@ export function downloadTextFile(filename: string, text: string, mime: string) {
 }
 
 export function renderChatMarkdown(messages: UIMessage[]): string {
-  const lines: string[] = ["# PathFinder conversation export", ""];
+  const lines: string[] = ["# VEuPathDB Strategist conversation export", ""];
   for (const msg of messages) {
     lines.push(`## ${msg.role}`);
     for (const part of msg.parts) {

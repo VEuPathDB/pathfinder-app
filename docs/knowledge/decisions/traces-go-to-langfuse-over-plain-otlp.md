@@ -42,7 +42,7 @@ the server.
 **The Langfuse SDK's span processor.** It attaches to whatever global provider it
 finds and filters spans by instrumentation scope, so a span the application opens
 itself was dropped unless a custom filter kept it. It also ties the runtime, which
-serves hosts that are not PathFinder, to one vendor's SDK. Plain OTLP keeps the
+serves hosts that are not Strategist, to one vendor's SDK. Plain OTLP keeps the
 runtime vendor-neutral: pointing the endpoint at any OTLP backend needs no code.
 
 **Langfuse Cloud.** Traces carry researchers' prompts, gene lists and unpublished

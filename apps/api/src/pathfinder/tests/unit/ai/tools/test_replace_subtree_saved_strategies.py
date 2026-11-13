@@ -35,7 +35,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
 
 
 def _saved_union() -> StrategyStepNode:
-    """A saved strategy of two searches, its combine named as PathFinder names it."""
+    """A saved strategy of two searches, its combine named as Strategist names it."""
     return combine(
         "saved_root",
         StrategyStepNode(id="saved_a", search_name="GenesByGoTerm"),

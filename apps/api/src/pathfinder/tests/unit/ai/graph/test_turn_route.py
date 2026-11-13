@@ -111,7 +111,7 @@ def test_the_request_is_the_measured_one() -> None:
     assert q.instructions == "The mode that should answer the latest message."
     assert [c.value for c in q.choices] == ["build", "explore"]
     assert req.input.startswith(
-        "PathFinder is an assistant inside VEuPathDB that has two modes. "
+        "Strategist is an assistant inside VEuPathDB that has two modes. "
     )
     assert req.input.endswith(
         "## The researcher's latest message\nCount genes with a signal peptide"
@@ -123,7 +123,7 @@ def test_the_request_is_the_measured_one() -> None:
 def test_the_choices_carry_the_measured_descriptions() -> None:
     build, explore = _mode_question(REQ).choices
     assert build.description.startswith(
-        "The message asks PathFinder to build, change, undo, run, show, count or export"
+        "The message asks Strategist to build, change, undo, run, show, count or export"
     )
     assert explore.description.endswith("Nothing is built until the researcher agrees.")
 

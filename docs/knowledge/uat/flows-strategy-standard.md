@@ -101,14 +101,14 @@ Today: plasmodb 142 (pass). toxodb and vectorbase build `isSyntenic=yes` (69 and
 | 4 | A new empty conversation, right rail `Strategy` | `Insert saved strategy`, pick `UAT saved S7`, `Insert` | Toast `Saved strategy inserted`; the steps become the strategy's first steps |
 | 5 | Nav rail `Saved strategies` | Read the row | Badge `Used in 2 conversations` (CSS uppercase) |
 | 6 | Row | `Delete saved strategy` while other conversations use it | The row reads `Used in 2 conversations`; the delete button is disabled and its title reads `Used in 2 conversations; remove it from them before deleting it.`; the row stays |
-| 7 | Cleanup | Delete the two consuming conversations (F7 step 4), then `Delete saved strategy` | A dialog `Delete "UAT saved S7"?` reads `This also deletes the strategy on PlasmoDB, and PathFinder cannot restore it.`; `Delete` gives toast `Saved strategy deleted` and the row leaves the list |
+| 7 | Cleanup | Delete the two consuming conversations (F7 step 4), then `Delete saved strategy` | A dialog `Delete "UAT saved S7"?` reads `This also deletes the strategy on PlasmoDB, and Strategist cannot restore it.`; `Delete` gives toast `Saved strategy deleted` and the row leaves the list |
 
-## S8 - A strategy made on the site, opened in PathFinder - plasmodb
+## S8 - A strategy made on the site, opened in Strategist - plasmodb
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | plasmodb.org, signed in as account A | Build `Predicted Signal Peptide` for P. falciparum 3D7 (SignalP-6.0) and save it | The site shows 479 genes |
-| 2 | Sidebar header | `Open a VEuPathDB strategy` (folder) | Dialog `Open a VEuPathDB strategy`, `Pick one of your PlasmoDB strategies, or paste a strategy's link or its numeric id. PathFinder opens a conversation that holds it.`; the list shows the step-1 strategy with `479 results` |
+| 2 | Sidebar header | `Open a VEuPathDB strategy` (folder) | Dialog `Open a VEuPathDB strategy`, `Pick one of your PlasmoDB strategies, or paste a strategy's link or its numeric id. Strategist opens a conversation that holds it.`; the list shows the step-1 strategy with `479 results` |
 | 3 | Dialog | Pick it, `Open` | Toast `Strategy opened`, `PlasmoDB strategy <id>`; a conversation holding the one step, 479 genes |
 | 4 | Dialog | Paste a toxodb strategy link | `That link names a ToxoDB strategy. Open it on the ToxoDB website.`; `Open` stays disabled |
 | 5 | Composer | Send `How many genes does this strategy return?` | 479 |

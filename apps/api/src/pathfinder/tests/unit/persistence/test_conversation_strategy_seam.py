@@ -1,4 +1,4 @@
-"""The seam between a chat thread and PathFinder's strategy projection.
+"""The seam between a chat thread and Strategist's strategy projection.
 
 ``conversations`` is what a second assistant reuses, so a WDK column that
 lands back on it is a regression even when every other test still passes.

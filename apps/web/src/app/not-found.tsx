@@ -21,9 +21,9 @@ export default function NotFound() {
 
   return (
     <div className="flex h-full min-h-screen flex-col items-center justify-center bg-background px-6 text-center text-foreground">
-      <PathFinderLogo size={64} label="PathFinder" priority />
+      <PathFinderLogo size={64} label="VEuPathDB Strategist" priority />
       <h1 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
-        PathFinder
+        VEuPathDB Strategist
       </h1>
       <p className="mt-6 text-xl font-medium text-foreground">
         Whoops - this page couldn&apos;t be found.

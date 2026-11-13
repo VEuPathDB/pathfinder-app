@@ -211,7 +211,7 @@ async function openRowMenu(row: Locator) {
 }
 
 /**
- * A browser context signed in as its own synthetic PathFinder user. A website
+ * A browser context signed in as its own synthetic Strategist user. A website
  * login would name the registered account's user instead.
  */
 async function signedInUser(
@@ -253,7 +253,7 @@ test.describe("First run and navigation", () => {
 
     const signedOut = page.getByTestId("signed-out-notice");
     await expect(signedOut).toBeVisible({ timeout: 30_000 });
-    await expect(signedOut).toContainText("PathFinder");
+    await expect(signedOut).toContainText("Strategist");
     await expect(signedOut).toContainText("VEuPathDB Strategy Builder");
     await expect(signedOut).toContainText(
       "Sign in to VEuPathDB to build and manage search strategies.",
@@ -282,7 +282,7 @@ test.describe("First run and navigation", () => {
     const freshPage = await fresh.newPage();
     await gotoOnSite(freshPage, siteId, `${BASE_URL}/conversation`);
     const notice = freshPage.getByRole("alertdialog", {
-      name: "Your data in PathFinder",
+      name: "Your data in Strategist",
     });
     await expect(notice).toBeVisible({ timeout: 60_000 });
     await notice.getByRole("button", { name: "Continue" }).click();
@@ -361,7 +361,7 @@ test.describe("First run and navigation", () => {
     const notice = page.getByTestId("site-unavailable-notice");
     await expect(notice).toContainText(`Couldn't reach ${siteShortName(down)}`);
     await expect(notice).toContainText(
-      `PathFinder cannot use this site right now: ${reason}. It keeps trying every minute, so this may clear on its own.`,
+      `Strategist cannot use this site right now: ${reason}. It keeps trying every minute, so this may clear on its own.`,
     );
     await expect(notice.getByRole("link")).toHaveCount(0);
     await expect(page.getByTestId("conversations-new-button")).toBeVisible();
@@ -576,7 +576,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     await expect(dialog).toContainText(`Also delete strategy from ${site}`);
     await expect(dialog.getByRole("checkbox")).not.toBeChecked();
     await expect(dialog.getByTestId("delete-linked-strategy-note")).toHaveText(
-      `PathFinder created this strategy in ${site}. Deleting it is permanent, and the conversation will not be recoverable.`,
+      `Strategist created this strategy in ${site}. Deleting it is permanent, and the conversation will not be recoverable.`,
     );
     await dialog.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(row).toHaveCount(0, { timeout: 15_000 });

@@ -30,13 +30,13 @@ ROUTE_TIMEOUT_SECONDS: Final = 5.0
 ROUTE_PURPOSE: Final = "turn route"
 
 ROUTE_INTRO: Final = (
-    "PathFinder is an assistant inside VEuPathDB that has two modes. Read the researcher's latest message, "
+    "Strategist is an assistant inside VEuPathDB that has two modes. Read the researcher's latest message, "
     "with the conversation and the strategy as context, and pick the mode that should answer it."
 )
 ROUTE_BUILD: Final = (
-    "The message asks PathFinder to build, change, undo, run, show, count or export something on a VEuPathDB "
+    "The message asks Strategist to build, change, undo, run, show, count or export something on a VEuPathDB "
     "search strategy, asks about the current strategy, its steps, counts, searches or results, or answers a "
-    "question PathFinder asked. The searches it needs are ones a site states directly."
+    "question Strategist asked. The searches it needs are ones a site states directly."
 )
 ROUTE_EXPLORE: Final = (
     "The message asks about biology, mechanisms, hypotheses, experiments, literature or resources, states the "

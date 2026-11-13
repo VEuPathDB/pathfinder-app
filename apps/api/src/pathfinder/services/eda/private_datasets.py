@@ -1,6 +1,6 @@
 """The researcher's own RNA-Seq uploads on one site, read from VDI and EDA as they stand.
 
-The researcher uploads and deletes on the site. PathFinder lists what the
+The researcher uploads and deletes on the site. Strategist lists what the
 account owns and opens an installed study; it keeps no row of its own.
 """
 

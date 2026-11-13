@@ -1,7 +1,7 @@
 Agents
 ======
 
-PathFinder runs one Lead agent and three phase sub-agents, all built with
+Strategist runs one Lead agent and three phase sub-agents, all built with
 `pydantic-ai <https://ai.pydantic.dev/>`_. The Lead is the only voice the user
 hears. It calls each phase as a tool and reads a typed ledger between calls,
 so a phase is a tool invocation rather than a node in a fixed graph.

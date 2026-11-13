@@ -1,6 +1,6 @@
 """The assistant-routing column, applied to a real database.
 
-Threads written before assistants were routed have to answer as PathFinder,
+Threads written before assistants were routed have to answer as Strategist,
 so the column is additive and every existing row takes the default.
 """
 

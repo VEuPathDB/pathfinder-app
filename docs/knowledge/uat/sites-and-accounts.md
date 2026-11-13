@@ -54,11 +54,11 @@ The default of `isSyntenic` on every site is `no`. A request that does not say "
 | Item | Detail |
 |---|---|
 | The test deployment | `<pathfinder-url>`, and whatever network access its operator requires (a VPN or a tunnel). |
-| Account A | A registered VEuPathDB account used only for UAT. PathFinder refuses guests: a request without a registered login answers 401 `WDK_LOGIN_REQUIRED`. |
+| Account A | A registered VEuPathDB account used only for UAT. Strategist refuses guests: a request without a registered login answers 401 `WDK_LOGIN_REQUIRED`. |
 | Account B | A second registered VEuPathDB account, used only for the isolation flows (`F12`). It must be a different VEuPathDB user than A. |
 | Two browser profiles | One per account, so the two sessions never share a cookie. |
 | The same account on the site | Sign in to each of the five sites with the account in use, in the same profile, so every `Open in <Site>` link shows the strategy. |
-| A clean start | Both accounts start with no PathFinder data. On a dedicated UAT account: Settings, `Data` tab, `Clear ALL data + VEuPathDB`, type `delete my data`, `Confirm`. A leftover memory changes what the assistant recalls, so a flow run on a used account is not comparable. |
+| A clean start | Both accounts start with no Strategist data. On a dedicated UAT account: Settings, `Data` tab, `Clear ALL data + VEuPathDB`, type `delete my data`, `Confirm`. A leftover memory changes what the assistant recalls, so a flow run on a used account is not comparable. |
 | Test files | The attachment files listed in [composer flows](flows-composer.md). |
 
 The engineering dev account is named in the gitignored `.env.dev` as `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD`; it is one VEuPathDB user, so it cannot serve as both account A and account B. Never paste a credential, a token or an account id into a bug report or into this folder.
@@ -78,7 +78,7 @@ The UD flows and `tests/integration/strategies/test_wdk_user_dataset_searches.py
 
 The EDA study of an installed `rnaseqrc` or `phenotype` upload is `EDAUD_<VDI id>`.
 
-Three more plasmodb uploads of the same account hold what the client library's VDI recordings and PathFinder's own-dataset tests read; keep them too:
+Three more plasmodb uploads of the same account hold what the client library's VDI recordings and Strategist's own-dataset tests read; keep them too:
 
 | Name | VDI type | VDI id | State |
 |---|---|---|---|
@@ -93,13 +93,13 @@ The last step of every flow deletes what the flow created, with the click below.
 
 | What a flow creates | Where it lives | How the runner deletes it |
 |---|---|---|
-| A conversation and its strategy | PathFinder and the account's VEuPathDB strategies | Sidebar row, `Conversation actions`, `Delete`, tick `Also delete strategy from <site name>`, `Delete`. Without the tick the row only moves to `Dismissed (<n>)`. |
-| A dismissed conversation | PathFinder | Sidebar, `Dismissed (<n>)`, the row's `Delete permanently`, then `Delete permanently` in the dialog. |
-| A saved strategy | PathFinder and VEuPathDB | Nav rail `Saved strategies`, the row's `Delete saved strategy`. There is no confirm; it deletes on VEuPathDB too. |
-| A gene set | PathFinder | The gene set figure in the thread, `Delete`, then `Delete` in `Delete <name>?`. |
-| A published dataset (VDI) | The account's workspace on the site | On the site: `Open dataset`, then the site's own delete. PathFinder never deletes a dataset (decided, see [known limits](known-limits.md)). |
-| A memory | PathFinder | Settings, `Memory` tab, the row's `Delete <name>`, confirm the browser dialog. |
-| A note | PathFinder, per conversation | `Review`, `Assistant's notes`, `Delete note` on the card; the conversation delete removes the rest. |
-| A control set, a scored run | PathFinder | Settings, `Data` tab, `Clear site data`, `Confirm`. |
+| A conversation and its strategy | Strategist and the account's VEuPathDB strategies | Sidebar row, `Conversation actions`, `Delete`, tick `Also delete strategy from <site name>`, `Delete`. Without the tick the row only moves to `Dismissed (<n>)`. |
+| A dismissed conversation | Strategist | Sidebar, `Dismissed (<n>)`, the row's `Delete permanently`, then `Delete permanently` in the dialog. |
+| A saved strategy | Strategist and VEuPathDB | Nav rail `Saved strategies`, the row's `Delete saved strategy`. There is no confirm; it deletes on VEuPathDB too. |
+| A gene set | Strategist | The gene set figure in the thread, `Delete`, then `Delete` in `Delete <name>?`. |
+| A published dataset (VDI) | The account's workspace on the site | On the site: `Open dataset`, then the site's own delete. Strategist never deletes a dataset (decided, see [known limits](known-limits.md)). |
+| A memory | Strategist | Settings, `Memory` tab, the row's `Delete <name>`, confirm the browser dialog. |
+| A note | Strategist, per conversation | `Review`, `Assistant's notes`, `Delete note` on the card; the conversation delete removes the rest. |
+| A control set, a scored run | Strategist | Settings, `Data` tab, `Clear site data`, `Confirm`. |
 | An EDA analysis | The account's analyses on the site | On the site: `Open in <Site>`, then the site's own delete. |
-| A rating | PathFinder | Click the pressed `Good response` or `Bad response` again. |
+| A rating | Strategist | Click the pressed `Good response` or `Bad response` again. |

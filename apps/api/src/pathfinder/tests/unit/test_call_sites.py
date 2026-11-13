@@ -1,4 +1,4 @@
-"""Properties of PathFinder's own tree that no import contract can see.
+"""Properties of Strategist's own tree that no import contract can see.
 
 The WDK connection, the ``current`` alias and the site vocabulary belong to the
 client library, and the semantic index to the MCP server. What is read here is

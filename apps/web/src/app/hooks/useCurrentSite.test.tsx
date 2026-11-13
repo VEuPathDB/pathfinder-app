@@ -57,7 +57,7 @@ describe("useCurrentSite", () => {
     expect(currentSiteWith([offering]).offersAudits).toBe(true);
   });
 
-  it("is the component site whose website frames PathFinder", () => {
+  it("is the component site whose website frames Strategist", () => {
     expect(
       currentSiteWith([
         site("veupathdb", "https://muharram.veupathdb.org", true),

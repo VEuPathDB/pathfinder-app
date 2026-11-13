@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: Parallel browser test workers act as one user
-description: Every Playwright worker carries the registered account's website login, and a website login names that account's PathFinder user ahead of the dev-login cookie, so the two workers of a shard share one user's conversations, gene sets and memories; give each worker a user of its own or run one worker per stack.
+description: Every Playwright worker carries the registered account's website login, and a website login names that account's Strategist user ahead of the dev-login cookie, so the two workers of a shard share one user's conversations, gene sets and memories; give each worker a user of its own or run one worker per stack.
 tags: [frontend, e2e, identity]
 generated: { by: claude-code/opus-5.5, at: 2026-10-31T00:00:00Z }
 status: proposed
@@ -16,7 +16,7 @@ and puts the registered account's token in the `Authorization` cookie. Since the
 became the only browser credential
 ([pathfinder-signs-in-through-the-site-that-hosts-it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
 `platform/security.py::_identify` reads the website login before the dev-login cookie, so
-every worker is the account's own PathFinder user. `playwright.config.ts` runs two workers
+every worker is the account's own Strategist user. `playwright.config.ts` runs two workers
 per shard, and a spec that purges a site's data (A4) or reads "no conversations yet" runs
 against the other worker's rows.
 

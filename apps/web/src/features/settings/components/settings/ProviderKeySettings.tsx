@@ -149,12 +149,12 @@ export function ProviderKeySettings() {
       description={
         <>
           A key pays for its provider&apos;s models, outside your monthly allowance.
-          PathFinder checks it once, stores it sealed and never shows it again.{" "}
+          Strategist checks it once, stores it sealed and never shows it again.{" "}
           <Link
             href={yourDataUrl("your-key")}
             className="text-foreground underline underline-offset-2"
           >
-            Your data in PathFinder
+            Your data in Strategist
           </Link>
         </>
       }

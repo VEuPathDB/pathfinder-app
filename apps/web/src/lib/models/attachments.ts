@@ -89,7 +89,7 @@ export function attachHint(model: ModelCatalogEntry | undefined): string | null 
 export function notAcceptedSentence(model: ModelCatalogEntry | undefined): string {
   return (
     attachHint(model) ??
-    "PathFinder reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, " +
+    "Strategist reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, " +
       "WebP, GIF) and PDFs."
   );
 }

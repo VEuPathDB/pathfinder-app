@@ -95,7 +95,7 @@ describe("useSystemConfig", () => {
     );
   });
 
-  it("returns the website page that frames PathFinder", async () => {
+  it("returns the website page that frames Strategist", async () => {
     mockGetSystemConfig.mockResolvedValue(makeConfigResponse({ llmConfigured: true }));
 
     const { result } = await importAndRender();

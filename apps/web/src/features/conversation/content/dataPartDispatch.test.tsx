@@ -160,7 +160,7 @@ describe("message dispatch", () => {
       />,
     );
     expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
-      "Recalled memories from an earlier version of PathFinder can't be shown.",
+      "Recalled memories from an earlier version of Strategist can't be shown.",
     );
     expect(view.container.textContent).not.toContain("Invalid Date");
     expect(toastError).not.toHaveBeenCalled();

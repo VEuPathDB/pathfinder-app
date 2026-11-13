@@ -10,7 +10,7 @@ status: stable
 
 ## The rule
 
-A researcher reads about their science and the site they use. PathFinder's
+A researcher reads about their science and the site they use. Strategist's
 internal architecture (the EDA service, the WDK service, the three phases,
 the Lead, sub-agents, the ledger) is not vocabulary they own, so it never
 appears in copy. Identifiers (`DS_...`, `ENT_...`, `VAR_...`, WDK step ids)

@@ -25,7 +25,7 @@ timestamps. `conversation_strategies` holds `record_type`, `wdk_strategy_id`,
 cannot leave an orphan.
 
 **The dividing question is what the column mirrors.** A column that mirrors
-WDK strategy state, or the artifact PathFinder built, moves. A column about
+WDK strategy state, or the artifact Strategist built, moves. A column about
 the chat itself stays. That decides the four cases where either answer looked
 defensible: `is_saved` mirrors WDK's `isSaved` on the strategy and moves;
 `record_type` mirrors `recordClassName` and moves; `imported_saved_strategy_ids`
@@ -76,7 +76,7 @@ normalizes those stored `null`s to `{}`.
 smaller diff and it keeps every read one row. It was rejected because the
 columns are the problem, not their values: a second assistant's threads would
 still carry `wdk_strategy_id`, `strategy_ast` and two foreign keys into
-PathFinder's science tables, its migrations would still be PathFinder's
+Strategist's science tables, its migrations would still be Strategist's
 migrations, and the unique index on `wdk_strategy_id` would still be part of
 the thread table's contract. The batch exists to make the strategy a
 product-owned attachment, and a nullable column is not an attachment.

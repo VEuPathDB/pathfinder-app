@@ -429,7 +429,7 @@ describe("DataEdaViz on a part an earlier version wrote", () => {
     expect(retainedPointIds).toEqual(["PF3D7_0100200"]);
     render(<DataEdaViz data={withoutRetainedIds} />);
     expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
-      "A plot from an earlier version of PathFinder can't be shown.",
+      "A plot from an earlier version of Strategist can't be shown.",
     );
     expect(screen.queryByTestId("data-eda-viz")).toBeNull();
   });

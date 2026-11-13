@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Pathfinder API
+  title: VEuPathDB Strategist API
   description: VEuPathDB Strategy Builder Chatbot API
   version: 0.9.0b23
 paths:
@@ -25,7 +25,7 @@ paths:
       summary: System Config
       description: 'Report the model providers, the deployment''s site, its sign-in address and
 
-        the website page that frames PathFinder.
+        the website page that frames Strategist.
 
 
         This is unauthenticated so the frontend can show a setup-required
@@ -3146,16 +3146,16 @@ paths:
 
         delete) so WDK sync won''t re-import them; the strategies remain on
 
-        VEuPathDB but PathFinder ignores them. No chat is hard-deleted.
+        VEuPathDB but Strategist ignores them. No chat is hard-deleted.
 
 
-        When ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created
+        When ``deleteWdk=true``: on VEuPathDB the strategies Strategist created
 
         there are deleted, and everything whose strategy is gone is hard-deleted
 
         locally. A strategy the user made on the website stays. A chat whose
 
-        strategy PathFinder could not delete - the site did not answer, the
+        strategy Strategist could not delete - the site did not answer, the
 
         request names no registered VEuPathDB user, or the delete was refused -
 
@@ -3273,7 +3273,7 @@ paths:
       tags:
       - eval
       summary: Strategy Gene Ids Endpoint
-      description: Fetch all gene IDs from a PathFinder strategy's WDK root step.
+      description: Fetch all gene IDs from a Strategist strategy's WDK root step.
       operationId: strategy_gene_ids_endpoint_api_v1_eval_strategy_gene_ids_post
       security:
       - APIKeyCookie: []
@@ -4957,12 +4957,12 @@ components:
       required:
       - conversationId
       title: ChatRequestBody
-      description: 'Typed body for ``POST /api/v1/chat`` (AI SDK v6 + PathFinder extras).
+      description: 'Typed body for ``POST /api/v1/chat`` (AI SDK v6 + Strategist extras).
 
 
         The shape matches ``@ai-sdk/react``''s ``useChat`` submit payload
 
-        (``trigger``, ``id``, ``messages``) with PathFinder-scoped fields
+        (``trigger``, ``id``, ``messages``) with Strategist-scoped fields
 
         (``conversationId``, ``siteId``, ``mode``) layered on
 
@@ -7000,7 +7000,7 @@ components:
       - strategyId
       - siteId
       title: FetchGeneIdsRequest
-      description: Fetch gene IDs from an existing PathFinder strategy.
+      description: Fetch gene IDs from an existing Strategist strategy.
     FileUIPart:
       properties:
         type:

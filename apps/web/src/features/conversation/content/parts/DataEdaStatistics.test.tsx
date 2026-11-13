@@ -182,7 +182,7 @@ describe("DataEdaStatistics on a part an earlier version wrote", () => {
     expect(title).toBe("Contingency table of genotype by temperature_condition");
     renderBare(<DataEdaStatistics data={untitled} />);
     expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
-      "A statistic from an earlier version of PathFinder can't be shown.",
+      "A statistic from an earlier version of Strategist can't be shown.",
     );
     expect(screen.queryByTestId("data-eda-statistics")).toBe(null);
   });

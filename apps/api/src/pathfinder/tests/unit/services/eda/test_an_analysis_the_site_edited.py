@@ -91,7 +91,7 @@ def _with_computations(*computations: dict[str, Any]) -> EdaAnalysisDetail:
     return EdaAnalysisDetail.model_validate(raw)
 
 
-# A pass compute carrying keys PathFinder does not model, as a later app may store.
+# A pass compute carrying keys Strategist does not model, as a later app may store.
 _PASS_WITH_UNKNOWN_KEYS = {
     **_recorded(_PASS),
     "descriptor": {"type": "pass", "configuration": {"madeUp": [1, "a", None]}},
@@ -116,7 +116,7 @@ _DE_WITHOUT_DIRECTION = {
     ],
 }
 
-# The body of the comparison PathFinder builds, with every default it carries.
+# The body of the comparison Strategist builds, with every default it carries.
 _SWAPPED_BODY = {
     "computationId": "c1",
     "descriptor": {

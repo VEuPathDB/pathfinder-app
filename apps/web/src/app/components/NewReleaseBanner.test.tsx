@@ -42,7 +42,7 @@ describe("NewReleaseBanner", () => {
     await renderBanner();
 
     const banner = await screen.findByRole("status");
-    expect(banner).toHaveTextContent("PathFinder has been updated.");
+    expect(banner).toHaveTextContent("Strategist has been updated.");
     expect(requested).toEqual(["/pathfinder/api/v1/web-build"]);
     fireEvent.click(screen.getByRole("button", { name: "Reload" }));
     expect(reloadPage).toHaveBeenCalledTimes(1);

@@ -52,7 +52,7 @@ export function DataNotice() {
     <AlertDialog open={data?.noticeDue === true}>
       <AlertDialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-3xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Your data in PathFinder</AlertDialogTitle>
+          <AlertDialogTitle>Your data in Strategist</AlertDialogTitle>
           <AlertDialogDescription>
             Last updated: {YOUR_DATA_LAST_UPDATED}
           </AlertDialogDescription>
@@ -80,13 +80,13 @@ export function DataNotice() {
               className="mt-0.5"
             />
             <div className="space-y-1">
-              <Label htmlFor={LEARN_ID}>Let PathFinder learn from my strategies</Label>
+              <Label htmlFor={LEARN_ID}>Let Strategist learn from my strategies</Label>
               <p
                 id={LEARN_HELP_ID}
                 className="text-xs leading-relaxed text-muted-foreground"
               >
                 Copies of your conversations and strategies may be read by the team and
-                used, without your name or account, to improve PathFinder for everyone.
+                used, without your name or account, to improve Strategist for everyone.
                 You can change this later in Settings, on the Privacy tab.
               </p>
             </div>

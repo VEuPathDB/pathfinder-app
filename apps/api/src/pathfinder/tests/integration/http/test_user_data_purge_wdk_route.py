@@ -98,7 +98,7 @@ async def test_a_strategy_opened_from_the_website_survives_the_wdk_purge(
     seed_user: User,
     wdk_api: FakeStrategyApi,
 ) -> None:
-    """PathFinder destroys on VEuPathDB only what PathFinder made there."""
+    """Strategist destroys on VEuPathDB only what Strategist made there."""
     token = application_id_ctx.set("pathfinder")
     try:
         async with session_maker() as session:
@@ -286,7 +286,7 @@ async def test_the_purge_deletes_the_strategy_a_stored_run_created(
     seed_user: User,
     wdk_api: FakeStrategyApi,
 ) -> None:
-    """An experiment's persisted strategy is unambiguously PathFinder's."""
+    """An experiment's persisted strategy is unambiguously Strategist's."""
     await add_experiment(
         db_session, seed_user.id, site_id=SITE, wdk_strategy_id=UNREFERENCED
     )

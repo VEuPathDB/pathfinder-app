@@ -8,7 +8,7 @@ const SRC = fileURLToPath(new URL(".", import.meta.url));
 
 const SCANNED = ["features", "app", "lib/components", "lib/models", "lib/utils"];
 
-/** The words that name PathFinder's internals rather than the researcher's work. */
+/** The words that name Strategist's internals rather than the researcher's work. */
 const INTERNAL = /\b(EDA|WDK|FRAME|BUILD|VERIFY|Frame|Ledger|Lead|sub-agent)\b/;
 
 /**
@@ -18,9 +18,11 @@ const INTERNAL = /\b(EDA|WDK|FRAME|BUILD|VERIFY|Frame|Ledger|Lead|sub-agent)\b/;
  */
 const PART_KIND = /^(data-)?(sub-agent|eda)[a-z0-9.-]*$/;
 
+const RETIRED_NAME = /\bPath[Ff]inder\b/;
+
 type Hit = { where: string; text: string };
 
-function sourceFiles(): string[] {
+function sourceFiles(dirs: string[]): string[] {
   const found: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -35,7 +37,7 @@ function sourceFiles(): string[] {
       found.push(path);
     }
   };
-  SCANNED.forEach((dir) => walk(join(SRC, dir)));
+  dirs.forEach((dir) => walk(join(SRC, dir)));
   return found;
 }
 
@@ -69,10 +71,16 @@ function texts(path: string): { node: ts.Node; text: string; line: number }[] {
   return found;
 }
 
-function scan(): { scanned: number; violations: Hit[]; excused: Hit[] } {
+function scan(): {
+  scanned: number;
+  violations: Hit[];
+  excused: Hit[];
+  retired: Hit[];
+} {
   const violations: Hit[] = [];
   const excused: Hit[] = [];
-  const paths = sourceFiles();
+  const retired: Hit[] = [];
+  const paths = sourceFiles(SCANNED);
   for (const path of paths) {
     for (const { text, line } of texts(path)) {
       if (!INTERNAL.test(text)) continue;
@@ -80,7 +88,13 @@ function scan(): { scanned: number; violations: Hit[]; excused: Hit[] } {
       (PART_KIND.test(text) ? excused : violations).push(hit);
     }
   }
-  return { scanned: paths.length, violations, excused };
+  for (const path of sourceFiles(["."])) {
+    for (const { text, line } of texts(path)) {
+      if (!RETIRED_NAME.test(text)) continue;
+      retired.push({ where: `${relative(SRC, path)}:${String(line)}`, text });
+    }
+  }
+  return { scanned: paths.length, violations, excused, retired };
 }
 
 describe("the copy a researcher reads", () => {
@@ -93,6 +107,10 @@ describe("the copy a researcher reads", () => {
 
   it("names no internal word in any string literal or JSX text", () => {
     expect(result.violations.map((v) => `${v.where} ${v.text}`)).toEqual([]);
+  });
+
+  it("names the product Strategist, never its retired name", () => {
+    expect(result.retired.map((r) => `${r.where} ${r.text}`)).toEqual([]);
   });
 
   it("excuses part kinds only, and the exception is still used", () => {

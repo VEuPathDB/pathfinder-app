@@ -1,6 +1,6 @@
-## Pathfinder API (`apps/api`)
+## Strategist API (`apps/api`)
 
-FastAPI backend for PathFinder. It owns the HTTP surface, the agents, the WDK client, the
+FastAPI backend for Strategist. It owns the HTTP surface, the agents, the WDK client, the
 services behind them, and the procrastinate worker that runs every chat turn.
 
 ### Key entrypoints
@@ -36,7 +36,7 @@ src/pathfinder/
     scratchpad/              #   Scratchpad tools, toolset, rendering, compactor
     tools/                   #   standalone/ (one module per tool family), toolsets/ (what each
                              #     role mounts), durable.py (@durable_tool)
-    strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts PathFinder emits and their payloads
+    strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts Strategist emits and their payloads
     pricing.py               #   Per-1M-token price lookups for the Engine UI
   data/seeds/                # Curated strategies and their control sets, read by the mock model
                              #   and the live tests
@@ -85,7 +85,7 @@ src/pathfinder/
     parameter_optimization/  #   Parameter sweeps, scoring, builders
     quota.py                 #   Per-user monthly USD quota
     research/                #   Literature retrieval
-    separation/              #   A separation run's result as the offer PathFinder shows and builds
+    separation/              #   A separation run's result as the offer Strategist shows and builds
     strategies/              #   Strategy lifecycle: build, commit, materialize, push, sync, revisions
     tasks/                   #   Background task rows and their queries
     user_data.py             #   Purges a user's data

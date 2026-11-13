@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: PathFinder shows what the AI did, and the site is where a researcher edits by hand
-description: A screen the site already has (a form, a notebook cell, an upload page, a table to sort and filter) is a link to the site, not a copy; what the site cannot show (the spec, each step's rationale, the evidence card, offers, provenance, notes and memory) is PathFinder's UI. Read-only figures and counts stay in the conversation. The EDA tab is the first surface cut to the line; it reads the shared analysis document fresh on every load. Copying the site's notebook was rejected.
+title: Strategist shows what the AI did, and the site is where a researcher edits by hand
+description: A screen the site already has (a form, a notebook cell, an upload page, a table to sort and filter) is a link to the site, not a copy; what the site cannot show (the spec, each step's rationale, the evidence card, offers, provenance, notes and memory) is Strategist's UI. Read-only figures and counts stay in the conversation. The EDA tab is the first surface cut to the line; it reads the shared analysis document fresh on every load. Copying the site's notebook was rejected.
 tags: [product, eda, frontend, site-alignment, notebook, read-only]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -10,10 +10,10 @@ status: stable
 
 # What was decided
 
-**The line.** PathFinder shows what the AI did and why. VEuPathDB is where a researcher edits
+**The line.** Strategist shows what the AI did and why. VEuPathDB is where a researcher edits
 by hand. A screen the site already has is a link to the site: a search form, an EDA notebook
 cell, the My Data Sets upload page, a result table the researcher sorts and filters. What the
-site cannot show is PathFinder's own UI: the spec and its criteria, the rationale of each
+site cannot show is Strategist's own UI: the spec and its criteria, the rationale of each
 step, the evidence card, the offers, the provenance of a count, notes and memory.
 
 **What stays in the conversation.** Read-only figures and counts: the volcano, the subset
@@ -60,9 +60,9 @@ served only the editing cells are gone: `set-filters`, `run-compute`,
 
 ## The round trip
 
-An EDA analysis is a shared document. The site and PathFinder address the same analysis id
+An EDA analysis is a shared document. The site and Strategist address the same analysis id
 through the same EDA service (`/users/{uid}/analyses/{project}/{analysisId}`), so an edit made
-in the site's notebook is the document PathFinder reads next. Every read takes the document
+in the site's notebook is the document Strategist reads next. Every read takes the document
 anew: `GET /conversations/{id}/eda` calls `services/eda/binding.py::read_analysis` on each
 request and holds no copy, the tab's query of it is stale at once, and the figure's query
 (`POST /eda/viz`) is stale at once and reads the cut from the analysis's own volcano
@@ -74,7 +74,7 @@ site holds now.
 
 # What was rejected
 
-**Copying the notebook.** The first tester asked whether PathFinder could carry the site's
+**Copying the notebook.** The first tester asked whether Strategist could carry the site's
 notebook cells. The copy was built: a subset cell with an entity tree, variable rows and a
 filter editor, a compute form, a progress poll and volcano controls. It is two UIs of one
 document that must be kept in step with `web-monorepo/packages/libs/eda/src/lib/notebook/`
@@ -94,7 +94,7 @@ document the site had already changed. The row holds the binding and its revisio
 
 `tests/integration/http/test_conversation_eda_route.py::test_a_read_after_the_site_edits_the_analysis_carries_the_edit`
 changes the upstream document between two reads and requires the second to carry the edit,
-with no write from PathFinder. `apps/web/src/features/eda/EdaWorkbench.test.tsx` requires the
+with no write from Strategist. `apps/web/src/features/eda/EdaWorkbench.test.tsx` requires the
 tab to render no input, select or textarea, only "Change study" and "Export as step" as
 buttons, the site link with the recorded analysis's href, and a fresh read of the analysis and
 of its figure on every mount. `apps/web/e2e/feature/thread-surgery/eda-branching.spec.ts`

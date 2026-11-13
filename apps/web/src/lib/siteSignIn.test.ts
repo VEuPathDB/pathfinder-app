@@ -68,7 +68,7 @@ describe("goToSiteSignIn", () => {
     ]);
   });
 
-  it("sends the website page that frames PathFinder to the login, returning to that page", () => {
+  it("sends the website page that frames Strategist to the login, returning to that page", () => {
     const website = page(`${ORIGIN}/eupathdb.amuharram/app/pathfinder/conversation`);
     const frame = page(`${ORIGIN}/pathfinder/conversation`, website.win);
 

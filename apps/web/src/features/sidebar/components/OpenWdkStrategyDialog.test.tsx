@@ -216,7 +216,7 @@ describe("the VEuPathDB strategy import dialog", () => {
     );
 
     expect(screen.getByTestId("open-wdk-strategy-notice")).toHaveTextContent(
-      "PathFinder has no site at q2.plasmodb.org.",
+      "Strategist has no site at q2.plasmodb.org.",
     );
     expect(screen.getByTestId("open-wdk-strategy-confirm")).toBeDisabled();
   });

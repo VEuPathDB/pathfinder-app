@@ -14,7 +14,7 @@ LINK_SECONDS = 30.0
 
 _HEADING = (
     "## Pages the message links to\n"
-    "PathFinder read each VEuPathDB link in the message before this turn. "
+    "Strategist read each VEuPathDB link in the message before this turn. "
     "Answer from these readings; a link is never searched on the web."
 )
 

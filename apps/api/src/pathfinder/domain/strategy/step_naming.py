@@ -1,4 +1,4 @@
-"""The name PathFinder gives a step: what runs, and the labels of the values it binds."""
+"""The name Strategist gives a step: what runs, and the labels of the values it binds."""
 
 from __future__ import annotations
 

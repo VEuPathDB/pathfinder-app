@@ -103,7 +103,7 @@ for string literals beginning `/users`, `/record-types`, `/strategy-lists`,
 that will otherwise give a wrong answer. Each of these has already caused a wrong row or a
 false alarm once.
 
-- **Discard PathFinder's own FastAPI route decorators.** `dev.py` declares a `/login`
+- **Discard Strategist's own FastAPI route decorators.** `dev.py` declares a `/login`
   route of its own, which looks identical to the WDK path in a grep and is not a call
   to WDK at all.
 - **Discard non-service literals when the extraction spans the client.** The calls
@@ -141,8 +141,8 @@ tree. No module builds a client against a VEuPathDB base URL. One did:
 `httpx.AsyncClient(base_url=auth_site.service_url)` for `GET /logout`, with every
 contract green, and it was a transport module talking to WDK. That call moved
 into `veupathdb/wdk/auth_login.py`, where the credential it needs already lives,
-and PathFinder now makes no logout call at all: signing out is the website's
-([PathFinder signs in through the site that hosts it](../../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+and Strategist now makes no logout call at all: signing out is the website's
+([Strategist signs in through the site that hosts it](../../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
 
 The reading behind that move was confirmed live and is now
 WDK-AUTH-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`), which also records the part a fix
@@ -187,7 +187,7 @@ time** (WDK-AUTH-001, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport
 cookie is therefore a different user on every call, and nothing says so. A client
 reused across identities has the mirror-image problem: it can carry the previous
 identity's `JSESSIONID` into the next call, which can only ever bind the request to
-the wrong container session, so PathFinder drops it whenever the effective token
+the wrong container session, so Strategist drops it whenever the effective token
 changes (WDK-AUTH-003, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
 
 What that costs is continuity of identity, and nothing weaker. An agent tool that
@@ -219,7 +219,7 @@ and the UI renders as an `href`. No non-test file contains a `*db.org` URL or a
 `/service/` path, and no component fetches one.
 
 The browser's entire view of WDK is whatever `openapi.json` describes, which is the
-eight domain-owned value types above plus PathFinder's own projections. Adding a
+eight domain-owned value types above plus Strategist's own projections. Adding a
 direct call from the browser to plasmodb.org would break nothing mechanical today -
 `check-boundaries.mjs` polices feature isolation, not hostnames - so this section
 is a measurement rather than a guarantee.

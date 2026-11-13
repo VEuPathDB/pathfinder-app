@@ -244,7 +244,7 @@ describe("the composer's spend ring", () => {
 
 describe("the composer says the assistant can make mistakes", () => {
   const NOTICE =
-    "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
+    "Strategist is an AI assistant and can make mistakes. Double-check important results.";
 
   it("shows the notice before the conversation has any usage", () => {
     renderComposer(true);
@@ -272,11 +272,11 @@ describe("the composer says the assistant can make mistakes", () => {
 });
 
 describe("the composer footer", () => {
-  it("carries the notice and no PathFinder mark", () => {
+  it("carries the notice and no Strategist mark", () => {
     renderComposer(true);
 
     expect(screen.getByTestId("ai-notice")).toBeInTheDocument();
-    expect(screen.queryByRole("img", { name: "PathFinder" })).toBeNull();
+    expect(screen.queryByRole("img", { name: "VEuPathDB Strategist" })).toBeNull();
   });
 });
 

@@ -1,4 +1,4 @@
-"""The seam between the scripted test model and PathFinder's script.
+"""The seam between the scripted test model and Strategist's script.
 
 The harness detects which agent it is serving, advances a sequence and wires
 a ``FunctionModel``. Which tool names name which role, and what each role

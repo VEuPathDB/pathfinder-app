@@ -75,7 +75,7 @@ async def _has_leave(ctx: RunContext[LeadDeps]) -> None:
 
 async def ask_to_read_the_account(ctx: RunContext[LeadDeps], what: str) -> str:
     """Ask the researcher's leave to read their strategies, their other
-    PathFinder conversations or the genes of their gene sets.
+    Strategist conversations or the genes of their gene sets.
 
     A card shows ``what`` and asks; the researcher allows it or not. Ask when the
     researcher asks about them or when reading them would change your answer. An
@@ -124,7 +124,7 @@ async def read_my_strategies(
 async def list_my_threads(
     ctx: RunContext[LeadDeps],
 ) -> ToolReturn[list[ThreadListing]]:
-    """The researcher's other PathFinder conversations, most recent first. Needs
+    """The researcher's other Strategist conversations, most recent first. Needs
     their leave."""
     await _has_leave(ctx)
     state = ctx.deps.state

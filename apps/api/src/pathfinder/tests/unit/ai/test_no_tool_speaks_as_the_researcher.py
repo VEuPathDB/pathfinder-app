@@ -1,4 +1,4 @@
-"""No PathFinder tool sets ``ToolReturn.content``.
+"""No Strategist tool sets ``ToolReturn.content``.
 
 pydantic-ai sends that field to the model as a separate user prompt part, so
 text a tool writes there reads as the researcher's own message. A tool returns

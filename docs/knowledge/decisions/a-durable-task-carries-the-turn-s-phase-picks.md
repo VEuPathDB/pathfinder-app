@@ -42,8 +42,8 @@ that finishes the request's work, and the row that already represents that
 work is where they belong.
 
 **Reading the picks from the checkpoint.** The parked state is written by the
-runtime package, which names no phase and no role. Putting a PathFinder
-concept in `TurnState` to solve a PathFinder wiring problem inverts the
+runtime package, which names no phase and no role. Putting a Strategist
+concept in `TurnState` to solve a Strategist wiring problem inverts the
 layering the runtime split established.
 
 # The consequence, stated

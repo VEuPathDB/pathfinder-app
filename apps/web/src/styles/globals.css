@@ -169,7 +169,7 @@
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* The dark ground. PathFinder never sets `data-theme`; a host that does gets a
+/* The dark ground. Strategist never sets `data-theme`; a host that does gets a
    correct thread without a repaint. This block must stay AFTER `:root`, or
    `statusTokens.test.ts` measures these values instead of the light ones. */
 :root[data-theme="dark"] {

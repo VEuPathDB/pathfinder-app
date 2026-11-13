@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A site link opens the result list of the root step
-description: Every link PathFinder writes to a strategy on a VEuPathDB site is `/app/workspace/strategies/<strategy>/<root step>/summary:_default`, built in one place (`services/strategies/result_list.py`), so it opens the root step with the site's result table showing. A link to the strategy page, and a link to the step with no tab, were rejected.
+description: Every link Strategist writes to a strategy on a VEuPathDB site is `/app/workspace/strategies/<strategy>/<root step>/summary:_default`, built in one place (`services/strategies/result_list.py`), so it opens the root step with the site's result table showing. A link to the strategy page, and a link to the step with no tab, were rejected.
 tags: [frontend, strategy, site-link, wdk]
 status: stable
 ---
@@ -25,7 +25,7 @@ WDK gives every record class the summary view `_default`, the results table
 (`SummaryView.createSupportedSummaryViews`). The tab is the same for genes, OrthoMCL groups
 and proteins.
 
-**A root PathFinder does not know is left to the site.** When the strategy is on the site but
+**A root Strategist does not know is left to the site.** When the strategy is on the site but
 no pushed root is known (a thread linked to a strategy id only, or a stored tree whose last
 push failed), the link is the strategy page. The site then selects its own root step.
 

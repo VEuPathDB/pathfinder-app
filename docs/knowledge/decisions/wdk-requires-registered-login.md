@@ -19,7 +19,7 @@ registered users, and requires an API key."**, `POST /users/current/steps` with
 that cookie answers 403 as well, and a registered user's token answers **200**.
 A browser `User-Agent` and `Referer` change nothing.
 
-So PathFinder requires a registered VEuPathDB login for every WDK-backed
+So Strategist requires a registered VEuPathDB login for every WDK-backed
 feature. Three rules follow, and they are separate rules.
 
 **One refusal, one code.** `WDK_LOGIN_REQUIRED` is 401 problem+json, title
@@ -38,18 +38,18 @@ is not, because it deletes a local row. Two routes whose WDK call is an opt-in f
 /api/v1/user/data?deleteWdk=true` - because the local half must run for a
 signed-out user; their WDK half is skipped and reported instead. A browser
 session is honored only while the website login names its user
-([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+([Strategist signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)),
 so a browser request with no VEuPathDB login is refused before any route runs;
 the per-route table governs the callers that carry an identity of their own, a
-PathFinder bearer token and a dev-login session. The whole
+Strategist bearer token and a dev-login session. The whole
 table is pinned by
 `tests/unit/transport/test_wdk_gate_route_table.py`, which also carries the
 reason for every ungated route that can still reach WDK.
 
-**Chat asks its assistant, and PathFinder's answer is this gate.** `POST
+**Chat asks its assistant, and Strategist's answer is this gate.** `POST
 /api/v1/chat` carries no fixed dependency: `resolve_chat_assistant` resolves
 the turn's assistant and runs the `identity_gate` that assistant declares, and
-PathFinder's spec declares `require_registered_wdk_login`, so the refusal on
+Strategist's spec declares `require_registered_wdk_login`, so the refusal on
 that route is the same 401 with the same code, title and detail. An assistant
 that declares no requirement is served without one; the application's own
 session auth is unchanged, because that is the runtime's, not the assistant's.
@@ -65,15 +65,15 @@ missing token, a token that does not verify, and a token whose `is_guest` claim
 is true are all the same refusal. An unreadable JWKS stays **503** naming the
 identity provider, because the credential was never examined.
 
-**One PathFinder session acts as one VEuPathDB account.** A second VEuPathDB
-sign-in on the website replaces the `Authorization` cookie, and a PathFinder
+**One Strategist session acts as one VEuPathDB account.** A second VEuPathDB
+sign-in on the website replaces the `Authorization` cookie, and a Strategist
 credential can then name another account than the VEuPathDB token beside it.
 Two checks refuse that with 401 `ErrorCode.WDK_IDENTITY_MISMATCH`, title
 "VEuPathDB account changed". `platform/security.py::resolve_principal` refuses a
 `pathfinder-auth` session whose website login names another user on every
 route. The WDK gate resolves the token on the site the request names through
 `services/wdk_identity.py::require_session_matches_wdk_identity`, which also
-holds a PathFinder bearer token to the VEuPathDB token sent with it. A token
+holds a Strategist bearer token to the VEuPathDB token sent with it. A token
 the site refuses names nobody and is refused 401 `WDK_LOGIN_REQUIRED`; a site
 that does not answer the read is refused 503 `SITE_UNAVAILABLE`
 ([a site that is down is down on its own](a-site-that-is-down-is-down-on-its-own.md)). `POST /api/v1/veupathdb/auth/refresh` relinks: it
@@ -133,11 +133,11 @@ that are not stylistic:
 
 - Every strategy, step and dataset those users create would land in **one**
   VEuPathDB account, so each user would see, edit and delete the others' work.
-  PathFinder acts on WDK **as** the user
+  Strategist acts on WDK **as** the user
   ([bearer identity and service tokens](bearer-identity-and-service-tokens.md));
   it does not answer questions about WDK from a shared store.
 - The researcher would never find the work again. A strategy built in
-  PathFinder is meant to open on the VEuPathDB website under the researcher's
+  Strategist is meant to open on the VEuPathDB website under the researcher's
   own login, which is the whole point of pushing it there.
 - It hands one shared credential the blast radius of every user's
   mistakes, with no per-user attribution on VEuPathDB's side.
@@ -156,7 +156,7 @@ later is worse than a refusal that names the fix.
 
 A researcher in the browser with no VEuPathDB login sees the signed-out notice,
 and every request that needs the session answers 401 `WDK_LOGIN_REQUIRED` until they
-sign in on the website. A caller with a PathFinder bearer token and no
+sign in on the website. A caller with a Strategist bearer token and no
 VEuPathDB token can still hold conversations, notes, memories and settings,
 list and delete their own gene sets, read and annotate their own experiments,
 and purge their own data; chat, searches, strategies, step counts, gene-set

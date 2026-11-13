@@ -31,7 +31,7 @@ from browser tracks and gene reports only:
 1. In `veupathdb-mcp`, a function per figure kind that takes a finding's stored evidence
    and returns a typed figure specification (tracks, spans, labels, values), read only from
    what the site serves. No drawing in the library.
-2. In PathFinder, a data part for each specification and a renderer in the conversation, and
+2. In Strategist, a data part for each specification and a renderer in the conversation, and
    the same figures in the audit report export.
 3. The audit assistant's toolset gains a tool that attaches the figure for a finding. Only
    the audit assistant registers it; the strategy-building assistant's toolsets do not

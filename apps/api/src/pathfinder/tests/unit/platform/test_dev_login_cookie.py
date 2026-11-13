@@ -1,4 +1,4 @@
-"""The mock stack's dev-login cookie is scoped to PathFinder and secure outside development."""
+"""The mock stack's dev-login cookie is scoped to Strategist and secure outside development."""
 
 from __future__ import annotations
 

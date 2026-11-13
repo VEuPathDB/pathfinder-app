@@ -1,6 +1,6 @@
 ---
 type: Decision
-title: PathFinder admits veupathdb-wdk-mcp from two settings, and only with both
+title: Strategist admits veupathdb-wdk-mcp from two settings, and only with both
 description: The admitted set is built in code from an endpoint setting and a credential setting, and admits the server only when both are set; the processes that drive turns install it at start. A nested endpoint list in one environment variable, and installing from the assistant registry, were rejected.
 tags: [assistants, mcp, admission, configuration, deployment]
 generated: { by: claude-code/opus-5, at: 2026-08-25T00:00:00Z }

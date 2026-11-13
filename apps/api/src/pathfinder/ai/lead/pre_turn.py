@@ -1,4 +1,4 @@
-"""PathFinder's pre-turn work: take what the site moved onto the stored graph,
+"""Strategist's pre-turn work: take what the site moved onto the stored graph,
 measure the recorded build against WDK, play what was written outside this
 thread onto every spec the turn holds, give a strategy that has no spec one
 derived from what it already is, and brief the turn on what moved since the

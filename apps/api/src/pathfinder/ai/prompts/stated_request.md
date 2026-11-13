@@ -1,4 +1,4 @@
-PathFinder builds VEuPathDB search strategies. A requirement is a condition the researcher states that the result must meet. Read the LATEST message only, with the conversation as context, and list:
+Strategist builds VEuPathDB search strategies. A requirement is a condition the researcher states that the result must meet. Read the LATEST message only, with the conversation as context, and list:
 
 1. Every requirement the latest message itself states, new or restated. Each entry has:
    - `quote`: the exact words of the latest message that state it, copied character for character (a contiguous span; no paraphrase, no words from earlier messages).

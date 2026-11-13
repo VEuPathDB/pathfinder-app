@@ -53,7 +53,7 @@ operator can still read what each assistant cost.
 **One user row per application.** It makes the scope key a single column and
 needs no join, and it breaks the one thing that must not break: the internal
 user is the VEuPathDB identity (`users.external_id` is the email), so splitting
-it would give one researcher several PathFinder users, several WDK guest
+it would give one researcher several Strategist users, several WDK guest
 tokens, and no way to hold one budget.
 
 **One database per application.** Perfect isolation, and it costs a database,
@@ -75,7 +75,7 @@ and audit runs of the calling application, and leaves the same user's data under
 every other application untouched, because a caller that cannot read a resource
 must not be able to destroy it. It also clears the memories and the tombstones of that user
 and that application when it names no site. `deleteWdk=true` deletes on
-VEuPathDB the strategies PathFinder created there for those conversations and
+VEuPathDB the strategies Strategist created there for those conversations and
 for their stored runs: the strategy attachment records who made the strategy it
 names (`conversation_strategies.wdk_strategy_created_here`, see
 [the thread/strategy split](conversation-thread-and-strategy-split.md)), and

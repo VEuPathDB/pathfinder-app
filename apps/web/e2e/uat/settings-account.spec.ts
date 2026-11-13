@@ -356,7 +356,7 @@ test.describe("Settings and account", () => {
       "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site, and the judgements made about your genes. Conversations move to Recently deleted. Strategies stay but stop syncing.",
     );
     await expect(dialog.getByTestId("wdk-purge-description")).toContainText(
-      "Everything above, plus the strategies PathFinder created in VEuPathDB.",
+      "Everything above, plus the strategies Strategist created in VEuPathDB.",
     );
 
     await dialog.getByRole("button", { name: "Clear site data", exact: true }).click();
@@ -411,10 +411,10 @@ test.describe("Settings and account", () => {
       dialog.getByText("Learning from your strategies", { exact: true }),
     ).toBeVisible();
     await expect(dialog.getByTestId("privacy-learning-copy")).toHaveText(
-      "PathFinder may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
+      "Strategist may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
     );
     const consent = dialog.getByRole("switch", {
-      name: "Let PathFinder learn from my strategies",
+      name: "Let Strategist learn from my strategies",
     });
     await expect(consent).toBeVisible();
     const was = await consent.isChecked();

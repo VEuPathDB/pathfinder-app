@@ -112,7 +112,7 @@ describe("DataEdaPca", () => {
       />,
     );
     expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
-      "A plot from an earlier version of PathFinder can't be shown.",
+      "A plot from an earlier version of Strategist can't be shown.",
     );
     expect(screen.queryByTestId("data-eda-pca")).toBe(null);
   });

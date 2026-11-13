@@ -1,4 +1,4 @@
-"""A one-agent assistant the tests install beside PathFinder, and how to install it."""
+"""A one-agent assistant the tests install beside Strategist, and how to install it."""
 
 from __future__ import annotations
 

@@ -8,9 +8,9 @@ import { SettingsTabLink } from "./SettingsTabLink";
 export function HelpPage({ siteId }: { siteId: string | null }) {
   return (
     <InfoPage title="Help">
-      <InfoSection id="what" title="What PathFinder does">
+      <InfoSection id="what" title="What Strategist does">
         <p>
-          PathFinder helps you build search strategies on a VEuPathDB site. You describe
+          Strategist helps you build search strategies on a VEuPathDB site. You describe
           what you are looking for in your own words. The assistant finds the
           site&apos;s searches, sets their parameters and combines them into a strategy.
           You can then ask it to add, change or remove steps.
@@ -42,18 +42,18 @@ export function HelpPage({ siteId }: { siteId: string | null }) {
 
       <InfoSection id="sign-in" title="Signing in and your site">
         <p>
-          You sign in with your VEuPathDB account, on the VEuPathDB website. PathFinder
+          You sign in with your VEuPathDB account, on the VEuPathDB website. Strategist
           does not work unless you are signed in.
         </p>
         <p>
-          PathFinder works on the site whose website you are on: the VEuPathDB portal or
+          Strategist works on the site whose website you are on: the VEuPathDB portal or
           a component site such as PlasmoDB or ToxoDB. Each conversation stays on the
           site where you started it.
         </p>
         {siteId !== null && (
           <p>
-            Here, PathFinder works on {siteShortName(siteId)}. If you open a
-            conversation that you started on another site, PathFinder gives you a link
+            Here, Strategist works on {siteShortName(siteId)}. If you open a
+            conversation that you started on another site, Strategist gives you a link
             to open it on that site.
           </p>
         )}
@@ -104,7 +104,7 @@ export function HelpPage({ siteId }: { siteId: string | null }) {
 
       <InfoSection id="memory" title="Memory">
         <p>
-          PathFinder can remember things from one conversation to the next. When the
+          Strategist can remember things from one conversation to the next. When the
           result of a strategy checks out on the site, it saves a short memory of the
           strategy and how it got there. It saves a preference only after you approve
           it. You can also ask it to remember something.
@@ -118,7 +118,7 @@ export function HelpPage({ siteId }: { siteId: string | null }) {
 
       <InfoSection id="models" title="Models">
         <p>
-          Unless you pick a model, PathFinder uses the default model of the deployment,
+          Unless you pick a model, Strategist uses the default model of the deployment,
           which is an OpenAI model. To change it, open Settings and the{" "}
           <SettingsTabLink tab="model">Model</SettingsTabLink> tab.
         </p>
@@ -135,7 +135,7 @@ export function HelpPage({ siteId }: { siteId: string | null }) {
           A provider&apos;s safety filters sometimes block a legitimate research
           question. Read{" "}
           <InternalLink href={yourDataUrl("declined")}>
-            what PathFinder does when a model declines
+            what Strategist does when a model declines
           </InternalLink>
           .
         </p>
@@ -165,8 +165,8 @@ export function HelpPage({ siteId }: { siteId: string | null }) {
 
       <InfoSection id="your-data" title="Your data">
         <p>
-          What PathFinder sends to model providers, what it keeps, and how to delete it:{" "}
-          <InternalLink href={yourDataUrl()}>Your data in PathFinder</InternalLink>.
+          What Strategist sends to model providers, what it keeps, and how to delete it:{" "}
+          <InternalLink href={yourDataUrl()}>Your data in Strategist</InternalLink>.
         </p>
       </InfoSection>
     </InfoPage>

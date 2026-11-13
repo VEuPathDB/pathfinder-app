@@ -1,6 +1,6 @@
 """Publishing a gene set to the researcher's VEuPathDB workspace, and reading it back.
 
-Publication is opt-in and one-way. PathFinder keeps the set; the VDI id it
+Publication is opt-in and one-way. Strategist keeps the set; the VDI id it
 records points at a durable artifact the site owns.
 """
 
@@ -63,7 +63,7 @@ class VdiPublicationStatus(CamelModel):
 
 
 def _summary(gene_count: int, set_name: str) -> str:
-    return f"{gene_count} genes published from the PathFinder gene set '{set_name}'."
+    return f"{gene_count} genes published from the Strategist gene set '{set_name}'."
 
 
 async def publish_to_vdi(

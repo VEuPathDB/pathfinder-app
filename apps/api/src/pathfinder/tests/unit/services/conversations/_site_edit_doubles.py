@@ -49,7 +49,7 @@ RECORD_CLASS = "TranscriptRecordClasses.TranscriptRecordClass"
 
 
 def stored_ast() -> StrategyAst:
-    """The tree PathFinder last wrote: the score at 10, every step on the site."""
+    """The tree Strategist last wrote: the score at 10, every step on the site."""
     export_params: dict[str, ParamValue] = {
         SCORE: NumberValue(value=10),
         CEILING: NumberValue(value=20),

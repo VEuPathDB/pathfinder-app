@@ -1,4 +1,4 @@
-"""The seam between the generic assistant turn and PathFinder's science.
+"""The seam between the generic assistant turn and Strategist's science.
 
 ``TurnState``, ``TurnContext`` and ``AssistantDeps`` are what a second
 assistant reuses, so a strategy field that lands on one of them is a

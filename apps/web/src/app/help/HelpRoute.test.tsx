@@ -57,7 +57,7 @@ describe("HelpRoute", () => {
       site("plasmodb", window.location.origin),
     ]);
 
-    expect(screen.getByText(/Here, PathFinder works on PlasmoDB\./)).toBeVisible();
+    expect(screen.getByText(/Here, Strategist works on PlasmoDB\./)).toBeVisible();
     expect(container).not.toHaveTextContent("Switch site");
   });
 
@@ -67,13 +67,13 @@ describe("HelpRoute", () => {
       site("plasmodb", "https://muharram.plasmodb.org"),
     ]);
 
-    expect(screen.getByText(/Here, PathFinder works on VEuPathDB\./)).toBeVisible();
+    expect(screen.getByText(/Here, Strategist works on VEuPathDB\./)).toBeVisible();
     expect(container).not.toHaveTextContent("Switch site");
   });
 
   it("names the configured site on a host no site names", () => {
     renderWith([site("plasmodb", "https://muharram.plasmodb.org")]);
 
-    expect(screen.getByText(/Here, PathFinder works on ToxoDB\./)).toBeVisible();
+    expect(screen.getByText(/Here, Strategist works on ToxoDB\./)).toBeVisible();
   });
 });

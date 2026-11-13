@@ -103,7 +103,7 @@ provider's smallest model.
 Turn Graph
 ----------
 
-**Purpose:** PathFinder's turn graph: ``lead`` then ``finalize_turn``. The
+**Purpose:** Strategist's turn graph: ``lead`` then ``finalize_turn``. The
 Lead node runs the only LLM in the graph; the sub-agents are tools it calls.
 
 .. automodule:: pathfinder.ai.graph.builder

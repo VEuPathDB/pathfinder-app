@@ -12,7 +12,7 @@ The mechanism is the runtime's: one `declare_durable_tool` binds the decorator,
 the procrastinate job and the worker-side body to one name
 (`assistant-platform: docs/knowledge/decisions/a-durable-tool-is-declared-once.md`
 and `.../conventions/durable-background-tasks.md`). This page records what
-PathFinder declares and what the Lead does with a parked call.
+Strategist declares and what the Lead does with a parked call.
 
 # What was decided
 

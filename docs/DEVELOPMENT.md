@@ -69,9 +69,9 @@ yarn test:e2e              # needs the API, the worker and the web app running
 The three libraries are repositories of their own and run their own gates. Each
 one's README states them; none of them runs from this checkout.
 
-The api runs both alembic chains at startup. A database an earlier PathFinder
+The api runs both alembic chains at startup. A database an earlier Strategist
 built already holds `embedding_vectors` and `embedding_index_entries` under
-PathFinder's chain, so the api exits with `DuplicateTableError` until the MCP
+Strategist's chain, so the api exits with `DuplicateTableError` until the MCP
 chain is stamped once on that database, from a checkout of the MCP repository or
 the `wdk-mcp` container: `alembic -c alembic.ini stamp head`. The dev volume and
 the e2e volume (`pathfinder_test`) are such databases; a fresh one needs nothing.
@@ -107,7 +107,7 @@ docker compose exec api uv run pytest src/pathfinder/tests/ -v
 
 ## Working across the four repositories
 
-PathFinder is one of four repositories. The other three are libraries it
+Strategist is one of four repositories. The other three are libraries it
 consumes by URL at a commit:
 
 | Repository | Distribution | Consumed by |

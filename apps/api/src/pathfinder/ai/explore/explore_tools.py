@@ -68,7 +68,7 @@ async def propose_readings(
 
     A proposal is the catalog searches of one plan and how they combine, so a
     request of two criteria is one proposal of two searches. Give each a short
-    title; PathFinder writes its plan from its searches, values and operators
+    title; Strategist writes its plan from its searches, values and operators
     and shows it under the title. A
     plan of searches joined by INTERSECT, UNION or MINUS is counted from each
     search's gene ids, and no step is added. A plan it cannot count is

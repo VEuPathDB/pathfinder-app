@@ -1,8 +1,8 @@
-"""The PathFinder tool names the runtime's guards key on.
+"""The Strategist tool names the runtime's guards key on.
 
 The guards are generic mechanisms: one refuses a repeated read-only call, the
 other gives a search-specific hint on a 404. Which tools those are is
-PathFinder's vocabulary, and it lives here.
+Strategist's vocabulary, and it lives here.
 """
 
 from __future__ import annotations
@@ -116,7 +116,7 @@ DISCOVERY_CALL_CAPS: dict[str, int] = {
 
 
 def build_tool_repetition_guard() -> ToolRepetitionGuard:
-    """A repetition guard that watches PathFinder's read-only tools."""
+    """A repetition guard that watches Strategist's read-only tools."""
     return ToolRepetitionGuard(
         read_only_tools=READ_ONLY_TOOLS,
         call_caps=DISCOVERY_CALL_CAPS,

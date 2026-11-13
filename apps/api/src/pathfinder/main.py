@@ -222,7 +222,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     install_procrastinate_redaction()
     _install_model_hooks()
-    logger.info("Starting Pathfinder API", version=__version__, env=settings.api_env)
+    logger.info("Starting Strategist API", version=__version__, env=settings.api_env)
 
     readiness = get_readiness()
     # The index shares this process's pool instead of opening a second one.
@@ -284,7 +284,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
         yield
 
-        logger.info("Shutting down Pathfinder API")
+        logger.info("Shutting down Strategist API")
 
         if export_sweeper_task is not None:
             export_sweeper_task.cancel()
@@ -342,7 +342,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Pathfinder API",
+        title="VEuPathDB Strategist API",
         description="VEuPathDB Strategy Builder Chatbot API",
         version=__version__,
         lifespan=lifespan,

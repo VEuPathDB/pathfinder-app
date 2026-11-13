@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: PathFinder signs in through the site that hosts it
-description: PathFinder is served at /pathfinder on a VEuPathDB website's own host, reads a researcher's WDK identity only from that website's Authorization cookie, never writes or deletes that cookie outside local development, and keeps no session of its own: each request acts as the account that cookie names. Signing in and out is the website's. A PathFinder password form, a host of its own, a base path per environment and a PathFinder session beside the website login were rejected.
+title: Strategist signs in through the site that hosts it
+description: Strategist is served at /pathfinder on a VEuPathDB website's own host, reads a researcher's WDK identity only from that website's Authorization cookie, never writes or deletes that cookie outside local development, and keeps no session of its own: each request acts as the account that cookie names. Signing in and out is the website's. A Strategist password form, a host of its own, a base path per environment and a Strategist session beside the website login were rejected.
 tags: [security, auth, veupathdb, wdk, deployment, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-10-08T00:00:00Z }
 status: stable
@@ -9,7 +9,7 @@ status: stable
 
 # What was decided
 
-PathFinder is served at the fixed base path `/pathfinder` on the host of the
+Strategist is served at the fixed base path `/pathfinder` on the host of the
 VEuPathDB website that shows it, and a page of that website embeds it under the
 website's own header. Every environment uses the same base path, local
 development included (`apps/api/src/pathfinder/platform/config.py::BASE_PATH`,
@@ -26,7 +26,7 @@ cookie takes FgpUtil `CookieBuilder`'s default path `/` and a null domain
 The cookie is therefore host-only: a page under `/pathfinder` on the website's
 host receives it with every request, and a page on any other host never does.
 The request middleware in `main.py` puts it on
-`veupathdb_auth_token_ctx`, as it does a token sent in a header. PathFinder
+`veupathdb_auth_token_ctx`, as it does a token sent in a header. Strategist
 never writes or deletes that cookie. The one exception is
 `GET /api/v1/dev/site-login`, which mounts only when `API_ENV` is `development`
 and `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` are both set
@@ -34,7 +34,7 @@ and `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` are both set
 `veupathdb.wdk.password_login` and sets the cookie as the website would, so
 local development has a website login to follow.
 
-**The website login is the only credential a browser carries.** PathFinder
+**The website login is the only credential a browser carries.** Strategist
 keeps no session of its own. On every request
 `platform/security.py::site_login_user` verifies the website's token locally,
 and `services/wdk_identity.py::resolve_veupathdb_user_id` maps its account to
@@ -47,10 +47,10 @@ cookie. A bearer token carries its own identity, and the mock stack's
 `pathfinder-dev-login` cookie names a synthetic user only for a token the
 mock-only `POST /api/v1/dev/login` minted.
 
-**Signing in and out is the website's.** PathFinder has no password form, no
+**Signing in and out is the website's.** Strategist has no password form, no
 logout route and no account name of its own to show. One deployment serves
 every website whose host proxies `/pathfinder` to it, so the website that frames
-PathFinder is the one at the page's own origin: `GET /api/v1/sites` names each
+Strategist is the one at the page's own origin: `GET /api/v1/sites` names each
 site's `siteOrigin`, its `signInUrl` (its `/app/user/login`, or the development
 route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
 `apps/web/src/app/hooks/useSitePages.ts` takes the pages of the site whose
@@ -58,26 +58,26 @@ route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
 for every website. On a host no site names, such as local development, the
 deployment's site applies: `GET /health/config` reports `PATHFINDER_SITE`
 (default `veupathdb`; startup refuses a site the sites file does not list) and
-that site's `siteSignInUrl` and `sitePageUrl`. A signed-out PathFinder shows one notice
+that site's `siteSignInUrl` and `sitePageUrl`. A signed-out Strategist shows one notice
 (`apps/web/src/app/components/SignedOutNotice.tsx`) whose link opens that page
 in the whole window, with the page the researcher was on as its `destination`.
 A logout in the website header leaves no registered token in the cookie, so
-the next PathFinder request is refused and the notice returns.
+the next Strategist request is refused and the notice returns.
 
 **One layout, inside the website's page.** The web app has no top bar and no
 embedded variant, since the website's header names the product. The rail
-(`apps/web/src/app/components/AppNavRail.tsx`) carries the sections, help and settings, and the PathFinder mark sits at the bottom of
+(`apps/web/src/app/components/AppNavRail.tsx`) carries the sections, help and settings, and the Strategist mark sits at the bottom of
 the conversation's right rail (`apps/web/src/lib/components/PathFinderMark.tsx`). When the parent window has the same origin, a
 route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
-on the PathFinder page. A PathFinder page opened in a tab of its own on the
+on the Strategist page. A Strategist page opened in a tab of its own on the
 website's host replaces itself with the website page for the same path
 (the framing site's `pageUrl`), so a bookmark or a shared link opens under the website's header. A host the
 website is not on keeps the page.
 
-**A link PathFinder writes for later is a path under `/pathfinder`.** An export
+**A link Strategist writes for later is a path under `/pathfinder`.** An export
 download link and the development sign-in address carry no host, so the browser
-resolves them on the website that serves PathFinder and no setting names it.
+resolves them on the website that serves Strategist and no setting names it.
 
 # What would falsify this
 
@@ -95,31 +95,31 @@ resolves them on the website that serves PathFinder and no setting names it.
 
 # What was rejected
 
-**Keeping PathFinder's password login.** Two writers of one cookie name on one
-host: PathFinder's sign-in overwrites the website's `Authorization`, and a
-PathFinder logout signs the researcher out of the website too.
+**Keeping Strategist's password login.** Two writers of one cookie name on one
+host: Strategist's sign-in overwrites the website's `Authorization`, and a
+Strategist logout signs the researcher out of the website too.
 
 **A host of its own.** The website's cookie is host-only, so it never reaches
-another host, and PathFinder would need a second sign-in.
+another host, and Strategist would need a second sign-in.
 
 **A base path per environment.** Next fixes the base path when it builds, so
 each environment would need its own web image.
 
-**A PathFinder session beside the website login.** A `pathfinder-auth` cookie
-honored on its own would leave PathFinder signed in after a website logout, and
+**A Strategist session beside the website login.** A `pathfinder-auth` cookie
+honored on its own would leave Strategist signed in after a website logout, and
 one honored only while the website login names its user adds nothing the login
 does not already say, at the cost of a second credential: it has to be minted on
 every load and relinked when the account changes, and a browser or proxy that
 does not keep it signs a signed-in researcher out with "Not authenticated".
 
-**Keeping an embedded layout beside the plain one.** PathFinder is shown in one
+**Keeping an embedded layout beside the plain one.** Strategist is shown in one
 context, the website's page, and a page opened on its own is the same page
 without the frame around it. A second layout is a second shell that every
 feature has to be tested in, with no context that needs it.
 
-**PathFinder's own bar imitating the website's header, or its bar under the
+**Strategist's own bar imitating the website's header, or its bar under the
 website's.** A copy of the header drifts from the real one, and its sign-in and
-sign-out would be PathFinder's again. Two stacked bars take height from the
+sign-out would be Strategist's again. Two stacked bars take height from the
 conversation and the canvas and show the account in two places.
 
 **Local development by a pasted token or by the mock model alone.** A pasted
@@ -128,7 +128,7 @@ model reaches no WDK account, so neither runs the sign-in a deployment runs.
 The development route sets the same cookie the website sets, so local
 development exercises the deployed path.
 
-**Reading the frame's address when it loads.** A navigation inside PathFinder
+**Reading the frame's address when it loads.** A navigation inside Strategist
 fires no load event, so the website's address bar would stop following.
 
 **Deriving the deployment's site from the request's host.** No deployment

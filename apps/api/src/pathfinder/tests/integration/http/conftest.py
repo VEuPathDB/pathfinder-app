@@ -63,7 +63,7 @@ def client_for(
 
 
 def bearer_client_for(app: ASGIApp, user_id: UUID) -> httpx.AsyncClient:
-    """A client that acts as ``user_id`` with a PathFinder bearer and no site login."""
+    """A client that acts as ``user_id`` with a Strategist bearer and no site login."""
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",

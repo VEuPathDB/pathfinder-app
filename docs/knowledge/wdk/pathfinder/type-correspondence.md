@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: What corresponds to what
-description: A four-column map from WDK's Java model to wdk-client, to PathFinder's Pydantic, to the TypeScript the browser sees - and an explicit account of every cell that is empty.
+description: A four-column map from WDK's Java model to wdk-client, to Strategist's Pydantic, to the TypeScript the browser sees - and an explicit account of every cell that is empty.
 tags: [wdk-alignment, types, correspondence, pathfinder]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
@@ -17,7 +17,7 @@ from any of them for two entirely different reasons. **An empty cell that reads
 as an oversight is worse than one labelled "none, deliberately"**, so every
 absence in the tables below carries one of two words:
 
-- **none, deliberately** - PathFinder chose not to have the type, and the reason
+- **none, deliberately** - Strategist chose not to have the type, and the reason
   is recorded in [deliberate-divergences](deliberate-divergences.md).
 - **none** - no such type exists here and no decision records why. Treat that as
   the drift risk it is.
@@ -26,17 +26,17 @@ A cell naming a type that is *not* the corresponding type - `Strategy` in
 `@pathfinder/shared` is not a WDK strategy - says so in the cell. Sharing a name
 is exactly how the wrong type gets used.
 
-# Two splits PathFinder makes that upstream does not
+# Two splits Strategist makes that upstream does not
 
 Both tables read strangely until these are stated, because a single upstream type
-lands in two PathFinder types.
+lands in two Strategist types.
 
 **A parameter is split into a spec and a value.** WDK's `Param` and wdk-client's
 [`Parameter`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L224-L234)
 are one type carrying both the declaration (vocabulary, bounds, `dependentParams`)
 and the current value, as `initialDisplayValue` on
 [`ParameterBase`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L54-L64).
-PathFinder splits them: the declaration is `WDKParameter` in
+Strategist splits them: the declaration is `WDKParameter` in
 `veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`, and the value is
 `ParamValue` in `veupathdb-py: src/veupathdb/domain/parameters/values.py`. The
 declaration is a transport concern and the value is a domain concern, and only
@@ -44,27 +44,27 @@ the value crosses layers.
 
 **Structure is split from data.** WDK already does this on the wire -
 [`StrategyDetails`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L120-L124)
-carries `stepTree` and `steps` separately - and PathFinder goes one step further
+carries `stepTree` and `steps` separately - and Strategist goes one step further
 by flattening the tree into parent pointers everywhere except the WDK boundary
 ([nested-tree-at-the-wire-boundary](../../decisions/nested-tree-at-the-wire-boundary.md),
 [WDK-MAP-003](rules/pathfinder-mapping.md)).
 
 # The structural concepts
 
-| Concept | WDK Java | `wdk-client` | PathFinder Pydantic | `@pathfinder/shared` |
+| Concept | WDK Java | `wdk-client` | Strategist Pydantic | `@pathfinder/shared` |
 |---|---|---|---|---|
 | strategy | [`Strategy`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L39-L47) | [`StrategyDetails`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L120-L124) extending [`StrategySummary`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L103-L119) | `WDKStrategyDetails` / `WDKStrategySummary` | **none, deliberately.** `Strategy` in `types.ts` is a conversation, not a WDK strategy - see below |
 | step tree | **no dedicated class.** In memory it is `TreeNode<Step>` from fgputil, built in [`Strategy`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L310-L335); the JSON is written by [`StepFormatter.formatAsStepTree`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L129-L140) | [`StepTree`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150) | `WDKStepTree` | **none, deliberately.** Flattened to `StepResponse.primaryInputStepId` / `secondaryInputStepId` |
-| step | [`Step`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Step.java#L43-L52) | [`Step`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L59-L79), extending `AnswerSpec` | `WDKStep` | **none, deliberately.** `Step = StepResponse` is PathFinder's step, which may not exist in WDK at all |
+| step | [`Step`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Step.java#L43-L52) | [`Step`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L59-L79), extending `AnswerSpec` | `WDKStep` | **none, deliberately.** `Step = StepResponse` is Strategist's step, which may not exist in WDK at all |
 | search config | [`AnswerSpec`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/answer/spec/AnswerSpec.java#L30-L45), serialized by [`AnswerSpecServiceFormat.format`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/answer/AnswerSpecServiceFormat.java#L100-L117) | [`SearchConfig`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L377-L385) | `WDKSearchConfig` | **none, deliberately.** Its parts arrive separately as `StepResponse.parameters` and `StepResponse.filters` |
 | search | [`Question`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/question/Question.java#L69-L78) | [`Question`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L252-L279) and [`QuestionWithParameters`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L280-L283) | `WDKSearch`, enveloped by `WDKSearchResponse` | `Search = SearchResponse` - **four fields, a listing entry, not the search document** |
 | record class | [`RecordClass`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/record/RecordClass.java#L94-L102) | [`RecordClass`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L28-L43) | `WDKRecordType` | `RecordType = RecordTypeResponse` - **three fields, a listing entry** |
-| answer | [`AnswerValue`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/answer/AnswerValue.java#L132-L145) | [`Answer`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L361-L376) | `WDKAnswer`, `WDKAnswerMeta`, `WDKRecordInstance` | **none, deliberately.** `RecordsResponse` / `RecordsMeta` / `RecordAttribute` are PathFinder's own projection and drop `viewTotalCount` and `displayViewTotalCount` |
+| answer | [`AnswerValue`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/answer/AnswerValue.java#L132-L145) | [`Answer`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L361-L376) | `WDKAnswer`, `WDKAnswerMeta`, `WDKRecordInstance` | **none, deliberately.** `RecordsResponse` / `RecordsMeta` / `RecordAttribute` are Strategist's own projection and drop `viewTotalCount` and `displayViewTotalCount` |
 | filter (applied) | [`Filter`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/filter/Filter.java#L17-L32) | element of [`FilterValueArray`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L386-L390) | `WDKFilterValue` | `StepFilter` |
 | filter (declared) | [`FilterDefinition`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/filter/FilterDefinition.java#L120-L136), published by [`QuestionFormatter.getFiltersJson`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/QuestionFormatter.java#L110-L118) | [`QuestionFilter`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L245-L250) | **none.** `WDKSearch.filters` is `list[JSONObject]`, so this concept is parsed untyped | **none** |
 | reporter | [`ReporterRef`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/ReporterRef.java#L28-L39) | [`Reporter`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L45-L52) | `WDKReporter` | **none, deliberately.** `StepReport` names a reporter (`reportName`, defaulting to `standard`) but does not describe one - no `scopes`, no `isInReport`, so nothing in the browser can offer a choice |
-| attribute field | [`AttributeField`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/record/attribute/AttributeField.java#L41-L52) | [`AttributeField`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L314-L324) | `WDKAttributeField` | `RecordAttribute` - PathFinder's own seven-field projection, with an `isSuggested` WDK does not have |
-| step analysis | [`StepAnalysis`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/analysis/StepAnalysis.java#L8-L25) (the type) and [`StepAnalysisInstance`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/analysis/StepAnalysisInstance.java#L50-L70) (the run) | [`StepAnalysisType`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/StepAnalysisUtils.ts#L25-L35) and [`StepAnalysisConfig`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/StepAnalysisUtils.ts#L53-L65) | `WDKStepAnalysisType` / `WDKStepAnalysisConfig` | `StepAnalysis` - **a request PathFinder will make, not an instance WDK has** |
+| attribute field | [`AttributeField`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/record/attribute/AttributeField.java#L41-L52) | [`AttributeField`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L314-L324) | `WDKAttributeField` | `RecordAttribute` - Strategist's own seven-field projection, with an `isSuggested` WDK does not have |
+| step analysis | [`StepAnalysis`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/analysis/StepAnalysis.java#L8-L25) (the type) and [`StepAnalysisInstance`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/analysis/StepAnalysisInstance.java#L50-L70) (the run) | [`StepAnalysisType`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/StepAnalysisUtils.ts#L25-L35) and [`StepAnalysisConfig`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/StepAnalysisUtils.ts#L53-L65) | `WDKStepAnalysisType` / `WDKStepAnalysisConfig` | `StepAnalysis` - **a request Strategist will make, not an instance WDK has** |
 
 Two rows repay a second look.
 
@@ -79,7 +79,7 @@ discriminated union (next section).
 **The declared-filter row is the one row whose Pydantic cell is a raw dict.**
 `WDKSearch.filters` is `list[JSONObject]`, so the three filters every transcript
 search advertises (filters, `veupathdb-py: docs/knowledge/wdk/model/filters.md`) arrive unparsed. It is not
-PathFinder's only untyped field - `wdk_models.py` declares nine `JSONObject` or
+Strategist's only untyped field - `wdk_models.py` declares nine `JSONObject` or
 `JsonValue` fields in all, among them `dynamicAttributes`, `summaryViewPlugins`
 and `columnFilters` - but it is the only one standing in for a concept this table
 names. No consumer of it was found: `search.filters` and `searchData.filters`
@@ -96,7 +96,7 @@ and nothing else (WDK-PARAM-001 in
 [`ParamFormatterFactory`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55)
 dispatches on to produce that `type` string.
 
-| `type` | WDK Java | `wdk-client` | PathFinder spec / value | `@pathfinder/shared` value |
+| `type` | WDK Java | `wdk-client` | Strategist spec / value | `@pathfinder/shared` value |
 |---|---|---|---|---|
 | `string` | [`StringParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/StringParam.java#L171-L203) | [`StringParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L66-L71) | `WDKStringParam` / `StringValue` | `StringValue` |
 | `number` | [`NumberParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/NumberParam.java#L32-L40) | [`NumberParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L188-L193) | `WDKNumberParam` / `NumberValue` | `NumberValue` |
@@ -111,14 +111,14 @@ dispatches on to produce that `type` string.
 | `input-step` | [`AnswerParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AnswerParam.java#L44-L56) | [`AnswerParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L220-L222) | `WDKAnswerParam` / `InputStepValue` | `InputStepValue` |
 
 **Two type names do not match their `type` string, in both upstreams and in
-PathFinder.** `input-dataset` is served by a class called `DatasetParam` and
+Strategist.** `input-dataset` is served by a class called `DatasetParam` and
 `input-step` by one called `AnswerParam` - the Java name, the wdk-client name and
-PathFinder's `WDKAnswerParam` all say "answer" where the wire says "step".
+Strategist's `WDKAnswerParam` all say "answer" where the wire says "step".
 Grepping WDK's source for `input-step` finds the `JsonKeys` constant and the
 formatter, never `AnswerParam.java`.
 
 **Both parameter unions have ten members for eleven types.** wdk-client's
-`Parameter` collapses the eight enum interfaces into `EnumParam`; PathFinder's
+`Parameter` collapses the eight enum interfaces into `EnumParam`; Strategist's
 `WDKParameter` collapses the two vocabulary types into `WDKEnumParam`, whose
 `type` field is a two-member `Literal`. The arithmetic is a coincidence of two
 different collapses, not an alignment - and neither ten is the number of
@@ -152,7 +152,7 @@ machinery is not the obstacle.
 - **A search's organism parameter** - the one WDK marks with
   `properties.organismProperties` (WDK-PARAM-013,
   `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), which
-  the tool server carries as `ParameterInfo.organism_param` and PathFinder records
+  the tool server carries as `ParameterInfo.organism_param` and Strategist records
   as `Criterion.organism_param` at bind; no parameter is recognized by its name.
 - **A transform's input record class** - `allowedPrimaryInputRecordClassNames`
   on the search (`WDKSearch.allowed_primary_input_record_class_names`), which

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A VEuPathDB bearer token is the user; a service token is the application
-description: PathFinder verifies VEuPathDB's own ES512 bearer JWT against the OAuth server's JWKS to name the user, and reads a separate service-token header to name the calling application; proxied-user-id was rejected because PathFinder must act on WDK as the user and therefore needs the user's own token.
+description: Strategist verifies VEuPathDB's own ES512 bearer JWT against the OAuth server's JWKS to name the user, and reads a separate service-token header to name the calling application; proxied-user-id was rejected because Strategist must act on WDK as the user and therefore needs the user's own token.
 tags: [security, auth, veupathdb, oauth, transport, tenancy]
 generated: { by: claude-code/opus-5, at: 2026-08-19T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-19T00:00:00Z }
@@ -15,16 +15,16 @@ Two identities travel on a request, and they are not the same question.
 **Who the user is** comes from one of three credentials, read in this order by
 `platform/security.py::_identify`:
 
-1. `Authorization: Bearer <token>` that verifies as a PathFinder HS256 JWT -> `pathfinder-bearer`.
+1. `Authorization: Bearer <token>` that verifies as a Strategist HS256 JWT -> `pathfinder-bearer`.
 2. The same header otherwise read as a VEuPathDB token -> `veupathdb-bearer`.
 3. The website's `Authorization` cookie, read as a VEuPathDB token -> `veupathdb-cookie`
-   ([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+   ([Strategist signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
 
 The mock stack's `pathfinder-dev-login` cookie names a synthetic user (`dev-login`) and is
 honored only for a token its mock-only route minted.
 
 Nothing else authenticates; a request with none of them is 401. The order
-matters: PathFinder's own token is checked first, so a locally minted token
+matters: Strategist's own token is checked first, so a locally minted token
 never costs a network call to the OAuth server.
 
 **Which application is calling** comes from the optional
@@ -54,10 +54,10 @@ and the server that mints the keys settles every open question:
   registered ([`ValidatedToken.java` L44-50](https://raw.githubusercontent.com/VEuPathDB/OAuth2Server/master/Client/src/main/java/org/gusdb/oauth2/client/ValidatedToken.java));
   the full set is [`IdTokenFields.java`](https://raw.githubusercontent.com/VEuPathDB/OAuth2Server/master/Client/src/main/java/org/gusdb/oauth2/shared/IdTokenFields.java).
 - **Issuer and audience are not checked.** `validateClaims` is an empty method
-  with a TODO (`OAuthClient.java` L386-390). PathFinder does the same, and the
+  with a TODO (`OAuthClient.java` L386-390). Strategist does the same, and the
   reason is not laziness: a site mints its tokens for its own client id, so a
-  token PathFinder receives from a browser session carries the website's `aud`,
-  not PathFinder's. Expiry is enforced, because the JWT library enforces it.
+  token Strategist receives from a browser session carries the website's `aud`,
+  not Strategist's. Expiry is enforced, because the JWT library enforces it.
 
 Measured against the live server: `https://auth.veupathdb.org/jwks` publishes
 exactly two keys, `kty: oct` with the literal placeholder `k:
@@ -97,14 +97,14 @@ It is not adopted, for two reasons that are both fatal here:
   service's configured `ADMIN_AUTH_TOKEN`, on a resource annotated to allow the
   override (`AuthFilter.java` L73-114). It is an admin facility, not a
   service-to-service identity.
-- PathFinder does not answer questions about WDK; it **acts on WDK as the
+- Strategist does not answer questions about WDK; it **acts on WDK as the
   user**, creating strategies and steps the user then owns in their own account.
   That needs the user's own token on the outbound request, which is exactly what
   the bearer path already supplies. A proxied id would let a caller name a user
-  without holding that user's credential, and PathFinder would then have no
+  without holding that user's credential, and Strategist would then have no
   token to act with.
 
-Also rejected: adding an `email` claim requirement, which would make PathFinder
+Also rejected: adding an `email` claim requirement, which would make Strategist
 depend on a claim the live token does not have; and validating `aud` against a
 configured client id, which would refuse every browser-session token. The client
 id setting is deleted rather than left unread, so nothing suggests otherwise.

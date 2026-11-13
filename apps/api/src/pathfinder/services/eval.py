@@ -155,7 +155,7 @@ async def build_gold_strategy(
             await db.commit()
             conversation_id = conversation.id
         logger.info(
-            "Linked gold strategy to PathFinder chat",
+            "Linked gold strategy to Strategist chat",
             gold_id=gold_id,
             conversation_id=str(conversation_id),
         )
@@ -190,7 +190,7 @@ async def get_strategy_gene_ids(
     site_id: str,
     user_id: UUID,
 ) -> StrategyGeneIdsResult:
-    """Fetch gene IDs for a PathFinder strategy's linked WDK root step."""
+    """Fetch gene IDs for a Strategist strategy's linked WDK root step."""
     repo = ConversationRepository(session)
     conversation = await get_visible_conversation(repo, strategy_id, user_id)
     strategy = await repo.get_strategy(conversation.id)

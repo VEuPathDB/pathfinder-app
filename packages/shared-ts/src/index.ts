@@ -1,5 +1,5 @@
 /**
- * @pathfinder/shared - Shared types and validators for Pathfinder
+ * @pathfinder/shared - Shared types and validators for Strategist
  */
 
 export * from "./types";

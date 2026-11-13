@@ -67,7 +67,7 @@ points, one stated set of space characters, and
 **A combine is named by its operator.** WDK names a step it receives without a
 name after its search, so an unnamed combine read as
 `boolean_question_TranscriptRecordClasses_TranscriptRecordClass` on the site.
-Every combine PathFinder builds carries `combine_display_name(operator)`, the
+Every combine Strategist builds carries `combine_display_name(operator)`, the
 push sends it, an operator change renames a combine no researcher named, and a
 commit names any combine that carries no name of its own, so a combine pushed
 before the rule takes a name patch on the next edit. A name of the form

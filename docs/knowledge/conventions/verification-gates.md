@@ -185,7 +185,7 @@ and the run reads `assumed=0`. A failure of the last two classes is a defect of
 the case, fixed in the same change: an expectation that pins a cataloged bug's
 output, a phrase only the scripted model writes, a later turn scripted on an
 earlier turn's recorded count, or a card answered by position. The cases share
-one registered account and one PathFinder user, so gene sets, memories and
+one registered account and one Strategist user, so gene sets, memories and
 cases from earlier runs are visible to later ones; an expectation never reads a
 phrase such state can satisfy.
 
@@ -195,7 +195,7 @@ The WDK rules answer to two suites, and which lane a rule lands in follows from 
 
 **Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py: tests/unit/` when the client alone can settle it and in `apps/api/src/pathfinder/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
 
-The same tier holds the schema half. `wdk_fixtures verify` validates each body PathFinder sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py: src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py: tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
+The same tier holds the schema half. `wdk_fixtures verify` validates each body Strategist sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py: src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py: tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
 
 **Nightly, live, never blocking.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It reads the QA sites: the root conftest puts `deploy/sites/qa.yml` in force for every test unless `VEUPATHDB_SITES_CONFIG` names another file ([tests run against the QA sites](../decisions/tests-run-against-the-qa-sites.md)). It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), runs on a schedule in `.github/workflows/wdk-nightly.yml`, and files an issue rather than failing a build. The `apps/api` half of the lane loads site catalogs. A catalog load starts the semantic index sync beside itself and never waits on it, so the lane needs no database: an unreachable one leaves ranking lexical and is logged once. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
 

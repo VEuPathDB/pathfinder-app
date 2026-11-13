@@ -43,7 +43,7 @@ _JWT_DECODE_OPTIONS: Options = {"require": ["exp", "sub"]}
 DEV_LOGIN_COOKIE = "pathfinder-dev-login"
 _DEV_LOGIN_COOKIE_PATH = BASE_PATH
 
-# A request proves who it is with the website's login, a PathFinder bearer token,
+# A request proves who it is with the website's login, a Strategist bearer token,
 # or a VEuPathDB bearer token; the service-token header names the caller instead.
 dev_login_cookie = APIKeyCookie(name=DEV_LOGIN_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -62,7 +62,7 @@ def set_dev_login_cookie(response: Response, token: str) -> None:
 
 
 class SessionToken(BaseModel):
-    """The identity a PathFinder JWT carries.
+    """The identity a Strategist JWT carries.
 
     ``dev_login`` marks a synthetic user the dev-login route minted; it names
     no VEuPathDB account.
@@ -75,7 +75,7 @@ class SessionToken(BaseModel):
 
 
 def decode_session_token(token: str) -> SessionToken | None:
-    """Return the identity a PathFinder JWT carries, or None when it is not one."""
+    """Return the identity a Strategist JWT carries, or None when it is not one."""
     try:
         payload = jwt.decode(
             token,
@@ -89,7 +89,7 @@ def decode_session_token(token: str) -> SessionToken | None:
 
 
 def decode_user_id(token: str) -> UUID | None:
-    """Return the user a PathFinder JWT names, or None when it is not one."""
+    """Return the user a Strategist JWT names, or None when it is not one."""
     claims = decode_session_token(token)
     return None if claims is None else claims.user_id
 

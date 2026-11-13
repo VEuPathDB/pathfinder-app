@@ -1,4 +1,4 @@
-"""Deleting on VEuPathDB a strategy PathFinder minted and no longer names."""
+"""Deleting on VEuPathDB a strategy Strategist minted and no longer names."""
 
 from __future__ import annotations
 
@@ -123,7 +123,7 @@ async def abandoned_mint_to_release(
     """The VEuPathDB strategy a thread has just moved away from, or None.
 
     ``abandoned`` is the strategy projection as it stood before the move.
-    A strategy is releasable only when PathFinder minted it, the thread now
+    A strategy is releasable only when Strategist minted it, the thread now
     holds a different one, the user has not saved it, and no gene set,
     snapshot, projection or saved input of another thread still names it.
     The caller commits its own writes and then runs the delete.

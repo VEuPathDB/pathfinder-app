@@ -17,7 +17,7 @@ module.exports = defineConfig([
       ".stryker-tmp/**",
       "reports/**",
       // Vendored shadcn / AI Elements primitives — copied via shadcn CLI.
-      // Treat as third-party; lint rules apply to PathFinder code only.
+      // Treat as third-party; lint rules apply to Strategist code only.
       "src/components/ui/**",
       "src/components/ai-elements/**",
       // Written and removed by the React Compiler reactivity test.

@@ -1,7 +1,7 @@
 """A separation run parks the Lead, its result reopens the turn on the adoption
 card, and the researcher's answer builds the measured spec or keeps the offer.
 
-The whole PathFinder assistant over the real chat route, the real turn graph,
+The whole Strategist assistant over the real chat route, the real turn graph,
 the real checkpointer, the real worker runner and the real database. The model
 is the deterministic Lead; the tool server's run is its recorded plasmodb
 answer, and the push to the site is recorded instead of sent.

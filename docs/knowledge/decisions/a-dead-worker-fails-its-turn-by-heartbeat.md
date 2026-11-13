@@ -10,7 +10,7 @@ status: stable
 
 The sweep, the release, the heartbeat thread and both windows are the runtime's
 (`assistant-platform: docs/knowledge/conventions/durable-background-tasks.md`).
-This page records why the windows are what they are and what PathFinder wires.
+This page records why the windows are what they are and what Strategist wires.
 
 # What was decided
 

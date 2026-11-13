@@ -1,4 +1,4 @@
-"""A browser request is signed in by the hosting website's login alone; PathFinder
+"""A browser request is signed in by the hosting website's login alone; Strategist
 keeps no session of its own beside it."""
 
 from __future__ import annotations

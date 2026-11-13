@@ -1,6 +1,6 @@
 # `pathfinder.devtools.chat` - chat pipeline debugger
 
-An in-process debugger for the PathFinder chat pipeline, built for **agents** to
+An in-process debugger for the Strategist chat pipeline, built for **agents** to
 drive. It runs one chat turn through the real `run_turn` (same code path the
 worker uses) **without** the API server, worker, or SSE - then captures every
 plane of the run to flat files you can `cat`/`jq` and runs a diagnosis pass that
@@ -230,13 +230,13 @@ keys" failure strings decoded into a typed `errors[]` list (`kind`, `param`,
 
 ## Diagnosis fingerprints (`diagnosis.json`)
 
-The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
+The engine (`diagnosis.py`) flags Strategist's recurring failure modes:
 
 | kind | meaning |
 |------|---------|
 | `validation_catch_22` | a param is **required by one validator but rejected as unknown by another** - unsatisfiable. This is the `document_type` bug's exact signature. |
 | `loop` | one tool failed 5 or more times with no completed call between, completed 5 or more calls whose arguments an earlier call already sent, or met the repetition guard. `summary.loop_detected` reads the same rule (`diagnosis.loops`). |
-| `wdk_service_error` | the same search returned a WDK 5xx ≥2 times - the agent retried an unavailable search instead of routing around it. Usually an upstream outage, not a PathFinder bug. |
+| `wdk_service_error` | the same search returned a WDK 5xx ≥2 times - the agent retried an unavailable search instead of routing around it. Usually an upstream outage, not a Strategist bug. |
 | `silent_zero` | a step returned 0 results (`ledger.build.zeroResultSteps`) **and the reply never said so** - possible silent failure (e.g. missing JSESSIONID, wrong params). |
 | `silent_constraint_violation` | a hard user-explicit constraint was substituted **and the reply never named it** - the plan deviated from what the user asked without saying so. |
 | `ungroundable_constraint` | a user-explicit constraint could not be read against the strategy (the ledger's `status: ungroundable` and its `note`): whether the strategy meets it is not known, which is not a violation. |

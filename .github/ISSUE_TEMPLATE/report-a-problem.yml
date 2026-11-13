@@ -1,11 +1,11 @@
 name: Report a problem
-description: Something PathFinder did that was wrong, confusing or broken.
+description: Something Strategist did that was wrong, confusing or broken.
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for testing PathFinder. One report per problem, please.
+        Thank you for testing Strategist. One report per problem, please.
         Never paste a password, a token or an API key into this form.
   - type: input
     id: conversation

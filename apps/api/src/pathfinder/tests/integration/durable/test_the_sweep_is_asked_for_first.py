@@ -1,6 +1,6 @@
 """The Lead's sweep asks the user on its card, and the yes defers the durable job.
 
-The whole PathFinder assistant over the real chat route, the real turn graph
+The whole Strategist assistant over the real chat route, the real turn graph
 and the real registration. Only the model is a double: it classifies the
 request to tune a step, attaches the researcher's saved controls and calls the
 sweep on them.

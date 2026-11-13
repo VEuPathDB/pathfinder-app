@@ -1,4 +1,4 @@
-"""A step name PathFinder made follows the values it labels; any other name stays."""
+"""A step name Strategist made follows the values it labels; any other name stays."""
 
 from __future__ import annotations
 

@@ -34,7 +34,7 @@ step's bridge plugin by the QUERY its search runs, never by the search's
 name: a per-dataset `GenesByRNASeq...DESeq` search runs the compute query,
 and a WGCNA module search declares the analysis parameter and never reads
 it. A step's `AnalysisKind` (`compute`, `subset`, or `none` for a query that
-never reads the document) is PathFinder's own per-step fact, so it is stored
+never reads the document) is Strategist's own per-step fact, so it is stored
 beside the researcher's words in `StrategyAst.metadata`
 (`domain/strategy/step_words.py::StepWords.analysis_kinds`, held on
 `StrategyGraph.analysis_kinds`). Each entry is a `StampedKind`: the kind and
@@ -102,7 +102,7 @@ compute once for each binding a spec holds that way
 (`ai/lead/analysis_readings.py::read_every_unread_analysis` over
 `services/eda/export.py::read_beside_the_document`, decided by
 `AnalysisBinding.unread`). An export the graph editor or the site added then
-holds the binding an export PathFinder wrote holds; a read that fails leaves
+holds the binding an export Strategist wrote holds; a read that fails leaves
 the document's binding, and the next turn reads it again. The binding
 names no analysis: an analysis holds one comparison beside any pass computes
 the site stored, and each compute replaces that comparison, so two exports of

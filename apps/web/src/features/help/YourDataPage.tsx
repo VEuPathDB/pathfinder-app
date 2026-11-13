@@ -25,7 +25,7 @@ function Section({
 export function YourDataPage() {
   return (
     <InfoPage
-      title="Your data in PathFinder"
+      title="Your data in Strategist"
       lead={
         <p className="mt-2 text-sm text-muted-foreground">
           Last updated: {YOUR_DATA_LAST_UPDATED}
@@ -42,7 +42,7 @@ export function YourDataPage() {
 
       <Section id="sent" title="What goes to AI model providers">
         <p>
-          With your message and its files, PathFinder sends the model your last few
+          With your message and its files, Strategist sends the model your last few
           messages and replies, a summary of the work so far (the strategy, the
           assistant&apos;s notes, your saved preferences and any memory it looks up),
           and what it read from VEuPathDB for this answer: search names, parameters,
@@ -92,10 +92,10 @@ export function YourDataPage() {
 
       <Section id="other-services" title="Other services">
         <p>
-          You sign in on the VEuPathDB website. PathFinder receives the sign-in token
+          You sign in on the VEuPathDB website. Strategist receives the sign-in token
           the website gives your browser, never your password. It uses the token to act
           as you on the site: to run searches and to save strategies in your account. To
-          read a count, PathFinder sometimes makes a temporary strategy in your account
+          read a count, Strategist sometimes makes a temporary strategy in your account
           and then deletes it.
         </p>
         <p>
@@ -106,10 +106,10 @@ export function YourDataPage() {
         </p>
       </Section>
 
-      <Section id="kept" title="What PathFinder keeps, and who can see it">
+      <Section id="kept" title="What Strategist keeps, and who can see it">
         <p>
           This deployment&apos;s database keeps your conversations with their files and
-          notes, the strategies PathFinder built and their history, your gene sets,
+          notes, the strategies Strategist built and their history, your gene sets,
           control sets, scored runs, audits, memories and ratings, your sealed provider
           keys, your monthly spend and the email address of your VEuPathDB account.
         </p>
@@ -129,7 +129,7 @@ export function YourDataPage() {
           exports. This deployment&apos;s operators can read its database and logs.
         </p>
         <p>
-          Whatever you choose for learning, people on the PathFinder team may read a
+          Whatever you choose for learning, people on the Strategist team may read a
           conversation, its strategy and the logs of its turns to find and fix a
           problem, for example when a turn fails, an answer is wrong, or you report
           something. Reading a conversation for this does not copy it, keep it as a test
@@ -152,7 +152,7 @@ export function YourDataPage() {
         <p>
           In Settings, the <SettingsTabLink tab="memory">Memory</SettingsTabLink> tab
           deletes memories. A deleted memory leaves a fingerprint of its content, so
-          that PathFinder does not save it again on its own. The{" "}
+          that Strategist does not save it again on its own. The{" "}
           <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab removes a key
           and keeps only its last four characters. The{" "}
           <SettingsTabLink tab="data">Data</SettingsTabLink> tab clears your data for
@@ -172,13 +172,13 @@ export function YourDataPage() {
           copied until you have seen the notice for this version of the statement.
         </p>
         <p>
-          When it is on, PathFinder may use copies of your conversations and strategies
-          to improve PathFinder for everyone. That can include:
+          When it is on, Strategist may use copies of your conversations and strategies
+          to improve Strategist for everyone. That can include:
         </p>
         <InfoList>
           <li>reviewing how well the assistant answered, by a person on the team;</li>
           <li>finding and fixing mistakes;</li>
-          <li>keeping parts as test cases that check new versions of PathFinder;</li>
+          <li>keeping parts as test cases that check new versions of Strategist;</li>
           <li>
             improving the assistant&apos;s instructions and how it chooses searches;
           </li>
@@ -187,12 +187,12 @@ export function YourDataPage() {
             other researchers;
           </li>
           <li>
-            measuring how well PathFinder works, and reporting those findings in
-            summaries, talks or publications about PathFinder.
+            measuring how well Strategist works, and reporting those findings in
+            summaries, talks or publications about Strategist.
           </li>
         </InfoList>
         <p>
-          Today, PathFinder copies your finished conversations each night, and a
+          Today, Strategist copies your finished conversations each night, and a
           conversation when you dislike one of its replies. A copy holds your messages,
           the replies and the strategy. A person reads each copy, and a copy that is
           accepted is kept as a test case.
@@ -200,8 +200,8 @@ export function YourDataPage() {
         <p>
           A copy used beyond review never carries your name, your account or a link to
           your conversation. Findings are reported only in summaries, never as your
-          conversation. PathFinder does not sell copies or give them to anyone to train
-          their AI models. Before review, PathFinder removes email addresses, and
+          conversation. Strategist does not sell copies or give them to anyone to train
+          their AI models. Before review, Strategist removes email addresses, and
           sign-in names and passwords written into web addresses.
         </p>
         <p>
@@ -217,16 +217,16 @@ export function YourDataPage() {
       <Section id="your-key" title="Using your own key">
         <p>
           Add a key in Settings, on the{" "}
-          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab. PathFinder
+          <SettingsTabLink tab="keys">Provider keys</SettingsTabLink> tab. Strategist
           checks it with one short request, stores it sealed and never shows it again.
-          It opens the key only when a reply starts, in the part of PathFinder that runs
+          It opens the key only when a reply starts, in the part of Strategist that runs
           the assistant, and only for that reply. It sends the key only to its provider.
         </p>
         <p>
           Your key pays for that provider&apos;s models. The check for hidden
           instructions, the matching of searches and values, and the numbers for search
           always run on the deployment&apos;s OpenAI account. If the provider refuses
-          your key, the reply stops. PathFinder does not use its own key instead. Claude
+          your key, the reply stops. Strategist does not use its own key instead. Claude
           Sonnet 5.5 and Claude Opus 5.5 run only on your own Anthropic key.
         </p>
       </Section>
@@ -234,7 +234,7 @@ export function YourDataPage() {
       <Section id="declined" title="When a model declines">
         <p>
           Provider safety filters sometimes block a legitimate research question.
-          PathFinder then shows a Request declined notice and puts your words back in
+          Strategist then shows a Request declined notice and puts your words back in
           the message box, so you can rephrase them or pick another model. No later turn
           sends the declined message, but it was already sent once, and it stays in the
           stored record until you delete the conversation.

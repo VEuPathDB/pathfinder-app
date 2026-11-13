@@ -1,4 +1,4 @@
-"""The seam between the runtime's per-role model selection and PathFinder's roles.
+"""The seam between the runtime's per-role model selection and Strategist's roles.
 
 The runtime routes a model choice per role. The role NAMES are the product's
 vocabulary, so a core surface that spells them out cannot serve a second

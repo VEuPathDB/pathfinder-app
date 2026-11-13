@@ -67,7 +67,7 @@ describe("SignedOutNotice", () => {
     expect(signInLink()).toHaveAttribute("target", "_top");
   });
 
-  it("sends a click to the website login through the page that shows PathFinder", () => {
+  it("sends a click to the website login through the page that shows Strategist", () => {
     renderWithConfig(<SignedOutNotice />);
 
     expect(clickKeepsDefault()).toBe(false);
@@ -81,16 +81,16 @@ describe("SignedOutNotice", () => {
     expect(goToSiteSignIn).not.toHaveBeenCalled();
   });
 
-  it("names PathFinder and offers no password field", () => {
+  it("names Strategist and offers no password field", () => {
     const { container } = renderWithConfig(<SignedOutNotice />);
-    expect(screen.getByText("PathFinder")).toBeVisible();
+    expect(screen.getByText("Strategist")).toBeVisible();
     expect(container.querySelectorAll("input")).toHaveLength(0);
   });
 
-  it("links to the statement of what PathFinder does with your data", () => {
+  it("links to the statement of what Strategist does with your data", () => {
     renderWithConfig(<SignedOutNotice />);
     expect(
-      screen.getByRole("link", { name: "Your data in PathFinder" }),
+      screen.getByRole("link", { name: "Your data in Strategist" }),
     ).toHaveAttribute("href", "/help/your-data");
   });
 });

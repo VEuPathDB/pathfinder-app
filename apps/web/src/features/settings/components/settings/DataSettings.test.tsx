@@ -74,16 +74,16 @@ describe("DataSettings", () => {
 
     expect(
       screen.getByText(
-        "This permanently deletes the strategies PathFinder created in your VEuPathDB account, on every site. Strategies you made in VEuPathDB yourself are kept.",
+        "This permanently deletes the strategies Strategist created in your VEuPathDB account, on every site. Strategies you made in VEuPathDB yourself are kept.",
       ),
     ).toBeVisible();
   });
 
-  it("describes the row as deleting only the strategies PathFinder created", () => {
+  it("describes the row as deleting only the strategies Strategist created", () => {
     render(<DataSettings siteId="plasmodb" />);
 
     expect(screen.getByTestId("wdk-purge-description")).toHaveTextContent(
-      "Everything above, plus the strategies PathFinder created in VEuPathDB. This cannot be undone.",
+      "Everything above, plus the strategies Strategist created in VEuPathDB. This cannot be undone.",
     );
   });
 

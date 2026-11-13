@@ -9,7 +9,7 @@ export function StalePartNotice({ subject }: { subject: string }) {
       className="flex items-center gap-2 text-xs text-muted-foreground"
     >
       <History className="size-3.5 shrink-0" aria-hidden />
-      <span>{`${subject} from an earlier version of PathFinder can't be shown.`}</span>
+      <span>{`${subject} from an earlier version of Strategist can't be shown.`}</span>
     </div>
   );
 }

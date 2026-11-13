@@ -61,7 +61,7 @@ _KINDS = (
 def _check_kind(part: FileUIPart, name: str, model: ModelEntry) -> None:
     kind = next((k for k in _KINDS if part.media_type in k.media_types), None)
     if kind is None:
-        msg = f"{name} is {part.media_type}; PathFinder reads {_KINDS_READ}."
+        msg = f"{name} is {part.media_type}; Strategist reads {_KINDS_READ}."
         raise AttachmentNotReadableError(msg)
     if kind.read_by(model):
         return

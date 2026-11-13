@@ -48,7 +48,7 @@ class ProposedReading(CamelModel):
         max_length=80,
         description=(
             "A short title of the plan in the researcher's terms. The card and the "
-            "Build button show it, and PathFinder writes the plan's steps under it."
+            "Build button show it, and Strategist writes the plan's steps under it."
         ),
     )
     searches: Annotated[

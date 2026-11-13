@@ -1,4 +1,4 @@
-"""Entry point for the Pathfinder Procrastinate worker.
+"""Entry point for the Strategist Procrastinate worker.
 
 Run with ``python -m pathfinder.jobs.worker``. ``register_all_tools`` imports
 ``tasks`` (so ``@procrastinate_app.task`` decorators register the task names)
@@ -148,7 +148,7 @@ async def amain() -> None:
     # The index shares this process's pool instead of opening a second one.
     use_embedding_session_factory(async_session_factory)
     install_decisions_transport()
-    logging.getLogger(__name__).info("Pathfinder worker starting")
+    logging.getLogger(__name__).info("Strategist worker starting")
     _build_the_injection_judge()
     # Turns run here, so this is the process where a declaration resolves.
     install_admitted_sources(admitted_tool_sources())

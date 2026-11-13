@@ -34,11 +34,11 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
         <div className="flex items-center gap-3">
           <PathFinderLogo size={36} />
           <div>
-            <div className="text-base font-semibold tracking-tight text-foreground">
-              PathFinder
-            </div>
             <div className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
-              VEuPathDB Strategy Builder
+              VEuPathDB
+            </div>
+            <div className="text-base font-semibold tracking-tight text-foreground">
+              Strategist
             </div>
           </div>
         </div>
@@ -64,7 +64,7 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
           href={yourDataUrl()}
           className="mt-3 block text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
-          Your data in PathFinder
+          Your data in Strategist
         </Link>
       </div>
     </div>

@@ -77,7 +77,7 @@ export function DeleteGeneSetButton({
           <AlertDialogHeader>
             <AlertDialogTitle>{`Delete ${name}?`}</AlertDialogTitle>
             <AlertDialogDescription>
-              PathFinder removes this gene set and cannot restore it. A dataset
+              Strategist removes this gene set and cannot restore it. A dataset
               published from it stays in your VEuPathDB workspace.
             </AlertDialogDescription>
           </AlertDialogHeader>

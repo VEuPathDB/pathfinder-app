@@ -1,4 +1,4 @@
-PathFinder API
+Strategist API
 ==============
 
 .. rst-class:: lead

@@ -24,10 +24,10 @@ export function InfoPage({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
-          Back to PathFinder
+          Back to Strategist
         </Link>
         <div className="mt-8" style={{ marginLeft: -LOGO_SIZE * MARK_LEFT_INSET }}>
-          <PathFinderLogo size={LOGO_SIZE} label="PathFinder" />
+          <PathFinderLogo size={LOGO_SIZE} label="VEuPathDB Strategist" />
         </div>
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">{title}</h1>
         {lead}

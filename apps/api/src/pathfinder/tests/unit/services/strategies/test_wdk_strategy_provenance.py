@@ -1,6 +1,6 @@
 """The sync reports whether it minted the WDK strategy it returns.
 
-Only a minted strategy is PathFinder's to delete, so the flag is true on
+Only a minted strategy is Strategist's to delete, so the flag is true on
 exactly the branches that call ``create_strategy``.
 """
 

@@ -105,7 +105,7 @@ export function ShareDialog({
             <div className="space-y-2">
               <Choice
                 label="Anyone with the link can open it"
-                hint="Otherwise the link needs a password that PathFinder makes."
+                hint="Otherwise the link needs a password that Strategist makes."
                 checked={settings.public}
                 disabled={busy}
                 onChange={(value) => change({ ...settings, public: value })}

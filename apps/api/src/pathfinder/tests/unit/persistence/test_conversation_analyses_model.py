@@ -1,4 +1,4 @@
-"""PathFinder stores a reference to the upstream analysis and nothing else."""
+"""Strategist stores a reference to the upstream analysis and nothing else."""
 
 from __future__ import annotations
 

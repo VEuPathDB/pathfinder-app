@@ -161,7 +161,7 @@ function memoryRows(dialog: Locator, text: string): Locator {
   return dialog.getByTestId("memory-row-body").filter({ hasText: text });
 }
 
-/** Sign a second PathFinder user in, on the same VEuPathDB login, with no memories. */
+/** Sign a second Strategist user in, on the same VEuPathDB login, with no memories. */
 async function secondUser(browser: Browser, userId: string): Promise<BrowserContext> {
   const context = await browser.newContext({ baseURL: APP_ROOT });
   await addWebsiteLogin(context);
@@ -525,7 +525,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
       .getByRole("button", { name: `Delete ${outcome.value.name}`, exact: true })
       .click();
     expect(await confirmed).toBe(
-      `Delete "${outcome.value.name}"? PathFinder will not save it again on its own.`,
+      `Delete "${outcome.value.name}"? Strategist will not save it again on its own.`,
     );
     await expect(memoryRows(dialog, outcome.value.name)).toHaveCount(0);
     await expect.poll(() => caseTags(apiClient, outcome.key)).toBeNull();

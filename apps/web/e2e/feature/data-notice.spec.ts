@@ -25,13 +25,13 @@ test.describe("The data notice at first sign-in", () => {
     const page = await context.newPage();
     await gotoOnSite(page, DEFAULT_SITE, `${BASE_URL}/conversation`);
 
-    const notice = page.getByRole("alertdialog", { name: "Your data in PathFinder" });
+    const notice = page.getByRole("alertdialog", { name: "Your data in Strategist" });
     await expect(notice).toBeVisible({ timeout: 60_000 });
     await expect(
       notice.getByRole("link", { name: "Read the full statement" }),
     ).toHaveAttribute("target", "_blank");
     const learn = notice.getByRole("checkbox", {
-      name: "Let PathFinder learn from my strategies",
+      name: "Let Strategist learn from my strategies",
     });
     await expect(learn).toBeChecked();
     await page.keyboard.press("Escape");

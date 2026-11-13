@@ -88,7 +88,7 @@ leaves the step in the local graph for the sync service to retry.
 Auto Import
 -----------
 
-**Purpose:** Automatic import of WDK strategies into PathFinder.
+**Purpose:** Automatic import of WDK strategies into Strategist.
 
 .. automodule:: pathfinder.services.strategies.auto_import
    :members:

@@ -12,7 +12,7 @@ status: stable
 The right side has three panels (`state/useRightRailStore.ts::RIGHT_RAIL_PANELS`): Strategy,
 Review, and Study, whose button shows only while the thread has a study. Their buttons are a
 pill at the top right of the conversation (`rail/RailToggle.tsx`), and on a phone they sit in
-the bottom bar; help, settings and the PathFinder mark sit at the foot of the left rail. A side
+the bottom bar; help, settings and the Strategist mark sit at the foot of the left rail. A side
 panel stays beside the conversation only while the conversation keeps 600 px
 (`lib/layout/dock.ts::dockLayout`); otherwise the panel opened last floats over it as a drawer.
 Spend is one ring beside Attach (`composer/SpendRing.tsx`): it fills to the share of the

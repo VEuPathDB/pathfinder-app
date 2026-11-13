@@ -97,7 +97,7 @@ function caches(queryClient: ReturnType<typeof createTestWrapper>["queryClient"]
 describe("ProviderKeySettings", () => {
   it("links to the statement of what a key pays for and where it is kept", async () => {
     renderTab();
-    const link = await screen.findByRole("link", { name: "Your data in PathFinder" });
+    const link = await screen.findByRole("link", { name: "Your data in Strategist" });
 
     expect(link).toHaveAttribute("href", "/help/your-data#your-key");
   });
@@ -107,7 +107,7 @@ describe("ProviderKeySettings", () => {
 
     expect(
       await screen.findByText(
-        "A key pays for its provider's models, outside your monthly allowance. PathFinder checks it once, stores it sealed and never shows it again.",
+        "A key pays for its provider's models, outside your monthly allowance. Strategist checks it once, stores it sealed and never shows it again.",
       ),
     ).toBeVisible();
   });

@@ -57,7 +57,7 @@ def turn_is_classified(deps: LeadDeps) -> bool:
 
 
 def turn_is_off_topic(deps: LeadDeps) -> bool:
-    """Whether this turn's own message asks for something PathFinder is not."""
+    """Whether this turn's own message asks for something Strategist is not."""
     intent = deps.intent
     return (
         turn_is_classified(deps)

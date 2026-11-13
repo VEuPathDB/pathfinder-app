@@ -28,7 +28,7 @@ either existed.
 
 `build_lead_agent()` is a factory, the turn node takes it as `build_agent`,
 and calls it once per turn. `ai/graph/builder.py` is the single place that
-names PathFinder's factory and its pre-turn hook, so the processes that build
+names Strategist's factory and its pre-turn hook, so the processes that build
 a graph cannot drift apart.
 
 `build_frame_agent()`, `build_execution_agent()` and `build_verification_agent()`

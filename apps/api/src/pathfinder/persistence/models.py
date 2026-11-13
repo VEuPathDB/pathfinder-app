@@ -210,7 +210,7 @@ class GeneSetRow(Base):
 
 
 class ConversationStrategy(Base):
-    """PathFinder's WDK strategy projection for one chat thread.
+    """Strategist's WDK strategy projection for one chat thread.
 
     The row exists only after the first strategy write. Ownership is the
     parent thread's, so this table carries no user or application of its own.
@@ -233,8 +233,8 @@ class ConversationStrategy(Base):
     )
     record_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
-    # True when PathFinder created this strategy on VEuPathDB. A strategy the
-    # user made on the website and opened here is not PathFinder's to delete.
+    # True when Strategist created this strategy on VEuPathDB. A strategy the
+    # user made on the website and opened here is not Strategist's to delete.
     wdk_strategy_created_here: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

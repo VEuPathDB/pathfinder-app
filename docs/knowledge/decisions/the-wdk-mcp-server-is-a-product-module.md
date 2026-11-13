@@ -51,7 +51,7 @@ touches. Inside the api they would grow against the ceiling that chat needs.
 Its own process gives the growth a ceiling of its own.
 
 **Exporting the `ai/tools/standalone` wrappers.** They take a `RunContext` and
-an `AgentDeps`, and four of them write PathFinder's discovery gate on
+an `AgentDeps`, and four of them write Strategist's discovery gate on
 `agent_state`. Serving them would export the turn. The retrieval half is the
 service; the gate stays in `ai/`.
 
@@ -70,6 +70,6 @@ budget is choosing to time the tool out, and can read the number before it
 does. Declaring nothing was rejected: the default would silently cut the call
 at 60 seconds and the failure would look like a WDK fault.
 
-The served entrypoint reaches no PathFinder table, which is what a second
+The served entrypoint reaches no Strategist table, which is what a second
 deployment needs; see
-[the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md).
+[the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md).

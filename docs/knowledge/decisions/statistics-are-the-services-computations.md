@@ -12,7 +12,7 @@ status: stable
 
 A researcher who opens an expression study asks whether the conditions
 separate, whether two sample variables are associated, or how a measurement
-spreads by group. PathFinder answers each of these with a computation the
+spreads by group. Strategist answers each of these with a computation the
 site's EDA service runs, never with a test or a model of its own:
 
 - `run_eda_dimensionality_reduction` runs the service's `dimensionalityreduction`

@@ -19,7 +19,7 @@ from pathfinder.transport.http.deps import (
 from pathfinder.transport.http.routers.chat import resolve_chat_assistant
 
 # The cookie a test client signs in with, as a website login does. Its value is
-# a PathFinder token naming the user, read in place of VEuPathDB's account lookup.
+# a Strategist token naming the user, read in place of VEuPathDB's account lookup.
 SITE_LOGIN_COOKIE = "Authorization"
 
 

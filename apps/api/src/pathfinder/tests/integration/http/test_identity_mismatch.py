@@ -1,7 +1,7 @@
-"""A PathFinder bearer and a VEuPathDB token that name two accounts are refused.
+"""A Strategist bearer and a VEuPathDB token that name two accounts are refused.
 
 A bearer and a VEuPathDB token arrive independently, so the WDK gate refuses
-them when they disagree. A browser has no PathFinder credential of its own: its
+them when they disagree. A browser has no Strategist credential of its own: its
 website login names the one account it acts as.
 """
 
@@ -52,7 +52,7 @@ CONVERSATIONS_PATH = "/api/v1/conversations"
 MISMATCH_CODE = "WDK_IDENTITY_MISMATCH"
 MISMATCH_TITLE = "VEuPathDB account changed"
 MISMATCH_DETAIL = (
-    "Signed in to VEuPathDB as a different account than this PathFinder "
+    "Signed in to VEuPathDB as a different account than this Strategist "
     "session. Sign in again."
 )
 

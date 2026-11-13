@@ -14,9 +14,9 @@ from pathfinder.domain.strategy.operational_spec import Criterion
 def off_topic_essay_message(max_chars: int) -> str:
     """Why an out-of-scope reply that answers the request anyway is refused."""
     return (
-        f"This turn asks for something PathFinder does not do, and your reply "
+        f"This turn asks for something Strategist does not do, and your reply "
         f"answers it. Write the redirect your instructions give instead: two "
-        f"sentences, under {max_chars} characters, naming what PathFinder does "
+        f"sentences, under {max_chars} characters, naming what Strategist does "
         f"and inviting the user to rephrase. No code block, no draft, no answer "
         f"to what was asked."
     )

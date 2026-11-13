@@ -2,7 +2,7 @@
 
 The worker builds the graph from the spec the payload names, so a turn that
 completes proves the whole pipeline resolved an assistant rather than naming
-PathFinder's graph.
+Strategist's graph.
 """
 
 from __future__ import annotations

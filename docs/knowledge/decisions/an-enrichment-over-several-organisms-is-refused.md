@@ -8,7 +8,7 @@ verified: { by: claude-code/fable-5-1, at: 2026-09-05T00:00:00Z }
 status: superseded
 ---
 
-> Superseded in v0.2.0a15 for PathFinder: it runs no enrichment since the site took GO,
+> Superseded in v0.2.0a15 for Strategist: it runs no enrichment since the site took GO,
 > pathway and word enrichment back ([VERIFY shows its evidence](verify-shows-its-evidence.md)).
 > The refusal stands as the tool server's own rule, in
 > `veupathdb_mcp.wdk.enrichment.service.EnrichmentService`.
@@ -59,7 +59,7 @@ organism and its enrichment assertion is real.
 
 # Reopen when
 
-PathFinder no longer runs an enrichment: since v0.2.0a15 GO, pathway and word
+Strategist no longer runs an enrichment: since v0.2.0a15 GO, pathway and word
 enrichment run on the site from the step page the evidence card links
 ([VERIFY shows its evidence](verify-shows-its-evidence.md)). The refusal is the
 tool server's own rule for its callers. Reopen it there when a caller can state

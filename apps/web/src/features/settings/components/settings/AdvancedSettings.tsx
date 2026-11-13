@@ -43,7 +43,7 @@ export function AdvancedSettings() {
   return (
     <div className="space-y-8">
       <SettingsSection title="Display">
-        <SettingsRow label="Text size" hint="Scales all text in PathFinder.">
+        <SettingsRow label="Text size" hint="Scales all text in Strategist.">
           <ToggleGroup
             type="single"
             variant="outline"

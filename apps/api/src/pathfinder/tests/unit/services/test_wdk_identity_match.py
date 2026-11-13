@@ -1,4 +1,4 @@
-"""One PathFinder session acts on one VEuPathDB account.
+"""One Strategist session acts on one VEuPathDB account.
 
 The session cookie and the VEuPathDB token arrive independently, so the gate
 checks that the token names the session's user before any WDK write.
@@ -25,7 +25,7 @@ REGISTERED_TOKEN = "registered.veupathdb.token"
 
 _MISMATCH_TITLE = "VEuPathDB account changed"
 _MISMATCH_DETAIL = (
-    "Signed in to VEuPathDB as a different account than this PathFinder "
+    "Signed in to VEuPathDB as a different account than this Strategist "
     "session. Sign in again."
 )
 

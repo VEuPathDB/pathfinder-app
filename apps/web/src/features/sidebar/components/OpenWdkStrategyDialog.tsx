@@ -60,7 +60,7 @@ function exampleLink(sites: SiteResponse[], siteId: string): string {
 /** Why an entry names nothing this site can open, or null when it does. */
 function entryNotice(read: WdkStrategyEntry): string | null {
   if (read.kind !== "otherSite") return null;
-  if (read.siteId === null) return `PathFinder has no site at ${read.host}.`;
+  if (read.siteId === null) return `Strategist has no site at ${read.host}.`;
   const other = siteShortName(read.siteId);
   return `That link names a ${other} strategy. Open it on the ${other} website.`;
 }
@@ -114,7 +114,7 @@ export function OpenWdkStrategyDialog({
           <DialogTitle>Open a VEuPathDB strategy</DialogTitle>
           <DialogDescription>
             Pick one of your {site} strategies, or paste a strategy&apos;s link or its
-            numeric id. PathFinder opens a conversation that holds it.
+            numeric id. Strategist opens a conversation that holds it.
           </DialogDescription>
         </DialogHeader>
         <input

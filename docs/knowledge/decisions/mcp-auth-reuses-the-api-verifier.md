@@ -32,8 +32,8 @@ library's own ES512 check, wrapped by `veupathdb_mcp/identity.py::resolve_oauth_
 which caches the subject a token names for five minutes. The application's API
 calls the same verifier and then maps the user onto its `users` table
 ([a VEuPathDB bearer token is the user](bearer-identity-and-service-tokens.md));
-the MCP server stops at the subject, so it reads no PathFinder table
-([the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md)).
+the MCP server stops at the subject, so it reads no Strategist table
+([the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md)).
 `McpCredential.client_id` is that subject string.
 
 `veupathdb_mcp/metadata.py` builds the RFC 9728 document route and the 401
@@ -48,7 +48,7 @@ other refuses, and a key rotation would be visible twice at different times.
 Reuse also carries the 503 rule for free: a JWKS that cannot be read names the
 identity provider rather than blaming the credential.
 
-**Naming the caller by PathFinder's internal user id.** It reads the `users`
+**Naming the caller by Strategist's internal user id.** It reads the `users`
 table on every admission, which a second deployment of the server cannot do,
 and the id was only ever stringified into `client_id`.
 

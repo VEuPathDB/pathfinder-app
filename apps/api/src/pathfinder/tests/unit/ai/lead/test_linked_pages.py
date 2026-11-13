@@ -109,7 +109,7 @@ def test_the_pin_carries_each_reading_and_its_rows() -> None:
 
     assert pinned == (
         "## Pages the message links to\n"
-        "PathFinder read each VEuPathDB link in the message before this turn. "
+        "Strategist read each VEuPathDB link in the message before this turn. "
         "Answer from these readings; a link is never searched on the web.\n"
         f"- {GENOMES}\n"
         "  The link runs GenomeDataTypes on veupathdb.\n"
