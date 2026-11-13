@@ -5,7 +5,7 @@
     "how many genes would there be without the ortholog filter"
   ],
   "siteId": "microsporidiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A count question is answered with the counts the product renders from the facts: the signal peptide search alone at 66 genes beside the result's 9 genes, with no edit.",
   "expected": {
     "buildsStrategy": true,

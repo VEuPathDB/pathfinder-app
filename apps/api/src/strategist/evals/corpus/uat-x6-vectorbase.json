@@ -5,7 +5,7 @@
     "Carry these to their orthologs in Plasmodium falciparum 3D7."
   ],
   "siteId": "vectorbase",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An organism the site's orthology sheet does not reach builds nothing and names the portal.",
   "expected": {
     "buildsStrategy": true,

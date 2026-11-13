@@ -4,7 +4,7 @@
     "How many protein-coding genes does 3D7 have?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A question whose answer is a count is a request to build the set that answers it. A question mark does not make such a turn a follow_up_question: the turn is offered the framing and building tools, so the count comes from a built strategy and not from prose. This pins the classification half no unit test can measure: the turn frames the problem and persists a strategy AST.",
   "expected": {
     "buildsStrategy": true,

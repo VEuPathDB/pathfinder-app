@@ -4,7 +4,7 @@
     "Which ortholog groups have a protein in Plasmodium falciparum 3D7 but are missing from at least 2 of the other P. falciparum strains?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Absence from at least k of N strains is a ceiling on the strain list's taxon count, N minus k, beside presence in the 3D7 genome. The strain list is every P. falciparum genome except 3D7.",
   "expected": {
     "buildsStrategy": true,

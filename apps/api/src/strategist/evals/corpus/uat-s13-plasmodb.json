@@ -5,7 +5,7 @@
     "Clear the current strategy by calling clear_strategy with confirm=true."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Clearing a strategy waits on an approval card and changes nothing before it.",
   "expected": {
     "buildsStrategy": true,

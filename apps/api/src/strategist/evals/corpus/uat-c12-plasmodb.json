@@ -4,7 +4,7 @@
     "Use these genes as my positive controls."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An attached gene-id list is read as controls, and the turn saves them or asks for negatives.",
   "expected": {
     "buildsStrategy": false,

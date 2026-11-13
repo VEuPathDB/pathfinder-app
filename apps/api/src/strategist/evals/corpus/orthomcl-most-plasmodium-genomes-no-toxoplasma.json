@@ -4,7 +4,7 @@
     "Which ortholog groups are found in at least 90% of the Plasmodium genomes and in no Toxoplasma gondii genome?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A share of a clade's genomes is a lower bound on its taxon count: the Plasmodium genome list with a taxon count of at least the rounded-up 90 percent of its length, and the Toxoplasma gondii list with a taxon count of 0. The share is stated, so no question is asked.",
   "expected": {
     "buildsStrategy": true,

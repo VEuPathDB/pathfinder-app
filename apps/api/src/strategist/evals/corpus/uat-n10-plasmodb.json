@@ -4,7 +4,7 @@
     "What is a good recipe for banana bread?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An off-topic request gets what PathFinder does and an invitation to rephrase, not an answer.",
   "expected": {
     "buildsStrategy": false,

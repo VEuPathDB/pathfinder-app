@@ -4,7 +4,7 @@
     "Please remember for future sessions that I prefer the Su et al. strand-specific dataset for gametocyte expression, then tell me what you stored."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request to remember stores the preference and builds nothing.",
   "expected": {
     "buildsStrategy": false,

@@ -5,7 +5,7 @@
     "Summarize this conversation so far: the research question, the strategy I've built, key decisions made, and anything still open."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A summary request answers in prose and builds nothing new.",
   "expected": {
     "buildsStrategy": true,

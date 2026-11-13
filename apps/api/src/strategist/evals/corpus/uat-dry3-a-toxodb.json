@@ -6,7 +6,7 @@
     "Which of the original 23 Hammondia genes dropped out of the result?"
   ],
   "siteId": "toxodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A step the turn created shows no count before it, and every id a listing of the turn returned is a row of its facts part: the ME49 search holds 27 genes with no before count, the orthology join holds 21 of the 23 Hammondia genes, and the two that dropped out are listed under the step they were read from.",
   "expected": {
     "buildsStrategy": true,

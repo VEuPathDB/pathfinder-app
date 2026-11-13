@@ -4,7 +4,7 @@
     "How many protein-coding genes does 3D7 have?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A question whose answer is a count builds the set that answers it.",
   "expected": {
     "buildsStrategy": true,

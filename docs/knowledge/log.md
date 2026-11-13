@@ -422,7 +422,7 @@
   conversation of another site opens the notice on every website, and a host no site names
   uses the `siteId` of `GET /health/config`. The notice for a site that is down no longer
   links other sites. See
-  [the decision](decisions/the-site-comes-from-the-website-that-frames-pathfinder.md).
+  [the decision](decisions/the-site-comes-from-the-website-that-frames-strategist.md).
 * **A required genome list is asked from its counts.** A settled `GenesByOrthologPattern`
   criterion that requires two genomes or more asks one card when its at-least-one count
   differs from its bound count. "All" settles it. "At least one" builds left MINUS right
@@ -1027,7 +1027,7 @@
   on the portal. The Help page, the data statement and the notice also name every request
   that goes to OpenAI whichever model is picked, and what deleting a conversation removes and
   keeps. See
-  [the decision](decisions/the-site-comes-from-the-website-that-frames-pathfinder.md).
+  [the decision](decisions/the-site-comes-from-the-website-that-frames-strategist.md).
 * **Too few controls are asked for before a run.** With 4 positive and 2 negative
   controls, a separation run made 583 site requests and reported that no search
   separates the sets, though GO:0006468 held every positive and no negative: the
@@ -2595,7 +2595,7 @@
   path to a same-origin parent. Export links read `PUBLIC_BASE_URL`, which compose
   now passes to the api and the worker with `PATHFINDER_SITE`, and compose binds
   the api, web and MCP ports to `127.0.0.1`
-  ([the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+  ([the decision](decisions/strategist-signs-in-through-the-site-that-hosts-it.md)).
   Images move to the estate's pipeline: Jenkins builds the api and web images from
   `Jenkinsfile` with `pipelib` to `docker.io/veupathdb`, a release is tagged with
   the semver spelling of the api version (`v0.2.0-b5`), and
@@ -2619,7 +2619,7 @@
   measurer reads the development account from the settings. The api's unread
   `S2_API_KEY` is gone: the research server reads `RESEARCH_MCP_S2_API_KEY`, and
   compose and both env templates now name only that
-  ([the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+  ([the decision](decisions/strategist-signs-in-through-the-site-that-hosts-it.md)).
 * **The mock model's scripted turns pass the guards a real model meets.** The GO arc
   binds `GO:0003735` (structural constituent of ribosome) on every site under
   `go_term_slim=No`, and the end-to-end requests name that concept, so the label
@@ -7710,7 +7710,7 @@
   result and context types -> `services/control_types.py`.
   `tests/unit/test_veupathdb_mcp_unit_boundary.py` (247 cases) is the gate: it
   walks the unit and it walks the entrypoint closure. Recorded as
-  [the MCP server writes no PathFinder table](decisions/the-mcp-server-writes-no-pathfinder-table.md).
+  [the MCP server writes no PathFinder table](decisions/the-mcp-server-writes-no-strategist-table.md).
 
 * **The VEuPathDB client library no longer imports anything above itself: 84
   upward edges became 0.** The module set that becomes the `veupathdb`
@@ -8010,7 +8010,7 @@
   is where it belongs: the live-verified EDA facts are the thirteen reference
   documents in `veupathdb-py: docs/knowledge/eda/` (the filter algebra, the six-state job lifecycle,
   the bridge, the REST divergences), the architecture is
-  [architecture fit](eda/pathfinder-architecture-fit.md), and every wire value
+  [architecture fit](eda/strategist-architecture-fit.md), and every wire value
   the batch cards carried is asserted in the EDA tests under `apps/api` and
   `apps/web`. `eda/index.md` no longer offers a plan; the two documents whose
   Status line pointed into it now state the status alone.
@@ -10625,7 +10625,7 @@
   genomics and WDK relations (`veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`) (four
   relations, not one; per-dataset searches derive from
   SHA-1(datasetName)[:10]; the EDAUD_ sentinel vocabulary term 400s), and
-  [architecture fit](eda/pathfinder-architecture-fit.md) (layer placement,
+  [architecture fit](eda/strategist-architecture-fit.md) (layer placement,
   the durable-tool mapping named mechanism by mechanism, EDA as a second
   admitted MCP source, hand-written Pydantic mirrors with pinned wire
   samples). The four baseline documents were corrected where the deeper pass
@@ -11034,7 +11034,7 @@
   pinned fixture store, so `check-wdk-rules` reports **78 enforced, 4 partial, 1
   unenforced** where it reported 32 unenforced, and three `PARTIAL` entries closed with it
   (WDK-STRAT-002 in `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`, `-003` and
-  [WDK-MAP-003](wdk/pathfinder/rules/pathfinder-mapping.md), all three by one test that runs the
+  [WDK-MAP-003](wdk/strategist/rules/strategist-mapping.md), all three by one test that runs the
   projection to its third function and asserts on the serialized `WDKStepTree`). Nightly:
   `pytest -m live_wdk` collects **139** tests, skips cleanly with no credential, deletes
   every strategy and step it creates, and writes a JSON summary of outcomes, per-site
@@ -11213,7 +11213,7 @@
 
 * **Read what WDK already answers, and stop reporting numbers it did not give.** Five changes, all from the pinned rule set rather than from a failing run. (1) One named count: the two count paths returned different quantities, because `estimatedSize` tracks `displayTotalCount` while the fallback read `totalCount`, and only the view pair matches the records returned. (2) The four counts became optional, so an absent count can no longer read as a scientific zero; the response schema and generated types were made honest rather than kept convenient. (3) A negative `estimatedSize` now reads as no count instead of surfacing as a gene count. (4) The validation bundle returned by the search endpoint is read instead of discarded, honouring the rule that a false verdict at level `NONE` means nobody checked. (5) WDK reports which values it substituted, so provenance is now corrected by the server that already knew it. Writing the first rule test also found a live contradiction: the model was told to send the synthetic tree root as a select-all shortcut, and the canonicalizer rejects it, as WDK does. Also closed: the delayed-result sentinel is recognised by shape and retried.
 
-* **Added `docs/knowledge/wdk/`, a falsifiable WDK reference, and a gate that fails when its evidence stops resolving.** Four groups - rules (`veupathdb-py: docs/knowledge/wdk/rules/`), model (`veupathdb-py: docs/knowledge/wdk/model/`), rest (`veupathdb-py: docs/knowledge/wdk/rest/`) and [pathfinder](wdk/pathfinder/) - carrying **73 assertions** about WDK, each with a GitHub link pinned to a 40-character sha and an anchor naming the PathFinder symbol it governs. Most are confirmed live on plasmodb.org and toxodb.org rather than reasoned about; six are source-only and sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`) lists them by name. The new gate `scripts/check-wdk-rules.mjs` (pre-commit and CI, with its own fixture suite) fails on an unpinned citation, a moved anchor, a named test that no longer exists, and prose citing a withdrawn rule. Every `ENFORCED` and `PARTIAL` status was then audited against one standard - would the named test go red if the rule were broken - which downgraded three: WDK-VOCAB-002 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), whose test drove the canonicalizer while its anchor is a second, untested expansion in `integrations/`, and WDK-STRAT-002 and WDK-STRAT-003 (`veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), whose hypothesis trees came out of `flatten_tree` and so satisfied single-rootedness and reachability by construction. The honest tally is **8 ENFORCED, 9 PARTIAL, 56 UNENFORCED**, and the number that matters is that **19 `SILENT` rules have no test** - the class where WDK answers 200 and the science is wrong. Filed as one item, 56 of the 73 WDK rules have no test, which ranks the conversion `SILENT` first and carries the open questions the research left behind, including a `JSESSIONID` belief that did not reproduce on three live probes.
+* **Added `docs/knowledge/wdk/`, a falsifiable WDK reference, and a gate that fails when its evidence stops resolving.** Four groups - rules (`veupathdb-py: docs/knowledge/wdk/rules/`), model (`veupathdb-py: docs/knowledge/wdk/model/`), rest (`veupathdb-py: docs/knowledge/wdk/rest/`) and [pathfinder](wdk/strategist/) - carrying **73 assertions** about WDK, each with a GitHub link pinned to a 40-character sha and an anchor naming the PathFinder symbol it governs. Most are confirmed live on plasmodb.org and toxodb.org rather than reasoned about; six are source-only and sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`) lists them by name. The new gate `scripts/check-wdk-rules.mjs` (pre-commit and CI, with its own fixture suite) fails on an unpinned citation, a moved anchor, a named test that no longer exists, and prose citing a withdrawn rule. Every `ENFORCED` and `PARTIAL` status was then audited against one standard - would the named test go red if the rule were broken - which downgraded three: WDK-VOCAB-002 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), whose test drove the canonicalizer while its anchor is a second, untested expansion in `integrations/`, and WDK-STRAT-002 and WDK-STRAT-003 (`veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), whose hypothesis trees came out of `flatten_tree` and so satisfied single-rootedness and reachability by construction. The honest tally is **8 ENFORCED, 9 PARTIAL, 56 UNENFORCED**, and the number that matters is that **19 `SILENT` rules have no test** - the class where WDK answers 200 and the science is wrong. Filed as one item, 56 of the 73 WDK rules have no test, which ranks the conversion `SILENT` first and carries the open questions the research left behind, including a `JSESSIONID` belief that did not reproduce on three live probes.
 
 * **Root-caused the recurring crash, correctly this time, and fixed the seam behind three earlier bugs.** Pushed back on: the same issues kept returning, which was right. Two findings. (1) `No tool invocation found for tool call ID` is thrown by the Vercel AI SDK **client**, not OpenAI, when a `tool-output-error` names a call the client never saw announced -- it never reaches a backend log, which is why it read as a silent provider rejection. [no-openai-item-ids](decisions/reasoning-items-go-back-with-their-ids.md) misattributed it and now carries a correction; the real one is [chunk suppression follows the call, not a list of chunk types](decisions/suppression-follows-the-call-not-the-chunk-type.md), since fixed and verified in the browser. (2) "Get a search's parameters under a context" had **no owner**: six call sites, four exception types caught, five recoveries, two with no handling at all -- and the two with none are exactly where B16, the default-vocabulary read, and the abandoned criterion landed. One owner now: [a contextualized param view is an enrichment](decisions/contextualizing-params-is-an-enrichment.md). Verified against the live 500: WDK fails, we log once and return all 6 params.
 

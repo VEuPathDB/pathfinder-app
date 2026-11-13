@@ -6,7 +6,7 @@
     "At p 0.001 with no fold change cutoff, how many genes pass, and how many samples are in each group?"
   ],
   "siteId": "fungidb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An EDA export shows its filters and its measured variable by the study's names, and each chosen cutoff beside the count the compute holds for its other reading; the reply may name the temperatures the researcher wrote.",
   "expected": {
     "buildsStrategy": true,

@@ -5,7 +5,7 @@
     "Save the genes of this strategy as a gene set named UAT G1."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A gene set saved from a strategy carries the strategy's root count and counts genes.",
   "expected": {
     "buildsStrategy": true,

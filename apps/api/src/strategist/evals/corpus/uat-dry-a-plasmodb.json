@@ -4,7 +4,7 @@
     "Plasmodium knowlesi strain H genes with a Plasmodium-specific domain that have no ortholog in Homo sapiens."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A concept that names no single vocabulary entry, such as a Plasmodium-specific domain, is not bound on the pass's own guess: the turn ends on a card that asks which entries define it, and nothing is built until the researcher answers.",
   "expected": {
     "buildsStrategy": false,

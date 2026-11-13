@@ -4,7 +4,7 @@
     "How many ortholog groups are single-copy in at least 50 genomes, whichever genomes they are?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A single-copy count with no named taxa is Single Copy Orthogroups: the taxon range starts at 50 and no defaulted core or peripheral range narrows it below what the request states. On build 8.2 GroupsBySingleCopy returns the same groups as Number of Taxa, so the reply carries the search note's caveat that it restricts no copy number; that caveat is graded by hand. A new OrthoMCL build measures the note again.",
   "expected": {
     "buildsStrategy": true,

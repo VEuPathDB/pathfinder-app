@@ -5,7 +5,7 @@
     "Just a question, don't change the strategy: how many genes would mucin* match if every text field were searched instead of the product field alone, and how many of those are beyond the ones here?"
   ],
   "siteId": "cryptodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A comparison's counts are shown beside the reply, rendered from the comparison the turn ran: the facts part holds 84 genes over every text field, the comparison card holds the 82 genes beyond the 2 the product-field step holds, and the strategy keeps its one text step.",
   "expected": {
     "buildsStrategy": true,

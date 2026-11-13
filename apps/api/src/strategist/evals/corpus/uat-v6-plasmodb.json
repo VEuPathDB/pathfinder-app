@@ -4,7 +4,7 @@
     "Find P. falciparum 3D7 genes involved in erythrocyte invasion, using what the literature says about the invasion machinery."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request that names the literature builds a strategy whose criteria come from it.",
   "expected": {
     "buildsStrategy": true,

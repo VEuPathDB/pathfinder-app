@@ -131,6 +131,6 @@ caller untranslated.
 The same split drained the client library's and the MCP server's outbound edges;
 see [the client library owns its
 foundation](the-client-library-owns-its-foundation.md) and [the MCP server
-writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md). What
+writes no Strategist table](the-mcp-server-writes-no-strategist-table.md). What
 the index itself does is [embeddings are an API call and a record
 manager](embeddings-are-an-api-and-a-record-manager.md).

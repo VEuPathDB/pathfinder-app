@@ -4,7 +4,7 @@
     "Use the VectorBase blood-fed versus sugar-fed microarray experiment to find the matching Plasmodium falciparum genes."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Another site's experiment is named and never bound on this site.",
   "expected": {
     "buildsStrategy": false,

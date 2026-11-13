@@ -4,7 +4,7 @@
     "Show me ortholog group OG8_0000003."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A group id is looked up with the group id search and returns that one group.",
   "expected": {
     "buildsStrategy": true,

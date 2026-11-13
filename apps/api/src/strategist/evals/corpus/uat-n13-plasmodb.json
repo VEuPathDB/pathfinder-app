@@ -5,7 +5,7 @@
     "Build a strategy for P. falciparum 3D7 protein kinases."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A second build request on a thread that holds a strategy edits it or asks, and never discards it unasked.",
   "expected": {
     "buildsStrategy": true,

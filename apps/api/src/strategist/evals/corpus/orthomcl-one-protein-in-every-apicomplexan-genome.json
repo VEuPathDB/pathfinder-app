@@ -4,7 +4,7 @@
     "List the ortholog groups that have exactly one protein in every apicomplexan genome."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The reworded suggestion has one reading: the apicomplexan clade code with a taxon count equal to its genome count and a protein count equal to the same number. The clade's genome count comes from the taxonomy, never from the model's memory.",
   "expected": {
     "buildsStrategy": true,

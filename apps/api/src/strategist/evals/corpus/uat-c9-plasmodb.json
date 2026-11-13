@@ -5,7 +5,7 @@
     "Analyze my current strategy. Summarize topology and step flow, any weak spots or redundant steps, concrete improvement suggestions, and what I should try next."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An analysis request answers in prose and ends on no card, with the strategy unchanged.",
   "expected": {
     "buildsStrategy": true,

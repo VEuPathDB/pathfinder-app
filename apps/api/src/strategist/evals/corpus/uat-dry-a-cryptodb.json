@@ -9,7 +9,7 @@
     "Thanks, 68 is a workable list. Can you give me the link to this strategy on CryptoDB so I can open it there?"
   ],
   "siteId": "cryptodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A strategy link names the workspace route the site serves, never a route it lacks; the ME49-only profile edit is stated with its count on the turn that made it, and the final strategy intersects that profile with the signal peptide search.",
   "expected": {
     "buildsStrategy": true,

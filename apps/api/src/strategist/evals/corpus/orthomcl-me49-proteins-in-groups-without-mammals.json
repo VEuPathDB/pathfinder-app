@@ -4,7 +4,7 @@
     "List the Toxoplasma gondii ME49 proteins whose ortholog groups have no protein from any mammal."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The groups come from a phyletic pattern with the mammal clade absent, the FromGroups transform turns them into proteins, and an intersection with the ME49 proteins keeps that genome's.",
   "expected": {
     "buildsStrategy": true,

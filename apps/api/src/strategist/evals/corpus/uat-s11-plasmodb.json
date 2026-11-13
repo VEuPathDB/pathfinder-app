@@ -5,7 +5,7 @@
     "Remove the transmembrane-domain step."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Removing one input of a combine leaves the other search alone; the removal is asked on the delete card, and approving it builds nothing new and runs no check.",
   "expected": {
     "buildsStrategy": true,

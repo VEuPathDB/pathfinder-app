@@ -5,7 +5,7 @@
     "Thanks. Actually, change the stage to promastigotes instead of amastigotes, keeping the zinc finger part the same."
   ],
   "siteId": "tritrypdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The organism the message names shows as stated, and the 0 hr sample FRAME picked for promastigotes shows as chosen in the facts and is never called the site's default in the reply.",
   "expected": {
     "buildsStrategy": true,

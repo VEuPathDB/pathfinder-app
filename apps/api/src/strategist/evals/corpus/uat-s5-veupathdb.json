@@ -5,7 +5,7 @@
     "Carry these to their orthologs in Toxoplasma gondii ME49."
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes.",
   "expected": {
     "buildsStrategy": true,

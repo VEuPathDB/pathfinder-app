@@ -11,7 +11,7 @@ status: accepted
 # How EDA fits Strategist's architecture
 
 Status: built. It deepens
-[pathfinder-integration-concept.md](pathfinder-integration-concept.md), which
+[strategist-integration-concept.md](strategist-integration-concept.md), which
 states the two seams; this document states where each piece of code goes, which
 existing mechanism it reuses, and what it must not duplicate.
 
@@ -76,7 +76,7 @@ Modules, and the endpoints each covers (see
 
 No new credential path. The EDA service accepts the same registered WDK token
 Strategist already holds: the website's `Authorization` cookie brings it
-([Strategist signs in through the site that hosts it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+([Strategist signs in through the site that hosts it](../decisions/strategist-signs-in-through-the-site-that-hosts-it.md)),
 `veupathdb.auth_context.veupathdb_auth_token_ctx` carries it per request,
 `main.py`'s request middleware sets it from the request and
 `platform/security.py::_veupathdb_principal` sets it for a bearer caller, and
@@ -314,7 +314,7 @@ record today. The decision
 the admitted tool sources are installed by the host (`assistant-platform: docs/knowledge/decisions/admitted-tool-sources-are-installed-by-the-host.md`)
 fixes that seam: the set is a value, installed once at process start, with no
 argument a request could travel through. The related decision
-[Strategist admits veupathdb-wdk-mcp from two settings, and only with both](../decisions/pathfinder-admits-its-own-mcp-server-from-two-settings.md)
+[Strategist admits veupathdb-wdk-mcp from two settings, and only with both](../decisions/strategist-admits-its-own-mcp-server-from-two-settings.md)
 fixes the shape of the configuration: an endpoint and its credential, both
 required, so half a configuration admits nothing. An EDA source follows both
 without amendment.
@@ -485,7 +485,7 @@ change, and both are measured facts rather than guesses:
 - **The invalidation key is the study `sha1hash`, except when it is empty.**
   Live, all 12 `user_submitted` studies on plasmodb.org carry
   `"sha1hash": ""`. A user study must key on `lastModified` instead. This
-  corrects [pathfinder-integration-concept.md](pathfinder-integration-concept.md),
+  corrects [strategist-integration-concept.md](strategist-integration-concept.md),
   which says "Any cached copy needs the study `sha1hash` as its invalidation
   key" without the exception.
 - **The candidate set is not `/studies`.** Live, `/permissions` carried 880
@@ -592,7 +592,7 @@ network and to a document the wire already contradicts. Pinned wire samples
 
 ## 6. What this document changes about the concept doc
 
-[pathfinder-integration-concept.md](pathfinder-integration-concept.md) stands.
+[strategist-integration-concept.md](strategist-integration-concept.md) stands.
 Three of its statements get sharper here, and one needs a correction; none is
 contradicted.
 

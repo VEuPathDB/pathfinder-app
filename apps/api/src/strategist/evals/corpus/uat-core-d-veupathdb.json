@@ -5,7 +5,7 @@
     "Please narrow that to Leishmania donovani BPK282A1, and show me the count before next to the count after."
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A narrower organism stated with no withdrawal replaces the family the thread held: the classifier names no key and no successor, the thread records the family as replaced by Leishmania donovani BPK282A1 and never as withdrawn, and the GO step keeps the term by its label, 115 genes.",
   "expected": {
     "buildsStrategy": true,

@@ -74,7 +74,7 @@ a read-only view of the analysis the agent built, over our own EDA client:
   sentence, read-only. The agent writes them (`set_eda_filters`, the durable
   `run_eda_compute`); a researcher edits them in the site's own notebook, which
   the tab links. The editing cells that copied the notebook were removed
-  ([Strategist shows what the AI did](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
+  ([Strategist shows what the AI did](../decisions/strategist-shows-what-the-ai-did-and-the-site-edits.md)).
 - **Visualization cell**: renders the server-computed data with our own
   ECharts components, in `apps/web/src/features/eda/cells/VizCell.tsx`; EDA
   sends data, not images, so we are not importing web-monorepo React. The

@@ -5,7 +5,7 @@
     "Which dataset do I prefer for gametocyte expression?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A stored preference is recalled by name and nothing is built.",
   "expected": {
     "buildsStrategy": false,

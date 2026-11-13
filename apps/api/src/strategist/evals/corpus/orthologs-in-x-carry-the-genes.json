@@ -5,7 +5,7 @@
     "Carry these to their orthologs in Plasmodium vivax P01."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request for the orthologs in another organism asks for that organism's genes: one orthology transform over the seed, and a reply that says the records are P. vivax P01 genes. That transform answers 67 P. vivax P01 records, and the reply must say whose genes those are.",
   "expected": {
     "buildsStrategy": true,
@@ -30,7 +30,7 @@
     "origin": "cataloged-failure",
     "addedAt": "2026-09-24",
     "stagingId": "",
-    "reference": "wdk/pathfinder/rules/pathfinder-mapping.md#WDK-MAP-009",
+    "reference": "wdk/strategist/rules/strategist-mapping.md#WDK-MAP-009",
     "curatorNote": "Two turns on one thread: the first builds the seed, the second carries it."
   },
   "gates": {

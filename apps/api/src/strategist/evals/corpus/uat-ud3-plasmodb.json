@@ -4,7 +4,7 @@
     "Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A gene list the researcher uploaded is a step on the site's user-dataset gene-list search, combined like any other search.",
   "expected": {
     "buildsStrategy": true,

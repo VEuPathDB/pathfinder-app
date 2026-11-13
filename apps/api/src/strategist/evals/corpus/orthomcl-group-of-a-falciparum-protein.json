@@ -4,7 +4,7 @@
     "Which ortholog group contains the Plasmodium falciparum 3D7 protein of gene PF3D7_1133400 (AMA1)?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A protein named by its gene is found among the proteins, then transformed to its group; the answer is one group, named by its id.",
   "expected": {
     "buildsStrategy": true,

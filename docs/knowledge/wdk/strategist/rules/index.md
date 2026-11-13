@@ -5,4 +5,4 @@ mean. Every rule here is `CONTRACT`: none is a fact about WDK. The WDK facts the
 and the rules that assert them, are the client library's bundle at
 `veupathdb-py: docs/knowledge/wdk/rules/`.
 
-- [Strategist mapping](pathfinder-mapping.md) - `WDK-MAP-001..010`
+- [Strategist mapping](strategist-mapping.md) - `WDK-MAP-001..010`

@@ -4,7 +4,7 @@
     "can you read this web page https://qa.veupathdb.org/veupathdb.qa/app/search/organism/GenomeDataTypes/result"
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A link into a configured site is read before the turn as the search it shows. The reply states what the page holds; it does not say the page could not be read.",
   "expected": {
     "buildsStrategy": false,

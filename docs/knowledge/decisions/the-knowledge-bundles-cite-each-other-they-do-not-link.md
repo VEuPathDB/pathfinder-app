@@ -24,7 +24,7 @@ repository's `docs/knowledge/` it is `veupathdb-py:`. A relative path across the
 boundary never appears in either direction.
 
 Two documents were not citations to write but files in the wrong bundle.
-`eda/pathfinder-architecture-fit.md` and `eda/pathfinder-integration-concept.md`
+`eda/strategist-architecture-fit.md` and `eda/strategist-integration-concept.md`
 are proposals about Strategist's layers, tools and durable jobs, not facts about
 EDA, so they moved to `docs/knowledge/eda/` here. The library's `eda/index.md`
 lost its `## Strategist` section; this bundle's root index gained an EDA section.

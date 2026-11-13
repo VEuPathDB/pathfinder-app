@@ -5,7 +5,7 @@
     "Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A differential-expression cut on the researcher's own counts upload runs the site's user-dataset DESeq search, and a stated cut binds as stated.",
   "expected": {
     "buildsStrategy": true,

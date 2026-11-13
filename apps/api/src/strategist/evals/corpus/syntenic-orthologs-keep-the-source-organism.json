@@ -5,7 +5,7 @@
     "Keep only those with syntenic orthologs in Plasmodium vivax P01."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request that keeps the seed's genes by a syntenic ortholog is the seed INTERSECT the orthology transform back to P. falciparum 3D7 over the transform to P. vivax P01 over a copy of the seed, with synteny set on both transforms. The phylogenetic profile has no synteny parameter, so it drops the word: its INTERSECT keeps 73 genes where the syntenic round trip keeps 67.",
   "expected": {
     "buildsStrategy": true,
@@ -30,7 +30,7 @@
     "origin": "cataloged-failure",
     "addedAt": "2026-09-24",
     "stagingId": "",
-    "reference": "wdk/pathfinder/rules/pathfinder-mapping.md#WDK-MAP-009",
+    "reference": "wdk/strategist/rules/strategist-mapping.md#WDK-MAP-009",
     "curatorNote": "Two turns on one thread: the first builds the seed, the second edits it. The seed is the one this case records."
   },
   "gates": {

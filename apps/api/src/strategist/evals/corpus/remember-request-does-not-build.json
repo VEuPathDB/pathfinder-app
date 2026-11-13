@@ -4,7 +4,7 @@
     "Please remember for future sessions that I prefer the Su et al. strand-specific dataset for gametocyte expression, then tell me what you stored."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request to store a preference must leave no strategy behind: no frame, no build, no verify, and no decoy WDK strategy on the account. Under the deterministic provider this pins the pipeline half: a turn the Lead does not route to a build must persist no strategy AST.",
   "expected": {
     "buildsStrategy": false,

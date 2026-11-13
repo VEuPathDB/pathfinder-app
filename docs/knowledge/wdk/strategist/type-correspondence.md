@@ -47,7 +47,7 @@ the value crosses layers.
 carries `stepTree` and `steps` separately - and Strategist goes one step further
 by flattening the tree into parent pointers everywhere except the WDK boundary
 ([nested-tree-at-the-wire-boundary](../../decisions/nested-tree-at-the-wire-boundary.md),
-[WDK-MAP-003](rules/pathfinder-mapping.md)).
+[WDK-MAP-003](rules/strategist-mapping.md)).
 
 # The structural concepts
 
@@ -92,7 +92,7 @@ WDK's eleven
 [`*_PARAM_TYPE` constants](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/core/api/JsonKeys.java#L147-L157)
 and nothing else (WDK-PARAM-001 in
 `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`,
-[WDK-MAP-001](rules/pathfinder-mapping.md)). The Java column names the class
+[WDK-MAP-001](rules/strategist-mapping.md)). The Java column names the class
 [`ParamFormatterFactory`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55)
 dispatches on to produce that `type` string.
 
@@ -170,7 +170,7 @@ machinery is not the obstacle.
 - **`veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py` and
   `veupathdb-py: src/veupathdb/domain/wdk_values.py`** - the eight
   `WDK*`-named types that reach the browser, listed in
-  [WDK-MAP-007](rules/pathfinder-mapping.md). They are WDK-shaped and
+  [WDK-MAP-007](rules/strategist-mapping.md). They are WDK-shaped and
   domain-owned, which is not a contradiction: they carry no I/O.
 - **`packages/shared-ts/src/generated/`** - Kubb output from `openapi.json`. Never
   edited by hand ([one-way-to-generate-types](../../decisions/one-way-to-generate-types.md)).

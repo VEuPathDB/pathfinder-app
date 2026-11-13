@@ -4,7 +4,7 @@
     "Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Three undefined terms end the turn on a question card; its recommended answers build three criteria under INTERSECT: blood-stage expression, a variation cutoff on the SNP search the site offers, and no human ortholog.",
   "expected": {
     "buildsStrategy": true,

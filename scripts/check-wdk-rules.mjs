@@ -307,7 +307,7 @@ const invokedDirectly = process.argv[1]?.endsWith("check-wdk-rules.mjs");
 if (invokedDirectly) {
   const repoRoot = resolve(process.argv[2] ?? ".");
   const coverage = new Coverage();
-  const errors = collect(repoRoot, join(repoRoot, "docs/knowledge/wdk/pathfinder"), coverage);
+  const errors = collect(repoRoot, join(repoRoot, "docs/knowledge/wdk/strategist"), coverage);
   if (errors.length > 0) {
     console.error("check-wdk-rules: FAILED");
     for (const error of errors) console.error(`  ${error}`);

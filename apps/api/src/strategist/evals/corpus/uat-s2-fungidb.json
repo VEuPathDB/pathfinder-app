@@ -4,7 +4,7 @@
     "Find Aspergillus fumigatus Af293 genes with a predicted signal peptide and 2 to 99 transmembrane domains."
   ],
   "siteId": "fungidb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Two features joined by 'and' are two searches under one INTERSECT, built in one turn.",
   "expected": {
     "buildsStrategy": true,

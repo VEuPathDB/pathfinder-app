@@ -4,7 +4,7 @@
     "Find gene families that are expanded in Toxoplasma relative to Plasmodium."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An underspecified comparison has several readings. Either a question or a stated reading is acceptable: the turn may ask which reading, or build one, and the facts then state what its count counts. The case holds that the turn does not say the comparison is unavailable.",
   "expected": {
     "buildsStrategy": null,

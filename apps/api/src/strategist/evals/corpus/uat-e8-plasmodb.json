@@ -4,7 +4,7 @@
     "Which genes are upregulated in female mosquitoes after a blood meal?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A mosquito question on PlasmoDB opens no other site's study and builds nothing here.",
   "expected": {
     "buildsStrategy": false,

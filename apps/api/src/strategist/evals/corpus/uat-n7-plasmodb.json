@@ -6,7 +6,7 @@
     "yes"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A declined offer is not taken by a later bare yes: the strategy stays as it stood.",
   "expected": {
     "buildsStrategy": true,

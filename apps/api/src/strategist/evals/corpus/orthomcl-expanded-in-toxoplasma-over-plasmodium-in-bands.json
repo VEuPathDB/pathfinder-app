@@ -5,7 +5,7 @@
     "2-5 copies in Plasmodium, at least 2x greater copies in Toxoplasma"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A copy-number comparison between clades is built as protein-count bands over each clade's genome list joined by OR, one band per whole number of Plasmodium copies per genome. The first turn offers that reading with its numbers; the answer in the researcher's words is mapped to it and built, and the reply says the comparison is over each clade's protein total, band by band, not over each genome; a reply that states it in other words is graded by hand.",
   "expected": {
     "buildsStrategy": true,

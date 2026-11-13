@@ -4,7 +4,7 @@
     "Which genes are upregulated in female mosquitoes after a blood meal?"
   ],
   "siteId": "vectorbase",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The same question on VectorBase binds the site's own blood-fed versus sugar-fed search.",
   "expected": {
     "buildsStrategy": true,

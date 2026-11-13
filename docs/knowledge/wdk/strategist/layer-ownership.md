@@ -64,7 +64,7 @@ statements, so a domain module that names `httpx`, or names `veupathdb.wdk` or
 - once on a single edge from `catalog_discovery` into a WDK client wrapper that
 belonged in the service layer, once on four wire-model edges it carried as
 exceptions - and it left this file with the layer it named. See
-[WDK-MAP-004](rules/pathfinder-mapping.md).
+[WDK-MAP-004](rules/strategist-mapping.md).
 
 # The seam: functions in `veupathdb_mcp/wdk/`
 
@@ -142,14 +142,14 @@ tree. No module builds a client against a VEuPathDB base URL. One did:
 contract green, and it was a transport module talking to WDK. That call moved
 into `veupathdb/wdk/auth_login.py`, where the credential it needs already lives,
 and Strategist now makes no logout call at all: signing out is the website's
-([Strategist signs in through the site that hosts it](../../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+([Strategist signs in through the site that hosts it](../../decisions/strategist-signs-in-through-the-site-that-hosts-it.md)).
 
 The reading behind that move was confirmed live and is now
 WDK-AUTH-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`), which also records the part a fix
 cannot reach - the bearer token survives the logout either way.
 
 What closes the hole is not a contract but a call-site walk.
-[WDK-MAP-005](rules/pathfinder-mapping.md) is `ENFORCED by` a test that parses
+[WDK-MAP-005](rules/strategist-mapping.md) is `ENFORCED by` a test that parses
 every non-test module in this tree and fails on an `httpx` client whose
 `base_url` resolves from the site router. A contract could not hold it: it
 forbids an import, which is a different proposition.
@@ -169,7 +169,7 @@ response models in `veupathdb.wdk.wdk_models` reaches the wire.
 
 So the answer is: a WDK-*shaped* type may reach the browser if it is a pure value
 object, and a WDK-*response* type may not reach the wire at all. That is
-[WDK-MAP-007](rules/pathfinder-mapping.md). Both halves are now installation
+[WDK-MAP-007](rules/strategist-mapping.md). Both halves are now installation
 facts of `veupathdb-py`: the value objects are `veupathdb.domain`, whose boundary
 suite asserts it opens no connection, and the response models are
 `veupathdb.wdk.wdk_models`, which the wire generator never reaches because no

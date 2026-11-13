@@ -9,7 +9,7 @@
     "Is RDK1 really a transmembrane kinase? How many transmembrane domains does each of the three have, and where did that prediction come from?"
   ],
   "siteId": "tritrypdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A bound vocabulary value is described by the label the site gives it: the expression floor is \"10 reads\", never its raw term; no reply prints a search's internal name; the final strategy keeps the three transmembrane kinases at 2-fold.",
   "expected": {
     "buildsStrategy": true,

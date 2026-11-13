@@ -5,7 +5,7 @@
     "Carry these to their orthologs in Neospora caninum Liverpool."
   ],
   "siteId": "toxodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes. This case is also the organism-phrase proof: \"Neospora caninum Liverpool\" is bound as one organism name, with synteny at its default.",
   "expected": {
     "buildsStrategy": true,

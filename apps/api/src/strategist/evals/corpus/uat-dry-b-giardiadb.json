@@ -8,7 +8,7 @@
     "Yes, please broaden the first step so it also catches genes whose product is just VSP, keep the signal peptide filter, and tell me both counts."
   ],
   "siteId": "giardiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A family phrase broadened to catch a shorter product name stays a text step intersected with the signal peptide search; the counts depend on which text fields the first turn searches, so they are not pinned.",
   "expected": {
     "buildsStrategy": true,

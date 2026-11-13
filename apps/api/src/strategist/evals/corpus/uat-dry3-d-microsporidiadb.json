@@ -8,7 +8,7 @@
     "Keep the product-field search as my strategy. Separately, just to answer my question, run the exact phrase over the supported text fields and tell me which genes it matches beyond EBI_26400, without changing the strategy."
   ],
   "siteId": "microsporidiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A comparison question is answered by the read-only comparison: the strategy stays one text step on the exact phrase in the product field (1 gene, EBI_26400) through every turn, no turn asks which search to proceed with, and the fifth turn ends on an answer, never on \"send the message again\".",
   "expected": {
     "buildsStrategy": true,

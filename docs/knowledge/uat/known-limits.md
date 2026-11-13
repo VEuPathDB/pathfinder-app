@@ -15,7 +15,7 @@ A runner who meets one of these records the flow as `pass` (or `blocked` where n
 
 | Behaviour at UAT | Flow | Decided in |
 |---|---|---|
-| The study tab is read-only: no subset editor, no comparison form, no threshold controls. The subset, the comparison and the cut are edited on the site through `Open in <Site>` | E1, E3, E5 | [Strategist shows what the AI did, and the site edits](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md) |
+| The study tab is read-only: no subset editor, no comparison form, no threshold controls. The subset, the comparison and the cut are edited on the site through `Open in <Site>` | E1, E3, E5 | [Strategist shows what the AI did, and the site edits](../decisions/strategist-shows-what-the-ai-did-and-the-site-edits.md) |
 | A dataset is uploaded on the site's My Data Sets page (`Upload on VEuPathDB`), never through Strategist; Strategist never deletes a dataset | E6, G3 | [A private dataset is uploaded on the site and analysed here](../decisions/a-private-dataset-is-uploaded-on-the-site-and-analysed-here.md) |
 | Publishing a gene set is a button a person presses, never something the assistant does; a published dataset is not a search input | G3 | [VDI is a publish target, not a store](../decisions/vdi-is-a-publish-target-not-a-store.md) |
 | Enrichment is not run in Strategist; the evidence card links `Run GO, pathway or word enrichment in <Site>` | V1, G2 | [VERIFY shows its evidence](../decisions/verify-shows-its-evidence.md) |

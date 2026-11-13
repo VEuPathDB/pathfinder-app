@@ -4,7 +4,7 @@
     "Find Plasmodium falciparum 3D7 genes whose proteins have a predicted signal peptide."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "One stated feature is one search, run for the site's own organism.",
   "expected": {
     "buildsStrategy": true,

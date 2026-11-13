@@ -4,7 +4,7 @@
     "Which genes are in this image?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The genes an attached image shows are read back by id.",
   "expected": {
     "buildsStrategy": false,

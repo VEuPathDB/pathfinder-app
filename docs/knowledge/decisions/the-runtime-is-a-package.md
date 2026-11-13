@@ -144,6 +144,6 @@ fails if the dependency edge reverses or the two source trees merge.
 root.
 
 The same measurement drained the MCP server's outbound edges; see
-[the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md)
+[the MCP server writes no Strategist table](the-mcp-server-writes-no-strategist-table.md)
 and [the embedding index belongs to the MCP
 unit](the-embedding-index-belongs-to-the-mcp-unit.md).

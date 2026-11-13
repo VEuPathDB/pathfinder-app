@@ -5,7 +5,7 @@
     "how many genes would there be without the ortholog filter"
   ],
   "siteId": "microsporidiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A count question on a step a filter leaves out: without the ortholog filter the signal peptide step holds 66 genes and the result 9, and the facts part beside the reply shows the 66.",
   "expected": {
     "buildsStrategy": true,

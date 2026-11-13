@@ -8,7 +8,7 @@
     "Good, 461 it is. Why do you still mention a 50th percentile verification gap when I removed that requirement? Anyway, please save these 461 genes as a gene set named \"ME49 signal peptide, no transmembrane domain\"."
   ],
   "siteId": "toxodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A requirement a later message withdrew yields no gap: after the expression step is deleted the check leaves no row that no search states, the strategy is the signal peptide and zero-transmembrane intersection, and the reply names the gene set it saved.",
   "expected": {
     "buildsStrategy": true,

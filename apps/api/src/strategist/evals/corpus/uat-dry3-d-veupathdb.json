@@ -7,7 +7,7 @@
     "I lost that list, sorry. Show me a sample of five of those genes again."
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A record is read once per turn: the fourth turn lists the five sampled L. donovani BPK282A1 genes of the 115-gene glycosome step instead of re-reading their records to the turn budget.",
   "expected": {
     "buildsStrategy": true,

@@ -113,7 +113,7 @@ template, which is what lets one dependency bind it.
 
 **A degraded site is never swapped for another.** The site a page works on is
 the website that frames Strategist
-([the site comes from the website](the-site-comes-from-the-website-that-frames-pathfinder.md)),
+([the site comes from the website](the-site-comes-from-the-website-that-frames-strategist.md)),
 so no entry point chooses a site for the researcher. A degraded current site
 shows its notice in the shell.
 

@@ -16,7 +16,7 @@ status: superseded
 syntenic orthologs in P. vivax P01. FRAME bound the Orthology Phylogenetic
 Profile, which has no synteny parameter, and the word was dropped: the INTERSECT
 kept 73 genes where the syntenic round trip keeps 67
-([WDK-MAP-009](../wdk/pathfinder/rules/pathfinder-mapping.md)). Transform by
+([WDK-MAP-009](../wdk/strategist/rules/strategist-mapping.md)). Transform by
 Orthology states it through "Syntenic Orthologs Only?".
 
 **The rule reads the site, not a word.** `ai/tools/standalone/_frame_qualifiers.py`

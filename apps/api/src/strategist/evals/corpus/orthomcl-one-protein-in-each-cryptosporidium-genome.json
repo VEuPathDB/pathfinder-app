@@ -4,7 +4,7 @@
     "Which ortholog groups have exactly one protein in each Cryptosporidium genome?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A genus that is no clade code in the taxonomy is the list of its genome codes; single copy over that list is the list's taxon count equal to its length and its protein count equal to the same number.",
   "expected": {
     "buildsStrategy": true,

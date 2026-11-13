@@ -4,7 +4,7 @@
     "Intersect the Plasmodium falciparum 3D7 genes that have a predicted signal peptide with the Plasmodium vivax P01 genes that have a predicted signal peptide."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An INTERSECT of two species is refused before anything is built, and the orthology route is offered.",
   "expected": {
     "buildsStrategy": false,

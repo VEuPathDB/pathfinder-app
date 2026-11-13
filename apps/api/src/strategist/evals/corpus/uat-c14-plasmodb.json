@@ -4,7 +4,7 @@
     "Which genes are in this document?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The genes an attached PDF lists are read back by id.",
   "expected": {
     "buildsStrategy": false,

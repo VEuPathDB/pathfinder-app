@@ -38,7 +38,7 @@ sets, `PATHFINDER_TAG`; the worker and the two MCP servers run the api image wit
 command of their own
 ([The estate stack holds only deployment facts](the-estate-stack-holds-only-deployment-facts.md)). The website's own host forwards `/pathfinder` to the
 stage's web container, which is what makes Strategist same-origin with the
-website ([Strategist signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+website ([Strategist signs in through the site that hosts it](strategist-signs-in-through-the-site-that-hosts-it.md)).
 The units and the secrets are not in this repository.
 
 **The development stage follows `main`; QA and production follow tags.** The

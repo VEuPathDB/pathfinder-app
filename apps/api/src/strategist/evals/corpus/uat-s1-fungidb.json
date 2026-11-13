@@ -4,7 +4,7 @@
     "Find Aspergillus fumigatus Af293 genes whose proteins have a predicted signal peptide."
   ],
   "siteId": "fungidb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "One stated feature is one search, run for the site's own organism.",
   "expected": {
     "buildsStrategy": true,

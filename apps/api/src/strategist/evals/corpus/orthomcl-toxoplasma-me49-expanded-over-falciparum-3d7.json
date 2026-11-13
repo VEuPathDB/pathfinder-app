@@ -4,7 +4,7 @@
     "Find ortholog groups where Toxoplasma gondii ME49 has at least 5 proteins and Plasmodium falciparum 3D7 has exactly 1."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A protein count in one genome is a unit without T: the ME49 code with at least 5 and the 3D7 code with exactly 1, joined by AND.",
   "expected": {
     "buildsStrategy": true,

@@ -5,7 +5,7 @@
     "Replace the transmembrane-domain search with the exported-protein prediction, ExportPred score at least 10."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Replacing one search swaps that input of the combine and keeps the other.",
   "expected": {
     "buildsStrategy": true,

@@ -7,7 +7,7 @@
     "Can you show me that same sample of five genes again? I want to copy the IDs."
   ],
   "siteId": "hostdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The same sample request on an unchanged step answers the same records in a later turn, a placeholder the site left is shown as not set, and each edit shows the root's count before it: chromosome 17 gives 2,268 location genes and 9 in the intersection, chromosome 19 gives 1,372 and 0.",
   "expected": {
     "buildsStrategy": true,

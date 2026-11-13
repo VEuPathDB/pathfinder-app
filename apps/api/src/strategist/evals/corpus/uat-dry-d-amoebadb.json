@@ -7,7 +7,7 @@
     "What was the count right before you deleted the signal peptide step, and what is it after?"
   ],
   "siteId": "amoebadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The trophozoite step binds the floor the message states (percentile 1), not the site's 80th-percentile default; the deletion is approved on its card, and the reply states the count it recorded before the deletion (17) and the count after (68).",
   "expected": {
     "buildsStrategy": true,

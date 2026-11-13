@@ -8,7 +8,7 @@
     "Can you compare the two counts in one sentence I could put in a paper, i.e. what fraction of the VESA1 genes are on chromosome 1?"
   ],
   "siteId": "piroplasmadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A product-name search is corrected across turns on the researcher's words: the term, its quoting and a wildcard each move the count, and every count the reply states is one the facts show. A count question about a search the strategy does not run is answered read-only once the catalog count exists.",
   "expected": {
     "buildsStrategy": true,

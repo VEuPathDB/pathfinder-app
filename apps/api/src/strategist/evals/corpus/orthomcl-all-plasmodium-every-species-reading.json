@@ -4,7 +4,7 @@
     "Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A species is present when at least one of its genomes holds the group: one taxon-count unit per Plasmodium species joined by AND, each at one genome or more, and every Toxoplasma gondii genome absent.",
   "expected": {
     "buildsStrategy": true,

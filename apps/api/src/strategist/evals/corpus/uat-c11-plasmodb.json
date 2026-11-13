@@ -5,7 +5,7 @@
     "Diagnose my current strategy. Call get_live_strategy_state, walk through each step's count, and identify where results collapse. Suggest the likely cause and concrete fixes."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A diagnosis names the step that returns 0 and leaves the strategy as it stood.",
   "expected": {
     "buildsStrategy": true,

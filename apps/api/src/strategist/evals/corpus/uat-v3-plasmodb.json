@@ -6,7 +6,7 @@
     "Optimize the SignalP version of the signal peptide search to recover as many of my positive controls as possible while returning as few of my negative controls as possible."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A parameter sweep waits on its approval card.",
   "expected": {
     "buildsStrategy": true,

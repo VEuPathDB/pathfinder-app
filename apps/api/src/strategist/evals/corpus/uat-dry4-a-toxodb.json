@@ -5,7 +5,7 @@
     "The facts list shows the excluded species as Neospora caninum Liverpool, so I think that part is fine. Just a question, don't change anything: how many of the signal-peptide genes did the ortholog filter remove?"
   ],
   "siteId": "toxodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A count question is answered with its count: the signal peptide step holds 680 genes and the result 53, so the ortholog filter removed 627, and the reply says so without editing the strategy.",
   "expected": {
     "buildsStrategy": true,

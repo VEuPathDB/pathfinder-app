@@ -5,7 +5,7 @@
     "Change the transmembrane range to 1 to 99."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A parameter edit changes one step's value and keeps the layout and the other criterion.",
   "expected": {
     "buildsStrategy": true,

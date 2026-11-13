@@ -5,7 +5,7 @@
     "Relax the minimum to 15 transmembrane domains."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A zero result is said, and relaxing the threshold edits the same step to a result the site returns.",
   "expected": {
     "buildsStrategy": true,

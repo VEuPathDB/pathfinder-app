@@ -4,7 +4,7 @@
     "Which ortholog groups contain sequences from Plasmodium and Cryptosporidium but not from Toxoplasma?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Contain sequences from a genus is at least one of its genomes, so no question about all genomes is asked: the Plasmodium list and the Cryptosporidium list each with a taxon count of at least 1, and the Toxoplasma list with 0. The answer opens the result on the site in one step.",
   "expected": {
     "buildsStrategy": true,

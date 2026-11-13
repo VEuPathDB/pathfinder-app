@@ -38,7 +38,7 @@ is not, because it deletes a local row. Two routes whose WDK call is an opt-in f
 /api/v1/user/data?deleteWdk=true` - because the local half must run for a
 signed-out user; their WDK half is skipped and reported instead. A browser
 session is honored only while the website login names its user
-([Strategist signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+([Strategist signs in through the site that hosts it](strategist-signs-in-through-the-site-that-hosts-it.md)),
 so a browser request with no VEuPathDB login is refused before any route runs;
 the per-route table governs the callers that carry an identity of their own, a
 Strategist bearer token and a dev-login session. The whole

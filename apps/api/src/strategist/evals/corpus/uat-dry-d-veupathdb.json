@@ -7,7 +7,7 @@
     "You said one of the 8 vivax genes probably has no falciparum ortholog. Which one is it? Can you check rather than guess?"
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A genus-wide request on the portal is one step on the genus (429 genes); the vivax step carried to falciparum orthologs gives 7, no reply prints a search's internal name, and the reply names the vivax gene with no falciparum ortholog.",
   "expected": {
     "buildsStrategy": true,

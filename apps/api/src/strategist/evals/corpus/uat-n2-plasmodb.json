@@ -4,7 +4,7 @@
     "Find P. falciparum 3D7 genes with a predicted GPI anchor"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A feature no search states is named as missing, and no step is titled with it.",
   "expected": {
     "buildsStrategy": null,

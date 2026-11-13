@@ -7,7 +7,7 @@
     "I already told you to keep SRP171130, so that question is settled. What is the count of the final step, and give me a one-line reason for each search in the strategy."
   ],
   "siteId": "vectorbase",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A question the researcher settled is never a gap: the check leaves no row that no search states. The odorant receptors are found by their name or their Pfam domain, and the strategy keeps those expressed in female antennae in SRP171130 minus those expressed in male antennae in the same study.",
   "expected": {
     "buildsStrategy": true,

@@ -261,7 +261,7 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 
 Where each rule, card, background tool, thread part, command, settings tab and refusal is exercised. `code only` marks an invariant no screen can show; its test in the repository holds it.
 
-### WDK-MAP rules ([Strategist mapping rules](../wdk/pathfinder/rules/pathfinder-mapping.md))
+### WDK-MAP rules ([Strategist mapping rules](../wdk/strategist/rules/strategist-mapping.md))
 
 | Rule | Flows |
 |---|---|

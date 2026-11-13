@@ -4,7 +4,7 @@
     "How many proteins and ortholog groups does each Plasmodium falciparum proteome have?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "OrthoMCL keeps its proteome counts in the DataSummary table of its helper record. The turn reads the table and states the counts.",
   "expected": {
     "buildsStrategy": false,

@@ -8,7 +8,7 @@
     "A reviewer will say GPI biosynthesis enzymes are not GPI-anchored proteins. Is there a GO cellular component term for GPI-anchored or anchored-membrane proteins on FungiDB that fits my question better? If so, use it instead and give me the new count. If the only fitting term is marked obsolete, use it anyway and say so."
   ],
   "siteId": "fungidb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A GO term is named with the label the site reads for it, obsolete included; the cellular-component term intersected with the no-S. cerevisiae profile gives 58.",
   "expected": {
     "buildsStrategy": true,

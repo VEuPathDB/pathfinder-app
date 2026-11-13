@@ -4,7 +4,7 @@
     "Find P. falciparum 3D7 genes with a predicted GPI anchor"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "No PlasmoDB search states a GPI anchor. The turn either asks the researcher, naming what the site lacks, or builds and names the search each step runs (Exported Protein is the nearest). No step is titled with the request's words, so the canvas and the reply say what runs.",
   "expected": {
     "buildsStrategy": null,

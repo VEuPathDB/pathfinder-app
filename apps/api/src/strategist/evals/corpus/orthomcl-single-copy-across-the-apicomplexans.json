@@ -4,7 +4,7 @@
     "List single-copy ortholog groups across the apicomplexans."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A single-copy request within a named clade is a phyletic pattern over that clade, and single copy binds every genome exactly once: every apicomplexan genome present and as many proteins as genomes. On build 8.2 Single Copy Orthogroups (GroupsBySingleCopy) returns the same groups as Number of Taxa, so it restricts no copy number and cannot name a clade. The reply says that the strict reading returns few groups.",
   "expected": {
     "buildsStrategy": true,

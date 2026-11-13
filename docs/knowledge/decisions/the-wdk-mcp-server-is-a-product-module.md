@@ -72,4 +72,4 @@ at 60 seconds and the failure would look like a WDK fault.
 
 The served entrypoint reaches no Strategist table, which is what a second
 deployment needs; see
-[the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md).
+[the MCP server writes no Strategist table](the-mcp-server-writes-no-strategist-table.md).

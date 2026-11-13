@@ -5,7 +5,7 @@
     "Thanks. Only one gene is thinner than I expected. Would a domain search (InterPro or Pfam for the polar tube protein family) find more E. bieneusi H348 genes than this name search? Tell me how the two compare."
   ],
   "siteId": "microsporidiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A comparison question compares its sides and states none of them as a requirement: the strategy stays the one text step (1 gene, EBI_26400), and no facts part names 'polar tube protein family' or 'InterPro OR Pfam' as a requirement of the researcher.",
   "expected": {
     "buildsStrategy": true,

@@ -5,7 +5,7 @@
     "Drop the oocyst expression requirement entirely: remove the C. hominis expression step, and please confirm the count goes back to the signal peptide count."
   ],
   "siteId": "cryptodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A card offers only choices that can move the count: no card offers the proxy's percentile floor or its protein-coding switch over an empty cross-species INTERSECT, no reply claims an edit that was never sent, and the dropped proxy leaves the 421-gene signal peptide step with no \"'0' is withdrawn\" row.",
   "expected": {
     "buildsStrategy": true,

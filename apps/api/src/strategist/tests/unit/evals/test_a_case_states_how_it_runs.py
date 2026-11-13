@@ -18,6 +18,7 @@ from strategist.evals.case import (
 )
 from strategist.evals.store import (
     ATTACHMENTS_DIR,
+    CORPUS_DIR,
     attachment_paths,
     load_case,
     load_corpus,
@@ -455,3 +456,11 @@ def test_every_corpus_case_runs_under_an_installed_assistant() -> None:
     named = {case.assistant_id for case in load_corpus()}
 
     assert named == {"strategist", "audit"}
+
+
+def test_a_case_names_its_assistant_as_written() -> None:
+    raw = json.loads(min(CORPUS_DIR.glob("*.json")).read_text())
+
+    case = EvalCase.model_validate({**raw, "assistantId": "pathfinder"})
+
+    assert case.assistant_id == "pathfinder"

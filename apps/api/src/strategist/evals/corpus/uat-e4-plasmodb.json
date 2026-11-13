@@ -4,7 +4,7 @@
     "Open the PlasmoDB study 'Heat shock response in sensitive mutants (LRR5, DHC)' and compare the wild type samples with the DHC mutant samples by differential expression on the sense counts. Do not make a strategy step."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A comparison the researcher asks to keep out of the strategy adds no step.",
   "expected": {
     "buildsStrategy": false,

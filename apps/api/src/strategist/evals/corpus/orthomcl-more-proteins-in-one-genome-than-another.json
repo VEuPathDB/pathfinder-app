@@ -4,7 +4,7 @@
     "Find orthogroups with more proteins in Toxoplasma ME49 than Plasmodium 3D7."
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A per-group comparison of two genomes' protein counts is a sum of products over every count the smaller side takes: the 3D7 genome with exactly k proteins and the ME49 genome with at least k+1, for k from 0 to the largest 3D7 count any group holds, joined by OR. The k = 0 product keeps the groups with no 3D7 protein.",
   "expected": {
     "buildsStrategy": true,

@@ -5,7 +5,7 @@
     "How does that count compare with the reference strain, Trypanosoma brucei brucei TREU927, using the same domains?"
   ],
   "siteId": "tritrypdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A count comparison is a question: the TREU927 count (43 genes) comes from the comparison card, and the strategy stays the one DAL972 InterPro step at 37 genes, never a two-strain UNION of 80.",
   "expected": {
     "buildsStrategy": true,

@@ -18,7 +18,6 @@ from veupathdb.errors import ValidationError
 
 from strategist.domain.audit.verdicts import VerdictKind
 from strategist.evals.redaction import assert_redacted
-from strategist.platform.identity import AssistantId
 
 CaseOrigin = Literal["promoted", "cataloged-failure", "uat-flow"]
 # The card a turn ends on, as the researcher sees it: none, a question, an
@@ -234,7 +233,7 @@ class EvalCase(CamelModel):
     name: str = Field(min_length=1, pattern=r"^[a-z0-9-]+$")
     turns: list[str] = Field(min_length=1)
     site_id: str
-    assistant_id: AssistantId
+    assistant_id: str
     rationale: str = Field(min_length=1)
     expected: ExpectedOutcome
     provenance: CaseProvenance

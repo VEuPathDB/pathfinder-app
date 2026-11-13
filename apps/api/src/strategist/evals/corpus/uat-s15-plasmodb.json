@@ -4,7 +4,7 @@
     "What does PF3D7_0708400 do?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A question about one gene is answered from its record and builds nothing.",
   "expected": {
     "buildsStrategy": false,

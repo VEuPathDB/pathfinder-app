@@ -14,7 +14,7 @@ status: proposed
 `e2e/fixtures/test.ts` signs each worker in with `POST /api/v1/dev/login?user_id=worker-{N}`
 and puts the registered account's token in the `Authorization` cookie. Since the site login
 became the only browser credential
-([pathfinder-signs-in-through-the-site-that-hosts-it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+([strategist-signs-in-through-the-site-that-hosts-it](../decisions/strategist-signs-in-through-the-site-that-hosts-it.md)),
 `platform/security.py::_identify` reads the website login before the dev-login cookie, so
 every worker is the account's own Strategist user. `playwright.config.ts` runs two workers
 per shard, and a spec that purges a site's data (A4) or reads "no conversations yet" runs

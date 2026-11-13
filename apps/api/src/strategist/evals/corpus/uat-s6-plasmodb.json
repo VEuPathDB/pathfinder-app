@@ -5,7 +5,7 @@
     "Keep only those with syntenic orthologs in Plasmodium vivax P01."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Keeping the seed's genes by a syntenic ortholog is the seed INTERSECT a round trip of two syntenic transforms, so the result stays in the source organism.",
   "expected": {
     "buildsStrategy": true,

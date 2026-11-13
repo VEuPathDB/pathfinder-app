@@ -4,7 +4,7 @@
     "Cytauxzoon felis Winnie genes with a predicted GPI anchor or a signal peptide."
   ],
   "siteId": "piroplasmadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "No search on the site states a predicted GPI anchor, so the card asks to drop it and the strategy keeps the signal peptide alone. The facts show the anchor as withdrawn; no text step stands in, because a text match is not a prediction. The organism row holds no gap on records judged unclear.",
   "expected": {
     "buildsStrategy": true,

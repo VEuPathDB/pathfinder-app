@@ -5,7 +5,7 @@
     "Compare the SignalP-6.0 and SignalP-4.1 versions of this search."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A comparison of two variants reads both and leaves the strategy as it stood.",
   "expected": {
     "buildsStrategy": true,

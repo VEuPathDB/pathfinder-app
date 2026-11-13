@@ -5,7 +5,7 @@
     "Swap the organism on the seed criterion and keep the rest."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An edit patches the steps it changes and leaves every other WDK step id where it was. A rebuild answers the same request with a new id for every step, which breaks every saved reference to the strategy.",
   "expected": {
     "buildsStrategy": true,

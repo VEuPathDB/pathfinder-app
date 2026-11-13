@@ -4,7 +4,7 @@
     "Find Anopheles gambiae PEST genes whose proteins have a predicted signal peptide."
   ],
   "siteId": "vectorbase",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "One stated feature is one search, run for the site's own organism.",
   "expected": {
     "buildsStrategy": true,

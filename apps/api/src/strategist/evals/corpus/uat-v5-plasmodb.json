@@ -5,7 +5,7 @@
     "What did you offer me?"
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A no with a comment on the separation offer builds nothing, and a later question gets the declined offer's counts back.",
   "expected": {
     "buildsStrategy": false,

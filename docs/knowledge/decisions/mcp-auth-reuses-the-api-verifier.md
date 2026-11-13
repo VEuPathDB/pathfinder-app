@@ -33,7 +33,7 @@ which caches the subject a token names for five minutes. The application's API
 calls the same verifier and then maps the user onto its `users` table
 ([a VEuPathDB bearer token is the user](bearer-identity-and-service-tokens.md));
 the MCP server stops at the subject, so it reads no Strategist table
-([the MCP server writes no Strategist table](the-mcp-server-writes-no-pathfinder-table.md)).
+([the MCP server writes no Strategist table](the-mcp-server-writes-no-strategist-table.md)).
 `McpCredential.client_id` is that subject string.
 
 `veupathdb_mcp/metadata.py` builds the RFC 9728 document route and the 401

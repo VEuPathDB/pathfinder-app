@@ -4,7 +4,7 @@
     "list plasmodium falciparum genomes in veupathdb, number of annotated genes, and busco scores for each"
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Gene counts and BUSCO scores are columns of the organism record. The turn reads them with read_search_table and states the numbers; it does not say BUSCO must come from assembly reports.",
   "expected": {
     "buildsStrategy": false,

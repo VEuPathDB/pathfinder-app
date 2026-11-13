@@ -5,7 +5,7 @@
     "Carry these to their syntenic orthologs in Toxoplasma gondii ME49."
   ],
   "siteId": "veupathdb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Syntenic orthologs across two genera are an empty transform, and the reply says 0 and why.",
   "expected": {
     "buildsStrategy": true,

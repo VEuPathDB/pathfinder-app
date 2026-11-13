@@ -5,7 +5,7 @@
     "Drop the transmembrane domain requirement: remove that step."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "A requirement dropped through one delete card retires with it: the approved delete withdraws the transmembrane domain requirement, which only the deleted step stated, and keeps the organism and the apicoplast signal; the PlasmoAP step answers the apicoplast row, so the check files no gap that nothing in the strategy answers it.",
   "expected": {
     "buildsStrategy": true,

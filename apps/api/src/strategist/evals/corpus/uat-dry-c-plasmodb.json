@@ -15,7 +15,7 @@
     "Last thing: give me a five-sentence summary of this whole session that I could put in front of my PI, including the final count and what the saved gene set holds."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "The closing summary names the gene set the thread saved (vaccine candidates draft) and the current count (288); a requirement swapped or undone before the summary yields no gap, and no reply prints a step id.",
   "expected": {
     "buildsStrategy": true,

@@ -4,7 +4,7 @@
     "Find Plasmodium falciparum 3D7 genes that have a predicted signal peptide or 2 to 99 transmembrane domains."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Two features joined by 'or' are two searches under one UNION.",
   "expected": {
     "buildsStrategy": true,

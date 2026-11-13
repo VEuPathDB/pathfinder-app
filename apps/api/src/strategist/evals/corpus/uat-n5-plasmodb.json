@@ -6,7 +6,7 @@
     "Delete the intersection step but keep both searches exactly as they are."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An edit that would leave two unconnected searches is refused or waits on a card, and the tree is untouched until a yes.",
   "expected": {
     "buildsStrategy": true,

@@ -53,7 +53,7 @@ question from `(A INTERSECT B) UNION C`, and a left fold lost a real gene
 ([structure-is-a-tree](../../decisions/structure-is-a-tree.md),
 WDK-STRAT-006 in `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`).
 
-Rule: [WDK-MAP-003](rules/pathfinder-mapping.md).
+Rule: [WDK-MAP-003](rules/strategist-mapping.md).
 
 # 2. A step has a status, which WDK has no field for
 
@@ -154,7 +154,7 @@ the same space - which is the same root as divergence 2.
 code rather than from a recorded choice. The `isdigit()` reinterpretation in
 particular deserves a decision or a test of its own.
 
-Rule: [WDK-MAP-006](rules/pathfinder-mapping.md).
+Rule: [WDK-MAP-006](rules/strategist-mapping.md).
 
 # 6. `@strategist/shared` has no WDK type in it
 

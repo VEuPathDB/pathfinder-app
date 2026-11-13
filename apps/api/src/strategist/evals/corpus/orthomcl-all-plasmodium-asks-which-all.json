@@ -4,7 +4,7 @@
     "Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Presence in every member of a clade with many strains and incomplete assemblies has three readings: every genome, a share of the genomes, or every species. Either a question or a stated reading is acceptable: the turn may ask which reading, or build one, and the facts then state what its count counts. The case holds that the turn runs to its end on this request.",
   "expected": {
     "buildsStrategy": null,

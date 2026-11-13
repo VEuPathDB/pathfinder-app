@@ -4,7 +4,7 @@
     "Which ortholog groups have proteins in Toxoplasma gondii but none in any Cryptosporidium genome?"
   ],
   "siteId": "orthomcl",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Absence over a clade is bound without a question: a group missing from an incomplete genome is still absent there. Presence in Toxoplasma gondii is at least one of its genomes, as the request says proteins in, not proteins in every strain.",
   "expected": {
     "buildsStrategy": true,

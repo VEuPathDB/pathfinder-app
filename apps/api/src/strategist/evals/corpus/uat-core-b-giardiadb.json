@@ -6,7 +6,7 @@
     "Wait, 4,497 genes before the exclusion seems like almost the whole G. muris genome. How many genes actually have the exact phrase 'cysteine-rich protein' in their product description? Just tell me, don't change the strategy yet."
   ],
   "siteId": "giardiadb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "An unquoted several-word text keeps its phrase reading on a search with a dependent parameter: the facts show the site's match of any of its words beside the count as the phrase, the exact-phrase question is answered from that count, and the organism the message names one letter off binds to the site's strain and shows as stated.",
   "expected": {
     "buildsStrategy": true,

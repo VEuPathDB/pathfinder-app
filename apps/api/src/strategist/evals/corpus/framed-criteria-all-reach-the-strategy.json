@@ -4,7 +4,7 @@
     "Build a comprehensive kinase strategy for Plasmodium."
   ],
   "siteId": "plasmodb",
-  "assistantId": "pathfinder",
+  "assistantId": "strategist",
   "rationale": "Every criterion the framing pass binds reaches the strategy as a step: the build pushes each bound search and the tree the pass set, so the result holds a step per criterion and no criterion is lost between the frame and the push.",
   "expected": {
     "buildsStrategy": true,
