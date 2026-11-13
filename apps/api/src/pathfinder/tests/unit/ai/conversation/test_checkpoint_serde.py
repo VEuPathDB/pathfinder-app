@@ -4,9 +4,7 @@ That serializer decodes the types on the allowlist and nothing else, so a state
 type nobody registered fails here rather than on a persisted conversation.
 """
 
-from datetime import UTC, datetime
-from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from assistant_core.conversation.serde import (
     CORE_CHECKPOINT_TYPES,
@@ -21,7 +19,7 @@ from assistant_core.graph.turn_state import (
     SubAgentApprovalPending,
     UserQuestionAnswer,
 )
-from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
+from assistant_core.memory.schemas import MemoryValue
 from langgraph.checkpoint.serde.event_hooks import (
     SerdeEvent,
     register_serde_event_listener,
@@ -31,10 +29,9 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     TextUIPart,
     ToolApprovalResponded,
 )
-from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
+from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (
     FailureCause,
     PhaseDisposition,
@@ -44,231 +41,37 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
-from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
-from pathfinder.domain.site_checks import SiteCheck
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
     StepPushFailure,
 )
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    DroppedCriterion,
-    OpenSlot,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
-from pathfinder.domain.strategy.questions import OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.separation import (
-    ATTACHED_CONTROLS,
-    TASK_ID,
-    recorded_offer,
+from pathfinder.tests._support.checkpoint_state import (
+    TABLE_PNG,
+    build_outcome,
+    domain_state,
+    memory_value,
+    operational_spec,
+    populated_state,
+    search_overview,
+    user_intent,
+    verification_digest,
 )
+from pathfinder.tests._support.separation import ATTACHED_CONTROLS, recorded_offer
 from pathfinder.tests.unit.ai.conversation._checkpoint_samples import (
     pending_approval,
     pending_durable_call,
 )
 
-
-def _overview(record_type: str) -> SearchOverview:
-    return SearchOverview(
-        search_name="GenesByTaxon",
-        display_name="Genes by Taxon",
-        record_type=record_type,
-        description="Organism-scoped gene search",
-        parameter_names=["organism"],
-        required_params=["organism"],
-    )
-
-
-def _memory() -> MemoryValue:
-    return MemoryValue(
-        kind="knowledge",
-        name="obp-note",
-        summary="OBPs are odorant binding proteins",
-        content={"detail": "vectorbase"},
-        created_at=datetime(2026, 8, 7, tzinfo=UTC),
-    )
-
-
-def _digest() -> VerificationDigest:
-    return VerificationDigest(
-        disposition=PhaseDisposition.DONE,
-        prose="Strategy ready.",
-        reason="verification successful",
-        success=True,
-        key_findings=["1234 hits"],
-        review=VerificationReview(
-            checks=[
-                SiteCheck(
-                    kind=ConstraintKind.ORGANISM,
-                    subject="P. falciparum 3D7",
-                    status="pass",
-                    evidence="all 1,234 records of step 7 ('Kinases') hold an "
-                    "organism the strategy selects: Plasmodium falciparum 3D7 (1,234)",
-                    requirement="organism:P. falciparum 3D7",
-                )
-            ]
-        ),
-        remember=[
-            MemoryEntryDraft(
-                name="P. falciparum kinome size",
-                summary="1234 kinase hits on plasmodb",
-                content={"count": 1234},
-                tags=["kinase"],
-            ),
-        ],
-    )
-
-
-def _outcome() -> BuildOutcome:
-    return BuildOutcome(
-        pushed_step_ids=["s1"],
-        failed_steps=[
-            StepPushFailure(step_id="s2", search_name="GenesByGoTerm", error="500"),
-        ],
-        wdk_strategy_id=330423363,
-        node_results=[
-            NodeResult(
-                node_id="s1",
-                search_name="GenesByTaxon",
-                wdk_step_id=1,
-                status="ok",
-            ),
-        ],
-    )
-
-
-def _spec() -> OperationalSpec:
-    return OperationalSpec(
-        goal="find drug targets",
-        interpreted_goal="protein kinases in P. falciparum",
-        criteria=[
-            Criterion(
-                id="c1",
-                text="kinases",
-                search_name="GenesByGoTerm",
-                resolved_params=bound({"go_term": StringValue(value="GO:0004672")}),
-                open_params=[OpenSlot(criterion_id="c1", param_name="evidence_code")],
-            ),
-            Criterion(id="c2", text="P. falciparum", search_name="GenesByTaxon"),
-        ],
-        dropped=[DroppedCriterion(text="host response", reason="no gene search")],
-        constraints=[
-            Constraint(
-                kind=ConstraintKind.ORGANISM,
-                requested_value="P. falciparum 3D7",
-                label="organism",
-                source=ConstraintSource.USER_EXPLICIT,
-            ),
-        ],
-        structure=SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                operator=CombineOp.INTERSECT,
-                inputs=[
-                    StructureNode(kind="leaf", criterion_id="c1"),
-                    StructureNode(kind="leaf", criterion_id="c2"),
-                ],
-            ),
-        ),
-    )
-
-
-def _intent() -> UserIntent:
-    return UserIntent(
-        classification=IntentClassification.NEW_STRATEGY,
-        inferred_goal="protein kinases",
-    )
-
-
-def _domain() -> StrategyDomainState:
-    return StrategyDomainState(
-        user_intent=_intent(),
-        lead_next_state="complete",
-        operational_spec=_spec(),
-        discovered_searches={"GenesByTaxon": _overview("transcript")},
-        site_verdict=_digest(),
-        last_build_outcome=_outcome(),
-        stale_build=StaleBuild(added_nodes=["s3"], removed_nodes=["s0"]),
-        created_gene_sets=[CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)],
-        open_questions=[
-            OpenQuestion(
-                question="Which gametocyte RNA-seq study?",
-                dimension=ConstraintKind.DATA_TYPE,
-                recommended_value="P. falciparum 3D7 gametocyte RNA-seq",
-            ),
-        ],
-        recommendations=[
-            Constraint(
-                kind=ConstraintKind.DATA_TYPE,
-                requested_value="P. falciparum 3D7 gametocyte RNA-seq",
-                label="Which gametocyte RNA-seq study?",
-                source=ConstraintSource.ASSUMED,
-                hard=False,
-            ),
-        ],
-        separation_offers={str(TASK_ID): recorded_offer()},
-        attached_controls=ATTACHED_CONTROLS,
-    )
-
-
-_TABLE_PNG = FileUIPart(
-    media_type="image/png",
-    filename="table.png",
-    url="data:image/png;base64,iVBORw0KGgo=",
-)
-
-
-def _populated_state() -> PipelineState:
-    return PipelineState(
-        conversation_id=uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
-        user_message_id=uuid4(),
-        user_prompt="find drug targets",
-        user_parts=[_TABLE_PNG, TextUIPart(text="find drug targets", state="done")],
-        turn_trace_id=str(uuid4()),
-        turn_created_at="2026-08-21T00:00:00+00:00",
-        turn_start_event_id=7,
-        turn_total_tokens=1234,
-        turn_total_cost_usd=Decimal("0.0042"),
-        pending_approval=pending_approval(),
-        approval_responses={
-            "call_verify_strategy": ToolApprovalResponded(
-                id="call_verify_strategy",
-                approved=True,
-            ),
-        },
-        user_question_answers={
-            "call_consult": [
-                UserQuestionAnswer(
-                    question_id="q1",
-                    prompt="Fold-change threshold?",
-                    chosen_labels=["2-fold"],
-                ),
-            ],
-        },
-        retrieved_memories=[_memory()],
-        domain=_domain(),
-    )
-
-
 SAMPLES: dict[type, object] = {
     TextUIPart: TextUIPart(text="hello"),
-    FileUIPart: _TABLE_PNG,
+    FileUIPart: TABLE_PNG,
     ToolApprovalResponded: ToolApprovalResponded(id="call_1", approved=True),
-    MemoryValue: _memory(),
+    MemoryValue: memory_value(),
     PendingApproval: pending_approval(),
     PendingDurableCall: pending_durable_call(),
     DurableTaskResult: DurableTaskResult(
@@ -287,21 +90,21 @@ SAMPLES: dict[type, object] = {
         prompt="Fold-change threshold?",
         chosen_labels=["2-fold"],
     ),
-    SearchOverview: _overview("transcript"),
+    SearchOverview: search_overview("transcript"),
     PhaseDisposition: PhaseDisposition.DONE,
-    VerificationDigest: _digest(),
+    VerificationDigest: verification_digest(),
     FailureCause: FailureCause.UNRESOLVED_SLOTS,
     IntentClassification: IntentClassification.NEW_STRATEGY,
-    UserIntent: _intent(),
-    BuildOutcome: _outcome(),
-    NodeResult: _outcome().node_results[0],
-    StepPushFailure: _outcome().failed_steps[0],
+    UserIntent: user_intent(),
+    BuildOutcome: build_outcome(),
+    NodeResult: build_outcome().node_results[0],
+    StepPushFailure: build_outcome().failed_steps[0],
     ConstraintKind: ConstraintKind.ORGANISM,
     ConstraintSource: ConstraintSource.USER_EXPLICIT,
     CombineOp: CombineOp.INTERSECT,
-    OperationalSpec: _spec(),
+    OperationalSpec: operational_spec(),
     StaleBuild: StaleBuild(added_nodes=["s3"]),
-    StrategyDomainState: _domain(),
+    StrategyDomainState: domain_state(),
     SeparationOffer: recorded_offer(),
     AttachedControls: ATTACHED_CONTROLS,
 }
@@ -379,14 +182,14 @@ def test_every_allowlisted_type_survives_strict_roundtrip() -> None:
 def test_a_populated_state_survives_strict_roundtrip_channel_by_channel() -> None:
     """LangGraph gives every top-level field its own channel, so each field
     value is encoded on its own."""
-    state = _populated_state()
+    state = populated_state()
     for name in PipelineState.model_fields:
         value = getattr(state, name)
         assert _strict_roundtrip(value) == value, name
 
 
 def test_a_populated_state_rebuilds_from_its_round_tripped_channels() -> None:
-    state = _populated_state()
+    state = populated_state()
     channels = {
         name: _strict_roundtrip(getattr(state, name))
         for name in PipelineState.model_fields
@@ -395,7 +198,7 @@ def test_a_populated_state_rebuilds_from_its_round_tripped_channels() -> None:
 
 
 def test_a_populated_state_keeps_its_nested_types() -> None:
-    restored = _strict_roundtrip(_populated_state().domain)
+    restored = _strict_roundtrip(populated_state().domain)
     assert isinstance(restored, StrategyDomainState)
     outcome = restored.last_build_outcome
     assert outcome is not None
@@ -431,7 +234,7 @@ def test_a_failed_digest_keeps_its_typed_cause_with_no_blocked_type() -> None:
 def test_nested_state_container_survives_strict_roundtrip() -> None:
     # The realistic shape: mixed pathfinder types nested inside plain containers.
     value = {
-        "overviews": [_overview("gene")],
+        "overviews": [search_overview("gene")],
         "kinds": [ConstraintKind.ORGANISM],
     }
     assert _strict_roundtrip(value) == value
