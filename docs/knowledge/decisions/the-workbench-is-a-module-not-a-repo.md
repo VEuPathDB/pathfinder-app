@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The workbench is a module, not a repository
-description: features/analysis moved inside features/workbench and the merged feature publishes two entry paths that check-boundaries rule 6 enforces; pathfinder/services/workbench/ is a facade of functions that import-linter contract 8 makes the only way strategist.ai and strategist.jobs reach the workbench services. A separate repository now, and leaving the two features apart, were both rejected on measured numbers.
+description: features/analysis moved inside features/workbench and the merged feature publishes two entry paths that check-boundaries rule 6 enforces; strategist/services/workbench/ is a facade of functions that import-linter contract 8 makes the only way strategist.ai and strategist.jobs reach the workbench services. A separate repository now, and leaving the two features apart, were both rejected on measured numbers.
 tags: [workbench, architecture, import-linter, boundaries, frontend, split]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -27,7 +27,7 @@ Before the change, on this tree:
 | `features/workbench` and `features/conversation` naming `@/features/analysis` | 8 lines (7 workbench, 1 conversation) |
 | files outside `features/workbench` naming `@/features/workbench` | 7 lines (6 route files, 1 conversation) |
 | `features/workbench` naming `@/features/conversation` | 1 line, a `vi.mock` specifier in a test |
-| `pathfinder/ai` and `pathfinder/jobs` naming a workbench service module | 24 lines in 12 files |
+| `strategist/ai` and `strategist/jobs` naming a workbench service module | 24 lines in 12 files |
 
 `features/analysis` is 78 files and imports no other feature. One of the seven
 workbench edges named a file inside it, `@/features/analysis/components/ResultsTable`,
@@ -55,7 +55,7 @@ belongs in the entry-path map instead. The checker's core is a
 `checkSource(source, path)` function with its own `node --test` suite, run by
 pre-commit and CI beside the check itself.
 
-`pathfinder/services/evidence/` is the backend's entry, and it holds functions
+`strategist/services/evidence/` is the backend's entry, and it holds functions
 with bodies, never `from X import Y` lines. That is the shape
 [the WDK service layer](the-wdk-service-layer-holds-functions-not-re-exports.md)
 already chose, and the reason the no-re-export rule does not block it. A result

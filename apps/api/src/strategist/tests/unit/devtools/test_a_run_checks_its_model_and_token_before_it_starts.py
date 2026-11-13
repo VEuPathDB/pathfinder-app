@@ -75,7 +75,7 @@ def _summary() -> EvalRunSummary:
     return EvalRunSummary(
         harness="pydantic-evals",
         provider="default",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         ran_at="2026-10-22T00:00:00+00:00",
         cases=[],
     )
@@ -223,13 +223,13 @@ def _case() -> EvalCase:
         name="a-case",
         turns=["build it"],
         site_id="orthomcl",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins a thing",
         expected=ExpectedOutcome(builds_strategy=True),
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="orthomcl",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-10-22",
@@ -331,7 +331,7 @@ async def test_the_turn_runs_under_the_named_token_and_no_file_holds_it(
         wdk_token=await chat._optional_wdk_token(args),
     )
     capture.flush()
-    chat.write_turn_settings(args, assistant_id="pathfinder")
+    chat.write_turn_settings(args, assistant_id="strategist")
 
     written = _written(tmp_path)
     assert attached == [_TOKEN]

@@ -49,7 +49,7 @@ function item(over: Partial<ConversationResponse>): ConversationItem {
     title: c.name,
     updatedAt: c.updatedAt,
     siteId: c.siteId,
-    assistantId: "pathfinder",
+    assistantId: "strategist",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

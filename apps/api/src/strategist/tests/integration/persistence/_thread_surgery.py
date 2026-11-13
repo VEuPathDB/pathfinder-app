@@ -130,7 +130,7 @@ async def seed_user() -> UUID:
 async def seed_conversation(
     user_id: UUID,
     *,
-    assistant_id: str = "pathfinder",
+    assistant_id: str = "strategist",
     name: str = "protease work",
 ) -> UUID:
     conversation_id = uuid4()

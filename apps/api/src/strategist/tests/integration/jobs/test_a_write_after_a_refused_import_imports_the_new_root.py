@@ -42,7 +42,7 @@ async def _thread(
         await session.commit()
         repo = ConversationRepository(session)
         created = await repo.create(
-            user.id, "plasmodb", assistant_id="pathfinder", name="Singletons"
+            user.id, "plasmodb", assistant_id="strategist", name="Singletons"
         )
         await repo.update_conversation(
             created.id,

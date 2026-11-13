@@ -79,7 +79,7 @@ def _payload() -> ChatTurnPayload:
         ),
         user_id=uuid4(),
         turn_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
 
 
@@ -97,7 +97,7 @@ async def test_every_line_of_a_turn_names_the_turn_the_user_the_site_and_the_ass
         "turn_id": str(payload.turn_id),
         "user_id": str(payload.user_id),
         "site_id": "plasmodb",
-        "assistant_id": "pathfinder",
+        "assistant_id": "strategist",
     }
     for event in ("turn line", "library turn line", "chat turn completed"):
         line = logs.line(event)

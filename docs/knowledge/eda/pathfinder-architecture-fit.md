@@ -309,7 +309,7 @@ AdmissionRecord(
 
 against `assistant_core/mcp/admission.py:12-23`, installed by the host through
 `install_admitted_sources(...)` (`admission.py:66`) exactly as
-`pathfinder/platform/tool_sources.py::admitted_tool_sources` installs the WDK
+`strategist/platform/tool_sources.py::admitted_tool_sources` installs the WDK
 record today. The decision
 the admitted tool sources are installed by the host (`assistant-platform: docs/knowledge/decisions/admitted-tool-sources-are-installed-by-the-host.md`)
 fixes that seam: the set is a value, installed once at process start, with no

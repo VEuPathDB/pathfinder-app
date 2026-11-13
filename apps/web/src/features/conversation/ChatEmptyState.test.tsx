@@ -33,7 +33,7 @@ describe("ChatEmptyState", () => {
   it("names the site by its short name in the strategy builder's sentence", () => {
     render(
       <EmptyThread>
-        <ChatEmptyState assistantId="pathfinder" />
+        <ChatEmptyState assistantId="strategist" />
       </EmptyThread>,
     );
 
@@ -55,7 +55,7 @@ describe("ChatEmptyState", () => {
     useSessionStore.getState().setSelectedSite("orthomcl");
     render(
       <EmptyThread>
-        <ChatEmptyState assistantId="pathfinder" />
+        <ChatEmptyState assistantId="strategist" />
       </EmptyThread>,
     );
 
@@ -70,7 +70,7 @@ describe("ChatEmptyState", () => {
   it("stacks the suggestions in one column until the thread is wide enough for two", () => {
     render(
       <EmptyThread>
-        <ChatEmptyState assistantId="pathfinder" />
+        <ChatEmptyState assistantId="strategist" />
       </EmptyThread>,
     );
 
@@ -94,7 +94,7 @@ describe("ChatEmptyState first-run hint", () => {
   it("opens the settings modal on the model tab from its words", async () => {
     render(
       <EmptyThread>
-        <ChatEmptyState assistantId="pathfinder" />
+        <ChatEmptyState assistantId="strategist" />
       </EmptyThread>,
     );
 
@@ -114,7 +114,7 @@ describe("ChatEmptyState first-run hint", () => {
   function drawHint(): void {
     render(
       <EmptyThread>
-        <ChatEmptyState assistantId="pathfinder" />
+        <ChatEmptyState assistantId="strategist" />
       </EmptyThread>,
     );
   }

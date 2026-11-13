@@ -138,7 +138,7 @@ src/strategist/
 
 **The assistant**:
 
-`pathfinder` runs a Lead agent that is the only voice the user hears. It invokes FRAME, BUILD and
+`strategist` runs a Lead agent that is the only voice the user hears. It invokes FRAME, BUILD and
 VERIFY sub-agents as tools and reads a typed `InvestigationLedger` they write. The registry in
 `assistants/registry.py` can install more than one assistant; which one a thread uses is fixed
 when the thread is created.

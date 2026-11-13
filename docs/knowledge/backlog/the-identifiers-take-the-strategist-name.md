@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: The identifiers take the Strategist name
-description: The screen and every name this repository alone reads say Strategist; the package, stored ids, two quadlet-set variables, the User-Agent, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
+description: The screen, every name this repository alone reads, the package and the assistant id say Strategist, and the package waits for the estate to start the worker by its command; the application id, two quadlet-set variables, the User-Agent, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
 tags: [rename, release, deploy, persistence, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-11-13T00:00:00Z }
 status: proposed
@@ -21,14 +21,12 @@ A pull request to `VEuPathDB/webservices-quadlets` (merged by the systems team) 
 service-token target to `STRATEGIST_SERVICE_TOKENS`. It merges only after QA runs 0.9.1a2 or
 later, the first image that holds `bin/strategist-worker`.
 
-## 2. The package and the stored ids (after step 1)
+The package `strategist` and the assistant id `"strategist"` are done here and wait for this
+step: the image they ship in starts no worker from a quadlet that names
+`-m pathfinder.jobs.worker`. Release them only after the estate runs `bin/strategist-worker`.
 
-- **The Python package** `pathfinder` to `strategist`: every import, the `pyproject.toml`
-  sections (import-linter, vulture, coverage, ruff), the uvicorn command, alembic, the scripts
-  and `bin/strategist-worker`. Saved checkpoints hold module paths, so a migration rewrites
-  them in `checkpoints`, `checkpoint_blobs` and `checkpoint_writes`, tested on a copy of a dev
-  database dump first.
-- **`assistant_id`** to `strategist`, with a data migration of every table that holds it.
+## 2. After step 1
+
 - **The two MCP URL settings** read `STRATEGIST_*`; a later quadlet change drops the
   `PATHFINDER_` pair.
 - **The README screenshot** (`assets/pathfinder.png`) shows an old screen with the old name;

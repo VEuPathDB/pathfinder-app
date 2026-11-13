@@ -112,7 +112,7 @@ def test_an_eval_run_reads_the_file_it_names(
         return EvalRunSummary(
             harness="pydantic-evals",
             provider="mock",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             ran_at="2026-10-09T00:00:00+00:00",
             cases=[],
         )

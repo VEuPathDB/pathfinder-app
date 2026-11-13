@@ -29,12 +29,12 @@ def _raw(**overrides: object) -> dict[str, object]:
         "name": "uat-c12-plasmodb",
         "turns": ["Use these genes as my positive controls."],
         "siteId": "plasmodb",
-        "assistantId": "pathfinder",
+        "assistantId": "strategist",
         "rationale": "pins the attached list",
         "expected": {"buildsStrategy": False},
         "provenance": {
             "site": "plasmodb",
-            "assistant": "pathfinder",
+            "assistant": "strategist",
             "origin": "cataloged-failure",
             "addedAt": "2026-09-25",
             "reference": "uat/flows-composer.md#c12",
@@ -279,7 +279,7 @@ def test_a_uat_flow_case_names_its_flow_and_no_staging_row() -> None:
             CaseProvenance.model_validate(
                 {
                     "site": "plasmodb",
-                    "assistant": "pathfinder",
+                    "assistant": "strategist",
                     "addedAt": "2026-09-25",
                     **raw,
                 }
@@ -449,3 +449,9 @@ def test_the_every_species_case_holds_the_reading_that_is_built() -> None:
     assert case.expected.root_count is not None
     assert case.expected.root_count.count == 797
     assert case.gates.answers == []
+
+
+def test_every_corpus_case_runs_under_an_installed_assistant() -> None:
+    named = {case.assistant_id for case in load_corpus()}
+
+    assert named == {"strategist", "audit"}

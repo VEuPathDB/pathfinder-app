@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The eval harness is pydantic-evals, and the summary shape is ours
-description: pydantic-evals ships with the pinned pydantic-ai and owns the dataset, the case loop, the evaluator protocol and the report; the machine-readable run summary is a local model, so a change of harness does not change the SLI feed. The run always drives the configured provider, and a recorded count is judged pass, re-measure or fail against the site build it was read on. Building a runner from scratch was rejected as a reimplementation of an installed library. The graded tree distance is now written in pure Python inside `pathfinder/evals/`, because taking it from the retired thesis harness would drag zss, numpy and scipy into the API image.
+description: pydantic-evals ships with the pinned pydantic-ai and owns the dataset, the case loop, the evaluator protocol and the report; the machine-readable run summary is a local model, so a change of harness does not change the SLI feed. The run always drives the configured provider, and a recorded count is judged pass, re-measure or fail against the site build it was read on. Building a runner from scratch was rejected as a reimplementation of an installed library. The graded tree distance is now written in pure Python inside `strategist/evals/`, because taking it from the retired thesis harness would drag zss, numpy and scipy into the API image.
 tags: [ws-v, evals, testing, observability]
 generated: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }

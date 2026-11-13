@@ -103,7 +103,7 @@ async def test_the_import_is_found_by_a_store_that_did_not_write_it(
     """A set saved in a thread or pasted on the strategy is never the import."""
     async with session_maker() as session:
         conversation = await ConversationRepository(session).create(
-            seed_user.id, "plasmodb", assistant_id="pathfinder"
+            seed_user.id, "plasmodb", assistant_id="strategist"
         )
         await session.commit()
     api, worker = GeneSetStore(), GeneSetStore()

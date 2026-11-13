@@ -9,6 +9,14 @@
   still hidden and still cleaned. The lockup and the sign-in card show `VEuPathDB Strategist`
   on one line. See [the decision](decisions/the-product-is-named-veupathdb-strategist.md).
 
+* **The Python package is `strategist` and the assistant id is `"strategist"`.** Migration
+  `2026_11_13_0001` renames the module each saved checkpoint names, so a thread saved under
+  `pathfinder` loads whole, and `2026_11_13_0002` renames the stored assistant ids, in threads,
+  staged eval cases and queued turns. A chat body that names `"pathfinder"` reads as
+  `"strategist"`, for a tab opened before the release. The release waits for the estate to start the worker by
+  `bin/strategist-worker`; see [the decision](decisions/the-product-is-named-veupathdb-strategist.md)
+  and [the backlog item](backlog/the-identifiers-take-the-strategist-name.md).
+
 * **Every name only this repository reads says Strategist.** The shared TypeScript package is
   `@strategist/shared`; the logo components, the brand files, the browser storage keys (moved
   once on load, so no setting resets), the `STRATEGIST_*` settings, the

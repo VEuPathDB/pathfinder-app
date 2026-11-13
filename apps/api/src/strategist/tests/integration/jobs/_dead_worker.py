@@ -57,7 +57,7 @@ async def stage_chat_turn_job(
         body=ChatRequestBody(conversation_id=conversation_id, site_id="plasmodb"),
         user_id=user_id,
         turn_id=turn_id,
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
     job_id = await defer_chat_turn(
         conversation_id=conversation_id,

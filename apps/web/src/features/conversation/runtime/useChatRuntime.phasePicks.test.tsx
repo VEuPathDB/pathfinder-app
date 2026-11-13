@@ -37,8 +37,8 @@ const BALANCED = {
 };
 
 const TIERS = {
-  presets: { pathfinder: { openai: { balanced: BALANCED } } },
-  ownKeyPresets: { pathfinder: { openai: { balanced: BALANCED } } },
+  presets: { strategist: { openai: { balanced: BALANCED } } },
+  ownKeyPresets: { strategist: { openai: { balanced: BALANCED } } },
 };
 
 const RETIRED = "openai:gpt-6-sol";

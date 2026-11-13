@@ -26,7 +26,7 @@ and the published schema are unchanged.
 
 `pathfinder-shared` is gone. The models that name a gene, a strategy or an
 enrichment folded into `apps/api`: the part payloads are
-`pathfinder/ai/stream_part_payloads.py` and `pathfinder/domain/eda_parts.py`,
+`strategist/ai/stream_part_payloads.py` and `strategist/domain/eda_parts.py`,
 and no distribution outside `apps/api` declares them.
 
 # What was rejected

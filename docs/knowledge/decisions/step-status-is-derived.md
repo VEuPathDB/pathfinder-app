@@ -12,7 +12,7 @@ status: stable
 
 "What state is this step in" was answered in four places and answered differently: `is_built` from a WDK id, `defer_incomplete_new_steps` inferring draft from "validation failed AND never pushed", `is_computable` from the wiring, and the client's own `isBuilt: false`. That inference produced a live 422.
 
-`step_status()` in `pathfinder/domain/strategy/step_status.py` is now the single answer.
+`step_status()` in `strategist/domain/strategy/step_status.py` is now the single answer.
 
 # Derived, not stored
 

@@ -38,7 +38,7 @@ async def test_a_new_thread_is_recorded_with_its_assistant_and_site(
     ]
     assert recorded[0].conversation_id is not None
     assert recorded[0].attributes == {
-        "assistant_id": "pathfinder",
+        "assistant_id": "strategist",
         "site_id": "plasmodb",
     }
 

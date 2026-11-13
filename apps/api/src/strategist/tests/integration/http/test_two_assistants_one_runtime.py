@@ -188,7 +188,7 @@ def test_the_two_assistants_resolve_different_graphs() -> None:
     registry = get_assistant_registry()
 
     strategist_nodes = set(
-        registry.resolve("pathfinder").build_graph(InMemorySaver()).get_graph().nodes,
+        registry.resolve("strategist").build_graph(InMemorySaver()).get_graph().nodes,
     )
     helper_nodes = set(
         registry.resolve(HELPER).build_graph(InMemorySaver()).get_graph().nodes,
@@ -232,7 +232,7 @@ async def test_begin_refuses_an_assistant_the_thread_was_not_created_under(
     owner = await make_user(db_session)
     conversation = Conversation(
         user_id=owner.id,
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id="plasmodb",
         name="kinases",
     )
@@ -247,7 +247,7 @@ async def test_begin_refuses_an_assistant_the_thread_was_not_created_under(
         )
 
     assert response.status_code == 409, response.text
-    assert await assistant_of(session_maker, conversation.id) == "pathfinder"
+    assert await assistant_of(session_maker, conversation.id) == "strategist"
 
 
 async def test_begin_without_an_assistant_still_takes_the_default(
@@ -267,4 +267,4 @@ async def test_begin_without_an_assistant_still_takes_the_default(
         )
 
     assert response.status_code == 200, response.text
-    assert await assistant_of(session_maker, conversation_id) == "pathfinder"
+    assert await assistant_of(session_maker, conversation_id) == "strategist"

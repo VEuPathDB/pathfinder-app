@@ -22,7 +22,7 @@ const cfg = (modelId: string, reasoningEffort: "low" | "medium" | "high") => ({
   reasoningEffort,
 });
 
-const pathfinder = (
+const strategist = (
   thinker: ReturnType<typeof cfg>,
   worker: ReturnType<typeof cfg>,
 ): TierPreset => ({
@@ -40,13 +40,13 @@ const SMALL = cfg(OPENAI_SMALL.id, "medium");
 const SMALL_LOW = cfg(OPENAI_SMALL.id, "low");
 const FLAGSHIP = cfg(OPENAI_FLAGSHIP.id, "high");
 
-const DEFAULT_TIER = pathfinder(STANDARD, SMALL);
-const QUALITY_TIER = pathfinder(FLAGSHIP, STANDARD);
-const BALANCED_TIER = pathfinder(STANDARD, SMALL);
-const FAST_TIER = pathfinder(SMALL_LOW, SMALL_LOW);
+const DEFAULT_TIER = strategist(STANDARD, SMALL);
+const QUALITY_TIER = strategist(FLAGSHIP, STANDARD);
+const BALANCED_TIER = strategist(STANDARD, SMALL);
+const FAST_TIER = strategist(SMALL_LOW, SMALL_LOW);
 
 const PRESETS = {
-  pathfinder: {
+  strategist: {
     openai: {
       default: DEFAULT_TIER,
       quality: QUALITY_TIER,
@@ -54,7 +54,7 @@ const PRESETS = {
       fast: FAST_TIER,
     },
     anthropic: {
-      default: pathfinder(
+      default: strategist(
         cfg(ANTHROPIC_SMALL.id, "medium"),
         cfg(ANTHROPIC_SMALL.id, "medium"),
       ),
@@ -72,7 +72,7 @@ const PRESETS = {
 
 describe("presetsForProvider", () => {
   it("returns the tiers of one assistant on one provider", () => {
-    expect(Object.keys(presetsForProvider(PRESETS, "pathfinder", "openai"))).toEqual([
+    expect(Object.keys(presetsForProvider(PRESETS, "strategist", "openai"))).toEqual([
       "default",
       "quality",
       "balanced",
@@ -82,17 +82,17 @@ describe("presetsForProvider", () => {
 
   it("returns empty for an unknown assistant or provider rather than throwing", () => {
     expect(presetsForProvider(PRESETS, "curator", "openai")).toEqual({});
-    expect(presetsForProvider(PRESETS, "pathfinder", "nope")).toEqual({});
+    expect(presetsForProvider(PRESETS, "strategist", "nope")).toEqual({});
   });
 
   it("returns empty when presets are still loading", () => {
-    expect(presetsForProvider(undefined, "pathfinder", "openai")).toEqual({});
+    expect(presetsForProvider(undefined, "strategist", "openai")).toEqual({});
   });
 });
 
 describe("rolesForAssistant", () => {
   it("names the roles of the assistant in use, and nobody else's", () => {
-    expect(rolesForAssistant(PRESETS, "pathfinder", "openai")).toEqual([
+    expect(rolesForAssistant(PRESETS, "strategist", "openai")).toEqual([
       "lead",
       "frame",
       "verification",
@@ -102,12 +102,12 @@ describe("rolesForAssistant", () => {
   });
 
   it("names no role while the presets are loading", () => {
-    expect(rolesForAssistant(undefined, "pathfinder", "openai")).toEqual([]);
+    expect(rolesForAssistant(undefined, "strategist", "openai")).toEqual([]);
   });
 });
 
 describe("presetOnSwitch", () => {
-  const openai = PRESETS.pathfinder.openai;
+  const openai = PRESETS.strategist.openai;
 
   it("keeps the tier the researcher is on", () => {
     expect(presetOnSwitch(openai, "quality", "default")).toBe(QUALITY_TIER);
@@ -115,8 +115,8 @@ describe("presetOnSwitch", () => {
 
   it("takes the deployment's tier for a custom setup or a tier the provider lacks", () => {
     expect(presetOnSwitch(openai, CUSTOM_TIER, "fast")).toBe(FAST_TIER);
-    expect(presetOnSwitch(PRESETS.pathfinder.anthropic, "quality", "default")).toBe(
-      PRESETS.pathfinder.anthropic.default,
+    expect(presetOnSwitch(PRESETS.strategist.anthropic, "quality", "default")).toBe(
+      PRESETS.strategist.anthropic.default,
     );
   });
 
@@ -130,7 +130,7 @@ describe("presetOnSwitch", () => {
 });
 
 describe("distinctPresets", () => {
-  const openai = PRESETS.pathfinder.openai;
+  const openai = PRESETS.strategist.openai;
 
   it("keeps the deployment's tier over a later tier that runs the same models", () => {
     expect(Object.keys(distinctPresets(openai, "default"))).toEqual([
@@ -193,7 +193,7 @@ describe("applyTierPreset", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         applied.reasoning,
@@ -209,7 +209,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         applied.reasoning,
@@ -250,7 +250,7 @@ describe("deriveActiveTier", () => {
       explore: "high" as const,
     };
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
+      deriveActiveTier(PRESETS, "strategist", "openai", models, reasoning, "default"),
     ).toBe("quality");
   });
 
@@ -268,7 +268,7 @@ describe("deriveActiveTier", () => {
       },
     };
     const filled = picksFilledFromTier(
-      Object.values(presetsForProvider(PRESETS, "pathfinder", "openai")),
+      Object.values(presetsForProvider(PRESETS, "strategist", "openai")),
       saved,
     );
 
@@ -276,7 +276,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         filled.models,
         filled.reasoning,
@@ -291,7 +291,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         models,
         applied.reasoning,
@@ -306,7 +306,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         reasoning,
@@ -316,10 +316,10 @@ describe("deriveActiveTier", () => {
   });
 
   it("reports the deployment tier when nothing is pinned", () => {
-    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "balanced")).toBe(
+    expect(deriveActiveTier(PRESETS, "strategist", "openai", {}, {}, "balanced")).toBe(
       "balanced",
     );
-    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "default")).toBe(
+    expect(deriveActiveTier(PRESETS, "strategist", "openai", {}, {}, "default")).toBe(
       "default",
     );
   });
@@ -339,7 +339,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         { verification: OPENAI_FLAGSHIP.id },
         { verification: "high" },
@@ -353,7 +353,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         applied.reasoning,
@@ -368,10 +368,10 @@ describe("deriveActiveTier", () => {
     const models = { verification: DEFAULT_MODEL.id };
     const reasoning = { verification: "medium" as const };
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "quality"),
+      deriveActiveTier(PRESETS, "strategist", "openai", models, reasoning, "quality"),
     ).toBe("quality");
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
+      deriveActiveTier(PRESETS, "strategist", "openai", models, reasoning, "default"),
     ).toBe(CUSTOM_TIER);
   });
 
@@ -381,7 +381,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         partial,
         applied.reasoning,
@@ -392,11 +392,11 @@ describe("deriveActiveTier", () => {
 
   it("does not match a tier from a different provider", () => {
     // Anthropic's default has the same SHAPE; selecting openai must not match it.
-    const applied = applyTierPreset(PRESETS.pathfinder.anthropic.default);
+    const applied = applyTierPreset(PRESETS.strategist.anthropic.default);
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         applied.reasoning,
@@ -410,7 +410,7 @@ describe("deriveActiveTier", () => {
     expect(
       deriveActiveTier(
         undefined,
-        "pathfinder",
+        "strategist",
         "openai",
         applied.models,
         applied.reasoning,
@@ -420,7 +420,7 @@ describe("deriveActiveTier", () => {
   });
 
   it("is custom when the deployment names a tier the presets do not carry", () => {
-    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "custom")).toBe(
+    expect(deriveActiveTier(PRESETS, "strategist", "openai", {}, {}, "custom")).toBe(
       CUSTOM_TIER,
     );
   });

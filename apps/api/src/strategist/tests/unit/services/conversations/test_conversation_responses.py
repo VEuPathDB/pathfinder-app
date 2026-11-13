@@ -48,7 +48,7 @@ def _thread(
     conversation = Conversation(
         id=uuid4(),
         user_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id="plasmodb",
         name="Gametocyte markers",
         created_at=now,

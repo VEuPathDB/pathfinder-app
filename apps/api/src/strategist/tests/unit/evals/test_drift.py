@@ -26,7 +26,7 @@ def _case(*, count: int | None = 116) -> EvalCase:
         name="uat-s2-plasmodb",
         turns=["Find the genes."],
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins the intersect and its count",
         expected=ExpectedOutcome(
             builds_strategy=True,
@@ -42,7 +42,7 @@ def _case(*, count: int | None = 116) -> EvalCase:
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="uat/flows-strategy-standard.md#s2",
             added_at="2026-09-25",

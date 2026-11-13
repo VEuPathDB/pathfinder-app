@@ -155,7 +155,7 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
         user_id=uuid4(),
         turn_id=uuid4(),
         veupathdb_auth_token="user-token-abc",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
 
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
@@ -190,7 +190,7 @@ async def test_run_chat_turn_resets_ctxvar_after_run(
         user_id=uuid4(),
         turn_id=uuid4(),
         veupathdb_auth_token="user-token-xyz",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
     assert veupathdb_auth_token_ctx.get() is None
@@ -220,7 +220,7 @@ async def test_run_chat_turn_tolerates_missing_token(
         body=_body(),
         user_id=uuid4(),
         turn_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
 
@@ -271,7 +271,7 @@ async def test_a_turn_that_cannot_open_its_checkpointer_ends_visibly(
         user_id=uuid4(),
         turn_id=uuid4(),
         veupathdb_auth_token="user-token-abc",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
 
     with pytest.raises(CheckpointTimeoutError):
@@ -309,13 +309,13 @@ async def test_a_worker_turn_counts_under_the_model_that_read_the_prompt(
     monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
     monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
     monkeypatch.setattr(chat_turn_impl, "ChatEventWriter", _RecordingWriter)
-    model = prompt_reader_model("pathfinder", {})
-    finished = {"assistant": "pathfinder", "outcome": "completed", "model": model}
+    model = prompt_reader_model("strategist", {})
+    finished = {"assistant": "strategist", "outcome": "completed", "model": model}
     spent = {"model": model, "payer": "deployment"}
     before = _sample("pathfinder_chat_turns_finished_total", finished)
     tokens = _sample("pathfinder_model_tokens_total", spent)
     payload = ChatTurnPayload(
-        body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="pathfinder"
+        body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="strategist"
     )
 
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))

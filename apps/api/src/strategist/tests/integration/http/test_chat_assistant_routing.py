@@ -83,8 +83,8 @@ async def test_a_turn_creates_the_thread_under_the_default_assistant(
         job = await _defer_one_turn(client, body, in_memory_jobs)
 
     conversation_id = UUID(body["conversationId"])
-    assert await _assistant_of(session_maker, conversation_id) == "pathfinder"
-    assert job["args"]["payload"]["assistant_id"] == "pathfinder"
+    assert await _assistant_of(session_maker, conversation_id) == "strategist"
+    assert job["args"]["payload"]["assistant_id"] == "strategist"
 
 
 async def test_a_turn_naming_the_thread_s_assistant_is_served(
@@ -99,20 +99,20 @@ async def test_a_turn_naming_the_thread_s_assistant_is_served(
     owner = await make_user(db_session)
     conversation = Conversation(
         user_id=owner.id,
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id="plasmodb",
         name="kinases",
     )
     db_session.add(conversation)
     await db_session.flush()
     await db_session.commit()
-    body = {**chat_body(conversation.id), "assistantId": "pathfinder"}
+    body = {**chat_body(conversation.id), "assistantId": "strategist"}
 
     async with client_for(ends_at_first_frame(app), owner.id) as client:
         job = await _defer_one_turn(client, body, in_memory_jobs)
 
-    assert job["args"]["payload"]["assistant_id"] == "pathfinder"
-    assert await _assistant_of(session_maker, conversation.id) == "pathfinder"
+    assert job["args"]["payload"]["assistant_id"] == "strategist"
+    assert await _assistant_of(session_maker, conversation.id) == "strategist"
 
 
 async def test_an_unknown_assistant_is_refused_with_404(
@@ -146,7 +146,7 @@ async def test_naming_another_assistant_on_an_existing_thread_is_refused(
     owner = await make_user(db_session)
     conversation = Conversation(
         user_id=owner.id,
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id="plasmodb",
         name="kinases",
     )
@@ -160,7 +160,7 @@ async def test_naming_another_assistant_on_an_existing_thread_is_refused(
 
     assert status == _CONFLICT
     assert chat_jobs(in_memory_jobs) == []
-    assert await _assistant_of(session_maker, conversation.id) == "pathfinder"
+    assert await _assistant_of(session_maker, conversation.id) == "strategist"
 
 
 @pytest.mark.usefixtures("helper_assistant")

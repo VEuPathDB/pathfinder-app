@@ -69,7 +69,7 @@ async def test_a_completed_turn_records_the_assistant_that_answered(
         response = await asyncio.wait_for(post, timeout=_DEADLOCK_CEILING_SECONDS)
 
     assert response.status_code == _OK
-    assert job["args"]["payload"]["assistant_id"] == "pathfinder"
+    assert job["args"]["payload"]["assistant_id"] == "strategist"
 
     types = [chunk.get("type") for chunk in parse_sse_body(response.text)]
     assert types.count("done") == 1, "the worker did not finish the turn"
@@ -80,4 +80,4 @@ async def test_a_completed_turn_records_the_assistant_that_answered(
                 Conversation.id == conversation_id,
             ),
         )
-    assert assistant_id == "pathfinder"
+    assert assistant_id == "strategist"

@@ -110,8 +110,8 @@ describe("readerModel", () => {
   const defaults = { lead: BLIND.id, frame: READER.id, helper: FLASH.id };
 
   it("reads the Lead's model for a Strategist thread", () => {
-    expect(readerModel("pathfinder", {}, defaults, CATALOG)).toBe(BLIND);
-    expect(readerModel("pathfinder", { lead: READER.id }, defaults, CATALOG)).toBe(
+    expect(readerModel("strategist", {}, defaults, CATALOG)).toBe(BLIND);
+    expect(readerModel("strategist", { lead: READER.id }, defaults, CATALOG)).toBe(
       READER,
     );
   });
@@ -127,7 +127,7 @@ describe("readerModel", () => {
   });
 
   it("is unknown while the catalog has not loaded", () => {
-    expect(readerModel("pathfinder", {}, defaults, [])).toBe(undefined);
+    expect(readerModel("strategist", {}, defaults, [])).toBe(undefined);
   });
 });
 

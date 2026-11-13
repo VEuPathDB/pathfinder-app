@@ -69,7 +69,7 @@ async def test_no_flag_still_runs_under_the_default(
 
     spec = await chat.resolve_run_assistant(uuid4())
 
-    assert spec.assistant_id == "pathfinder"
+    assert spec.assistant_id == "strategist"
 
 
 async def test_an_unknown_assistant_is_refused(
@@ -84,7 +84,7 @@ async def test_an_unknown_assistant_is_refused(
 async def test_naming_another_assistant_than_the_thread_s_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _install_existing(monkeypatch, "pathfinder")
+    _install_existing(monkeypatch, "strategist")
 
     with second_assistant(monkeypatch), pytest.raises(AssistantMismatchError):
         await chat.resolve_run_assistant(uuid4(), HELPER)

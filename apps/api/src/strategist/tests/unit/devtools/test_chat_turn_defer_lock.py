@@ -41,7 +41,7 @@ def _payload(conversation_id: UUID) -> ChatTurnPayload:
         ),
         user_id=uuid4(),
         turn_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
     )
 
 

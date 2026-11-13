@@ -92,7 +92,7 @@ def test_outside_a_pinned_run_every_role_resolves_as_before() -> None:
     settings = get_settings()
     smallest = get_smallest_model(settings.default_provider).id
     unpinned = {
-        **assistant_role_models("pathfinder", {}),
+        **assistant_role_models("strategist", {}),
         "title_generator": smallest,
         "note_compactor": smallest,
         "injection_judge": settings.input_screening_model,
@@ -175,7 +175,7 @@ def test_the_requests_a_pinned_run_sends_pin_every_role(tmp_path: Path) -> None:
     args = chat.parse_run_args(["hi", "--site", "orthomcl", "--run-dir", str(tmp_path)])
 
     with run_models.pin_every_role(LUNA):
-        chat.write_turn_settings(args, assistant_id="pathfinder")
+        chat.write_turn_settings(args, assistant_id="strategist")
 
     sent = json.loads((tmp_path / chat.TURN_SETTINGS_FILE).read_text())
     assert sent["phaseModels"] == {
@@ -359,7 +359,7 @@ def _summary() -> EvalRunSummary:
     return EvalRunSummary(
         harness="pydantic-evals",
         provider="default",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         ran_at="2026-10-22T00:00:00+00:00",
         cases=[],
     )
@@ -442,13 +442,13 @@ def _case() -> EvalCase:
         name="a-case",
         turns=["build it"],
         site_id="orthomcl",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins a thing",
         expected=ExpectedOutcome(builds_strategy=True),
         gates=GatePlan(policy="auto"),
         provenance=CaseProvenance(
             site="orthomcl",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-10-22",

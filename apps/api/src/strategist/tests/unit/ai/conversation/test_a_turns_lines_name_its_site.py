@@ -30,7 +30,7 @@ class _Conversation:
 
 class _Spec:
     tool_sources: tuple[Any, ...] = ()
-    assistant_id = "pathfinder"
+    assistant_id = "strategist"
 
     async def build_turn_context(self, request: object) -> object:
         del request

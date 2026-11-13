@@ -1,5 +1,7 @@
 import type { ModelCatalogEntry } from "@strategist/shared";
 
+import { AUDIT_ASSISTANT_ID, DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
+
 // The api holds the same caps and kinds (ai/conversation/attachments.py) and
 // refuses a message that breaks them; the composer says so before it is sent.
 
@@ -17,8 +19,8 @@ const PDF_TYPE = "application/pdf";
 
 /** The role whose model reads the user's message, per assistant. */
 const PROMPT_ROLES: Readonly<Record<string, string>> = {
-  pathfinder: "lead",
-  audit: "auditor",
+  [DEFAULT_ASSISTANT_ID]: "lead",
+  [AUDIT_ASSISTANT_ID]: "auditor",
 };
 
 interface FileFacts {

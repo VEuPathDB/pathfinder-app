@@ -20,7 +20,7 @@ none. This deployment installs one.
    * - Assistant
      - Graph
      - Scope
-   * - **pathfinder**
+   * - **strategist**
      - ``lead`` then ``finalize_turn``
      - The default. Strategy construction, verification and EDA.
 
@@ -214,10 +214,10 @@ Architecture Layers
   ``veupathdb-py``, a distribution of its own; business logic lives in Services.
 - **Persistence** uses the repository pattern; services never write raw SQL.
 
-The runtime itself lives outside ``pathfinder``. ``assistant_core`` is a
+The runtime itself lives outside ``strategist``. ``assistant_core`` is a
 separate distribution that owns the graph scaffolding, the event log, the
 checkpointer, the memory store and the settings, and it cannot import
-``pathfinder``. Anything that names a gene, a strategy, a WDK search or a phase
+``strategist``. Anything that names a gene, a strategy, a WDK search or a phase
 role stays in ``strategist.ai``.
 
 Design Decisions

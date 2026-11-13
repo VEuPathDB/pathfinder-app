@@ -35,12 +35,12 @@ const READER_ACCEPT = `${GENE_ID_ACCEPT},image/png,image/jpeg,image/webp,image/g
 function ChatComposer() {
   const { runtime } = useChatRuntime({
     conversationId: "33333333-4444-4555-8666-777777777777",
-    assistantId: "pathfinder",
+    assistantId: "strategist",
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ComposerAttachmentList assistantId="pathfinder" refusal={null} />
-      <AttachButton assistantId="pathfinder" />
+      <ComposerAttachmentList assistantId="strategist" refusal={null} />
+      <AttachButton assistantId="strategist" />
     </AssistantRuntimeProvider>
   );
 }

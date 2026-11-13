@@ -28,7 +28,7 @@ const PASSWORD = "Zq3-pw-from-owner";
 const HEAD: SharedConversation = {
   name: "Kinases on chromosome 3",
   siteId: "plasmodb",
-  assistantId: "pathfinder",
+  assistantId: "strategist",
   allowCopy: false,
   cursor: 7,
   turnInFlight: false,

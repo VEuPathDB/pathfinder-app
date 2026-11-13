@@ -87,7 +87,7 @@ async def thread(
         await session.commit()
         repo = ConversationRepository(session)
         created = await repo.create(
-            user.id, "plasmodb", assistant_id="pathfinder", name="Kinases"
+            user.id, "plasmodb", assistant_id="strategist", name="Kinases"
         )
         await get_gene_set_store().save(
             GeneSet(

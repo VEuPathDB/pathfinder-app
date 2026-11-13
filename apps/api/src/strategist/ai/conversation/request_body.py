@@ -14,6 +14,7 @@ from pydantic_ai.ui.vercel_ai.request_types import (
 )
 
 from strategist.domain.modes import ThreadMode
+from strategist.platform.identity import AssistantId
 from strategist.platform.log_ids import SITE_ID_PATTERN
 from strategist.platform.model_catalog import get_model_entry
 from strategist.platform.tiers import KNOWN_ROLES
@@ -59,7 +60,7 @@ class ChatRequestBody(CamelModel):
     conversation_id: UUID
     # Which assistant answers. Read only when the conversation is created; an
     # existing thread keeps the assistant it was created with.
-    assistant_id: str | None = None
+    assistant_id: AssistantId | None = None
     site_id: str = Field(default="", max_length=50, pattern=_SITE_OR_NONE)
     mode: ThreadMode = "auto"
     # A role no installed assistant runs a model for is refused here, so the

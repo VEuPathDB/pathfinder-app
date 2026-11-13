@@ -66,7 +66,7 @@ def _thread(
     conversation = Conversation(
         id=uuid4(),
         user_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id=_SITE,
         name="proteases",
         created_at=now,

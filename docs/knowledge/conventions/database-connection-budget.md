@@ -17,10 +17,10 @@ Every pool is sized by a setting, and every default fits the budget. A pool keep
 its size open and opens its overflow only in a burst, so an idle deployment
 holds few connections. `.env.example` lists each setting.
 
-`pathfinder/platform/connection_budget.py` holds the table below as code.
+`strategist/platform/connection_budget.py` holds the table below as code.
 `tests/unit/platform/test_the_connection_budget_holds.py` sums it from the
 setting defaults and holds the sum at 83. It also scans the served modules of
-`pathfinder`, `assistant_core` and `veupathdb_mcp` for every call that opens a
+`strategist`, `assistant_core` and `veupathdb_mcp` for every call that opens a
 connection, counts the calls of each module against `OPENER_CALLS`, and fails
 when a module, or a second pool in a listed module, is not in the table.
 `tests/integration/persistence/test_a_burst_fits_the_connection_budget.py` runs

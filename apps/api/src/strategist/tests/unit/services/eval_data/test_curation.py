@@ -28,7 +28,7 @@ _AUTO = GatePlan(policy="auto")
 def _extract(*, built: bool = True) -> EvalExtract:
     return EvalExtract(
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         turns=[
             ExtractedTurn(request="find kinases", reply="Built it."),
             ExtractedTurn(request="now swap the organism", reply="Swapped it."),
@@ -54,7 +54,7 @@ def _row(
         id=STAGING_ID,
         rated_message_id=uuid4() if rated else None,
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         content_hash="a" * 64,
         extract=(
             None

@@ -32,7 +32,7 @@ def test_the_registry_serves_strategist_by_default() -> None:
     registry = get_assistant_registry()
 
     assert registry.default_id == STRATEGIST_ASSISTANT_ID
-    assert registry.resolve(STRATEGIST_ASSISTANT_ID).assistant_id == "pathfinder"
+    assert registry.resolve(STRATEGIST_ASSISTANT_ID).assistant_id == "strategist"
 
 
 def test_its_graph_factory_builds_the_two_node_graph() -> None:

@@ -145,7 +145,7 @@ def test_a_refused_extract_is_read_as_a_redaction_failure() -> None:
     with pytest.raises(ValidationError) as refused:
         EvalExtract(
             site_id="plasmodb",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             turns=[ExtractedTurn(request="send it to ada@example.org")],
         )
     with pytest.raises(ValidationError) as malformed:

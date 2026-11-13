@@ -60,7 +60,7 @@ def _case(*, operator: str | None = "INTERSECT", below: bool | None = True) -> E
         name="a-case",
         turns=["build something"],
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins the combine",
         expected=ExpectedOutcome(
             builds_strategy=True,
@@ -70,7 +70,7 @@ def _case(*, operator: str | None = "INTERSECT", below: bool | None = True) -> E
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-09-23",

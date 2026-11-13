@@ -17,7 +17,7 @@ from strategist.evals.extract import (
 def _extract(**overrides: object) -> EvalExtract:
     base: dict[str, object] = {
         "site_id": "plasmodb",
-        "assistant_id": "pathfinder",
+        "assistant_id": "strategist",
         "turns": [ExtractedTurn(request="find kinases", reply="built it")],
         "strategy": ExtractedStrategy(
             record_type="transcript",

@@ -52,5 +52,5 @@ async def test_a_completion_turn_names_its_assistant(
         logging.getLogger("pydantic_ai").warning("after the completion")
 
     line = logs.line("completion line")
-    assert line["assistant_id"] == "pathfinder"
+    assert line["assistant_id"] == "strategist"
     assert set(_KEYS) & set(logs.line("after the completion")) == set()

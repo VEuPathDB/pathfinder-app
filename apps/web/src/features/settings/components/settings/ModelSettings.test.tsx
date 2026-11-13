@@ -32,13 +32,13 @@ function uniform(modelId: string, reasoningEffort = "medium") {
 
 const TIERS = {
   presets: {
-    pathfinder: {
+    strategist: {
       openai: { default: uniform(DEFAULT_MODEL.id) },
       anthropic: { quality: uniform(ANTHROPIC_SMALL.id) },
     },
   },
   ownKeyPresets: {
-    pathfinder: {
+    strategist: {
       openai: { default: uniform(DEFAULT_MODEL.id) },
       anthropic: { quality: uniform(ANTHROPIC_FLAGSHIP.id) },
     },
@@ -111,7 +111,7 @@ function picksOf(modelId: string) {
 
 function useTwoProviderTiers() {
   const presets = {
-    pathfinder: {
+    strategist: {
       openai: {
         default: uniform(DEFAULT_MODEL.id),
         quality: uniform(DEFAULT_MODEL.id, "high"),
@@ -215,7 +215,7 @@ describe("ModelSettings providers", () => {
 
   it("offers one stop for two presets that run the same models", async () => {
     const presets = {
-      pathfinder: {
+      strategist: {
         openai: {
           default: uniform(DEFAULT_MODEL.id),
           balanced: uniform(DEFAULT_MODEL.id),
@@ -283,7 +283,7 @@ describe("ModelSettings preset match", () => {
   it("marks a preset as active when the three rows match it", async () => {
     const high = { modelId: DEFAULT_MODEL.id, reasoningEffort: "high" };
     const presets = {
-      pathfinder: {
+      strategist: {
         openai: {
           default: uniform(DEFAULT_MODEL.id),
           quality: {

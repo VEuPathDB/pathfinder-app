@@ -22,7 +22,7 @@ function makeItem(id: string, siteId: string): ConversationItem {
     title: chat.name,
     updatedAt: chat.updatedAt,
     siteId,
-    assistantId: "pathfinder",
+    assistantId: "strategist",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

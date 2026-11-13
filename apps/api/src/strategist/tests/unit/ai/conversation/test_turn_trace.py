@@ -61,13 +61,13 @@ def test_the_turn_scope_names_the_assistant_the_site_and_the_models() -> None:
         trace_labels={"tier": "default", "model_lead": "openai:gpt-lead"},
     )
 
-    scope = turn_trace_scope(request, "pathfinder", _TURN)
+    scope = turn_trace_scope(request, "strategist", _TURN)
 
-    assert scope.name == "pathfinder"
+    assert scope.name == "strategist"
     assert (scope.session_id, scope.user_id) == (_CONVERSATION, _USER)
     assert scope.tags == ("plasmodb",)
     assert scope.metadata == {
-        "assistant_id": "pathfinder",
+        "assistant_id": "strategist",
         "turn_id": str(_TURN),
         "site_id": "plasmodb",
         "turn_kind": "message",
@@ -81,7 +81,7 @@ def test_a_completion_turn_is_labelled_as_one() -> None:
     result = DurableTaskResult(task_id=uuid4(), status="success", result={})
     request = TurnRequest(body=_body(), user_id=_USER, durable_result=result)
 
-    scope = turn_trace_scope(request, "pathfinder", _TURN)
+    scope = turn_trace_scope(request, "strategist", _TURN)
 
     assert scope.metadata["turn_kind"] == "durable_completion"
     assert scope.input_text == ""
@@ -91,7 +91,7 @@ def test_the_turn_start_carries_the_trace_it_runs_under(
     spans: InMemorySpanExporter,
 ) -> None:
     request = TurnRequest(body=_body(), user_id=_USER)
-    with traced(turn_trace_scope(request, "pathfinder", _TURN)):
+    with traced(turn_trace_scope(request, "strategist", _TURN)):
         start = build_turn_start(
             _body(), _USER, turn_message_id=_TURN, turn_start_event_id=0
         )

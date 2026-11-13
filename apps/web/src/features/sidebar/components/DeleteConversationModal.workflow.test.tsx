@@ -45,7 +45,7 @@ const ITEM: ConversationItem = {
   title: CHAT.name,
   updatedAt: CHAT.updatedAt,
   siteId: CHAT.siteId,
-  assistantId: "pathfinder",
+  assistantId: "strategist",
   isDismissed: false,
   isSaved: false,
   stepCount: 0,

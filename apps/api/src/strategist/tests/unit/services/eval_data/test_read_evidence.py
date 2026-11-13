@@ -121,7 +121,7 @@ def test_an_extract_whose_card_carries_a_credential_cannot_be_built() -> None:
     with pytest.raises(ValidationError, match="URL credential"):
         EvalExtract(
             site_id="plasmodb",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             turns=[ExtractedTurn(request="find kinases")],
             verification=ExtractedVerification(
                 success=True, evidence=_card("call_verify", url=leaked)

@@ -21,13 +21,13 @@ def _case(ends_on: GateEnd | None) -> EvalCase:
             "Delete the intersection step but keep both searches exactly as they are."
         ],
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins the card",
         expected=ExpectedOutcome(builds_strategy=None, ends_on=ends_on),
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="uat/flows-strategy-exceptions.md#n5",
             added_at="2026-09-25",

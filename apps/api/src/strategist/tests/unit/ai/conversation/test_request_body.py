@@ -340,3 +340,15 @@ def test_a_site_that_is_not_a_site_id_is_refused(site: str) -> None:
 
 def test_a_body_may_name_no_site() -> None:
     assert ChatRequestBody.model_validate(_body(siteId="")).site_id == ""
+
+
+@pytest.mark.parametrize(
+    ("named", "answered"),
+    [("pathfinder", "strategist"), ("strategist", "strategist"), ("audit", "audit")],
+)
+def test_a_body_that_names_the_former_assistant_id_names_strategist(
+    named: str, answered: str
+) -> None:
+    body = ChatRequestBody.model_validate(_body(assistantId=named))
+
+    assert body.assistant_id == answered

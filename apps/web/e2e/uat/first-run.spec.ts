@@ -401,7 +401,7 @@ test.describe("First run and navigation", () => {
     await chatPage.sendTurn(builderText, /\[mock\] hello strategy builder/);
     const builderId = await openConversationId(page);
     expect((await readConversation(apiClient, builderId)).assistantId).toBe(
-      "pathfinder",
+      "strategist",
     );
 
     await expect(page.getByTestId("conversations-new-assistant-button")).toHaveCount(0);

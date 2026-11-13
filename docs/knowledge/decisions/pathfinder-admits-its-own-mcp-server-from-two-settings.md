@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`pathfinder/platform/tool_sources.py` builds this deployment's
+`strategist/platform/tool_sources.py` builds this deployment's
 `AdmittedSources` in code. The record's shape is fixed there - the source id is
 the name the server publishes, the part namespace is `wdk`, the credential mode
 is `service`, the budget covers the longest call the server declares - and only

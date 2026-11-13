@@ -9,10 +9,10 @@ from strategist.platform.config import get_settings
 def test_the_labels_carry_the_tier_and_each_role_s_model() -> None:
     picks = {"lead": "openai:picked-for-this-turn"}
 
-    labels = turn_trace_labels("pathfinder", picks)
+    labels = turn_trace_labels("strategist", picks)
 
     settings = get_settings()
-    roles = assistant_role_models("pathfinder", picks)
+    roles = assistant_role_models("strategist", picks)
     assert labels == {
         "provider": settings.default_provider,
         "tier": settings.default_tier,

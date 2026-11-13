@@ -20,7 +20,7 @@ function makeItem(): ConversationItem {
     title: "Kinase strategy",
     updatedAt: "2026-01-01T00:00:00Z",
     siteId: "plasmodb",
-    assistantId: "pathfinder",
+    assistantId: "strategist",
     isDismissed: false,
     isSaved: false,
     stepCount: 1,

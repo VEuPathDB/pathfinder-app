@@ -26,7 +26,7 @@ pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 def _extract(request: str = "find kinases") -> EvalExtract:
     return EvalExtract(
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         turns=[ExtractedTurn(request=request, reply="built it")],
         strategy=ExtractedStrategy(
             record_type="transcript",
@@ -232,7 +232,7 @@ async def test_the_database_refuses_a_promoted_row_that_still_names_a_user(
                 user_id=user_id,
                 source_conversation_id=conversation_id,
                 site_id="plasmodb",
-                assistant_id="pathfinder",
+                assistant_id="strategist",
                 content_hash="f" * 64,
                 extract=None,
                 status="promoted",

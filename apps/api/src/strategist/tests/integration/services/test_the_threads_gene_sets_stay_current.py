@@ -62,7 +62,7 @@ async def thread(db_session: AsyncSession, patch_app_db_engine: None) -> UUID:
     store = get_gene_set_store()
     repo = ConversationRepository(db_session)
     created = await repo.create(
-        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+        user.id, "plasmodb", assistant_id="strategist", name="Vaccine antigens"
     )
     await db_session.commit()
     for gene_set in (
@@ -184,7 +184,7 @@ async def test_a_build_beside_a_saved_set_imports_its_own_and_leaves_the_saved_o
     await db_session.commit()
     repo = ConversationRepository(db_session)
     created = await repo.create(
-        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+        user.id, "plasmodb", assistant_id="strategist", name="Vaccine antigens"
     )
     await db_session.commit()
     await get_gene_set_store().save(
@@ -247,7 +247,7 @@ async def test_a_build_above_the_cap_saves_and_links_no_set(
     await db_session.commit()
     repo = ConversationRepository(db_session)
     created = await repo.create(
-        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+        user.id, "plasmodb", assistant_id="strategist", name="Vaccine antigens"
     )
     await repo.update_conversation(
         created.id,
@@ -285,7 +285,7 @@ async def test_a_rename_during_the_import_names_the_set(
     await db_session.commit()
     repo = ConversationRepository(db_session)
     created = await repo.create(
-        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+        user.id, "plasmodb", assistant_id="strategist", name="Vaccine antigens"
     )
     await repo.update_conversation(
         created.id,

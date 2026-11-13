@@ -76,7 +76,7 @@ def test_every_refusal_the_runtime_raises_has_a_status_here() -> None:
 
 async def test_an_assistant_this_deployment_does_not_serve_reads_as_not_found() -> None:
     resp = await unknown_assistant_handler(
-        _request(), UnknownAssistantError("no_such_assistant", ("pathfinder",))
+        _request(), UnknownAssistantError("no_such_assistant", ("strategist",))
     )
     assert resp.status_code == 404
     assert resp.media_type == _PROBLEM_JSON
@@ -86,7 +86,7 @@ async def test_an_assistant_this_deployment_does_not_serve_reads_as_not_found() 
 
 async def test_naming_another_assistant_than_the_threads_is_a_conflict() -> None:
     resp = await assistant_mismatch_handler(
-        _request(), AssistantMismatchError("helper", "pathfinder")
+        _request(), AssistantMismatchError("helper", "strategist")
     )
     assert resp.status_code == 409
     assert _body(resp)["code"] == "ASSISTANT_MISMATCH"

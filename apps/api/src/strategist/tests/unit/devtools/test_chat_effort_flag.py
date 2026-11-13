@@ -78,11 +78,11 @@ def test_the_run_directory_records_the_effort(tmp_path: Path) -> None:
         ["hi", "--site", "plasmodb", "--run-dir", str(tmp_path), "--effort", "high"]
     )
 
-    chat.write_turn_settings(args, assistant_id="pathfinder")
+    chat.write_turn_settings(args, assistant_id="strategist")
 
     recorded = json.loads((tmp_path / "turn_settings.json").read_text())
     assert recorded == {
-        "assistantId": "pathfinder",
+        "assistantId": "strategist",
         "phaseModels": {},
         "phaseReasoning": dict.fromkeys(KNOWN_ROLES, "high"),
     }
@@ -92,8 +92,8 @@ def test_a_run_directory_that_does_not_exist_yet_is_created(tmp_path: Path) -> N
     run_dir = tmp_path / "sweep" / "turn-2"
     args = chat.parse_run_args(["hi", "--site", "plasmodb", "--run-dir", str(run_dir)])
 
-    chat.write_turn_settings(args, assistant_id="pathfinder")
+    chat.write_turn_settings(args, assistant_id="strategist")
 
     assert json.loads((run_dir / "turn_settings.json").read_text())["assistantId"] == (
-        "pathfinder"
+        "strategist"
     )

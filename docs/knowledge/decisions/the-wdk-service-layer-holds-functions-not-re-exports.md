@@ -49,7 +49,7 @@ The package exports nothing. `veupathdb_mcp/wdk/__init__.py` is an empty file.
 # Why the last edge is not closed here
 
 `WDKSearch` is a frozen response model that opens no connection, and it belongs
-where every layer may name it: `pathfinder/domain/`. It cannot go alone. Its
+where every layer may name it: `strategist/domain/`. It cannot go alone. Its
 fields reference `WDKModel`, `WDKParameterGroup`, `WDKSortSpec`,
 `WDKAttributeField` and the `WDKParameter` discriminated union, so the move is
 `integrations/veupathdb/wdk_models.py` plus `wdk_parameters.py`, which 176

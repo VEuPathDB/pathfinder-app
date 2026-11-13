@@ -18,7 +18,7 @@ def _row(cost: str) -> TurnUsageRow:
         conversation_id=_THREAD,
         conversation_name="kinases",
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         user_id=_USER,
         user_external_id=None,
         created_at=datetime(2026, 10, 1, tzinfo=UTC),
@@ -31,7 +31,7 @@ def test_the_text_names_the_thread_its_site_and_its_researcher() -> None:
     text = render(build_report([_row("0.0100"), _row("0.0300")]))
 
     assert (
-        f"     2          200     0.0400  kinases  [plasmodb pathfinder {_USER}]"
+        f"     2          200     0.0400  kinases  [plasmodb strategist {_USER}]"
         in text
     )
     assert "cost per turn          0.0200 USD" in text

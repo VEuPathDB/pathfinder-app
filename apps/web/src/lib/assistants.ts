@@ -2,7 +2,7 @@
 // (strategist.assistants.registry); the ids are the ones the chat body and
 // ConversationResponse carry.
 
-export const DEFAULT_ASSISTANT_ID = "pathfinder";
+export const DEFAULT_ASSISTANT_ID = "strategist";
 export const AUDIT_ASSISTANT_ID = "audit";
 
 export interface AssistantChoice {

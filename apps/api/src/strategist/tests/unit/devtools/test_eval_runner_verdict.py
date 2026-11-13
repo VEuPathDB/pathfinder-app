@@ -113,7 +113,7 @@ def _phyletic_case() -> EvalCase:
         name="orthomcl-single-copy",
         turns=["List the groups with one protein in every apicomplexan genome."],
         site_id="orthomcl",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins single copy over a clade",
         expected=ExpectedOutcome(
             builds_strategy=True,
@@ -125,7 +125,7 @@ def _phyletic_case() -> EvalCase:
         gates=GatePlan(policy="auto"),
         provenance=CaseProvenance(
             site="orthomcl",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-10-21",

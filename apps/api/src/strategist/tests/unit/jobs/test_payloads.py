@@ -39,7 +39,7 @@ class TestChatTurnPayload:
             user_id=uuid4(),
             turn_id=uuid4(),
             veupathdb_auth_token="cookie-value-abc123",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
         )
 
         serialized = json.loads(payload.model_dump_json(by_alias=True))
@@ -54,7 +54,7 @@ class TestChatTurnPayload:
             body=_body(),
             user_id=uuid4(),
             turn_id=uuid4(),
-            assistant_id="pathfinder",
+            assistant_id="strategist",
         )
         assert payload.veupathdb_auth_token is None
 
@@ -66,7 +66,7 @@ class TestChatTurnPayload:
                     "body": _body().model_dump(by_alias=True, mode="json"),
                     "user_id": str(uuid4()),
                     "turn_id": str(uuid4()),
-                    "assistant_id": "pathfinder",
+                    "assistant_id": "strategist",
                     "rogue_field": "x",
                 },
             )
@@ -79,7 +79,7 @@ class TestChatTurnPayload:
             user_id=uuid4(),
             turn_id=uuid4(),
             veupathdb_auth_token="tok",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
         )
         dumped = payload.model_dump(mode="json", by_alias=True)
         json.dumps(dumped)
@@ -99,7 +99,7 @@ class TestChatTurnPayloadFromContext:
                 body=body,
                 user_id=user_id,
                 turn_id=turn_id,
-                assistant_id="pathfinder",
+                assistant_id="strategist",
             )
         finally:
             veupathdb_auth_token_ctx.reset(reset)
@@ -113,7 +113,7 @@ class TestChatTurnPayloadFromContext:
             body=_body(),
             user_id=uuid4(),
             turn_id=uuid4(),
-            assistant_id="pathfinder",
+            assistant_id="strategist",
         )
         assert payload.veupathdb_auth_token is None
 
@@ -128,7 +128,7 @@ class TestCaptureDirThreading:
             user_id=uuid4(),
             turn_id=uuid4(),
             capture_dir="/data/pf-runs/x/turn1",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
         )
         restored = ChatTurnPayload.model_validate(
             json.loads(payload.model_dump_json(by_alias=True))

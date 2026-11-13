@@ -33,13 +33,29 @@ Helpers written under the old name stay hidden and cleaned: the deployment lists
 `__pathfinder_internal__:` as former prefixes (veupathdb-py 0.9.0b5), longest first, so
 stripping one leaves the same `control test ...` a new helper carries.
 
+The Python package is `strategist` (distribution `strategist-api`), and the assistant id is
+`"strategist"`. They moved after the estate started the worker by `bin/strategist-worker`,
+because a worker started as `-m pathfinder.jobs.worker` does not start from this image.
+
+- **Saved conversations.** A checkpoint names the module of every type it holds: the msgpack
+  serializer writes each type as an extension whose payload starts with the module and the
+  class name. Migration `2026_11_13_0001` decodes each `msgpack` row of `checkpoint_blobs` and
+  `checkpoint_writes` that holds the old name, renames a module `pathfinder` or
+  `pathfinder.*` to `strategist`, and encodes it again; every other byte stays as it was. It
+  reads 200 rows at a time. `checkpoints` holds no module: its `checkpoint` column keeps only
+  inline primitives and its `metadata` only the run's metadata. The downgrade renames back.
+- **Stored assistant ids.** Migration `2026_11_13_0002` renames `"pathfinder"` to
+  `"strategist"` in `conversations.assistant_id`, `eval_staged_cases` (its column and its
+  extract) and the queued `chat_turn` jobs (the payload and its body).
+- **A request that still names the old id.** `AssistantId` (`platform/identity.py`) reads
+  `"pathfinder"` as `"strategist"` on a chat body, for a browser tab opened before the
+  release. The eval corpus names `"strategist"`, and an eval case keeps the id it states.
+
 Each of these is read by something outside one release, so it keeps `pathfinder` until it
 moves with its reader:
 
-- The Python package `pathfinder`. A saved conversation stores the module path of every
-  type in its checkpoint, and the serializer's allowlist reads it.
-- `assistant_id` (`"pathfinder"`) in stored rows, and `application_id`, which is also the key
-  of the MCP service-token secrets puppet writes.
+- `application_id` (`"pathfinder"`), which is also the key of the MCP service-token secrets
+  puppet writes.
 - `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL`, which the quadlet env files set.
 - The type of the location message the frame sends, which the site's page listens for.
 - The `PathFinder/` User-Agent, which VEuPathDB operations reads.
@@ -51,6 +67,9 @@ one with what reads it.
 
 ## Rejected
 
+- **A module alias that keeps `pathfinder` importable for saved threads.** It is a second
+  name for every module, kept for as long as one old checkpoint exists. A migration rewrites
+  the stored names once.
 - **One mass replacement of every spelling.** It renames the package under saved
   conversations and the worker command under the estate, so existing threads fail to load and
   the worker does not start until the estate changes on the same day.

@@ -109,7 +109,7 @@ function renderComposer(
       <ChatHelpersProvider value={makeChat(options?.messages ?? [], options?.respond)}>
         <Composer
           conversationId="test-conversation"
-          assistantId={options?.assistantId ?? "pathfinder"}
+          assistantId={options?.assistantId ?? "strategist"}
         />
       </ChatHelpersProvider>
     </Runtime>,

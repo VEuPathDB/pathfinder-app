@@ -18,13 +18,13 @@ def _case(expected: ExpectedOutcome, *turns: str) -> EvalCase:
         name="a-case",
         turns=list(turns) or ["P. falciparum 3D7 genes with a signal peptide"],
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins the assumed values",
         expected=expected,
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-09-28",
@@ -159,7 +159,7 @@ def test_the_run_totals_the_assumed_values_its_cases_counted() -> None:
         return EvalRunSummary(
             harness="pydantic-evals",
             provider="mock",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             ran_at="2026-09-28T00:00:00+00:00",
             cases=[
                 CaseResult(name=f"c{i}", verdict="pass", assumed=value)

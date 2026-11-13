@@ -42,7 +42,7 @@ def spans() -> Iterator[InMemorySpanExporter]:
 
 
 def _turn_root(finished: tuple[ReadableSpan, ...]) -> ReadableSpan:
-    roots = [s for s in finished if s.parent is None and s.name == "pathfinder"]
+    roots = [s for s in finished if s.parent is None and s.name == "strategist"]
     assert len(roots) == 1
     return roots[0]
 
@@ -92,7 +92,7 @@ async def test_a_turn_is_one_root_span_on_its_session_with_its_models(
         "model_lead",
     } <= metadata.keys()
     assert (metadata["assistant_id"], metadata["site_id"], metadata["turn_kind"]) == (
-        "pathfinder",
+        "strategist",
         "plasmodb",
         "message",
     )

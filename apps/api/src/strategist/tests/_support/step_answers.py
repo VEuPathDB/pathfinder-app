@@ -95,7 +95,7 @@ def thread(
     conversation = Conversation(
         id=uuid4(),
         user_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id=SITE,
         name="multi-exon genes",
         created_at=now,

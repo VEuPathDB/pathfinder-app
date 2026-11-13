@@ -130,7 +130,7 @@ describe("refusedProvidersInUse", () => {
 describe("assistantRoles", () => {
   it("lists the roles an assistant's presets name, once each", () => {
     const presets = {
-      pathfinder: {
+      strategist: {
         openai: {
           default: { roles: { lead: {}, frame: {} } },
           fast: { roles: { lead: {}, frame: {} } },
@@ -138,8 +138,8 @@ describe("assistantRoles", () => {
       },
       helper: { openai: { default: { roles: { helper: {} } } } },
     };
-    expect(assistantRoles(presets, "pathfinder")).toEqual(["lead", "frame"]);
+    expect(assistantRoles(presets, "strategist")).toEqual(["lead", "frame"]);
     expect(assistantRoles(presets, "helper")).toEqual(["helper"]);
-    expect(assistantRoles(undefined, "pathfinder")).toEqual([]);
+    expect(assistantRoles(undefined, "strategist")).toEqual([]);
   });
 });

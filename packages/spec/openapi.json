@@ -8431,7 +8431,7 @@
           "assistantId": {
             "type": "string",
             "title": "Assistantid",
-            "default": "pathfinder"
+            "default": "strategist"
           },
           "siteId": {
             "type": "string",

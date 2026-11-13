@@ -37,7 +37,7 @@ def _case(*, passed: int | None, failed: int | None) -> EvalCase:
         name="a-case",
         turns=["P. falciparum 3D7 genes with a signal peptide"],
         site_id="plasmodb",
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         rationale="pins the checks on the site",
         expected=ExpectedOutcome(
             builds_strategy=True, passed_checks=passed, failed_checks=failed
@@ -45,7 +45,7 @@ def _case(*, passed: int | None, failed: int | None) -> EvalCase:
         gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
-            assistant="pathfinder",
+            assistant="strategist",
             origin="cataloged-failure",
             reference="an-item.md",
             added_at="2026-09-24",
@@ -91,6 +91,6 @@ def test_an_extract_refuses_an_email_in_a_check() -> None:
     with pytest.raises(ValidationError, match="email"):
         EvalExtract(
             site_id="plasmodb",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             verification=ExtractedVerification(success=True, checks=[check]),
         )

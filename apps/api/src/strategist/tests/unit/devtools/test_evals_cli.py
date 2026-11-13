@@ -112,7 +112,7 @@ def test_a_case_not_run_is_printed_as_not_run(
         return EvalRunSummary(
             harness="pydantic-evals",
             provider="mock",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             ran_at="2026-08-23T00:00:00+00:00",
             cases=[
                 CaseResult(
@@ -155,7 +155,7 @@ def test_run_hands_the_mode_to_the_corpus(monkeypatch: pytest.MonkeyPatch) -> No
         return EvalRunSummary(
             harness="pydantic-evals",
             provider="mock",
-            assistant_id="pathfinder",
+            assistant_id="strategist",
             ran_at="2026-08-23T00:00:00+00:00",
             cases=[],
         )

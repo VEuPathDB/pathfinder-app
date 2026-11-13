@@ -80,13 +80,13 @@ def _frame_call(
 
 
 async def test_a_completed_turn_counts_each_model_on_the_key_that_paid() -> None:
-    finished = _finished("pathfinder", "completed", _LEAD)
+    finished = _finished("strategist", "completed", _LEAD)
     lead_tokens, lead_cost = _tokens(_LEAD, "deployment"), _cost(_LEAD, "deployment")
     frame_tokens, frame_cost = _tokens(_FRAME, "user"), _cost(_FRAME, "user")
     sink = _Sink()
 
     async with metered_turn(
-        assistant_id="pathfinder", model_id=_LEAD, writer=sink
+        assistant_id="strategist", model_id=_LEAD, writer=sink
     ) as writer:
         with attach_keyring(ProviderKeyring(active={"anthropic": SecretStr("k")})):
             for chunk in (
@@ -100,7 +100,7 @@ async def test_a_completed_turn_counts_each_model_on_the_key_that_paid() -> None
                 await writer.write(chunk)
 
     assert len(sink.chunks) == 6
-    assert _finished("pathfinder", "completed", _LEAD) == finished + 1
+    assert _finished("strategist", "completed", _LEAD) == finished + 1
     assert _tokens(_LEAD, "deployment") == lead_tokens + 1000
     assert _cost(_LEAD, "deployment") == pytest.approx(lead_cost + 0.02)
     assert _tokens(_FRAME, "user") == frame_tokens + 500
@@ -132,50 +132,50 @@ async def test_spend_no_agent_names_is_the_turn_models() -> None:
 
 
 async def test_a_turn_the_user_stopped_counts_as_stopped() -> None:
-    before = _finished("pathfinder", "stopped", _LEAD)
+    before = _finished("strategist", "stopped", _LEAD)
 
     async with metered_turn(
-        assistant_id="pathfinder", model_id=_LEAD, writer=_Sink()
+        assistant_id="strategist", model_id=_LEAD, writer=_Sink()
     ) as writer:
         await writer.write(_wire(turn_stopped_event()))
         await writer.write(_wire(FinishChunk(finish_reason="other")))
 
-    assert _finished("pathfinder", "stopped", _LEAD) == before + 1
+    assert _finished("strategist", "stopped", _LEAD) == before + 1
 
 
 async def test_a_turn_that_ends_on_an_error_counts_as_failed() -> None:
-    before = _finished("pathfinder", "failed", _LEAD)
+    before = _finished("strategist", "failed", _LEAD)
 
     async with metered_turn(
-        assistant_id="pathfinder", model_id=_LEAD, writer=_Sink()
+        assistant_id="strategist", model_id=_LEAD, writer=_Sink()
     ) as writer:
         await writer.write(_wire(FinishChunk(finish_reason="error")))
 
-    assert _finished("pathfinder", "failed", _LEAD) == before + 1
+    assert _finished("strategist", "failed", _LEAD) == before + 1
 
 
 async def test_a_turn_that_raises_counts_as_failed_and_still_raises() -> None:
-    before = _finished("pathfinder", "failed", _LEAD)
+    before = _finished("strategist", "failed", _LEAD)
 
     with pytest.raises(_ProbeError):
         async with metered_turn(
-            assistant_id="pathfinder", model_id=_LEAD, writer=_Sink()
+            assistant_id="strategist", model_id=_LEAD, writer=_Sink()
         ):
             raise _ProbeError
 
-    assert _finished("pathfinder", "failed", _LEAD) == before + 1
+    assert _finished("strategist", "failed", _LEAD) == before + 1
 
 
 async def test_a_model_the_catalog_does_not_name_counts_as_other() -> None:
-    finished = _finished("pathfinder", "completed", "other")
+    finished = _finished("strategist", "completed", "other")
     tokens = _tokens("other", "deployment")
 
     async with metered_turn(
-        assistant_id="pathfinder", model_id="openai:not-in-the-catalog", writer=_Sink()
+        assistant_id="strategist", model_id="openai:not-in-the-catalog", writer=_Sink()
     ) as writer:
         await writer.write(_wire(turn_usage_event(total_tokens=70, cost_usd="0.001")))
         await writer.write(_wire(FinishChunk(finish_reason="stop")))
 
-    assert _finished("pathfinder", "completed", "other") == finished + 1
+    assert _finished("strategist", "completed", "other") == finished + 1
     assert _tokens("other", "deployment") == tokens + 70
-    assert _finished("pathfinder", "completed", "openai:not-in-the-catalog") == 0.0
+    assert _finished("strategist", "completed", "openai:not-in-the-catalog") == 0.0

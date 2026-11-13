@@ -180,7 +180,7 @@ def stored_thread() -> tuple[Conversation, ConversationStrategyView]:
     conversation = Conversation(
         id=uuid4(),
         user_id=uuid4(),
-        assistant_id="pathfinder",
+        assistant_id="strategist",
         site_id=SITE,
         name="exported",
         created_at=now,
