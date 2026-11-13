@@ -1,3 +1,3 @@
 """VEuPathDB Strategist API."""
 
-__version__ = "0.9.1a1"
+__version__ = "0.9.1a2"

@@ -3,7 +3,7 @@
   "info": {
     "title": "VEuPathDB Strategist API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.9.1a1"
+    "version": "0.9.1a2"
   },
   "paths": {
     "/health": {
