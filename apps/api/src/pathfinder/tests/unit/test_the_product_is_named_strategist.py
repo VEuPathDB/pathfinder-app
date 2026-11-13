@@ -4,14 +4,17 @@ import ast
 import re
 from pathlib import Path
 
-from pathfinder.platform.identity import VEUPATHDB_USER_AGENT
+from pathfinder.platform.identity import (
+    FORMER_INTERNAL_STRATEGY_NAME_PREFIXES,
+    VEUPATHDB_USER_AGENT,
+)
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 
 _APP = Path(__file__).resolve().parents[2]
 
 _RETIRED = re.compile(r"\bPath[Ff]inder\b")
 
-_WIRE_NAMES = frozenset({VEUPATHDB_USER_AGENT})
+_WIRE_NAMES = frozenset({VEUPATHDB_USER_AGENT, *FORMER_INTERNAL_STRATEGY_NAME_PREFIXES})
 
 
 def _application_files(pattern: str) -> list[Path]:

@@ -83,7 +83,7 @@ describe("SignedOutNotice", () => {
 
   it("names Strategist and offers no password field", () => {
     const { container } = renderWithConfig(<SignedOutNotice />);
-    expect(screen.getByText("Strategist")).toBeVisible();
+    expect(screen.getByText("VEuPathDB Strategist")).toBeVisible();
     expect(container.querySelectorAll("input")).toHaveLength(0);
   });
 

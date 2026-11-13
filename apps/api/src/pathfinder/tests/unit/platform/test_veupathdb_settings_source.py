@@ -23,15 +23,23 @@ def test_the_client_settings_keep_the_environment_variable_names() -> None:
         "veupathdb_sites_config",
         "veupathdb_oauth_url",
         "veupathdb_internal_strategy_name_prefix",
+        "veupathdb_former_internal_strategy_name_prefixes",
         "veupathdb_user_agent",
         "veupathdb_concurrent_searches_per_site",
     }
 
 
-def test_this_application_keeps_the_prefix_it_has_always_written() -> None:
-    """A helper strategy already in an account carries this prefix."""
+def test_this_application_writes_its_own_prefix() -> None:
     assert (
-        Settings().veupathdb_internal_strategy_name_prefix == "__pathfinder_internal__:"
+        Settings().veupathdb_internal_strategy_name_prefix == "__strategist_internal__:"
+    )
+
+
+def test_this_application_still_reads_what_it_wrote_before() -> None:
+    assert Settings().veupathdb_former_internal_strategy_name_prefixes == (
+        "__pathfinder_internal__:Pathfinder ",
+        "__pathfinder_internal__:Strategist ",
+        "__pathfinder_internal__:",
     )
 
 

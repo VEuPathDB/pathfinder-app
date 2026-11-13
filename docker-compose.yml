@@ -72,7 +72,8 @@ services:
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.
-      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__strategist_internal__:}
+      VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES: '["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]'
     volumes:
       # Devtools chat-debugger run artifacts (pathfinder.devtools.chat) land on
       # the host so they can be inspected outside the container.
@@ -164,7 +165,8 @@ services:
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.
-      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__strategist_internal__:}
+      VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES: '["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]'
     volumes:
       - ./apps/api/.pf-runs:/data/pf-runs
       - catalogs_cache:/app/data/catalogs
@@ -174,7 +176,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b8
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b9
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -219,7 +221,8 @@ services:
       WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
       # This server creates helper strategies too, so it tags them with the
       # prefix the api and the worker match on.
-      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__strategist_internal__:}
+      VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES: '["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]'
     volumes:
       - catalogs_cache:/app/data/catalogs
       - ./deploy/sites:/app/config/sites:ro
@@ -252,7 +255,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b8
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.9.0-b9
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

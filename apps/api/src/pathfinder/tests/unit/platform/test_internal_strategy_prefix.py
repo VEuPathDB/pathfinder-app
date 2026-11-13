@@ -12,6 +12,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.controls import (
     IntersectionConfig,
     cleanup_internal_control_test_strategies,
+    leftover_strategy_ids,
 )
 
 from pathfinder.platform.identity import (
@@ -73,3 +74,30 @@ async def test_the_cleanup_deletes_a_stale_strategy_this_application_tagged() ->
     await cleanup_internal_control_test_strategies(api, items, _config())
 
     assert api.deleted == [771]
+
+
+def _summary(strategy_id: int, name: str) -> WDKStrategySummary:
+    return WDKStrategySummary(
+        strategy_id=strategy_id,
+        name=name,
+        root_step_id=strategy_id + 1,
+        created_time="2026-09-01T00:00:00",
+    )
+
+
+def test_a_helper_names_no_product_beyond_its_prefix() -> None:
+    assert tag_internal_wdk_strategy_name(CONTROL_TEST_STRATEGY_NAME) == (
+        "__strategist_internal__:control test"
+    )
+
+
+def test_a_helper_left_under_an_earlier_name_is_still_a_leftover() -> None:
+    items = [
+        _summary(1, "__pathfinder_internal__:Pathfinder control test 12"),
+        _summary(2, "__pathfinder_internal__:Strategist control test 34"),
+        _summary(3, "__strategist_internal__:control test 56"),
+        _summary(4, "__pathfinder_internal__:Pathfinder step counts"),
+        _summary(5, "Pathfinder control test the researcher named"),
+    ]
+
+    assert leftover_strategy_ids(items, CONTROL_TEST_STRATEGY_NAME) == [1, 2, 3]

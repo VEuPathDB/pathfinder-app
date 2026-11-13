@@ -95,5 +95,6 @@ def test_the_api_image_sets_what_every_stage_runs_with() -> None:
         "ENV PYTHONUNBUFFERED=1",
         "ENV API_ENV=production",
         "ENV STRATEGIST_CHAT_PROVIDER=default",
-        "ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:",
+        "ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__strategist_internal__:",
+        'ENV VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES=\'["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]\'',
     ]

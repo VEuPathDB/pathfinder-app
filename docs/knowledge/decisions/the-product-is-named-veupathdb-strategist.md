@@ -13,7 +13,8 @@ status: stable
   OpenAPI title, the export header, the README heading) it is **VEuPathDB Strategist**.
 - **In running text** (a notice, a setting, a help sentence, a refusal, a prompt) it is
   **Strategist**.
-- The mark is unchanged. The lockup sets a small `VEuPathDB` above `Strategist`.
+- The mark is unchanged. The lockup sets `VEuPathDB Strategist` on one line beside it, and
+  so does the sign-in card.
 - A source scan on each side refuses the old name in any string a researcher can read:
   `apps/web/src/vocabulary.test.ts` and `tests/unit/test_the_product_is_named_strategist.py`.
 
@@ -25,6 +26,13 @@ package (`@strategist/shared`), the components, the brand files, the browser sto
 the `X-Strategist-Service-Token` header, the dev-login cookie, and `bin/strategist-worker`, the
 command the worker starts from.
 
+A helper strategy is written as `__strategist_internal__:control test` (or `step counts`,
+`control separation`): the prefix says whose it is, so the name carries no product word.
+Helpers written under the old name stay hidden and cleaned: the deployment lists
+`__pathfinder_internal__:Pathfinder `, `__pathfinder_internal__:Strategist ` and
+`__pathfinder_internal__:` as former prefixes (veupathdb-py 0.9.0b5), longest first, so
+stripping one leaves the same `control test ...` a new helper carries.
+
 Each of these is read by something outside one release, so it keeps `pathfinder` until it
 moves with its reader:
 
@@ -33,8 +41,6 @@ moves with its reader:
 - `assistant_id` (`"pathfinder"`) in stored rows, and `application_id`, which is also the key
   of the MCP service-token secrets puppet writes.
 - `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL`, which the quadlet env files set.
-- `__pathfinder_internal__:`, the prefix that hides and cleans helper strategies in WDK
-  accounts. A new prefix would show helpers stranded under the old one; it stays.
 - The type of the location message the frame sends, which the site's page listens for.
 - The `PathFinder/` User-Agent, which VEuPathDB operations reads.
 - The `/pathfinder` path, which the site route and the site proxy name.

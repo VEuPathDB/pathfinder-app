@@ -33,13 +33,8 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
         <div className="flex items-center gap-3">
           <StrategistLogo size={36} />
-          <div>
-            <div className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
-              VEuPathDB
-            </div>
-            <div className="text-base font-semibold tracking-tight text-foreground">
-              Strategist
-            </div>
+          <div className="text-base font-semibold tracking-tight text-foreground">
+            VEuPathDB Strategist
           </div>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">

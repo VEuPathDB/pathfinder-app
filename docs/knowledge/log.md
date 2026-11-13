@@ -2,6 +2,13 @@
 
 ## 2026-11-13
 
+* **A helper strategy is written under the Strategist prefix, and older ones are still found.**
+  New helpers are `__strategist_internal__:control test` (and `step counts`, `control
+  separation`). veupathdb-py 0.9.0b5 reads a deployment's former prefixes, and this one lists
+  the old prefix with each earlier product word, so a helper left by any earlier release is
+  still hidden and still cleaned. The lockup and the sign-in card show `VEuPathDB Strategist`
+  on one line. See [the decision](decisions/the-product-is-named-veupathdb-strategist.md).
+
 * **Every name only this repository reads says Strategist.** The shared TypeScript package is
   `@strategist/shared`; the logo components, the brand files, the browser storage keys (moved
   once on load, so no setting resets), the `STRATEGIST_*` settings, the
