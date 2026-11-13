@@ -1,0 +1,496 @@
+from collections.abc import Collection, Iterable, Sequence
+from dataclasses import dataclass, field
+from typing import Literal
+
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from veupathdb import strip_html_tags
+from veupathdb.domain.parameters import ParamValue, VocabOption
+from veupathdb.domain.strategy import CombineOp
+from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
+
+from strategist.ai.agents.unserved import UnservedSearch
+from strategist.domain.strategy.computed_groups import HeldComparison
+from strategist.domain.strategy.constraints import Constraint
+from strategist.domain.strategy.expression_handles import BuiltPattern
+from strategist.domain.strategy.genome_group_steps import (
+    criterion_keeping_its_reading,
+)
+from strategist.domain.strategy.named_combine import NamedCombine
+from strategist.domain.strategy.named_groups import GroupScope
+from strategist.domain.strategy.operational_spec import (
+    Criterion,
+    DroppedCriterion,
+    Measurement,
+    OperationalSpec,
+    ParameterAlternatives,
+    SpecStructure,
+    structure_criteria,
+)
+from strategist.domain.strategy.orthology_request import OrthologyRequest
+from strategist.domain.strategy.readings import ReadValues
+from strategist.domain.strategy.spec_reconciliation import spec_without_steps
+from strategist.domain.strategy.vocab_picks import PickRead
+from strategist.services.strategies.cut_picks import OptionsRead
+from strategist.services.strategies.measurements import TurnCounts
+
+
+class ParamVocabSnapshot(BaseModel):
+    """A projection of ``ParameterInfo``, captured during discovery.
+
+    It carries a flat list of enum entries (``allowed_values``) OR a rendered
+    tree string (``allowed_values_tree``) for a multi-pick vocabulary.
+    Planning commits values from this snapshot verbatim and invents none.
+    """
+
+    model_config = ConfigDict(extra="ignore", validate_by_name=True)
+
+    # The library calls the field ``type``; the prompts read ``param_type``.
+    param_type: str = Field(validation_alias=AliasChoices("param_type", "type"))
+    required: bool
+    help: str = ""
+    default_value: str | None = None
+    allowed_values: list[VocabOption] | None = None
+    # The count the shown list was cut from. None when the list travelled whole.
+    allowed_values_total: int | None = None
+    allowed_values_tree: str | None = None
+    vocab_lookup: VocabLookup | None = None
+
+    def options_read(self, param: str) -> OptionsRead | None:
+        """The read a pick of this parameter came from, when its list was cut
+        or a lookup narrowed it."""
+        if self.allowed_values_total is None and self.vocab_lookup is None:
+            return None
+        return OptionsRead(
+            param=param,
+            shown=frozenset(v.value for v in self.allowed_values or []),
+            total=self.allowed_values_total,
+            lookup=self.vocab_lookup,
+        )
+
+
+class LookupRecord(BaseModel):
+    """The entries the lookups of one parameter matched this pass, each with the
+    query term that matched it first."""
+
+    model_config = ConfigDict(frozen=True)
+
+    matched: dict[str, str] = Field(default_factory=dict)
+
+    def merged(self, lookup: VocabLookup) -> LookupRecord:
+        found = {value: m.term for m in lookup.matches for value in m.values}
+        return LookupRecord(matched={**found, **self.matched})
+
+    def matched_by(self, term: str) -> list[str]:
+        return [value for value, first in self.matched.items() if first == term]
+
+
+class CreatedGeneSet(BaseModel):
+    """A workbench gene set one turn saved, as its memory note reads it.
+
+    The note is retrieved by what the researcher called the set, so the record
+    carries the name and the size and not the id alone.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    gene_count: int
+    record_type: str | None = None
+
+
+class SearchOverview(BaseModel):
+    search_name: str
+    display_name: str
+    record_type: str
+    description: str
+    parameter_names: list[str]
+    required_params: list[str]
+
+    param_vocab: dict[str, ParamVocabSnapshot] = Field(default_factory=dict)
+
+    def options_reads(self) -> list[OptionsRead]:
+        """Every read of a parameter of this search a pick can come from."""
+        return [
+            read
+            for name, snapshot in self.param_vocab.items()
+            if (read := snapshot.options_read(name)) is not None
+        ]
+
+
+class PinnedSheet(BaseModel):
+    """What FRAME holds open for one criterion until the criterion is decided.
+
+    The model copies values out of it several calls after it opened, so it is
+    rendered in the instructions rather than left in the tool return. It is the
+    whole parameter sheet only when ``opened`` is true; otherwise it carries the
+    vocabularies a dependent re-read produced, which name no template.
+    """
+
+    search_name: str
+    opened: bool
+    # The search's name on the site and what it finds, shown where it is bound.
+    what_runs: str = ""
+    entries: list[SheetEntry] = Field(default_factory=list)
+    # Params whose vocabulary changed once the parents were bound, in sheet order.
+    redecide: list[str] = Field(default_factory=list)
+
+    def params_template(self) -> dict[str, None]:
+        return {entry.name: None for entry in self.entries}
+
+
+class CatalogHit(BaseModel):
+    """One search a catalog read answered, as FRAME saw it, in plain text."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    display_name: str
+    description: str = ""
+    record_type: str = ""
+    # The query's cosine against the search, None when nothing scored it.
+    similarity: float | None = None
+
+    @field_validator("display_name", "description", mode="after")
+    @classmethod
+    def _plain(cls, text: str) -> str:
+        return " ".join(strip_html_tags(text).split())
+
+
+class CatalogRead(BaseModel):
+    """One answer of the catalog in this pass: the call, the query, the hits in order."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tool_call_id: str
+    tool: Literal["search_for_searches", "list_searches", "list_transforms"]
+    query: str = ""
+    record_type: str
+    hits: list[CatalogHit]
+
+    @property
+    def ranked(self) -> bool:
+        """Whether the read ranked its hits against a query."""
+        return self.tool == "search_for_searches"
+
+    def hit(self, name: str) -> CatalogHit | None:
+        return next((h for h in self.hits if h.name == name), None)
+
+
+class ShownExperiment(BaseModel):
+    """Another site's experiment a catalog read of this pass showed. It binds nothing."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    dataset_id: str
+    # The searches it feeds that the thread's own site does not publish.
+    searches_only_there: list[str] = Field(default_factory=list)
+
+
+@dataclass
+class AgentToolState:
+    discovered_searches: dict[str, SearchOverview] = field(default_factory=dict)
+    # Every catalog answer of this pass, oldest first.
+    catalog_reads: list[CatalogRead] = field(default_factory=list)
+    read_param_options: set[str] = field(default_factory=set)
+    # The entries the lookups of each (search, parameter) matched this pass.
+    looked_up: dict[tuple[str, str], LookupRecord] = field(default_factory=dict)
+    vocab_picks: dict[tuple[str, str], PickRead] = field(default_factory=dict)
+    operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
+    # The organisms this investigation states. A capped vocabulary renders the
+    # branches that match them first.
+    organism_hints: list[str] = field(default_factory=list)
+    # The combine this turn's message names by its place, and the tree the
+    # dispatch found. A tree that moves another combine is refused.
+    named_combine: NamedCombine | None = None
+    held_structure: SpecStructure | None = None
+    # The orthology shape this turn's message asks for. A tree of the other
+    # shape is refused, and a carry binds the organism the message names.
+    orthology_request: OrthologyRequest | None = None
+    # The combine operators this turn's message names by an operator word.
+    stated_operators: frozenset[CombineOp] = frozenset()
+    # The operators the researcher's words read as for the combines the
+    # dispatch found.
+    read_operators: frozenset[CombineOp] = frozenset()
+    # The requirements the thread states. A dropped criterion holds open the one
+    # its text restates.
+    stated_requirements: list[Constraint] = field(default_factory=list)
+    held_group_scopes: dict[str, GroupScope] = field(default_factory=dict)
+    # The searches the site refused to run this pass, with what it answered.
+    refused_searches: dict[str, str] = field(default_factory=dict)
+    builder_refusals: dict[str, str] = field(default_factory=dict)
+    unserved_searches: dict[str, UnservedSearch] = field(default_factory=dict)
+    id_list_datasets: dict[tuple[str, str, tuple[str, ...]], str] = field(
+        default_factory=dict
+    )
+    built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
+    computed_comparisons: dict[str, HeldComparison] = field(default_factory=dict)
+    refusals: int = 0
+    # Params already handed back for a fresh decision, by criterion and search.
+    # Searches share parameter names, so the search is part of the key.
+    redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
+    # The sheets open right now, by criterion, oldest first.
+    open_sheets: dict[str, PinnedSheet] = field(default_factory=dict)
+    # The workbench gene sets this turn created, in creation order. The list is
+    # the Lead's, so a save by any agent of the turn lands in one place.
+    created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
+    # Other sites' experiments this pass showed, by dataset id, oldest first.
+    elsewhere: dict[str, ShownExperiment] = field(default_factory=dict)
+    # The sentence that sends a request only the portal answers there, once a
+    # refusal of this pass wrote it.
+    portal_route: str = ""
+    # Every message the researcher wrote for the request, oldest first. A value
+    # whose words they hold is theirs.
+    request_messages: list[str] = field(default_factory=list)
+    # The counts read for other readings of bound values. Every pass of the
+    # turn shares it, so one configuration is read once.
+    turn_counts: TurnCounts = field(default_factory=TurnCounts)
+    offered_readings: list[ReadValues] = field(default_factory=list)
+
+    def pin_sheet(
+        self,
+        criterion_id: str,
+        search_name: str,
+        entries: list[SheetEntry],
+        *,
+        what_runs: str,
+    ) -> PinnedSheet:
+        """Open a sheet for the criterion, replacing anything it holds."""
+        self.open_sheets.pop(criterion_id, None)
+        sheet = PinnedSheet(
+            search_name=search_name, opened=True, what_runs=what_runs, entries=entries
+        )
+        self.open_sheets[criterion_id] = sheet
+        return sheet
+
+    def pin_fresh_vocabularies(
+        self, criterion_id: str, search_name: str, entries: list[SheetEntry]
+    ) -> None:
+        """Hold the vocabularies the bound parents produce, to decide again.
+
+        They replace the entries the sheet was read under. A criterion that
+        never opened a sheet holds these alone, and they are not one.
+        """
+        sheet = self.open_sheets.get(criterion_id)
+        if sheet is None or sheet.search_name != search_name:
+            sheet = PinnedSheet(search_name=search_name, opened=False)
+            self.open_sheets.pop(criterion_id, None)
+            self.open_sheets[criterion_id] = sheet
+        fresh = {entry.name: entry for entry in entries}
+        kept = [fresh.get(entry.name, entry) for entry in sheet.entries]
+        added = [entry for entry in entries if entry.name not in {e.name for e in kept}]
+        sheet.entries = [*kept, *added]
+        sheet.redecide = [e.name for e in sheet.entries if e.name in fresh]
+
+    def clear_redecide(self, criterion_id: str) -> None:
+        """Stop asking for a fresh decision the criterion no longer owes."""
+        sheet = self.open_sheets.get(criterion_id)
+        if sheet is not None:
+            sheet.redecide = []
+
+    def mark_redecided(
+        self, criterion_id: str, search_name: str, param_name: str
+    ) -> None:
+        self.redecided_params.add((criterion_id, search_name, param_name))
+
+    def was_redecided(
+        self, criterion_id: str, search_name: str, param_name: str
+    ) -> bool:
+        """Whether this param's fresh vocabulary was already shown here.
+
+        The proposal that follows is a decision under that vocabulary, so it binds
+        rather than asking again.
+        """
+        return (criterion_id, search_name, param_name) in self.redecided_params
+
+    def frame_set_criterion(self, criterion: Criterion) -> None:
+        """Hold a copy of the criterion, so a later count or measurement recorded
+        here never changes the caller's object."""
+        spec = self.operational_spec_draft
+        held = next((c for c in spec.criteria if c.id == criterion.id), None)
+        kept = (
+            criterion
+            if held is None
+            else criterion_keeping_its_reading(held, criterion)
+        )
+        spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
+        spec.criteria.append(kept.model_copy(deep=True))
+        self.open_sheets.pop(criterion.id, None)
+
+    def frame_record_count(
+        self,
+        criterion_id: str,
+        result_count: int | None,
+        alternatives: list[ParameterAlternatives],
+    ) -> None:
+        """Record a criterion's count and the choices inside it, after it counts.
+
+        The count follows the binding, so the binding holds whatever the count
+        says. A criterion that matches records records no choice.
+        """
+        for criterion in self.operational_spec_draft.criteria:
+            if criterion.id == criterion_id:
+                criterion.result_count = result_count
+                criterion.alternatives = alternatives
+
+    def frame_record_measurements(
+        self,
+        criterion_id: str,
+        measurements: list[Measurement],
+        *,
+        required_genomes_name: str,
+    ) -> None:
+        """Add the counts the site returned for other readings of its values."""
+        for criterion in self.operational_spec_draft.criteria:
+            if criterion.id == criterion_id:
+                criterion.measurements = [*criterion.measurements, *measurements]
+                criterion.required_genomes_name = required_genomes_name
+
+    def frame_set_structure(self, structure: SpecStructure) -> None:
+        self.operational_spec_draft.structure = structure
+
+    @property
+    def held_criteria(self) -> frozenset[str]:
+        """The criteria the tree the dispatch found states a step for."""
+        return structure_criteria(self.held_structure)
+
+    def carried_to(self, criterion_id: str) -> str:
+        """The organism this turn's message carries a new transform to, or empty.
+
+        A criterion the found tree holds keeps the organism it runs on.
+        """
+        request = self.orthology_request
+        if request is None or request.shape != "transform":
+            return ""
+        return "" if criterion_id in self.held_criteria else request.target
+
+    def frame_drop_criterion(
+        self,
+        criterion_id: str,
+        reason: str,
+        *,
+        requirements: Sequence[Constraint] = (),
+    ) -> bool:
+        """Remove a criterion from the draft (keyed by id, like
+        ``frame_set_criterion``) and record it in ``dropped``. Returns False if
+        no criterion has that id - so a dropped criterion's open params can no
+        longer keep ``ready_to_build`` False. Returns True when one was removed."""
+        spec = self.operational_spec_draft
+        match = next((c for c in spec.criteria if c.id == criterion_id), None)
+        if match is None:
+            return False
+        spec.criteria = [c for c in spec.criteria if c.id != criterion_id]
+        spec.dropped.append(
+            DroppedCriterion(
+                text=match.text, reason=reason, requirements=list(requirements)
+            )
+        )
+        self.open_sheets.pop(criterion_id, None)
+        return True
+
+    def drop_criteria_for_steps(self, step_ids: Collection[str]) -> None:
+        """Forget the criteria the removed steps answered.
+
+        A criterion the graph no longer holds addresses nothing, so the spec
+        and the graph stay in one address space.
+        """
+        self.operational_spec_draft = spec_without_steps(
+            self.operational_spec_draft, step_ids
+        )
+
+    def resolved_params_for(self, search_name: str) -> dict[str, ParamValue]:
+        """Params the draft spec has already bound on ``search_name``.
+
+        A dependent vocabulary is only valid under its parent values, and WDK
+        answers with the search defaults when no context is supplied.
+        """
+        if not search_name:
+            return {}
+        merged: dict[str, ParamValue] = {}
+        for criterion in self.operational_spec_draft.criteria:
+            if criterion.search_name == search_name:
+                merged.update(criterion.param_values)
+        return merged
+
+    @staticmethod
+    def param_read_key(
+        search_name: str,
+        parameter_id: str,
+        *,
+        context_values: dict[str, ParamValue] | None = None,
+        terms: Sequence[str] = (),
+    ) -> str:
+        """Stable key for one parameter-options read. Context-sensitive so a
+        dependent param re-read under a different parent value is a new read,
+        not a dedup hit."""
+        ctx = ""
+        if context_values:
+            ctx = ";".join(
+                f"{k}={v.model_dump_json()}" for k, v in sorted(context_values.items())
+            )
+        return f"{search_name}|{parameter_id}|{ctx}|{';'.join(terms)}"
+
+    def record_lookup(
+        self, search_name: str, parameter_id: str, lookup: VocabLookup
+    ) -> None:
+        """Add the entries a query of the parameter matched to its lookups."""
+        key = (search_name, parameter_id)
+        self.looked_up[key] = self.looked_up.get(key, LookupRecord()).merged(lookup)
+
+    def record_pick(self, read: PickRead) -> None:
+        self.vocab_picks[(read.search_name, read.param_name)] = read
+
+    def mark_param_read(self, key: str) -> None:
+        self.read_param_options.add(key)
+
+    def was_param_read(self, key: str) -> bool:
+        return key in self.read_param_options
+
+    def register_search(self, name: str, overview: SearchOverview) -> None:
+        self.discovered_searches[name] = overview
+
+    def get_overview(self, name: str) -> SearchOverview | None:
+        return self.discovered_searches.get(name)
+
+    def discovered_search_names(self) -> set[str]:
+        return set(self.discovered_searches)
+
+    def record_catalog_read(self, read: CatalogRead) -> None:
+        """Record what one catalog call answered, so a search tool is held to
+        names the model has seen and a binding is compared with the rest."""
+        self.catalog_reads.append(read)
+
+    def record_elsewhere(
+        self, cards: Iterable[ExperimentCard], own_searches: Collection[str]
+    ) -> list[ShownExperiment]:
+        """Record the experiments this pass had not shown, and answer them.
+
+        ``own_searches`` are the searches the thread's own site publishes.
+        """
+        fresh: list[ShownExperiment] = []
+        for card in cards:
+            if card.dataset_id in self.elsewhere:
+                continue
+            shown = ShownExperiment(
+                site_id=card.site_id,
+                dataset_id=card.dataset_id,
+                searches_only_there=[
+                    name for name in card.searches if name not in own_searches
+                ],
+            )
+            self.elsewhere[card.dataset_id] = shown
+            fresh.append(shown)
+        return fresh
+
+    def last_read_answering(self, search_name: str) -> CatalogRead | None:
+        """The newest read of this pass whose hits hold the search."""
+        return next(
+            (r for r in reversed(self.catalog_reads) if r.hit(search_name)), None
+        )
+
+    def candidate_search_names(self) -> set[str]:
+        """Inspectable searches: catalog results plus already-inspected ones
+        (re-inspection must not be masked)."""
+        read = {hit.name for r in self.catalog_reads for hit in r.hits if hit.name}
+        return read | set(self.discovered_searches)

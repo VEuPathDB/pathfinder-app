@@ -36,13 +36,13 @@ Lead Agent
 
 **Purpose:** Own the conversation. The Lead reads the intent recorded for the
 message, invokes the phase sub-agents as tools, reads the typed
-:py:class:`~pathfinder.ai.lead.ledger.InvestigationLedger` after each call,
+:py:class:`~strategist.ai.lead.ledger.InvestigationLedger` after each call,
 and asks the user a blocking question through ``consult_user``. It never
 writes to WDK itself.
 
 **Key functions:** :py:func:`build_lead_agent`, :py:func:`consult_user`, :py:func:`read_ledger_section`
 
-.. automodule:: pathfinder.ai.lead.lead_agent
+.. automodule:: strategist.ai.lead.lead_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -54,7 +54,7 @@ Investigation Ledger
 searches chosen, the counts observed, and the verification digest. The Lead
 reads it instead of re-reading sub-agent transcripts.
 
-.. automodule:: pathfinder.ai.lead.ledger
+.. automodule:: strategist.ai.lead.ledger
    :members:
    :undoc-members:
    :show-inheritance:
@@ -65,17 +65,17 @@ Sub-agent Dispatch
 **Purpose:** Run one phase sub-agent on behalf of the Lead: build its message
 list, stream its events into the turn, and fold its result into the ledger.
 
-.. automodule:: pathfinder.ai.lead.sub_agent_tools
+.. automodule:: strategist.ai.lead.sub_agent_tools
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.lead.sub_agent_dispatch
+.. automodule:: strategist.ai.lead.sub_agent_dispatch
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.lead.sub_agent_stream
+.. automodule:: strategist.ai.lead.sub_agent_stream
    :members:
    :undoc-members:
    :show-inheritance:
@@ -89,7 +89,7 @@ resolves to. FRAME proposes; it does not push to WDK.
 
 **Key function:** :py:func:`build_frame_agent`
 
-.. automodule:: pathfinder.ai.agents.frame
+.. automodule:: strategist.ai.agents.frame
    :members:
    :undoc-members:
    :show-inheritance:
@@ -103,7 +103,7 @@ graph.
 
 **Key function:** :py:func:`build_execution_agent`
 
-.. automodule:: pathfinder.ai.agents.execution
+.. automodule:: strategist.ai.agents.execution
    :members:
    :undoc-members:
    :show-inheritance:
@@ -114,11 +114,11 @@ VERIFY Agent
 **Purpose:** Test the built strategy: control tests, parameter optimization,
 variant comparison, and export. Its digest is what the Lead reads to decide
 whether the turn succeeded, and every finished check leaves an evidence card
-(:py:mod:`pathfinder.domain.evidence`) read from its control tests and the site.
+(:py:mod:`strategist.domain.evidence`) read from its control tests and the site.
 
 **Key function:** :py:func:`build_verification_agent`
 
-.. automodule:: pathfinder.ai.agents.verification
+.. automodule:: strategist.ai.agents.verification
    :members:
    :undoc-members:
    :show-inheritance:
@@ -130,12 +130,12 @@ Phase Roles and Model Defaults
 pins nothing. Every agent is built per run, so a default is the model its
 factory bakes in.
 
-.. automodule:: pathfinder.ai.agents.roles
+.. automodule:: strategist.ai.agents.roles
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.agents.registry
+.. automodule:: strategist.ai.agents.registry
    :members:
    :undoc-members:
    :show-inheritance:
@@ -146,12 +146,12 @@ Shared Agent State
 **Purpose:** The state a sub-agent carries across its own tool calls, and the
 history processor that keeps a long phase inside its context budget.
 
-.. automodule:: pathfinder.ai.agents.state
+.. automodule:: strategist.ai.agents.state
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.agents.compactor
+.. automodule:: strategist.ai.agents.compactor
    :members:
    :undoc-members:
    :show-inheritance:

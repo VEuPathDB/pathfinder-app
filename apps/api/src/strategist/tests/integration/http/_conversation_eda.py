@@ -1,0 +1,136 @@
+"""The recorded EDA deployment and the thread the conversation routes act on."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
+from uuid import UUID, uuid4
+
+import httpx
+import pytest
+from assistant_core.persistence.models import Conversation
+from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.eda import (
+    EdaAnalysisDescriptor,
+    EdaAnalysisDetail,
+    EdaStringSetFilter,
+    EdaSubsetDescriptor,
+)
+
+from strategist.persistence.repositories.conversation_analysis import (
+    ConversationAnalysesRepository,
+)
+from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
+from strategist.services.strategies import commit
+from strategist.services.strategies.commit import _WDKCommitOutcome
+from strategist.tests._support.eda_wire import (
+    DE_ENTITY_SIZES,
+    AnalysisStore,
+    eda_transport,
+    fixture,
+    wire_eda,
+)
+from strategist.tests.integration.http.conftest import (
+    first_frame_client_for,
+    make_user,
+)
+
+DATASET = "DS_53f554ec6a"
+STUDY = "STUDY_53f554ec6a"
+ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
+SPECIES = "VAR_035294d0"
+ANALYSIS = "t4fszEJ"
+
+PHENOTYPE = "study_detail_phenotype"
+
+
+def detail() -> EdaAnalysisDetail:
+    return EdaAnalysisDetail(
+        analysis_id=ANALYSIS,
+        display_name="berghei subset",
+        study_id=DATASET,
+        num_filters=1,
+        num_computations=0,
+        descriptor=EdaAnalysisDescriptor(
+            subset=EdaSubsetDescriptor(
+                descriptor=[
+                    EdaStringSetFilter(
+                        entity_id=ENTITY,
+                        variable_id=SPECIES,
+                        string_set=["P. berghei"],
+                    )
+                ]
+            )
+        ),
+    )
+
+
+@pytest.fixture
+def phenotype_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
+    """The phenotype study and its analysis document, over the recorded wire."""
+    store = AnalysisStore(detail=detail())
+    wire_eda(
+        monkeypatch,
+        eda_transport(study_id=STUDY, study_fixture=PHENOTYPE, store=store),
+    )
+    return store
+
+
+@pytest.fixture
+def site_edited_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
+    """The recorded analysis the site's own app edited: a pass beside a comparison."""
+    store = AnalysisStore(
+        detail=EdaAnalysisDetail.model_validate(fixture("analysis_detail_pass_and_de"))
+    )
+    wire_eda(
+        monkeypatch,
+        eda_transport(
+            study_id=STUDY,
+            study_fixture="study_detail_de",
+            store=store,
+            entity_sizes=DE_ENTITY_SIZES,
+        ),
+    )
+    return store
+
+
+@pytest.fixture
+def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> None:
+    """WDK is not reached: the commit reports a push it never sent."""
+
+    async def no_push(**_kwargs: object) -> _WDKCommitOutcome:
+        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
+
+    monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
+
+
+@pytest.fixture
+async def thread(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    session_maker: async_sessionmaker[AsyncSession],
+    db_cleaner: None,
+    signed_in_to_veupathdb: None,
+) -> AsyncGenerator[tuple[httpx.AsyncClient, UUID]]:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+    async with session_maker() as session:
+        user = await make_user(session)
+        conversation = Conversation(
+            assistant_id=STRATEGIST_ASSISTANT_ID, id=uuid4(), user_id=user.id
+        )
+        session.add(conversation)
+        await session.commit()
+    client = first_frame_client_for(app, user.id, wdk_token="test-token")
+    async with client:
+        yield client, conversation.id
+
+
+async def bind_thread(
+    session_maker: async_sessionmaker[AsyncSession], conversation_id: UUID
+) -> None:
+    await ConversationAnalysesRepository(session_factory=session_maker).bind(
+        conversation_id=conversation_id,
+        site_id="plasmodb",
+        dataset_id=DATASET,
+        analysis_id=ANALYSIS,
+    )

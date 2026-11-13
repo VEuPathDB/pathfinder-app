@@ -60,7 +60,7 @@ gene sets, and operations. Define the schema and relationships.
 
 **Key classes:** :py:class:`User`, :py:class:`ControlSet`, :py:class:`ExperimentRow`, :py:class:`Stream`
 
-.. automodule:: pathfinder.persistence.models
+.. automodule:: strategist.persistence.models
    :members:
    :undoc-members:
    :show-inheritance:
@@ -83,37 +83,37 @@ Repositories
 **Purpose:** Data access layer. Encapsulates queries and CRUD operations.
 Split into domain-specific repository modules.
 
-.. automodule:: pathfinder.persistence.repositories.user
+.. automodule:: strategist.persistence.repositories.user
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.conversation
+.. automodule:: strategist.persistence.repositories.conversation
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.conversation_strategy
+.. automodule:: strategist.persistence.repositories.conversation_strategy
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.saved_strategy
+.. automodule:: strategist.persistence.repositories.saved_strategy
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.control_set
+.. automodule:: strategist.persistence.repositories.control_set
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.gene_set
+.. automodule:: strategist.persistence.repositories.gene_set
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.experiment
+.. automodule:: strategist.persistence.repositories.experiment
    :members:
    :undoc-members:
    :show-inheritance:

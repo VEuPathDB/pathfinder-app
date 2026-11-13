@@ -77,7 +77,7 @@ How One Chat Turn Runs
        style L fill:#0891b2,color:#fff
 
 1. ``POST /api/v1/chat`` reaches
-   :py:mod:`pathfinder.ai.conversation.dispatcher`. It resolves the
+   :py:mod:`strategist.ai.conversation.dispatcher`. It resolves the
    conversation's assistant, runs that assistant's identity gate, persists the
    user message, defers a ``chat_turn`` Procrastinate job and returns an SSE
    tail of the durable event log. **The API process never runs the agent.**
@@ -120,7 +120,7 @@ is a tool the Lead calls, not a node it hands control to.
      - ``verify_strategy``, ``compare_search_variants``
 
 Between calls the Lead reads
-:py:class:`~pathfinder.ai.lead.ledger.InvestigationLedger`, the typed record of
+:py:class:`~strategist.ai.lead.ledger.InvestigationLedger`, the typed record of
 what the turn established: the operational spec, the searches chosen, the
 counts observed and the verification digest. It does not re-read sub-agent
 transcripts. ``consult_user`` and ``clear_strategy`` require the user's
@@ -218,7 +218,7 @@ The runtime itself lives outside ``pathfinder``. ``assistant_core`` is a
 separate distribution that owns the graph scaffolding, the event log, the
 checkpointer, the memory store and the settings, and it cannot import
 ``pathfinder``. Anything that names a gene, a strategy, a WDK search or a phase
-role stays in ``pathfinder.ai``.
+role stays in ``strategist.ai``.
 
 Design Decisions
 ~~~~~~~~~~~~~~~~

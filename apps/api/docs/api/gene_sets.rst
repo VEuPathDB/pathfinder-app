@@ -50,9 +50,9 @@ Gene Set Store
 --------------
 
 **Purpose:** The gene set store. Every call reads or writes PostgreSQL
-through :py:mod:`pathfinder.persistence.repositories.gene_set`.
+through :py:mod:`strategist.persistence.repositories.gene_set`.
 
-.. automodule:: pathfinder.services.gene_sets.store
+.. automodule:: strategist.services.gene_sets.store
    :members:
    :undoc-members:
    :show-inheritance:
@@ -62,7 +62,7 @@ Gene Set Types
 
 **Purpose:** Core data model for gene sets.
 
-.. automodule:: pathfinder.services.gene_sets.types
+.. automodule:: strategist.services.gene_sets.types
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,7 +72,7 @@ Gene Set Operations
 
 **Purpose:** Create, re-sync, rename, list and delete gene sets.
 
-.. automodule:: pathfinder.services.gene_sets.operations
+.. automodule:: strategist.services.gene_sets.operations
    :members:
    :undoc-members:
    :show-inheritance:
@@ -83,7 +83,7 @@ VDI Publication
 **Purpose:** Publish a gene set to the researcher's VEuPathDB workspace and read
 the publication's status.
 
-.. automodule:: pathfinder.services.gene_sets.vdi
+.. automodule:: strategist.services.gene_sets.vdi
    :members:
    :undoc-members:
    :show-inheritance:

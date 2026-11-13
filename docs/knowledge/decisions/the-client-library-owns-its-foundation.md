@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client library owns its foundation, so no edge points up out of it
-description: The 84 imports from the future veupathdb-py module set into assistant_core and pathfinder.platform were deleted or inverted in place - a base model, a JSON alias, a logger, an error taxonomy, a settings read, a context variable, a metrics sink and four catalog modules - leaving 0. A fifth shared distribution was rejected, because a 20-line base class duplicated in two libraries is cheaper than a package everyone has to install.
+description: The 84 imports from the future veupathdb-py module set into assistant_core and strategist.platform were deleted or inverted in place - a base model, a JSON alias, a logger, an error taxonomy, a settings read, a context variable, a metrics sink and four catalog modules - leaving 0. A fifth shared distribution was rejected, because a 20-line base class duplicated in two libraries is cheaper than a package everyone has to install.
 tags: [veupathdb, split, architecture, packaging, errors, settings, observability]
 generated: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
@@ -13,14 +13,14 @@ status: stable
 The module set that becomes the `veupathdb` client distribution -
 `integrations/veupathdb/**`, `integrations/eda/**`, `domain/{parameters,
 strategy,search,wdk_values}` and the `domain/eda*` modules - imports nothing
-above itself. It reached `assistant_core` 56 times and `pathfinder.platform`
+above itself. It reached `assistant_core` 56 times and `strategist.platform`
 28 times; both counts are now 0. The files did not move. A later folder move
 is then a prefix rename, `veupathdb` -> `veupathdb`, and nothing
 else; an edge that still pointed up could not be renamed.
 
 The foundation those modules rest on is a new package,
 `veupathdb-py: src/veupathdb/`. It was the only place both
-`pathfinder.domain` and `pathfinder.integrations` could import from under the
+`strategist.domain` and `pathfinder.integrations` could import from under the
 layer contracts of the time, because contract 1 forbade domain -> integrations.
 Its names carry no underscore: the other two units import them too.
 
@@ -41,7 +41,7 @@ Its names carry no underscore: the other two units import them too.
 3. *A host fact the library read.* `veupathdb/settings.py` declares
    `VEuPathDBSettings(BaseSettings)` with `veupathdb_sites_config` and the
    client's other settings, plus `use_veupathdb_settings_source` /
-   `get_veupathdb_settings`. `pathfinder.platform.config.Settings` now
+   `get_veupathdb_settings`. `strategist.platform.config.Settings` now
    subclasses both `RuntimeSettings` and `VEuPathDBSettings` and installs
    itself into both sources at import time, so one settings instance still
    serves the whole process and the env var names are unchanged. No unit-1
@@ -116,7 +116,7 @@ belongs to the application. That reasoning inverts once the client is its own
 distribution: the client *is* the thing that names WDK bearers, and it is the
 only reader of the variable that cannot be handed the value as an argument -
 `_http.py` reads it per request, below every call site. Leaving it up would
-have kept a `pathfinder.platform` import in the client's transport module,
+have kept a `strategist.platform` import in the client's transport module,
 which is exactly the edge this batch exists to remove. The host still writes
 it, from `platform/security.py` and from the worker's `attach_wdk_auth`.
 
@@ -137,7 +137,7 @@ connection or names `veupathdb.wdk` or `veupathdb.eda`, and any import in the
 two wire-model modules other than `pydantic`. That suite is the acceptance
 criterion; the day it needs an exception, an edge has come back.
 
-`uv run python -m pathfinder.devtools.openapi check` fails if the error split
+`uv run python -m strategist.devtools.openapi check` fails if the error split
 changed a `ProblemDetail` code or a status. `uv run lint-imports` fails if the
 catalog move reverses.
 

@@ -67,7 +67,7 @@ and the refusal and nothing else, and recorded for the turn
 (`turn_deployment_refusals`); the turn's reply names the account, says that
 another model or a resend does not help, and offers the researcher's own key.
 The classifier reads only the
-fixtures of `pathfinder.devtools.provider_refusals`: the invalid-key bodies of
+fixtures of `strategist.devtools.provider_refusals`: the invalid-key bodies of
 the three providers, Anthropic's low-balance 400 and OpenAI's billing error
 inside a stream are recorded; OpenAI's 429
 quota codes, Anthropic's 402 and 403, and Google's 402 and 403

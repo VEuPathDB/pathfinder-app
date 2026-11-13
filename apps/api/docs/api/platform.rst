@@ -63,7 +63,7 @@ URL, and feature flags. Loaded via pydantic-settings.
 
 **Key function:** :py:func:`get_settings`
 
-.. automodule:: pathfinder.platform.config
+.. automodule:: strategist.platform.config
    :members:
    :undoc-members:
    :show-inheritance:
@@ -75,7 +75,7 @@ Tier Presets
 reasoning effort for each of that assistant's roles. The frontend fetches
 these to populate the picker.
 
-.. automodule:: pathfinder.platform.tiers
+.. automodule:: strategist.platform.tiers
    :members:
    :undoc-members:
    :show-inheritance:
@@ -101,17 +101,17 @@ the ``ProblemDetail`` body. A VEuPathDB refusal lives in
 
 **Key classes:** :py:class:`AppError`, :py:class:`ProblemDetail`
 
-.. automodule:: pathfinder.platform.errors
+.. automodule:: strategist.platform.errors
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.platform.attachment_errors
+.. automodule:: strategist.platform.attachment_errors
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.platform.audit_errors
+.. automodule:: strategist.platform.audit_errors
    :members:
    :undoc-members:
    :show-inheritance:
@@ -122,7 +122,7 @@ Security
 **Purpose:** Authentication and authorization. Token validation, permission
 checks, user context. Used by HTTP deps and routers.
 
-.. automodule:: pathfinder.platform.security
+.. automodule:: strategist.platform.security
    :members:
    :undoc-members:
    :show-inheritance:
@@ -145,7 +145,7 @@ Health
 
 **Purpose:** Health check logic and readiness probe implementation.
 
-.. automodule:: pathfinder.platform.health
+.. automodule:: strategist.platform.health
    :members:
    :undoc-members:
    :show-inheritance:
@@ -159,7 +159,7 @@ and its rank in its provider's lineup. The one module that names a model id.
 
 **Key functions:** :py:func:`get_model_entry`, :py:func:`get_model_catalog`
 
-.. automodule:: pathfinder.platform.model_catalog
+.. automodule:: strategist.platform.model_catalog
    :members:
    :undoc-members:
    :show-inheritance:
@@ -170,12 +170,12 @@ Readiness
 **Purpose:** The process-wide readiness record the health routes report, and
 the per-site catalog preload and retry the warm-up drives.
 
-.. automodule:: pathfinder.platform.readiness
+.. automodule:: strategist.platform.readiness
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.platform.site_catalogs
+.. automodule:: strategist.platform.site_catalogs
    :members:
    :undoc-members:
    :show-inheritance:

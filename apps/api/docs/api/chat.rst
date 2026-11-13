@@ -51,7 +51,7 @@ Dispatcher
 assistant, runs its identity gate, persists the user message, defers the
 ``chat_turn`` job, and returns the durable event tail.
 
-.. automodule:: pathfinder.ai.conversation.dispatcher
+.. automodule:: strategist.ai.conversation.dispatcher
    :members:
    :undoc-members:
    :show-inheritance:
@@ -62,7 +62,7 @@ Request Body
 **Purpose:** The chat request DTO. Parses the AI SDK message list and strips
 the parts a resend must not replay.
 
-.. automodule:: pathfinder.ai.conversation.request_body
+.. automodule:: strategist.ai.conversation.request_body
    :members:
    :undoc-members:
    :show-inheritance:
@@ -73,7 +73,7 @@ Turn Runner
 **Purpose:** The worker side of a turn. Builds the graph the assistant's spec
 returns, streams its chunks into the event writer, and finalizes the turn.
 
-.. automodule:: pathfinder.ai.conversation.turn_runner
+.. automodule:: strategist.ai.conversation.turn_runner
    :members:
    :undoc-members:
    :show-inheritance:
@@ -84,7 +84,7 @@ Turn Stop
 **Purpose:** Cancel a running turn. The cancel path closes every open tool
 call so no trace row reads as running forever.
 
-.. automodule:: pathfinder.ai.conversation.turn_stop
+.. automodule:: strategist.ai.conversation.turn_stop
    :members:
    :undoc-members:
    :show-inheritance:
@@ -95,7 +95,7 @@ Title Generation
 **Purpose:** Name a conversation from its first user message, using the
 provider's smallest model.
 
-.. automodule:: pathfinder.ai.conversation.title_generator
+.. automodule:: strategist.ai.conversation.title_generator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -106,27 +106,27 @@ Turn Graph
 **Purpose:** Strategist's turn graph: ``lead`` then ``finalize_turn``. The
 Lead node runs the only LLM in the graph; the sub-agents are tools it calls.
 
-.. automodule:: pathfinder.ai.graph.builder
+.. automodule:: strategist.ai.graph.builder
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.graph.lead_node
+.. automodule:: strategist.ai.graph.lead_node
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.graph.nodes
+.. automodule:: strategist.ai.graph.nodes
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.graph.state
+.. automodule:: strategist.ai.graph.state
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.graph.runtime
+.. automodule:: strategist.ai.graph.runtime
    :members:
    :undoc-members:
    :show-inheritance:
@@ -137,17 +137,17 @@ Stream Events
 **Purpose:** Build the typed ``data-*`` chunks that carry strategy and EDA
 telemetry to the frontend as parts on the assistant message.
 
-.. automodule:: pathfinder.ai.graph.stream_events
+.. automodule:: strategist.ai.graph.stream_events
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.strategy_stream_parts
+.. automodule:: strategist.ai.strategy_stream_parts
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.eda_stream_parts
+.. automodule:: strategist.ai.eda_stream_parts
    :members:
    :undoc-members:
    :show-inheritance:

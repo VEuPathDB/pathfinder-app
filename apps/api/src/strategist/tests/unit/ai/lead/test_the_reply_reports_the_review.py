@@ -1,0 +1,97 @@
+"""A requirement a check on the site failed is a gap the facts part shows, and
+the reply names it in words and restates no sampled-gene count."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from strategist.ai.graph.state import PhaseDisposition, VerificationDigest
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.turn_facts import turn_facts
+from strategist.domain.evidence import EvidenceCard, SampledGene, VerificationReview
+from strategist.domain.site_checks import SiteCheck, failed
+from strategist.domain.strategy.constraints import ConstraintKind
+from strategist.domain.strategy.revision import strategy_revision
+from strategist.tests.unit.ai.lead._turn_contract_cases import kinds, reply
+from strategist.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+    requirement,
+)
+
+_UNMET = SiteCheck(
+    kind=ConstraintKind.UNTYPED,
+    subject="at least 2 transmembrane domains",
+    status="fail",
+    evidence="the strategy states tm_count = 1",
+    requirement="other:at least 2 transmembrane domains",
+)
+
+
+def _gene(gene_id: str, fits: str) -> SampledGene:
+    return SampledGene.model_validate(
+        {
+            "geneId": gene_id,
+            "product": "erythrocyte membrane protein 1",
+            "organism": "Plasmodium falciparum 3D7",
+            "fits": fits,
+            "why": "the product names a membrane protein",
+        }
+    )
+
+
+_SAMPLE = [_gene("PF3D7_0100100", "yes"), _gene("PF3D7_0100200", "no")]
+
+
+def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
+    state = pipeline_state(
+        user_prompt="P. falciparum 3D7 genes with a signal peptide and at least 2 "
+        "transmembrane domains",
+        user_message_id=uuid4(),
+    )
+    review = VerificationReview(checks=[_UNMET], sampled_genes=_SAMPLE)
+    state.domain.requirements = [
+        requirement(
+            ConstraintKind.UNTYPED,
+            "transmembrane domains",
+            "at least 2 transmembrane domains",
+        )
+    ]
+    revision = strategy_revision(None)
+    state.domain.record_verdict(
+        VerificationDigest(
+            disposition=PhaseDisposition.DONE,
+            prose="Checked.",
+            reason="one requirement unmet",
+            success=False,
+            review=review,
+            gaps=[*failed(review.checks)],
+        ),
+        revision=revision,
+    )
+    state.domain.last_evidence_card = EvidenceCard(
+        check_id="call_verify",
+        revision=revision,
+        site_id="plasmodb",
+        checked_at=datetime(2026, 9, 24, 9, 30, tzinfo=UTC),
+        site_read="not_read",
+        steps=[],
+        controls=[],
+        citations=[],
+        review=review,
+    )
+    state.turn_markers.verification_dispatched = verified_this_turn
+    return lead_deps(state)
+
+
+def test_the_unmet_requirement_is_a_gap_the_facts_part_shows() -> None:
+    assert [gap.sentence for gap in turn_facts(_checked()).gaps] == [
+        "'at least 2 transmembrane domains': the strategy states tm_count = 1"
+    ]
+
+
+def test_a_reply_that_names_the_unmet_requirement_in_words_stands() -> None:
+    report = reply("The strategy does not yet require the transmembrane domains.")
+
+    assert kinds(_checked(), report) == []

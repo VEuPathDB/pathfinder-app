@@ -1,0 +1,278 @@
+"""The Lead's sweep asks the user on its card, and the yes defers the durable job.
+
+The whole Strategist assistant over the real chat route, the real turn graph
+and the real registration. Only the model is a double: it classifies the
+request to tune a step, attaches the researcher's saved controls and calls the
+sweep on them.
+Whether the Lead calls the sweep after a weak control test is the model's
+judgment; the rule it reads is held by the instruction test.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+from uuid import UUID, uuid4
+
+import pytest
+from assistant_core.platform.db import async_session_factory
+from fastapi import FastAPI
+from procrastinate.testing import InMemoryConnector
+from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.models.function import FunctionModel
+
+from strategist.ai.graph import _lead_model
+from strategist.persistence.models import ControlSet
+from strategist.tests._support.scripted_reading import read_as
+from strategist.tests.integration.chat._helpers import (
+    chat_post_body,
+    chat_turn_jobs,
+    parse_sse_body,
+    run_deferred_chat_turns,
+    wait_until_chat_turn_deferred,
+)
+from strategist.tests.integration.http.conftest import client_for
+from strategist.tests.unit.ai.graph._approval_turn import (
+    CARD_REPLY,
+    LEAD_FINAL,
+    scripted_model,
+    tool_calls,
+)
+
+SWEEP_TOOL = "optimize_search_parameters"
+SWEEP_PROMPT = "tune the parameters of that step against my controls"
+SWEEP_STEP_ID = 440230693
+_CONTROL_SET_ID = UUID("7c0a51e2-0000-4000-8000-0000005bee75")
+_SWEEP = {
+    "reply": CARD_REPLY,
+    "wdk_step_id": SWEEP_STEP_ID,
+    "control_set_id": str(_CONTROL_SET_ID),
+    "budget": 6,
+}
+_DURABLE_JOB = f"durable:{SWEEP_TOOL}"
+_TIMEOUT_SECONDS = 120.0
+
+
+def _sweeping_lead() -> FunctionModel:
+    """Attach the saved controls, call the sweep, then answer."""
+
+    def _part(messages: list[ModelMessage]) -> ToolCallPart:
+        called = {c.tool_name for c in tool_calls(messages)}
+        if "use_control_set" not in called:
+            attach = {"control_set_id": str(_CONTROL_SET_ID)}
+            return ToolCallPart("use_control_set", attach, "call_attach")
+        if SWEEP_TOOL not in called:
+            return ToolCallPart(SWEEP_TOOL, _SWEEP, "call_sweep")
+        return ToolCallPart("final_result", LEAD_FINAL, f"call_final_{uuid4().hex[:8]}")
+
+    return scripted_model(_part)
+
+
+@pytest.fixture(autouse=True)
+def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
+    read_as(monkeypatch, "follow_up_question")
+    monkeypatch.setattr(_lead_model, "get_mock_model", _sweeping_lead)
+
+
+@pytest.fixture(autouse=True)
+async def saved_controls(authed_user_id: UUID) -> None:
+    """The researcher's saved set the scripted Lead attaches before the sweep."""
+    async with async_session_factory() as session:
+        session.add(
+            ControlSet(
+                id=_CONTROL_SET_ID,
+                user_id=authed_user_id,
+                name="Kinase controls",
+                site_id="plasmodb",
+                record_type="transcript",
+                positive_ids=["PF3D7_0102600"],
+                negative_ids=[],
+            )
+        )
+        await session.commit()
+
+
+async def _turn(
+    app: FastAPI,
+    user_id: UUID,
+    jobs: InMemoryConnector,
+    body: dict[str, Any],
+) -> list[dict[str, Any]]:
+    queued = len(chat_turn_jobs(jobs))
+    async with client_for(app, user_id) as client:
+        post = asyncio.create_task(
+            client.post("/api/v1/chat", json=body, timeout=_TIMEOUT_SECONDS),
+        )
+        await asyncio.wait_for(
+            wait_until_chat_turn_deferred(jobs, queued),
+            timeout=_TIMEOUT_SECONDS,
+        )
+        await run_deferred_chat_turns()
+        response = await asyncio.wait_for(post, timeout=_TIMEOUT_SECONDS)
+    assert response.status_code == 200, response.text
+    return parse_sse_body(response.text)
+
+
+def _sweep_jobs(jobs: InMemoryConnector) -> list[dict[str, Any]]:
+    return [job for job in jobs.jobs.values() if job["task_name"] == _DURABLE_JOB]
+
+
+def _approval_call_id(chunks: list[dict[str, Any]]) -> str:
+    asked = [c for c in chunks if c["type"] == "tool-approval-request"]
+    return str(asked[0]["toolCallId"])
+
+
+def _approval_body(
+    conversation_id: UUID,
+    call_id: str,
+    *,
+    approved: bool,
+) -> dict[str, Any]:
+    """The body the client sends when the user answers the sweep's card."""
+    message_id = str(uuid4())
+    return {
+        "trigger": "submit-message",
+        "id": message_id,
+        "messages": [
+            {
+                "id": message_id,
+                "role": "assistant",
+                "parts": [
+                    {
+                        "type": f"tool-{SWEEP_TOOL}",
+                        "toolCallId": call_id,
+                        "state": "approval-responded",
+                        "input": {"wdkStepId": SWEEP_STEP_ID},
+                        "approval": {"id": call_id, "approved": approved},
+                    },
+                ],
+            },
+        ],
+        "conversationId": str(conversation_id),
+        "siteId": "plasmodb",
+    }
+
+
+async def test_the_sweep_asks_before_it_runs(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    signed_in_to_veupathdb: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+
+    chunks = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(uuid4(), SWEEP_PROMPT),
+    )
+
+    asked = [c for c in chunks if c["type"] == "tool-approval-request"]
+    offered = [
+        c
+        for c in chunks
+        if c["type"] == "tool-input-available" and c["toolName"] == SWEEP_TOOL
+    ]
+
+    assert [c["input"]["wdk_step_id"] for c in offered] == [SWEEP_STEP_ID]
+    assert [c["toolCallId"] for c in asked] == [c["toolCallId"] for c in offered]
+    assert _sweep_jobs(in_memory_jobs) == []
+
+
+async def test_the_users_yes_defers_the_sweep(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    signed_in_to_veupathdb: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+    conversation_id = uuid4()
+    asked = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(conversation_id, SWEEP_PROMPT),
+    )
+
+    chunks = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        _approval_body(conversation_id, _approval_call_id(asked), approved=True),
+    )
+
+    started = [c for c in chunks if c["type"] == "data-background-task-started"]
+    assert [c["data"]["toolName"] for c in started] == [SWEEP_TOOL]
+    assert len(_sweep_jobs(in_memory_jobs)) == 1
+
+
+async def test_a_refused_sweep_defers_nothing(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    signed_in_to_veupathdb: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+    conversation_id = uuid4()
+    asked = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(conversation_id, SWEEP_PROMPT),
+    )
+    call_id = _approval_call_id(asked)
+
+    chunks = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        _approval_body(conversation_id, call_id, approved=False),
+    )
+
+    denials = [c for c in chunks if c["type"] == "tool-output-denied"]
+    assert [c["toolCallId"] for c in denials] == [call_id]
+    assert _sweep_jobs(in_memory_jobs) == []
+
+
+async def test_the_answering_turn_records_the_answer_before_the_call(
+    app: FastAPI,
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    signed_in_to_veupathdb: None,
+) -> None:
+    del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
+    conversation_id = uuid4()
+    asked = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(conversation_id, SWEEP_PROMPT),
+    )
+    call_id = _approval_call_id(asked)
+
+    chunks = await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        _approval_body(conversation_id, call_id, approved=True),
+    )
+
+    kinds = [c["type"] for c in chunks]
+    recorded = kinds.index("data-tool-approval")
+    reentry = kinds.index("tool-input-available")
+    assert chunks[recorded]["data"] == {
+        "toolCallId": call_id,
+        "approvalId": call_id,
+        "approved": True,
+    }
+    assert recorded < reentry
+    assert "start-step" not in kinds[:reentry]

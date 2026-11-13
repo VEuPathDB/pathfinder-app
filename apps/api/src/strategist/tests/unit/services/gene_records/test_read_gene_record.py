@@ -1,0 +1,420 @@
+"""One gene record, read from the attributes a site declares."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping
+from pathlib import Path
+
+import pytest
+from veupathdb.errors import WDKError
+from veupathdb.wdk import (
+    AiExpressionStatus,
+    StrategyAPI,
+    WDKRecordInstance,
+    WDKRecordType,
+)
+from veupathdb_mcp.wdk import GeneExpressionSummary
+
+from strategist.services.gene_records import read
+from strategist.services.gene_records.read import (
+    UnknownGeneRecordError,
+    read_the_gene_record,
+)
+from strategist.tests._support.qa_recording import qa_recording
+
+_COLUMN_TYPES = {
+    "organism": "STRING",
+    "product": "STRING",
+    "name": "STRING",
+    "chromosome": "STRING",
+    "exon_count": "NUMBER",
+    "transcript_count": "NUMBER",
+    "sequence_id": "STRING",
+}
+TOXO_ATTRIBUTES = tuple(_COLUMN_TYPES)
+
+_SRS29B = {
+    "organism": "Toxoplasma gondii ME49",
+    "product": "SAG-related sequence SRS29B",
+    "name": "SRS29B",
+    "chromosome": "VIII",
+    "exon_count": "1",
+    "transcript_count": "1",
+}
+
+_ORTHOLOGS = [
+    {
+        "organism": f"Ortholog organism {index}",
+        "ortho_gene_source_id": f"OGS_{index:03d}",
+        "gene": {"displayText": f"OGS_{index:03d}", "url": "https://qa.toxodb.org/x"},
+    }
+    for index in range(14)
+]
+
+
+def _record(
+    attributes: Mapping[str, object], tables: Mapping[str, object]
+) -> WDKRecordInstance:
+    return WDKRecordInstance.model_validate(
+        {
+            "displayName": "TGME49_233460",
+            "recordClassName": "GeneRecordClasses.GeneRecordClass",
+            "id": [
+                {"name": "source_id", "value": "TGME49_233460"},
+                {"name": "project_id", "value": "ToxoDB"},
+            ],
+            "attributes": dict(attributes),
+            "tables": dict(tables),
+        }
+    )
+
+
+def _record_type(names: tuple[str, ...]) -> WDKRecordType:
+    return WDKRecordType.model_validate(
+        {
+            "urlSegment": "gene",
+            "primaryKeyColumnRefs": ["source_id", "project_id"],
+            "attributes": [
+                {"name": name, "columnDataType": _COLUMN_TYPES[name]} for name in names
+            ],
+        }
+    )
+
+
+class _GeneRecord(StrategyAPI):
+    """A strategy API that answers one gene record on one site."""
+
+    def __init__(
+        self,
+        record: WDKRecordInstance,
+        *,
+        declares: tuple[str, ...] = TOXO_ATTRIBUTES,
+    ) -> None:
+        self._record = record
+        self._declares = declares
+        self.asked_attributes: list[str] = []
+        self.asked_tables: list[str] = []
+        self.record_type_calls = 0
+
+    async def get_record_type_info(self, record_type: str) -> WDKRecordType:
+        self.record_type_calls += 1
+        assert record_type == "gene"
+        return _record_type(self._declares)
+
+    async def get_single_record(
+        self,
+        record_type: str,
+        primary_key: list[dict[str, str]],
+        *,
+        attributes: list[str] | None = None,
+        tables: list[str] | None = None,
+    ) -> WDKRecordInstance:
+        del record_type
+        self.primary_key = primary_key
+        self.asked_attributes = list(attributes or [])
+        self.asked_tables = list(tables or [])
+        return self._record
+
+
+class _NoSuchGene(StrategyAPI):
+    """A strategy API whose site holds no record for the id it is asked."""
+
+    def __init__(self) -> None:
+        self.declares = TOXO_ATTRIBUTES
+
+    async def get_record_type_info(self, record_type: str) -> WDKRecordType:
+        del record_type
+        return _record_type(self.declares)
+
+    async def get_single_record(
+        self,
+        record_type: str,
+        primary_key: list[dict[str, str]],
+        *,
+        attributes: list[str] | None = None,
+        tables: list[str] | None = None,
+    ) -> WDKRecordInstance:
+        del record_type, primary_key, attributes, tables
+        refusal = "record not found"
+        raise WDKError(refusal, status=404)
+
+
+@pytest.fixture(autouse=True)
+def _forget_record_types(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each test reads the site's record type for itself."""
+    monkeypatch.setattr(read, "_gene_record_types", {})
+
+
+@pytest.fixture
+def _no_expression(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _none(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        return GeneExpressionSummary(
+            site_id=site_id,
+            gene_id=gene_id,
+            result_status=AiExpressionStatus.MISSING,
+            unavailable_reason="no summary",
+        )
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _none)
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_summary_carries_the_facts_the_record_states() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.product == "SAG-related sequence SRS29B"
+    assert found.exon_count == 1
+    assert found.transcript_count == 1
+    assert found.chromosome == "VIII"
+    assert found.gene_name == "SRS29B"
+    assert found.organism == "Toxoplasma gondii ME49"
+    assert (
+        found.record_url
+        == "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460"
+    )
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_summary_lists_the_orthologs_and_their_total() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.ortholog_count == 14
+    assert len(found.orthologs) == 14
+    assert found.orthologs[0].gene_id == "OGS_000"
+    assert found.orthologs[0].organism == "Ortholog organism 0"
+
+
+def _funestus_orthologs() -> list[dict[str, str]]:
+    """The 132 rows AFUN008228 lists, with its one PEST ortholog at row 106."""
+    rows = [
+        {"organism": f"Anopheles species {i}", "ortho_gene_source_id": f"AX{i:03d}"}
+        for i in range(132)
+    ]
+    rows[105] = {
+        "organism": "Anopheles gambiae PEST",
+        "ortho_gene_source_id": "AGAP008819",
+    }
+    return rows
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_a_cut_ortholog_list_says_how_many_rows_it_holds_of_how_many() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(api, "vectorbase", "AFUN008228")
+
+    assert (found.ortholog_count, len(found.orthologs)) == (132, 20)
+    assert found.orthologs_shown == (
+        "The first 20 of 132 ortholog rows. A gene absent from them may be "
+        "among the other 112; read the record with ortholog_organism to see "
+        "every row of one organism."
+    )
+    assert found.summary_line().endswith("132 orthologs (20 shown)")
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_ortholog_question_reads_every_row_of_the_organism() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Anopheles gambiae PEST"
+    )
+
+    assert [o.model_dump() for o in found.orthologs] == [
+        {"organism": "Anopheles gambiae PEST", "gene_id": "AGAP008819"}
+    ]
+    assert found.orthologs_shown == (
+        "Every row of the 132 whose organism is Anopheles gambiae PEST: 1."
+    )
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_organism_no_row_names_is_stated_as_absent_from_the_whole_list() -> (
+    None
+):
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Aedes aegypti LVP"
+    )
+
+    assert found.orthologs == []
+    assert found.orthologs_shown == (
+        "None of the 132 rows is of Aedes aegypti LVP. The nearest organisms the "
+        "rows hold: Anopheles gambiae PEST, Anopheles species 9, Anopheles "
+        "species 8, Anopheles species 7, Anopheles species 6; ortholog_organism "
+        "takes one of them whole."
+    )
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_organism_that_only_begins_a_row_s_organism_reads_no_row() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Anopheles gambiae"
+    )
+
+    assert found.orthologs == []
+    assert found.nearest_ortholog_organisms[0] == "Anopheles gambiae PEST"
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_a_whole_ortholog_list_carries_no_note() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert (len(found.orthologs), found.orthologs_shown) == (14, "")
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_a_site_without_chromosome_is_never_asked_for_it() -> None:
+    """An attribute the record type does not declare makes WDK answer a 500."""
+    declares = tuple(n for n in TOXO_ATTRIBUTES if n != "chromosome")
+    attributes = {k: v for k, v in _SRS29B.items() if k != "chromosome"}
+    api = _GeneRecord(_record(attributes, {}), declares=declares)
+
+    found = await read_the_gene_record(api, "cryptodb", "cgd6_1080")
+
+    assert "chromosome" not in api.asked_attributes
+    assert api.asked_attributes == [
+        "organism",
+        "product",
+        "name",
+        "exon_count",
+        "transcript_count",
+    ]
+    assert found.chromosome is None
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_record_type_is_read_once_per_site() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {}))
+
+    await read_the_gene_record(api, "toxodb", "TGME49_233460")
+    await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert api.record_type_calls == 1
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_primary_key_names_the_gene_and_the_project() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {}))
+
+    await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert api.primary_key == [
+        {"name": "source_id", "value": "TGME49_233460"},
+        {"name": "project_id", "value": "ToxoDB"},
+    ]
+    assert api.asked_tables == ["Orthologs"]
+
+
+async def test_an_unknown_gene_id_is_a_typed_not_found() -> None:
+    with pytest.raises(UnknownGeneRecordError) as refused:
+        await read_the_gene_record(_NoSuchGene(), "toxodb", "TGME49_000000")
+
+    assert refused.value.status == 404
+    assert "TGME49_000000" in str(refused.value)
+
+
+async def test_the_site_summary_of_the_expression_rides_the_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _summary(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        return GeneExpressionSummary.model_validate(
+            {
+                "siteId": site_id,
+                "geneId": gene_id,
+                "resultStatus": "present",
+                "numExperiments": 12,
+                "basedOnIncompleteData": True,
+                "summary": {
+                    "headline": "Highest in the tachyzoite stage",
+                    "one_paragraph_summary": "Expression peaks in tachyzoites.",
+                },
+            }
+        )
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _summary)
+    api = _GeneRecord(_record(dict(_SRS29B), {}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.expression is not None
+    assert found.expression.headline == "Highest in the tachyzoite stage"
+    assert found.expression.experiments == 12
+    assert found.expression.covers_part_of_the_experiments is True
+
+
+async def test_a_site_that_serves_no_expression_report_still_answers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _refuses(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        del site_id, gene_id
+        refusal = "no expression reporter here"
+        raise WDKError(refusal, status=500)
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _refuses)
+    api = _GeneRecord(_record(dict(_SRS29B), {}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.expression is None
+    assert found.product == "SAG-related sequence SRS29B"
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_summary_line_names_the_record_in_one_sentence() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.summary_line() == (
+        "TGME49_233460: SAG-related sequence SRS29B, 1 exon, "
+        "chromosome VIII, 14 orthologs"
+    )
+
+
+_RECORDED = Path(__file__).resolve().parents[3] / "fixtures" / "wdk"
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_recorded_plasmodb_record_is_read_as_plain_text() -> None:
+    """PlasmoDB answers the organism in italics; the summary states the words."""
+    body = json.loads(
+        qa_recording(_RECORDED / "gene_record_PF3D7_1133400.json").read_text()
+    )
+    api = _GeneRecord(WDKRecordInstance.model_validate(body), declares=TOXO_ATTRIBUTES)
+
+    found = await read_the_gene_record(api, "plasmodb", "PF3D7_1133400")
+
+    assert body["attributes"]["organism"] == "<i>P. falciparum 3D7</i>"
+    assert (
+        found.organism,
+        found.product,
+        found.gene_name,
+        found.chromosome,
+        found.exon_count,
+        found.ortholog_count,
+    ) == ("P. falciparum 3D7", "apical membrane antigen 1", "AMA1", "11", 1, 63)
+    assert found.orthologs[0].model_dump() == {
+        "organism": "Plasmodium knowlesi strain H",
+        "gene_id": "PKNH_0931500",
+    }
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_markup_in_a_table_cell_is_stripped() -> None:
+    rows = [{"organism": "<i>P. vivax</i> P01", "ortho_gene_source_id": "PVP01_1"}]
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": rows}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.orthologs[0].organism == "P. vivax P01"

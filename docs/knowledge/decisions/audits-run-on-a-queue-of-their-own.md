@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Audits run on a queue of their own, served by a second worker in the worker process
-description: An audit run is carried by procrastinate jobs on the queue "audit", which a second worker inside `python -m pathfinder.jobs.worker` serves at AUDIT_CONCURRENCY (2 by default, at most 4), so a run that takes hours never holds a slot a chat turn or a durable tool needs. One job per run is queued and one runs, under the key audit-run:<run_id>; a wait for a site is a continuation scheduled on the same queue, a job starts no unit after 30 minutes of work, and the progress lives on the run row. A model-started durable tool, the runtime's host-started tasks, a new runtime primitive and a worker container of its own were rejected.
+description: An audit run is carried by procrastinate jobs on the queue "audit", which a second worker inside `python -m strategist.jobs.worker` serves at AUDIT_CONCURRENCY (2 by default, at most 4), so a run that takes hours never holds a slot a chat turn or a durable tool needs. One job per run is queued and one runs, under the key audit-run:<run_id>; a wait for a site is a continuation scheduled on the same queue, a job starts no unit after 30 minutes of work, and the progress lives on the run row. A model-started durable tool, the runtime's host-started tasks, a new runtime primitive and a worker container of its own were rejected.
 tags: [audit, jobs, procrastinate, worker, concurrency, locks]
 generated: { by: claude-code/opus-5, at: 2026-10-22T00:00:00Z }
 status: stable
@@ -129,11 +129,11 @@ keeps a second job off the run until the first one ends.
 
 # Anchor
 
-`apps/api/src/pathfinder/services/audit/job.py`,
-`apps/api/src/pathfinder/services/audit/queue.py`,
-`apps/api/src/pathfinder/services/audit/units.py`,
-`apps/api/src/pathfinder/jobs/worker.py`,
-`apps/api/src/pathfinder/jobs/tasks.py`,
-`apps/api/src/pathfinder/tests/integration/jobs/test_audit_run_job.py`,
-`apps/api/src/pathfinder/tests/integration/jobs/test_stranded_audits_resume_on_a_schedule.py`,
-`apps/api/src/pathfinder/tests/unit/jobs/test_audit_worker.py`.
+`apps/api/src/strategist/services/audit/job.py`,
+`apps/api/src/strategist/services/audit/queue.py`,
+`apps/api/src/strategist/services/audit/units.py`,
+`apps/api/src/strategist/jobs/worker.py`,
+`apps/api/src/strategist/jobs/tasks.py`,
+`apps/api/src/strategist/tests/integration/jobs/test_audit_run_job.py`,
+`apps/api/src/strategist/tests/integration/jobs/test_stranded_audits_resume_on_a_schedule.py`,
+`apps/api/src/strategist/tests/unit/jobs/test_audit_worker.py`.

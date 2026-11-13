@@ -12,7 +12,7 @@ const INTERNAL = /\b(EDA|WDK|FRAME|BUILD|VERIFY|Frame|Ledger|Lead|sub-agent)\b/;
 /**
  * Every tool an agent of this application can call. Taken from the backend
  * registry the api suite enumerates in
- * `apps/api/src/pathfinder/tests/unit/ai/tools/test_tool_summaries.py::_registered`.
+ * `apps/api/src/strategist/tests/unit/ai/tools/test_tool_summaries.py::_registered`.
  */
 const REGISTERED = [
   "add_step_filter",

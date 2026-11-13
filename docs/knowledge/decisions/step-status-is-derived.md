@@ -30,7 +30,7 @@ A step already live in WDK is never demoted to draft. `_validate_plan_params` re
 
 # Anchor
 
-`step_status()` and `StepStatus` in `apps/api/src/pathfinder/domain/strategy/step_status.py`;
+`step_status()` and `StepStatus` in `apps/api/src/strategist/domain/strategy/step_status.py`;
 `defer_draft_steps`, which replaced `defer_incomplete_new_steps`.
 
 The lifecycle is this application's, not WDK's: the derivation reads the keyed

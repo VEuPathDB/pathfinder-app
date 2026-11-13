@@ -27,27 +27,27 @@ Toolsets
 one pipeline phase may call, and ``_dynamic`` narrows a tool's schema for the
 run it is about to make.
 
-.. automodule:: pathfinder.ai.tools.toolsets.frame
+.. automodule:: strategist.ai.tools.toolsets.frame
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.toolsets.execution
+.. automodule:: strategist.ai.tools.toolsets.execution
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.toolsets.verification
+.. automodule:: strategist.ai.tools.toolsets.verification
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.toolsets.eda
+.. automodule:: strategist.ai.tools.toolsets.eda
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.toolsets._dynamic
+.. automodule:: strategist.ai.tools.toolsets._dynamic
    :members:
    :undoc-members:
    :show-inheritance:
@@ -58,7 +58,7 @@ Durable Tools
 **Purpose:** A durable tool is a deferred tool. The runtime owns the
 declaration, the decorator and the worker-side runner
 (``assistant_core.tasks``); this application declares four of them and
-registers their bodies under ``pathfinder.jobs.impls``.
+registers their bodies under ``strategist.jobs.impls``.
 
 Catalog Discovery
 -----------------
@@ -67,12 +67,12 @@ Catalog Discovery
 the parameters and vocabularies a search takes. Every answer is read live from
 WDK through the catalog service.
 
-.. automodule:: pathfinder.ai.tools.standalone.catalog
+.. automodule:: strategist.ai.tools.standalone.catalog
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.catalog_discovery
+.. automodule:: strategist.ai.tools.standalone.catalog_discovery
    :members:
    :undoc-members:
    :show-inheritance:
@@ -84,17 +84,17 @@ FRAME Tools
 bind each one to a search with resolved parameters, fold them into a tree, and
 reuse a strategy the user already saved.
 
-.. automodule:: pathfinder.ai.tools.standalone.frame_spec
+.. automodule:: strategist.ai.tools.standalone.frame_spec
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.frame_structure
+.. automodule:: strategist.ai.tools.standalone.frame_structure
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.saved_strategies
+.. automodule:: strategist.ai.tools.standalone.saved_strategies
    :members:
    :undoc-members:
    :show-inheritance:
@@ -105,22 +105,22 @@ Strategy Tools
 **Purpose:** Build the strategy declaratively, edit an existing one step by
 step, inspect the graph, and attach a filter, analysis or report to a step.
 
-.. automodule:: pathfinder.ai.tools.standalone.strategy
+.. automodule:: strategist.ai.tools.standalone.strategy
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.strategy_edits
+.. automodule:: strategist.ai.tools.standalone.strategy_edits
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.strategy_graph
+.. automodule:: strategist.ai.tools.standalone.strategy_graph
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.strategy_attach
+.. automodule:: strategist.ai.tools.standalone.strategy_attach
    :members:
    :undoc-members:
    :show-inheritance:
@@ -131,22 +131,22 @@ Execution and Results
 **Purpose:** Read what a built step returns: counts, sample records, download
 URLs, and single-gene detail.
 
-.. automodule:: pathfinder.ai.tools.standalone.execution
+.. automodule:: strategist.ai.tools.standalone.execution
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.results
+.. automodule:: strategist.ai.tools.standalone.results
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.step_download
+.. automodule:: strategist.ai.tools.standalone.step_download
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.gene
+.. automodule:: strategist.ai.tools.standalone.gene
    :members:
    :undoc-members:
    :show-inheritance:
@@ -159,32 +159,32 @@ gene sets, parameter optimization, variant comparison, scored comparison
 against a saved control set, and the read-only count and membership check of
 one catalog search.
 
-.. automodule:: pathfinder.ai.tools.standalone.experiment
+.. automodule:: strategist.ai.tools.standalone.experiment
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.control_sets
+.. automodule:: strategist.ai.tools.standalone.control_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.optimization
+.. automodule:: strategist.ai.tools.standalone.optimization
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.variant_comparison
+.. automodule:: strategist.ai.tools.standalone.variant_comparison
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.scored_comparison
+.. automodule:: strategist.ai.tools.standalone.scored_comparison
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.search_reads
+.. automodule:: strategist.ai.tools.standalone.search_reads
    :members:
    :undoc-members:
    :show-inheritance:
@@ -196,22 +196,22 @@ EDA Tools
 analysis, subset it, run the durable differential-expression compute, and
 export the result into the strategy as a WDK step.
 
-.. automodule:: pathfinder.ai.tools.standalone.eda_catalog
+.. automodule:: strategist.ai.tools.standalone.eda_catalog
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.eda_analysis
+.. automodule:: strategist.ai.tools.standalone.eda_analysis
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.eda_compute
+.. automodule:: strategist.ai.tools.standalone.eda_compute
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.eda_step
+.. automodule:: strategist.ai.tools.standalone.eda_step
    :members:
    :undoc-members:
    :show-inheritance:
@@ -221,12 +221,12 @@ Gene Sets and Export
 
 **Purpose:** Save and list gene sets, and export a strategy or a gene set.
 
-.. automodule:: pathfinder.ai.tools.standalone.gene_sets
+.. automodule:: strategist.ai.tools.standalone.gene_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.export
+.. automodule:: strategist.ai.tools.standalone.export
    :members:
    :undoc-members:
    :show-inheritance:
@@ -237,12 +237,12 @@ Conversation and Memory
 **Purpose:** Save and load a strategy on the thread, search cross-thread
 memory, and write a memory the user asked to keep.
 
-.. automodule:: pathfinder.ai.tools.standalone.conversation
+.. automodule:: strategist.ai.tools.standalone.conversation
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.memory_tools
+.. automodule:: strategist.ai.tools.standalone.memory_tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -253,12 +253,12 @@ Reasoning and Escape
 **Purpose:** An explicit reasoning scratchpad between tool calls, and the exit
 ramp a phase takes when its toolset cannot express what the turn needs.
 
-.. automodule:: pathfinder.ai.tools.standalone.think
+.. automodule:: strategist.ai.tools.standalone.think
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.tools.standalone.escape_hatch
+.. automodule:: strategist.ai.tools.standalone.escape_hatch
    :members:
    :undoc-members:
    :show-inheritance:

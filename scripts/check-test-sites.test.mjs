@@ -86,7 +86,7 @@ jobs:
       - name: Run the live lane
         env:
           WDK_TEST_EMAIL: \${{ secrets.WDK_TEST_EMAIL }}
-        run: uv run pytest src/pathfinder/tests -m live_wdk -q
+        run: uv run pytest src/strategist/tests -m live_wdk -q
 `;
 
 const CI = (sites = "plasmodb", extra = "") => `name: CI
@@ -160,9 +160,9 @@ test("a dataset record link a site's vocabulary names is no host, and its bare h
 test("every file outside docs and local outputs is scanned, and no secret env file is read", () => {
   const paths = scannedPaths();
 
-  assert.ok(paths.includes("apps/api/src/pathfinder/tests/unit/platform/test_stage_sites.py"));
-  assert.ok(paths.includes("apps/api/src/pathfinder/data/seeds/hostdb.json"));
-  assert.ok(paths.includes("apps/api/src/pathfinder/ai/models/mock/organism_params.json"));
+  assert.ok(paths.includes("apps/api/src/strategist/tests/unit/platform/test_stage_sites.py"));
+  assert.ok(paths.includes("apps/api/src/strategist/data/seeds/hostdb.json"));
+  assert.ok(paths.includes("apps/api/src/strategist/ai/models/mock/organism_params.json"));
   assert.ok(paths.includes("apps/web/src/features/sidebar/wdkStrategyRef.ts"));
   assert.ok(paths.includes(".github/workflows/ci.yml"));
   assert.ok(paths.includes(".env.example"));

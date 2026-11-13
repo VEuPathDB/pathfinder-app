@@ -1,5 +1,5 @@
 [project]
-name = "pathfinder-api"
+name = "strategist-api"
 version = "0.9.1a3"
 description = "VEuPathDB Strategy Builder Chatbot API"
 requires-python = ">=3.14"
@@ -66,13 +66,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pathfinder"]
+packages = ["src/strategist"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
-testpaths = ["src/pathfinder/tests"]
+testpaths = ["src/strategist/tests"]
 # A command line -m replaces this, so `-m live_model` selects the lane.
 addopts = ["-m", "not live_model"]
 markers = [
@@ -83,7 +83,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src/pathfinder"]
+source = ["src/strategist"]
 omit = ["*/tests/*"]
 
 [tool.ruff]
@@ -155,22 +155,22 @@ max-branches = 10
     "FBT",      # boolean args in test helpers are fine
     "S311",     # deterministic seeds for shuffling is fine
 ]
-"**/src/pathfinder/ai/prompts/**" = [
+"**/src/strategist/ai/prompts/**" = [
     "E501",  # prompt strings are long by nature
 ]
 "**/scripts/**" = [
     "T20",    # scripts use print() for CLI output
     "S101",   # assert in scripts is fine
 ]
-"**/src/pathfinder/ai/tools/standalone/**" = [
+"**/src/strategist/ai/tools/standalone/**" = [
     "PLR0913",  # tool functions need many params for LLM tool interface
     "FBT",      # boolean params required for LLM tool descriptions
 ]
-"**/src/pathfinder/jobs/impls/**" = [
+"**/src/strategist/jobs/impls/**" = [
     "PLR0913",  # worker impls mirror tool signatures + framework kwargs
     "FBT",      # booleans mirror tool interface
 ]
-"**/src/pathfinder/devtools/**" = [
+"**/src/strategist/devtools/**" = [
     "T20",      # devtools scripts use print() for CLI output
     "C901",     # stream analysis inspects many event types
     "PLR0912",  # branching inherent to multi-event-type parsing
@@ -179,7 +179,7 @@ max-branches = 10
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["pathfinder"]
+known-first-party = ["strategist"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -194,7 +194,7 @@ exclude = ["scripts/", "docs/"]
 init_typed = false
 
 [tool.vulture]
-paths = ["src/pathfinder"]
+paths = ["src/strategist"]
 exclude = ["tests/", "*/conftest.py"]
 min_confidence = 80
 # Ruff TC006 requires the type expression in cast() to be a string. Vulture does
@@ -240,7 +240,7 @@ docs = [
 # The three installed distributions are root packages, not external ones: a
 # forbidden contract cannot name a submodule of an external package, so a
 # private module of a library is only reachable by the checker this way.
-root_packages = ["pathfinder", "veupathdb", "veupathdb_mcp", "assistant_core"]
+root_packages = ["strategist", "veupathdb", "veupathdb_mcp", "assistant_core"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -248,19 +248,19 @@ name = "Transport and AI never import persistence directly"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-    "pathfinder.transport",
-    "pathfinder.ai",
+    "strategist.transport",
+    "strategist.ai",
 ]
-forbidden_modules = ["pathfinder.persistence"]
+forbidden_modules = ["strategist.persistence"]
 
 [[tool.importlinter.contracts]]
 name = "Services never import transport or AI"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["pathfinder.services"]
+source_modules = ["strategist.services"]
 forbidden_modules = [
-    "pathfinder.transport",
-    "pathfinder.ai",
+    "strategist.transport",
+    "strategist.ai",
     "pydantic_ai",
 ]
 
@@ -268,11 +268,11 @@ forbidden_modules = [
 name = "Persistence never imports services, transport, or AI"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["pathfinder.persistence"]
+source_modules = ["strategist.persistence"]
 forbidden_modules = [
-    "pathfinder.services",
-    "pathfinder.transport",
-    "pathfinder.ai",
+    "strategist.services",
+    "strategist.transport",
+    "strategist.ai",
 ]
 
 # The runtime is the `assistant-core` distribution, so no contract here can
@@ -287,11 +287,11 @@ name = "The science never imports an assistant's composition root"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-    "pathfinder.ai",
-    "pathfinder.persistence",
-    "pathfinder.services",
+    "strategist.ai",
+    "strategist.persistence",
+    "strategist.services",
 ]
-forbidden_modules = ["pathfinder.assistants"]
+forbidden_modules = ["strategist.assistants"]
 
 # The evidence VERIFY reads is one module: gene sets, control sets, variant
 # comparisons, parameter sweeps and control separations. `services/evidence/`
@@ -304,16 +304,16 @@ name = "The agent and the jobs reach the evidence producers only through its fac
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-    "pathfinder.ai",
-    "pathfinder.jobs",
+    "strategist.ai",
+    "strategist.jobs",
 ]
 forbidden_modules = [
-    "pathfinder.services.control_sets",
-    "pathfinder.services.experiment.control_sourcing",
-    "pathfinder.services.gene_sets.store",
-    "pathfinder.services.parameter_optimization.sweep",
-    "pathfinder.services.parameter_optimization.tunable",
-    "pathfinder.services.separation",
+    "strategist.services.control_sets",
+    "strategist.services.experiment.control_sourcing",
+    "strategist.services.gene_sets.store",
+    "strategist.services.parameter_optimization.sweep",
+    "strategist.services.parameter_optimization.tunable",
+    "strategist.services.separation",
 ]
 
 
@@ -331,7 +331,7 @@ name = "The application imports no module a distribution does not publish"
 type = "forbidden"
 as_packages = true
 allow_indirect_imports = true
-source_modules = ["pathfinder"]
+source_modules = ["strategist"]
 forbidden_modules = [
     "veupathdb.wdk._analyses",
     "veupathdb.wdk._failures",
@@ -546,23 +546,23 @@ forbidden_modules = [
 # whose names are also modules, so the package attribute reads as the deep module
 # to the checker.
 ignore_imports = [
-    "pathfinder.ai.tools.standalone._frame_proposals -> veupathdb_mcp.catalog.radio_pairs",
+    "strategist.ai.tools.standalone._frame_proposals -> veupathdb_mcp.catalog.radio_pairs",
     # The one test-support seam: serve_search_details patches validate_parameters
     # through its own module globals, which the package surface cannot reach.
-    "pathfinder.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
-    "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.param_discovery",
-    "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",
-    "pathfinder.tests.unit.ai.tools.test_a_long_open_slot_is_shown_shortlisted -> veupathdb_mcp.catalog.shortlist",
-    "pathfinder.tests.unit.ai.tools.test_catalog -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.search_inspection",
-    "pathfinder.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.search_inspection",
-    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_options -> veupathdb_mcp.catalog.search_inspection",
-    "pathfinder.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.search_inspection",
-    "pathfinder.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",
-    "pathfinder.tests.unit.ai.tools.test_public_strategy_search -> veupathdb_mcp.tools.catalog_tools",
+    "strategist.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
+    "strategist.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.param_discovery",
+    "strategist.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",
+    "strategist.tests.unit.ai.tools.test_a_long_open_slot_is_shown_shortlisted -> veupathdb_mcp.catalog.shortlist",
+    "strategist.tests.unit.ai.tools.test_catalog -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.search_inspection",
+    "strategist.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.search_inspection",
+    "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.test_catalog_discovery_options -> veupathdb_mcp.catalog.search_inspection",
+    "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.search_inspection",
+    "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
+    "strategist.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",
+    "strategist.tests.unit.ai.tools.test_public_strategy_search -> veupathdb_mcp.tools.catalog_tools",
 ]

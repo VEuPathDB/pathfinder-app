@@ -23,7 +23,7 @@ startup background tasks.
 configurations and ensures clean setup/teardown of database connections and Redis
 pools via FastAPI lifespan events.
 
-.. automodule:: pathfinder.main
+.. automodule:: strategist.main
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ FastAPI application. Generates ``packages/spec/openapi.yaml`` and
 This is intentionally NOT run at runtime — it writes repo files during
 development.
 
-.. automodule:: pathfinder.devtools.openapi
+.. automodule:: strategist.devtools.openapi
    :members:
    :undoc-members:
    :show-inheritance:
@@ -51,7 +51,7 @@ injection, and experiment ownership checks. Used by routers.
 **Key functions:** :py:func:`get_current_user_with_db_row`,
 :py:func:`get_experiment_owned_by_user`
 
-.. automodule:: pathfinder.transport.http.deps
+.. automodule:: strategist.transport.http.deps
    :members:
    :undoc-members:
    :show-inheritance:
@@ -62,72 +62,72 @@ Routers
 FastAPI routers that define the HTTP API surface. Each router handles a
 specific domain area.
 
-.. automodule:: pathfinder.transport.http.routers.chat
+.. automodule:: strategist.transport.http.routers.chat
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.sites.catalog
+.. automodule:: strategist.transport.http.routers.sites.catalog
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.sites.params
+.. automodule:: strategist.transport.http.routers.sites.params
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.models
+.. automodule:: strategist.transport.http.routers.models
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.health
+.. automodule:: strategist.transport.http.routers.health
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.veupathdb_auth
+.. automodule:: strategist.transport.http.routers.veupathdb_auth
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.dev
+.. automodule:: strategist.transport.http.routers.dev
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.exports
+.. automodule:: strategist.transport.http.routers.exports
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.gene_sets.crud
+.. automodule:: strategist.transport.http.routers.gene_sets.crud
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.conversations.operations
+.. automodule:: strategist.transport.http.routers.conversations.operations
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.user_data
+.. automodule:: strategist.transport.http.routers.user_data
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.conversations.crud
+.. automodule:: strategist.transport.http.routers.conversations.crud
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.conversations.counts
+.. automodule:: strategist.transport.http.routers.conversations.counts
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.conversations.wdk_import
+.. automodule:: strategist.transport.http.routers.conversations.wdk_import
    :members:
    :undoc-members:
    :show-inheritance:
@@ -137,32 +137,32 @@ Schemas
 
 Pydantic request/response models (DTOs) for the HTTP API.
 
-.. automodule:: pathfinder.transport.http.schemas.conversations
+.. automodule:: strategist.transport.http.schemas.conversations
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.sites
+.. automodule:: strategist.transport.http.schemas.sites
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.steps
+.. automodule:: strategist.transport.http.schemas.steps
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.health
+.. automodule:: strategist.transport.http.schemas.health
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.veupathdb_auth
+.. automodule:: strategist.transport.http.schemas.veupathdb_auth
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.gene_sets
+.. automodule:: strategist.transport.http.schemas.gene_sets
    :members:
    :undoc-members:
    :show-inheritance:

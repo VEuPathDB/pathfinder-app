@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`apps/api/src/pathfinder/tests/integration/mcp/test_conformance_ours.py` composes
+`apps/api/src/strategist/tests/integration/mcp/test_conformance_ours.py` composes
 the suite as its own pytest process against the served endpoint, and reads the
 admission record the run writes. It is marked `live_wdk`, so it runs in the
 nightly lane and never blocks a pull request.

@@ -1,0 +1,74 @@
+"""A count per value of a column is counted on the step that holds the records,
+a catalog search's whole result is counted with no step, and any other count is
+a build."""
+
+from __future__ import annotations
+
+from uuid import uuid4
+
+from strategist.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from strategist.ai.lead.held_intent import hold_the_intent
+from strategist.ai.lead.intent import (
+    IntentClassification,
+    UserIntent,
+)
+from strategist.ai.lead.intent_gate import tools_the_turn_offers
+from strategist.tests._support.run_context import run_context_for
+from strategist.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+)
+
+_RULE_HEAD = (
+    "A count per value of a column is counted on the step that holds the records."
+)
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _count_rule() -> str:
+    rules = _flat(LEAD_INSTRUCTIONS)
+    start = rules.index(_RULE_HEAD)
+    return rules[start : rules.index("- **", start)]
+
+
+def test_the_count_rule_names_no_question() -> None:
+    assert '"' not in _count_rule()
+
+
+def test_no_other_rule_sends_a_count_per_value_to_the_catalog_tally() -> None:
+    rules = _flat(LEAD_INSTRUCTIONS)
+
+    assert rules.count("``count_by_column``") == 1
+
+
+_COUNT = "How many records of the result does each value of that column hold?"
+
+
+def _count_intent(classification: IntentClassification, *, change: bool) -> UserIntent:
+    return UserIntent(
+        classification=classification,
+        inferred_goal="The result's records counted by each value of a column.",
+        asks=[_COUNT],
+        asks_a_change=change,
+    )
+
+
+async def test_a_count_that_needs_a_build_is_a_build_with_no_strategy() -> None:
+    state = pipeline_state("plasmodb", user_prompt=_COUNT, user_message_id=uuid4())
+    deps = lead_deps(state)
+    ctx = run_context_for(deps, tool_call_id="call_classify")
+
+    held = await hold_the_intent(
+        ctx.deps,
+        _count_intent(IntentClassification.NEW_STRATEGY, change=False),
+        ctx.deps.state.user_prompt,
+    )
+
+    assert held.classification is IntentClassification.NEW_STRATEGY
+    assert tools_the_turn_offers(deps, ["frame_problem", "build_strategy"]) == {
+        "frame_problem",
+        "build_strategy",
+    }

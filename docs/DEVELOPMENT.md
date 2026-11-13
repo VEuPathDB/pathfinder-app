@@ -34,18 +34,18 @@ cd apps/api
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src
-uv run pyright src/pathfinder
+uv run pyright src/strategist
 uv run lint-imports
 uv run vulture
 uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
-VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m pathfinder.devtools.openapi check
+VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m strategist.devtools.openapi check
 uv run pip-audit
 uv run --group docs sphinx-build -b html docs docs/_build/html  # the CI build-docs job
 
-uv run pytest src/pathfinder/tests/unit/ -v
-uv run pytest src/pathfinder/tests/ -v          # adds the integration tier; needs Docker
-uv run pytest --cov=src/pathfinder --cov-report=term-missing
+uv run pytest src/strategist/tests/unit/ -v
+uv run pytest src/strategist/tests/ -v          # adds the integration tier; needs Docker
+uv run pytest --cov=src/strategist --cov-report=term-missing
 ```
 
 ### Web (TypeScript)
@@ -94,7 +94,7 @@ yarn generate:types
 ```
 
 CI checks the result rather than writing it
-(`uv run python -m pathfinder.devtools.openapi check`,
+(`uv run python -m strategist.devtools.openapi check`,
 `yarn --cwd packages/shared-ts check:generated`), so a stale spec fails the
 build instead of being rewritten inside someone's commit.
 
@@ -102,7 +102,7 @@ build instead of being rewritten inside someone's commit.
 
 ```bash
 docker compose --env-file .env.dev up -d --build --force-recreate api worker wdk-mcp web
-docker compose exec api uv run pytest src/pathfinder/tests/ -v
+docker compose exec api uv run pytest src/strategist/tests/ -v
 ```
 
 ## Working across the four repositories
@@ -164,10 +164,10 @@ or `commit=` with the tag instead of the sha; the pin stays exact either way.
 Three checks enforce structure beyond linting.
 
 **File size cap.** `apps/api/scripts/check_max_lines.py` fails when a Python
-source file under `apps/api/src/pathfinder` exceeds 400 meaningful lines,
+source file under `apps/api/src/strategist` exceeds 400 meaningful lines,
 counting neither blanks nor comments. Devtools and two declared pure-model
 modules are exempt; the exemption set is in the script. Tests obey the cap:
-`src/pathfinder/tests/.max-lines-baseline.txt` ratchets the files that were
+`src/strategist/tests/.max-lines-baseline.txt` ratchets the files that were
 already over it, and a baselined file fails as soon as it grows past its
 recorded count. Run `--write-baseline` only to regenerate the whole list.
 

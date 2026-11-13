@@ -173,7 +173,7 @@ data it has, added in `services/catalog/`.
 An EDA tool cannot call the client, not even for a one-line `/count`. No
 import contract says so - the contracts here name the layers of `pathfinder` and
 the private modules of the installed distributions - but WDK-MAP-005's call-site
-test (`apps/api/src/pathfinder/tests/unit/test_call_sites.py`) fails on any
+test (`apps/api/src/strategist/tests/unit/test_call_sites.py`) fails on any
 module in this tree that builds an `httpx` client against a site URL. Every tool
 goes through `services/eda/`.
 

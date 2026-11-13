@@ -57,7 +57,7 @@ the price of not calling WDK on every catalog read.
 
 # Anchor
 
-`apps/api/src/pathfinder/services/eda/catalog.py`, pinned by
-`apps/api/src/pathfinder/tests/unit/services/eda/test_dataset_resolution.py`:
+`apps/api/src/strategist/services/eda/catalog.py`, pinned by
+`apps/api/src/strategist/tests/unit/services/eda/test_dataset_resolution.py`:
 a second token reads its own map, two accounts browse different catalogs, and
 one account asking twice still reads once.

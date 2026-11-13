@@ -1,0 +1,330 @@
+"""What reaches the caller when the Lead's run raises.
+
+The emitter answers an exception with an error chunk of its own, except a
+langgraph control-flow signal, which it re-raises so the graph sees it.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import itertools
+import json
+import logging
+from collections.abc import AsyncIterator, Sequence
+from typing import Any
+from uuid import uuid4
+
+import httpx2
+import openai
+import pytest
+from assistant_core.platform.types import PaidBy
+from langgraph.errors import GraphBubbleUp
+from pydantic_ai.exceptions import (
+    ModelAPIError,
+    ModelHTTPError,
+    UnexpectedModelBehavior,
+)
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+from pydantic_ai.models import Model
+from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from strategist.ai.graph import _lead_model
+from strategist.ai.graph._lead_capture import LeadRunCapture
+from strategist.ai.graph._lead_stops import fallback_prose
+from strategist.ai.graph.lead_node import _drive_lead_stream
+from strategist.ai.graph.runtime import Context
+from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.lead_agent import build_lead_agent
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.devtools.provider_refusals import load_refusal
+from strategist.domain.provider_keys import KeyRefusal, ProviderKeyring
+from strategist.domain.strategy.session import StrategySession
+from strategist.platform.model_keys import (
+    GuardedModel,
+    attach_keyring,
+    turn_deployment_refusals,
+)
+from strategist.tests._support.logs import logged_events
+from strategist.tests.unit.ai.graph._approval_turn import Collector
+
+_LEAD_NODE_LOGGER = "strategist.ai.graph.lead_node"
+
+
+def _quota_offline() -> AsyncSession:
+    msg = "no database in this unit test"
+    raise OperationalError(msg, None, Exception(msg))
+
+
+def _deps(state: PipelineState) -> LeadDeps:
+    return LeadDeps(
+        state=state,
+        intent=None,
+        runtime=Context(
+            site_id="plasmodb",
+            user_id=state.user_id,
+            strategy_session=StrategySession(site_id="plasmodb"),
+            db_session_factory=_quota_offline,
+            cancel_event=asyncio.Event(),
+        ),
+        retrieved_memories=[],
+    )
+
+
+def _raising_model(error: Exception) -> FunctionModel:
+    """A model whose every request fails the way ``error`` says."""
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        raise error
+
+    async def _stream(
+        messages: list[ModelMessage],
+        info: AgentInfo,
+    ) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+        del messages, info
+        for _ in ():
+            yield {}
+        raise error
+
+    return FunctionModel(_fn, stream_function=_stream, model_name="scripted")
+
+
+def _answering_then_raising_model(error: Exception) -> FunctionModel:
+    """A model that answers one request, then fails the next one."""
+    answered = itertools.count()
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        if next(answered):
+            raise error
+        return ModelResponse(parts=[TextPart(content="Reading the thread.")])
+
+    async def _stream(
+        messages: list[ModelMessage],
+        info: AgentInfo,
+    ) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+        del messages, info
+        if next(answered) == 0:
+            yield "Reading the thread."
+            return
+        for _ in ():
+            yield ""
+        raise error
+
+    return FunctionModel(_fn, stream_function=_stream, model_name="scripted")
+
+
+def _drive(
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    capture: LeadRunCapture,
+    writer: Collector,
+) -> None:
+    _drive_model(monkeypatch, _raising_model(error), capture, writer)
+
+
+def _drive_model(
+    monkeypatch: pytest.MonkeyPatch,
+    model: Model,
+    capture: LeadRunCapture,
+    writer: Collector,
+) -> None:
+    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    state = PipelineState(
+        conversation_id=uuid4(),
+        user_id=uuid4(),
+        site_id="plasmodb",
+        mode="strategy",
+        user_prompt="Find A. gambiae midgut proteases",
+        user_message_id=uuid4(),
+    )
+    emitted: Any = writer
+    asyncio.run(
+        _drive_lead_stream(
+            state=state,
+            agent=build_lead_agent(),
+            deps=_deps(state),
+            capture=capture,
+            writer=emitted,
+            message_id=uuid4(),
+        ),
+    )
+
+
+def _turn_failures(caplog: pytest.LogCaptureFixture) -> Sequence[str]:
+    """The events the turn logged as a failure of its own."""
+    return logged_events(caplog.records, logger=_LEAD_NODE_LOGGER)
+
+
+def test_a_graph_control_signal_reaches_the_graph_unlogged(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """langgraph decides what a bubbled signal means, so the turn re-raises it.
+
+    The turn logs nothing: a signal the graph reads is not a failure, and the
+    stack it would render carries every local of the run.
+    """
+    capture = LeadRunCapture()
+    writer = Collector()
+
+    with caplog.at_level(logging.ERROR), pytest.raises(GraphBubbleUp):
+        _drive(monkeypatch, GraphBubbleUp(), capture, writer)
+
+    assert _turn_failures(caplog) == []
+    assert capture.response is None
+    assert writer.chunks_of("error") == []
+
+
+def test_any_other_failure_reaches_the_user_as_an_error_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The contrast: the emitter answers this one, so the turn ends without it.
+
+    The turn logs nothing here either. Only the loop that writes the chunks
+    reports through ``lead_node``, and it ran to the end.
+    """
+    capture = LeadRunCapture()
+    writer = Collector()
+
+    with caplog.at_level(logging.ERROR):
+        _drive(monkeypatch, RuntimeError("the model refused"), capture, writer)
+
+    assert [chunk["type"] for chunk in writer.chunks_of("error")] == ["error"]
+    assert _turn_failures(caplog) == []
+
+
+def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transport failure is not a badly phrased message; the reply says which it was."""
+    capture = LeadRunCapture()
+
+    _drive(
+        monkeypatch,
+        ModelAPIError("scripted", "peer closed connection"),
+        capture,
+        Collector(),
+    )
+
+    assert capture.run_error == "peer closed connection"
+    assert fallback_prose(capture, None, change="unchanged") == (
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I will "
+        "start over from it."
+    )
+
+
+def test_a_provider_failure_reaches_the_reply_without_its_response_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The provider's payload is persisted prose if the reply repeats it."""
+    capture = LeadRunCapture()
+    body = {"error": {"message": "Rate limit reached for org-abc123"}}
+    failure = ModelHTTPError(status_code=429, model_name="luna", body=body)
+
+    _drive(monkeypatch, failure, capture, Collector())
+
+    assert capture.run_error == str(failure)
+    assert fallback_prose(capture, None, change="unchanged") == (
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I will "
+        "start over from it."
+    )
+    assert "org-abc123" not in fallback_prose(capture, None, change="unchanged")
+
+
+def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
+    assert fallback_prose(LeadRunCapture(), None, change="unchanged") == (
+        "I couldn't produce a response for this turn. Please rephrase or provide "
+        "more context and I'll try again."
+    )
+
+
+def test_a_model_that_never_answered_is_recorded_as_unanswered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reply blames the model only where the model produced nothing."""
+    capture = LeadRunCapture()
+
+    _drive(monkeypatch, RuntimeError("Connection error."), capture, Collector())
+
+    assert capture.model_answered is False
+
+
+@pytest.mark.parametrize(
+    ("error", "provider_failed"),
+    [
+        (ModelHTTPError(400, "scripted"), True),
+        (ModelAPIError("scripted", "The provider did not complete it."), True),
+        (UnexpectedModelBehavior("Received empty model response"), True),
+        (json.JSONDecodeError("Expecting value", "a label", 0), False),
+        (RuntimeError("Connection error."), False),
+    ],
+)
+def test_the_capture_says_whether_a_provider_call_failed(
+    monkeypatch: pytest.MonkeyPatch, error: Exception, provider_failed: bool
+) -> None:
+    capture = LeadRunCapture()
+
+    _drive(monkeypatch, error, capture, Collector())
+
+    assert capture.run_error is not None
+    assert capture.provider_failed is provider_failed
+
+
+def test_a_model_that_answered_once_is_recorded_as_answered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture = LeadRunCapture()
+
+    _drive_model(
+        monkeypatch,
+        _answering_then_raising_model(RuntimeError("peer closed connection")),
+        capture,
+        Collector(),
+    )
+
+    assert capture.model_answered is True
+    assert capture.run_error == "peer closed connection"
+
+
+def test_a_billing_error_inside_the_stream_reaches_the_wire_without_its_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The error chunk is the typed refusal's sentence, which holds no link."""
+    body = load_refusal("openai-no-credit-stream").body
+    streamed = ModelAPIError("scripted", "You have no credits remaining.")
+    streamed.__cause__ = openai.APIError(
+        "You have no credits remaining.",
+        request=httpx2.Request("POST", "https://api.openai.com/v1/responses"),
+        body=body,
+    )
+    capture = LeadRunCapture()
+    writer = Collector()
+
+    with attach_keyring(ProviderKeyring()) as keys:
+        model = GuardedModel(
+            _raising_model(streamed),
+            keys=keys,
+            provider="openai",
+            paid_by=PaidBy.DEPLOYMENT,
+        )
+        _drive_model(monkeypatch, model, capture, writer)
+        refused = turn_deployment_refusals()
+        prose = fallback_prose(capture, None, change="unchanged")
+
+    written = [chunk["errorText"] for chunk in writer.chunks_of("error")]
+    assert written == [
+        "OpenAI refused the request on the deployment's account: no credit remaining"
+    ]
+    assert capture.run_error == written[0]
+    assert refused == {"openai": KeyRefusal.NO_CREDIT}
+    assert prose.startswith(
+        "I stopped this turn: OpenAI refused the request on the deployment's "
+        "account (no credit remaining)."
+    )
+    assert "http" not in prose

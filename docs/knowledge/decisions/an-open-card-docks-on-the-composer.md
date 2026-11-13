@@ -24,12 +24,12 @@ one reader of that rule.
   picked, and the dock moves to the next open question; once every question holds an answer,
   the card is submitted through `handleConsultSubmit`. The api takes a note-only answer to any
   question kind: `_answer_requirement` states the note as the requirement when no label is
-  picked (`apps/api/src/pathfinder/ai/lead/lead_consult.py`). When the current question has
+  picked (`apps/api/src/strategist/ai/lead/lead_consult.py`). When the current question has
   `allowNotes` false, as on Explore's readings card, the words are sent as the next message and
   the card closes (`takesTypedNotes` in `content/parts/consultDraft.ts`). Words that start with
   a slash are a command, not an answer, and go to the commands as they do with no card open.
 - **Typed words under any other card.** They are sent as the next message. `answer_to_the_offer`
-  (`apps/api/src/pathfinder/ai/graph/_lead_offers.py`) reads a typed approval phrase as a yes,
+  (`apps/api/src/strategist/ai/graph/_lead_offers.py`) reads a typed approval phrase as a yes,
   and declines the card on any other words and hands them to the Lead as its next user prompt.
 
 # What was rejected

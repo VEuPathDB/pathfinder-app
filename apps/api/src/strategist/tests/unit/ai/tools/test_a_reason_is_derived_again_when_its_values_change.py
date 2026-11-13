@@ -1,0 +1,245 @@
+"""A reason records the values it was derived from. An edit that changes one of
+them records the edit's own why, or asks for one; an edit that changes none, or
+only an organism, keeps the reason."""
+
+from __future__ import annotations
+
+import pytest
+from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue, to_wire
+
+from strategist.ai.agents.state import AgentToolState
+from strategist.ai.tools.standalone._frame_result import SetCriterionResult
+from strategist.ai.tools.standalone.frame_spec import set_criterion
+from strategist.domain.strategy.operational_spec import (
+    BoundValue,
+    Criterion,
+    OperationalSpec,
+)
+from strategist.domain.strategy.step_rationale import ComparedSearch, SearchRationale
+from strategist.tests._support.recorded_counts import no_measurements
+from strategist.tests._support.recorded_searches import (
+    serve_recorded_plasmodb,
+    suite_search,
+)
+from strategist.tests._support.tool_returns import returned
+from strategist.tests.unit.ai.tools._rationale_catalog import choice
+from strategist.tests.unit.ai.tools.conftest import serve_no_other_sites
+from strategist.tests.unit.ai.tools.test_frame_spec import frame_ctx, no_validation
+
+_TEXT = suite_search("search_genes_by_text")
+_HELD_REASON = (
+    "Search the Apicomplexa lineage for the literal rhoptry annotation in "
+    "product-description fields."
+)
+_HELD_VALUES: dict[str, ParamValue] = {
+    "text_expression": StringValue(value="rhoptry"),
+    "text_fields": MultiPickValue(values=["product"]),
+    "text_search_organism": MultiPickValue(values=["Apicomplexa"]),
+}
+_HELD = SearchRationale(
+    search_name=_TEXT.url_segment,
+    basis="parameter",
+    term="Text term (use * as wildcard)",
+    reason=_HELD_REASON,
+    similarity=0.61,
+    compared=[
+        ComparedSearch(
+            name="GenesByRnaSeqEvidence",
+            display_name="RNA-Seq Evidence",
+            similarity=0.4,
+        )
+    ],
+    query="rhoptry annotation",
+    tool_call_id="call_turn1_read",
+    sources=["https://example.org/rhoptry-review"],
+    derived_from={name: to_wire(value) for name, value in _HELD_VALUES.items()},
+)
+_REQUEST = "Only the Plasmodium falciparum 3D7 rhoptry genes, please."
+
+
+def _state(organism: str = "Apicomplexa") -> AgentToolState:
+    held = Criterion(
+        id="step_2381d896",
+        text="Genes in the Apicomplexa lineage annotated as rhoptry proteins",
+        search_name=_TEXT.url_segment,
+        resolved_params={
+            "text_expression": BoundValue(
+                value=StringValue(value="rhoptry"), source="stated"
+            ),
+            "text_fields": BoundValue(
+                value=MultiPickValue(values=["product"]), source="chosen"
+            ),
+            "text_search_organism": BoundValue(
+                value=MultiPickValue(values=[organism]), source="stated"
+            ),
+        },
+        rationale=_HELD,
+    )
+    state = AgentToolState(operational_spec_draft=OperationalSpec(criteria=[held]))
+    state.request_messages = [_REQUEST]
+    return state
+
+
+_EDIT: dict[str, str | list[str] | None] = {
+    "text_expression": "rhoptry",
+    "text_fields": ["product"],
+    "text_search_organism": ["Plasmodium falciparum 3D7"],
+}
+
+
+@pytest.fixture(autouse=True)
+def _served(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_plasmodb(monkeypatch, [_TEXT])
+    no_validation(monkeypatch)
+    no_measurements(monkeypatch)
+    serve_no_other_sites(monkeypatch)
+
+
+@pytest.mark.asyncio
+async def test_a_value_edit_with_no_why_is_refused() -> None:
+    state = _state()
+
+    with pytest.raises(ModelRetry) as refusal:
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=_EDIT | {"text_expression": '"rhoptry protein"'},
+        )
+
+    assert "Pass a why for the values this call binds" in str(refusal.value)
+    [criterion] = state.operational_spec_draft.criteria
+    assert criterion.rationale == _HELD
+
+
+@pytest.mark.asyncio
+async def test_an_organism_edit_keeps_a_reason_that_names_the_old_organism() -> None:
+    state = _state()
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=dict(_EDIT),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.rationale is not None
+    assert (
+        result.rationale.reason,
+        result.rationale.derived_from["text_search_organism"],
+    ) == (
+        _HELD.reason,
+        '["Plasmodium falciparum 3D7"]',
+    )
+
+
+@pytest.mark.asyncio
+async def test_an_edit_s_why_is_recorded_though_the_kept_reason_names_no_value() -> (
+    None
+):
+    """The ME49 rebind quotes the phrase; the reason it held named no value."""
+    held = _HELD.model_copy(
+        update={"reason": "The text term is the requested phrase in the product field."}
+    )
+    state = _state()
+    state.operational_spec_draft.criteria[0].rationale = held
+    new_reason = (
+        "The exact phrase in the product field, as the Hammondia search reads it."
+    )
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=_EDIT | {"text_expression": '"rhoptry protein"'},
+            why=choice("parameter", "Text term (use * as wildcard)", new_reason),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.rationale is not None
+    assert result.rationale.reason == new_reason
+
+
+@pytest.mark.asyncio
+async def test_a_binding_of_the_same_values_keeps_the_reason() -> None:
+    state = _state("Plasmodium falciparum 3D7")
+    [criterion] = state.operational_spec_draft.criteria
+    held = _HELD.model_copy(
+        update={
+            "derived_from": {
+                name: to_wire(bound.value)
+                for name, bound in criterion.resolved_params.items()
+            }
+        }
+    )
+    criterion.rationale = held
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=dict(_EDIT),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.rationale == held
+
+
+def test_the_glycosome_reason_no_longer_holds_once_the_organism_narrows() -> None:
+    """The GO reason names the taxon-wide scope it was derived at."""
+    held = _HELD.model_copy(
+        update={
+            "reason": (
+                "The direct GO search supports the requested glycosome annotation "
+                "and the Trypanosomatida taxon-wide scope."
+            ),
+            "derived_from": {
+                "organism": '["Trypanosomatida"]',
+                "GoTermId": '["GO:0020015"]',
+            },
+        }
+    )
+
+    narrowed = {
+        "organism": '["Leishmania donovani BPK282A1"]',
+        "GoTermId": '["GO:0020015"]',
+    }
+    assert held.changed_by(narrowed) == ["organism"]
+
+
+@pytest.mark.asyncio
+async def test_an_organism_edit_keeps_a_reason_that_names_no_organism() -> None:
+    held = _HELD.model_copy(
+        update={"reason": "The text term is the requested phrase in the product field."}
+    )
+    state = _state()
+    state.operational_spec_draft.criteria[0].rationale = held
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=dict(_EDIT),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.rationale is not None
+    assert (result.rationale.term, result.rationale.reason) == (held.term, held.reason)
+    assert result.rationale.derived_from["text_search_organism"] == (
+        '["Plasmodium falciparum 3D7"]'
+    )

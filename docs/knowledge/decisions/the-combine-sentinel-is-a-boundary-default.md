@@ -23,7 +23,7 @@ Nothing reads it to decide what a step is. `StrategyStep.kind` comes from the
 node's inputs, and `own_search_name` is the one place that translates the
 placeholder back to "this step names no question of its own". The predicate the
 push and validation paths need is `runs_a_wdk_search`, beside it. Two sites in
-`apps/api/src/pathfinder/ai/` still compare against the constant, and both compare a search *name* a
+`apps/api/src/strategist/ai/` still compare against the constant, and both compare a search *name* a
 model or a tool result supplied rather than a node: the step renderer, which
 keeps the placeholder out of a line the model reads, and the variant guard,
 which refuses a variant that names a combine.
@@ -62,5 +62,5 @@ translation are pinned by a fixture round trip.
 validator default),
 `veupathdb-py: src/veupathdb/domain/strategy/graph_model.py` (`own_search_name`,
 `rebuild_tree`, `wdk_search_name`, `runs_a_wdk_search`),
-`apps/api/src/pathfinder/tests/unit/domain/strategy/test_graph_model.py`,
-`apps/api/src/pathfinder/tests/unit/domain/strategy/test_ast_persistence.py`.
+`apps/api/src/strategist/tests/unit/domain/strategy/test_graph_model.py`,
+`apps/api/src/strategist/tests/unit/domain/strategy/test_ast_persistence.py`.

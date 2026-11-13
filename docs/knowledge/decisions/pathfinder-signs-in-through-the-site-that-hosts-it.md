@@ -12,7 +12,7 @@ status: stable
 Strategist is served at the fixed base path `/pathfinder` on the host of the
 VEuPathDB website that shows it, and a page of that website embeds it under the
 website's own header. Every environment uses the same base path, local
-development included (`apps/api/src/pathfinder/platform/config.py::BASE_PATH`,
+development included (`apps/api/src/strategist/platform/config.py::BASE_PATH`,
 `basePath` in `apps/web/next.config.ts`), so one web image serves every host.
 
 **The website's login cookie is the only credential for a WDK account.** WDK
@@ -81,16 +81,16 @@ resolves them on the website that serves Strategist and no setting names it.
 
 # What would falsify this
 
-- `apps/api/src/pathfinder/tests/unit/platform/test_the_site_login_signs_a_request_in.py`
+- `apps/api/src/strategist/tests/unit/platform/test_the_site_login_signs_a_request_in.py`
   serves a request with no website login, or signs one in on a `pathfinder-auth`
   cookie.
-- `apps/api/src/pathfinder/tests/unit/transport/test_auth_cookies.py` finds a
+- `apps/api/src/strategist/tests/unit/transport/test_auth_cookies.py` finds a
   route other than the development sign-in that writes `Authorization`, a module
   that names `pathfinder-auth`, or a status read that writes a cookie.
-- `apps/api/src/pathfinder/tests/unit/transport/test_dev_login_is_test_only.py`
+- `apps/api/src/strategist/tests/unit/transport/test_dev_login_is_test_only.py`
   finds `/api/v1/dev/site-login` on the production app, or on a development app
   without the development account.
-- `apps/api/src/pathfinder/tests/unit/transport/test_health_config_site.py`
+- `apps/api/src/strategist/tests/unit/transport/test_health_config_site.py`
   reads a sign-in address that is not the deployment site's login page.
 
 # What was rejected

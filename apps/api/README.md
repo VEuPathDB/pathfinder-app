@@ -5,22 +5,22 @@ services behind them, and the procrastinate worker that runs every chat turn.
 
 ### Key entrypoints
 
-- **App**: `src/pathfinder/main.py`
-- **Chat endpoint**: `src/pathfinder/transport/http/routers/chat.py` (`POST /api/v1/chat`)
-- **Dispatcher** (persists the message, defers the turn, tails the log): `src/pathfinder/ai/conversation/dispatcher.py`
-- **Turn runner** (worker side): `src/pathfinder/jobs/impls/chat_turn_impl.py` -> `src/pathfinder/ai/conversation/turn_runner.py`
-- **Graph**: `src/pathfinder/ai/graph/builder.py` (`lead` -> `finalize_turn`)
-- **Lead agent + ledger**: `src/pathfinder/ai/lead/lead_agent.py`, `src/pathfinder/ai/lead/ledger.py`
-- **Worker**: `python -m pathfinder.jobs.worker` (`src/pathfinder/jobs/worker.py`)
+- **App**: `src/strategist/main.py`
+- **Chat endpoint**: `src/strategist/transport/http/routers/chat.py` (`POST /api/v1/chat`)
+- **Dispatcher** (persists the message, defers the turn, tails the log): `src/strategist/ai/conversation/dispatcher.py`
+- **Turn runner** (worker side): `src/strategist/jobs/impls/chat_turn_impl.py` -> `src/strategist/ai/conversation/turn_runner.py`
+- **Graph**: `src/strategist/ai/graph/builder.py` (`lead` -> `finalize_turn`)
+- **Lead agent + ledger**: `src/strategist/ai/lead/lead_agent.py`, `src/strategist/ai/lead/ledger.py`
+- **Worker**: `python -m strategist.jobs.worker` (`src/strategist/jobs/worker.py`)
 - **MCP server**: `python -m veupathdb_mcp` (the `veupathdb-mcp` distribution)
 
 ### Package structure
 
 ```
-src/pathfinder/
+src/strategist/
   main.py                    # FastAPI app factory
   assistants/                # Composition root: one spec per assistant, plus the registry
-    pathfinder_spec.py       #   The Lead + ledger assistant
+    strategist_spec.py       #   The Lead + ledger assistant
   ai/                        # The agents themselves
     agents/                  #   Sub-agent roles (frame, execution, verification), instructions,
                              #     history compaction, tool and parameter vocabulary
@@ -194,13 +194,13 @@ docker compose --env-file .env.dev -f ../../docker-compose.yml -f ../../docker-c
 cd apps/api
 cp ../../.env.dev.example .env
 uv sync
-uv run uvicorn pathfinder.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn strategist.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Chat turns run in the worker, so start it too or no turn will ever finish:
 
 ```bash
-uv run python -m pathfinder.jobs.worker
+uv run python -m strategist.jobs.worker
 ```
 
 API will be available at:
@@ -225,7 +225,7 @@ The full gate list is in `docs/DEVELOPMENT.md`. The short form:
 ```bash
 cd apps/api
 uv run ruff check . && uv run ruff format --check .
-uv run mypy src && uv run pyright src/pathfinder
+uv run mypy src && uv run pyright src/strategist
 uv run lint-imports
-uv run pytest src/pathfinder/tests/unit/ -v
+uv run pytest src/strategist/tests/unit/ -v
 ```

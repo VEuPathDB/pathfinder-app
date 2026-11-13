@@ -44,7 +44,7 @@ reviews:
   # ── Architecture-aware review instructions ────────────────────────
   path_instructions:
     # Backend — Domain layer (PURE: no I/O, no side effects)
-    - path: "apps/api/src/pathfinder/domain/**"
+    - path: "apps/api/src/strategist/domain/**"
       instructions: |
         This is the PURE domain layer. It must have:
         - NO I/O (no network calls, no database, no file system)
@@ -54,7 +54,7 @@ reviews:
         Flag any violation immediately.
 
     # Backend — AI tools (thin wrappers, call services only)
-    - path: "apps/api/src/pathfinder/ai/tools/**"
+    - path: "apps/api/src/strategist/ai/tools/**"
       instructions: |
         AI tools are thin wrappers. They must:
         - Call services/ only — never integrations/ or domain/ directly
@@ -63,7 +63,7 @@ reviews:
         Flag any direct integration or domain import.
 
     # Backend — Transport layer (HTTP handling only)
-    - path: "apps/api/src/pathfinder/transport/**"
+    - path: "apps/api/src/strategist/transport/**"
       instructions: |
         Transport layer handles HTTP/SSE only. It must:
         - Call services/ only — never integrations/ or domain/ directly
@@ -72,14 +72,14 @@ reviews:
         Flag any direct integration or persistence import.
 
     # Backend — Services (business logic, orchestrates domain + integrations)
-    - path: "apps/api/src/pathfinder/services/**"
+    - path: "apps/api/src/strategist/services/**"
       instructions: |
         Services contain business logic. They may call domain/ and integrations/.
         They must NOT import from transport/ or ai/.
         Ensure Pydantic models are used at all boundaries — no raw dicts, no isinstance chains.
 
     # Backend — Integrations (external API clients)
-    - path: "apps/api/src/pathfinder/integrations/**"
+    - path: "apps/api/src/strategist/integrations/**"
       instructions: |
         Integration layer wraps external APIs (VEuPathDB WDK, Qdrant, embeddings).
         Must use Pydantic models to parse responses — no raw dict access.

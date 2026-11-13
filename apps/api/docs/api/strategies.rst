@@ -30,7 +30,7 @@ search names, step structure. Returns structured validation errors with field pa
 
 **Key function:** :py:func:`validate_plan_or_raise`
 
-.. automodule:: pathfinder.services.strategies.plan_validation
+.. automodule:: strategist.services.strategies.plan_validation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -41,7 +41,7 @@ WDK Sync
 **Purpose:** Fetch WDK strategies and sync into CQRS projections.
 Lazy detail fetching, isSaved sync, and projection upsert.
 
-.. automodule:: pathfinder.services.strategies.wdk_sync
+.. automodule:: strategist.services.strategies.wdk_sync
    :members:
    :undoc-members:
    :show-inheritance:
@@ -53,7 +53,7 @@ WDK Step Counts
 for leaf-only strategies (fast) and temporary WDK compilation for complex
 strategies. Results are cached by plan hash.
 
-.. automodule:: pathfinder.services.strategies.wdk_counts
+.. automodule:: strategist.services.strategies.wdk_counts
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,7 +64,7 @@ Strategy Build
 **Purpose:** High-level strategy build orchestration. Coordinates step
 creation and graph assembly.
 
-.. automodule:: pathfinder.services.strategies.build
+.. automodule:: strategist.services.strategies.build
    :members:
    :undoc-members:
    :show-inheritance:
@@ -75,12 +75,12 @@ Step Push
 **Purpose:** Plan the WDK calls one step needs, then make them. A failed push
 leaves the step in the local graph for the sync service to retry.
 
-.. automodule:: pathfinder.services.strategies.step_push_planner
+.. automodule:: strategist.services.strategies.step_push_planner
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.step_wdk_push
+.. automodule:: strategist.services.strategies.step_wdk_push
    :members:
    :undoc-members:
    :show-inheritance:
@@ -90,7 +90,7 @@ Auto Import
 
 **Purpose:** Automatic import of WDK strategies into Strategist.
 
-.. automodule:: pathfinder.services.strategies.auto_import
+.. automodule:: strategist.services.strategies.auto_import
    :members:
    :undoc-members:
    :show-inheritance:
@@ -102,22 +102,22 @@ Sync and Reconcile
 decorations — and read live WDK state back to self-heal ``sync_state`` after
 a partial push.
 
-.. automodule:: pathfinder.services.strategies.sync
+.. automodule:: strategist.services.strategies.sync
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.site_counts
+.. automodule:: strategist.services.strategies.site_counts
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.sync_state
+.. automodule:: strategist.services.strategies.sync_state
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.reconcile
+.. automodule:: strategist.services.strategies.reconcile
    :members:
    :undoc-members:
    :show-inheritance:
@@ -128,7 +128,7 @@ Session Factory
 **Purpose:** Create and restore strategy sessions. Loads strategy state
 from the database for chat context.
 
-.. automodule:: pathfinder.services.strategies.session_factory
+.. automodule:: strategist.services.strategies.session_factory
    :members:
    :undoc-members:
    :show-inheritance:
@@ -140,22 +140,22 @@ Declarative Build
 the tree already stored, persist the new AST to the conversation row, push
 the steps, and sync.
 
-.. automodule:: pathfinder.services.strategies.spec_build
+.. automodule:: strategist.services.strategies.spec_build
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.commit
+.. automodule:: strategist.services.strategies.commit
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.persist
+.. automodule:: strategist.services.strategies.persist
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.materialize
+.. automodule:: strategist.services.strategies.materialize
    :members:
    :undoc-members:
    :show-inheritance:

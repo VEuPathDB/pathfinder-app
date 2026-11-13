@@ -13,7 +13,7 @@ import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
-from pathfinder.persistence.models import GUID
+from strategist.persistence.models import GUID
 
 revision: str = "2026_04_15_0001"
 down_revision: str | Sequence[str] | None = "b97ba9130ec3"
@@ -41,7 +41,7 @@ def upgrade() -> None:
     op.execute("DROP TABLE IF EXISTS messages CASCADE")
     op.execute("DROP TABLE IF EXISTS chats CASCADE")
 
-    # Recreate chats — mirrors :class:`pathfinder.persistence.models.Chat`.
+    # Recreate chats — mirrors :class:`strategist.persistence.models.Chat`.
     op.create_table(
         "chats",
         sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -118,7 +118,7 @@ def upgrade() -> None:
         postgresql_where=sqlalchemy.text("wdk_strategy_id IS NOT NULL"),
     )
 
-    # Recreate messages — mirrors :class:`pathfinder.persistence.models.Message`.
+    # Recreate messages — mirrors :class:`strategist.persistence.models.Message`.
     op.create_table(
         "messages",
         sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -217,7 +217,7 @@ def upgrade() -> None:
         "task_progress_task_idx", "task_progress", ["task_id", "emitted_at"]
     )
 
-    # Recreate chat_events — mirrors :class:`pathfinder.persistence.models.ChatEvent`.
+    # Recreate chat_events — mirrors :class:`strategist.persistence.models.ChatEvent`.
     op.create_table(
         "chat_events",
         sqlalchemy.Column(
@@ -278,7 +278,7 @@ def upgrade() -> None:
     op.create_index("checkpoint_labels_thread_idx", "checkpoint_labels", ["thread_id"])
 
     # Recreate memory_tombstones — mirrors
-    # :class:`pathfinder.persistence.models.MemoryTombstoneRow`.
+    # :class:`strategist.persistence.models.MemoryTombstoneRow`.
     op.create_table(
         "memory_tombstones",
         sqlalchemy.Column(

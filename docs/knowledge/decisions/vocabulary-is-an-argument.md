@@ -51,7 +51,7 @@ drift from it.
 
 # Anchor
 
-`apps/api/src/pathfinder/ai/conversation/request_body.py` and
+`apps/api/src/strategist/ai/conversation/request_body.py` and
 `platform/tiers.py` hold the role vocabulary the wire carries;
 `assistant_core/memory/schemas.py` holds the memory one. Done if a kind literal
 appears anywhere that `openapi.json` does not already publish, or if a second

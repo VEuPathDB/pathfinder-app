@@ -1,0 +1,28 @@
+"""Who a request acts as: the user, the calling application, and the credential."""
+
+from typing import Literal
+from uuid import UUID
+
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict
+
+from strategist.platform.identity import APPLICATION_ID
+
+CredentialKind = Literal[
+    "veupathdb-cookie",
+    "strategist-bearer",
+    "veupathdb-bearer",
+    "dev-login",
+]
+
+SERVICE_AUTH_HEADER = "X-Strategist-Service-Token"
+
+
+class Principal(CamelModel):
+    """The identity a request is served under."""
+
+    model_config = ConfigDict(frozen=True)
+
+    user_id: UUID
+    application_id: str = APPLICATION_ID
+    credential: CredentialKind

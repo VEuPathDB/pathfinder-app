@@ -1,0 +1,54 @@
+"""The listing arc names each id its listing read as a record reference, which
+links the listing the facts part shows under its step."""
+
+from __future__ import annotations
+
+from strategist.ai.models.mock.facts_arcs import LISTED
+from strategist.domain.record_facts import ListedFact
+from strategist.domain.record_page import ListedRecord
+from strategist.domain.reply_note import render_note
+from strategist.domain.turn_facts import StepFact, TurnFacts
+from strategist.tests.unit.ai.models._mock_turns import Scene, args_of, names, play
+
+# The first ids of the Hammondia microneme result, as the listing read them.
+_IDS = ["HHA_204530", "HHA_245485", "HHA_245490", "HHA_260190", "HHA_319560"]
+_PAGE = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
+
+
+def test_the_listing_arc_names_the_ids_the_facts_list() -> None:
+    calls = play(
+        "lead",
+        "toxodb",
+        "Which genes are in the result? [[arc:list-ids]]",
+        scene=Scene(
+            answers={
+                "read_step_ids": {
+                    "wdkStepId": 227295700,
+                    "geneIds": _IDS,
+                    "total": 19,
+                    "complete": False,
+                }
+            }
+        ),
+    )
+    prose = str(calls[-1].args_as_dict()["prose"])
+    step = StepFact(step_id="step_join", display_name="Intersect", count=19)
+    facts = TurnFacts(
+        steps=[step],
+        listed=[
+            ListedFact(
+                step_id="step_join",
+                step_name="Intersect",
+                records=[ListedRecord(record_id=g, url=f"{_PAGE}{g}") for g in _IDS],
+            )
+        ],
+    )
+
+    assert names(calls) == ["read_step_ids", "final_result"]
+    assert args_of(calls, "read_step_ids") == [{"limit": LISTED}]
+    assert render_note(prose, facts) == (
+        "The result starts with " + ", ".join(f"[{g}]({_PAGE}{g})" for g in _IDS) + "."
+    )
+    assert render_note(prose, TurnFacts(steps=[step])) == (
+        "The result starts with,,,,."
+    )

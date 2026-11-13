@@ -1,0 +1,343 @@
+"""Folding the bound criteria into the strategy tree."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+
+from assistant_core.graph.tool_summary import with_summary
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import Field
+from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai.messages import ToolReturn
+from veupathdb_mcp.gene_lookup import list_organisms
+
+from strategist.ai.agents.state import AgentToolState
+from strategist.ai.graph.runtime import AgentDeps
+from strategist.ai.tools.standalone._frame_organisms import (
+    stated_cross_organism_refusal,
+)
+from strategist.domain.strategy.named_combine import (
+    named_combine_breach,
+    unstated_operator_move,
+)
+from strategist.domain.strategy.operational_spec import (
+    SpecStructure,
+    StructureNode,
+    criteria_under,
+    structure_criteria,
+)
+from strategist.domain.strategy.organism_scope import (
+    universe_key,
+)
+from strategist.domain.strategy.orthology import (
+    copy_refusal,
+    round_trip_refusal,
+    stated_steps,
+)
+from strategist.domain.strategy.orthology_request import orthology_shape_refusal
+from strategist.domain.strategy.spec_duplicates import (
+    DuplicateDrop,
+    fold_duplicate_inputs,
+)
+from strategist.domain.strategy.spec_fold import (
+    FoldedStructure,
+    OrganismDrop,
+    fold_organism_universe,
+    intersected_leaves,
+)
+from strategist.services.strategies.organism_universe import universe_counts
+from strategist.services.strategies.record_classes import (
+    tree_record_class_refusal,
+)
+
+
+class StructureDrop(CamelModel):
+    """An input a structure fold removed, and what became of its text."""
+
+    criterion_id: str
+    met: bool
+    fate: str
+
+    @classmethod
+    def of(cls, drop: OrganismDrop | DuplicateDrop) -> StructureDrop:
+        return cls(criterion_id=drop.criterion_id, met=drop.met, fate=drop.fate)
+
+
+class SetStructureResult(CamelModel):
+    """Result of folding the bound criteria into the strategy structure."""
+
+    criteria_combined: int
+    dropped: list[StructureDrop] = Field(default_factory=list)
+
+
+def _refuse_a_tree_that_moves_an_unnamed_combine(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A combine the message names by its place carries the stated operator,
+    and every other combine keeps the operator the strategy holds."""
+    if state.named_combine is None:
+        return
+    breach = named_combine_breach(
+        state.named_combine, proposed, held=state.held_structure
+    )
+    if breach is None:
+        return
+    msg = (
+        f"The structure is refused: {breach.message}. Restate the tree with "
+        f"that combine changed and every other combine as it stands."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """An edit that names no combine by its place changes a held combine's
+    operator only to one the message states or the researcher's words read as."""
+    if state.named_combine is not None or state.held_structure is None:
+        return
+    stated = state.stated_operators | state.read_operators
+    moved = unstated_operator_move(proposed, state.held_structure, stated)
+    if moved is None:
+        return
+    was, now = moved
+    members = ", ".join(sorted(criteria_under(was)))
+    msg = (
+        f"The structure is refused: the tree moves the combine over {members} "
+        f"from {was.combine_operator.value} to {now.combine_operator.value}, and "
+        f"the message states no {now.combine_operator.value}. A combine's "
+        f"operator changes only to one the message states."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_tree_that_leaves_out_an_analysis(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A tree names every analysis criterion, bound or waiting for its analysis.
+
+    Such a criterion is realized by the Lead's EDA tools and never by a search
+    this pass binds, so a tree without it loses the comparison.
+    """
+    named = structure_criteria(proposed)
+    left_out = [
+        c.id
+        for c in state.operational_spec_draft.criteria
+        if (c.analysis is not None or c.pending_analysis) and c.id not in named
+    ]
+    if not left_out:
+        return
+    msg = (
+        f"The structure leaves out {left_out}, which the analysis workflow "
+        f"realizes. Put each of them in the tree where the request places it; "
+        f"no other criterion stands for it."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_tree_of_another_orthology_shape(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A message that carries the genes to an organism takes one transform, and
+    one that keeps the genes with an ortholog there takes the round trip."""
+    if state.orthology_request is None:
+        return
+    stated = state.operational_spec_draft.model_copy(update={"structure": proposed})
+    refusal = orthology_shape_refusal(
+        state.orthology_request, stated, held=state.held_criteria
+    )
+    if refusal is not None:
+        msg = f"The structure is refused: {refusal} Nothing was recorded."
+        raise ModelRetry(msg)
+
+
+async def _refuse_a_tree_the_site_cannot_run(
+    site_id: str, state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A copy restates a subtree the tree holds, a round trip keeps the source,
+    and an INTERSECT joins genes of one organism."""
+    stated = state.operational_spec_draft.model_copy(update={"structure": proposed})
+    refusal = copy_refusal(proposed.root) or round_trip_refusal(stated)
+    if refusal is None:
+        steps = stated_steps(stated)
+        refusal = (
+            None
+            if steps is None
+            else await stated_cross_organism_refusal(site_id, stated, steps)
+        )
+    if refusal is not None:
+        msg = f"The structure is refused: {refusal} Nothing was recorded."
+        raise ModelRetry(msg)
+
+
+async def _refuse_a_tree_of_another_record_class(
+    ctx: RunContext[AgentDeps], proposed: SpecStructure
+) -> None:
+    """A combine joins inputs of one record class, and a transform runs only on
+    an input of a record class WDK says it takes."""
+    draft = ctx.deps.agent_state.operational_spec_draft
+    stated = draft.model_copy(update={"structure": proposed})
+    steps = stated_steps(stated)
+    if steps is None:
+        return
+    held = {c.id: c.record_class for c in stated.criteria if c.record_class}
+    refusal = await tree_record_class_refusal(ctx.deps.site_id, steps, held)
+    if refusal is not None:
+        msg = f"The structure is refused: {refusal} Nothing was recorded."
+        raise ModelRetry(msg)
+
+
+def _criterion_nodes(node: StructureNode) -> Iterator[tuple[str, str]]:
+    if node.criterion_id:
+        yield node.criterion_id, node.kind
+    for child in node.inputs:
+        yield from _criterion_nodes(child)
+
+
+def _refuse_a_node_the_role_contradicts(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A criterion runs on an input step or it runs alone, and the tree says which."""
+    by_id = {crit.id: crit for crit in state.operational_spec_draft.criteria}
+    for criterion_id, kind in _criterion_nodes(proposed.root):
+        criterion = by_id.get(criterion_id)
+        if criterion is None:
+            continue
+        if kind == "transform" and criterion.role != "transform":
+            msg = (
+                f"{criterion.id} is bound to {criterion.search_name}, which takes no "
+                f"input step, so it cannot be a transform node. Make it a leaf, or "
+                f"bind the criterion to a search that takes an input step."
+            )
+            raise ModelRetry(msg)
+        if kind == "leaf" and criterion.role == "transform":
+            msg = (
+                f"{criterion.id} is bound to {criterion.search_name}, which runs on a "
+                f"previous step, so it cannot be a leaf. Wire it as a transform node "
+                f"over the subtree it maps."
+            )
+            raise ModelRetry(msg)
+
+
+async def set_structure(
+    ctx: RunContext[AgentDeps],
+    *,
+    root: StructureNode,
+) -> ToolReturn[SetStructureResult]:
+    """Set the strategy tree from the bound criteria.
+
+    ``root`` is a tree, not a list, because the shape carries meaning. Each
+    node is one of:
+
+    - ``{"kind": "leaf", "criterionId": "<id>"}`` -- one bound criterion.
+    - ``{"kind": "combine", "operator": "INTERSECT" | "UNION" | "MINUS",
+      "inputs": [<left>, <right>]}`` -- boolean-combine two or more
+      subtrees. A tree of one criterion is that criterion's leaf. The inputs
+      of a combine return one record type; a transform maps one type to another.
+    - ``{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}``
+      -- a search that MAPS the subtree's genes rather than combining with
+      them (e.g. ``GenesByOrthologs`` returning orthologs in another
+      organism). It is wired to that input, never run standalone, and the
+      input returns a record class the transform declares it takes.
+    - ``{"kind": "copy", "inputs": [<subtree>]}`` -- a subtree this tree
+      already states, node for node, stated again. It is the only place a
+      criterion appears twice; the pass states it as criteria of its own.
+      An orthology round trip keeps the source genes only as the source
+      INTERSECT a transform back over a transform out over a copy of the
+      source, with one synteny value on both transforms. A message that
+      carries, maps, translates or moves the genes to orthologs in X asks for
+      one transform to X, and a round trip is refused; a message that keeps
+      the genes that have an ortholog in X, or are conserved in X, asks for
+      the round trip, and a one-way transform is refused.
+
+    Nest freely. When a property has several alternative evidence sources,
+    UNION them into their own branch and INTERSECT that branch with the
+    others -- do not flatten it into a chain, which asks a different
+    question. WDK step trees carry a primary and a secondary input, so a
+    branch on either side is representable. A tree that leaves a combine the
+    message names by its place ("the last combine") or moves any other combine
+    is refused. An edit that names no combine by its place changes a combine's
+    operator only to one the message states or the researcher's words read as.
+    An INTERSECT
+    input that states only the organism another input already runs on,
+    matches every gene of it, or repeats another input's searches and values,
+    is dropped, and ``dropped`` says what became of its text.
+    """
+    state = ctx.deps.agent_state
+    proposed = SpecStructure(root=root)
+    graph = ctx.deps.strategy_session.get_graph(None)
+    live = frozenset(graph.steps) if graph is not None else frozenset[str]()
+    _refuse_a_tree_that_moves_an_unnamed_combine(state, proposed)
+    _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(state, proposed)
+    _refuse_a_node_the_role_contradicts(state, proposed)
+    _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
+    await _refuse_a_tree_the_site_cannot_run(ctx.deps.site_id, state, proposed)
+    _refuse_a_tree_of_another_orthology_shape(state, proposed)
+    await _refuse_a_tree_of_another_record_class(ctx, proposed)
+    deduped = fold_duplicate_inputs(
+        state.operational_spec_draft, proposed, live_step_ids=live
+    )
+    folded = (await _organism_folded(ctx, deduped.structure, live)).holding_open(
+        state.stated_requirements
+    )
+    dropped: list[OrganismDrop | DuplicateDrop] = [*deduped.dropped, *folded.dropped]
+    state.frame_set_structure(folded.structure)
+    for drop in dropped:
+        state.frame_drop_criterion(
+            drop.criterion_id, drop.fate, requirements=drop.requirements
+        )
+    combined = len(structure_criteria(folded.structure))
+    summary = f"Structure set: {combined} {'search' if combined == 1 else 'searches'}"
+    return with_summary(
+        SetStructureResult(
+            criteria_combined=combined,
+            dropped=[StructureDrop.of(drop) for drop in dropped],
+        ),
+        "; ".join([summary, *(f"dropped {d.criterion_id}" for d in dropped)]),
+        ctx=ctx,
+    )
+
+
+async def _organism_folded(
+    ctx: RunContext[AgentDeps], proposed: SpecStructure, live: frozenset[str]
+) -> FoldedStructure:
+    """The tree with each input that states only a sibling's organism dropped.
+
+    The site is read only when an INTERSECT input is a bound criterion that
+    marks an organism parameter and is no live step, and an organism's genes
+    are counted only for such an input whose binding sets only the organism.
+    """
+    state = ctx.deps.agent_state
+    draft = state.operational_spec_draft
+    named = intersected_leaves(proposed.root) - live
+    candidates = [c for c in draft.criteria if c.id in named and c.organism_param]
+    if not candidates:
+        return FoldedStructure(structure=proposed)
+    record_types = {
+        c.id: overview.record_type
+        for c in candidates
+        if (overview := state.get_overview(c.search_name)) is not None
+    }
+    organisms = await list_organisms(ctx.deps.site_id)
+    counts: dict[str, int] = {}
+    for record_type in sorted(set(record_types.values())):
+        keyed = {
+            c.id: key
+            for c in candidates
+            if record_types.get(c.id) == record_type
+            and (key := universe_key(c, organisms)) is not None
+        }
+        counted = await universe_counts(
+            ctx.deps.site_id, record_type, list(keyed.values())
+        )
+        counts.update(
+            {cid: counted[key] for cid, key in keyed.items() if key in counted}
+        )
+    return fold_organism_universe(
+        draft,
+        proposed,
+        organisms,
+        state.stated_requirements,
+        counts,
+        live_step_ids=live,
+    )

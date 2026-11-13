@@ -19,7 +19,7 @@ status: superseded
 `request_extensions` table ships with a header row and nothing else, and its
 prose says a host documents its own extensions. This page is that document.
 
-The gate is `apps/api/src/pathfinder/tests/unit/ai/conversation/test_request_body.py`:
+The gate is `apps/api/src/strategist/tests/unit/ai/conversation/test_request_body.py`:
 the core table names every field the body accepts except `experimentId`, and the
 shipped extension table names none.
 

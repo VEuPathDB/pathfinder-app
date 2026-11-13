@@ -1,0 +1,125 @@
+"""The conversation keeps every message the researcher wrote for the request it
+answers, and a check's review survives the checkpoint beside its verdict."""
+
+from __future__ import annotations
+
+from assistant_core.conversation.serde import build_checkpoint_serde
+
+from strategist.ai.graph.state import (
+    PhaseDisposition,
+    StrategyDomainState,
+    VerificationDigest,
+)
+from strategist.ai.lead.intent import IntentClassification, UserIntent
+from strategist.assistants.strategist_spec import STRATEGIST_CHECKPOINT_TYPES
+from strategist.domain.evidence import (
+    NamedControlSet,
+    SampledGene,
+    VerificationReview,
+)
+from strategist.domain.site_checks import SiteCheck
+from strategist.tests._support.separation import ATTACHED_CONTROLS, recorded_offer
+
+_ASKED = "P. falciparum 3D7 genes with a signal peptide"
+_ADDED = "Also require at least 2 transmembrane domains."
+
+
+def _intent(classification: IntentClassification) -> UserIntent:
+    return UserIntent(classification=classification, inferred_goal="exported genes")
+
+
+def _record(domain: StrategyDomainState, text: str) -> None:
+    domain.record_intent(_intent(IntentClassification.NEW_STRATEGY), request_text=text)
+
+
+def test_each_message_is_kept_once_oldest_first() -> None:
+    domain = StrategyDomainState()
+
+    _record(domain, _ASKED)
+    _record(domain, _ADDED)
+    domain.record_intent(
+        _intent(IntentClassification.EXTEND_STRATEGY), request_text=_ADDED
+    )
+
+    assert domain.request_messages == [_ASKED, _ADDED]
+
+
+def test_a_request_set_aside_takes_its_messages_and_offers_with_it() -> None:
+    offer = recorded_offer()
+    domain = StrategyDomainState(
+        separation_offers={offer.task_id: offer}, attached_controls=ATTACHED_CONTROLS
+    )
+    _record(domain, _ASKED)
+
+    domain.set_the_request_aside()
+
+    assert (
+        domain.request_messages,
+        domain.separation_offers,
+        domain.attached_controls,
+    ) == ([], {}, None)
+
+
+def test_a_request_set_aside_keeps_the_control_sets_of_the_conversation() -> None:
+    attached = NamedControlSet(
+        id="5f1c6a2e-0000-4000-8000-00000000c0de", name="Kinase controls"
+    )
+    domain = StrategyDomainState()
+    domain.attach_control_set(attached)
+
+    domain.take_a_new_request(strategy_has_steps=False)
+
+    assert domain.control_sets == [attached]
+
+
+def test_the_attached_control_sets_survive_the_checkpoint() -> None:
+    serde = build_checkpoint_serde(STRATEGIST_CHECKPOINT_TYPES)
+    domain = StrategyDomainState()
+    domain.attach_control_set(
+        NamedControlSet(id="5f1c6a2e-0000-4000-8000-00000000c0de", name="Kinases")
+    )
+
+    restored = serde.loads_typed(serde.dumps_typed(domain))
+
+    assert restored == domain
+    assert restored.control_sets == domain.control_sets
+
+
+def test_a_digest_carries_its_review_through_the_checkpoint() -> None:
+    domain = StrategyDomainState()
+    review = VerificationReview(
+        checks=[
+            SiteCheck(
+                kind="result_count",
+                subject="the strategy on the site",
+                status="pass",
+                evidence="the result step 11 ('Signal') holds 512 records",
+            )
+        ],
+        sampled_genes=[
+            SampledGene(
+                gene_id="PF3D7_0102200",
+                product="ring-infected erythrocyte surface antigen",
+                organism="Plasmodium falciparum 3D7",
+                fits="yes",
+                why="the product is an exported surface antigen",
+            )
+        ],
+    )
+    domain.record_verdict(
+        VerificationDigest(
+            disposition=PhaseDisposition.DONE,
+            prose="Checked.",
+            reason="ok",
+            success=True,
+            review=review,
+        ),
+        revision="rev-1",
+    )
+    serde = build_checkpoint_serde(STRATEGIST_CHECKPOINT_TYPES)
+
+    restored = serde.loads_typed(serde.dumps_typed(domain))
+
+    assert isinstance(restored, StrategyDomainState)
+    assert restored.site_verdict is not None
+    assert restored.site_verdict.review == review

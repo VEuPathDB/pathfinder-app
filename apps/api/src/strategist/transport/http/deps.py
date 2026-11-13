@@ -1,0 +1,181 @@
+"""Dependency injection for HTTP routes."""
+
+from collections.abc import Iterable
+from typing import Annotated
+from uuid import UUID
+
+from assistant_core.memory.store import MemoryStore
+from assistant_core.platform.db import get_db_session
+from assistant_core.platform.types import ModelProvider, PaidBy
+from fastapi import Depends, HTTPException, Query, Request, status
+from langgraph.store.postgres.aio import AsyncPostgresStore
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+    field_validator,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from strategist.platform.config import get_settings
+from strategist.platform.errors import SiteUnavailableError
+from strategist.platform.log_ids import LogIds, bind_log_ids
+from strategist.platform.principal import Principal
+from strategist.platform.readiness import get_readiness
+from strategist.platform.route_templates import route_template
+from strategist.platform.security import resolve_principal
+from strategist.services.turn_payment import turn_payment
+from strategist.services.users import ensure_user_exists
+from strategist.services.wdk_identity import (
+    require_registered_wdk_login,
+    require_session_matches_wdk_identity,
+)
+from strategist.transport.http.schemas.site_id import SiteId
+
+# Type aliases for dependencies
+DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+class _RouteIds(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    conversation_id: UUID | None = Field(
+        default=None,
+        validation_alias=AliasChoices("conversation_id", "strategyId"),
+    )
+
+    @field_validator("conversation_id", mode="wrap")
+    @classmethod
+    def _unread_id_is_absent(
+        cls, value: object, handler: ValidatorFunctionWrapHandler
+    ) -> UUID | None:
+        try:
+            parsed: UUID | None = handler(value)
+        except ValidationError:
+            return None
+        return parsed
+
+
+async def bind_request_log_ids(request: Request) -> None:
+    bind_log_ids(
+        LogIds.model_validate(
+            {
+                "method": request.method,
+                "route": route_template(request.scope),
+                "conversation_id": _RouteIds.model_validate(
+                    request.path_params
+                ).conversation_id,
+            }
+        )
+    )
+
+
+def get_memory_store(request: Request) -> MemoryStore:
+    """The cross-thread memory store the application opened at startup."""
+    raw: AsyncPostgresStore = request.app.state.memory_store
+    return MemoryStore(store=raw)
+
+
+MemoryStoreDep = Annotated[MemoryStore, Depends(get_memory_store)]
+
+# Optional ``siteId`` query param shared by list endpoints.
+SiteIdQuery = Annotated[SiteId | None, Query(alias="siteId")]
+
+# Required ``siteId`` query param for endpoints that write with it.
+RequiredSiteIdQuery = Annotated[SiteId, Query(alias="siteId")]
+
+
+def refuse_degraded_site(site_id: str) -> None:
+    """Refuse a request for a site whose catalog this process has not loaded."""
+    degraded = get_readiness().degraded_catalog(site_id)
+    if degraded is not None:
+        raise SiteUnavailableError(site_id, degraded.error)
+
+
+async def require_available_site(siteId: SiteId) -> SiteId:
+    """Resolve the request's site and refuse it while it is degraded.
+
+    ``siteId`` binds to the path parameter on a route that declares one, and
+    to the ``siteId`` query parameter everywhere else.
+    """
+    refuse_degraded_site(siteId)
+    return siteId
+
+
+# The site a request names, refused while its catalog is not loaded.
+AvailableSite = Annotated[SiteId, Depends(require_available_site)]
+
+
+async def get_current_principal_with_db_row(
+    principal: Annotated[Principal, Depends(resolve_principal)],
+    session: DBSession,
+) -> Principal:
+    """Ensure authenticated users exist in the local DB.
+
+    We persist user IDs because many tables have a FK to `users.id`. Without this,
+    first-time sessions can trigger integrity errors that bubble up as 500s.
+    """
+    await ensure_user_exists(session, principal.user_id)
+    return principal
+
+
+CurrentPrincipal = Annotated[Principal, Depends(get_current_principal_with_db_row)]
+
+
+async def get_current_user_with_db_row(principal: CurrentPrincipal) -> UUID:
+    """Return the authenticated user's ID."""
+    return principal.user_id
+
+
+CurrentUser = Annotated[UUID, Depends(get_current_user_with_db_row)]
+
+
+async def require_registered_wdk_identity(
+    principal: CurrentPrincipal,
+    siteId: SiteId | None = None,
+) -> UUID:
+    """Refuse a request that acts on WDK without a registered VEuPathDB login.
+
+    Routes that read or write a WDK account attach this. The token must also
+    name the session's own user, so one session writes to one WDK account. The
+    account is read on the site the request names, and a request that names a
+    degraded site is refused before that read.
+    """
+    if siteId is not None:
+        refuse_degraded_site(siteId)
+    await require_registered_wdk_login()
+    await require_session_matches_wdk_identity(
+        principal, siteId or get_settings().strategist_site
+    )
+    return principal.user_id
+
+
+async def require_turn_paid(
+    session: AsyncSession,
+    user_id: UUID,
+    model_ids: Iterable[str],
+) -> dict[ModelProvider, PaidBy]:
+    """Who pays for each provider of a turn, or the refusal that stops it
+    before anything of it is stored.
+
+    A refused or unreadable key of the researcher is refused and never replaced
+    by the deployment's. The monthly allowance stops only a turn that runs some
+    model on the deployment's key.
+    """
+    payment = await turn_payment(session, user_id, model_ids)
+    spent = payment.budget
+    if spent is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "code": "monthly_quota_exhausted",
+                "usedUsd": str(spent.used_usd),
+                "limitUsd": str(spent.limit_usd),
+                "resetsAt": spent.resets_at.isoformat(),
+                "totalTokens": spent.total_tokens,
+            },
+        )
+    return payment.payers

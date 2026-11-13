@@ -69,7 +69,7 @@ The runtime's host-started task (`declare_durable_tool(..., host_started=True)` 
 
 # Anchor
 
-`apps/api/src/pathfinder/services/eda/private_datasets.py`, pinned by
+`apps/api/src/strategist/services/eda/private_datasets.py`, pinned by
 `tests/unit/services/eda/test_own_datasets.py` (states, the faulted import, VDI's text byte for
 byte, the one permission re-read), `tests/unit/transport/test_vdi_calls_carry_the_request_token.py`,
 `tests/unit/services/eda/test_study_cache_curated_only.py`,

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The workbench is a module, not a repository
-description: features/analysis moved inside features/workbench and the merged feature publishes two entry paths that check-boundaries rule 6 enforces; pathfinder/services/workbench/ is a facade of functions that import-linter contract 8 makes the only way pathfinder.ai and pathfinder.jobs reach the workbench services. A separate repository now, and leaving the two features apart, were both rejected on measured numbers.
+description: features/analysis moved inside features/workbench and the merged feature publishes two entry paths that check-boundaries rule 6 enforces; pathfinder/services/workbench/ is a facade of functions that import-linter contract 8 makes the only way strategist.ai and strategist.jobs reach the workbench services. A separate repository now, and leaving the two features apart, were both rejected on measured numbers.
 tags: [workbench, architecture, import-linter, boundaries, frontend, split]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -63,7 +63,7 @@ type is still imported from the module that defines it: a facade that re-exports
 a type is a re-export.
 
 Import-linter contract 8 (the fifth contract in the file) is
-`source_modules = ["pathfinder.ai", "pathfinder.jobs"]`, direct-only, forbidding
+`source_modules = ["strategist.ai", "strategist.jobs"]`, direct-only, forbidding
 the modules whose behaviour the facade owns:
 `services.control_sets`, `services.experiment.control_sourcing`,
 `services.gene_sets.enrichment`, `services.gene_sets.store`,

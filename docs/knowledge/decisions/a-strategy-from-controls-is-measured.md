@@ -135,4 +135,4 @@ is asked to restate none of them, and no check reads its words.
 `ai/graph/_lead_offers.py`, `ai/graph/_lead_durable.py`, `ai/lead/verify_dispatch.py`,
 and in the web `features/conversation/content/parts/DataSeparationResult.tsx` and
 `SeparationCard.tsx`. The live check is
-`apps/api/src/pathfinder/tests/live/test_a_strategy_from_controls.py`.
+`apps/api/src/strategist/tests/live/test_a_strategy_from_controls.py`.

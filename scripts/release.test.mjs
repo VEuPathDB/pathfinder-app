@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import { promotion, withApiVersion, withImages } from "./release.mjs";
 
 test("a version is written to the api files in its PEP 440 spelling", () => {
-  const pyproject = '[project]\nname = "pathfinder-api"\nversion = "0.2.0b16"\n';
+  const pyproject = '[project]\nname = "strategist-api"\nversion = "0.2.0b16"\n';
   const init = '"""x."""\n\n__version__ = "0.2.0b16"\n';
   assert.deepEqual(withApiVersion({ pyproject, init }, "0.9.0-b1"), {
-    pyproject: '[project]\nname = "pathfinder-api"\nversion = "0.9.0b1"\n',
+    pyproject: '[project]\nname = "strategist-api"\nversion = "0.9.0b1"\n',
     init: '"""x."""\n\n__version__ = "0.9.0b1"\n',
   });
 });

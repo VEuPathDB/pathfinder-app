@@ -15,9 +15,9 @@ synonym appears in a string a reader of its scope sees.
 The scope is `researcher` or `all`. A `researcher` row reads the web app's copy
 (JSX text, the `label`, `title`, `aria-label`, `placeholder`, `description`
 slots, `toast` arguments and every prose literal), the `detail=` and `title=`
-texts under `apps/api/src/pathfinder/transport` and `services`, and the tool
+texts under `apps/api/src/strategist/transport` and `services`, and the tool
 summaries (`with_summary`) a trace row shows. An `all` row also reads the
-model's text: every prose string under `apps/api/src/pathfinder/ai` and
+model's text: every prose string under `apps/api/src/strategist/ai` and
 `assistants`, the docstring of every function a toolset registers, and the
 prompt templates. Identifiers, imports, paths, test ids, log lines and tests are
 never read.
@@ -55,7 +55,7 @@ never read.
 | user | apps/web/src/features/conversation/content/parts/PublishToVdiButton.tsx | "User dataset" is VEuPathDB's own name for an upload. |
 | chat | apps/web/src/features/conversation/runtime/buildRequestBody.ts | A developer invariant that names the chat request body builder. |
 | chat | apps/web/src/features/conversation/runtime/chatHelpersContext.ts | A developer invariant that names the chat runtime hook. |
-| chat | apps/api/src/pathfinder/ai/conversation/_turn_helpers.py | An internal `ValueError` that names the chat request's site field. |
+| chat | apps/api/src/strategist/ai/conversation/_turn_helpers.py | An internal `ValueError` that names the chat request's site field. |
 | not responding | apps/web/src/app/components/BusyWorkerBanner.tsx | The background service that runs a turn, not a site. |
 | database | apps/web/src/features/help/YourDataPage.tsx | The store where a deployment keeps a researcher's data, which the data statement names; not a site. |
 | database | apps/web/src/features/help/yourDataBrief.ts | The same store, named in the statement's points that the page and the sign-in notice share; not a site. |

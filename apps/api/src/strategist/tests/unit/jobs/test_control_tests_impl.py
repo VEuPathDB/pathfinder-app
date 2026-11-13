@@ -1,0 +1,285 @@
+"""The control-test worker reports WDK's own names for what it tested, and the
+saved set it ran."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+from uuid import uuid4
+
+import pytest
+from assistant_core.tasks.progress import TaskProgressEmitter
+from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
+from veupathdb.wdk import WDKSearchConfig, WDKStep
+from veupathdb_mcp.controls import (
+    ControlsSearch,
+    ControlTargetData,
+    ControlTestResult,
+    PositiveControls,
+)
+from veupathdb_mcp.tool_payloads import ControlOutcome
+
+from strategist.ai.graph.runtime import Context
+from strategist.domain.strategy.session import StrategySession
+from strategist.jobs.impls import control_tests_impl
+from strategist.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
+from strategist.services.experiment.published_names import PublishedNames
+from strategist.tests._support.database import no_database
+from strategist.tests._support.saved_controls import (
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
+
+STEP_ID = 440299573
+SEARCH = "GenesByMolecularWeight"
+LABEL = "Genes by Molecular Weight"
+
+
+def _context() -> Context:
+    return Context(
+        site_id="plasmodb",
+        user_id=uuid4(),
+        strategy_session=StrategySession(site_id="plasmodb"),
+        db_session_factory=no_database,
+        cancel_event=asyncio.Event(),
+    )
+
+
+def _emitter() -> TaskProgressEmitter:
+    return TaskProgressEmitter(
+        task_id=uuid4(),
+        conversation_id=uuid4(),
+        session_factory=no_database,
+    )
+
+
+def _refused() -> VEuPathDBError[VEuPathDBErrorCode]:
+    return VEuPathDBError(VEuPathDBErrorCode.WDK_ERROR, "no such step")
+
+
+class _Api:
+    """A strategy API that answers one step lookup."""
+
+    def __init__(
+        self,
+        error: Exception | None = None,
+        *,
+        unnamed: bool = False,
+        record_type: str = "transcript",
+    ) -> None:
+        self.error = error
+        self.unnamed = unnamed
+        self.record_type = record_type
+
+    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
+        del user_id
+        if self.error is not None:
+            raise self.error
+        return WDKStep(
+            id=step_id,
+            search_name=SEARCH,
+            display_name="" if self.unnamed else LABEL,
+            record_class_name=self.record_type,
+            search_config=WDKSearchConfig(),
+        )
+
+
+_tested_with: list[ControlsSearch] = []
+_told: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
+    _tested_with.clear()
+    _told.clear()
+
+    async def run(
+        *,
+        site_id: str,
+        wdk_step_id: int,
+        positive_controls: list[str] | None = None,
+        negative_controls: list[str] | None = None,
+        controls: ControlsSearch,
+    ) -> ControlTestResult:
+        del site_id, negative_controls
+        _tested_with.append(controls)
+        recovered, missed = (positive_controls or [])[:2], (positive_controls or [])[2:]
+        return ControlTestResult(
+            site_id="plasmodb",
+            record_type="transcript",
+            target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
+            positive=PositiveControls(recovered_ids=recovered, missed_ids=missed),
+        )
+
+    async def no_export(outcome: ControlOutcome, name: str) -> ControlOutcome:
+        del name
+        return outcome
+
+    async def no_update(
+        self: TaskProgressEmitter, *, message: str, **kwargs: Any
+    ) -> None:
+        del self, kwargs
+        _told.append(message)
+
+    async def published(
+        site_id: str, record_type: str, search_name: str
+    ) -> PublishedNames:
+        del site_id, record_type, search_name
+        return PublishedNames(label=LABEL, parameter_labels={"organism": "Organism"})
+
+    async def tunable(site_id: str, record_type: str, search_name: str) -> list[str]:
+        del site_id, record_type
+        return ["organism", "scope"] if search_name else []
+
+    monkeypatch.setattr(control_tests_impl, "run_step_control_tests", run)
+    monkeypatch.setattr(control_tests_impl, "tunable_parameters_of_search", tunable)
+    monkeypatch.setattr(control_tests_impl, "attach_control_downloads", no_export)
+    monkeypatch.setattr(control_tests_impl, "published_names", published)
+    monkeypatch.setattr(TaskProgressEmitter, "update", no_update)
+
+
+def _serve(monkeypatch: pytest.MonkeyPatch, positive_ids: list[str]) -> None:
+    serve_saved_controls(monkeypatch, control_tests_impl, saved_set(positive_ids))
+
+
+async def test_the_result_names_the_search_the_step_runs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(control_tests_impl, "get_strategy_api", lambda _site: _Api())
+    _serve(monkeypatch, ["PF3D7_1227900", "PF3D7_0102600", "PF3D7_0213400"])
+
+    result = await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert result["searchName"] == SEARCH
+    assert result["stepId"] == STEP_ID
+    assert result["positiveIntersection"] == 2
+    assert result["positiveRecoveredIds"] == ["PF3D7_1227900", "PF3D7_0102600"]
+    assert result["positiveMissedIds"] == ["PF3D7_0213400"]
+    assert result["targetLabel"] == LABEL
+    assert result["parameterLabels"] == {"organism": "Organism"}
+    assert result["tunableParameters"] == ["organism", "scope"]
+    assert result["controlSet"] == {"id": SAVED_SET_ID, "name": "Saved controls"}
+
+
+async def test_a_refused_step_lookup_leaves_the_name_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        control_tests_impl,
+        "get_strategy_api",
+        lambda _site: _Api(error=_refused()),
+    )
+    _serve(monkeypatch, ["PF3D7_1227900"])
+
+    result = await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert result["searchName"] == ""
+    assert result["targetLabel"] == ""
+    assert result["parameterLabels"] == {}
+    assert result["tunableParameters"] == []
+    assert result["positiveRecoveredIds"] == ["PF3D7_1227900"]
+
+
+async def test_a_step_wdk_does_not_name_falls_back_to_its_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def published(
+        site_id: str, record_type: str, search_name: str
+    ) -> PublishedNames:
+        del site_id, record_type, search_name
+        return PublishedNames(label="Combine Gene results")
+
+    monkeypatch.setattr(
+        control_tests_impl, "get_strategy_api", lambda _site: _Api(unnamed=True)
+    )
+    monkeypatch.setattr(control_tests_impl, "published_names", published)
+    _serve(monkeypatch, ["PF3D7_1227900"])
+
+    result = await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert result["targetLabel"] == "Combine Gene results"
+
+
+@pytest.mark.parametrize(
+    ("record_type", "controls"),
+    [
+        ("transcript", ControlsSearch()),
+        (
+            "sequence",
+            ControlsSearch(
+                search_name="ByIdList", param_name="source_ids", record_type="sequence"
+            ),
+        ),
+        (
+            "group",
+            ControlsSearch(
+                search_name="GroupsByNameList",
+                param_name="group_names",
+                record_type="group",
+            ),
+        ),
+    ],
+)
+async def test_a_step_is_tested_with_the_id_search_of_its_record_type(
+    monkeypatch: pytest.MonkeyPatch, record_type: str, controls: ControlsSearch
+) -> None:
+    monkeypatch.setattr(
+        control_tests_impl,
+        "get_strategy_api",
+        lambda _site: _Api(record_type=record_type),
+    )
+    _serve(monkeypatch, ["OG8_0000003"])
+
+    await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert _tested_with == [controls]
+
+
+async def test_the_task_says_it_writes_temporary_steps_and_deletes_them(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(control_tests_impl, "get_strategy_api", lambda _site: _Api())
+    _serve(monkeypatch, ["PF3D7_1227900"])
+
+    await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert _told[0] == (
+        f"Testing step {STEP_ID} in temporary steps in your VEuPathDB account, "
+        "deleted when the test ends; the uploaded id list stays"
+    )

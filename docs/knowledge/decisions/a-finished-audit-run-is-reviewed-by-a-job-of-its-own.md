@@ -150,10 +150,10 @@ another's verdict, and loses every review when it fails.
 
 # Anchor
 
-`apps/api/src/pathfinder/services/audit/reviews.py`,
-`apps/api/src/pathfinder/services/turn_payment.py`,
-`apps/api/src/pathfinder/ai/audit/review.py`,
-`apps/api/src/pathfinder/ai/capabilities/screened_sources.py`,
-`apps/api/src/pathfinder/jobs/impls/audit_review_impl.py`,
-`apps/api/src/pathfinder/tests/integration/jobs/test_audit_review_job.py`,
-`apps/api/src/pathfinder/tests/integration/jobs/test_audit_review_resume.py`.
+`apps/api/src/strategist/services/audit/reviews.py`,
+`apps/api/src/strategist/services/turn_payment.py`,
+`apps/api/src/strategist/ai/audit/review.py`,
+`apps/api/src/strategist/ai/capabilities/screened_sources.py`,
+`apps/api/src/strategist/jobs/impls/audit_review_impl.py`,
+`apps/api/src/strategist/tests/integration/jobs/test_audit_review_job.py`,
+`apps/api/src/strategist/tests/integration/jobs/test_audit_review_resume.py`.

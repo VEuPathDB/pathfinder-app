@@ -1,0 +1,224 @@
+"""A check's sample of the root carries the attributes its searches select on,
+read from the catalog, so a gene's fit is judged from the site's own values."""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+from pydantic_ai import ToolFailed
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyStepNode,
+    flatten_tree,
+)
+from veupathdb.wdk import WDKRecordType, WDKSearch
+
+from strategist.ai.tools.standalone import _sample_attributes, _sample_page, results
+from strategist.ai.tools.standalone._sample_attributes import selecting_attributes
+from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.services.strategies.sync_state import WDKSyncState
+
+from .conftest import agent_run_context
+
+# The defaults the site lists, as plasmodb's expanded catalog records them.
+_SIGNAL_PEPTIDE = WDKSearch(
+    url_segment="GenesWithSignalPeptide",
+    default_attributes=[
+        "primary_key",
+        "organism",
+        "gene_location_text",
+        "gene_product",
+        "signalp_41_probability",
+        "signalp_50_probability",
+        "signalp_60_probability",
+        "matched_result",
+    ],
+)
+_TRANSMEMBRANE = WDKSearch(
+    url_segment="GenesByTransmembraneDomains",
+    default_attributes=[
+        "primary_key",
+        "organism",
+        "gene_location_text",
+        "gene_product",
+        "tm_count",
+        "matched_result",
+    ],
+)
+_GENERIC = [
+    WDKSearch(
+        url_segment=f"GenesByGeneric{index}",
+        default_attributes=[
+            "primary_key",
+            "organism",
+            "gene_location_text",
+            "gene_product",
+        ],
+    )
+    for index in range(10)
+]
+_SEARCHES = [_SIGNAL_PEPTIDE, _TRANSMEMBRANE, *_GENERIC]
+_COLUMN_TYPES = {
+    "primary_key": "STRING",
+    "organism": "STRING",
+    "gene_location_text": "STRING",
+    "gene_product": "STRING",
+    "signalp_41_probability": "NUMBER",
+    "signalp_50_probability": "NUMBER",
+    "signalp_60_probability": "NUMBER",
+    "tm_count": "NUMBER",
+}
+_RECORD_ATTRIBUTES = frozenset(_COLUMN_TYPES)
+
+
+def test_the_attributes_are_what_few_other_searches_show() -> None:
+    assert selecting_attributes(
+        _SEARCHES,
+        _RECORD_ATTRIBUTES,
+        ["GenesWithSignalPeptide", "GenesByTransmembraneDomains"],
+    ) == [
+        "signalp_41_probability",
+        "signalp_50_probability",
+        "signalp_60_probability",
+        "tm_count",
+    ]
+
+
+def test_a_search_the_catalog_does_not_list_adds_nothing() -> None:
+    assert selecting_attributes(_SEARCHES, _RECORD_ATTRIBUTES, ["GenesByNothing"]) == []
+
+
+def test_a_dynamic_column_of_one_search_is_not_asked_of_the_root() -> None:
+    """``matched_result`` is a column of the leaf's own answer, not a record attribute."""
+    assert "matched_result" not in selecting_attributes(
+        _SEARCHES, _RECORD_ATTRIBUTES, ["GenesWithSignalPeptide"]
+    )
+
+
+def _signal_peptide_and_transmembrane() -> StrategySession:
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph("g1", "exported membrane proteins", "plasmodb")
+    graph.record_type = "transcript"
+    graph.steps = flatten_tree(
+        StrategyStepNode(
+            id="step_and",
+            search_name=COMBINE_SEARCH_NAME,
+            operator=CombineOp.INTERSECT,
+            primary_input=StrategyStepNode(
+                id="step_sp", search_name="GenesWithSignalPeptide"
+            ),
+            secondary_input=StrategyStepNode(
+                id="step_tm", search_name="GenesByTransmembraneDomains"
+            ),
+        )
+    )
+    graph.recompute_roots()
+    session.graph = graph
+    session.sync_state = WDKSyncState(wdk_step_ids={"step_and": 42})
+    return session
+
+
+async def test_the_root_sample_asks_for_the_leaves_attributes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[list[str] | None] = []
+
+    async def searches(site_id: str, record_type: str) -> list[WDKSearch]:
+        assert (site_id, record_type) == ("plasmodb", "transcript")
+        return _SEARCHES
+
+    async def record_types(site_id: str) -> list[WDKRecordType]:
+        assert site_id == "plasmodb"
+        return [
+            WDKRecordType.model_validate(
+                {
+                    "urlSegment": "transcript",
+                    "attributes": [
+                        {"name": n, "columnDataType": _COLUMN_TYPES[n]}
+                        for n in sorted(_RECORD_ATTRIBUTES)
+                    ],
+                }
+            )
+        ]
+
+    async def sample(
+        site_id: str,
+        step_id: int,
+        *,
+        limit: int,
+        attributes: list[str] | None,
+        record_type: str,
+        seed: str,
+    ) -> _sample_page.SampledRecords:
+        del site_id, limit, record_type, seed
+        asked.append(attributes)
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
+        )
+
+    monkeypatch.setattr(_sample_attributes, "get_raw_searches", searches)
+    monkeypatch.setattr(_sample_attributes, "get_raw_record_types", record_types)
+    monkeypatch.setattr(results, "sample_page", sample)
+
+    await results.get_sample_records(
+        agent_run_context(strategy_session=_signal_peptide_and_transmembrane()), 42
+    )
+
+    assert asked == [
+        [
+            "gene_product",
+            "gene_name",
+            "organism",
+            "signalp_41_probability",
+            "signalp_50_probability",
+            "signalp_60_probability",
+            "tm_count",
+        ]
+    ]
+
+
+async def test_a_sample_the_site_does_not_answer_in_time_fails_the_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The read is bounded; a failed call is not held as answered, and the
+    check goes on without the sample."""
+
+    async def selected(
+        site_id: str, record_type: str, graph: object, *, own_search: str | None
+    ) -> list[str]:
+        del site_id, record_type, graph, own_search
+        return []
+
+    async def never(
+        site_id: str,
+        step_id: int,
+        *,
+        limit: int,
+        attributes: list[str] | None,
+        record_type: str,
+        seed: str,
+    ) -> _sample_page.SampledRecords:
+        del site_id, limit, attributes, record_type, seed
+        await asyncio.sleep(60)
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
+        )
+
+    monkeypatch.setattr(results, "sample_attributes", selected)
+    monkeypatch.setattr(results, "sample_page", never)
+    monkeypatch.setattr(results, "READ_DEADLINE_SECONDS", 0.01)
+
+    with pytest.raises(ToolFailed) as failed:
+        await results.get_sample_records(
+            agent_run_context(strategy_session=_signal_peptide_and_transmembrane()),
+            42,
+        )
+
+    assert failed.value.message == (
+        "get_sample_records got no answer from the site (no answer within 0.01 s "
+        "for step 42). Nothing was read and the strategy is unchanged. Say that "
+        "the site did not answer this read, and answer from what the turn already "
+        "holds."
+    )

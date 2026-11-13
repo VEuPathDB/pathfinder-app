@@ -19,7 +19,7 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 |---|---|---|---|
 | `pathfinder-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
 | `pathfinder-api@` | `docker.io/veupathdb/pathfinder-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
-| `pathfinder-worker@` | `pathfinder-api`, `Exec=bin/strategist-worker` (the image's command for the worker; a quadlet that still names `-m pathfinder.jobs.worker` starts the same process) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
+| `pathfinder-worker@` | `pathfinder-api`, `Exec=bin/strategist-worker` (the image's command for the worker; the package is `strategist`, so a quadlet that names `-m pathfinder.jobs.worker` no longer starts it) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
 | `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
 | `pathfinder-research-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
 | `pathfinder-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |

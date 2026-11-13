@@ -2501,138 +2501,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pathfinder-api"
-version = "0.9.1a3"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "assistant-core" },
-    { name = "asyncpg" },
-    { name = "cachetools" },
-    { name = "cryptography" },
-    { name = "fastapi" },
-    { name = "fastmcp-slim", extra = ["server"] },
-    { name = "httpx" },
-    { name = "langfuse" },
-    { name = "langgraph" },
-    { name = "langgraph-checkpoint-postgres" },
-    { name = "numpy" },
-    { name = "openai" },
-    { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-sdk" },
-    { name = "pgvector" },
-    { name = "procrastinate" },
-    { name = "prometheus-client" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
-    { name = "pydantic", version = "2.14.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
-    { name = "pydantic-ai" },
-    { name = "pydantic-evals" },
-    { name = "pydantic-settings" },
-    { name = "pyjwt" },
-    { name = "pyyaml" },
-    { name = "slowapi" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "structlog" },
-    { name = "tenacity" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "veupathdb-mcp" },
-    { name = "veupathdb-py", extra = ["devtools", "otel"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "hypothesis" },
-    { name = "import-linter" },
-    { name = "jsonschema-rs" },
-    { name = "mypy" },
-    { name = "packaging" },
-    { name = "pip-audit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "respx" },
-    { name = "ruff" },
-    { name = "schemathesis" },
-    { name = "testcontainers" },
-    { name = "veupathdb-mcp-conformance" },
-    { name = "vulture" },
-]
-docs = [
-    { name = "furo" },
-    { name = "sphinx" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-design" },
-    { name = "sphinx-inline-tabs" },
-    { name = "sphinxcontrib-mermaid" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b4" },
-    { name = "asyncpg", specifier = ">=0.31.0" },
-    { name = "cachetools", specifier = ">=7.0.5" },
-    { name = "cryptography", specifier = ">=50.0.0" },
-    { name = "fastapi", specifier = ">=0.141.0" },
-    { name = "fastmcp-slim", extras = ["server"], specifier = ">=3.3.0,<4" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langfuse", specifier = ">=4.0.0" },
-    { name = "langgraph", specifier = "==1.2.14" },
-    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.3" },
-    { name = "numpy", specifier = ">=2.0.0" },
-    { name = "openai", specifier = ">=2.0.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
-    { name = "pgvector", specifier = ">=0.5.0" },
-    { name = "procrastinate", specifier = ">=3.8.1" },
-    { name = "prometheus-client", specifier = ">=0.26.0" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
-    { name = "pydantic", specifier = ">=2.12.0" },
-    { name = "pydantic-ai", specifier = ">=2.63.0,<3" },
-    { name = "pydantic-evals", specifier = ">=2.41.0,<3" },
-    { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "pyjwt", specifier = ">=2.14.0" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "slowapi", specifier = ">=0.1.9" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.49" },
-    { name = "structlog", specifier = ">=25.0.0" },
-    { name = "tenacity", specifier = ">=9.1.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b9" },
-    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b5" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.151.0" },
-    { name = "import-linter", specifier = ">=2.11" },
-    { name = "jsonschema-rs", specifier = ">=0.55.0" },
-    { name = "mypy", specifier = ">=2.3.1" },
-    { name = "packaging", specifier = ">=25.0" },
-    { name = "pip-audit", specifier = ">=2.10.0" },
-    { name = "pyright", specifier = ">=1.1.408" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "respx", specifier = ">=0.22.0" },
-    { name = "ruff", specifier = ">=0.16.6" },
-    { name = "schemathesis", specifier = ">=4.16.1" },
-    { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.9.0b3" },
-    { name = "vulture", specifier = ">=2.16" },
-]
-docs = [
-    { name = "furo", specifier = ">=2025.12.19" },
-    { name = "sphinx", specifier = ">=8.0.0" },
-    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
-    { name = "sphinx-design", specifier = ">=0.7.0" },
-    { name = "sphinx-inline-tabs", specifier = ">=2025.12.21.14" },
-    { name = "sphinxcontrib-mermaid", specifier = ">=2.0.1" },
-]
-
-[[package]]
 name = "pathspec"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3991,6 +3859,138 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/205b0d5241d934e8add0c38aa924c4f9fb7330834ff11e5444db964ec3f9/starlette-1.6.0.tar.gz", hash = "sha256:d4e3ac5e546444960c710297a3c9fc3f7ebae1b7e963f3d36173b49da535be9b", size = 2716969, upload-time = "2026-08-08T18:27:57.512Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/cb/6a6a47d5b464bd08695d254f3da6e7986cc70c9fa5d778eda57538edfe56/starlette-1.6.0-py3-none-any.whl", hash = "sha256:a86dd39d14bb45f85a3d18525215a9ef0cfd1f192ac793220e72598c90335f0c", size = 75969, upload-time = "2026-08-08T18:27:56.196Z" },
+]
+
+[[package]]
+name = "strategist-api"
+version = "0.9.1a3"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "assistant-core" },
+    { name = "asyncpg" },
+    { name = "cachetools" },
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "fastmcp-slim", extra = ["server"] },
+    { name = "httpx" },
+    { name = "langfuse" },
+    { name = "langgraph" },
+    { name = "langgraph-checkpoint-postgres" },
+    { name = "numpy" },
+    { name = "openai" },
+    { name = "opentelemetry-instrumentation-fastapi" },
+    { name = "opentelemetry-sdk" },
+    { name = "pgvector" },
+    { name = "procrastinate" },
+    { name = "prometheus-client" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
+    { name = "pydantic", version = "2.14.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "pydantic-ai" },
+    { name = "pydantic-evals" },
+    { name = "pydantic-settings" },
+    { name = "pyjwt" },
+    { name = "pyyaml" },
+    { name = "slowapi" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "structlog" },
+    { name = "tenacity" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "veupathdb-mcp" },
+    { name = "veupathdb-py", extra = ["devtools", "otel"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "hypothesis" },
+    { name = "import-linter" },
+    { name = "jsonschema-rs" },
+    { name = "mypy" },
+    { name = "packaging" },
+    { name = "pip-audit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "respx" },
+    { name = "ruff" },
+    { name = "schemathesis" },
+    { name = "testcontainers" },
+    { name = "veupathdb-mcp-conformance" },
+    { name = "vulture" },
+]
+docs = [
+    { name = "furo" },
+    { name = "sphinx" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-design" },
+    { name = "sphinx-inline-tabs" },
+    { name = "sphinxcontrib-mermaid" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.18.0" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b4" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "cachetools", specifier = ">=7.0.5" },
+    { name = "cryptography", specifier = ">=50.0.0" },
+    { name = "fastapi", specifier = ">=0.141.0" },
+    { name = "fastmcp-slim", extras = ["server"], specifier = ">=3.3.0,<4" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "langfuse", specifier = ">=4.0.0" },
+    { name = "langgraph", specifier = "==1.2.14" },
+    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.3" },
+    { name = "numpy", specifier = ">=2.0.0" },
+    { name = "openai", specifier = ">=2.0.0" },
+    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
+    { name = "pgvector", specifier = ">=0.5.0" },
+    { name = "procrastinate", specifier = ">=3.8.1" },
+    { name = "prometheus-client", specifier = ">=0.26.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
+    { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pydantic-ai", specifier = ">=2.63.0,<3" },
+    { name = "pydantic-evals", specifier = ">=2.41.0,<3" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "pyjwt", specifier = ">=2.14.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "slowapi", specifier = ">=0.1.9" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.49" },
+    { name = "structlog", specifier = ">=25.0.0" },
+    { name = "tenacity", specifier = ">=9.1.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b9" },
+    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b5" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.151.0" },
+    { name = "import-linter", specifier = ">=2.11" },
+    { name = "jsonschema-rs", specifier = ">=0.55.0" },
+    { name = "mypy", specifier = ">=2.3.1" },
+    { name = "packaging", specifier = ">=25.0" },
+    { name = "pip-audit", specifier = ">=2.10.0" },
+    { name = "pyright", specifier = ">=1.1.408" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.16.6" },
+    { name = "schemathesis", specifier = ">=4.16.1" },
+    { name = "testcontainers", specifier = ">=4.14.0" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.9.0b3" },
+    { name = "vulture", specifier = ">=2.16" },
+]
+docs = [
+    { name = "furo", specifier = ">=2025.12.19" },
+    { name = "sphinx", specifier = ">=8.0.0" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.7.0" },
+    { name = "sphinx-inline-tabs", specifier = ">=2025.12.21.14" },
+    { name = "sphinxcontrib-mermaid", specifier = ">=2.0.1" },
 ]
 
 [[package]]

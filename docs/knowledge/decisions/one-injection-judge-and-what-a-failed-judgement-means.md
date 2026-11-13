@@ -11,7 +11,7 @@ status: stable
 # What was decided
 
 **One judge serves both boundaries.**
-`apps/api/src/pathfinder/ai/capabilities/security.py` builds one
+`apps/api/src/strategist/ai/capabilities/security.py` builds one
 `ModelInjectionJudge` and hands it to the `UserInputScanner` the chat
 dispatcher calls and to the `screened_output` scan the turn runner installs on
 every tool source. A deployment that changes model changes one argument, and
@@ -129,7 +129,7 @@ off holds nothing back.
 
 # Anchor
 
-`apps/api/src/pathfinder/tests/unit/ai/capabilities/test_security.py`: the
+`apps/api/src/strategist/tests/unit/ai/capabilities/test_security.py`: the
 marker refused as a 403 that names neither the judge nor its confidence, a
 product sentence passing, the marked tool result answered with the withheld
 sentence, the benign one answered whole, the disabled setting building no

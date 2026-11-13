@@ -1,2 +1,2 @@
 # VCR cassettes are auto-generated — show as binary in diffs
-apps/api/src/pathfinder/tests/cassettes/**/*.yaml linguist-generated=true
+apps/api/src/strategist/tests/cassettes/**/*.yaml linguist-generated=true

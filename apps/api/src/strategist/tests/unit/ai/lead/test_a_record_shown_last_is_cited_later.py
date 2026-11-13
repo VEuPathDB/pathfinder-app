@@ -1,0 +1,90 @@
+"""A note on a turn that reads nothing links the records the conversation showed
+last; a record never shown is dropped, and the schema says which records a
+reference links."""
+
+from __future__ import annotations
+
+from uuid import uuid4
+
+from strategist.ai.graph.state import StrategyDomainState
+from strategist.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from strategist.ai.lead.card_reply import CITABLE_RECORDS, REPLY_NOTE
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.turn_contract import hold_the_turn_contract
+from strategist.ai.lead.turn_facts import turn_facts
+from strategist.domain.record_facts import SourceFact
+from strategist.domain.reply_note import render_note
+from strategist.services.gene_records.read import gene_record_url
+from strategist.tests._support.run_context import run_context_for
+from strategist.tests.unit.ai.lead._turn_contract_cases import reply
+from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+
+# hostdb, build 71: the sample of five a turn listed from the MHC class I
+# intersect of chromosome 17 genes.
+_SAMPLE = [
+    "ENSMUSG00000035929",
+    "ENSMUSG00000060550",
+    "ENSMUSG00000061232",
+    "ENSMUSG00000067212",
+    "ENSMUSG00000067235",
+]
+_SHOWN = [SourceFact(url=gene_record_url("hostdb", g), record_id=g) for g in _SAMPLE]
+_SAME_SAMPLE = (
+    "Here is the same sample again: "
+    + ", ".join(f"[record:{g}]" for g in _SAMPLE)
+    + "."
+)
+
+
+def _deps() -> LeadDeps:
+    state = pipeline_state(
+        "hostdb", user_message_id=uuid4(), domain=StrategyDomainState()
+    )
+    state.turn_markers.intent_classified = True
+    state.domain.record_shown(_SHOWN)
+    return lead_deps(state)
+
+
+def test_the_facts_of_a_later_turn_carry_the_records_shown_last() -> None:
+    facts = turn_facts(_deps())
+
+    assert (facts.shown_before, facts.record_ids(), facts.lines()) == (
+        _SHOWN,
+        [],
+        [],
+    )
+
+
+def test_a_note_citing_the_sample_shown_last_stands_and_links_each_record() -> None:
+    deps = _deps()
+    answer = reply(_SAME_SAMPLE)
+
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert render_note(answer.prose, turn_facts(deps)) == (
+        "Here is the same sample again: "
+        + ", ".join(
+            f"[{g}](https://qa.hostdb.org/hostdb.qa/app/record/gene/{g})"
+            for g in _SAMPLE
+        )
+        + "."
+    )
+
+
+def test_a_record_the_conversation_never_showed_is_dropped() -> None:
+    deps = _deps()
+    answer = reply("The sample now holds [record:ENSMUSG00000073409] as well.")
+
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert render_note(answer.prose, turn_facts(deps)) == (
+        "The sample now holds as well."
+    )
+
+
+def test_the_schema_and_the_instruction_say_which_records_a_reference_links() -> None:
+    assert (
+        REPLY_NOTE.count(f"[record:<record_id>], which links {CITABLE_RECORDS}"),
+        " ".join(LEAD_INSTRUCTIONS.split()).count(
+            f"``[record:<record_id>]``, which links {CITABLE_RECORDS}"
+        ),
+        CITABLE_RECORDS.endswith("or one of the records the conversation showed last"),
+    ) == (1, 1, True)

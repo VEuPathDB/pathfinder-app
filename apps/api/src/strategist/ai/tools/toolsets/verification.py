@@ -1,0 +1,112 @@
+"""Verification-phase toolset for testing, analyzing, and exporting results."""
+
+from pydantic_ai.tools import RunContext, Tool
+from pydantic_ai.toolsets.abstract import AbstractToolset
+from pydantic_ai.toolsets.function import FunctionToolset
+
+from strategist.ai.agents.tool_vocabulary import CHECK_READS
+from strategist.ai.graph.runtime import AgentDeps
+from strategist.ai.tools.standalone.escape_hatch import (
+    request_search_inspection,
+)
+from strategist.ai.tools.standalone.execution import get_estimated_size
+from strategist.ai.tools.standalone.experiment import (
+    run_control_tests_on_search,
+    run_control_tests_on_step,
+)
+from strategist.ai.tools.standalone.export import export_gene_set
+from strategist.ai.tools.standalone.gene import (
+    get_ai_expression_summary,
+    lookup_gene_records,
+    resolve_gene_ids_to_records,
+)
+from strategist.ai.tools.standalone.gene_record import (
+    offered_where_genes_are_held,
+    read_sampled_gene_record,
+)
+from strategist.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
+from strategist.ai.tools.standalone.memory_tools import search_memory
+from strategist.ai.tools.standalone.results import get_sample_records
+from strategist.ai.tools.standalone.saved_control_sets import list_control_sets
+from strategist.ai.tools.standalone.step_download import get_download_url
+from strategist.ai.tools.standalone.step_ids import read_step_ids
+from strategist.ai.tools.standalone.strategy_graph import get_strategy
+from strategist.ai.tools.standalone.think import think
+from strategist.ai.tools.toolsets._dynamic import (
+    DynamicEnumToolset,
+    EnumOverrides,
+)
+from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
+from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
+
+
+def _verification_enum_overrides(
+    ctx: RunContext[AgentDeps],
+) -> EnumOverrides:
+    """Constrain ``wdk_step_id`` args to the steps that exist in WDK.
+
+    A ``wdk_step_id`` is assigned when a step is pushed, so only pushed steps
+    can be queried and the enum holds the ids in
+    ``strategy_session.sync_state.wdk_step_ids``.
+    """
+    overrides: EnumOverrides = {}
+    wdk_ids = ctx.deps.strategy_session.wdk_step_ids()
+    if wdk_ids:
+        for tool in (
+            "get_estimated_size",
+            "get_sample_records",
+            "get_download_url",
+            "run_control_tests_on_step",
+            "read_step_ids",
+        ):
+            overrides[(tool, "wdk_step_id")] = list(wdk_ids)
+    return overrides
+
+
+def build_toolset() -> AbstractToolset[AgentDeps]:
+    """Build the verification-phase toolset.
+
+    Phase exit is handled by ``output_type=VerificationDecision`` on the
+    verification agent - no ``finish_*`` tool is exposed.
+
+    Every ``@durable_tool`` is also registered with ``sequential=True``.
+    A durable call ends the run deferred, and one parked call is checkpointed
+    per turn, so a batch that fires two of them would leave the second
+    unanswered.
+    """
+    base: FunctionToolset[AgentDeps] = FunctionToolset(
+        max_retries=3,
+        tools=[
+            get_estimated_size,
+            get_sample_records,
+            read_step_ids,
+            get_download_url,
+            list_control_sets,
+            Tool(run_control_tests_on_step, sequential=True, max_retries=3),
+            run_control_tests_on_search,
+            lookup_gene_records,
+            Tool(
+                read_sampled_gene_record,
+                name="read_gene_record",
+                prepare=offered_where_genes_are_held,
+            ),
+            get_ai_expression_summary,
+            resolve_gene_ids_to_records,
+            save_gene_set,
+            list_gene_sets,
+            export_gene_set,
+            get_strategy,
+            request_search_inspection,
+            think,
+            search_memory,
+        ],
+    )
+    return ReadOnceToolset(
+        wrapped=RefusalMemoryToolset(
+            wrapped=DynamicEnumToolset(
+                wrapped=base,
+                build_overrides=_verification_enum_overrides,
+            )
+        ),
+        reads=CHECK_READS,
+    )

@@ -1,0 +1,231 @@
+from __future__ import annotations
+
+from typing import Annotated, Any
+
+from assistant_core import quota
+from assistant_core.platform.types import PaidBy
+from fastapi import APIRouter, Depends, Request, Response, status
+
+from strategist.domain.provider_keys import KeyableProvider
+from strategist.platform.errors import ForbiddenError, ProviderKeysDisabledError
+from strategist.platform.identity import APPLICATION_ID
+from strategist.platform.model_catalog import get_smallest_model
+from strategist.platform.model_keys import KeyProbe, probe_key
+from strategist.platform.principal import Principal
+from strategist.platform.security import limiter
+from strategist.services.conversations.account_reads import (
+    AlwaysAccountReads,
+    read_always_account_reads,
+    set_always_account_reads,
+)
+from strategist.services.eval_data.consent import (
+    DataNoticeContinue,
+    PrivacySettings,
+    PrivacyUpdate,
+    continue_past_the_data_notice,
+    read_privacy,
+    update_privacy,
+)
+from strategist.services.memory_setting import (
+    MemorySetting,
+    read_memory_setting,
+    update_memory_setting,
+)
+from strategist.services.provider_keys import (
+    ProviderKeyView,
+    key_statuses,
+    keys_enabled,
+    list_keys,
+    payers,
+    revoke_key,
+    store_key,
+)
+from strategist.services.users import effective_monthly_limit_usd
+from strategist.transport.http.deps import CurrentPrincipal, CurrentUser, DBSession
+from strategist.transport.http.schemas.me import (
+    ProviderKeyIn,
+    ProviderKeysResponse,
+    QuotaResponse,
+)
+
+router = APIRouter(prefix="/api/v1/me", tags=["me"])
+
+_PROBLEM = {
+    "application/problem+json": {
+        "schema": {"$ref": "#/components/schemas/ProblemDetail"}
+    }
+}
+# Every key route refuses a calling application that is not Strategist, and
+# storing a key is refused where the deployment takes none.
+_KEY_REFUSALS: dict[int | str, dict[str, Any]] = {
+    403: {"description": "Forbidden", "content": _PROBLEM},
+}
+# Storing a key also meets the rate limit and a provider that did not answer
+# the check.
+_KEY_ENTRY_REFUSALS: dict[int | str, dict[str, Any]] = {
+    **_KEY_REFUSALS,
+    429: {"description": "Too Many Requests", "content": _PROBLEM},
+    503: {"description": "Service Unavailable", "content": _PROBLEM},
+}
+
+
+@router.get("/quota", response_model=QuotaResponse)
+async def get_my_quota(session: DBSession, user_id: CurrentUser) -> QuotaResponse:
+    q = await quota.get_current(
+        session,
+        user_id,
+        limit_usd=await effective_monthly_limit_usd(session, user_id),
+    )
+    own = await quota.get_period_totals(session, user_id, paid_by=PaidBy.USER)
+    statuses = await key_statuses(session, user_id)
+    return QuotaResponse(
+        used_usd=q.used_usd,
+        limit_usd=q.limit_usd,
+        total_tokens=q.total_tokens,
+        percent=q.percent,
+        resets_at=q.resets_at,
+        own_key_usd=own.cost_usd,
+        own_key_tokens=own.tokens,
+        own_key_providers=sorted(statuses.active),
+    )
+
+
+def key_probe() -> KeyProbe:
+    """The check a new key passes before it is stored: one generation request."""
+    return probe_key
+
+
+async def researcher(principal: CurrentPrincipal) -> Principal:
+    """A researcher's keys answer the application they were entered in, alone."""
+    if principal.application_id != APPLICATION_ID:
+        raise ForbiddenError(
+            title="Provider keys belong to the researcher",
+            detail="A calling application may not read or write provider keys.",
+        )
+    return principal
+
+
+Researcher = Annotated[Principal, Depends(researcher)]
+
+
+@router.get(
+    "/provider-keys", response_model=ProviderKeysResponse, responses=_KEY_REFUSALS
+)
+async def get_my_provider_keys(
+    session: DBSession, principal: Researcher
+) -> ProviderKeysResponse:
+    """The stored keys by their last four characters, and who pays for what."""
+    statuses = await key_statuses(session, principal.user_id)
+    return ProviderKeysResponse(
+        enabled=keys_enabled(),
+        keys=await list_keys(session, principal.user_id),
+        payers=payers(statuses),
+    )
+
+
+@router.put(
+    "/provider-keys/{provider}",
+    response_model=ProviderKeyView,
+    responses=_KEY_ENTRY_REFUSALS,
+)
+@limiter.limit("10/hour")
+async def put_my_provider_key(
+    request: Request,
+    provider: KeyableProvider,
+    body: ProviderKeyIn,
+    session: DBSession,
+    principal: Researcher,
+    probe: Annotated[KeyProbe, Depends(key_probe)],
+) -> ProviderKeyView:
+    """Check the key with the provider, then store it sealed in place of the last.
+
+    Each call spends on the key it names, so the route is rate limited.
+    """
+    del request
+    if not keys_enabled():
+        raise ProviderKeysDisabledError
+    await probe(provider, get_smallest_model(provider).id, body.key)
+    return await store_key(session, principal.user_id, provider, body.key)
+
+
+@router.delete(
+    "/provider-keys/{provider}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=_KEY_REFUSALS,
+)
+async def delete_my_provider_key(
+    provider: KeyableProvider, session: DBSession, principal: Researcher
+) -> Response:
+    """Revoke the key. Its ciphertext is dropped and it is never read again."""
+    await revoke_key(session, principal.user_id, provider)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/privacy", response_model=PrivacySettings)
+async def get_my_privacy(
+    session: DBSession,
+    user_id: CurrentUser,
+) -> PrivacySettings:
+    """Return the eval-data decision and the data statement version seen."""
+    return await read_privacy(session, user_id)
+
+
+@router.patch("/privacy", response_model=PrivacySettings)
+async def patch_my_privacy(
+    session: DBSession,
+    user_id: CurrentUser,
+    update: PrivacyUpdate,
+) -> PrivacySettings:
+    """Change the eval-data decision.
+
+    Turning consent off also clears the user's staged candidates.
+    """
+    return await update_privacy(session, user_id, update)
+
+
+@router.post("/privacy/data-notice", response_model=PrivacySettings)
+async def continue_my_data_notice(
+    session: DBSession,
+    user_id: CurrentUser,
+    choice: DataNoticeContinue,
+) -> PrivacySettings:
+    """Record the data statement version seen, with the learning choice."""
+    return await continue_past_the_data_notice(session, user_id, choice)
+
+
+@router.get("/memory", response_model=MemorySetting)
+async def get_my_memory_setting(
+    session: DBSession,
+    user_id: CurrentUser,
+) -> MemorySetting:
+    """Return whether turns read and write this researcher's memories."""
+    return await read_memory_setting(session, user_id)
+
+
+@router.put("/memory", response_model=MemorySetting)
+async def put_my_memory_setting(
+    session: DBSession,
+    user_id: CurrentUser,
+    setting: MemorySetting,
+) -> MemorySetting:
+    """Turn memory on or off for this researcher's turns. Stored memories stay."""
+    return await update_memory_setting(session, user_id, setting)
+
+
+@router.get("/account-reads", response_model=AlwaysAccountReads)
+async def get_my_account_reads(
+    session: DBSession,
+    user_id: CurrentUser,
+) -> AlwaysAccountReads:
+    """Whether Explore may read this researcher's account in every thread."""
+    return await read_always_account_reads(session, user_id)
+
+
+@router.put("/account-reads", response_model=AlwaysAccountReads)
+async def put_my_account_reads(
+    session: DBSession,
+    user_id: CurrentUser,
+    setting: AlwaysAccountReads,
+) -> AlwaysAccountReads:
+    """Allow Explore to read this researcher's account in every thread, or stop it."""
+    return await set_always_account_reads(session, user_id, always=setting.always)

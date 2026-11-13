@@ -13,7 +13,7 @@ import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
-from pathfinder.persistence.models import GUID
+from strategist.persistence.models import GUID
 
 revision: str = "2026_04_17_0001"
 down_revision: str | Sequence[str] | None = "2026_04_15_0001"

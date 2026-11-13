@@ -61,6 +61,6 @@ agent reads) is text, and it follows the lexicon in the runtime's own release.
 - `scripts/check-vocabulary.mjs` and `scripts/check-vocabulary.test.mjs`, run
   by the `vocabulary` pre-commit hook and the `check-vocabulary` CI job.
 - `apps/web/src/vocabulary.test.ts` and
-  `apps/api/src/pathfinder/tests/unit/test_user_facing_vocabulary.py` keep the
+  `apps/api/src/strategist/tests/unit/test_user_facing_vocabulary.py` keep the
   internal names (EDA, WDK, FRAME, Lead) off the screen; see
   [the user-facing vocabulary](user-facing-vocabulary.md).

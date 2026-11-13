@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import pytest
+
+from strategist.ai.graph.runtime import AgentDeps
+from strategist.ai.lead import verify_dispatch
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.verify_checks import ColumnReads
+from strategist.domain.site_checks import SiteCheck
+
+PASSED = SiteCheck(
+    kind="result_count",
+    subject="the strategy on the site",
+    status="pass",
+    evidence="the result holds records on the site",
+)
+
+
+def checked_site(
+    monkeypatch: pytest.MonkeyPatch, checks: Sequence[SiteCheck] = (PASSED,)
+) -> list[LeadDeps]:
+    ran: list[LeadDeps] = []
+
+    async def site_checks(deps: LeadDeps) -> list[SiteCheck]:
+        ran.append(deps)
+        return list(checks)
+
+    async def no_columns(deps: LeadDeps, agent_deps: AgentDeps) -> ColumnReads:
+        del deps, agent_deps
+        return ColumnReads(notes=[], unanswered=[])
+
+    monkeypatch.setattr(verify_dispatch, "site_checks", site_checks)
+    monkeypatch.setattr(verify_dispatch, "read_the_columns", no_columns)
+    return ran

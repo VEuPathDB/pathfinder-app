@@ -41,7 +41,7 @@ jobs:
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
           WDK_LIVE_SUMMARY: wdk-live-summary.json
           WDK_HIDDEN_DEFAULTS_REPORT: wdk-hidden-defaults.json
-        run: uv run pytest src/pathfinder/tests -m live_wdk -q
+        run: uv run pytest src/strategist/tests -m live_wdk -q
 
       - name: Show the drift the run measured
         if: always()

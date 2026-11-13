@@ -63,7 +63,7 @@ message of a thread stages a case of its own. This is the shape
 `memory_tombstones` already uses to keep a deleted memory from being re-written.
 
 **Redaction is two-stage, and the first stage only removes what is never
-science.** `pathfinder.evals.redaction` strips email addresses and URL
+science.** `strategist.evals.redaction` strips email addresses and URL
 credentials, and `EvalExtract` refuses to be constructed if either pattern
 survives, so an unredacted extract cannot reach the queue. No rule reads digits:
 in this domain a digit run is a gene count, a threshold or a WDK strategy id,
@@ -101,6 +101,6 @@ re-consent behave differently from first consent for no stated reason.
   is the account's.
 - A curator can always answer "where did this case come from" with a site, an
   assistant and a date, and can never answer "who wrote it".
-- The corpus location is `apps/api/src/pathfinder/evals/corpus/`, inside the
+- The corpus location is `apps/api/src/strategist/evals/corpus/`, inside the
   package that defines the case shape, so the loader resolves it without a path
   convention and the cases ship with the code that reads them.

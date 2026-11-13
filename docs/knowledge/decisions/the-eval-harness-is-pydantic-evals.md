@@ -19,23 +19,23 @@ provides `Case`, `Dataset`, an
 per-case duration, a failure list that separates a raised task from a failed
 assertion, and a report. That is the whole of what a runner needs.
 
-It is used for exactly that. `pathfinder.devtools.eval_runner` builds a
+It is used for exactly that. `strategist.devtools.eval_runner` builds a
 `Dataset[EvalCase, ObservedOutcome, None]` whose task drives a case's turns in
 order on one thread, and whose single evaluator asks the corpus expectation.
 
 # What stayed ours
 
-**The summary.** `pathfinder.evals.summary.EvalRunSummary` is the run's
+**The summary.** `strategist.evals.summary.EvalRunSummary` is the run's
 machine-readable result: harness, provider, assistant, timestamp, and one row
 per case with its named differences. The observability contract reads this, and
 it must not change shape because a library changed its report dataclass.
 
-**The scoring.** `pathfinder.evals.scoring` is pure and unit-tested without a
+**The scoring.** `strategist.evals.scoring` is pure and unit-tested without a
 database, a model or the harness. `score_case` returns every difference it
 found, each naming the field, the expectation and the run's value, because a
 boolean assertion answers "worse" without answering "how".
 
-**The distance.** `pathfinder.evals.distance` is the graded answer beside the
+**The distance.** `strategist.evals.distance` is the graded answer beside the
 boolean, and it is ours for the same reason the summary is: an eval trend that
 depends on a third-party metric changes when that metric does.
 
@@ -59,7 +59,7 @@ assistant slightly worse or completely wrong.
 
 # The distance, and where it lives
 
-`pathfinder.evals.distance` implements the thesis decomposition in plain Python,
+`strategist.evals.distance` implements the thesis decomposition in plain Python,
 with no new dependency:
 
 * **topology** - normalised Zhang-Shasha distance with every label erased, so it
@@ -95,7 +95,7 @@ tier's to prove.
 # The verdict is a label, not a boolean
 
 A case that records a count (`ExpectedOutcome.root_count`: the count, the site
-build it held on, and the date read) is judged by `pathfinder.evals.drift.classify`
+build it held on, and the date read) is judged by `strategist.evals.drift.classify`
 into one of three labels, which the harness records as its evaluator's output
 and the summary counts beside passed and failed:
 
@@ -106,7 +106,7 @@ and the summary counts beside passed and failed:
 * `re-measure`: the count off on a new build and outside that band, which is a
   re-measurement of the record and not a defect.
 
-`pathfinder.evals.summary.judged` builds every case result from `classify`,
+`strategist.evals.summary.judged` builds every case result from `classify`,
 `score_case` and `count_difference`, for a run read from the database and for a
 chat-debugger run directory alike, so the two grade a count the same way.
 

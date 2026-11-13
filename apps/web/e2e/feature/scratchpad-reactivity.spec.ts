@@ -9,7 +9,7 @@
  *
  * and control the paged scratchpad GET responses. Full backend pipeline
  * coverage lives in the integration test
- * `apps/api/src/pathfinder/tests/integration/chat/test_multi_turn_pipeline.py`
+ * `apps/api/src/strategist/tests/integration/chat/test_multi_turn_pipeline.py`
  * (see the `test_scratchpad_note_persists_across_turns` test).
  *
  * Strict selectors only - testids on the panel, note card, pin button, and

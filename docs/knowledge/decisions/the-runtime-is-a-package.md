@@ -68,7 +68,7 @@ after the tool server's, on the same connection, and stamps
 `alembic_version_assistant_core`
 (`assistant-platform: docs/knowledge/decisions/the-runtime-ships-its-own-migration-chain.md`).
 The shared `Base` puts the runtime's tables in this chain's `target_metadata`,
-so `pathfinder.platform.migrations.include_object` drops them and the runtime's
+so `strategist.platform.migrations.include_object` drops them and the runtime's
 version table from autogenerate, reading `assistant_core.migrate.OWNED_TABLES`
 rather than a second copy of the names. The same filter refuses the tables the
 tool server, procrastinate and LangGraph build in this database, so a revision
@@ -123,7 +123,7 @@ carry its weight:
 3. A seventh contract still exists in `apps/api`, asserting something that is
    still true in-repo: the science never imports an assistant's composition
    root. An assistant is assembled from `ai/`, `domain/` and `services/`; a
-   module in those trees that reaches `pathfinder.assistants` has inverted the
+   module in those trees that reaches `strategist.assistants` has inverted the
    wiring. It is direct-only, like the six layer contracts, because the chat
    dispatcher still reaches the registry through the job runner - the
    turn-pipeline seam WS3 named and did not close.
@@ -138,7 +138,7 @@ Done. The runtime is `VEuPathDB/ai-assistant-platform`, `packages/assistant-core
 
 `cd assistant-platform: packages/assistant-core && uv run pytest` runs the package's whole suite
 with no `pathfinder` installed; the day it needs one, the boundary is gone.
-`apps/api/src/pathfinder/tests/unit/test_core_boundary.py`
+`apps/api/src/strategist/tests/unit/test_core_boundary.py`
 fails if the dependency edge reverses or the two source trees merge.
 `uv run lint-imports` fails if the science starts importing the composition
 root.

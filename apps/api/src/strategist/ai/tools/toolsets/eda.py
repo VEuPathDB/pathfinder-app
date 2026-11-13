@@ -1,0 +1,57 @@
+"""The EDA toolset: explore a study in conversation and export a step."""
+
+from pydantic_ai import Tool
+from pydantic_ai.toolsets.abstract import AbstractToolset
+from pydantic_ai.toolsets.function import FunctionToolset
+
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone.eda_analysis import (
+    open_eda_analysis,
+    preview_eda_subset,
+    set_eda_filters,
+)
+from strategist.ai.tools.standalone.eda_catalog import (
+    describe_eda_study,
+    search_eda_studies,
+)
+from strategist.ai.tools.standalone.eda_compute import (
+    refuse_shared_labels,
+    run_eda_compute,
+)
+from strategist.ai.tools.standalone.eda_cut import ask_eda_cut
+from strategist.ai.tools.standalone.eda_statistics import (
+    read_eda_statistics,
+    run_eda_dimensionality_reduction,
+)
+from strategist.ai.tools.standalone.eda_step import create_eda_step
+from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
+
+
+def build_toolset() -> AbstractToolset[LeadDeps]:
+    """The ten EDA tools the Lead calls.
+
+    The two durable computes are registered sequential: one parked durable
+    call is checkpointed per turn, so a batch that fires two of them would
+    leave the second unanswered.
+    """
+    toolset: FunctionToolset[LeadDeps] = FunctionToolset(
+        max_retries=3,
+        tools=[
+            search_eda_studies,
+            describe_eda_study,
+            open_eda_analysis,
+            set_eda_filters,
+            preview_eda_subset,
+            Tool(
+                run_eda_compute,
+                sequential=True,
+                max_retries=3,
+                args_validator=refuse_shared_labels,
+            ),
+            Tool(run_eda_dimensionality_reduction, sequential=True, max_retries=3),
+            read_eda_statistics,
+            create_eda_step,
+            ask_eda_cut,
+        ],
+    )
+    return RefusalMemoryToolset(wrapped=toolset)

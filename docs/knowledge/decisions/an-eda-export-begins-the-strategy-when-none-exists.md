@@ -28,7 +28,7 @@ subtree, and `commit.py` builds the pushed AST from the primary root with
 `include_detached=False`. The EDA step is persisted in `detached_roots` and is
 not pushed. The tab presents it as a draft with an attach affordance.
 
-**The three copies of the load became one.** `pathfinder_spec`, `jobs/runtime`
+**The three copies of the load became one.** `strategist_spec`, `jobs/runtime`
 and `strategy_ops` each turned a `Conversation` plus a `ConversationStrategyView`
 into a `PersistedStrategyGraph`, and the `strategy_ops` copy was the one that
 demanded a `root`. `services/strategies/session_factory.py::persisted_graph` is

@@ -1,0 +1,401 @@
+"""``AgentToolState``: the discovery registry, the params a criterion bound, and
+the entries each lookup matched."""
+
+from __future__ import annotations
+
+from veupathdb.domain.parameters import (
+    MultiPickValue,
+    ParamValue,
+    SinglePickValue,
+    VocabOption,
+)
+from veupathdb.domain.strategy import CombineOp
+from veupathdb_mcp.catalog import ParameterInfo, PhrasingMatch, VocabLookup
+
+from strategist.ai.agents.state import (
+    AgentToolState,
+    LookupRecord,
+    ParamVocabSnapshot,
+    SearchOverview,
+)
+from strategist.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from strategist.services.strategies.cut_picks import OptionsRead
+from strategist.tests._support.bound_values import bound
+
+
+def _ov(
+    name: str,
+    *,
+    parameter_names: list[str] | None = None,
+) -> SearchOverview:
+    return SearchOverview(
+        search_name=name,
+        display_name=name,
+        record_type="transcript",
+        description="",
+        parameter_names=parameter_names or ["taxon"],
+        required_params=["taxon"],
+    )
+
+
+def test_discovered_search_names_empty_initially() -> None:
+    s = AgentToolState()
+    assert s.discovered_search_names() == set()
+
+
+def test_discovered_search_names_returns_all_inspected() -> None:
+    s = AgentToolState()
+    s.register_search("GenesByGoTerm", _ov("GenesByGoTerm"))
+    s.register_search("GenesByText", _ov("GenesByText"))
+    assert s.discovered_search_names() == {"GenesByGoTerm", "GenesByText"}
+
+
+def test_a_search_overview_carries_no_selection_verdict() -> None:
+    """No field records a verdict on a search: nothing writes one."""
+    absent = {
+        "selection_status",
+        "rationale",
+        "selection_reason",
+        "confidence",
+        "param_hints",
+        "decided",
+    }
+    assert absent.isdisjoint(SearchOverview.model_fields)
+    assert not hasattr(AgentToolState, "decided_search_names")
+    assert not hasattr(AgentToolState, "selected_search_names")
+
+
+def test_param_read_key_is_stable_and_context_sensitive() -> None:
+    k1 = AgentToolState.param_read_key("S", "p")
+    k2 = AgentToolState.param_read_key("S", "p")
+    assert k1 == k2
+    ctx_a: dict[str, ParamValue] = {"parent": SinglePickValue(value="a")}
+    ctx_b: dict[str, ParamValue] = {"parent": SinglePickValue(value="b")}
+    assert AgentToolState.param_read_key("S", "p", context_values=ctx_a) != k1
+    assert AgentToolState.param_read_key(
+        "S", "p", context_values=ctx_a
+    ) != AgentToolState.param_read_key("S", "p", context_values=ctx_b)
+    assert AgentToolState.param_read_key("S", "p", terms=("x",)) != k1
+
+
+def test_mark_and_was_param_read() -> None:
+    s = AgentToolState()
+    key = AgentToolState.param_read_key("S", "p")
+    assert s.was_param_read(key) is False
+    s.mark_param_read(key)
+    assert s.was_param_read(key) is True
+
+
+def _derisi_criterion() -> Criterion:
+    return Criterion(
+        id="timecourse",
+        text="trophozoite stage expression",
+        search_name="GenesByMicroarrayDerisi",
+        resolved_params=bound(
+            {
+                "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed"),
+                "channel": SinglePickValue(value="Channel 1"),
+            }
+        ),
+    )
+
+
+class TestResolvedParamsFor:
+    def test_returns_the_bound_parents_of_that_search(self) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(_derisi_criterion())
+
+        assert state.resolved_params_for("GenesByMicroarrayDerisi") == {
+            "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed"),
+            "channel": SinglePickValue(value="Channel 1"),
+        }
+
+    def test_is_empty_for_a_search_no_criterion_uses(self) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(_derisi_criterion())
+
+        assert state.resolved_params_for("GenesByInterproDomain") == {}
+
+    def test_is_empty_when_nothing_is_bound(self) -> None:
+        assert AgentToolState().resolved_params_for("GenesByMicroarrayDerisi") == {}
+
+    def test_does_not_leak_across_searches(self) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(_derisi_criterion())
+        state.frame_set_criterion(
+            Criterion(
+                id="domain",
+                text="kinase domain",
+                search_name="GenesByInterproDomain",
+                resolved_params=bound(
+                    {
+                        "domain_database": SinglePickValue(value="PFAM"),
+                    }
+                ),
+            )
+        )
+
+        derisi = state.resolved_params_for("GenesByMicroarrayDerisi")
+
+        assert "domain_database" not in derisi
+
+    def test_merges_criteria_that_share_a_search(self) -> None:
+        # Two criteria can legitimately bind the same search (e.g. an up- and a
+        # down-regulated arm). Their parents together are the context.
+        state = AgentToolState()
+        state.frame_set_criterion(
+            Criterion(
+                id="up",
+                text="induced",
+                search_name="GenesByMicroarrayDerisi",
+                resolved_params=bound(
+                    {"profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")}
+                ),
+            )
+        )
+        state.frame_set_criterion(
+            Criterion(
+                id="down",
+                text="repressed",
+                search_name="GenesByMicroarrayDerisi",
+                resolved_params=bound({"channel": SinglePickValue(value="Channel 2")}),
+            )
+        )
+
+        merged = state.resolved_params_for("GenesByMicroarrayDerisi")
+
+        assert set(merged) == {"profileset_generic", "channel"}
+
+    def test_ignores_criteria_with_no_search_bound(self) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(
+            Criterion(id="vague", text="something", search_name="")
+        )
+
+        assert state.resolved_params_for("") == {}
+
+    def test_carries_multi_pick_values_unchanged(self) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(
+            Criterion(
+                id="c",
+                text="t",
+                search_name="S",
+                resolved_params=bound(
+                    {"samples": MultiPickValue(values=["20 Hour", "21 Hour"])}
+                ),
+            )
+        )
+
+        assert state.resolved_params_for("S") == {
+            "samples": MultiPickValue(values=["20 Hour", "21 Hour"])
+        }
+
+
+def test_frame_set_criterion_replaces_by_id() -> None:
+    st = AgentToolState()
+    st.frame_set_criterion(Criterion(id="c1", text="a", search_name="S1"))
+    st.frame_set_criterion(Criterion(id="c1", text="a2", search_name="S2"))
+    assert len(st.operational_spec_draft.criteria) == 1
+    assert st.operational_spec_draft.criteria[0].search_name == "S2"
+
+
+def test_a_count_recorded_on_the_draft_leaves_the_bound_criterion_unchanged() -> None:
+    st = AgentToolState()
+    bound_criterion = Criterion(id="c1", text="a", search_name="S1")
+    st.frame_set_criterion(bound_criterion)
+
+    st.frame_record_count("c1", 42, [])
+
+    assert (st.operational_spec_draft.criteria[0].result_count, bound_criterion) == (
+        42,
+        Criterion(id="c1", text="a", search_name="S1"),
+    )
+
+
+def _matched(term: str, values: list[str]) -> VocabLookup:
+    return VocabLookup(
+        terms=[term],
+        matches=[
+            PhrasingMatch(term=term, phrasing=term, reach="phrase", values=values)
+        ],
+    )
+
+
+def test_the_lookups_of_one_parameter_hold_every_entry_they_matched() -> None:
+    st = AgentToolState()
+
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", _matched("OBP", ["PF01395"])
+    )
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", _matched("PBP/GOBP", ["PF22651"])
+    )
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", VocabLookup(terms=["x"])
+    )
+
+    assert st.looked_up == {
+        ("GenesByInterproDomain", "domain_typeahead"): LookupRecord(
+            matched={"PF01395": "OBP", "PF22651": "PBP/GOBP"}
+        )
+    }
+
+
+def _spec_of_three() -> OperationalSpec:
+    """Three criteria under one combine, with an open slot on the last."""
+    return OperationalSpec(
+        goal="kinases",
+        criteria=[
+            Criterion(id="step_a", text="kinase domain", search_name="GenesByInterpro"),
+            Criterion(id="step_b", text="GO term", search_name="GenesByGoTerm"),
+            Criterion(id="step_c", text="SNP filter", search_name="GenesBySnps"),
+        ],
+        open_slots=[OpenSlot(criterion_id="step_c", param_name="organism")],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(kind="leaf", criterion_id="step_a"),
+                    StructureNode(kind="leaf", criterion_id="step_b"),
+                    StructureNode(kind="leaf", criterion_id="step_c"),
+                ],
+            )
+        ),
+    )
+
+
+def test_a_deleted_step_takes_its_criterion_slot_and_structure_node() -> None:
+    state = AgentToolState(operational_spec_draft=_spec_of_three())
+
+    state.drop_criteria_for_steps(["step_c", "step_combine"])
+
+    spec = state.operational_spec_draft
+    assert [c.id for c in spec.criteria] == ["step_a", "step_b"]
+    assert spec.open_slots == []
+    assert spec.structure is not None
+    assert [n.criterion_id for n in spec.structure.root.inputs] == [
+        "step_a",
+        "step_b",
+    ]
+
+
+def test_deleting_every_criterion_leaves_no_structure() -> None:
+    state = AgentToolState(operational_spec_draft=_spec_of_three())
+
+    state.drop_criteria_for_steps(["step_a", "step_b", "step_c"])
+
+    assert state.operational_spec_draft.criteria == []
+    assert state.operational_spec_draft.structure is None
+
+
+def test_a_transform_over_a_deleted_input_goes_with_it() -> None:
+    spec = _spec_of_three()
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="transform",
+            criterion_id="step_a",
+            inputs=[StructureNode(kind="leaf", criterion_id="step_b")],
+        )
+    )
+    state = AgentToolState(operational_spec_draft=spec)
+
+    state.drop_criteria_for_steps(["step_b"])
+
+    pruned = state.operational_spec_draft
+    assert pruned.structure is None
+    assert [c.id for c in pruned.criteria] == ["step_c"]
+
+
+def _seed_and_transform() -> OperationalSpec:
+    """A seed leaf with a transform over it, the shape a draft build states."""
+    return OperationalSpec(
+        goal="orthologs of the signal peptide genes",
+        criteria=[
+            Criterion(
+                id="step_3fa0e628",
+                text="predicted signal peptide",
+                search_name="GenesBySignalPeptide",
+                role="seed",
+            ),
+            Criterion(
+                id="orthologs",
+                text="orthologs in Plasmodium falciparum 3D7",
+                search_name="GenesByOrthologs",
+                role="transform",
+            ),
+        ],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="transform",
+                criterion_id="orthologs",
+                inputs=[StructureNode(kind="leaf", criterion_id="step_3fa0e628")],
+            )
+        ),
+    )
+
+
+def test_a_transform_whose_step_left_collapses_to_its_input() -> None:
+    state = AgentToolState(operational_spec_draft=_seed_and_transform())
+
+    state.drop_criteria_for_steps(["orthologs"])
+
+    spec = state.operational_spec_draft
+    assert [c.id for c in spec.criteria] == ["step_3fa0e628"]
+    assert spec.structure is not None
+    assert spec.structure.root.kind == "leaf"
+    assert spec.structure.root.criterion_id == "step_3fa0e628"
+
+
+def _cut_info() -> ParameterInfo:
+    return ParameterInfo(
+        name="domain_typeahead",
+        display_name="Specific Domain(s)",
+        type="multi-pick-vocabulary",
+        required=True,
+        is_visible=True,
+        help="",
+        value_format="",
+        allowed_values=[VocabOption(value="PF00001", display="PF00001 : Peptidase")],
+        allowed_values_total=66,
+        vocab_lookup=VocabLookup(terms=["peptidase"]),
+    )
+
+
+def test_a_snapshot_keeps_the_total_a_cut_list_came_from() -> None:
+    snapshot = ParamVocabSnapshot.model_validate(_cut_info(), from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") == OptionsRead(
+        param="domain_typeahead",
+        shown=frozenset({"PF00001"}),
+        total=66,
+        lookup=VocabLookup(terms=["peptidase"]),
+    )
+
+
+def test_a_snapshot_of_a_whole_list_no_lookup_narrowed_has_no_read() -> None:
+    whole = _cut_info().model_copy(
+        update={"allowed_values_total": None, "vocab_lookup": None}
+    )
+    snapshot = ParamVocabSnapshot.model_validate(whole, from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") is None
+
+
+def test_a_snapshot_of_a_whole_lookup_keeps_the_lookup() -> None:
+    whole = _cut_info().model_copy(update={"allowed_values_total": None})
+    snapshot = ParamVocabSnapshot.model_validate(whole, from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") == OptionsRead(
+        param="domain_typeahead",
+        shown=frozenset({"PF00001"}),
+        total=None,
+        lookup=VocabLookup(terms=["peptidase"]),
+    )

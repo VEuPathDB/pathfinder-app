@@ -1,0 +1,234 @@
+"""How a Lead arc advances, and the build and edit journeys most arcs share.
+
+An arc is a sequence of calls rebuilt from the run on every step; the next call
+is the first one the run has not made. A build the thread refuses ends the turn
+instead of verifying.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from assistant_core.models.scripted import (
+    current_turn,
+    next_unmade_call,
+    scripted_call,
+)
+from pydantic_ai.messages import ModelMessage, ToolCallPart
+
+from strategist.ai.models.mock.arc import Script, Sequence
+from strategist.ai.models.mock.calls import lead_final
+from strategist.ai.models.mock.reads import (
+    frame_is_ready,
+    instructions_of,
+    refusal_of,
+    turn_start_instructions,
+    verified,
+)
+
+SUCCESS_PROSE = (
+    "**Verified end-to-end.** The strategy framed, built, and verified "
+    "cleanly: root size looks right and the leaves are non-empty."
+)
+FEEDBACK_PROSE = (
+    "**Verification found a problem.** The check does not support the strategy "
+    "as it stands."
+)
+# The reply to each refused build, in the words a researcher reads: what
+# stopped it, then the question that unblocks it.
+_REPLACES = (
+    (
+        "Nothing was built: this conversation already has a strategy, and a new "
+        "build would replace every step."
+    ),
+    (
+        "Which steps do you want me to change, or should I clear the strategy "
+        "and start over?"
+    ),
+)
+_NEEDS_ANALYSIS = (
+    (
+        "Nothing was built: the search the site offers for this is an expression "
+        "analysis, and it needs an analysis step first."
+    ),
+    "Which comparison do you want me to set up?",
+)
+_NEEDS_A_VALUE = (
+    (
+        "Nothing was built: the search the site offers for this needs a value "
+        "your request does not state."
+    ),
+    "Which value do you want me to use?",
+)
+# The facts part shows the steps, their counts and what the check found, so a
+# reply points at it and restates none of them.
+FACTS_BESIDE = (
+    "\n\nThe steps, their counts and what the check found are shown beside this reply."
+)
+EDIT_PROSE = (
+    "**Edited the strategy.** The criterion you named changed; every other "
+    "criterion is unchanged, and the steps behind them keep the ids they had."
+)
+
+BUILD = "build_strategy"
+# The substring of ``build_would_replace_the_strategy`` that names the refusal.
+BUILD_REFUSED_MARKER = "build_strategy replaces it"
+# The gate withholds the tool on a thread that has a strategy, so the turn can
+# meet the same refusal as a withheld call.
+_BUILD_ABSENT_MARKER = "build_strategy cannot be called now"
+# The substring of ``build_not_ready_message`` for a spec that waits on analyses.
+_ANALYSIS_MARKER = "waits for the analysis workflow"
+# The Lead's pinned spec, and the words it holds while nothing is framed.
+_SPEC_PIN = "## Operational Spec"
+_NOTHING_FRAMED = "Not framed yet."
+
+
+def is_the_leads_run(messages: list[ModelMessage]) -> bool:
+    return _SPEC_PIN in instructions_of(messages)
+
+
+def lead(sequence: Sequence) -> Script:
+    """The Lead script that plays ``sequence``."""
+
+    def script(messages: list[ModelMessage]) -> ToolCallPart:
+        return next_unmade_call(sequence(messages), messages)
+
+    return script
+
+
+def lead_each_turn(sequence: Sequence) -> Script:
+    """The Lead script that plays ``sequence`` over the calls of its own turn."""
+
+    def script(messages: list[ModelMessage]) -> ToolCallPart:
+        turn = current_turn(messages)
+        return next_unmade_call(sequence(turn), turn)
+
+    return script
+
+
+def thread_is_framed(messages: list[ModelMessage]) -> bool:
+    """Whether the Lead's pinned spec held a framed request when the turn
+    began, so a frame of this turn's own does not count."""
+    pinned = turn_start_instructions(messages)
+    return _SPEC_PIN in pinned and _NOTHING_FRAMED not in pinned
+
+
+def build_refused(messages: list[ModelMessage]) -> bool:
+    refusal = refusal_of(messages, BUILD)
+    return refusal is not None and (
+        BUILD_REFUSED_MARKER in refusal or _BUILD_ABSENT_MARKER in refusal
+    )
+
+
+def _unbuilt(messages: list[ModelMessage]) -> ToolCallPart | None:
+    """The reply to a build the tool refused: what stopped it and the one
+    question that unblocks it, in plain words, with nothing checked. None when
+    the build was not refused."""
+    refusal = refusal_of(messages, BUILD)
+    if refusal is None:
+        return None
+    if build_refused(messages):
+        said, asked = _REPLACES
+    elif _ANALYSIS_MARKER in refusal:
+        said, asked = _NEEDS_ANALYSIS
+    else:
+        said, asked = _NEEDS_A_VALUE
+    return lead_final(f"{said} {asked}", "await_user", questions=[asked])
+
+
+def _checked(
+    messages: list[ModelMessage],
+    success: str,
+    failure: str,
+) -> list[ToolCallPart]:
+    """Verify, read the strategy the site holds now, and answer with what the
+    check decided, pointing at the facts beside the reply."""
+    final = (
+        lead_final(f"{success}{FACTS_BESIDE}", "complete")
+        if verified(messages)
+        else lead_final(f"{failure}{FACTS_BESIDE}", "await_user")
+    )
+    return [
+        scripted_call("verify_strategy", {"reason": "mock verification"}),
+        scripted_call("get_live_strategy_state", {}),
+        final,
+    ]
+
+
+def build_journey(
+    messages: list[ModelMessage],
+    *,
+    success: str = SUCCESS_PROSE,
+    failure: str = FEEDBACK_PROSE,
+) -> list[ToolCallPart]:
+    """Frame, build and verify; a refused build answers with the edit route."""
+    return [
+        scripted_call("frame_problem", {"reason": "mock frame"}),
+        *built_journey(messages, success=success, failure=failure),
+    ]
+
+
+def built_journey(
+    messages: list[ModelMessage],
+    *,
+    success: str = SUCCESS_PROSE,
+    failure: str = FEEDBACK_PROSE,
+) -> list[ToolCallPart]:
+    """Build the spec the thread holds and verify it; a refused build answers
+    with the edit route."""
+    head = [scripted_call(BUILD, {})]
+    unbuilt = _unbuilt(messages)
+    if unbuilt is not None:
+        return [*head, unbuilt]
+    return [*head, *_checked(messages, success, failure)]
+
+
+def edit_journey(
+    messages: list[ModelMessage], *, failure: str = FEEDBACK_PROSE
+) -> list[ToolCallPart]:
+    """Edit the strategy the thread holds and verify what changed."""
+    return [
+        scripted_call("edit_strategy", {"reason": "mock edit"}),
+        *_checked(messages, EDIT_PROSE, failure),
+    ]
+
+
+def build_when_framed(
+    messages: list[ModelMessage], prose: Callable[[list[ModelMessage]], str]
+) -> list[ToolCallPart]:
+    """Frame; build and check a spec the pass made ready, else answer with
+    ``prose`` and build nothing."""
+    if not frame_is_ready(messages):
+        return framed_only(messages, prose)
+    head = [*framed_only(messages, prose)[:1], scripted_call(BUILD, {})]
+    unbuilt = _unbuilt(messages)
+    if unbuilt is not None:
+        return [*head, unbuilt]
+    return [*head, *_checked(messages, SUCCESS_PROSE, FEEDBACK_PROSE)]
+
+
+def check_or_build(messages: list[ModelMessage]) -> list[ToolCallPart]:
+    """Check the strategy the thread holds, which changes nothing, else build
+    one and check it, and answer with what the check decided."""
+    if thread_is_framed(messages):
+        return _checked(messages, SUCCESS_PROSE, FEEDBACK_PROSE)
+    return build_journey(messages)
+
+
+def extend_or_build(
+    messages: list[ModelMessage], *, failure: str = FEEDBACK_PROSE
+) -> list[ToolCallPart]:
+    """Grow the strategy the thread holds, else build the whole spec fresh."""
+    if thread_is_framed(messages):
+        return edit_journey(messages, failure=failure)
+    return build_journey(messages, failure=failure)
+
+
+def framed_only(
+    messages: list[ModelMessage], prose: Callable[[list[ModelMessage]], str]
+) -> list[ToolCallPart]:
+    """Frame and answer with what the pass found, building nothing."""
+    return [
+        scripted_call("frame_problem", {"reason": "mock frame"}),
+        lead_final(prose(messages), "await_user"),
+    ]

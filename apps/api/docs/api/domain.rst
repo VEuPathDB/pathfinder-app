@@ -20,7 +20,7 @@ UI display.
 
 **Key function:** :py:func:`validate_strategy`
 
-.. automodule:: pathfinder.domain.strategy.validate
+.. automodule:: strategist.domain.strategy.validate
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,17 +31,17 @@ Evidence
 **Purpose:** The evidence card one check leaves: what each control test filed,
 each step's count on the site, and the references each criterion was bound on.
 
-.. automodule:: pathfinder.domain.evidence
+.. automodule:: strategist.domain.evidence
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.domain.control_enrichment
+.. automodule:: strategist.domain.control_enrichment
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.domain.citations
+.. automodule:: strategist.domain.citations
    :members:
    :undoc-members:
    :show-inheritance:
@@ -49,7 +49,7 @@ each step's count on the site, and the references each criterion was bound on.
 Strategy - Additional Modules
 -----------------------------
 
-.. automodule:: pathfinder.domain.strategy.explain
+.. automodule:: strategist.domain.strategy.explain
    :members:
    :undoc-members:
    :show-inheritance:

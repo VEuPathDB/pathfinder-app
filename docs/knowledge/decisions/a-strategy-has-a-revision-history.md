@@ -135,7 +135,7 @@ chunk the epilogue emits directly after it.
 
 # What would falsify this
 
-`apps/api/src/pathfinder/tests/integration/persistence/test_strategy_revision_store.py`
+`apps/api/src/strategist/tests/integration/persistence/test_strategy_revision_store.py`
 fails if a strategy write stops appending, or if a message stops resolving to
 the state in force when it was written.
 `.../test_fork_materializes_revision.py` fails if a branch takes the latest

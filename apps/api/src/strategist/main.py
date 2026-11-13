@@ -1,0 +1,448 @@
+"""FastAPI application entrypoint."""
+
+import asyncio
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from typing import Any, cast
+
+from assistant_core import registry
+from assistant_core.conversation.checkpointer import lifespan_checkpointer
+from assistant_core.conversation.listen_hub import close_listen_hub
+from assistant_core.embeddings.embedder import (
+    EmbeddingUnavailableError,
+    get_embedder,
+)
+from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.platform.context import request_id_ctx
+from assistant_core.platform.db import async_session_factory, close_db, get_engine
+from assistant_core.platform.logging import get_logger, setup_logging
+from assistant_core.platform.observability import shutdown_observability
+from assistant_core.tasks.job_context import install_durable_job_context
+from fastapi import Depends, FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry import trace
+from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException
+from veupathdb import set_observer
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda import close_all_eda_clients
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk import (
+    close_all_clients,
+    get_site_router,
+    search_definitions_read_once,
+)
+from veupathdb_mcp.catalog import get_discovery_service
+from veupathdb_mcp.embeddings import use_embedding_session_factory
+from veupathdb_mcp.search_line import install_search_line
+from veupathdb_mcp.strategy_line import install_strategy_line
+
+from strategist import __version__
+from strategist.ai.capabilities.decisions_spend import install_decisions_transport
+from strategist.ai.capabilities.security import warm_up_screening
+from strategist.assistants.registry import get_assistant_registry
+from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.jobs.job_context import WdkJobContext
+from strategist.platform.body_limit import RequestBodyLimitMiddleware
+from strategist.platform.config import Settings, get_settings
+from strategist.platform.error_handlers import (
+    RUNTIME_REFUSALS,
+    apply_error_handler,
+    assistant_core_error_handler,
+    assistant_mismatch_handler,
+    http_exception_handler,
+    rate_limit_handler,
+    request_validation_handler,
+    unknown_assistant_handler,
+    veupathdb_error_handler,
+)
+from strategist.platform.langfuse.client import shutdown_langfuse
+from strategist.platform.log_ids import accepted_request_id
+from strategist.platform.metrics import (
+    HttpMetricsMiddleware,
+    StrategistObserver,
+    serve_metrics,
+)
+from strategist.platform.migrations import init_db
+from strategist.platform.model_catalog import install_catalog_prices
+from strategist.platform.model_keys import is_mock_deployment
+from strategist.platform.observability import setup_observability, trace_routes
+from strategist.platform.principal import SERVICE_AUTH_HEADER
+from strategist.platform.readiness import (
+    ReadinessState,
+    get_readiness,
+    reset_readiness,
+)
+from strategist.platform.route_templates import install_route_templates
+from strategist.platform.security import (
+    RejectNullBytesMiddleware,
+    csrf_middleware,
+    limiter,
+)
+from strategist.platform.site_catalogs import (
+    preload_catalogs,
+    run_catalog_retry_loop,
+)
+from strategist.services.conversations.thread_lock import close_lock_engine
+from strategist.services.eda.catalog import preload_study_index
+from strategist.services.search_waits import runs_on_the_deployment_line
+from strategist.transport.http.deps import bind_request_log_ids
+from strategist.transport.http.openapi import install_openapi_post_passes
+from strategist.transport.http.routers import (
+    audits,
+    chat,
+    conversations,
+    dev,
+    dev_site_login,
+    eda,
+    eda_datasets,
+    evaluation,
+    exports,
+    gene_sets,
+    health,
+    me,
+    memories,
+    models,
+    product_events,
+    shared,
+    sites,
+    tasks,
+    tiers,
+    user_data,
+    veupathdb_auth,
+)
+
+logger = get_logger(__name__)
+
+
+def _build_the_injection_judge(readiness: ReadinessState) -> None:
+    """Build the judge, and report it only where the deployment screens.
+
+    Building it names the model, so a deployment that holds no credential for
+    it answers 503 instead of failing every message the researcher sends.
+    """
+    if not get_settings().input_screening_enabled:
+        logger.info("[warm-up] Input screening is off; the judge stays unbuilt")
+        return
+    try:
+        warm_up_screening()
+    except Exception as error:
+        logger.exception("[warm-up] The injection judge did not build")
+        readiness.mark_failed("input_screening", str(error))
+        return
+    readiness.mark_ready("input_screening")
+
+
+async def _warm_up_subsystems() -> None:
+    """Build the injection judge, reach the embedding backend, load the catalogs.
+
+    Each step is independent. A failure marks its subsystem as not ready and
+    the rest continue.
+    """
+    readiness = get_readiness()
+    _build_the_injection_judge(readiness)
+    try:
+        logger.info("[warm-up] Reaching the embedding backend")
+        await get_embedder().embed_query("ready")
+        readiness.mark_ready("embedding_backend")
+    except (
+        EmbeddingUnavailableError,
+        VEuPathDBError,
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as e:
+        logger.exception("[warm-up] Embedding backend failed")
+        readiness.mark_failed("embedding_backend", str(e))
+
+    try:
+        logger.info("[warm-up] Preloading discovery catalogs (all sites)")
+        # One catalog builds at a time, so the slow portals go last and a
+        # component site's budget is not spent waiting behind them.
+        sites = sorted(
+            get_site_router().list_sites(), key=lambda site: (site.is_portal, site.id)
+        )
+        await preload_catalogs(
+            loader=get_discovery_service().get_catalog,
+            site_ids=[site.id for site in sites],
+            readiness=readiness,
+            budget_seconds=get_settings().site_preload_timeout_seconds,
+        )
+    except VEuPathDBError, OSError, RuntimeError:
+        logger.exception("[warm-up] Discovery preload raised")
+
+    try:
+        logger.info("[warm-up] Syncing the EDA study index")
+        await preload_study_index()
+    except VEuPathDBError, OSError, RuntimeError:
+        logger.exception("[warm-up] EDA study index sync raised")
+
+
+def _report_warm_up_death(task: asyncio.Task[Any]) -> None:
+    """Fail every loading subsystem when the warm-up dies past its handlers."""
+    if task.cancelled():
+        return
+    error = task.exception()
+    if error is None:
+        return
+    logger.error("[warm-up] Warm-up task died", exc_info=error)
+    get_readiness().fail_loading(error)
+
+
+def _install_the_wdk_lines(settings: Settings) -> None:
+    install_search_line(
+        settings.database_url,
+        runs_on_the_deployment_line,
+        pool_size=settings.search_line_pool_size,
+        max_overflow=settings.search_line_max_overflow,
+        pool_timeout=settings.search_line_pool_timeout_seconds,
+    )
+    install_strategy_line(
+        settings.database_url,
+        pool_size=settings.strategy_line_pool_size,
+        max_overflow=settings.strategy_line_max_overflow,
+        pool_timeout=settings.strategy_line_pool_timeout_seconds,
+    )
+
+
+def _install_model_hooks() -> None:
+    install_catalog_prices()
+    install_decisions_transport()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """Application lifespan handler."""
+    settings = get_settings()
+    setup_logging()
+    from strategist.jobs.logging_filters import (  # noqa: PLC0415
+        install_procrastinate_redaction,
+    )
+
+    install_procrastinate_redaction()
+    _install_model_hooks()
+    logger.info("Starting Strategist API", version=__version__, env=settings.api_env)
+
+    readiness = get_readiness()
+    # The index shares this process's pool instead of opening a second one.
+    use_embedding_session_factory(async_session_factory)
+
+    try:
+        await init_db()
+        readiness.mark_ready("database")
+    except (VEuPathDBError, OSError, RuntimeError) as e:
+        readiness.mark_failed("database", str(e))
+        raise
+
+    setup_observability(service_name="pathfinder-api", engine=get_engine())
+    metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
+    set_observer(StrategistObserver())
+    _install_the_wdk_lines(settings)
+
+    from assistant_core.platform.spawn import spawn  # noqa: PLC0415
+
+    from strategist.jobs.app import procrastinate_app  # noqa: PLC0415
+
+    # A durable call captures the caller's WDK token wherever it is made.
+    install_durable_job_context(WdkJobContext())
+
+    # uvicorn binds only after this handler yields, so the warm-up runs beside
+    # the server and ``/health/ready`` reports which catalogs are still loading.
+    warm_up = spawn(_warm_up_subsystems(), name="warm-up")
+    if warm_up is not None:
+        warm_up.add_done_callback(_report_warm_up_death)
+
+    catalog_retry = spawn(
+        run_catalog_retry_loop(
+            loader=get_discovery_service().get_catalog,
+            readiness=readiness,
+            budget_seconds=settings.site_preload_timeout_seconds,
+            interval_seconds=settings.site_retry_interval_seconds,
+        ),
+        name="catalog-retry",
+    )
+
+    # The API process never runs a turn; it opens the checkpointer so the
+    # tables exist before the worker writes them.
+    async with (
+        lifespan_checkpointer(
+            settings.database_url,
+            checkpoint_types=get_assistant_registry().checkpoint_types(),
+        ),
+        lifespan_memory_store(settings.database_url) as memory_store,
+        procrastinate_app.open_async(),
+    ):
+        app.state.memory_store = memory_store
+        readiness.mark_ready("graph_checkpointer")
+
+        from strategist.services.export.sweeper import (  # noqa: PLC0415
+            run_sweeper_loop,
+        )
+
+        export_sweeper_task = spawn(run_sweeper_loop(), name="export-sweeper")
+
+        yield
+
+        logger.info("Shutting down Strategist API")
+
+        if export_sweeper_task is not None:
+            export_sweeper_task.cancel()
+        if warm_up is not None:
+            warm_up.cancel()
+        if catalog_retry is not None:
+            catalog_retry.cancel()
+
+    reset_readiness()
+    if metrics_server is not None:
+        metrics_server.shutdown()
+        metrics_server.server_close()
+    await close_all_clients()
+    await close_all_eda_clients()
+    await close_listen_hub()
+    await close_lock_engine()
+    await close_db()
+    shutdown_observability()
+    shutdown_langfuse()
+
+
+def _register_routers(app: FastAPI) -> None:
+    """Mount every always-on HTTP router."""
+    for router in (
+        health.router,
+        sites.router,
+        models.router,
+        tiers.router,
+        chat.router,
+        conversations.router,
+        eda.router,
+        eda_datasets.router,
+        veupathdb_auth.router,
+        gene_sets.router,
+        audits.router,
+        exports.router,
+        product_events.router,
+        user_data.router,
+        evaluation.router,
+        memories.router,
+        me.router,
+        tasks.router,
+        shared.router,
+    ):
+        app.include_router(router)
+
+
+def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
+    """Create and configure the FastAPI application.
+
+    ``include_dev_routes=None`` follows the process settings; ``False`` leaves
+    the mock overlay's routes out, whatever the environment. Local development
+    mounts the site sign-in route, which the spec never names.
+    """
+    settings = get_settings()
+
+    app = FastAPI(
+        title="VEuPathDB Strategist API",
+        description="VEuPathDB Strategy Builder Chatbot API",
+        version=__version__,
+        lifespan=lifespan,
+        docs_url="/docs" if settings.api_docs_enabled else None,
+        redoc_url="/redoc" if settings.api_docs_enabled else None,
+        dependencies=[Depends(bind_request_log_ids)],
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_origin_regex=settings.cors_origin_regex,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            SERVICE_AUTH_HEADER,
+            "X-Request-ID",
+            "X-Requested-With",
+            "X-VEUPATHDB-AUTH",
+            "X-VEUPATHDB-AUTHORIZATION",
+        ],
+    )
+
+    app.state.limiter = limiter
+
+    # The CSRF middleware registers after CORS, so a preflight request passes
+    # through it.
+    app.middleware("http")(csrf_middleware)
+
+    # PostgreSQL text cannot hold a NUL byte, so a NUL is a 422 and not a 500.
+    app.add_middleware(RejectNullBytesMiddleware)
+    app.add_middleware(
+        RequestBodyLimitMiddleware, max_bytes=settings.max_request_body_bytes
+    )
+
+    @app.middleware("http")
+    async def add_request_id(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = accepted_request_id(request.headers.get("X-Request-ID"))
+        request_id_ctx.set(request_id)
+        trace.get_current_span().set_attribute("app.request_id", request_id)
+        veupathdb_auth_token_ctx.set(
+            request.headers.get("X-VEUPATHDB-AUTH")
+            or request.headers.get("X-VEUPATHDB-AUTHORIZATION")
+            or request.cookies.get("Authorization")
+        )
+        with search_definitions_read_once():
+            response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+    app.add_middleware(HttpMetricsMiddleware)
+
+    for exc_type, handler in (
+        (VEuPathDBError, veupathdb_error_handler),
+        *((refusal, assistant_core_error_handler) for refusal in RUNTIME_REFUSALS),
+        (registry.UnknownAssistantError, unknown_assistant_handler),
+        (registry.AssistantMismatchError, assistant_mismatch_handler),
+        (ApplyError, apply_error_handler),
+        (HTTPException, http_exception_handler),
+        (RateLimitExceeded, rate_limit_handler),
+        (RequestValidationError, request_validation_handler),
+    ):
+        app.add_exception_handler(
+            exc_type,
+            cast("Callable[[Request, Exception], Awaitable[Response]]", handler),
+        )
+
+    _register_routers(app)
+    trace_routes(app)
+
+    # The mock overlay's routes mount under the mock chat provider only.
+    if include_dev_routes is None:
+        include_dev_routes = is_mock_deployment()
+    if include_dev_routes:
+        app.include_router(dev.router)
+
+    if settings.offers_dev_site_login:
+        app.include_router(dev_site_login.router)
+
+    install_openapi_post_passes(app)
+    install_route_templates(app)
+
+    return app
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        "strategist.main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=bool(settings.is_development),
+    )

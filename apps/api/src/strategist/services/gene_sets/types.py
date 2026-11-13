@@ -1,0 +1,126 @@
+"""Gene Set data model."""
+
+import hashlib
+from collections.abc import Iterable
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Annotated, Literal, Self
+from uuid import UUID
+
+from assistant_core.platform.context import calling_application
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict, Discriminator
+from veupathdb.domain.parameters import ParamValue
+
+from strategist.domain.gene_homes import GeneHome, SiteKind, genes_on
+
+GeneSetSource = Literal["strategy", "paste", "upload", "derived", "saved"]
+
+
+class GeneSetMembership(CamelModel):
+    """The gene ids a set holds, named by a digest of them.
+
+    Two sets of the same size are different sets, so the count alone does not
+    tell one membership from another.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    gene_count: int
+    digest: str
+
+    @classmethod
+    def of(cls, gene_ids: Iterable[str]) -> Self:
+        """Name the membership these gene ids make.
+
+        Membership is a set, so order and repetition change nothing.
+        """
+        unique = sorted(set(gene_ids))
+        return cls(
+            gene_count=len(unique),
+            digest=hashlib.sha256("\n".join(unique).encode()).hexdigest(),
+        )
+
+
+@dataclass(frozen=True)
+class StrategyRootContext:
+    wdk_strategy_id: int
+    wdk_step_id: int
+    search_name: str | None
+    record_type: str
+    parameters: dict[str, ParamValue] | None
+
+
+class ResultAboveTheCap(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["above_the_cap"] = "above_the_cap"
+    count: int
+    cap: int
+
+
+class ResultNotGenes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["not_genes"] = "not_genes"
+    record_class: str
+
+
+class ResultWithoutGenes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["no_genes"] = "no_genes"
+
+
+OutOfDate = Annotated[
+    ResultAboveTheCap | ResultNotGenes | ResultWithoutGenes, Discriminator("kind")
+]
+
+
+@dataclass
+class GeneSet:
+    """A named collection of gene IDs for analysis."""
+
+    id: str
+    name: str
+    site_id: str
+    gene_ids: list[str]
+    source: GeneSetSource
+    user_id: UUID | None = None
+    # The application the set was created under; it owns the set with the user.
+    application_id: str = field(default_factory=calling_application)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    wdk_strategy_id: int | None = None
+    wdk_step_id: int | None = None
+    search_name: str | None = None
+    record_type: str | None = None
+    parameters: dict[str, ParamValue] | None = None
+    step_count: int = 1
+    vdi_id: str | None = None
+    """The VEuPathDB user dataset this set was published to, when it was."""
+    conversation_id: UUID | None = None
+    """The thread the set was saved in, or None for a set saved outside one."""
+    answer_revision: str | None = None
+    """The answer revision of the strategy root the genes were read from."""
+    homes: dict[str, GeneHome] = field(default_factory=dict)
+    """Each saved id that names a gene, with the gene and the site that holds it."""
+    out_of_date: OutOfDate | None = None
+
+    def genes_on(self, site_id: str, kind: SiteKind) -> list[str]:
+        """The ids of this set that ``site_id`` reads."""
+        return genes_on(
+            self.site_id, self.gene_ids, self.homes, site_id=site_id, kind=kind
+        )
+
+    def take_wdk_context(self, ctx: StrategyRootContext, *, step_count: int) -> None:
+        """Adopt a resolved WDK context whole.
+
+        Every field of the context is one field of the set, so a take replaces
+        all of them and leaves none of the previous resolution behind.
+        """
+        self.wdk_strategy_id = ctx.wdk_strategy_id
+        self.wdk_step_id = ctx.wdk_step_id
+        self.search_name = ctx.search_name
+        self.record_type = ctx.record_type
+        self.parameters = ctx.parameters
+        self.step_count = step_count

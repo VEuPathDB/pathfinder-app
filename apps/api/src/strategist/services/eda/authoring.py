@@ -1,0 +1,383 @@
+"""Authoring an EDA analysis, and the one place its spec becomes a string."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+
+from assistant_core.platform.types import JSONArray
+from veupathdb.domain import (
+    DeclaredRanges,
+    entity_by_id,
+    validate_filters,
+    walk_entities,
+)
+from veupathdb.eda import (
+    EdaAnalysisDescriptor,
+    EdaAnalysisDetail,
+    EdaBinSpec,
+    EdaCategoryVariable,
+    EdaComputation,
+    EdaDistributionResponse,
+    EdaEntity,
+    EdaFilter,
+    EdaIntegerVariable,
+    EdaNewAnalysis,
+    EdaNumberDistributionDefaults,
+    EdaNumberVariable,
+    EdaStudyDetail,
+    EdaSubsetDescriptor,
+    get_eda_analyses_client,
+    get_eda_client,
+)
+from veupathdb.errors import ValidationError
+from veupathdb.wdk import get_wdk_client
+
+from strategist.domain.eda_parts import EdaDistributionSeries, EdaEntityCount
+from strategist.services.eda.catalog import (
+    get_study_detail_for_dataset,
+    resolve_dataset,
+    unfiltered_entity_count,
+)
+
+_CONTINUOUS = "continuous"
+
+
+def new_analysis(
+    *,
+    dataset_id: str,
+    display_name: str,
+    filters: Sequence[EdaFilter] = (),
+    computation: EdaComputation | None = None,
+) -> EdaNewAnalysis:
+    """Build the analysis document. ``dataset_id`` lands in the misnamed field."""
+    return EdaNewAnalysis(
+        study_id=dataset_id,
+        display_name=display_name,
+        descriptor=EdaAnalysisDescriptor(
+            subset=EdaSubsetDescriptor(descriptor=list(filters)),
+            computations=[computation] if computation is not None else [],
+        ),
+    )
+
+
+class EmptyAnalysisError(ValidationError):
+    """The analysis holds no filter and no computation, so no step carries it."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            title="Empty analysis",
+            detail=(
+                "The analysis holds no filter and no computation, so it selects "
+                "no genes and exports no step."
+            ),
+        )
+
+
+def serialize_spec(analysis: EdaNewAnalysis) -> str:
+    """The ``eda_analysis_spec`` parameter value for this analysis.
+
+    An empty spec selects nothing, so an analysis with no filter and no
+    computation is refused.
+    """
+    descriptor = analysis.descriptor
+    if not descriptor.subset.descriptor and not descriptor.computations:
+        raise EmptyAnalysisError
+    return analysis.model_dump_json(by_alias=True, exclude_none=True)
+
+
+@dataclass(frozen=True, slots=True)
+class SubsetPreview:
+    """A subset's size against the study's, plus one variable's distribution."""
+
+    entity_id: str
+    entity_display_name: str
+    entity_display_name_plural: str
+    count: int
+    unfiltered_count: int
+    distribution: EdaDistributionResponse | None
+    distribution_note: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _BinPlan:
+    """How to ask for a variable's distribution, or why the ask is skipped."""
+
+    bin_spec: EdaBinSpec | None = None
+    skipped: str | None = None
+
+
+def declared_ranges(study: EdaStudyDetail) -> DeclaredRanges:
+    """The numeric bounds the study declares, keyed by (entity, variable)."""
+    ranges: dict[tuple[str, str], tuple[float, float]] = {}
+    for entity in walk_entities(study.root_entity):
+        for variable in entity.variables:
+            match variable:
+                case EdaNumberVariable() | EdaIntegerVariable():
+                    low = variable.distribution_defaults.range_min
+                    high = variable.distribution_defaults.range_max
+                    if low is not None and high is not None:
+                        ranges[(entity.id, variable.id)] = (low, high)
+                case _:
+                    continue
+    return ranges
+
+
+def subset_errors(study: EdaStudyDetail, filters: Sequence[EdaFilter]) -> list[str]:
+    """Every reason this filter array will not mean what it says."""
+    return validate_filters(study, list(filters), declared_ranges(study))
+
+
+def refuse_an_invalid_subset(
+    study: EdaStudyDetail, filters: Sequence[EdaFilter]
+) -> None:
+    """Run the pure predicates. An invalid array never reaches the wire."""
+    errors = subset_errors(study, filters)
+    if errors:
+        raise SubsetRejectedError(errors)
+
+
+async def subset_entity_counts(
+    site_id: str,
+    *,
+    study: EdaStudyDetail,
+    filters: Sequence[EdaFilter],
+) -> list[EdaEntityCount]:
+    """Every entity's subset size against its whole size, in tree order.
+
+    The predicates run once for the array, not once per entity.
+    """
+    refuse_an_invalid_subset(study, filters)
+    client = get_eda_client(site_id)
+    return [
+        EdaEntityCount(
+            entity_id=entity.id,
+            entity_display_name=entity.display_name,
+            count=await client.count(
+                study_id=study.id, entity_id=entity.id, filters=filters
+            ),
+            unfiltered_count=await unfiltered_entity_count(
+                site_id, study_id=study.id, entity_id=entity.id
+            ),
+        )
+        for entity in walk_entities(study.root_entity)
+    ]
+
+
+def _numeric_bin_plan(
+    variable_id: str,
+    defaults: EdaNumberDistributionDefaults,
+) -> _BinPlan:
+    if defaults.bin_width is None:
+        return _BinPlan(
+            skipped=(
+                f"Variable {variable_id} is continuous and declares no binWidth, "
+                f"so the preview carries no distribution."
+            )
+        )
+    return _BinPlan(
+        bin_spec=EdaBinSpec(
+            display_range_min=defaults.range_min,
+            display_range_max=defaults.range_max,
+            bin_width=defaults.bin_width,
+        )
+    )
+
+
+def _bin_plan(entity: EdaEntity, variable_id: str) -> _BinPlan:
+    """A continuous variable requires a binSpec, and any other refuses one."""
+    variable = next((v for v in entity.variables if v.id == variable_id), None)
+    match variable:
+        case None:
+            return _BinPlan(
+                skipped=(
+                    f"Entity {entity.id} declares no variable {variable_id}, so the "
+                    f"preview carries no distribution."
+                )
+            )
+        case EdaCategoryVariable():
+            return _BinPlan()
+        case EdaNumberVariable() | EdaIntegerVariable() if (
+            variable.data_shape == _CONTINUOUS
+        ):
+            return _numeric_bin_plan(variable.id, variable.distribution_defaults)
+        case _ if variable.data_shape == _CONTINUOUS:
+            return _BinPlan(
+                skipped=(
+                    f"Variable {variable.id} is continuous and is not numeric, and "
+                    f"the preview builds a numeric binSpec only."
+                )
+            )
+        case _:
+            return _BinPlan()
+
+
+async def preview_subset(
+    site_id: str,
+    *,
+    dataset_id: str,
+    entity_id: str,
+    filters: Sequence[EdaFilter],
+    distribution_variable_id: str | None = None,
+) -> SubsetPreview:
+    """The filtered and unfiltered counts, and one variable's histogram."""
+    entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    refuse_an_invalid_subset(study, filters)
+    client = get_eda_client(site_id)
+    match entity_by_id(study.root_entity, entity_id):
+        case EdaEntity() as entity:
+            pass
+        case _:
+            raise UnknownEntityError(study, entity_id)
+    filtered = await client.count(
+        study_id=entry.study_id, entity_id=entity_id, filters=filters
+    )
+    unfiltered = await client.count(
+        study_id=entry.study_id, entity_id=entity_id, filters=[]
+    )
+    distribution = None
+    note = None
+    if distribution_variable_id is not None:
+        plan = _bin_plan(entity, distribution_variable_id)
+        note = plan.skipped
+        if note is None:
+            distribution = await client.distribution(
+                study_id=entry.study_id,
+                entity_id=entity_id,
+                variable_id=distribution_variable_id,
+                filters=filters,
+                bin_spec=plan.bin_spec,
+            )
+    return SubsetPreview(
+        entity_id=entity_id,
+        entity_display_name=entity.display_name,
+        entity_display_name_plural=entity.display_name_plural,
+        count=filtered,
+        unfiltered_count=unfiltered,
+        distribution=distribution,
+        distribution_note=note,
+    )
+
+
+def distribution_series(
+    distribution: EdaDistributionResponse | None,
+    *,
+    variable_id: str | None,
+    variable_display_name: str,
+    is_multi_valued: bool,
+) -> EdaDistributionSeries | None:
+    """One variable's histogram as the subset preview part carries it."""
+    if distribution is None or variable_id is None:
+        return None
+    statistics = distribution.statistics
+    return EdaDistributionSeries(
+        variable_id=variable_id,
+        variable_display_name=variable_display_name,
+        labels=[bin_.bin_label for bin_ in distribution.histogram],
+        values=[bin_.value for bin_ in distribution.histogram],
+        subset_size=statistics.subset_size,
+        num_var_values=statistics.num_var_values,
+        num_missing_cases=statistics.num_missing_cases,
+        is_multi_valued=is_multi_valued,
+    )
+
+
+class UnknownEntityError(ValidationError):
+    """An entity id the study does not declare, with the ids it does declare."""
+
+    def __init__(self, study: EdaStudyDetail, entity_id: str) -> None:
+        declared = ", ".join(
+            f"{e.id} ({e.display_name})" for e in walk_entities(study.root_entity)
+        )
+        self.message = (
+            f"Study {study.id} has no entity {entity_id}. Its entities are: {declared}."
+        )
+        super().__init__(title="Unknown entity", detail=self.message)
+
+
+class SubsetRejectedError(ValidationError):
+    """The filter array does not describe the subset it claims to.
+
+    Each message becomes one ``errors`` row, so a surface can show it beside
+    the filter that caused it.
+    """
+
+    def __init__(self, errors: Sequence[str]) -> None:
+        self.messages = list(errors)
+        rows: JSONArray = [{"message": message} for message in self.messages]
+        super().__init__(
+            title="Subset rejected",
+            detail=" ".join(self.messages),
+            errors=rows,
+        )
+
+
+async def resolve_eda_user_id(site_id: str) -> str:
+    """The numeric WDK user id the analysis routes are keyed by."""
+    return await get_eda_analyses_client(site_id).resolve_user_id(
+        get_wdk_client(site_id)
+    )
+
+
+async def open_analysis(
+    site_id: str,
+    *,
+    dataset_id: str,
+    display_name: str,
+) -> str:
+    """Create the upstream analysis this conversation edits. Returns its id."""
+    await resolve_dataset(site_id, dataset_id)
+    analyses = get_eda_analyses_client(site_id)
+    created = await analyses.create(
+        user_id=await resolve_eda_user_id(site_id),
+        analysis=new_analysis(dataset_id=dataset_id, display_name=display_name),
+    )
+    return created.analysis_id
+
+
+async def delete_analysis(site_id: str, *, analysis_id: str) -> None:
+    await get_eda_analyses_client(site_id).delete(
+        user_id=await resolve_eda_user_id(site_id),
+        analysis_id=analysis_id,
+    )
+
+
+async def patch_subset(
+    site_id: str,
+    *,
+    analysis_id: str,
+    dataset_id: str,
+    filters: Sequence[EdaFilter],
+) -> EdaAnalysisDetail:
+    """Replace the analysis's subset. The upstream document stays the SSOT."""
+    _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    refuse_an_invalid_subset(study, filters)
+    return await patch_analysis(
+        site_id,
+        analysis_id=analysis_id,
+        mutate=lambda current: current.model_copy(
+            update={"subset": EdaSubsetDescriptor(descriptor=list(filters))},
+        ),
+    )
+
+
+async def patch_analysis(
+    site_id: str,
+    *,
+    analysis_id: str,
+    mutate: Callable[[EdaAnalysisDescriptor], EdaAnalysisDescriptor],
+) -> EdaAnalysisDetail:
+    """Read the upstream descriptor, apply one change, write it back, re-read.
+
+    Upstream owns the document, so the read after the write is what both
+    surfaces render.
+    """
+    analyses = get_eda_analyses_client(site_id)
+    user_id = await resolve_eda_user_id(site_id)
+    current = await analyses.get(user_id=user_id, analysis_id=analysis_id)
+    await analyses.patch_descriptor(
+        user_id=user_id,
+        analysis_id=analysis_id,
+        descriptor=mutate(current.descriptor),
+    )
+    return await analyses.get(user_id=user_id, analysis_id=analysis_id)

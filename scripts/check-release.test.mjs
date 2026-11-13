@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { collect, offencesIn, pep440, tagVersion } from "./check-release.mjs";
 
 const PYPROJECT = (version, mcpTag) => `[project]
-name = "pathfinder-api"
+name = "strategist-api"
 version = "${version}"
 
 [dependency-groups]
@@ -40,7 +40,7 @@ const files = ({
 } = {}) =>
   new Map([
     ["apps/api/pyproject.toml", PYPROJECT(version, mcpTag)],
-    ["apps/api/src/pathfinder/__init__.py", INIT(init)],
+    ["apps/api/src/strategist/__init__.py", INIT(init)],
     ["docker-compose.yml", COMPOSE(wdk, research)],
   ]);
 
@@ -90,7 +90,7 @@ test("without a tag only the pins are read", () => {
 
 test("the version the api reports must be the version it is built as", () => {
   assert.deepEqual(offencesIn(files({ version: "0.2.0b5", init: "0.2.0b4" })), [
-    "apps/api/src/pathfinder/__init__.py: __version__ is 0.2.0b4, and apps/api/pyproject.toml says 0.2.0b5",
+    "apps/api/src/strategist/__init__.py: __version__ is 0.2.0b4, and apps/api/pyproject.toml says 0.2.0b5",
   ]);
 });
 

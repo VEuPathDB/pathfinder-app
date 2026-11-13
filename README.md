@@ -90,11 +90,11 @@ the worker as background tasks and answered on a later turn of the same thread.
 
 Key entrypoints:
 
-- API app: `apps/api/src/pathfinder/main.py`
-- Chat route and dispatcher: `apps/api/src/pathfinder/transport/http/routers/chat.py`, `ai/conversation/dispatcher.py`
-- Turn runner (worker side): `apps/api/src/pathfinder/jobs/impls/chat_turn_impl.py`, `ai/conversation/turn_runner.py`
-- Graph and Lead: `apps/api/src/pathfinder/ai/graph/builder.py`, `ai/lead/lead_agent.py`
-- Tools: `apps/api/src/pathfinder/ai/tools/` (`standalone/` definitions, `toolsets/` per role)
+- API app: `apps/api/src/strategist/main.py`
+- Chat route and dispatcher: `apps/api/src/strategist/transport/http/routers/chat.py`, `ai/conversation/dispatcher.py`
+- Turn runner (worker side): `apps/api/src/strategist/jobs/impls/chat_turn_impl.py`, `ai/conversation/turn_runner.py`
+- Graph and Lead: `apps/api/src/strategist/ai/graph/builder.py`, `ai/lead/lead_agent.py`
+- Tools: `apps/api/src/strategist/ai/tools/` (`standalone/` definitions, `toolsets/` per role)
 - Event log and SSE: `assistant_core.conversation.{event_writer,event_stream}` (ai-assistant-platform)
 
 ### Models
@@ -104,7 +104,7 @@ model. The deployment pays for the OpenAI models, for Claude Haiku 5.5 and for t
 when it holds each provider's key. Claude Sonnet 5.5 and Claude Opus 5.5 run only on a
 researcher's own Anthropic key, which the researcher stores in Settings and the deployment seals.
 The lineup, the prices and who may pay for each model are
-`apps/api/src/pathfinder/platform/model_catalog.py`.
+`apps/api/src/strategist/platform/model_catalog.py`.
 
 ## Running locally
 
@@ -275,7 +275,7 @@ the researcher as its user. Product events and rating scores go to the same
 project. What a trace holds and which view answers which question:
 [`docs/knowledge/conventions/observability.md`](docs/knowledge/conventions/observability.md).
 Cost per conversation, researcher and day, straight from the database:
-`uv run python -m pathfinder.devtools.usage report` in `apps/api`.
+`uv run python -m strategist.devtools.usage report` in `apps/api`.
 
 **Langfuse elsewhere**: point both processes at it.
 
@@ -311,7 +311,7 @@ API:
 cd apps/api
 cp ../../.env.dev.example .env
 uv sync
-uv run uvicorn pathfinder.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn strategist.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 If you're not running the full stack via Docker Compose, start local services with the explicit dev overlay:
@@ -352,9 +352,9 @@ Quick reference - see **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the hoo
 cd apps/api
 uv run ruff check .                  # Lint
 uv run mypy src                      # Type check (mypy)
-uv run pyright src/pathfinder        # Type check (pyright)
+uv run pyright src/strategist        # Type check (pyright)
 uv run lint-imports                  # Layering contracts
-uv run pytest src/pathfinder/tests/ -v   # Tests
+uv run pytest src/strategist/tests/ -v   # Tests
 
 # Web
 cd apps/web

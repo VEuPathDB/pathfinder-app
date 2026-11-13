@@ -1,0 +1,223 @@
+"""Stage three: each sampled candidate and gene target checked by its library check."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
+
+from assistant_core.platform.db import async_session_factory
+from veupathdb_mcp.audit import record_rows
+
+from strategist.domain.audit.confirmations import Confirmation, StrainConfirmation
+from strategist.domain.audit.findings import ConfirmationEvidence, classify_confirmation
+from strategist.domain.audit.scope import paired_genome
+from strategist.domain.audit.words import target_words, verdict_sentence
+from strategist.persistence.models import AuditFindingRecord, AuditRunRecord
+from strategist.persistence.repositories.audit import AuditRepository
+from strategist.persistence.repositories.audit_finding_filter import FindingFilter
+from strategist.persistence.repositories.audit_findings import (
+    AuditFindingRepository,
+    SettledFinding,
+)
+from strategist.platform.metrics import RequestTally
+from strategist.services.audit.checks import (
+    DeclinedCheck,
+    confirm_target,
+)
+from strategist.services.audit.progress import StageLane, not_read, waiting
+from strategist.services.audit.units import (
+    NOT_READ,
+    UNIT_FAILURES,
+    UnitFailure,
+    Waits,
+    in_passes,
+    tallied,
+    unit_failure,
+)
+
+type _Checked = Confirmation | UnitFailure | DeclinedCheck
+
+_SAMPLED = FindingFilter(sampled=True)
+_OPEN = FindingFilter(sampled=True, statuses=("screened", "unreached", "unread"))
+
+
+@dataclass(frozen=True, kw_only=True)
+class _Placed:
+    screened: str | None
+    model: str | None = None
+    paired: str | None = None
+
+
+async def _organisms(
+    site_id: str, genes: Sequence[str]
+) -> dict[str, str] | UnitFailure:
+    try:
+        rows = await record_rows(site_id, list(genes))
+    except UNIT_FAILURES as exc:
+        return unit_failure(exc, site_id)
+    organisms = {row.gene: row.organism for row in rows}
+    missing = [name for name in genes if name not in organisms]
+    if missing:
+        return UnitFailure(
+            status="failed",
+            message=f"{site_id} serves no gene row for {', '.join(missing)}",
+        )
+    return organisms
+
+
+async def _placed(site_id: str, finding: AuditFindingRecord) -> _Placed | UnitFailure:
+    if finding.genome:
+        return _Placed(screened=finding.genome)
+    target = finding.target
+    match await _organisms(site_id, target.genes):
+        case UnitFailure() as unplaced:
+            return unplaced
+        case organisms:
+            return _Placed(
+                screened=organisms[target.genes[0]],
+                paired=paired_genome(target, organisms),
+            )
+
+
+async def _in_model_genome(
+    site_id: str, reached: Confirmation, placed: _Placed
+) -> tuple[Confirmation | UnitFailure, _Placed]:
+    match (classify_confirmation(reached).model_role, reached):
+        case ("reference", StrainConfirmation(result=result)):
+            gene = result.reference_gene
+        case _:
+            return reached, placed
+    match await _organisms(site_id, [gene]):
+        case UnitFailure() as unplaced:
+            return unplaced, placed
+        case organisms:
+            organism = organisms[gene]
+            return reached, replace(placed, model=organism, paired=organism)
+
+
+async def _check(site_id: str, finding: AuditFindingRecord) -> tuple[_Checked, _Placed]:
+    match await _placed(site_id, finding):
+        case UnitFailure() as unplaced:
+            return unplaced, _Placed(screened=None)
+        case _Placed() as placed:
+            pass
+    match await confirm_target(site_id, finding.target):
+        case UnitFailure() | DeclinedCheck() as failed:
+            return failed, placed
+        case reached:
+            return await _in_model_genome(site_id, reached, placed)
+
+
+def _settled(
+    reached: _Checked, requests: int, placed: _Placed
+) -> tuple[SettledFinding, ConfirmationEvidence | None, str]:
+    genome, screened, paired = (
+        placed.model or placed.screened,
+        placed.screened,
+        placed.paired,
+    )
+    match reached:
+        case UnitFailure(status=status, message=message, refused=refused):
+            failed = SettledFinding(
+                refused=refused,
+                status=status,
+                genome=genome,
+                screened_genome=screened,
+                paired_genome=paired,
+                requests=requests,
+                message=message,
+            )
+            return failed, None, f"{status} ({message})"
+        case DeclinedCheck(message=message):
+            declined = SettledFinding(
+                status="declined",
+                genome=genome,
+                screened_genome=screened,
+                paired_genome=paired,
+                requests=requests,
+                message=message,
+            )
+            return declined, None, f"declined ({message})"
+        case _:
+            named = classify_confirmation(reached)
+            confirmed = SettledFinding(
+                status="confirmed",
+                genome=genome,
+                screened_genome=screened,
+                paired_genome=paired,
+                error_type=named.error_type,
+                certainty=named.certainty,
+                judged=named.judged,
+                requests=requests,
+                message=named.message,
+            )
+            evidence = ConfirmationEvidence(confirmation=reached)
+            return confirmed, evidence, verdict_sentence(reached.check, reached.verdict)
+
+
+async def _settle(
+    finding: AuditFindingRecord,
+    checked: tuple[_Checked, _Placed],
+    tally: RequestTally,
+) -> tuple[SettledFinding, str]:
+    reached, placed = checked
+    settled, evidence, said = _settled(reached, tally.count, placed)
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.settle_finding(finding.id, settled)
+        if evidence is not None:
+            await repo.save_evidence(finding.id, evidence, requests=0)
+        await AuditRepository(session).count_requests(
+            finding.run_id, "confirm", tally.count, tally.store_reads
+        )
+        await session.commit()
+    return settled, said
+
+
+async def _open_findings(run: AuditRunRecord) -> tuple[list[AuditFindingRecord], int]:
+    async with async_session_factory() as session:
+        repo = AuditFindingRepository(session)
+        await repo.sweep_findings(run.id)
+        found = await repo.findings(run.id, _OPEN)
+        total = await repo.count_findings(run.id, _SAMPLED)
+        await session.commit()
+    return sorted(found, key=lambda f: (f.attempts, f.id)), total
+
+
+async def run_confirm_stage(run: AuditRunRecord, lane: StageLane, waits: Waits) -> None:
+    pending, total = await _open_findings(run)
+    done = total - len(pending)
+
+    async def attempt(finding: AuditFindingRecord) -> bool:
+        nonlocal done
+        async with async_session_factory() as session:
+            await AuditFindingRepository(session).try_finding(finding.id)
+            await session.commit()
+        async with tallied(run.id, "confirm") as tally:
+            checked = await _check(run.site_id, finding)
+        settled, said = await _settle(finding, checked, tally)
+        answered = settled.status != "unreached"
+        done += answered
+        await lane.update(
+            done=done, total=total, message=f"{target_words(finding.target)}: {said}"
+        )
+        return answered
+
+    async def pausing(seconds: float, left: Sequence[AuditFindingRecord]) -> None:
+        await lane.update(
+            done=done,
+            total=total,
+            message=waiting(run.site_id, seconds, len(left), "finding"),
+        )
+
+    async def unread(left: Sequence[AuditFindingRecord]) -> None:
+        async with async_session_factory() as session:
+            await AuditFindingRepository(session).unread_findings(
+                [finding.id for finding in left], NOT_READ
+            )
+            await session.commit()
+        await lane.update(
+            done=done, total=total, message=not_read(len(left), "finding")
+        )
+
+    await in_passes(pending, attempt, waits, unread=unread, on_pause=pausing)

@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+import contextlib
+from contextlib import nullcontext
+from typing import Any
+
+from assistant_core.conversation.checkpointer import lifespan_checkpointer
+from assistant_core.conversation.event_writer import ChatEventWriter
+from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.models.capture import capture_llm
+from assistant_core.platform.logging import get_logger
+from assistant_core.tasks.scope import (
+    attach_conversation_application,
+    attach_user_id,
+)
+
+from strategist.ai.conversation.turn_failure import turn_closed_on_failure
+from strategist.ai.conversation.turn_runner import TurnRequest, run_turn
+from strategist.assistants.registry import (
+    get_assistant_registry,
+    prompt_reader_model,
+    turn_trace_labels,
+)
+from strategist.jobs.auth_context import attach_wdk_auth
+from strategist.jobs.log_context import turn_log_context
+from strategist.jobs.payloads import ChatTurnPayload
+from strategist.jobs.turn_keys import turn_keys
+from strategist.jobs.turn_metrics import metered_turn
+from strategist.platform.config import get_settings
+
+logger = get_logger(__name__)
+
+
+async def run_chat_turn(payload: dict[str, Any]) -> None:
+    """Drive one chat turn in the worker under the researcher's VEuPathDB token.
+
+    Without it on ``veupathdb_auth_token_ctx``, every WDK call travels as the guest.
+    """
+    parsed = ChatTurnPayload.model_validate(payload)
+    body = parsed.body
+
+    registry = get_assistant_registry()
+    spec = registry.resolve(parsed.assistant_id)
+
+    settings = get_settings()
+    with turn_log_context(parsed):
+        async with (
+            metered_turn(
+                assistant_id=spec.assistant_id,
+                model_id=prompt_reader_model(spec.assistant_id, body.phase_models),
+                writer=ChatEventWriter(
+                    conversation_id=body.conversation_id,
+                    turn_id=parsed.turn_id,
+                ),
+            ) as writer,
+            attach_wdk_auth(parsed.veupathdb_auth_token),
+            attach_user_id(parsed.user_id),
+            attach_conversation_application(body.conversation_id),
+            contextlib.AsyncExitStack() as stores,
+        ):
+            async with turn_closed_on_failure(writer):
+                saver = await stores.enter_async_context(
+                    lifespan_checkpointer(
+                        settings.database_url,
+                        checkpoint_types=registry.checkpoint_types(),
+                    ),
+                )
+                store = await stores.enter_async_context(
+                    lifespan_memory_store(settings.database_url),
+                )
+                graph = spec.build_graph(saver)
+
+            capture = (
+                capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
+            )
+            with capture:
+                async with turn_keys(
+                    user_id=parsed.user_id, spec=spec, body=body, writer=writer
+                ):
+                    await run_turn(
+                        request=TurnRequest(
+                            body=body,
+                            user_id=parsed.user_id,
+                            trace_labels=turn_trace_labels(
+                                spec.assistant_id, body.phase_models
+                            ),
+                        ),
+                        spec=spec,
+                        compiled_graph=graph,
+                        memory_store=store,
+                        writer=writer,
+                    )
+
+        logger.info(
+            "chat turn completed",
+            has_veupathdb_auth=parsed.veupathdb_auth_token is not None,
+        )

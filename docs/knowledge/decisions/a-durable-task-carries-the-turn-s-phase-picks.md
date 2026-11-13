@@ -58,7 +58,7 @@ answering under a model nobody picked.
 
 # Anchor
 
-`apps/api/src/pathfinder/jobs/completion.py::open_completion_turn`, pinned by
-`apps/api/src/pathfinder/tests/integration/jobs/test_completion_turn_phase_overrides.py`
+`apps/api/src/strategist/jobs/completion.py::open_completion_turn`, pinned by
+`apps/api/src/strategist/tests/integration/jobs/test_completion_turn_phase_overrides.py`
 and
-`apps/api/src/pathfinder/tests/integration/persistence/test_task_phase_overrides_migration.py`.
+`apps/api/src/strategist/tests/integration/persistence/test_task_phase_overrides_migration.py`.

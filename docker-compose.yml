@@ -59,7 +59,7 @@ services:
       # The heartbeat runs in a thread of its own, so a running job cannot
       # widen the gap this has to clear.
       WORKER_DEAD_HEARTBEAT_SECONDS: ${WORKER_DEAD_HEARTBEAT_SECONDS:-60}
-      # Dev WDK login for the chat debugger (pathfinder.devtools.chat). Under
+      # Dev WDK login for the chat debugger (strategist.devtools.chat). Under
       # API_ENV=development both values mount the site sign-in route; set in .env.dev.
       WDK_DEV_EMAIL: ${WDK_DEV_EMAIL:-}
       WDK_DEV_PASSWORD: ${WDK_DEV_PASSWORD:-}
@@ -75,7 +75,7 @@ services:
       VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__strategist_internal__:}
       VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES: '["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]'
     volumes:
-      # Devtools chat-debugger run artifacts (pathfinder.devtools.chat) land on
+      # Devtools chat-debugger run artifacts (strategist.devtools.chat) land on
       # the host so they can be inspected outside the container.
       - ./apps/api/.pf-runs:/data/pf-runs
       # Per-site catalog snapshots. Without this every recreate serves the

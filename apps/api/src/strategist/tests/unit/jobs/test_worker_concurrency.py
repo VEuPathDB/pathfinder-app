@@ -1,0 +1,382 @@
+"""The worker runs jobs in parallel up to the configured concurrency."""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator, Callable
+from dataclasses import dataclass
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, call, patch
+
+import procrastinate
+import pytest
+from procrastinate.jobs import DeleteJobCondition
+from procrastinate.testing import InMemoryConnector
+
+from strategist.jobs.app import procrastinate_app
+from strategist.jobs.worker import WorkerCannotScreenError, amain
+from strategist.persistence.repositories.audit import AuditRepository
+from strategist.platform.config import Settings
+from strategist.platform.metrics import StrategistObserver
+from strategist.services.search_waits import runs_on_the_deployment_line
+
+_OVERLAP_TIMEOUT_SECONDS = 0.25
+_MISSING_CREDENTIAL = "the deployment holds no key for the screening model"
+_UNBUILT = "a disabled screener builds nothing"
+
+
+class _MissingCredentialError(Exception):
+    """The shape a provider client raises when its key is absent."""
+
+
+def _default_worker_concurrency() -> int:
+    """The shipped default that the worker entry point passes to procrastinate."""
+    return int(Settings.model_fields["worker_concurrency"].get_default())
+
+
+async def _run_two_jobs(concurrency: int) -> list[str]:
+    """Defer two jobs on an in-memory app and return their ordered start/end marks.
+
+    Each job marks its start, waits for the other job to start, then marks its
+    end. A job that waits alone gives up after the timeout.
+    """
+    app = procrastinate.App(connector=InMemoryConnector())
+    marks: list[str] = []
+    both_started = asyncio.Event()
+
+    @app.task(queue="probe", name="probe")
+    async def probe(index: int) -> None:
+        marks.append(f"start-{index}")
+        if sum(1 for mark in marks if mark.startswith("start-")) == 2:
+            both_started.set()
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(both_started.wait(), _OVERLAP_TIMEOUT_SECONDS)
+        marks.append(f"end-{index}")
+
+    async with app.open_async():
+        await probe.defer_async(index=1)
+        await probe.defer_async(index=2)
+        await app.run_worker_async(
+            queues=["probe"],
+            concurrency=concurrency,
+            wait=False,
+            listen_notify=False,
+            install_signal_handlers=False,
+        )
+    return marks
+
+
+async def test_two_jobs_overlap_at_the_default_concurrency() -> None:
+    """The second job starts while the first one still runs."""
+    marks = await _run_two_jobs(_default_worker_concurrency())
+
+    assert sorted(marks) == ["end-1", "end-2", "start-1", "start-2"]
+    assert marks.index("start-2") < marks.index("end-1")
+
+
+async def test_second_job_waits_at_concurrency_one() -> None:
+    """The second job starts only after the first one ends."""
+    marks = await _run_two_jobs(1)
+
+    assert marks == ["start-1", "end-1", "start-2", "end-2"]
+
+
+@contextlib.asynccontextmanager
+async def _noop_open() -> AsyncIterator[None]:
+    yield
+
+
+@dataclass
+class _AmainRun:
+    """What ``amain`` built, and the order it did the startup work in."""
+
+    worker_kwargs: dict[str, Any]
+    audit_kwargs: dict[str, Any]
+    heartbeat_kwargs: dict[str, Any]
+    marks: list[str]
+    ran: bool
+    observability: list[str]
+    metrics_servers: list[tuple[int, str]]
+    observers: list[object]
+    search_lines: list[tuple[str, object, dict[str, object]]]
+    strategy_lines: list[tuple[str, dict[str, object]]]
+
+
+def _record(marks: list[str]) -> Callable[[], None]:
+    """A judge builder that records the moment it ran."""
+
+    def build() -> None:
+        marks.append("build")
+
+    return build
+
+
+async def _run_amain(
+    *,
+    worker_concurrency: int = 4,
+    heartbeat_interval: float = 5.0,
+    screening: bool = False,
+    build_judge: Callable[[], None] | None = None,
+    marks: list[str] | None = None,
+    metrics: tuple[int, str] = (9100, "10.0.0.5"),
+) -> _AmainRun:
+    """Run ``amain`` against a stubbed app and report what it built."""
+    app = MagicMock()
+    app.open_async = MagicMock(side_effect=_noop_open)
+    app.perform_import_paths = MagicMock()
+    built: dict[str, dict[str, Any]] = {}
+    heartbeat_built: dict[str, Any] = {}
+    marks = [] if marks is None else marks
+    observability: list[str] = []
+    metrics_servers: list[tuple[int, str]] = []
+    observers: list[object] = []
+    search_lines: list[tuple[str, object, dict[str, object]]] = []
+    strategy_lines: list[tuple[str, dict[str, object]]] = []
+
+    def make_worker(**kwargs: Any) -> MagicMock:
+        name = "audit-run" if "name" in kwargs else "run"
+        built[name] = kwargs
+        worker = MagicMock()
+        worker.worker_id = 11
+        worker.run = AsyncMock(side_effect=lambda: marks.append(name))
+        return worker
+
+    async def read_runs(*args: object) -> list[object]:
+        del args
+        marks.append("resume")
+        return []
+
+    def make_heartbeat(**kwargs: Any) -> MagicMock:
+        heartbeat_built.update(kwargs)
+        heartbeat = MagicMock()
+        heartbeat.start = MagicMock(side_effect=lambda: marks.append("start"))
+        heartbeat.stop = MagicMock(side_effect=lambda: marks.append("stop"))
+        return heartbeat
+
+    with (
+        patch("strategist.jobs.worker.procrastinate_app", app),
+        patch("strategist.jobs.worker.setup_logging"),
+        patch(
+            "strategist.jobs.worker.setup_observability",
+            side_effect=lambda **kw: observability.append(f"on:{kw['service_name']}"),
+        ),
+        patch(
+            "strategist.jobs.worker.shutdown_observability",
+            side_effect=lambda: observability.append("off"),
+        ),
+        patch(
+            "strategist.jobs.worker.shutdown_langfuse",
+            side_effect=lambda: observability.append("langfuse-off"),
+        ),
+        patch("strategist.jobs.worker.install_procrastinate_redaction"),
+        patch(
+            "strategist.jobs.worker.serve_metrics",
+            side_effect=lambda port, addr: metrics_servers.append((port, addr)),
+        ),
+        patch("strategist.jobs.worker.set_observer", side_effect=observers.append),
+        patch(
+            "strategist.jobs.worker.install_search_line",
+            side_effect=lambda url, expensive, **pool: search_lines.append(
+                (url, expensive, pool)
+            ),
+        ),
+        patch(
+            "strategist.jobs.worker.install_strategy_line",
+            side_effect=lambda url, **pool: strategy_lines.append((url, pool)),
+        ),
+        patch("strategist.jobs.worker.register_all_tools"),
+        patch.object(AuditRepository, "resumable_runs", read_runs),
+        patch("strategist.jobs.worker.install_admitted_sources"),
+        patch("strategist.jobs.worker.admitted_tool_sources", return_value=[]),
+        patch("strategist.jobs.worker.postgres_beat_writer", return_value="writer"),
+        patch(
+            "strategist.jobs.worker.warm_up_screening",
+            side_effect=build_judge or _record(marks),
+        ),
+        patch("strategist.jobs.worker.Worker", side_effect=make_worker),
+        patch("strategist.jobs.worker.HeartbeatThread", side_effect=make_heartbeat),
+        patch(
+            "strategist.jobs.worker.get_settings",
+            return_value=MagicMock(
+                worker_concurrency=worker_concurrency,
+                audit_concurrency=2,
+                worker_heartbeat_interval_seconds=heartbeat_interval,
+                database_url="postgresql+asyncpg://user@host/db",
+                search_line_pool_size=1,
+                search_line_max_overflow=1,
+                search_line_pool_timeout_seconds=None,
+                strategy_line_pool_size=1,
+                strategy_line_max_overflow=1,
+                strategy_line_pool_timeout_seconds=None,
+                input_screening_enabled=screening,
+                metrics_port=metrics[0],
+                metrics_addr=metrics[1],
+            ),
+        ),
+    ):
+        await amain()
+    return _AmainRun(
+        worker_kwargs=built["run"],
+        audit_kwargs=built["audit-run"],
+        heartbeat_kwargs=heartbeat_built,
+        marks=marks,
+        ran=True,
+        observability=observability,
+        metrics_servers=metrics_servers,
+        observers=observers,
+        search_lines=search_lines,
+        strategy_lines=strategy_lines,
+    )
+
+
+async def test_amain_passes_configured_concurrency() -> None:
+    """``amain`` hands the configured concurrency to the procrastinate worker."""
+    run = await _run_amain(worker_concurrency=6)
+
+    assert run.worker_kwargs["concurrency"] == 6
+
+
+async def test_amain_installs_the_observer_and_the_search_line() -> None:
+    run = await _run_amain()
+
+    assert [type(observer) for observer in run.observers] == [StrategistObserver]
+    assert run.search_lines == [
+        (
+            "postgresql+asyncpg://user@host/db",
+            runs_on_the_deployment_line,
+            {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
+        )
+    ]
+    assert run.strategy_lines == [
+        (
+            "postgresql+asyncpg://user@host/db",
+            {"pool_size": 1, "max_overflow": 1, "pool_timeout": None},
+        )
+    ]
+
+
+async def test_amain_deletes_every_job_that_reaches_a_final_state() -> None:
+    run = await _run_amain()
+
+    assert run.worker_kwargs["delete_jobs"] is DeleteJobCondition.ALWAYS
+
+
+def test_every_worker_of_the_application_deletes_finished_jobs() -> None:
+    assert procrastinate_app.worker_defaults == {
+        "delete_jobs": DeleteJobCondition.ALWAYS
+    }
+
+
+async def test_amain_keeps_serving_every_queue() -> None:
+    """Concurrency does not change the set of queues the worker consumes."""
+    run = await _run_amain()
+
+    assert run.worker_kwargs["queues"] == [
+        "chat_turn",
+        "default",
+        "maintenance",
+        "verification",
+    ]
+
+
+async def test_amain_beats_around_the_worker_run() -> None:
+    """The heartbeat starts before the jobs and stops after them."""
+    run = await _run_amain()
+
+    assert run.marks == ["start", "start", "run", "audit-run", "stop", "stop"]
+
+
+async def test_amain_reads_no_audit_run_before_the_workers_serve() -> None:
+    """The api migrates the app tables, so the worker start reads none of them."""
+    run = await _run_amain()
+
+    assert run.marks.count("resume") == 0
+
+
+async def test_amain_runs_the_audits_on_their_own_queue_and_concurrency() -> None:
+    run = await _run_amain(worker_concurrency=6)
+
+    assert (
+        run.audit_kwargs["queues"],
+        run.audit_kwargs["concurrency"],
+        run.audit_kwargs["install_signal_handlers"],
+        run.worker_kwargs["install_signal_handlers"],
+        run.worker_kwargs["concurrency"],
+    ) == (["audit"], 2, False, False, 6)
+
+
+async def test_amain_gives_the_heartbeat_the_worker_id_and_interval() -> None:
+    """The heartbeat refreshes the row the worker registered, at the interval."""
+    run = await _run_amain(heartbeat_interval=2.5)
+
+    assert run.heartbeat_kwargs["interval_seconds"] == 2.5
+    assert run.heartbeat_kwargs["worker_id"]() == 11
+    assert run.worker_kwargs["update_heartbeat_interval"] == 2.5
+
+
+class TestTheWorkerBuildsTheJudgeBeforeItConsumesAJob:
+    """Every tool result this process reads crosses the judge."""
+
+    async def test_the_judge_is_built_before_the_worker_runs(self) -> None:
+        run = await _run_amain(screening=True)
+
+        assert run.marks == [
+            "build",
+            "start",
+            "start",
+            "run",
+            "audit-run",
+            "stop",
+            "stop",
+        ]
+
+    async def test_a_judge_that_cannot_be_built_stops_the_worker(self) -> None:
+        """A worker that cannot screen must not pull a job."""
+        marks: list[str] = []
+
+        def no_credential() -> None:
+            marks.append("build")
+            raise _MissingCredentialError(_MISSING_CREDENTIAL)
+
+        with pytest.raises(WorkerCannotScreenError):
+            await _run_amain(screening=True, build_judge=no_credential, marks=marks)
+
+        assert marks == ["build"]
+
+    async def test_a_disabled_screener_builds_nothing_and_the_worker_runs(
+        self,
+    ) -> None:
+        def fail_build() -> None:
+            raise AssertionError(_UNBUILT)
+
+        run = await _run_amain(screening=False, build_judge=fail_build)
+
+        assert run.marks == [
+            "start",
+            "start",
+            "run",
+            "audit-run",
+            "stop",
+            "stop",
+        ]
+
+
+async def test_amain_traces_the_turns_it_runs_and_flushes_on_exit() -> None:
+    """The worker runs every model call, so it installs the tracer before any job."""
+    run = await _run_amain()
+
+    assert run.observability == ["on:pathfinder-worker", "off", "langfuse-off"]
+
+
+async def test_amain_meters_at_the_catalog_prices() -> None:
+    with patch("strategist.jobs.worker.install_catalog_prices") as install:
+        await _run_amain()
+
+    assert install.call_args_list == [call()]
+
+
+async def test_amain_serves_its_metrics_on_the_configured_port() -> None:
+    run = await _run_amain(metrics=(9300, "10.0.0.6"))
+
+    assert run.metrics_servers == [(9300, "10.0.0.6")]

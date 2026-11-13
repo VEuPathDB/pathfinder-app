@@ -105,7 +105,7 @@ procrastinate writes before and after it calls a job are outside every block.
 
 # The same numbers without Langfuse
 
-`uv run python -m pathfinder.devtools.usage report [--since DATE] [--site X]` reads
+`uv run python -m strategist.devtools.usage report [--since DATE] [--site X]` reads
 the `messages` rows and prints cost and tokens per conversation (with turns, site,
 assistant and researcher), per researcher and per day, and the averages. See
-`apps/api/src/pathfinder/devtools/README.md`.
+`apps/api/src/strategist/devtools/README.md`.

@@ -46,7 +46,7 @@ shows them, and the composer offers an image or a PDF only when the reader
 reads it and names the models that do otherwise. The values come from sending
 each cloud model one 1x1 PNG ("What colour is this image?") and one one-page
 PDF that prints one word ("What single word is printed in this document?")
-with the deployment's keys, through `python -m pathfinder.devtools.model_catalog
+with the deployment's keys, through `python -m strategist.devtools.model_catalog
 probe <id>`, on 2026-09-28 for the OpenAI and Google models and on 2026-10-08
 for the Claude models:
 
@@ -82,7 +82,7 @@ and the checkpoint keeps them in the Lead's history for later turns. FRAME,
 BUILD and VERIFY are handed the text alone, because they bind searches; the
 title generator and the injection judge read the text alone too.
 
-Measured through `pathfinder.devtools.chat --attach` on plasmodb with the
+Measured through `strategist.devtools.chat --attach` on plasmodb with the
 default Lead, `openai:gpt-5.6-luna`: a PNG of a three-row gene table answered
 with the three ids and their products, and a one-page PDF of the same table
 answered the same three ids.

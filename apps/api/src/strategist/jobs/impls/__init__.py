@@ -1,0 +1,48 @@
+"""Worker-side durable tool implementations.
+
+The worker calls :func:`register_all_tools` from its ``amain`` entrypoint so
+that every durable tool's real body is bound before it starts pulling jobs off
+the queue. Agent-side wrappers simply submit the job and defer their call.
+"""
+
+from __future__ import annotations
+
+from assistant_core.tasks.declaration import register_durable_impl
+
+from strategist.ai.tools.standalone.eda_compute import EDA_COMPUTE
+from strategist.ai.tools.standalone.eda_statistics import EDA_PCA
+from strategist.ai.tools.standalone.experiment import CONTROL_TESTS
+from strategist.ai.tools.standalone.optimization import PARAMETER_SWEEP
+from strategist.ai.tools.standalone.separation import SEPARATION
+from strategist.jobs import tasks
+from strategist.jobs.impls.control_tests_impl import (
+    run_control_tests_on_step_impl,
+)
+from strategist.jobs.impls.eda_compute_impl import run_eda_compute_impl
+from strategist.jobs.impls.eda_pca_impl import run_eda_dimensionality_reduction_impl
+from strategist.jobs.impls.optimize_params_impl import (
+    optimize_search_parameters_impl,
+)
+from strategist.jobs.impls.separate_controls_impl import separate_controls_impl
+from strategist.services.search_waits import told_on_progress
+
+
+def register_all_tools() -> None:
+    """Register every durable tool implementation.
+
+    Also fires ``tasks.ensure_registered`` so the ``@procrastinate_app.task``
+    decorators in ``strategist.jobs.tasks`` run (as an import side effect)
+    before the worker starts pulling jobs. Safe to call repeatedly.
+    """
+    tasks.ensure_registered()
+    register_durable_impl(
+        CONTROL_TESTS, told_on_progress(run_control_tests_on_step_impl)
+    )
+    register_durable_impl(
+        PARAMETER_SWEEP, told_on_progress(optimize_search_parameters_impl)
+    )
+    register_durable_impl(EDA_COMPUTE, told_on_progress(run_eda_compute_impl))
+    register_durable_impl(
+        EDA_PCA, told_on_progress(run_eda_dimensionality_reduction_impl)
+    )
+    register_durable_impl(SEPARATION, told_on_progress(separate_controls_impl))

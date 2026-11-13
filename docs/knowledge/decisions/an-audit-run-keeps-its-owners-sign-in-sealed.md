@@ -91,8 +91,8 @@ count of 403s in a row closes that case without a request to the site.
 
 # Anchor
 
-`apps/api/src/pathfinder/services/audit/sign_in.py`,
-`apps/api/src/pathfinder/services/audit/job.py`,
-`apps/api/src/pathfinder/services/audit/units.py`,
-`apps/api/src/pathfinder/persistence/repositories/audit.py`,
-`apps/api/src/pathfinder/tests/integration/jobs/test_audit_run_waits_and_sign_in.py`.
+`apps/api/src/strategist/services/audit/sign_in.py`,
+`apps/api/src/strategist/services/audit/job.py`,
+`apps/api/src/strategist/services/audit/units.py`,
+`apps/api/src/strategist/persistence/repositories/audit.py`,
+`apps/api/src/strategist/tests/integration/jobs/test_audit_run_waits_and_sign_in.py`.

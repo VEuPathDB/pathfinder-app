@@ -1,0 +1,120 @@
+"""Procrastinate task registrations for the Strategist worker.
+
+All tasks register on import via the ``@procrastinate_app.task`` decorator.
+``ensure_registered`` is a no-op call-site marker used by the bootstrap
+path so importing this module is not flagged as an unused import.
+"""
+
+from __future__ import annotations
+
+from datetime import timedelta
+from typing import Any
+
+from assistant_core.tasks.maintenance import release_stalled_jobs
+from assistant_core.tasks.names import (
+    CHAT_TURN_QUEUE,
+    CHAT_TURN_TASK,
+    DEFAULT_QUEUE,
+    MAINTENANCE_QUEUE,
+    RELEASE_STALLED_JOBS_TASK,
+)
+from pydantic import JsonValue
+from veupathdb_mcp.embeddings import prune_orphan_vectors
+
+from strategist.jobs.app import procrastinate_app
+from strategist.jobs.auth_context import attach_application
+from strategist.jobs.impls.audit_review_impl import run_review_job
+from strategist.jobs.impls.audit_run_impl import run_audit_job
+from strategist.jobs.impls.chat_turn_impl import run_chat_turn
+from strategist.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
+from strategist.services.audit.job import resume_stranded_runs
+from strategist.services.audit.queue import AUDIT_JOB, AUDIT_QUEUE, AUDIT_REVIEW_JOB
+from strategist.services.audit.reviews import resume_stranded_reviews
+from strategist.services.eval_data.extraction import extract_eval_candidates
+from strategist.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
+
+# A vector nothing names is kept for a week: a rebuilt index reuses it.
+ORPHAN_VECTOR_GRACE = timedelta(days=7)
+RESUME_STRANDED_AUDITS_CRON = "*/5 * * * *"
+
+
+def ensure_registered() -> None:
+    """No-op that keeps the module-import side effects live.
+
+    The real work is the ``@procrastinate_app.task`` decorators below - those
+    run at import time. This function exists so callers that need to
+    guarantee tasks are registered (the worker bootstrap path) can reference
+    the module without relying on unused-import semantics.
+    """
+
+
+@procrastinate_app.task(queue=DEFAULT_QUEUE, name="echo")
+async def echo_task(message: str) -> str:
+    """Smoke task for worker/app bring-up tests."""
+    return message
+
+
+@procrastinate_app.task(queue=CHAT_TURN_QUEUE, name=CHAT_TURN_TASK)
+async def run_chat_turn_job(payload: dict[str, Any]) -> None:
+    await run_chat_turn(payload)
+
+
+@procrastinate_app.task(queue=AUDIT_QUEUE, name=AUDIT_JOB)
+async def run_audit_job_task(payload: dict[str, JsonValue]) -> None:
+    await run_audit_job(payload)
+
+
+@procrastinate_app.task(queue=AUDIT_QUEUE, name=AUDIT_REVIEW_JOB)
+async def run_review_job_task(payload: dict[str, JsonValue]) -> None:
+    await run_review_job(payload)
+
+
+# The deferring write names the thread as the lock, so the job never runs
+# beside one of the thread's turns.
+@procrastinate_app.task(queue=DEFAULT_QUEUE, name=GENE_SET_REFRESH_TASK)
+async def refresh_strategy_gene_set_job(payload: dict[str, JsonValue]) -> None:
+    await refresh_strategy_gene_set(payload)
+
+
+# The sweep settles work no job lock protects, so the lock keeps two runs of
+# it apart.
+@procrastinate_app.periodic(cron="* * * * *")
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE,
+    name=RELEASE_STALLED_JOBS_TASK,
+    lock="maintenance:release-stalled-jobs",
+)
+async def release_stalled_jobs_job(timestamp: int) -> None:
+    del timestamp
+    async with attach_application():
+        await release_stalled_jobs()
+
+
+@procrastinate_app.periodic(cron=RESUME_STRANDED_AUDITS_CRON)
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:resume_stranded_audits"
+)
+async def resume_stranded_audits_job(timestamp: int) -> None:
+    del timestamp
+    await resume_stranded_runs()
+    await resume_stranded_reviews()
+
+
+@procrastinate_app.periodic(cron="41 4 * * *")
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:prune_orphan_vectors"
+)
+async def prune_orphan_vectors_job(timestamp: int) -> None:
+    del timestamp
+    async with attach_application():
+        await prune_orphan_vectors(ORPHAN_VECTOR_GRACE)
+
+
+@procrastinate_app.periodic(cron="17 3 * * *")
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:extract_eval_candidates"
+)
+async def extract_eval_candidates_job(timestamp: int) -> None:
+    del timestamp
+    async with attach_application():
+        await extract_eval_candidates()

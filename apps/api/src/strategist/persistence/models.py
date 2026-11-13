@@ -1,0 +1,1115 @@
+"""SQLAlchemy ORM models the science owns.
+
+The declarative base, the thread, the turn rows and the chunk log belong to
+the runtime package; the tables here map on the same base, so a foreign key
+between them resolves.
+"""
+
+from datetime import datetime
+from typing import Self
+from uuid import UUID, uuid4
+
+from assistant_core.persistence.models import (
+    GUID,
+    Base,
+    Conversation,
+    application_id_column,
+)
+from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Double,
+    Float,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from veupathdb.domain.strategy import StrategyAst
+from veupathdb.model import CamelModel
+from veupathdb_mcp.audit import GenomePriority
+
+from strategist.domain.audit.findings import (
+    Certainty,
+    ErrorType,
+    EvidenceKind,
+    EvidencePayload,
+    EvidenceStatus,
+    FindingStatus,
+)
+from strategist.domain.audit.rates import Weighing
+from strategist.domain.audit.scope import (
+    AuditScope,
+    GeneTarget,
+    GenomeRole,
+    GenomeStatus,
+)
+from strategist.domain.audit.stages import RunStages, RunStatus
+from strategist.domain.audit.verdicts import (
+    FindingReview,
+    GeneModelVerdict,
+    ReviewProgress,
+    Synthesis,
+    VerdictOrigin,
+)
+from strategist.domain.message_rating import Rating, WithheldCase
+from strategist.domain.modes import ThreadMode
+from strategist.domain.strategy.generated_name import NameSeed
+
+
+def saved_in_column(table: str) -> Mapped[UUID | None]:
+    """The thread a set was saved in. A set outlives its thread."""
+    return mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "conversations.id",
+            name=f"fk_{table}_conversation_id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+
+class User(Base):
+    """User model for tracking strategies."""
+
+    __tablename__ = "users"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    monthly_cost_limit_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Whether finished investigations of this user may be extracted for the
+    # eval corpus. Default on; the notice offers the switch on first sight.
+    eval_data_consent: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    data_notice_seen: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    memory_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    account_reads_always: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+
+    # One-directional: the thread is the runtime's and names no owner back.
+    # The relationship stays because it orders the flush and cascades a delete.
+    conversations: Mapped[list[Conversation]] = relationship(
+        cascade="all, delete-orphan"
+    )
+
+
+class ControlSet(Base):
+    """Reusable control gene set with provenance metadata."""
+
+    __tablename__ = "control_sets"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    application_id: Mapped[str] = application_id_column()
+    name: Mapped[str] = mapped_column(String(255))
+    site_id: Mapped[str] = mapped_column(String(100))
+    record_type: Mapped[str] = mapped_column(String(100))
+    positive_ids: Mapped[JSONArray] = mapped_column(JSON, default=list)
+    negative_ids: Mapped[JSONArray] = mapped_column(JSON, default=list)
+    source: Mapped[str | None] = mapped_column(String(50))
+    tags: Mapped[JSONArray] = mapped_column(JSON, default=list)
+    provenance_notes: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    conversation_id: Mapped[UUID | None] = saved_in_column("control_sets")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_control_sets_site_app", "site_id", "application_id"),
+        Index("ix_control_sets_user_id", "user_id"),
+        Index("ix_control_sets_conversation_id", "conversation_id"),
+    )
+
+
+class ExperimentRow(Base):
+    """Persisted experiment with full JSON blob."""
+
+    __tablename__ = "experiments"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    site_id: Mapped[str] = mapped_column(String(100))
+    user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    application_id: Mapped[str] = application_id_column()
+    name: Mapped[str] = mapped_column(String(255), default="")
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    data: Mapped[JSONObject] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_experiments_site_id", "site_id"),
+        Index("ix_experiments_user_app", "user_id", "application_id"),
+    )
+
+
+class GeneSetRow(Base):
+    """Persisted gene set."""
+
+    __tablename__ = "gene_sets"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    application_id: Mapped[str] = application_id_column()
+    site_id: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    gene_ids: Mapped[JSONArray] = mapped_column(JSON, default=list)
+    source: Mapped[str] = mapped_column(String(20), default="paste")
+    wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
+    wdk_step_id: Mapped[int | None] = mapped_column(nullable=True)
+    search_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    record_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    parameters: Mapped[JSONObject | None] = mapped_column(JSON, nullable=True)
+    step_count: Mapped[int] = mapped_column(Integer, default=1)
+    vdi_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    conversation_id: Mapped[UUID | None] = saved_in_column("gene_sets")
+    answer_revision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    homes: Mapped[JSONObject] = mapped_column(JSON, default=dict, server_default="{}")
+    out_of_date: Mapped[JSONObject | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_gene_sets_user_id", "user_id"),
+        Index("ix_gene_sets_site_id", "site_id"),
+        Index("ix_gene_sets_user_app_site", "user_id", "application_id", "site_id"),
+        Index("ix_gene_sets_conversation_id", "conversation_id"),
+    )
+
+
+class ConversationStrategy(Base):
+    """Strategist's WDK strategy projection for one chat thread.
+
+    The row exists only after the first strategy write. Ownership is the
+    parent thread's, so this table carries no user or application of its own.
+    """
+
+    __tablename__ = "conversation_strategies"
+    __table_args__ = (
+        Index(
+            "ix_conversation_strategies_wdk_strategy_id",
+            "wdk_strategy_id",
+            unique=True,
+            postgresql_where="wdk_strategy_id IS NOT NULL",
+        ),
+    )
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    record_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
+    # True when Strategist created this strategy on VEuPathDB. A strategy the
+    # user made on the website and opened here is not Strategist's to delete.
+    wdk_strategy_created_here: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
+    is_saved: Mapped[bool] = mapped_column(Boolean, default=False)
+    step_count: Mapped[int] = mapped_column(Integer, default=0)
+    strategy_ast: Mapped[JSONObject] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    estimated_size: Mapped[int | None] = mapped_column(nullable=True)
+    gene_set_id: Mapped[str | None] = mapped_column(
+        String(50), ForeignKey("gene_sets.id", ondelete="SET NULL"), nullable=True
+    )
+    gene_set_auto_imported: Mapped[bool] = mapped_column(Boolean, default=False)
+    # WDK ids of the saved strategies that this strategy embeds.
+    # A saved strategy with at least one consumer cannot be deleted.
+    imported_saved_strategy_ids: Mapped[list[int]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+    # Null when a person chose the thread's name. When the name is generated:
+    # the wire value of each parameter of each step it was written over.
+    generated_name_seed: Mapped[dict[str, dict[str, str]] | None] = mapped_column(
+        JSONB, nullable=True
+    )
+
+
+class ConversationStrategyView(BaseModel):
+    """Read shape of a conversation's strategy projection.
+
+    The field defaults are the absent-row semantics: a thread with no side
+    row reads exactly like one whose strategy was never built.
+    """
+
+    model_config = ConfigDict(frozen=True, from_attributes=True, extra="forbid")
+
+    record_type: str | None = None
+    wdk_strategy_id: int | None = None
+    wdk_strategy_created_here: bool = False
+    is_saved: bool = False
+    step_count: int = 0
+    strategy_ast: JSONObject = Field(default_factory=dict)
+    estimated_size: int | None = None
+    gene_set_id: str | None = None
+    gene_set_auto_imported: bool = False
+    imported_saved_strategy_ids: list[int] = Field(default_factory=list)
+    generated_name_seed: NameSeed | None = None
+
+
+class PersistedStrategyGraph(CamelModel):
+    """Outer container for a strategy AST snapshot, parsed at the load boundary."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str | None = None
+    name: str | None = None
+    strategy_ast: StrategyAst | None = None
+    wdk_strategy_id: int | None = None
+
+
+# A thread with no side row reads as a thread whose strategy was never built.
+ABSENT_STRATEGY = ConversationStrategyView()
+
+
+class StrategyRevision(Base):
+    """One persisted state of a thread's strategy, in the order it was written.
+
+    Fork and revert read a thread's strategy as it stood at a chosen message,
+    so every write of ``conversation_strategies`` appends a row here. The row
+    outlives the message it names, which is why ``message_id`` carries no
+    foreign key.
+    """
+
+    __tablename__ = "strategy_revisions"
+    __table_args__ = (
+        Index(
+            "ix_strategy_revisions_conversation_created",
+            "conversation_id",
+            "created_at",
+            "id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    revision: Mapped[str] = mapped_column(String(64), nullable=False)
+    record_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    strategy_ast: Mapped[JSONObject] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    step_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
+    # The provenance of the strategy id this snapshot names, so a restore
+    # writes the id back with the record it had.
+    wdk_strategy_created_here: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
+    # The saved mark of the strategy this snapshot names. A restore writes it
+    # back, so the row never carries the mark of the strategy it left.
+    is_saved: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    message_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class StrategyRevisionView(BaseModel):
+    """Read shape of one strategy revision."""
+
+    model_config = ConfigDict(frozen=True, from_attributes=True, extra="forbid")
+
+    id: int
+    conversation_id: UUID
+    revision: str
+    record_type: str | None = None
+    strategy_ast: JSONObject = Field(default_factory=dict)
+    step_count: int = 0
+    wdk_strategy_id: int | None = None
+    wdk_strategy_created_here: bool = False
+    is_saved: bool = False
+    name: str | None = None
+    message_id: UUID | None = None
+    created_at: datetime
+
+
+class ConversationAnalysis(Base):
+    """The EDA analysis one chat thread has open.
+
+    The EDA user service is the SSOT for the document; this row is the
+    attachment. Ownership is the parent thread's, so there is no user column.
+    """
+
+    __tablename__ = "conversation_analyses"
+    __table_args__ = (Index("ix_conversation_analyses_dataset_id", "dataset_id"),)
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    site_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    dataset_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    analysis_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Grows by one on every authoring mutation, so two surfaces editing the
+    # same analysis always read a strictly increasing number.
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    # True once a preview has counted this analysis's subset. Binding another
+    # analysis restarts it with the revision.
+    subset_previewed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ConversationMode(Base):
+    __tablename__ = "conversation_modes"
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    mode: Mapped[ThreadMode] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ConversationAccountRead(Base):
+    __tablename__ = "conversation_account_reads"
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ConversationShare(Base):
+    __tablename__ = "conversation_shares"
+    __table_args__ = (
+        CheckConstraint(
+            "public OR password_hash IS NOT NULL",
+            name="ck_conversation_shares_private_has_password",
+        ),
+    )
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    public: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    allow_copy: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    include_account_reads: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class Export(Base):
+    """Temporary download artifact with TTL."""
+
+    __tablename__ = "exports"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+STAGED = "staged"
+PROMOTED = "promoted"
+
+# A staged row names the user and the thread it came from, so an opt-out or a
+# purge can delete it. A promoted row names neither, and holds no extract: the
+# science moved into the corpus file. The constraint is the rule itself, so a
+# promotion that kept the linkage cannot be written.
+_LINKAGE_ENDS_AT_PROMOTION = (
+    "(status = 'staged'"
+    " AND user_id IS NOT NULL"
+    " AND source_conversation_id IS NOT NULL"
+    " AND extract IS NOT NULL)"
+    " OR "
+    "(status = 'promoted'"
+    " AND user_id IS NULL"
+    " AND source_conversation_id IS NULL"
+    " AND extract IS NULL"
+    " AND rated_message_id IS NULL)"
+)
+
+
+class EvalStagedCase(Base):
+    """One candidate eval case, between extraction and curation.
+
+    The row is the only place a candidate is associated with anybody, and the
+    association ends when a curator promotes it.
+    """
+
+    __tablename__ = "eval_staged_cases"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    source_conversation_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    application_id: Mapped[str] = application_id_column()
+    site_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    assistant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    # none_as_null: an absent extract is SQL NULL, which the linkage
+    # constraint reads. A JSON null would satisfy IS NOT NULL.
+    extract: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=STAGED, server_default=STAGED
+    )
+    corpus_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    staged_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    promoted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # The disliked message this case was staged for. No foreign key: the case
+    # outlives a revert of the message, and promotion ends the handle.
+    rated_message_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('staged', 'promoted')",
+            name="ck_eval_staged_cases_status",
+        ),
+        CheckConstraint(
+            _LINKAGE_ENDS_AT_PROMOTION,
+            name="ck_eval_staged_cases_linkage_ends_at_promotion",
+        ),
+        UniqueConstraint("content_hash", name="uq_eval_staged_cases_content_hash"),
+        # One extraction row per thread, and one rated row per disliked message.
+        Index(
+            "ix_eval_staged_cases_source_conversation",
+            "source_conversation_id",
+            unique=True,
+            postgresql_where=(
+                "rated_message_id IS NULL AND source_conversation_id IS NOT NULL"
+            ),
+        ),
+        Index(
+            "ix_eval_staged_cases_rated_message",
+            "rated_message_id",
+            unique=True,
+            postgresql_where="rated_message_id IS NOT NULL",
+        ),
+        Index("ix_eval_staged_cases_user_id", "user_id"),
+        Index("ix_eval_staged_cases_status", "status"),
+    )
+
+
+class MessageRating(Base):
+    """What one researcher said about one assistant message, and the cases it governs.
+
+    The turn's finalize writes the case keys before any rating exists, so
+    ``rating`` is NULL until the researcher rates. The row goes with its message.
+    """
+
+    __tablename__ = "message_ratings"
+    __table_args__ = (
+        UniqueConstraint(
+            "message_id", "user_id", name="uq_message_ratings_message_user"
+        ),
+        CheckConstraint(
+            "rating IS NULL OR rating IN ('like', 'dislike')",
+            name="ck_message_ratings_rating",
+        ),
+        Index("ix_message_ratings_user_rated", "user_id", "rating"),
+        Index("ix_message_ratings_conversation", "conversation_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    message_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("messages.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    conversation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    rating: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    case_keys: Mapped[JSONArray] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    # The case values a rating keeps out of the store, so a later rating can
+    # put them back.
+    withheld_cases: Mapped[JSONArray] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    rated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class MessageRatingView(BaseModel):
+    """Read shape of one rating row."""
+
+    model_config = ConfigDict(frozen=True, from_attributes=True, extra="forbid")
+
+    message_id: UUID
+    conversation_id: UUID
+    user_id: UUID
+    rating: Rating | None = None
+    case_keys: list[str] = Field(default_factory=list)
+    withheld_cases: list[WithheldCase] = Field(default_factory=list)
+    rated_at: datetime | None = None
+    updated_at: datetime
+
+
+class UserProviderKey(Base):
+    """A researcher's key for one model provider, sealed under the server secret.
+
+    One live row per user, application and provider. A revoked row keeps its
+    hint and holds no ciphertext, so it has nothing to open.
+    """
+
+    __tablename__ = "user_provider_keys"
+    __table_args__ = (
+        CheckConstraint(
+            "provider IN ('openai', 'anthropic', 'google')",
+            name="ck_user_provider_keys_provider",
+        ),
+        CheckConstraint(
+            "(revoked_at IS NULL) = (ciphertext IS NOT NULL)",
+            name="ck_user_provider_keys_live_holds_the_key",
+        ),
+        CheckConstraint(
+            "(refused_at IS NULL) = (refusal IS NULL)",
+            name="ck_user_provider_keys_refusal_has_a_time",
+        ),
+        CheckConstraint(
+            "refusal IS NULL OR refusal IN "
+            "('invalid', 'no_credit', 'forbidden', 'unreadable')",
+            name="ck_user_provider_keys_refusal",
+        ),
+        Index(
+            "uq_user_provider_keys_live",
+            "user_id",
+            "application_id",
+            "provider",
+            unique=True,
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    application_id: Mapped[str] = application_id_column()
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)
+    ciphertext: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    hint: Mapped[str] = mapped_column(String(4), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    refused_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    refusal: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+def _counter() -> Mapped[int]:
+    return mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+
+
+def _stamp() -> Mapped[datetime]:
+    return mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+def _touched() -> Mapped[datetime]:
+    return mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class AuditRun(Base):
+    __tablename__ = "audit_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('planned', 'running', 'finished')", name="ck_audit_runs_status"
+        ),
+        CheckConstraint(
+            "(status = 'finished') = (finished_at IS NOT NULL)",
+            name="ck_audit_runs_finished_at",
+        ),
+        Index("ix_audit_runs_user_app", "user_id", "application_id"),
+        Index("ix_audit_runs_conversation_id", "conversation_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    application_id: Mapped[str] = application_id_column()
+    conversation_id: Mapped[UUID | None] = saved_in_column("audit_runs")
+    site_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    release: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scope: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    seed: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="planned", server_default="planned"
+    )
+    stages: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    sealed_token: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    review: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    synthesis: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class AuditGenome(Base):
+    __tablename__ = "audit_genomes"
+    __table_args__ = (
+        UniqueConstraint("run_id", "organism", name="uq_audit_genomes_run_organism"),
+        CheckConstraint(
+            "role IN ('audited', 'comparison')", name="ck_audit_genomes_role"
+        ),
+        CheckConstraint(
+            "status IN "
+            "('pending', 'trying', 'collected', 'failed', 'unreached', 'unread')",
+            name="ck_audit_genomes_status",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    organism: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    gene_count: Mapped[int] = _counter()
+    genes: Mapped[JSONArray] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    priority: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    reference_strain: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditFinding(Base):
+    __tablename__ = "audit_findings"
+    __table_args__ = (
+        UniqueConstraint("run_id", "target_key", name="uq_audit_findings_run_target"),
+        CheckConstraint(
+            "status IN "
+            "('screened', 'unsampled', 'trying', 'confirmed', 'failed', 'declined', "
+            "'unreached', 'unread')",
+            name="ck_audit_findings_status",
+        ),
+        CheckConstraint(
+            "(error_type IS NULL) = (certainty IS NULL)",
+            name="ck_audit_findings_error_has_certainty",
+        ),
+        CheckConstraint(
+            "certainty IS NULL OR certainty IN ('high', 'medium', 'low')",
+            name="ck_audit_findings_certainty",
+        ),
+        CheckConstraint(
+            "error_type IS NULL OR status = 'confirmed'",
+            name="ck_audit_findings_error_when_confirmed",
+        ),
+        CheckConstraint(
+            "sampled = (status <> 'unsampled')",
+            name="ck_audit_findings_sampled_status",
+        ),
+        CheckConstraint(
+            "impact IS NULL OR error_type IS NOT NULL",
+            name="ck_audit_findings_impact_when_named",
+        ),
+        CheckConstraint(
+            "(impact IS NULL) = (weighing IS NULL)",
+            name="ck_audit_findings_impact_weighed",
+        ),
+        CheckConstraint(
+            "judged OR (status = 'confirmed' AND error_type IS NULL)",
+            name="ck_audit_findings_judged",
+        ),
+        Index("ix_audit_findings_run_status", "run_id", "status"),
+        Index("ix_audit_findings_run_genome_check", "run_id", "genome", "check_name"),
+        Index(
+            "ix_audit_findings_run_impact",
+            "run_id",
+            text("impact DESC NULLS LAST"),
+            "id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    check_name: Mapped[str] = mapped_column(String(32), nullable=False)
+    genome: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", server_default=""
+    )
+    screened_genome: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", server_default=""
+    )
+    paired_genome: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    target_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    sampled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    error_type: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    certainty: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    judged: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    impact: Mapped[float | None] = mapped_column(Double, nullable=True)
+    weighing: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditEvidence(Base):
+    __tablename__ = "audit_evidence"
+    __table_args__ = (
+        UniqueConstraint("finding_id", "kind", name="uq_audit_evidence_finding_kind"),
+        CheckConstraint(
+            "status IN "
+            "('pending', 'trying', 'stored', 'failed', 'unreached', 'unread')",
+            name="ck_audit_evidence_status",
+        ),
+        CheckConstraint(
+            "(status = 'stored') = (payload IS NOT NULL)",
+            name="ck_audit_evidence_stored_has_payload",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    finding_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audit_findings.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    refused_by_sign_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditVerdict(Base):
+    __tablename__ = "audit_verdicts"
+    __table_args__ = (
+        UniqueConstraint("finding_id", name="uq_audit_verdicts_finding_id"),
+        CheckConstraint(
+            "origin IN ('auditor', 'review')",
+            name="ck_audit_verdicts_origin",
+        ),
+        CheckConstraint(
+            "(origin = 'review') = (finding_id IS NOT NULL) "
+            "AND (origin = 'review') = (review IS NOT NULL)",
+            name="ck_audit_verdicts_review",
+        ),
+        CheckConstraint(
+            "finding_id IS NULL OR run_id IS NOT NULL", name="ck_audit_verdicts_run"
+        ),
+        Index("ix_audit_verdicts_run_id", "run_id"),
+        Index(
+            "ix_audit_verdicts_user_app_conversation",
+            "user_id",
+            "application_id",
+            "conversation_id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    application_id: Mapped[str] = application_id_column()
+    conversation_id: Mapped[UUID | None] = saved_in_column("audit_verdicts")
+    run_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=True
+    )
+    finding_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("audit_findings.id", ondelete="CASCADE"), nullable=True
+    )
+    site_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
+    verdict: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    review: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    model_id: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = _stamp()
+
+
+class AuditRunRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    conversation_id: UUID | None
+    site_id: str
+    release: str | None
+    scope: AuditScope
+    seed: int
+    status: RunStatus
+    stages: RunStages
+    deadline_at: datetime | None
+    review: ReviewProgress | None
+    synthesis: Synthesis | None
+    created_at: datetime
+    finished_at: datetime | None
+
+
+class AuditGenomeState(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    organism: str
+    role: GenomeRole
+    status: GenomeStatus
+    gene_count: int
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None
+    priority: GenomePriority | None
+    reference_strain: bool | None
+
+
+class AuditFindingRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID
+    genome: str
+    screened_genome: str
+    paired_genome: str | None
+    target: GeneTarget
+    sampled: bool
+    status: FindingStatus
+    error_type: ErrorType | None
+    certainty: Certainty | None
+    judged: bool
+    impact: float | None
+    weighing: Weighing | None
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None
+    review: FindingReview | None = None
+
+    @property
+    def reviewed(self) -> bool:
+        return self.review is not None
+
+
+class AuditEvidenceRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    finding_id: int
+    kind: EvidenceKind
+    status: EvidenceStatus
+    payload: EvidencePayload | None
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None
+
+    @model_validator(mode="after")
+    def _stored_has_payload(self) -> Self:
+        if (self.status == "stored") != (self.payload is not None):
+            msg = "evidence holds a payload when and only when it is stored"
+            raise ValueError(msg)
+        return self
+
+
+class _StoredVerdict(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID | None
+    finding_id: int | None
+    conversation_id: UUID | None
+    site_id: str
+    origin: str
+    verdict: JSONObject
+    review: JSONObject | None
+    model_id: str
+    created_at: datetime
+
+
+class AuditVerdictRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID | None
+    finding_id: int | None
+    conversation_id: UUID | None
+    site_id: str
+    origin: VerdictOrigin
+    verdict: GeneModelVerdict
+    review: FindingReview | None
+    model_id: str
+    created_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def _review_with_its_verdict(cls, data: object) -> dict[str, object]:
+        stored = _StoredVerdict.model_validate(data)
+        review = (
+            None
+            if stored.review is None
+            else {**stored.review, "verdict": stored.verdict}
+        )
+        return {**stored.model_dump(), "review": review}

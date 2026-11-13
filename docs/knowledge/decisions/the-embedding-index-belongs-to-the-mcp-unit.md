@@ -45,14 +45,14 @@ each unit's consumers import their own unit's module. The copy and the values it
 pins are recorded in the platform bundle
 (`assistant-platform: docs/knowledge/decisions/the-embedder-is-copied-and-a-host-gates-the-drift.md`).
 This application installs both distributions, so it carries the drift gate:
-`apps/api/src/pathfinder/tests/unit/platform/test_embedder_copies_agree.py`
+`apps/api/src/strategist/tests/unit/platform/test_embedder_copies_agree.py`
 compares the three module pairs and the width both alembic chains build.
 
 **Settings and sessions come from the host.** `EmbeddingSettings` in
 `veupathdb_mcp/embeddings/settings.py` carries `DATABASE_URL`, `OPENAI_API_KEY`
 and the five `EMBEDDING_*` variables under their existing names, with the
 `use_embedding_settings_source` / `get_embedding_settings` pattern batches 1 and
-2 used; `pathfinder.platform.config.Settings` subclasses it and installs itself.
+2 used; `strategist.platform.config.Settings` subclasses it and installs itself.
 `veupathdb_mcp/embeddings/db.py` is the same shape for sessions: the index opens
 one through `embedding_session()`, Strategist's API and worker install
 `assistant_core.platform.db.async_session_factory` so the index shares their

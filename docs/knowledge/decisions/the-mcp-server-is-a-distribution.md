@@ -27,11 +27,11 @@ share:
 | --- | --- |
 | `pathfinder.mcp` | `veupathdb_mcp` |
 | `pathfinder.mcp._catalog_tools`, `._user_tools` | `veupathdb_mcp.tools.catalog_tools`, `.user_tools` |
-| `pathfinder.services.catalog` | `veupathdb_mcp.catalog` |
-| `pathfinder.services.wdk` | `veupathdb_mcp.wdk` |
-| `pathfinder.services.gene_lookup` | `veupathdb_mcp.gene_lookup` |
-| `pathfinder.services.control_{tests,helpers,types}` | `veupathdb_mcp.controls.control_{tests,helpers,types}` |
-| `pathfinder.services.tool_payloads` | `veupathdb_mcp.tool_payloads` |
+| `strategist.services.catalog` | `veupathdb_mcp.catalog` |
+| `strategist.services.wdk` | `veupathdb_mcp.wdk` |
+| `strategist.services.gene_lookup` | `veupathdb_mcp.gene_lookup` |
+| `strategist.services.control_{tests,helpers,types}` | `veupathdb_mcp.controls.control_{tests,helpers,types}` |
+| `strategist.services.tool_payloads` | `veupathdb_mcp.tool_payloads` |
 | `pathfinder.integrations.embeddings` | `veupathdb_mcp.embeddings` |
 
 `pathfinder/integrations/` held nothing else and is gone, with the contract
@@ -102,7 +102,7 @@ seventeen WDK reads.
   agent tool, the EDA-spec guard that authors its input with Strategist's
   service, and the settings-and-tables wiring in
   `tests/unit/platform/test_mcp_distribution_wiring.py`.
-- `pathfinder.platform.config.Settings` keeps subclassing `McpSettings` and
+- `strategist.platform.config.Settings` keeps subclassing `McpSettings` and
   `EmbeddingSettings`, so one settings instance still serves the process and the
   environment variable names are unchanged.
 

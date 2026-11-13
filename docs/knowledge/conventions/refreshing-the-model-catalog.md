@@ -9,7 +9,7 @@ status: stable
 
 # Where the lineup lives
 
-`apps/api/src/pathfinder/platform/model_catalog.py` is the one module that names a
+`apps/api/src/strategist/platform/model_catalog.py` is the one module that names a
 model id. Each `ModelEntry` (`platform/model_entry.py`, beside the lineup rules)
 carries its prices, its two measured attachment
 flags and its `rank` in its provider's lineup: `flagship`, `standard`,
@@ -36,7 +36,7 @@ entry runs it at the planning roles' effort. Tests read ids through
 # The steps
 
 1. Run the check with the deployment's keys in the environment:
-   `uv run python -m pathfinder.devtools.model_catalog check`. It lists the
+   `uv run python -m strategist.devtools.model_catalog check`. It lists the
    catalog entries a provider no longer serves (exit 1), the served ids of a
    catalog family the catalog does not hold, and the date the prices were
    last read.
@@ -44,7 +44,7 @@ entry runs it at the planning roles' effort. Tests read ids through
    `is_provider_default` to flip a provider's default. Read each price from the
    provider's pricing page.
 3. Measure the two attachment flags of a new entry:
-   `uv run python -m pathfinder.devtools.model_catalog probe <id>`. It sends a
+   `uv run python -m strategist.devtools.model_catalog probe <id>`. It sends a
    plain request at medium effort, one 1x1 PNG and one one-page PDF, and prints
    `supports_images` and `supports_documents`. A refusal the provider files as
    no credit measures the account, not the model; leave the flag `false`.
@@ -52,7 +52,7 @@ entry runs it at the planning roles' effort. Tests read ids through
 5. Edit the decided tables in `tests/unit/platform/test_tier_derivation.py` and
    `tests/unit/platform/test_model_catalog.py`, and the two fixture modules if an id
    they hold left the lineup. Run the unit tier.
-6. Run `uv run python -m pathfinder.devtools.model_catalog record` to refresh
+6. Run `uv run python -m strategist.devtools.model_catalog record` to refresh
    `tests/fixtures/provider_models/`, and `yarn generate:types` from the root if
    `ModelEntry` changed shape.
 7. Check that `genai-prices` prices the new ids

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec "$(dirname "$0")/../.venv/bin/python" -m pathfinder.jobs.worker "$@"
+exec "$(dirname "$0")/../.venv/bin/python" -m strategist.jobs.worker "$@"

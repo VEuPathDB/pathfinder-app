@@ -27,13 +27,13 @@ directory.
 
 # The decision
 
-The runtime-generic modules moved into `apps/api/src/pathfinder/assistant_core/`
+The runtime-generic modules moved into `apps/api/src/strategist/assistant_core/`
 (`capabilities/`, `conversation/`, `graph/`, `memory/`, `models/`), and
 import-linter contract 7 forbids any import chain from `pathfinder.assistant_core`
-to `pathfinder.ai`, `pathfinder.domain`, `veupathdb.wdk`,
-`pathfinder.services`, `pathfinder.transport`, `pathfinder.jobs` or
-`pathfinder.devtools`. What is left reachable is the whole allowed surface:
-`pathfinder.platform`, `pathfinder.persistence.models`, and
+to `strategist.ai`, `strategist.domain`, `veupathdb.wdk`,
+`strategist.services`, `strategist.transport`, `strategist.jobs` or
+`strategist.devtools`. What is left reachable is the whole allowed surface:
+`strategist.platform`, `strategist.persistence.models`, and
 `veupathdb_mcp.embeddings`.
 
 Contract 7 is the only one of the seven that also rejects indirect chains. The
@@ -72,6 +72,6 @@ exists.
 # Anchor
 
 `apps/api/pyproject.toml` holds contract 7;
-`apps/api/src/pathfinder/tests/unit/test_core_boundary.py` pins
+`apps/api/src/strategist/tests/unit/test_core_boundary.py` pins
 the allowed surface so it cannot grow unnoticed. Done if a module under
 `assistant_core/` names a gene, a strategy, a WDK search or a phase role.

@@ -1,0 +1,268 @@
+"""Translation of the Lead agent's inner stream events into sub-agent cards and ledger refreshes."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
+from assistant_core.conversation.stream_parts.agent_topology import (
+    SubAgentCallPayload,
+    sub_agent_call_event,
+)
+from assistant_core.graph.emit import emit_chunk
+from assistant_core.graph.tool_summary import count_noun
+from pydantic import BaseModel, TypeAdapter
+from pydantic_ai.messages import (
+    ERROR_OUTCOMES,
+    AgentStreamEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    ToolReturnPart,
+)
+from pydantic_ai.ui.vercel_ai.response_types import (
+    BaseChunk,
+    ToolApprovalRequestChunk,
+    ToolInputAvailableChunk,
+    ToolInputDeltaChunk,
+    ToolInputErrorChunk,
+    ToolInputStartChunk,
+    ToolOutputAvailableChunk,
+    ToolOutputDeniedChunk,
+    ToolOutputErrorChunk,
+)
+
+from strategist.ai.agents.roles import PhaseRole
+from strategist.ai.graph.stream_events import ledger_update_event
+from strategist.ai.lead.deltas import (
+    EditDelta,
+    ExecuteDelta,
+    FrameResult,
+    RecoveryDelta,
+    VerificationDelta,
+    VerificationStopped,
+)
+from strategist.ai.lead.derive import derive_ledger
+from strategist.ai.lead.sub_agent_tools import (
+    TOOL_TO_PHASE_ROLE,
+    WIRE_PHASE_BY_ROLE,
+    LeadDeps,
+    SubAgentCallUsage,
+    sub_agent_model_id,
+)
+
+# One phase vocabulary for the wire. Every dispatch that runs a sub-agent reads
+# it through the role map, so a chunk from the dispatch and a chunk from the run
+# name the same phase. ``build_strategy`` runs no sub-agent and names its own.
+_SUB_AGENT_ROLE_BY_TOOL: dict[str, PhaseRole] = {
+    **TOOL_TO_PHASE_ROLE,
+    "build_strategy": "execution",
+}
+_SUB_AGENT_TOOL_TO_PHASE: dict[str, str] = {
+    tool: WIRE_PHASE_BY_ROLE[role] for tool, role in _SUB_AGENT_ROLE_BY_TOOL.items()
+}
+_SUB_AGENT_TOOL_NAMES = frozenset(_SUB_AGENT_TOOL_TO_PHASE.keys())
+
+# Every chunk that names a tool call. Suppression follows the tool call id,
+# not the chunk type, so each of these types must be classified here.
+_TOOL_CALL_CHUNKS = (
+    ToolInputStartChunk,
+    ToolInputDeltaChunk,
+    ToolInputAvailableChunk,
+    ToolInputErrorChunk,
+    ToolOutputAvailableChunk,
+    ToolOutputErrorChunk,
+)
+
+# Approval chunks stay visible. An approval question the user never sees blocks the turn.
+_CHUNKS_EXEMPT_FROM_SUPPRESSION = (
+    ToolApprovalRequestChunk,
+    ToolOutputDeniedChunk,
+)
+
+_NAMED_SUB_AGENT_CHUNKS = (
+    ToolInputStartChunk,
+    ToolInputAvailableChunk,
+    ToolInputErrorChunk,
+)
+
+
+def is_suppressed_sub_agent_chunk(
+    chunk: BaseChunk,
+    sub_agent_tool_calls: dict[str, str],
+) -> bool:
+    """Hide the native tool chunks of a sub-agent dispatch.
+
+    The first chunk classifies the dispatch by ``tool_name`` and primes
+    ``sub_agent_tool_calls``. Every later chunk of that call is suppressed too.
+    """
+    if isinstance(chunk, _CHUNKS_EXEMPT_FROM_SUPPRESSION):
+        return False
+    if not isinstance(chunk, _TOOL_CALL_CHUNKS):
+        return False
+    if (
+        isinstance(chunk, _NAMED_SUB_AGENT_CHUNKS)
+        and chunk.tool_name in _SUB_AGENT_TOOL_NAMES
+    ):
+        sub_agent_tool_calls[chunk.tool_call_id] = chunk.tool_name
+        return True
+    return chunk.tool_call_id in sub_agent_tool_calls
+
+
+def _truncate_summary(text: str, limit: int = 280) -> str:
+    """Cut to ``limit`` chars on a word boundary, appending ASCII ``...``."""
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 3].rstrip()
+    boundary = cut.rfind(" ")
+    if boundary > 0:
+        cut = cut[:boundary].rstrip()
+    return f"{cut}..."
+
+
+def _summarize_sub_agent_call_args(args: dict[str, Any]) -> str:
+    """One-line input summary for the SubAgentCallCard 'started' state."""
+    reason = args.get("reason")
+    if isinstance(reason, str) and reason:
+        return _truncate_summary(reason)
+    return ""
+
+
+def _framed(delta: FrameResult | EditDelta) -> str:
+    if delta.disposition == "needs_user":
+        return count_noun(len(delta.open_questions), "open question")
+    return _truncate_summary(delta.summary or "Framed")
+
+
+def _built(delta: ExecuteDelta) -> str:
+    outcome = delta.outcome
+    built = len(outcome.pushed_step_ids)
+    failed = len(outcome.failed_steps)
+    if failed > 0:
+        return f"Built {built}, {failed} failed"
+    return f"Built {count_noun(built, 'step')}"
+
+
+def _recovered(delta: RecoveryDelta) -> str:
+    return count_noun(len(delta.actions_taken), "recovery action")
+
+
+def _verified(delta: VerificationDelta) -> str:
+    """A pass, a pass with checks pending, or an objection."""
+    digest = delta.digest
+    if digest.passed:
+        return "Verified successfully"
+    if digest.not_checked:
+        return "Not checked: the site did not answer"
+    if not digest.success:
+        return "Issues found"
+    return f"Passed, {count_noun(len(digest.pending_checks), 'check')} pending"
+
+
+_VERIFY_OUTCOME: TypeAdapter[VerificationDelta | VerificationStopped] = TypeAdapter(
+    VerificationDelta | VerificationStopped
+)
+
+
+def _verify_outcome(content: object) -> str:
+    """The line of a finished check, or of one that stopped before its digest."""
+    match _VERIFY_OUTCOME.validate_python(content):
+        case VerificationDelta() as delta:
+            return _verified(delta)
+        case VerificationStopped(stop=stop):
+            phrase = "stopped before it finished" if stop is None else stop.phrase()
+            return phrase[:1].upper() + phrase[1:]
+
+
+type Summary = Callable[[object], str]
+
+
+def _read_as[M: BaseModel](model: type[M], line: Callable[[M], str]) -> Summary:
+    return lambda content: line(model.model_validate(content))
+
+
+# Each dispatch tool returns one delta type; the card reads it typed.
+_SUMMARY_BY_TOOL: dict[str, Summary] = {
+    "frame_problem": _read_as(FrameResult, _framed),
+    "edit_strategy": _read_as(EditDelta, _framed),
+    "recover_failed_steps": _read_as(RecoveryDelta, _recovered),
+    "verify_strategy": _verify_outcome,
+    "build_strategy": _read_as(ExecuteDelta, _built),
+}
+
+
+def _summarize_sub_agent_result(tool_name: str, result: ToolReturnPart) -> str:
+    """One-line result summary for the SubAgentCallCard 'completed' state.
+
+    A call that did not succeed carries the text that says why, not a delta.
+    """
+    match result:
+        case ToolReturnPart(outcome="success"):
+            return _SUMMARY_BY_TOOL[tool_name](result.content)
+        case ToolReturnPart(content=str() as said):
+            return _truncate_summary(said)
+        case ToolReturnPart(outcome="retried"):
+            return "retry requested"
+    return _truncate_summary(str(result.content))
+
+
+def sub_agent_result_failed(result: ToolReturnPart) -> bool:
+    """Report whether a sub-agent dispatch failed."""
+    return result.outcome in ERROR_OUTCOMES
+
+
+def handle_sub_agent_event(
+    deps: LeadDeps,
+    writer: Any,
+    event: AgentStreamEvent,
+    sub_agent_tool_calls: dict[str, str],
+    sub_agent_usage: dict[str, SubAgentCallUsage],
+) -> None:
+    """Emit a sub-agent call card and refresh the ledger when a sub-agent tool runs.
+
+    ``sub_agent_tool_calls`` maps each classified tool call id to its tool name.
+    """
+    if isinstance(event, FunctionToolCallEvent):
+        tool_name = event.part.tool_name
+        if tool_name not in _SUB_AGENT_TOOL_NAMES:
+            return
+        sub_agent_tool_calls[event.tool_call_id] = tool_name
+        emit_chunk(
+            writer,
+            sub_agent_call_event(
+                SubAgentCallPayload(
+                    tool_call_id=event.tool_call_id,
+                    sub_agent=_SUB_AGENT_ROLE_BY_TOOL[tool_name],
+                    phase=_SUB_AGENT_TOOL_TO_PHASE[tool_name],
+                    state="started",
+                    model_id=sub_agent_model_id(tool_name),
+                    summary=_summarize_sub_agent_call_args(event.part.args_as_dict()),
+                )
+            ),
+        )
+        return
+    if isinstance(event, FunctionToolResultEvent):
+        result_tool_name = sub_agent_tool_calls.get(event.tool_call_id)
+        if result_tool_name is None:
+            return
+        result = event.part
+        summary = _summarize_sub_agent_result(result_tool_name, result)
+        failed = sub_agent_result_failed(result)
+        spent = sub_agent_usage.get(event.tool_call_id, SubAgentCallUsage())
+        emit_chunk(
+            writer,
+            sub_agent_call_event(
+                SubAgentCallPayload(
+                    tool_call_id=event.tool_call_id,
+                    sub_agent=_SUB_AGENT_ROLE_BY_TOOL[result_tool_name],
+                    phase=_SUB_AGENT_TOOL_TO_PHASE[result_tool_name],
+                    state="failed" if failed else "completed",
+                    model_id=sub_agent_model_id(result_tool_name),
+                    summary=summary,
+                    succeeded=not failed,
+                    tokens=spent.tokens,
+                    cost_usd=str(spent.cost),
+                )
+            ),
+        )
+        ledger = derive_ledger(deps.state, deps.intent)
+        emit_chunk(writer, ledger_update_event(ledger=ledger))

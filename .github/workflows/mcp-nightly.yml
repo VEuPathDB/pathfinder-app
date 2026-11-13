@@ -61,7 +61,7 @@ jobs:
             exit 0
           }
           # A user bearer names an internal user, so the schema must exist first.
-          uv run python -c "import asyncio; from pathfinder.platform.migrations import init_db; asyncio.run(init_db())"
+          uv run python -c "import asyncio; from strategist.platform.migrations import init_db; asyncio.run(init_db())"
           uv run python -m veupathdb_mcp &
           for _ in $(seq 1 60); do
             curl -fsS http://localhost:8100/health && exit 0
@@ -84,7 +84,7 @@ jobs:
           STRATEGIST_MCP_URL: http://localhost:8100/mcp
           MCP_ADMISSION_REPORT: mcp-admission-report.json
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
-        run: uv run pytest src/pathfinder/tests/integration/mcp -m live_wdk -q
+        run: uv run pytest src/strategist/tests/integration/mcp -m live_wdk -q
 
       - name: Show what the run admitted
         if: always()

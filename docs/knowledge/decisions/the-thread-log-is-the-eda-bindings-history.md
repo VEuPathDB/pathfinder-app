@@ -104,10 +104,10 @@ the case at no cost.
 
 # What would falsify this
 
-`apps/api/src/pathfinder/tests/integration/persistence/test_fork_case_matrix.py`
+`apps/api/src/strategist/tests/integration/persistence/test_fork_case_matrix.py`
 fails if a branch shares its source's analysis id, opens no document for a
 recorded state, or fails when the study service refuses.
 `.../test_revert_case_matrix.py` fails if a revert keeps a binding its deleted
 turns opened, leaves a subset the deleted turns set, or fails on a refusal.
-`apps/api/src/pathfinder/tests/unit/services/eda/test_binding_plan.py` fails if
+`apps/api/src/strategist/tests/unit/services/eda/test_binding_plan.py` fails if
 the four cases stop mapping to the plan they name.

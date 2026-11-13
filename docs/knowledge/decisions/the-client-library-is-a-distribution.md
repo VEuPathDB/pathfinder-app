@@ -25,8 +25,8 @@ The mapping is a prefix rename and nothing else:
 | `pathfinder.veupathdb` | `veupathdb` |
 | `pathfinder.integrations.veupathdb` | `veupathdb.wdk` |
 | `pathfinder.integrations.eda` | `veupathdb.eda` |
-| `pathfinder.domain.{parameters,strategy,search,wdk_values,eda_study,eda_filter_checks}` | `veupathdb.domain.*` |
-| `pathfinder.devtools.{wdk_fixtures,eda_schemas,pins}` | `veupathdb.devtools.{fixtures,eda_schemas,pins}` |
+| `strategist.domain.{parameters,strategy,search,wdk_values,eda_study,eda_filter_checks}` | `veupathdb.domain.*` |
+| `strategist.devtools.{wdk_fixtures,eda_schemas,pins}` | `veupathdb.devtools.{fixtures,eda_schemas,pins}` |
 
 `sites.yaml` ships inside the wheel and is read through
 `importlib.resources.files("veupathdb")`; `VEUPATHDB_SITES_CONFIG` still overrides it.
@@ -63,8 +63,8 @@ The client shipped Strategist's authoring model for one release line, because
 `constraints.py`, `spec_diff.py`, `session.py`, `combination_check.py`,
 `build_outcome.py`, `operations/`, `types.py`, the step lifecycle
 (`StepStatus` and `step_status`) and `PersistedStrategyGraph` are all in this
-application. `pathfinder.domain.strategy` holds the first eight and the
-lifecycle; `pathfinder.persistence.models` holds the stored container.
+application. `strategist.domain.strategy` holds the first eight and the
+lifecycle; `strategist.persistence.models` holds the stored container.
 
 What stays in `veupathdb.domain.strategy` is seven WDK shapes: `ast`,
 `graph_model`, `tree`, `ops`, `validation`, `strategy_ast` and `organism`. The

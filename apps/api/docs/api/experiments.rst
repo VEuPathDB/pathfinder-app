@@ -3,7 +3,7 @@ Evaluation Engine
 
 The **evaluation engine** scores one search against positive and negative
 control genes. ``compare_variants_scored`` runs one experiment per search
-variant (:py:mod:`pathfinder.services.experiment.scored_comparison`), and the
+variant (:py:mod:`strategist.services.experiment.scored_comparison`), and the
 control tests VERIFY runs read the same metrics. No HTTP route runs an
 experiment.
 
@@ -21,9 +21,9 @@ Persistence
 -----------
 
 Experiments are stored in the **experiments** table (see
-:py:class:`pathfinder.persistence.models.ExperimentRow`): id, site_id,
+:py:class:`strategist.persistence.models.ExperimentRow`): id, site_id,
 name, status, data (full JSON), created_at, updated_at.
-The experiment store (:py:mod:`pathfinder.services.experiment.store`)
+The experiment store (:py:mod:`strategist.services.experiment.store`)
 writes the row on every save, before the save returns. The api and the worker
 both write experiments, so no process keeps a copy.
 
@@ -31,30 +31,30 @@ Control Sets
 ------------
 
 Reusable positive/negative gene sets are written and read by the agent's
-control-set tools, through :py:mod:`pathfinder.services.evidence.control_sets`.
-See :py:class:`pathfinder.persistence.models.ControlSet`.
+control-set tools, through :py:mod:`strategist.services.evidence.control_sets`.
+See :py:class:`strategist.persistence.models.ControlSet`.
 
 Service Layer
 -------------
 
 Core experiment service, orchestration, and store.
 
-.. automodule:: pathfinder.services.experiment.service
+.. automodule:: strategist.services.experiment.service
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.store
+.. automodule:: strategist.services.experiment.store
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.helpers
+.. automodule:: strategist.services.experiment.helpers
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.materialization
+.. automodule:: strategist.services.experiment.materialization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -79,7 +79,7 @@ Metrics and Evaluation
 
 Classification metrics and statistical utilities.
 
-.. automodule:: pathfinder.services.experiment.metrics
+.. automodule:: strategist.services.experiment.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -89,27 +89,27 @@ Types
 
 Pydantic models for experiment configuration, metrics and results.
 
-.. automodule:: pathfinder.services.experiment.types
+.. automodule:: strategist.services.experiment.types
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.types.experiment
+.. automodule:: strategist.services.experiment.types.experiment
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.types.core
+.. automodule:: strategist.services.experiment.types.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.types.metrics
+.. automodule:: strategist.services.experiment.types.metrics
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.types.serialization
+.. automodule:: strategist.services.experiment.types.serialization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -121,7 +121,7 @@ Control enrichment
 tool server's statistic. GO, pathway and word enrichment are analyses the site
 runs on a step.
 
-.. automodule:: pathfinder.services.evidence.control_enrichment
+.. automodule:: strategist.services.evidence.control_enrichment
    :members:
    :undoc-members:
    :show-inheritance:
@@ -133,7 +133,7 @@ Separation
 offer it builds: the measured tree as a spec, each criterion's counts, and what
 each criterion adds.
 
-.. automodule:: pathfinder.services.separation.offer
+.. automodule:: strategist.services.separation.offer
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,0 +1,75 @@
+"""A question the Lead's card asks, and the dimension its answer states."""
+
+from __future__ import annotations
+
+from assistant_core.graph.turn_state import ConsultQuestion
+from pydantic import Field, model_validator
+
+from strategist.domain.reply_note import A_RECORD
+from strategist.domain.strategy.constraints import CONSTRAINT_KINDS, ConstraintKind
+
+
+class CardQuestion(ConsultQuestion):
+    """A question card, and the dimension its answer states."""
+
+    dimension: ConstraintKind = Field(
+        default=ConstraintKind.UNTYPED,
+        description=(
+            f"The dimension the answer states, one of {CONSTRAINT_KINDS}. A "
+            "recorded question keeps the dimension its `cardQuestions` entry names."
+        ),
+    )
+    requirement: str = Field(
+        default="",
+        description=(
+            "The id of the requirement the question asks about, as the ledger "
+            "names it, or the id of the criterion whose value it asks for, or "
+            "empty. A recorded question on the same requirement or criterion is "
+            "asked in its place."
+        ),
+    )
+
+    replaces: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The numbers, such as R2, of the requirements in the ledger's list "
+            "that a stand-in the answer names takes the place of. Empty unless "
+            "the question asks for a stand-in."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _is_written_for_the_researcher(self) -> CardQuestion:
+        """A card arrives before the facts that link a record, so a question
+        names a record in words."""
+        texts = [self.prompt, self.context, *(o.label for o in self.options)]
+        found = [
+            m.group().strip() for text in texts for m in A_RECORD.finditer(text or "")
+        ]
+        if found:
+            msg = (
+                f"the question {self.prompt!r} carries the reference(s) {found}; a "
+                "card is read before the facts that link it exist, so name the "
+                "record in words"
+            )
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _offers_a_choice(self) -> CardQuestion:
+        """A question that offers options offers two at least, each its own label.
+
+        One with none is answered in the researcher's words.
+        """
+        labels = [option.label for option in self.options]
+        if len(set(labels)) < len(labels):
+            msg = f"the question {self.prompt!r} offers the labels {labels} more than once"
+            raise ValueError(msg)
+        if len(labels) == 1:
+            msg = (
+                f"the question {self.prompt!r} offers 1 option {labels}, which is no "
+                f"choice: offer two options at least that each change something, or "
+                f"none for an answer in the researcher's words"
+            )
+            raise ValueError(msg)
+        return self

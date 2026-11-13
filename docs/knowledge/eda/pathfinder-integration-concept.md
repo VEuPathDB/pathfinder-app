@@ -83,7 +83,7 @@ a read-only view of the analysis the agent built, over our own EDA client:
 - **Export as step**: serializes the notebook state to `eda_analysis_spec` and
   inserts a `GenesByEdaSubset` / `GenesByEdaVizWithCompute` step into the
   current strategy, in `apps/web/src/features/eda/ExportStepButton.tsx` and
-  `apps/api/src/pathfinder/services/eda/steps.py`; the cut the analysis's
+  `apps/api/src/strategist/services/eda/steps.py`; the cut the analysis's
   volcano stores becomes the step's parameters, exactly as upstream does it. On a
   thread with no strategy the export begins one.
 - **Persistence**: saves through `/users/{uid}/analyses/{project}` so analyses

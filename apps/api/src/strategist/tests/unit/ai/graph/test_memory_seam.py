@@ -1,0 +1,157 @@
+"""The seam between the memory store and what Strategist remembers.
+
+Storing, ranking and tombstoning a memory is generic. Which kinds exist, and
+which of a finished turn's artifacts are worth keeping, are the product's, so
+they reach the store as arguments rather than as imports.
+"""
+
+from __future__ import annotations
+
+import importlib
+import inspect
+import pkgutil
+from dataclasses import fields
+from datetime import UTC, datetime
+from types import ModuleType
+from uuid import uuid4
+
+import pytest
+from assistant_core import memory
+from assistant_core.memory.autowrite import auto_write_memories
+from assistant_core.memory.retrieval import (
+    PIN_WEIGHT,
+    RetrievalScope,
+    hybrid_score,
+    retrieve_relevant_memories,
+)
+from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
+from assistant_core.memory.store import memory_namespace
+
+from strategist.ai.agents.state import CreatedGeneSet
+from strategist.ai.graph.state import (
+    PhaseDisposition,
+    PipelineState,
+    StrategyDomainState,
+    VerificationDigest,
+)
+from strategist.ai.lead.memory_candidates import collect_memory_candidates
+from strategist.domain.memory import MEMORY_KINDS
+from strategist.domain.message_rating import pinned
+from strategist.domain.strategy.build_outcome import BuiltCounts
+from strategist.domain.strategy.operational_spec import OperationalSpec
+
+FOREIGN_PACKAGES = (
+    "veupathdb.domain.strategy",
+    "strategist.ai.lead",
+    "strategist.ai.graph",
+    "strategist.services",
+)
+
+
+def _memory_modules() -> list[ModuleType]:
+    return [
+        importlib.import_module(info.name)
+        for info in pkgutil.walk_packages(
+            memory.__path__,
+            prefix=f"{memory.__name__}.",
+        )
+    ]
+
+
+def _foreign_bindings(module: ModuleType) -> set[str]:
+    found: set[str] = set()
+    for value in vars(module).values():
+        origin = getattr(value, "__module__", None)
+        if not isinstance(origin, str):
+            continue
+        found.update(pkg for pkg in FOREIGN_PACKAGES if origin.startswith(pkg))
+    return found
+
+
+@pytest.mark.parametrize("module", _memory_modules(), ids=lambda m: m.__name__)
+def test_no_memory_module_binds_product_science(module: ModuleType) -> None:
+    assert _foreign_bindings(module) == set()
+
+
+def test_autowrite_is_handed_its_candidates() -> None:
+    params = inspect.signature(auto_write_memories).parameters
+    assert "candidates" in params
+    assert "state" not in params
+
+
+def test_retrieval_is_told_which_kinds_to_search() -> None:
+    assert "scope" in inspect.signature(retrieve_relevant_memories).parameters
+    assert "always_kinds" in {f.name for f in fields(RetrievalScope)}
+
+
+def test_the_namespace_accepts_a_kind_the_core_never_declared() -> None:
+    user_id = uuid4()
+    namespace = memory_namespace(user_id=user_id, kind="contact", application_id="app1")
+    assert namespace == ("app", "app1", "user", str(user_id), "contact")
+
+
+def test_the_product_declares_the_five_strategist_kinds() -> None:
+    assert MEMORY_KINDS == (
+        "gene_set_note",
+        "strategy",
+        "preference",
+        "knowledge",
+        "case",
+    )
+
+
+def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
+    conversation_id = uuid4()
+    state = PipelineState(
+        conversation_id=conversation_id,
+        user_id=uuid4(),
+        site_id="plasmodb",
+        mode="strategy",
+        user_prompt="find Plasmodium kinases",
+        domain=StrategyDomainState(
+            operational_spec=OperationalSpec(
+                goal="kinases",
+                criteria=[],
+                interpreted_goal="find kinases",
+            ),
+            created_gene_sets=[
+                CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)
+            ],
+            site_verdict=VerificationDigest(
+                disposition=PhaseDisposition.DONE,
+                prose="done",
+                reason="ok",
+                success=True,
+                remember=[
+                    MemoryEntryDraft(name="kinome", summary="~142 kinases"),
+                ],
+            ),
+        ),
+    )
+
+    state.turn_markers.verification_dispatched = True
+
+    candidates = collect_memory_candidates(state, counts=BuiltCounts())
+
+    assert [(value.kind, key) for value, key in candidates] == [
+        ("gene_set_note", "gene_set_note:gs-1"),
+        ("knowledge", f"knowledge:{conversation_id.hex}:0"),
+    ]
+
+
+def test_a_pinned_value_scores_one_pin_weight_above_the_same_value() -> None:
+    """The product's pin tag is the one the runtime's score reads."""
+    value = MemoryValue(
+        kind="case",
+        name="kinases",
+        summary="find every kinase in P. falciparum: 142",
+        content={"root_count": 142},
+        created_at=datetime(2026, 9, 24, tzinfo=UTC),
+    )
+
+    lift = hybrid_score(memory=pinned(value), semantic=0.5) - hybrid_score(
+        memory=value, semantic=0.5
+    )
+
+    assert lift == pytest.approx(PIN_WEIGHT)
+    assert pytest.approx(0.1) == PIN_WEIGHT

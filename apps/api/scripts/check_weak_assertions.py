@@ -29,7 +29,7 @@ import ast
 import sys
 from pathlib import Path
 
-SRC_ROOT = Path("src/pathfinder/tests")
+SRC_ROOT = Path("src/strategist/tests")
 SKIP_NAMES = {"__init__.py", "conftest.py"}
 
 # Single-callable predicates that we treat as weak when used bare (no comparison).
@@ -207,7 +207,7 @@ def main() -> int:
     parser.add_argument(
         "--baseline",
         type=Path,
-        default=Path("src/pathfinder/tests/.weak-baseline.txt"),
+        default=Path("src/strategist/tests/.weak-baseline.txt"),
         help="File listing 'path::fn_name' offenders to ignore.",
     )
     parser.add_argument(

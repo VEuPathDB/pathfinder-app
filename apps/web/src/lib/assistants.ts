@@ -1,5 +1,5 @@
 // The assistants this deployment serves. Mirrors the backend composition root
-// (pathfinder.assistants.registry); the ids are the ones the chat body and
+// (strategist.assistants.registry); the ids are the ones the chat body and
 // ConversationResponse carry.
 
 export const DEFAULT_ASSISTANT_ID = "pathfinder";

@@ -1,0 +1,123 @@
+"""A sub-agent's research reads are recorded like the Lead's.
+
+FRAME and VERIFY read the same served research tools the Lead reads. A
+reference one of them retrieves is a reference the turn retrieved.
+"""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from decimal import Decimal
+from typing import Any
+
+import pytest
+from pydantic_ai.toolsets import FunctionToolset
+
+from strategist.ai.graph._lead_capture import (
+    LeadRunCapture,
+    sub_agent_usage_recorder,
+)
+from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
+from strategist.ai.lead import frame_dispatch
+from strategist.ai.lead.deltas import FrameResult
+from strategist.ai.lead.frame_dispatch import frame_work_order, run_frame
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.turn_facts import turn_facts
+from strategist.domain.record_facts import SourceFact
+from strategist.tests._support.run_context import run_context_for
+from strategist.tests.unit.ai.lead.conftest import (
+    ChunkCollector,
+    lead_deps,
+    pipeline_state,
+)
+
+_DOI = "10.1371/journal.ppat.1010773"
+_PAPER = (
+    '{"query": "ROP18 kinase", "results": [{"title": "ROP18 is a rhoptry kinase", '
+    f'"doi": "{_DOI}", "pmid": null, "url": null}}], '
+    '"sources": [], "sourcesStatus": [], "guidance": "", "costUsd": "0.005"}'
+)
+
+
+def _served_research() -> FunctionToolset[Any]:
+    inner: FunctionToolset[Any] = FunctionToolset()
+
+    def literature(query: str) -> str:
+        del query
+        return _PAPER
+
+    inner.add_function(literature, name="research_literature_search")
+    return inner
+
+
+async def _read_a_paper(agent_deps: AgentDeps) -> None:
+    """Call the served tool the way the sub-agent's own run would."""
+    ctx = run_context_for(agent_deps, tool_call_id="inner_lit")
+    sources = turn_tool_sources(ctx)
+    assert sources is not None
+    tools = await sources.get_tools(ctx)
+    await sources.call_tool(
+        "research_literature_search",
+        {"query": "ROP18 kinase"},
+        ctx,
+        tools["research_literature_search"],
+    )
+
+
+def _a_pass_that_reads_a_paper(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fake(**kwargs: Any) -> FrameResult:
+        await _read_a_paper(kwargs["agent_deps"])
+        return FrameResult(disposition="needs_user", summary="which dataset?")
+
+    monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
+
+
+def _turn() -> LeadDeps:
+    deps = lead_deps(pipeline_state(user_prompt="what does ROP18 do?"))
+    deps.runtime = replace(deps.runtime, tool_sources={"research": _served_research()})
+    return deps
+
+
+async def _dispatch(deps: LeadDeps) -> None:
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="t1",
+        work_order=frame_work_order("frame it", deps),
+    )
+
+
+async def test_a_paper_a_sub_agent_read_is_on_the_turns_markers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _a_pass_that_reads_a_paper(monkeypatch)
+    deps = _turn()
+
+    await _dispatch(deps)
+
+    assert deps.state.turn_markers.retrieved_sources == [_DOI]
+
+
+async def test_a_served_answer_that_names_a_price_adds_nothing_to_the_turn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _a_pass_that_reads_a_paper(monkeypatch)
+    capture = LeadRunCapture()
+    deps = _turn()
+    deps.record_sub_agent_usage = sub_agent_usage_recorder(
+        capture, deps.state, ChunkCollector()
+    )
+
+    await _dispatch(deps)
+
+    assert capture.cumulative_cost == Decimal(0)
+
+
+async def test_the_facts_part_holds_what_a_sub_agent_retrieved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The turn's record is one, so a sub-agent's read is a source the facts show."""
+    _a_pass_that_reads_a_paper(monkeypatch)
+    deps = _turn()
+    await _dispatch(deps)
+
+    assert turn_facts(deps).sources == [SourceFact(url=_DOI)]

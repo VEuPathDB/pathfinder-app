@@ -1,0 +1,247 @@
+"""Reading and restoring the strategy a thread held at a chosen point."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from uuid import UUID
+
+from assistant_core.persistence.models import Conversation, Message
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from strategist.domain.last_change import LastChange, change_between
+from strategist.domain.strategy.revision import (
+    parse_strategy_ast,
+    without_wdk_readings,
+)
+from strategist.persistence.models import StrategyRevisionView
+from strategist.persistence.repositories.conversation import ConversationRepository
+from strategist.persistence.repositories.conversation_update import ConversationUpdate
+from strategist.persistence.repositories.strategy_revision import (
+    StrategyRevisionRepository,
+)
+from strategist.services.strategies.abandoned_mint import (
+    ReleasableMint,
+    abandoned_mint_to_release,
+    delete_released_mint,
+    fresh_mint,
+)
+from strategist.services.strategies.materialize import (
+    MaterializedStrategy,
+    materialize_strategy_snapshot,
+)
+
+__all__ = [
+    "DiscardedWrites",
+    "discard_turn_strategy_writes",
+    "last_change",
+    "materialize_revision",
+    "previous_revision",
+    "restore_revision",
+    "revision_at_message",
+]
+
+
+@dataclass(frozen=True)
+class DiscardedWrites:
+    """What a discard undid, and the mint its caller releases after committing."""
+
+    undone: bool
+    release: ReleasableMint | None = None
+
+
+async def revision_at_message(
+    session: AsyncSession,
+    *,
+    message: Message,
+) -> StrategyRevisionView | None:
+    """The strategy snapshot in force at ``message``.
+
+    A snapshot the message names wins; otherwise the newest snapshot written
+    no later than the message.
+    """
+    repo = StrategyRevisionRepository(session)
+    named = await repo.named_by(message.conversation_id, message_id=message.id)
+    if named is not None:
+        return named
+    return await repo.at_or_before(message.conversation_id, message.created_at)
+
+
+async def previous_revision(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> StrategyRevisionView | None:
+    """The strategy the thread held before its last change.
+
+    It is the newest snapshot a turn ended on, older than the thread's newest
+    snapshot and with another tree. None when the thread holds no such
+    snapshot.
+    """
+    repo = StrategyRevisionRepository(session)
+    latest = await repo.latest(conversation_id)
+    if latest is None:
+        return None
+    return await repo.newest_turn_end_unlike(
+        conversation_id, before_row_id=latest.id, revision=latest.revision
+    )
+
+
+async def last_change(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> LastChange | None:
+    """The thread's most recent change, read from its newest snapshot and the
+    one before its last change. None when the thread holds no strategy."""
+    latest = await StrategyRevisionRepository(session).latest(conversation_id)
+    ast = None if latest is None else parse_strategy_ast(latest.strategy_ast)
+    if ast is None:
+        return None
+    previous = await previous_revision(session, conversation_id=conversation_id)
+    return change_between(
+        None if previous is None else parse_strategy_ast(previous.strategy_ast), ast
+    )
+
+
+async def _write_strategy_state(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    state: MaterializedStrategy,
+) -> None:
+    """Write one adopted strategy state, or clear the thread's when it holds none."""
+    ast = parse_strategy_ast(state.strategy_ast)
+    repo = ConversationRepository(session)
+    if ast is None:
+        await repo.clear_strategy(conversation_id)
+        return
+    await repo.update_conversation(
+        conversation_id,
+        ConversationUpdate(
+            strategy_ast=ast,
+            record_type=state.record_type,
+            step_count=state.step_count,
+            wdk_strategy_id=state.wdk_strategy_id,
+            wdk_strategy_id_set=True,
+            wdk_strategy_created_here=state.created_wdk_strategy,
+            wdk_strategy_created_here_set=True,
+            is_saved=state.is_saved,
+            is_saved_set=True,
+            estimated_size=None,
+            estimated_size_set=True,
+        ),
+    )
+
+
+async def restore_revision(
+    session: AsyncSession,
+    *,
+    revision: StrategyRevisionView,
+) -> ReleasableMint | None:
+    """Write a thread's strategy back to one of its snapshots, as recorded.
+
+    The snapshot's WDK identity stands: the caller is undoing writes made
+    against the same steps, so nothing has moved under it. Reports the
+    strategy the thread held when the restore leaves nothing naming it, for
+    the caller to delete once it has committed.
+    """
+    repo = ConversationRepository(session)
+    abandoned = await repo.get_strategy(revision.conversation_id)
+    await _write_strategy_state(
+        session,
+        conversation_id=revision.conversation_id,
+        state=MaterializedStrategy(
+            strategy_ast=without_wdk_readings(revision.strategy_ast),
+            record_type=revision.record_type,
+            step_count=revision.step_count,
+            wdk_strategy_id=revision.wdk_strategy_id,
+            created_wdk_strategy=revision.wdk_strategy_created_here,
+            is_saved=revision.is_saved,
+        ),
+    )
+    return await abandoned_mint_to_release(
+        session,
+        conversation_id=revision.conversation_id,
+        abandoned=abandoned,
+        restored_wdk_strategy_id=revision.wdk_strategy_id,
+    )
+
+
+async def materialize_revision(
+    session: AsyncSession,
+    *,
+    conversation: Conversation,
+    revision: StrategyRevisionView,
+) -> ReleasableMint | None:
+    """Adopt a snapshot as a strategy of the thread's own on WDK.
+
+    The steps the snapshot names may have moved since it was written, and a
+    copied snapshot names none at all, so the tree is pushed again. A refusal
+    leaves the thread holding the plan. Reports the strategy the push minted,
+    which the caller deletes when it does not commit.
+    """
+    state = await materialize_strategy_snapshot(
+        site_id=conversation.site_id,
+        conversation_id=conversation.id,
+        name=conversation.name,
+        strategy_ast=revision.strategy_ast,
+        record_type=revision.record_type,
+        step_count=revision.step_count,
+    )
+    minted = fresh_mint(
+        conversation_id=conversation.id,
+        site_id=conversation.site_id,
+        wdk_strategy_id=state.wdk_strategy_id,
+        created=state.created_wdk_strategy,
+    )
+    try:
+        await _write_strategy_state(
+            session,
+            conversation_id=revision.conversation_id,
+            state=state,
+        )
+    except Exception:
+        await delete_released_mint(minted)
+        raise
+    return minted
+
+
+async def discard_turn_strategy_writes(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    pre_turn_revision_id: int | None,
+) -> DiscardedWrites:
+    """Undo the strategy a stopped turn had already written.
+
+    ``pre_turn_revision_id`` is the newest snapshot the thread held when the
+    turn opened; ``None`` means it held no strategy at all. Reports whether
+    anything was undone, and the mint the caller releases after committing.
+    """
+    repo = StrategyRevisionRepository(session)
+    conversations = ConversationRepository(session)
+    removed = await repo.delete_newer_than(
+        conversation_id,
+        revision_row_id=pre_turn_revision_id,
+    )
+    if removed == 0:
+        return DiscardedWrites(undone=False)
+    if pre_turn_revision_id is None:
+        abandoned = await conversations.get_strategy(conversation_id)
+        await conversations.clear_strategy(conversation_id)
+        return DiscardedWrites(
+            undone=True,
+            release=await abandoned_mint_to_release(
+                session,
+                conversation_id=conversation_id,
+                abandoned=abandoned,
+                restored_wdk_strategy_id=None,
+            ),
+        )
+    snapshot = await repo.latest(conversation_id)
+    if snapshot is None:
+        return DiscardedWrites(undone=False)
+    return DiscardedWrites(
+        undone=True,
+        release=await restore_revision(session, revision=snapshot),
+    )

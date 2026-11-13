@@ -1,0 +1,398 @@
+"""Pushes local graph state to WDK: step tree, strategy, counts, decorations."""
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy import (
+    StepValidation,
+    StrategyStepNode,
+    pushable_root_id,
+    rebuild_tree,
+    walk,
+    wdk_search_name,
+)
+from veupathdb.errors import VEuPathDBError, WDKError
+from veupathdb.wdk import (
+    MissingWDKStepIdError,
+    StrategyAPI,
+    WDKStepTree,
+    WDKStrategyDetails,
+    build_wdk_step_tree,
+    get_strategy_api,
+    walk_wdk_step_tree,
+)
+
+from strategist.domain.strategy.build_outcome import StepPushFailure
+from strategist.domain.strategy.organism_scope import SiteTaxa
+from strategist.domain.strategy.record_class_check import step_class_of
+from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.strategy.strategy_description import strategy_description
+from strategist.domain.strategy.validate import validate_strategy
+from strategist.platform.errors import StrategyCompilationError
+from strategist.services.strategies.build import RootResolutionError, resolve_root_step
+from strategist.services.strategies.naming import name_for_the_push
+from strategist.services.strategies.organism_params import (
+    tree_dataset_organisms,
+    tree_organism_parameters,
+    tree_taxa,
+)
+from strategist.services.strategies.record_classes import (
+    fill_record_classes,
+    unclassed_step_failure,
+)
+from strategist.services.strategies.result_list import result_list_url
+from strategist.services.strategies.sync_state import WDKSyncState
+
+logger = get_logger(__name__)
+
+
+class UnclassedRootError(StrategyCompilationError):
+    def __init__(self, failure: StepPushFailure) -> None:
+        super().__init__(failure.error)
+        self.failure = failure
+
+
+class TreeNotHeldError(WDKError):
+    def __init__(self, written: WDKStepTree, held: WDKStepTree) -> None:
+        super().__init__(
+            detail=(
+                f"after the write the strategy holds root step {held.step_id} over "
+                f"{len(walk_wdk_step_tree(held))} steps, not the tree written, root "
+                f"step {written.step_id} over {len(walk_wdk_step_tree(written))} steps"
+            ),
+            status=409,
+        )
+
+
+@dataclass
+class SyncResult:
+    """Outcome of a successful strategy sync."""
+
+    wdk_strategy_id: int | None
+    wdk_url: str | None
+    root_step_id: int
+    counts: dict[str, int | None]
+    root_count: int | None
+    zero_step_ids: list[str]
+    step_count: int
+    created_wdk_strategy: bool = False
+    """True when this sync minted the WDK strategy, rather than updating one."""
+
+
+def build_step_tree_from_graph(
+    root: StrategyStepNode,
+    wdk_step_ids: dict[str, int],
+) -> WDKStepTree:
+    """Build a WDK step tree, replacing local step IDs with WDK step IDs.
+
+    :raises StrategyCompilationError: If any step in the tree lacks a WDK step ID.
+    """
+    try:
+        return build_wdk_step_tree(root, wdk_step_ids)
+    except MissingWDKStepIdError as exc:
+        raise StrategyCompilationError(str(exc)) from exc
+
+
+def _extract_counts_and_validations(
+    strategy_info: WDKStrategyDetails,
+    wdk_step_ids: dict[str, int],
+) -> tuple[dict[str, int | None], dict[str, StepValidation], int | None]:
+    """Extract per-step counts and validations, keyed by local step ID.
+
+    :returns: Tuple of (counts, validations, root_count).
+    """
+    counts: dict[str, int | None] = {}
+    validations: dict[str, StepValidation] = {}
+    root_count: int | None = None
+
+    wdk_to_local = {v: k for k, v in wdk_step_ids.items()}
+
+    for wdk_id_str, wdk_step in strategy_info.steps.items():
+        try:
+            wdk_id = int(wdk_id_str)
+        except ValueError, TypeError:
+            continue
+        local_id = wdk_to_local.get(wdk_id)
+        if local_id:
+            counts[local_id] = wdk_step.estimated_size
+            if wdk_step.validation is not None:
+                validations[local_id] = wdk_step.validation
+
+    root_local = wdk_to_local.get(strategy_info.root_step_id)
+    if root_local:
+        root_count = counts.get(root_local)
+
+    return counts, validations, root_count
+
+
+async def _apply_decorations(
+    root_step: StrategyStepNode,
+    wdk_step_ids: dict[str, int],
+    api: StrategyAPI,
+) -> None:
+    """Apply declared filters to each WDK step."""
+    for step in walk(root_step):
+        wdk_step_id = wdk_step_ids.get(step.id)
+        if wdk_step_id is None:
+            continue
+        for step_filter in step.filters:
+            await api.set_step_filter(
+                step_id=wdk_step_id,
+                filter_name=step_filter.name,
+                value=step_filter.value,
+                disabled=step_filter.disabled,
+            )
+
+
+@dataclass(frozen=True)
+class StrategyLabels:
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
+class _PushedStrategy:
+    """The WDK strategy the push landed in, and whether the push minted it."""
+
+    wdk_strategy_id: int
+    created: bool
+
+
+async def _create_or_update_wdk_strategy(
+    api: StrategyAPI,
+    step_tree: WDKStepTree,
+    labels: StrategyLabels,
+    sync_state: WDKSyncState,
+) -> _PushedStrategy:
+    """Create a new WDK strategy, or update the existing one.
+
+    A refused update raises, so the strategy the researcher has open stays
+    the one the next push edits. An update the strategy does not hold after
+    the write raises the same way. An unchanged tree sends only a name WDK
+    lags on.
+    """
+    wdk_strategy_id = sync_state.wdk_strategy_id
+
+    if wdk_strategy_id is None:
+        result = await api.create_strategy(
+            step_tree, labels.name, description=labels.description
+        )
+        _record_labels(sync_state, labels)
+        logger.info("Created WDK strategy", wdk_strategy_id=result.id)
+        return _PushedStrategy(result.id, created=True)
+
+    if step_tree != sync_state.wdk_step_tree:
+        held = await api.update_strategy(
+            strategy_id=wdk_strategy_id,
+            step_tree=step_tree,
+            name=labels.name,
+            description=labels.description,
+        )
+        if held.step_tree != step_tree:
+            raise TreeNotHeldError(step_tree, held.step_tree)
+        _record_labels(sync_state, labels)
+        logger.info("Updated WDK strategy step tree", wdk_strategy_id=wdk_strategy_id)
+        return _PushedStrategy(wdk_strategy_id, created=False)
+
+    await put_the_strategy_labels(api, sync_state, labels)
+    return _PushedStrategy(wdk_strategy_id, created=False)
+
+
+def _record_labels(sync_state: WDKSyncState, labels: StrategyLabels) -> None:
+    sync_state.wdk_strategy_name = labels.name
+    sync_state.wdk_strategy_description = labels.description
+
+
+def _lagging(held: str | None, wanted: str) -> str | None:
+    return wanted if held is not None and held != wanted else None
+
+
+async def put_the_strategy_labels(
+    api: StrategyAPI, sync_state: WDKSyncState, labels: StrategyLabels
+) -> None:
+    if sync_state.wdk_strategy_id is None:
+        return
+    name = _lagging(sync_state.wdk_strategy_name, labels.name)
+    description = _lagging(sync_state.wdk_strategy_description, labels.description)
+    if name is None and description is None:
+        return
+    try:
+        await api.update_strategy(
+            sync_state.wdk_strategy_id, name=name, description=description
+        )
+    except VEuPathDBError as exc:
+        logger.warning(
+            "WDK did not take the strategy's labels",
+            wdk_strategy_id=sync_state.wdk_strategy_id,
+            error=str(exc),
+        )
+        return
+    if name is not None:
+        sync_state.wdk_strategy_name = name
+    if description is not None:
+        sync_state.wdk_strategy_description = description
+
+
+@dataclass
+class _StrategyState:
+    """What WDK answers about the strategy that now holds the step tree."""
+
+    counts: dict[str, int | None]
+    validations: dict[str, StepValidation]
+    root_count: int | None
+    root_step_id: int
+
+
+async def _fetch_strategy_state(
+    api: StrategyAPI,
+    wdk_strategy_id: int,
+    wdk_step_ids: dict[str, int],
+    step_tree: WDKStepTree,
+) -> _StrategyState:
+    """Fetch strategy details."""
+    try:
+        strategy_info = await api.get_strategy(wdk_strategy_id)
+    except VEuPathDBError as e:
+        logger.warning("Strategy count lookup failed", error=str(e))
+        return _StrategyState({}, {}, None, step_tree.step_id)
+    else:
+        counts, validations, root_count = _extract_counts_and_validations(
+            strategy_info, wdk_step_ids
+        )
+        return _StrategyState(
+            counts, validations, root_count, strategy_info.root_step_id
+        )
+
+
+def step_tree_is_current(root_step: StrategyStepNode, sync_state: WDKSyncState) -> bool:
+    """True when the WDK strategy already holds the tree this graph maps to.
+
+    The tree is keyed by WDK step ids, so a step recreated under a new id
+    moves the tree even when every local id stays the same.
+    """
+    if sync_state.wdk_strategy_id is None:
+        return False
+    try:
+        step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
+    except StrategyCompilationError:
+        return False
+    return step_tree == sync_state.wdk_step_tree
+
+
+async def sync_strategy_for_site(
+    *,
+    graph: StrategyGraph,
+    sync_state: WDKSyncState,
+    site_id: str,
+    strategy_name: str | None = None,
+    user_prompt: str = "",
+) -> SyncResult:
+    """Sync graph state to WDK: build step tree, create or update strategy, fetch counts.
+
+    Every step must already hold a WDK step ID. Without ``strategy_name``, a
+    graph that has no name yet is pushed under ``user_prompt``.
+
+    :raises RootResolutionError: If root step cannot be determined.
+    :raises UnclassedRootError: If the site lists no record type for the root.
+    :raises StrategyCompilationError: If steps lack WDK IDs or validation fails.
+    :raises VEuPathDBError: On WDK API failures.
+    """
+    api = get_strategy_api(site_id)
+    root = resolve_root_step(graph, None)
+    # A combine step that lacks an input is not computable. WDK receives the
+    # surviving branch instead.
+    pushable_id = pushable_root_id(root.id, graph.steps)
+    if pushable_id is None:
+        msg = "No computable step in graph. Finish wiring the strategy first."
+        raise RootResolutionError(msg)
+    root_step = rebuild_tree(pushable_id, graph.steps)
+
+    await fill_record_classes(site_id, graph.steps)
+    record_type = step_class_of(graph.steps, pushable_id)
+    if record_type is None:
+        raise UnclassedRootError(
+            unclassed_step_failure(
+                pushable_id, wdk_search_name(graph.steps[pushable_id])
+            )
+        )
+    graph.record_type = record_type
+
+    sync_state.organism_params = await tree_organism_parameters(site_id, root_step)
+    datasets = await tree_dataset_organisms(
+        site_id, root_step, sync_state.organism_params
+    )
+    taxa = await tree_taxa(site_id, root_step, sync_state.organism_params, datasets)
+    _validate_graph(root_step, record_type, sync_state.organism_params, datasets, taxa)
+
+    step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
+
+    labels = StrategyLabels(
+        name=strategy_name or name_for_the_push(graph, user_prompt),
+        description=strategy_description(graph, pushable_id),
+    )
+    pushed = await _create_or_update_wdk_strategy(api, step_tree, labels, sync_state)
+    wdk_strategy_id = pushed.wdk_strategy_id
+
+    # A filter narrows what its step answers, so the read follows it. Reading
+    # first records the size the step had without its decorations.
+    await _maybe_apply_decorations(root_step, sync_state.wdk_step_ids, api)
+
+    state = await _fetch_strategy_state(
+        api, wdk_strategy_id, sync_state.wdk_step_ids, step_tree
+    )
+
+    all_steps = walk(root_step)
+
+    sync_state.wdk_strategy_id = wdk_strategy_id
+    sync_state.wdk_step_tree = step_tree
+    sync_state.step_counts = state.counts
+    sync_state.step_validations = state.validations
+
+    wdk_url = result_list_url(site_id, wdk_strategy_id, state.root_step_id)
+    zeros = sorted([sid for sid, c in state.counts.items() if c == 0])
+
+    return SyncResult(
+        wdk_strategy_id=wdk_strategy_id,
+        wdk_url=wdk_url,
+        root_step_id=state.root_step_id,
+        counts=state.counts,
+        root_count=state.root_count,
+        zero_step_ids=zeros,
+        step_count=len(all_steps),
+        created_wdk_strategy=pushed.created,
+    )
+
+
+def _validate_graph(
+    root_step: StrategyStepNode,
+    record_type: str,
+    organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
+    taxa: SiteTaxa,
+) -> None:
+    validation_result = validate_strategy(
+        root_step, record_type, organism_params, dataset_organisms, taxa=taxa
+    )
+    if not validation_result.valid:
+        errors = [
+            {"path": e.path, "message": e.message} for e in validation_result.errors
+        ]
+        msg = f"Strategy validation failed: {errors}"
+        raise StrategyCompilationError(msg)
+
+
+async def _maybe_apply_decorations(
+    root_step: StrategyStepNode,
+    wdk_step_ids: dict[str, int],
+    api: StrategyAPI,
+) -> None:
+    """Apply step decorations when at least one step declares them."""
+    all_steps = walk(root_step)
+    has_decorations = any(step.filters for step in all_steps)
+    if not has_decorations:
+        return
+    try:
+        await _apply_decorations(root_step, wdk_step_ids, api)
+    except VEuPathDBError as e:
+        logger.warning("Step decoration failed (non-fatal)", error=str(e))

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PYPROJECT = "apps/api/pyproject.toml";
-const INIT = "apps/api/src/pathfinder/__init__.py";
+const INIT = "apps/api/src/strategist/__init__.py";
 const MCP_CONTEXT_FILES = ["docker-compose.yml"];
 const FILES = [PYPROJECT, INIT, ...MCP_CONTEXT_FILES];
 

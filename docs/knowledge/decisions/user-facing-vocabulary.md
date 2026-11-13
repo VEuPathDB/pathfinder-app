@@ -46,7 +46,7 @@ appear only where the user typed them or where a link needs them.
   allowed (testid, route, query key, field name) writes it in lowercase, which
   the pattern already passes. The exception's own hits are pinned, so it
   cannot widen unnoticed.
-- `apps/api/src/pathfinder/tests/unit/test_user_facing_vocabulary.py` scans
+- `apps/api/src/strategist/tests/unit/test_user_facing_vocabulary.py` scans
   every `with_summary` line, every `title=`/`detail=` literal of the error
   modules and the study services, every `ModelRetry`/`ToolErrorPayload`
   message and every raised refusal in the study tools and services. It has no
@@ -62,7 +62,7 @@ appear only where the user typed them or where a link needs them.
   suffixes above. A refusal that both readers see carries two sentences built
   from the same facts: `detail` for the researcher and `retry` for the model,
   which alone may name a tool or an id (`NoGeneSubsetError`).
-- `pathfinder.ai.agents.vocabulary.USER_FACING_VOCABULARY` is the rule's one
+- `strategist.ai.agents.vocabulary.USER_FACING_VOCABULARY` is the rule's one
   text. The Lead and all three sub-agents append it through
   `with_vocabulary()`, so the digest prose, the spec summary and the result
   summaries the rail renders obey it too; the gate asserts its presence in

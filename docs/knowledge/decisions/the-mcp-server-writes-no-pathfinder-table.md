@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server writes no Strategist table, so a second deployment can run it
-description: The two paths from the served veupathdb-wdk-mcp entrypoint to pathfinder.persistence were an identity lookup whose result was only stringified and an export write a second deployment cannot perform; both are cut, the gene_sets package __init__ that dragged 1009 LOC of store into the closure is empty, and the server's own foundation lives under pathfinder/mcp/. An ExportSink protocol and a read-only connection were rejected.
+description: The two paths from the served veupathdb-wdk-mcp entrypoint to strategist.persistence were an identity lookup whose result was only stringified and an export write a second deployment cannot perform; both are cut, the gene_sets package __init__ that dragged 1009 LOC of store into the closure is empty, and the server's own foundation lives under pathfinder/mcp/. An ExportSink protocol and a read-only connection were rejected.
 tags: [mcp, split, architecture, packaging, persistence, auth]
 generated: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
@@ -13,16 +13,16 @@ status: stable
 The module set that becomes the `veupathdb-mcp` distribution - what is now
 `veupathdb_mcp/{tools,catalog,wdk,gene_lookup,controls,embeddings}/**`,
 `veupathdb_mcp/tool_payloads.py` and the server's own modules -
-imports nothing from `pathfinder.platform`, `pathfinder.persistence`,
-`pathfinder.ai`, `pathfinder.transport`, `pathfinder.jobs`, or the half of
-`pathfinder.services` that stays with the application. It reached them 54
+imports nothing from `strategist.platform`, `strategist.persistence`,
+`strategist.ai`, `strategist.transport`, `strategist.jobs`, or the half of
+`strategist.services` that stays with the application. It reached them 54
 times; the count is now 0. The transitive closure of the served entrypoint
 `python -m veupathdb_mcp` fell from 162 modules / 17869 LOC to 133 / 15027 and
 names no Strategist table.
 `tests/unit/test_veupathdb_mcp_unit_boundary.py` is the gate: it walks the unit,
 parses each module, and walks the entrypoint closure over the real import graph.
 
-## The two paths to `pathfinder.persistence`, and what replaced each
+## The two paths to `strategist.persistence`, and what replaced each
 
 **An identity lookup whose result was only stringified.** `veupathdb_mcp/auth.py` called
 `services/wdk_identity.py::resolve_veupathdb_bearer`, which mapped a VEuPathDB
@@ -73,7 +73,7 @@ Strategist's warm-up drives `get_catalog` per site under its own budget instead
 The settings come from
 `McpSettings` through the same host-installed source the client library uses
 ([the client library owns its foundation](the-client-library-owns-its-foundation.md)),
-and `pathfinder.platform.config.Settings` subclasses it, so one instance still
+and `strategist.platform.config.Settings` subclasses it, so one instance still
 serves the application's process.
 
 # What was rejected
@@ -103,9 +103,9 @@ decision, not a refactor.
 
 # What would falsify this
 
-An import in the unit-3 module set that names `pathfinder.platform`,
-`pathfinder.persistence`, `pathfinder.ai`, `pathfinder.transport`,
-`pathfinder.jobs` or a service outside the unit, or an entrypoint closure that
+An import in the unit-3 module set that names `strategist.platform`,
+`strategist.persistence`, `strategist.ai`, `strategist.transport`,
+`strategist.jobs` or a service outside the unit, or an entrypoint closure that
 reaches a Strategist table. The boundary test asserts all of it.
 
 # Related

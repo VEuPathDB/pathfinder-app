@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy
 ${imports if imports else ""}
 
-import pathfinder.persistence.models  # custom SQLAlchemy types (GUID, ...)
+import strategist.persistence.models  # custom SQLAlchemy types (GUID, ...)
 
 # revision identifiers, used by Alembic.
 revision: str = ${repr(up_revision)}

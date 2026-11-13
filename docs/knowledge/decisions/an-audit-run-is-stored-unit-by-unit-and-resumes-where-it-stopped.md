@@ -180,16 +180,16 @@ value separates them in the tally and the views with no other change.
 
 # Anchor
 
-`apps/api/src/pathfinder/services/audit/units.py`,
-`apps/api/src/pathfinder/persistence/repositories/audit.py`,
-`apps/api/src/pathfinder/persistence/repositories/audit_findings.py`,
-`apps/api/src/pathfinder/persistence/repositories/audit_reviews.py`,
-`apps/api/src/pathfinder/domain/audit/screen.py`,
-`apps/api/src/pathfinder/domain/audit/findings.py`,
-`apps/api/src/pathfinder/domain/audit/confirmations.py`,
-`apps/api/src/pathfinder/domain/audit/rates.py`,
-`apps/api/src/pathfinder/services/audit/collect.py`,
-`apps/api/src/pathfinder/services/audit/tie_break.py`. The jobs that carry the run
+`apps/api/src/strategist/services/audit/units.py`,
+`apps/api/src/strategist/persistence/repositories/audit.py`,
+`apps/api/src/strategist/persistence/repositories/audit_findings.py`,
+`apps/api/src/strategist/persistence/repositories/audit_reviews.py`,
+`apps/api/src/strategist/domain/audit/screen.py`,
+`apps/api/src/strategist/domain/audit/findings.py`,
+`apps/api/src/strategist/domain/audit/confirmations.py`,
+`apps/api/src/strategist/domain/audit/rates.py`,
+`apps/api/src/strategist/services/audit/collect.py`,
+`apps/api/src/strategist/services/audit/tie_break.py`. The jobs that carry the run
 are [Audits run on a queue of their own](audits-run-on-a-queue-of-their-own.md);
 the sign-in they read with is
 [An audit run keeps its owner's sign-in sealed](an-audit-run-keeps-its-owners-sign-in-sealed.md).

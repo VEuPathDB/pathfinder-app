@@ -1,0 +1,166 @@
+"""The wrong calls a fault token inserts into an arc, once per turn, and the
+misreadings it makes of the turn's words."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+
+from assistant_core.models.scripted import (
+    called_tool_parts,
+    current_turn,
+    retried_returns,
+)
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
+)
+
+from strategist.ai.lead.intent import UserIntent
+from strategist.ai.models.mock import fault_calls, reply_faults
+from strategist.ai.models.mock.arc import Role
+
+
+@dataclass(frozen=True)
+class Fault:
+    """The role a fault plays in, the wrong call it makes there, and how many
+    times the turn makes it before the arc goes on. ``setup`` is the wrong call
+    of another role that gives this one something to be wrong about."""
+
+    applies_to: Role
+    wrong_call: fault_calls.WrongCall
+    times: int = 1
+    setup: Fault | None = None
+
+    def playing(self, role: Role) -> Fault | None:
+        """The part of the fault this role plays, or None."""
+        if self.applies_to == role:
+            return self
+        if self.setup is not None and self.setup.applies_to == role:
+            return self.setup
+        return None
+
+
+FAULTS: dict[str, Fault] = {
+    # The arc's own test is the first of the two identical calls.
+    "repeat-control-test": Fault(
+        "verification", fault_calls.repeat_control_test, times=2
+    ),
+    "all-unclear": Fault("verification", fault_calls.all_unclear),
+    "sweep-without-controls": Fault("lead", fault_calls.sweep_without_controls),
+    "short-card-reply": Fault("lead", fault_calls.short_card_reply),
+    "unlisted-search": Fault("frame", fault_calls.unlisted_search),
+    "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
+    "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
+}
+
+Misreading = Callable[[UserIntent, str], UserIntent]
+
+MISREADINGS: dict[str, Misreading] = {"organism-split": reply_faults.organism_split}
+
+ANSWER = "final_result"
+# The id prefix that marks a call a fault made, which the arc does not count.
+_FAULT_CALL = "fault_"
+
+
+class UnknownFaultError(LookupError):
+    """A message names a fault the registry does not hold."""
+
+
+def fault_named(name: str) -> Fault:
+    if name not in FAULTS:
+        msg = f"No mock fault is named {name!r}. Known faults: {sorted(FAULTS)}"
+        raise UnknownFaultError(msg)
+    return FAULTS[name]
+
+
+def _answered(messages: list[ModelMessage], wrong: ToolCallPart, times: int) -> bool:
+    """Whether this turn already made the wrong call, or had it refused,
+    ``times`` times. A call is counted once, however often the run carries it."""
+    turn = current_turn(messages)
+    refused = {
+        p.tool_call_id for p in retried_returns(turn) if p.tool_name == wrong.tool_name
+    }
+    made = {
+        p.tool_call_id
+        for p in called_tool_parts(turn)
+        if p.tool_name == wrong.tool_name and p.args_as_dict() == wrong.args_as_dict()
+    }
+    return max(len(refused), len(made)) >= times
+
+
+def fault_call(
+    name: str | None,
+    role: Role,
+    messages: list[ModelMessage],
+    intended: ToolCallPart,
+) -> ToolCallPart | None:
+    """The wrong call this role makes in place of ``intended``, or None once
+    the fault has answered."""
+    if name is None or name in MISREADINGS:
+        return None
+    fault = fault_named(name).playing(role)
+    if fault is None:
+        return None
+    wrong = fault.wrong_call(messages)(intended)
+    if wrong is None or _answered(messages, wrong, fault.times):
+        return None
+    return replace(wrong, tool_call_id=f"{_FAULT_CALL}{wrong.tool_call_id}")
+
+
+def misread(name: str | None, intent: UserIntent, site_id: str) -> UserIntent:
+    if name is None or name not in MISREADINGS:
+        return intent
+    return MISREADINGS[name](intent, site_id)
+
+
+def made_by_a_fault(part: object) -> bool:
+    match part:
+        case ToolCallPart(tool_call_id=call_id):
+            return call_id.startswith(_FAULT_CALL)
+        case _:
+            return False
+
+
+def _answers_a_fault(part: object) -> bool:
+    match part:
+        case ToolReturnPart(tool_call_id=call_id):
+            return call_id.startswith(_FAULT_CALL)
+        case _:
+            return False
+
+
+def _a_draft(part: object) -> bool:
+    """A reply a fault wrote, which the model reads back as its own draft."""
+    match part:
+        case ToolCallPart(tool_name=name):
+            return name == ANSWER
+        case _:
+            return False
+
+
+def without_fault_calls(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """The run as the arc reads it: every call a fault made, and the answer or
+    refusal it got, is left out. A refused reply stays as the model's draft."""
+    kept: list[ModelMessage] = []
+    for message in messages:
+        match message:
+            case ModelResponse(parts=parts):
+                kept.append(
+                    replace(
+                        message,
+                        parts=[
+                            p for p in parts if not made_by_a_fault(p) or _a_draft(p)
+                        ],
+                    )
+                )
+            case ModelRequest(parts=parts):
+                kept.append(
+                    replace(
+                        message, parts=[p for p in parts if not _answers_a_fault(p)]
+                    )
+                )
+    return kept

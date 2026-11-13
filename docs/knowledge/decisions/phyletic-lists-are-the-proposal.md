@@ -160,7 +160,7 @@ search's definition to `resolve_params_with_intent(..., definition=)`
 `profile_pattern` and refuses a stated one.
 Conformance: `packages/spec/phyletic_conformance.json` is one clade tree and one
 expected binding per selection, read by
-`apps/api/src/pathfinder/tests/unit/test_phyletic_conformance.py`
+`apps/api/src/strategist/tests/unit/test_phyletic_conformance.py`
 and `apps/web/src/features/strategy/editor/widgets/phyleticConformance.test.ts`,
 so the two encoders cannot drift apart without a red test on both sides. The file
 is read from QA ([tests run against the QA sites](tests-run-against-the-qa-sites.md)).

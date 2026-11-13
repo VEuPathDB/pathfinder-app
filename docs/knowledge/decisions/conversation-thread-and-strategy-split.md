@@ -87,7 +87,7 @@ disagree with the first.
 
 # What would falsify this
 
-`apps/api/src/pathfinder/tests/unit/persistence/test_conversation_strategy_seam.py`
+`apps/api/src/strategist/tests/unit/persistence/test_conversation_strategy_seam.py`
 fails the moment a strategy column returns to `Conversation`, an owner column
 appears on `ConversationStrategy`, or the thread declares a relationship to
 the science again.

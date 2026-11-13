@@ -21,7 +21,7 @@ Strategist consumes them the way it consumes every served tool: an
 `AdmissionRecord` with `source_id` `veupathdb-research-mcp`, part namespace
 `research` and a 60 second budget (`platform/tool_sources.py`), and a
 `ToolSourceDeclaration` named `research` on the assistant
-(`assistants/pathfinder_spec.py`). The runtime prefixes a source's tools with
+(`assistants/strategist_spec.py`). The runtime prefixes a source's tools with
 the declaration's name, so the model calls `research_web_search` and
 `research_literature_search`.
 

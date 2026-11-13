@@ -37,7 +37,7 @@ The backend Pydantic models are the source of truth. Regenerate after changing t
 
 ```bash
 cd apps/api
-VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m pathfinder.devtools.openapi generate
+VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m strategist.devtools.openapi generate
 ```
 
 The app is built in process and connects to nothing, so the database address is a

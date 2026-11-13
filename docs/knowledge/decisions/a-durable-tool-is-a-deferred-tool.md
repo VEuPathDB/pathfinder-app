@@ -100,7 +100,7 @@ reasoning that settled it.
 # What follows
 
 `_resume_graph`, `Command(resume=...)`, `_interrupt_chunks` and the
-`interrupt` import are gone; `grep -rn "interrupt(" src/pathfinder` finds no
+`interrupt` import are gone; `grep -rn "interrupt(" src/strategist` finds no
 durable use. PROTOCOL 6.1 holds: the started chunk inside the suspending turn,
 progress and completion in the gap, and the continuation as a turn with its own
 `start`, `finish` and `done`. PROTOCOL 1.5.3 adds what a step of several tasks

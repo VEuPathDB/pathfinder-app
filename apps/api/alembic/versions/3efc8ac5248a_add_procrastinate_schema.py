@@ -24,7 +24,7 @@ depends_on: str | Sequence[str] | None = None
 # verbatim. Docker deployment includes it via ``COPY apps/api/alembic
 # apps/api/alembic`` in the Dockerfile, which copies every file under the
 # ``alembic/`` tree — not just ``.py``. The hatch wheel (``[tool.hatch]
-# packages = ["src/pathfinder"]``) does NOT include alembic artifacts, so
+# packages = ["src/strategist"]``) does NOT include alembic artifacts, so
 # if you ever switch from Docker deployment to wheel-based distribution,
 # add ``include`` rules for the ``alembic/`` tree.
 _SCHEMA_SQL = (Path(__file__).parent / "procrastinate_schema.sql").read_text()

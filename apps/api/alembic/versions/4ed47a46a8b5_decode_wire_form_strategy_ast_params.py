@@ -18,7 +18,7 @@ import json
 import sqlalchemy
 from alembic import op
 
-import pathfinder.persistence.models  # noqa: F401 — registers GUID type
+import strategist.persistence.models  # noqa: F401 — registers GUID type
 
 revision: str = "4ed47a46a8b5"
 down_revision: str | None = "2026_04_22_0001"

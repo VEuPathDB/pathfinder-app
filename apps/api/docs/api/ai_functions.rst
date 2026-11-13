@@ -12,9 +12,9 @@ index by caller.
 Lead
 ----
 
-Built in :py:func:`pathfinder.ai.lead.lead_agent.build_lead_agent`. The Lead
+Built in :py:func:`strategist.ai.lead.lead_agent.build_lead_agent`. The Lead
 runs the phases as tools and reads the ledger between calls. Each message is
-read before the Lead runs (:py:func:`pathfinder.ai.lead.message_reader.read_message`),
+read before the Lead runs (:py:func:`strategist.ai.lead.message_reader.read_message`),
 and the tools a turn reaches follow its typed state.
 
 **Turn control**
@@ -54,7 +54,7 @@ and the tools a turn reaches follow its typed state.
 FRAME
 -----
 
-:py:func:`pathfinder.ai.tools.toolsets.frame.build_toolset`. FRAME proposes;
+:py:func:`strategist.ai.tools.toolsets.frame.build_toolset`. FRAME proposes;
 it never writes to WDK. ``set_criterion``, ``get_search_overview`` and
 ``get_parameter_options`` are enum-guarded to the searches actually discovered
 this turn, so the model cannot invent a search name.
@@ -79,7 +79,7 @@ this turn, so the model cannot invent a search name.
 BUILD
 -----
 
-:py:func:`pathfinder.ai.tools.toolsets.execution.build_toolset`. The only
+:py:func:`strategist.ai.tools.toolsets.execution.build_toolset`. The only
 toolset that mutates the strategy graph.
 
 - ``build_strategy`` -- Materialize a complete strategy from one declarative
@@ -100,7 +100,7 @@ toolset that mutates the strategy graph.
 VERIFY
 ------
 
-:py:func:`pathfinder.ai.tools.toolsets.verification.build_toolset`. Three of
+:py:func:`strategist.ai.tools.toolsets.verification.build_toolset`. Three of
 these are durable: they defer to the worker and answer on a later turn.
 ``optimize_search_parameters`` also requires approval, because it launches a
 sweep that runs for minutes.
@@ -133,7 +133,7 @@ sweep that runs for minutes.
 EDA
 ---
 
-:py:func:`pathfinder.ai.tools.toolsets.eda.build_toolset`. The Lead carries
+:py:func:`strategist.ai.tools.toolsets.eda.build_toolset`. The Lead carries
 these directly; there is no EDA sub-agent.
 
 - ``search_eda_studies`` -- Find a study by what it measures.

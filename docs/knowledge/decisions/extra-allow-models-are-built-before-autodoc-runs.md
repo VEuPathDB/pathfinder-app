@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The docs build creates its extra="allow" models before autodoc runs
-description: conf.py imports fastapi.openapi.models, langchain_core.messages and pathfinder.transport.http.schemas.sites before Sphinx starts, because autodoc's type-comment pass writes pydantic.BaseModel.__pydantic_extra__ back into BaseModel.__annotations__ and every later model with extra="allow" then fails to build; accepting the 40 empty pages and patching Sphinx's private merge function were both rejected.
+description: conf.py imports fastapi.openapi.models, langchain_core.messages and strategist.transport.http.schemas.sites before Sphinx starts, because autodoc's type-comment pass writes pydantic.BaseModel.__pydantic_extra__ back into BaseModel.__annotations__ and every later model with extra="allow" then fails to build; accepting the 40 empty pages and patching Sphinx's private merge function were both rejected.
 tags: [docs, sphinx, pydantic, python-314]
 generated: { by: claude-code/opus-5, at: 2026-08-31T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-31T00:00:00Z }
@@ -12,7 +12,7 @@ status: stable
 
 `uv run sphinx-build -b html docs docs/_build/html` reported 40 warnings of the
 form `autodoc: failed to import 'chat' from module
-'pathfinder.transport.http.routers'`, each ending in `NameError: name 'Dict' is
+'strategist.transport.http.routers'`, each ending in `NameError: name 'Dict' is
 not defined`. All 40 targets on `docs/api/transport.rst` rendered their
 hand-written prose and no API. The same modules import without error outside
 Sphinx.
@@ -34,10 +34,10 @@ The chain, measured by bisecting the toctree down to a single directive:
    `BaseModelWithConfig` is such a model, so `import fastapi` fails, so every
    module that imports FastAPI fails.
 
-`pathfinder.platform.errors.ProblemDetail.model_config` is the first attribute
+`strategist.platform.errors.ProblemDetail.model_config` is the first attribute
 the build documents that reaches `pydantic.main` through an MRO. Three modules
 sit on the wrong side of that point: `fastapi.openapi.models`,
-`langchain_core.messages` and `pathfinder.transport.http.schemas.sites`.
+`langchain_core.messages` and `strategist.transport.http.schemas.sites`.
 
 Sphinx 9.1.0 is the newest release on PyPI, and it carries the merge. The
 reload the earlier reading blamed is not involved: `_import_module`'s
@@ -59,7 +59,7 @@ measurement the docs cards are scored on.
 
 **Accept the 40 warnings until upstream parses 3.14.** This was the standing
 proposal. It costs the entire HTTP transport page plus
-`pathfinder.ai.conversation.dispatcher`, and there is no upstream fix to wait
+`strategist.ai.conversation.dispatcher`, and there is no upstream fix to wait
 for: the interaction is between Sphinx's merge, pydantic's namespace choice and
 FastAPI's model, and none of the three is doing anything its own tests reject.
 
@@ -72,8 +72,8 @@ Disconnecting the `autodoc-before-process-signature` listener was measured and
 does not work: the `_dynamic` loader calls the merge directly, so the warning
 count stayed at 40.
 
-**Import `pathfinder.main`.** One line instead of three, and it covers the
-whole application graph. It was rejected because `pathfinder.main` builds the
+**Import `strategist.main`.** One line instead of three, and it covers the
+whole application graph. It was rejected because `strategist.main` builds the
 app at import time, which validates `API_SECRET_KEY` and `DATABASE_URL`. The
 `build-docs` CI job sets no environment, so the import would abort the build
 rather than warn.

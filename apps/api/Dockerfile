@@ -34,8 +34,8 @@ COPY apps/api/alembic apps/api/alembic
 COPY apps/api/bin apps/api/bin
 
 # The tests carry large VCR cassettes, so the image does not keep them.
-COPY apps/api/src/pathfinder apps/api/src/pathfinder
-RUN rm -rf apps/api/src/pathfinder/tests
+COPY apps/api/src/strategist apps/api/src/strategist
+RUN rm -rf apps/api/src/strategist/tests
 
 # The tracked example keeps the glob matching where the local file is absent;
 # buildah fails a COPY whose glob matches nothing.
@@ -67,4 +67,4 @@ HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=5 \
 
 # The api keeps an idle connection open longer than any proxy in front of it
 # reuses one, so a request on a kept socket never meets a reset.
-CMD [".venv/bin/uvicorn", "pathfinder.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "75"]
+CMD [".venv/bin/uvicorn", "strategist.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "75"]

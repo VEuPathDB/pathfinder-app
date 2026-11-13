@@ -22,28 +22,28 @@ README is the reference for them.
 Evidence Facade
 ---------------
 
-**Purpose:** ``pathfinder.ai`` and ``pathfinder.jobs`` reach the evidence
+**Purpose:** ``strategist.ai`` and ``strategist.jobs`` reach the evidence
 producers only through this package. Every name here is a function with a body;
 a result type is imported from the module that defines it. The import-linter
 contract "The agent and the jobs reach the evidence producers only through its
 facade" names the modules the facade owns.
 
-.. automodule:: pathfinder.services.evidence.gene_sets
+.. automodule:: strategist.services.evidence.gene_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.evidence.control_sets
+.. automodule:: strategist.services.evidence.control_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.evidence.comparisons
+.. automodule:: strategist.services.evidence.comparisons
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.evidence.optimization
+.. automodule:: strategist.services.evidence.optimization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -57,22 +57,22 @@ trial runs a temporary WDK strategy and scores the result.
 
 **Key types:** ``ParameterSpec``, ``OptimizationConfig``, ``OptimizationResult``
 
-.. automodule:: pathfinder.services.parameter_optimization
+.. automodule:: strategist.services.parameter_optimization
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.config
+.. automodule:: strategist.services.parameter_optimization.config
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.scoring
+.. automodule:: strategist.services.parameter_optimization.scoring
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.builders
+.. automodule:: strategist.services.parameter_optimization.builders
    :members:
    :undoc-members:
    :show-inheritance:
@@ -84,7 +84,7 @@ Export Service
 downloadable files from strategy results and gene sets, and stores them briefly
 in Postgres for client retrieval.
 
-.. automodule:: pathfinder.services.export.service
+.. automodule:: strategist.services.export.service
    :members:
    :undoc-members:
    :show-inheritance:
@@ -101,12 +101,12 @@ known positive/negative gene controls, and step trees that demonstrate
 real research workflows (e.g. drug resistance genes in PlasmoDB, virulence
 factors in TriTrypDB).
 
-.. automodule:: pathfinder.services.experiment.seed
+.. automodule:: strategist.services.experiment.seed
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.seed.types
+.. automodule:: strategist.services.experiment.seed.types
    :members:
    :undoc-members:
    :show-inheritance:

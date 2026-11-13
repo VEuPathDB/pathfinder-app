@@ -1,0 +1,351 @@
+"""The tools the Lead carries itself: clears, gene sets, exports and records."""
+
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import AsyncMock
+from uuid import UUID
+
+import pytest
+from assistant_core.graph.stream_events import ToolSummaryPayload
+from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import ToolCallPart, ToolReturn
+from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+
+from strategist.ai.lead.lead_agent import build_lead_agent, build_lead_toolset
+from strategist.ai.lead.lead_tools import clear_strategy
+from strategist.ai.lead.scripted_scope import bind_scripted_scope
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.turn_contract import LeadResponse
+from strategist.ai.models.mock import get_mock_model
+from strategist.ai.models.mock.kept_arcs import SAVED_GENE_SET_NAME
+from strategist.ai.tools.standalone import export, gene_record, gene_sets
+from strategist.ai.tools.standalone.conversation_models import ClearStrategyResult
+from strategist.ai.tools.toolsets import execution
+from strategist.domain.strategy.session import StrategySession
+from strategist.services.export.service import ExportResult
+from strategist.services.gene_records import read
+from strategist.services.gene_records.read import GeneRecordSummary, OrthologRow
+from strategist.services.gene_sets.homes import StepGenes
+from strategist.services.gene_sets.types import GeneSet
+from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.gene_set_store import keep_saved
+from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.sub_agents import toolset_tool_names
+from strategist.tests._support.tool_returns import returned
+from strategist.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+    session_with_one_step,
+)
+from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _cleared_session() -> StrategySession:
+    session = session_with_one_step()
+    session.sync_state = WDKSyncState(
+        wdk_step_ids={"step_a": 100},
+        wdk_strategy_id=555,
+    )
+    return session
+
+
+def _ctx() -> RunContext[LeadDeps]:
+    state = pipeline_state(user_prompt="scrap this and start again")
+    return run_context_for(
+        lead_deps(state, strategy_session=_cleared_session()),
+        tool_call_id="call_clear",
+    )
+
+
+@pytest.fixture
+def _no_persist(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _noop(**_kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(
+        "strategist.ai.tools.standalone.conversation."
+        "persist_strategy_ast_to_conversation",
+        _noop,
+    )
+
+
+def test_the_lead_registers_the_clear_tool_behind_an_approval() -> None:
+    tools = unwrap_function_toolset(build_lead_toolset()).tools
+
+    assert "clear_strategy" in tools
+    assert tools["clear_strategy"].requires_approval is True
+
+
+def test_the_recovery_sub_agent_cannot_clear_the_strategy() -> None:
+    """One destructive door, and the Lead holds it."""
+    assert "clear_strategy" not in toolset_tool_names(execution.build_toolset())
+
+
+def test_the_clear_docstring_does_not_claim_the_provenance_is_lost() -> None:
+    """Clearing appends a revision, so a revert restores what it cleared."""
+    doc = _flat(clear_strategy.__doc__ or "")
+
+    assert "provenance" not in doc
+    assert "destructive" in doc
+    assert "revision" in doc
+
+
+@pytest.mark.usefixtures("_no_persist")
+async def test_clearing_empties_the_strategy_the_lead_can_see() -> None:
+    ctx = _ctx()
+
+    result = await clear_strategy(
+        ctx,
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
+
+    session = ctx.deps.runtime.strategy_session
+    graph = session.get_graph(None)
+    assert graph is not None
+    assert graph.steps == {}
+    assert session.sync_state is not None
+    assert session.sync_state.wdk_strategy_id is None
+    assert returned(result, ClearStrategyResult).graph_id == "g1"
+
+
+@pytest.mark.usefixtures("_no_persist")
+async def test_clearing_without_confirmation_is_a_retry() -> None:
+    ctx = _ctx()
+
+    with pytest.raises(ModelRetry):
+        await clear_strategy(
+            ctx,
+            confirm=False,
+            reply="I will make this change and report what it takes with it.",
+        )
+
+    graph = ctx.deps.runtime.strategy_session.get_graph(None)
+    assert graph is not None
+    assert sorted(graph.steps) == ["step_a"]
+
+
+_SAVE_REQUEST = "Save the genes of this strategy as a gene set. [[arc:save-gene-set]]"
+_ROOT_GENES = ["PF3D7_0709000", "PF3D7_1133400"]
+
+
+async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_toolset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The scripted turn runs on the real Lead and its real registrations."""
+    saved: list[GeneSet] = []
+    monkeypatch.setattr(gene_sets, "store_gene_set", keep_saved(saved))
+    monkeypatch.setattr(
+        gene_sets,
+        "read_step_genes",
+        AsyncMock(
+            return_value=StepGenes(
+                gene_ids=_ROOT_GENES, homes={}, record_class="transcript"
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        gene_sets, "visible_parameter_names", AsyncMock(return_value=set())
+    )
+    deps = lead_deps(
+        pipeline_state(user_prompt=_SAVE_REQUEST), strategy_session=_cleared_session()
+    )
+    bind_scripted_scope("plasmodb", _SAVE_REQUEST)
+
+    result = await build_lead_agent().run(
+        _SAVE_REQUEST,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert [(gs.name, gs.gene_ids, gs.wdk_step_id) for gs in saved] == [
+        (SAVED_GENE_SET_NAME, _ROOT_GENES, 100),
+    ]
+    assert saved[0].user_id == deps.runtime.user_id
+    assert [(gs.id, gs.record_type) for gs in deps.created_gene_sets] == [
+        (saved[0].id, "transcript")
+    ]
+
+
+_CONTEXT_STATEMENT = (
+    "I'm investigating virulence factors in Leishmania major. [[arc:context]]"
+)
+
+
+@pytest.mark.usefixtures("recorded_site_organisms")
+async def test_a_scripted_turn_replies_with_no_classify_call() -> None:
+    deps = lead_deps(pipeline_state(user_prompt=_CONTEXT_STATEMENT))
+    bind_scripted_scope("plasmodb", _CONTEXT_STATEMENT)
+
+    result = await build_lead_agent().run(
+        _CONTEXT_STATEMENT,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    calls = [
+        part.tool_name
+        for message in result.all_messages()
+        for part in message.parts
+        if isinstance(part, ToolCallPart)
+    ]
+    assert "classify_user_intent" not in calls
+    assert isinstance(result.output, LeadResponse)
+
+
+_EXPORT_REQUEST = (
+    "Export the gene set 'gametocyte secreted candidates' as a CSV. [[arc:export]]"
+)
+_EXPORT_URL = "https://pathfinder.example.org/api/v1/exports/e1"
+
+
+class _ExportService:
+    """Writes nothing, and answers with one link."""
+
+    async def export_gene_set(
+        self,
+        gene_set: GeneSet,
+        output_format: str,
+    ) -> ExportResult:
+        return ExportResult(
+            export_id="e1",
+            filename=f"{gene_set.name}.{output_format}",
+            content_type="text/csv",
+            url=_EXPORT_URL,
+            size_bytes=64,
+            expires_in_seconds=600,
+        )
+
+
+@pytest.fixture
+def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    saved = GeneSet(
+        id="gs_saved_export",
+        name="gametocyte secreted candidates",
+        site_id="plasmodb",
+        gene_ids=["PF3D7_0709000", "PF3D7_1133400"],
+        source="paste",
+    )
+
+    async def _one(gene_set_id: str, *, user_id: UUID | None) -> GeneSet | None:
+        del user_id
+        return saved if gene_set_id == saved.id else None
+
+    monkeypatch.setattr(export, "get_gene_set", _one)
+    monkeypatch.setattr(export, "get_export_service", _ExportService)
+    monkeypatch.setattr(
+        gene_sets, "list_stored_gene_sets", AsyncMock(return_value=[saved])
+    )
+    monkeypatch.setattr(gene_sets, "uploaded_gene_lists", AsyncMock(return_value=[]))
+
+
+@pytest.mark.usefixtures("_exportable_gene_set")
+async def test_an_export_request_reaches_the_export_tool_and_points_at_the_file() -> (
+    None
+):
+    """A saved set is exported without a strategy, so the Lead exports it; the
+    download is the file part the tool writes, never a link in the reply."""
+    deps = lead_deps(pipeline_state(user_prompt=_EXPORT_REQUEST))
+    bind_scripted_scope("plasmodb", _EXPORT_REQUEST)
+
+    result = await build_lead_agent().run(
+        _EXPORT_REQUEST,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert result.output.prose == (
+        "The file is ready; its download is shown beside this reply."
+    )
+    assert _EXPORT_URL not in result.output.prose
+
+
+def test_the_lead_offers_no_download_it_has_no_id_for() -> None:
+    """A WDK step id is not a name the Lead can read, so it takes none."""
+    assert "get_download_url" not in unwrap_function_toolset(build_lead_toolset()).tools
+
+
+def _summary_lines(result: ToolReturn[Any]) -> list[str]:
+    """The one-line summaries a tool return carries."""
+    return [
+        ToolSummaryPayload.model_validate(chunk.data).summary
+        for chunk in result.metadata or []
+        if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
+    ]
+
+
+_RECORD_LINE = (
+    "TGME49_233460: SAG-related sequence SRS29B, 1 exon, chromosome VIII, 14 orthologs"
+)
+
+_TOXO_RECORD = GeneRecordSummary(
+    site_id="toxodb",
+    gene_id="TGME49_233460",
+    record_url="https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
+    organism="Toxoplasma gondii ME49",
+    product="SAG-related sequence SRS29B",
+    chromosome="VIII",
+    exon_count=1,
+    transcript_count=1,
+    orthologs=[
+        OrthologRow(organism=f"Ortholog organism {i}", gene_id=f"OGS_{i:03d}")
+        for i in range(14)
+    ],
+    ortholog_count=14,
+)
+
+
+@pytest.fixture
+def the_record(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    """The record read the tool reaches, and what it was asked for."""
+    asked: list[tuple[str, str]] = []
+
+    async def _read(
+        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+    ) -> GeneRecordSummary:
+        del ortholog_organism
+        asked.append((site_id, gene_id))
+        return _TOXO_RECORD
+
+    monkeypatch.setattr(read, "read_gene_record", _read)
+    return asked
+
+
+async def test_the_record_tool_answers_the_site_the_turn_runs_on(
+    the_record: list[tuple[str, str]],
+) -> None:
+    ctx = run_context_for(
+        lead_deps(
+            pipeline_state(user_prompt="How many exons does TGME49_233460 have?")
+        ),
+        tool_call_id="call_record",
+    )
+
+    result = await gene_record.read_gene_record(ctx, "TGME49_233460")
+
+    assert the_record == [("plasmodb", "TGME49_233460")]
+    assert returned(result, GeneRecordSummary).product == "SAG-related sequence SRS29B"
+    assert _summary_lines(result) == [_RECORD_LINE]
+
+
+@pytest.mark.usefixtures("the_record")
+async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
+    ctx = run_context_for(
+        lead_deps(pipeline_state(user_prompt="What is TGME49_233460?")),
+        tool_call_id="call_record",
+    )
+
+    await gene_record.read_gene_record(ctx, "TGME49_233460")
+    await gene_record.read_gene_record(ctx, "TGME49_233460")
+
+    assert ctx.deps.state.turn_markers.retrieved_sources == [
+        "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
+    ]

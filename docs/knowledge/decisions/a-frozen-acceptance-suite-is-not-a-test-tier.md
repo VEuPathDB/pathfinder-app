@@ -19,7 +19,7 @@ Both programs are finished, and the four suites are deleted:
   config and its `test:acceptance` script
 - `apps/web/e2e/acceptance/**` and the `eda-acceptance` / `thread-acceptance`
   playwright projects
-- `apps/api/src/pathfinder/tests/acceptance/**`, the `eda_acceptance` marker
+- `apps/api/src/strategist/tests/acceptance/**`, the `eda_acceptance` marker
   and the `addopts = "-m 'not eda_acceptance'"` line that deselected it
 
 Four contracts were pinned only there and now live beside their code:

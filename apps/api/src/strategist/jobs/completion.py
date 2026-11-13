@@ -1,0 +1,48 @@
+"""How this application runs the turn a finished durable task opens.
+
+The runtime reads the parked call and gathers the answers; this turns that
+into the request body a Strategist turn runs under.
+"""
+
+from __future__ import annotations
+
+from assistant_core.tasks.completion_turn import CompletionTurn
+
+from strategist.ai.conversation.request_body import ChatRequestBody
+from strategist.ai.conversation.turn_runner import TurnRequest, run_turn
+from strategist.assistants.registry import turn_trace_labels
+from strategist.jobs.log_context import completion_log_context
+from strategist.jobs.turn_keys import turn_keys
+
+
+async def open_completion_turn(turn: CompletionTurn) -> None:
+    """Re-enter the run that deferred the durable calls, under its own picks."""
+    body = ChatRequestBody.model_validate(
+        {
+            "conversation_id": turn.conversation_id,
+            "phase_models": turn.phase_overrides.models,
+            "phase_reasoning": turn.phase_overrides.reasoning,
+        },
+    )
+    with completion_log_context(turn):
+        async with turn_keys(
+            user_id=turn.user_id, spec=turn.spec, body=body, writer=turn.writer
+        ):
+            await run_turn(
+                request=TurnRequest(
+                    body=body,
+                    user_id=turn.user_id,
+                    durable_result=turn.durable_result,
+                    durable_results=turn.durable_results,
+                    trace_labels=turn_trace_labels(
+                        turn.spec.assistant_id, body.phase_models
+                    ),
+                ),
+                spec=turn.spec,
+                compiled_graph=turn.compiled_graph,
+                memory_store=turn.memory_store,
+                writer=turn.writer,
+            )
+
+
+__all__ = ["open_completion_turn"]

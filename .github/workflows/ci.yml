@@ -151,7 +151,7 @@ jobs:
 
       - name: Run pyright
         working-directory: apps/api
-        run: uv run pyright src/pathfinder
+        run: uv run pyright src/strategist
 
       - name: Check import-linter contracts
         working-directory: apps/api
@@ -184,7 +184,7 @@ jobs:
           ANTHROPIC_API_KEY: spec-generation-placeholder
           OPENAI_API_KEY: spec-generation-placeholder
           VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
-        run: uv run python -m pathfinder.devtools.openapi check
+        run: uv run python -m strategist.devtools.openapi check
 
   build-docs:
     name: Build API docs
@@ -233,7 +233,7 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
-          TEST_TIER: ${{ github.event_name == 'push' && 'src/pathfinder/tests/unit' || 'src/pathfinder/tests' }}
+          TEST_TIER: ${{ github.event_name == 'push' && 'src/strategist/tests/unit' || 'src/strategist/tests' }}
         run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" --cov=src --cov-report=xml --cov-fail-under=40
 
   lint-web:

@@ -1,0 +1,69 @@
+"""A bare yes after a declined offer is refused, and never read as a build."""
+
+from __future__ import annotations
+
+import pytest
+from assistant_core.graph.turn_state import PendingApproval
+
+from strategist.ai.graph.state import StrategyDomainState
+from strategist.ai.lead.intent_gate import (
+    DECLINED_OFFER_REFUSAL,
+    bare_assent_refusal,
+)
+from strategist.ai.lead.proposal import AddCriterionChange, DeclinedProposal
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.domain.strategy.questions import OpenQuestion
+from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+
+_DECLINED = DeclinedProposal(
+    question="Refine the strategy to require 1:1:1 syntenic orthologs?",
+    proposed_changes=[
+        AddCriterionChange(
+            sentence="Require 1:1:1 syntenic orthologs in Aedes aegypti",
+            search_name="GenesOrthologousToAGivenGene",
+        )
+    ],
+)
+
+
+def _deps(prompt: str, *, declined: DeclinedProposal | None = _DECLINED) -> LeadDeps:
+    domain = StrategyDomainState(declined_proposal=declined)
+    return lead_deps(pipeline_state(user_prompt=prompt, domain=domain))
+
+
+def test_the_refusal_is_the_fixed_sentence() -> None:
+    assert DECLINED_OFFER_REFUSAL == (
+        "You declined the last offer. Say what to change, or ask me to offer it again."
+    )
+
+
+@pytest.mark.parametrize("prompt", ["yes", "Yes, do it.", "ok, go ahead", "sure"])
+def test_a_bare_yes_after_a_declined_offer_is_refused(prompt: str) -> None:
+    assert bare_assent_refusal(_deps(prompt)) == DECLINED_OFFER_REFUSAL
+
+
+def _with_open_card(deps: LeadDeps) -> LeadDeps:
+    deps.state.pending_approval = PendingApproval(
+        phase="lead", tool_call_id="call_propose", tool_name="propose_changes"
+    )
+    return deps
+
+
+def _with_open_question(deps: LeadDeps) -> LeadDeps:
+    deps.state.domain.open_questions = [
+        OpenQuestion(question="Use the 3D7 strain?", recommended_value="3D7")
+    ]
+    return deps
+
+
+def test_every_other_turn_takes_the_existing_classification() -> None:
+    turns = {
+        "no declined offer": _deps("yes", declined=None),
+        "a card open to answer": _with_open_card(_deps("yes")),
+        "a question open to answer": _with_open_question(_deps("yes")),
+        "more than a yes": _deps("Yes, but only the Aedes orthologs."),
+    }
+
+    refusals = {name: bare_assent_refusal(deps) for name, deps in turns.items()}
+
+    assert refusals == dict.fromkeys(turns)

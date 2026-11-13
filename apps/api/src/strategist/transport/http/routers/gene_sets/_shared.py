@@ -1,0 +1,46 @@
+"""The service handle, response mapping and error mapping every gene-set route uses."""
+
+from fastapi import Depends
+
+from strategist.platform.errors import NotFoundError
+from strategist.services.gene_sets.homes import site_kind
+from strategist.services.gene_sets.operations import GeneSetService
+from strategist.services.gene_sets.store import get_gene_set_store
+from strategist.services.gene_sets.types import GeneSet, GeneSetMembership
+from strategist.transport.http.deps import require_registered_wdk_identity
+from strategist.transport.http.schemas.gene_sets import GeneSetResponse
+
+# The routes that read or write the user's WDK account carry this; the ones
+# that only touch the stored gene ids do not.
+NEEDS_WDK_LOGIN = [Depends(require_registered_wdk_identity)]
+
+
+def gene_set_service() -> GeneSetService:
+    return GeneSetService(get_gene_set_store())
+
+
+def to_response(gs: GeneSet, *, site_id: str | None = None) -> GeneSetResponse:
+    here = gs.gene_ids if site_id is None else gs.genes_on(site_id, site_kind(site_id))
+    return GeneSetResponse(
+        id=gs.id,
+        site_id=gs.site_id,
+        name=gs.name,
+        gene_ids=gs.gene_ids,
+        source=gs.source,
+        gene_count=len(gs.gene_ids),
+        gene_count_here=len(here),
+        membership_digest=GeneSetMembership.of(gs.gene_ids).digest,
+        wdk_strategy_id=gs.wdk_strategy_id,
+        wdk_step_id=gs.wdk_step_id,
+        search_name=gs.search_name,
+        record_type=gs.record_type,
+        parameters=gs.parameters,
+        created_at=gs.created_at.isoformat(),
+        step_count=gs.step_count,
+        vdi_id=gs.vdi_id,
+        out_of_date=gs.out_of_date,
+    )
+
+
+def not_found(exc: KeyError) -> NotFoundError:
+    return NotFoundError(title=str(exc))

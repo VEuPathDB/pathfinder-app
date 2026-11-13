@@ -1,0 +1,425 @@
+"""Export the open EDA analysis into the researcher's strategy as a WDK step."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Literal
+
+from assistant_core.graph.tool_summary import with_summary
+from pydantic import Field
+from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import ToolReturn
+from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.strategy import CombineOp
+from veupathdb.errors import ValidationError
+from veupathdb_mcp import ToolErrorPayload
+
+from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone._eda_step_criterion import (
+    WaitingPlacement,
+    export_placement,
+)
+from strategist.ai.tools.standalone._eda_step_cut import VolcanoAsk, the_cut
+from strategist.ai.tools.standalone._eda_step_guard import (
+    compared_groups,
+    refuse_a_recut_of_another_dataset,
+    refuse_half_a_cut,
+)
+from strategist.ai.tools.standalone._eda_step_spec import (
+    restate_the_structure,
+    scope_the_exported_criterion,
+    spec_after_the_replacement,
+    spec_binding_the_export,
+    state_the_exported_step,
+    structure_states_the_graph,
+)
+from strategist.ai.tools.standalone._eda_step_write import (
+    AskedPlacement,
+    ExportJoin,
+    export_write,
+)
+from strategist.ai.tools.standalone._validation_helpers import (
+    get_graph,
+    validation_model_retry,
+)
+from strategist.ai.tools.standalone.eda_analysis import bound_analysis
+from strategist.ai.tools.standalone.strategy_refusals import (
+    operation_refused_message,
+    wdk_refused_the_edit,
+)
+from strategist.ai.tools.standalone.stream_parts import (
+    graph_snapshot_chunk,
+    strategy_link_chunk,
+)
+from strategist.domain.eda_parts import EdaEffectDirection
+from strategist.domain.eda_thread import EdaExport
+from strategist.domain.strategy.operational_spec import (
+    OperationalSpec,
+)
+from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.spec_edit_guard import spec_stated_values
+from strategist.domain.strategy.spec_hydration import criteria_listed_under
+from strategist.domain.strategy.step_words import StampedKind, StepWords, step_words
+from strategist.services.eda.binding import read_analysis
+from strategist.services.eda.direction import selection_sentence
+from strategist.services.eda.steps import (
+    EdaStepPlan,
+)
+from strategist.services.strategies.commit import (
+    CommitResult,
+    apply_operations_and_commit,
+)
+from strategist.services.strategies.context import StrategyMutationContext
+from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.graph_outcome import outcome_for_graph
+from strategist.services.strategies.organism_params import step_dataset_organisms
+from strategist.services.strategies.record_classes import search_record_types
+from strategist.services.strategies.sync import SyncResult
+from strategist.services.strategies.sync_state import ensure_sync_state
+
+
+class EdaStepCreated(EdaExport):
+    """What the researcher's strategy now holds, and what to say about it."""
+
+    wdk_strategy_id: int | None = None
+    wdk_url: str | None = None
+    guidance: str = ""
+    # Every step that left with the one this export took the place of.
+    dropped_step_ids: list[str] = Field(default_factory=list)
+    # The combine that joined this export to a step the strategy held.
+    join: ExportJoin | None = None
+    # The genes a compute export kept, named by the group they are higher in.
+    selection: str | None = None
+
+
+def _strategy_context(
+    ctx: RunContext[LeadDeps],
+    spec: OperationalSpec | None,
+    stamped: Mapping[str, StampedKind],
+) -> StrategyMutationContext:
+    """The context a write runs under, measured against ``spec``.
+
+    The export knows which plugin reads its document, so the kind is stored
+    with the step it writes.
+    """
+    runtime = ctx.deps.runtime
+    words = StepWords() if spec is None else step_words(spec)
+    return StrategyMutationContext(
+        site_id=runtime.site_id,
+        strategy_session=runtime.strategy_session,
+        conversation_id=ctx.deps.state.conversation_id,
+        db_session_factory=runtime.db_session_factory,
+        stated_criteria=(
+            frozenset() if spec is None else frozenset(c.id for c in spec.criteria)
+        ),
+        stated_structure=None if spec is None else spec.structure,
+        step_words=words.model_copy(update={"analysis_kinds": dict(stamped)}),
+        stated_values={} if spec is None else spec_stated_values(spec),
+        user_prompt=ctx.deps.state.request_the_thread_answers,
+    )
+
+
+def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
+    """Take the exported step as this turn's build.
+
+    A commit that did not sync left the step off VEuPathDB: it is a draft on
+    the canvas with no size, so the turn records no build and the ledger keeps
+    the last one that reached the site.
+    """
+    sync = commit.sync_result
+    if sync is None:
+        return
+    session = ctx.deps.runtime.strategy_session
+    ctx.deps.state.record_build(
+        outcome_for_graph(
+            graph=session.get_graph(None),
+            sync_state=ensure_sync_state(session),
+            failed_step_ids=commit.failed_step_ids,
+        ),
+    )
+
+
+def _landed(step_id: str, replace_step_id: str | None, join: ExportJoin | None) -> str:
+    """The one line this export is summarized by."""
+    if replace_step_id is not None:
+        return f"Step {step_id} replaced {replace_step_id}"
+    if join is not None:
+        side = f", {step_id} first" if join.export_first else ""
+        joined = f"{join.joined_step_id} ({join.operator.value})"
+        return f"Step {step_id} combined with {joined}{side}"
+    return f"Step {step_id} added to the strategy"
+
+
+def _the_graph(session: StrategySession) -> StrategyGraph:
+    graph = get_graph(session, None)
+    if graph is None:
+        title = "No active strategy"
+        detail = "The conversation holds no strategy to add the step to."
+        raise ValidationError(title=title, detail=detail)
+    return graph
+
+
+def _state_the_export(
+    ctx: RunContext[LeadDeps],
+    graph: StrategyGraph,
+    plan: EdaStepPlan,
+    waiting: WaitingPlacement | None,
+) -> None:
+    """Bind the waiting criterion the export is, or state the step it added."""
+    if waiting is None:
+        state_the_exported_step(ctx, graph, plan.node, plan.binding)
+        return
+    ctx.deps.state.domain.restate_every_record(
+        {waiting.criterion_id: plan.node.id},
+        lambda spec: spec_binding_the_export(
+            spec, waiting.criterion_id, plan.node, plan.binding
+        ),
+    )
+
+
+async def _list_the_classes(ctx: RunContext[LeadDeps]) -> None:
+    domain = ctx.deps.state.domain
+    if domain.operational_spec is None:
+        return
+    named = [c.search_name for c in domain.operational_spec.criteria]
+    domain.operational_spec = criteria_listed_under(
+        domain.operational_spec, await search_record_types(ctx.deps.site_id, named)
+    )
+
+
+def _export_metadata(
+    session: StrategySession, graph: StrategyGraph, sync: SyncResult | None
+) -> list[DataChunk]:
+    """The graph snapshot, and the link to the strategy once the site holds it."""
+    metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]
+    if sync is not None and sync.wdk_url is not None:
+        metadata.append(
+            strategy_link_chunk(
+                strategy_id=graph.id, url=sync.wdk_url, title=graph.name
+            )
+        )
+    return metadata
+
+
+def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
+    kind = "the volcano's retained genes" if is_compute_backed else "the subset"
+    strategy = (
+        f"It is VEuPathDB strategy {wdk_strategy_id}."
+        if wdk_strategy_id is not None
+        else "VEuPathDB has not accepted it yet."
+    )
+    return (
+        f"The step holds {kind} and behaves like any other step from now on: "
+        f"combine it, transform it or save it. {strategy}"
+    )
+
+
+async def create_eda_step(
+    ctx: RunContext[LeadDeps],
+    *,
+    criterion_id: str | None = None,
+    attach_to_step_id: str | None = None,
+    slot: Literal["primary", "secondary"] | None = None,
+    replace_step_id: str | None = None,
+    combine_with_root: CombineOp | None = None,
+    effect_size_threshold: float | None = None,
+    significance_threshold: float | None = None,
+    effect_direction: EdaEffectDirection | None = None,
+) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
+    """Export the open EDA analysis into the researcher's strategy as a step.
+
+    The step is an ordinary WDK step from then on: it combines, transforms,
+    nests and saves like any other, and it appears in the strategy graph the
+    researcher is looking at.
+
+    Two exports, and the arguments decide which:
+
+    - The SUBSET's genes: call with no thresholds. Every gene in the filtered
+      subset becomes a step. The subset needs a filter on the gene entity
+      (``has_gene_id`` in describe_eda_study); a subset of samples selects no
+      gene and is refused.
+    - The genes passing a VOLCANO's thresholds: pass ``effect_size_threshold``
+      AND ``significance_threshold``. The compute must already be complete -
+      call run_eda_compute first and read its summary, so you know how many
+      genes you are about to export. ``effect_direction`` selects a side by
+      its group: a positive effect size is higher in group B (the comparison
+      group) than in group A (the reference). ``upOnly`` keeps the genes
+      higher in group B, ``downOnly`` the genes higher in group A, and
+      ``upAndDown`` (the default) both. A direction without both thresholds,
+      or on an analysis with no computation, is refused. The step is named by the genes it keeps, and the
+      result's ``selection`` says it in the groups' labels: repeat it.
+
+    A gene passes when the absolute effect size is at or above
+    ``effect_size_threshold`` and the p-value is at or below
+    ``significance_threshold``. Pass the number the researcher wrote: a fold
+    they wrote ("1.5-fold") on a compute that names a log2 effect size binds at
+    its log2, and ``guidance`` says so. Those are the same comparisons the plot uses, so
+    the step's count matches the number you told the researcher.
+
+    Set ``criterion_id`` to the id of a criterion the pinned route names as
+    waiting for this analysis: the export becomes that criterion and takes the
+    place the structure gives it, at any depth, so it travels with no other
+    placement. It joins the steps the strategy already holds of the smallest
+    branch that names the criterion, under that branch's operator and in the
+    structure's order; ``join`` in the result names that step, the operator,
+    the new combine and whether the export is its first input. An export on a
+    dataset a criterion waits on without it is refused.
+
+    Leave ``attach_to_step_id`` unset to add the step as a new root. Set it,
+    with ``slot``, to wire the step into an existing combine. The slot must be
+    free: a slot that already holds a step is refused, because the export would
+    take that step off the strategy. Delete it first, or name the free slot.
+
+    Set ``replace_step_id`` to put the export in the place of a step the
+    strategy already holds: it takes that step's slot in its parent combine, or
+    becomes the root when it replaces the root, and the replaced subtree leaves
+    the strategy. Use it to recut an export of the open analysis: new
+    thresholds or a new direction read the completed compute again, and new
+    groups run ``run_eda_compute`` first. That recut is the change the
+    researcher asked for, so it needs no card. Use it also for a step this
+    analysis states better. It never travels with ``attach_to_step_id`` or
+    ``slot``, which name another target.
+
+    Set ``combine_with_root`` to join the export to the strategy the researcher
+    already has: the export is added and a new combine over the old root and
+    the export becomes the root, which is how a step is added to a result.
+    INTERSECT keeps the genes both hold, UNION keeps either, MINUS drops the
+    export's genes from the result. It needs a strategy with one root, and it
+    names the whole placement, so it travels with none of the three above.
+
+    Available once ``preview_eda_subset`` has counted the open analysis, on
+    this message or an earlier one, so the number you export is one the conversation
+    measured.
+
+    Args:
+        ctx: Agent run context.
+        criterion_id: The waiting criterion this export realizes.
+        attach_to_step_id: The combine step to wire this into.
+        slot: Which input of that combine to fill. It must be empty.
+        replace_step_id: The step this export takes the place of.
+        combine_with_root: The operator to join the export to the root with.
+        effect_size_threshold: Minimum absolute effect size to keep.
+        significance_threshold: Maximum p-value to keep.
+        effect_direction: upOnly keeps group B's side, downOnly group A's.
+    """
+    binding = await bound_analysis(ctx)
+    if binding is None:
+        msg = (
+            "No study is open on this conversation. Call open_eda_analysis on "
+            "the dataset you want, filter it with set_eda_filters, then export it."
+        )
+        raise ModelRetry(msg)
+    refuse_half_a_cut(effect_size_threshold, significance_threshold)
+
+    analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
+    direction: EdaEffectDirection = effect_direction or "upAndDown"
+    thresholds, plan, rescaled = await the_cut(
+        binding,
+        analysis,
+        VolcanoAsk(effect_size_threshold, significance_threshold, effect_direction),
+        ctx.deps.state.researcher_messages(),
+        ctx.deps.state.domain,
+    )
+    comparison = compared_groups(analysis, thresholds)
+    node = plan.node
+
+    session = ctx.deps.runtime.strategy_session
+    graph = _the_graph(session)
+    if replace_step_id is not None:
+        refuse_a_recut_of_another_dataset(graph, replace_step_id, binding.dataset_id)
+    spec = ctx.deps.state.domain.operational_spec
+    asked = AskedPlacement(attach_to_step_id, slot, replace_step_id, combine_with_root)
+    waiting = export_placement(
+        spec, graph, criterion_id, dataset_id=binding.dataset_id, asked=asked
+    )
+    write = export_write(
+        ctx, graph, node, asked=asked, join=None if waiting is None else waiting.join
+    )
+
+    restate = structure_states_the_graph(ctx, graph)
+    stated = (
+        spec
+        if replace_step_id is None
+        else spec_after_the_replacement(ctx, graph, node, replace_step_id, plan.binding)
+    )
+
+    try:
+        result = await apply_operations_and_commit(
+            deps=_strategy_context(ctx, stated, {node.id: plan.stamped}),
+            ops=write.ops,
+        )
+    except ValidationError as exc:
+        raise validation_model_retry(exc, searchName=node.search_name) from exc
+    except ApplyError as exc:
+        msg = operation_refused_message(str(exc), wrote="export")
+        raise ModelRetry(msg) from exc
+    if replace_step_id is None:
+        _state_the_export(ctx, graph, plan, waiting)
+    else:
+        ctx.deps.state.domain.operational_spec = stated
+    if restate:
+        restate_the_structure(ctx, graph)
+    scope_the_exported_criterion(
+        ctx,
+        node.id,
+        await step_dataset_organisms(
+            ctx.deps.site_id, node.search_name, node.parameters
+        ),
+    )
+    await _list_the_classes(ctx)
+    the_strategy_now_answers_to(
+        ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
+    )
+    ctx.deps.state.domain.data_marks = await read_data_marks(
+        ctx.deps.site_id, [ctx.deps.state.domain.operational_spec]
+    )
+    sync = result.sync_result
+    metadata = _export_metadata(session, graph, sync)
+    wdk_strategy_id = sync.wdk_strategy_id if sync is not None else None
+    created = EdaStepCreated(
+        search_name=node.search_name,
+        step_id=node.id,
+        dataset_id=binding.dataset_id,
+        analysis_id=binding.analysis_id,
+        is_compute_backed=plan.is_compute_backed,
+        effect_size_threshold=plan.binding.effect_size_threshold,
+        significance_threshold=significance_threshold,
+        effect_direction=direction if plan.is_compute_backed else None,
+        wdk_strategy_id=wdk_strategy_id,
+        wdk_url=sync.wdk_url if sync is not None else None,
+        guidance=" ".join(
+            [
+                _guidance(wdk_strategy_id, is_compute_backed=plan.is_compute_backed),
+                *([] if rescaled is None else [rescaled.sentence]),
+            ]
+        ),
+        replaced_step_id=replace_step_id,
+        dropped_step_ids=list(result.dropped_step_ids),
+        join=write.join,
+        selection=(
+            None
+            if comparison is None
+            else selection_sentence(
+                comparison,
+                direction,
+                count=None if sync is None else sync.counts.get(node.id),
+            )
+        ),
+    )
+    ctx.deps.state.turn_markers.eda_export = created
+    ctx.deps.state.turn_markers.edited = True
+    _record_the_build(ctx, result)
+    refusal = wdk_refused_the_edit(result)
+    if refusal is not None:
+        return with_summary(
+            refusal,
+            f"VEuPathDB refused the step for {node.id}",
+            ctx=ctx,
+            status="warn",
+            extra=metadata,
+        )
+    landed = _landed(node.id, replace_step_id, write.join)
+    return with_summary(created, landed, ctx=ctx, extra=metadata)

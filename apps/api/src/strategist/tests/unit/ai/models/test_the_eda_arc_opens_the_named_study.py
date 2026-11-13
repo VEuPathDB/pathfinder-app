@@ -1,0 +1,45 @@
+"""The comparison arc opens the study its message names, even when the
+researcher's uploads are listed first."""
+
+from __future__ import annotations
+
+from strategist.tests.unit.ai.models._mock_turns import Scene, args_of, play
+
+
+def test_the_comparison_opens_the_study_the_message_names() -> None:
+    listed = {
+        "studies": [
+            {"datasetId": "EDAUD_Y518ZRlgBR0Q5", "displayName": "pathfinder-uat-deseq"},
+            {
+                "datasetId": "DS_here",
+                "displayName": "5 asexual and sexual stage transcriptomes",
+            },
+        ]
+    }
+
+    calls = play(
+        "lead",
+        "plasmodb",
+        "5 asexual and sexual stage transcriptomes [[arc:eda-compare]]",
+        scene=Scene(answers={"search_eda_studies": listed}),
+    )
+
+    assert args_of(calls, "open_eda_analysis")[0]["dataset_id"] == "DS_here"
+
+
+def test_the_comparison_opens_the_dataset_id_the_message_names() -> None:
+    listed = {
+        "studies": [
+            {"datasetId": "EDAUD_Y518ZRlgBR0Q5", "displayName": "pathfinder-uat-deseq"},
+            {"datasetId": "DS_other", "displayName": "Another study"},
+        ]
+    }
+
+    calls = play(
+        "lead",
+        "plasmodb",
+        "Compare the groups of study DS_49781e8c33 [[arc:eda-compare]]",
+        scene=Scene(answers={"search_eda_studies": listed}),
+    )
+
+    assert args_of(calls, "open_eda_analysis")[0]["dataset_id"] == "DS_49781e8c33"

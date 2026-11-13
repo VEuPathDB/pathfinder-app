@@ -18,7 +18,7 @@ taxonomy gets one difference, because no meaning can be read without it.
 
 # The normal form
 
-`pathfinder.evals.expressions` reads an expression as the site runs it: the site drops
+`strategist.evals.expressions` reads an expression as the site runs it: the site drops
 parentheses and reads AND before OR, so the scorer does the same before it parses each
 product. Each unit becomes a genome set, a kind (genomes or proteins) and an interval:
 
@@ -51,7 +51,7 @@ check, judged for drift against the site build.
 
 # A run graded after its database is gone
 
-`pathfinder.evals.run_directory.observed_from_run_directory` builds the same observation from a
+`strategist.evals.run_directory.observed_from_run_directory` builds the same observation from a
 chat-debugger run directory captured with its WDK exchanges. The turns are the `turn-<n>`
 directories in numeric order, each followed by its `answer-<k>` directories, and an answer's
 reply replaces its turn's. The strategy is the last strategy read across them, the gate is the

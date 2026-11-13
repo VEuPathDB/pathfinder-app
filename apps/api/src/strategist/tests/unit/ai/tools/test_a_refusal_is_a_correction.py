@@ -1,0 +1,297 @@
+"""A bind the tool can correct is corrected and recorded; a bind it cannot
+correct is refused with the exact names or words to use.
+
+Each call replays the arguments a refused bind carried, on the recorded sheet
+of a search with the same parameters.
+"""
+
+from __future__ import annotations
+
+import pytest
+from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import to_wire
+from veupathdb.wdk import WDKSearch
+from veupathdb_mcp.catalog import ParameterInfo
+
+from strategist.ai.agents.state import AgentToolState
+from strategist.ai.tools.standalone._frame_result import SetCriterionResult
+from strategist.ai.tools.standalone.frame_spec import set_criterion
+from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.strategy.step_rationale import SearchRationale
+from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.recorded_counts import no_measurements
+from strategist.tests._support.recorded_searches import (
+    serve_recorded_plasmodb,
+    suite_search,
+)
+from strategist.tests._support.tool_returns import returned
+from strategist.tests.unit.ai.tools._rationale_catalog import (
+    choice,
+)
+from strategist.tests.unit.ai.tools.conftest import serve_no_other_sites
+from strategist.tests.unit.ai.tools.test_frame_spec import (
+    frame_ctx,
+    no_validation,
+    param_info,
+    serve_search,
+    serve_site_listing,
+)
+
+_TEXT = suite_search("search_genes_by_text")
+_PERCENTILE = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
+_ORGANISM = "Plasmodium falciparum 3D7"
+_PROFILESET = (
+    "Asexual blood stages and salivary gland sporozoite and midgut oocyst "
+    "transcriptomes - Sense"
+)
+Proposals = dict[str, str | list[str] | None]
+
+
+def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_plasmodb(monkeypatch, [_TEXT, _PERCENTILE])
+    no_validation(monkeypatch)
+    no_measurements(monkeypatch)
+    serve_no_other_sites(monkeypatch)
+
+
+async def _bind(
+    state: AgentToolState,
+    search: WDKSearch,
+    params: Proposals,
+    why: dict[str, str],
+    *,
+    criterion_id: str = "c1",
+    text: str,
+) -> SetCriterionResult:
+    state.record_catalog_read(listing([search.url_segment]))
+    state.request_messages = state.request_messages or [text]
+    return returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id=criterion_id,
+            text=text,
+            search_name=search.url_segment,
+            params=params,
+            why=choice(**why),
+        ),
+        SetCriterionResult,
+    )
+
+
+_TACHYZOITE: Proposals = {
+    "channel": "Channel 1",
+    "any_or_all": "any",
+    "profileset_generic": _PROFILESET,
+    "protein_coding_only": "yes",
+    "max_expression_percentile": "100",
+    "min_expression_percentile": "50",
+    "samples_percentile_generic": ["asexual blood stages"],
+}
+_PERCENTILE_WHY = {
+    "term": "Minimum Expression Percentile",
+    "basis": "parameter",
+    "reason": "The requested cutoff changes from the 80th to the 50th percentile.",
+}
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_parameter_at_the_sites_value_is_left_out(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    state = AgentToolState()
+
+    result = await _bind(
+        state,
+        _PERCENTILE,
+        dict(_TACHYZOITE),
+        _PERCENTILE_WHY,
+        text="genes expressed in asexual blood stages at or above the 50th percentile",
+    )
+
+    [criterion] = state.operational_spec_draft.criteria
+    channel = criterion.resolved_params["channel"]
+    assert (result.corrections, to_wire(channel.value), channel.source) == (
+        ["channel is set by the site to 'Channel 1', so the proposal was left out"],
+        "Channel 1",
+        "default",
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_parameter_at_another_of_its_values_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    state = AgentToolState()
+
+    with pytest.raises(ModelRetry) as refused:
+        await _bind(
+            state,
+            _PERCENTILE,
+            _TACHYZOITE | {"channel": "Channel 2"},
+            _PERCENTILE_WHY,
+            text="genes expressed in asexual blood stages at the 50th percentile",
+        )
+
+    assert str(refused.value).startswith(
+        f"channel on {_PERCENTILE.url_segment} is set by the site to 'Channel 1' "
+        "and takes no other value; leave it out of params."
+    )
+    assert state.operational_spec_draft.criteria == []
+
+
+_VES: Proposals = {
+    "text_fields": ["product"],
+    "document_type": "gene",
+    "text_expression": "*ves*",
+    "text_search_organism": [_ORGANISM],
+}
+
+
+@pytest.mark.asyncio
+async def test_the_document_type_a_text_bind_copies_is_left_to_the_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    state = AgentToolState()
+
+    result = await _bind(
+        state,
+        _TEXT,
+        dict(_VES),
+        {
+            "term": "Text term (use * as wildcard)",
+            "basis": "parameter",
+            "reason": "A wildcard text search captures product annotations.",
+        },
+        text="genes annotated in the ves multigene family",
+    )
+
+    assert result.corrections == [
+        "document_type is set by the site to 'gene', so the proposal was left out"
+    ]
+    assert result.rationale is not None
+    assert result.rationale.term == "Text term (use * as wildcard)"
+
+
+@pytest.mark.asyncio
+async def test_a_value_only_the_site_sets_is_refused_at_another_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    state = AgentToolState()
+
+    with pytest.raises(ModelRetry) as refusal:
+        await _bind(
+            state,
+            _TEXT,
+            _VES | {"document_type": "transcript"},
+            {
+                "term": "Text term (use * as wildcard)",
+                "basis": "parameter",
+                "reason": "A wildcard text search captures product annotations.",
+            },
+            text="genes annotated in the ves multigene family",
+        )
+
+    assert str(refusal.value) == (
+        f"document_type on {_TEXT.url_segment} is set by the site to 'gene' and "
+        f"takes no other value; leave it out of params. The names params takes: "
+        f"['text_expression', 'text_fields', 'text_search_organism']."
+    )
+    assert state.operational_spec_draft.criteria == []
+
+
+def _fold_change_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
+    return [
+        param_info("fold_change", display_name="Fold change", default_value="2"),
+        param_info(
+            "dataset_url",
+            is_visible=False,
+            required=False,
+            default_value="https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a",
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_the_dataset_url_a_step_carries_is_left_to_the_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, _fold_change_sheet)
+    serve_site_listing(monkeypatch, [])
+    state = AgentToolState()
+    search = WDKSearch.model_validate(
+        {"url_segment": "GenesByRNASeqFoldChange", "display_name": "Fold change"}
+    )
+
+    result = await _bind(
+        state,
+        search,
+        {
+            "fold_change": "4",
+            "dataset_url": (
+                "https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a"
+            ),
+        },
+        {"term": "fold_change", "basis": "parameter", "reason": "raised to 4-fold"},
+        text="genes up 4-fold",
+    )
+
+    assert result.corrections == [
+        (
+            "dataset_url is set by the site to "
+            "'https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a', so the "
+            "proposal was left out"
+        )
+    ]
+    assert result.resolved_params["fold_change"] == "4"
+
+
+_HELD_WHY = SearchRationale(
+    search_name=_PERCENTILE.url_segment,
+    basis="parameter",
+    term="Samples",
+    reason="the asexual blood stage sample",
+    tool_call_id="call_turn1_read",
+)
+
+
+@pytest.mark.asyncio
+async def test_a_value_edit_with_a_why_needs_no_catalog_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    held = Criterion(
+        id="step_a9d79b5d",
+        text="genes expressed in asexual blood stages",
+        search_name=_PERCENTILE.url_segment,
+        rationale=_HELD_WHY,
+    )
+    state = AgentToolState(operational_spec_draft=OperationalSpec(criteria=[held]))
+    state.request_messages = ["genes expressed in asexual blood stages, top 5 percent"]
+    params = {k: v for k, v in _TACHYZOITE.items() if k != "channel"}
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_a9d79b5d",
+            text="genes expressed in asexual blood stages at the top 5 percent",
+            search_name=_PERCENTILE.url_segment,
+            params=params | {"min_expression_percentile": "95"},
+            why=choice(
+                "parameter",
+                "Minimum expression percentile",
+                "Top 5% corresponds to percentile 95 through 100.",
+            ),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.resolved_params["min_expression_percentile"] == "95"
+    assert result.rationale is not None
+    assert (result.rationale.reason, result.rationale.tool_call_id) == (
+        "Top 5% corresponds to percentile 95 through 100.",
+        "call_turn1_read",
+    )

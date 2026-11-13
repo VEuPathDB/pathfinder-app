@@ -1,0 +1,395 @@
+"""The mutable capture of one Lead run, the reply it writes, and the token and
+cost accounting that charges it."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from decimal import Decimal
+from typing import Any
+from uuid import UUID, uuid4
+
+from assistant_core import quota
+from assistant_core.capabilities.repetition_guard import BlockRule
+from assistant_core.conversation.stream_parts.agent_topology import lead_usage_event
+from assistant_core.cost import cost_for_run
+from assistant_core.errors import ModelDeclinedError
+from assistant_core.graph.emit import emit_chunk, emit_turn_usage
+from assistant_core.graph.turn_state import (
+    ParkedCall,
+    PendingApproval,
+    PendingDurableCall,
+)
+from assistant_core.platform.logging import get_logger
+from assistant_core.platform.types import PaidBy, ReasoningEffort
+from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
+from pydantic_ai.run import AgentRunResultEvent
+from pydantic_ai.ui.vercel_ai.response_types import (
+    TextDeltaChunk,
+    TextEndChunk,
+    TextStartChunk,
+)
+from pydantic_ai.usage import RunUsage
+from sqlalchemy.exc import SQLAlchemyError
+from veupathdb.wdk import SiteInfo
+
+from strategist.ai.capabilities.metering import RunPricing, SpendMeter
+from strategist.ai.graph.runtime import Context
+from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
+from strategist.ai.lead.turn_contract import LeadResponse
+from strategist.domain.reply_note import render_note
+from strategist.domain.turn_facts import TurnFacts
+from strategist.platform.model_keys import turn_paid_by
+
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class GuardStop:
+    """The call whose refusal ended the run, and the rule that refused it."""
+
+    tool_name: str
+    rule: BlockRule
+
+
+@dataclass(frozen=True)
+class SpendOutsideTheLead:
+    """What one turn spent beyond the Lead's own model calls.
+
+    ``own_key_*`` is the part of the sub-agent spend the researcher's keys paid.
+    """
+
+    sub_agent_tokens: int = 0
+    sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    own_key_tokens: int = 0
+    own_key_cost: Decimal = field(default_factory=lambda: Decimal(0))
+
+    def minus(self, billed: "SpendOutsideTheLead") -> "SpendOutsideTheLead":
+        """The part of this spend the quota has not received yet."""
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens - billed.sub_agent_tokens,
+            sub_agent_cost=self.sub_agent_cost - billed.sub_agent_cost,
+            own_key_tokens=self.own_key_tokens - billed.own_key_tokens,
+            own_key_cost=self.own_key_cost - billed.own_key_cost,
+        )
+
+    def plus(self, tokens: int, cost: Decimal, *, own_key: bool) -> SpendOutsideTheLead:
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens + tokens,
+            sub_agent_cost=self.sub_agent_cost + cost,
+            own_key_tokens=self.own_key_tokens + (tokens if own_key else 0),
+            own_key_cost=self.own_key_cost + (cost if own_key else Decimal(0)),
+        )
+
+
+@dataclass
+class LeadRunCapture:
+    """Terminal state captured from the Lead agent's streaming run."""
+
+    guard_stop: GuardStop | None = None
+    # The text of the error chunk that ended the run, when one did.
+    run_error: str | None = None
+    provider_failed: bool = False
+    unanswered_site: SiteInfo | None = None
+    # Whether the model produced any part of an answer in this run.
+    model_answered: bool = False
+    declined: ModelDeclinedError | None = None
+
+    new_messages: list[ModelMessage] = field(default_factory=list)
+    finish_reason: str = "stop"
+    response: LeadResponse | None = None
+    tokens: int = 0
+    cost_usd: Decimal = field(default_factory=lambda: Decimal(0))
+    charged_input_tokens: int = 0
+    charged_output_tokens: int = 0
+    charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    sub_agent_tokens: int = 0
+    sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    own_key_sub_agent_tokens: int = 0
+    own_key_sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    # The part of the spend outside the Lead's calls the quota already holds.
+    billed_outside_the_lead: SpendOutsideTheLead = field(
+        default_factory=SpendOutsideTheLead,
+    )
+    sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
+    lead_model: str = ""
+    lead_reasoning_effort: ReasoningEffort | None = None
+    pending_approval: PendingApproval | None = None
+    pending_durable_call: PendingDurableCall | None = None
+    parked_call_answered: bool = False
+    # The parked call this run's answer resumed, when no new message came with it.
+    answered_call: ParkedCall | None = None
+    # The researcher declined an offer card, so the turn writes no reply.
+    offer_declined: bool = False
+    # The facts part is written once, before the first reply of the turn, and
+    # every reply of the turn is rendered from the same facts.
+    facts_shown: bool = False
+    facts: TurnFacts = field(default_factory=TurnFacts)
+
+    def note_model_output(
+        self,
+        event: AgentStreamEvent | AgentRunResultEvent[Any],
+    ) -> None:
+        """Take a part the model started as proof that the model answered."""
+        if isinstance(event, PartStartEvent):
+            self.model_answered = True
+
+    @property
+    def charged_tokens(self) -> int:
+        return self.charged_input_tokens + self.charged_output_tokens
+
+    @property
+    def cumulative_tokens(self) -> int:
+        return self.charged_tokens + self.sub_agent_tokens
+
+    @property
+    def cumulative_cost(self) -> Decimal:
+        return self.charged_cost + self.sub_agent_cost
+
+    def live_totals(self, state: PipelineState) -> tuple[int, str]:
+        """Running turn totals (base + charged-so-far) for a usage event."""
+        return (
+            state.turn_total_tokens + self.cumulative_tokens,
+            str(state.turn_total_cost_usd + self.cumulative_cost),
+        )
+
+    def spend_outside_the_lead(self) -> SpendOutsideTheLead:
+        """What the sub-agents have cost this turn."""
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens,
+            sub_agent_cost=self.sub_agent_cost,
+            own_key_tokens=self.own_key_sub_agent_tokens,
+            own_key_cost=self.own_key_sub_agent_cost,
+        )
+
+    def record_run_spend(self, usage: RunUsage) -> None:
+        """Take the Lead run's spend from the usage it accumulates into, so a
+        run that stops before its result still reports what it spent."""
+        provider_name, model_name = _split_agent_model(self.lead_model)
+        self.tokens = usage.total_tokens
+        self.cost_usd = cost_for_run(
+            usage=usage,
+            model_name=model_name,
+            provider_name=provider_name,
+            provider_url=None,
+        )
+
+    def residual_totals(self, state: PipelineState) -> tuple[int, str]:
+        """Final turn totals using the captured (not charged) lead tokens."""
+        return (
+            state.turn_total_tokens + self.tokens + self.sub_agent_tokens,
+            str(state.turn_total_cost_usd + self.cost_usd + self.sub_agent_cost),
+        )
+
+
+def absorb_outside_spend(
+    capture: LeadRunCapture, tokens: int, cost: Decimal, paid_by: PaidBy
+) -> None:
+    capture.sub_agent_tokens += tokens
+    capture.sub_agent_cost += cost
+    if paid_by is PaidBy.USER:
+        capture.own_key_sub_agent_tokens += tokens
+        capture.own_key_sub_agent_cost += cost
+
+
+def absorb_sub_agent_usage(capture: LeadRunCapture, info: SubAgentRunUsage) -> None:
+    """Add one sub-agent pass to the turn total and to its dispatch's total.
+
+    A dispatch that ran more than one pass owes the sum of them, so the card
+    the thread reads carries what the turn counted for that call.
+    """
+    pricing = RunPricing(info.model_name, info.provider_name, info.provider_url)
+    cost = pricing.cost(info.usage)
+    capture.sub_agent_tokens += info.usage.total_tokens
+    capture.sub_agent_cost += cost
+    if info.billed:
+        capture.billed_outside_the_lead = capture.billed_outside_the_lead.plus(
+            info.usage.total_tokens, cost, own_key=info.paid_by is PaidBy.USER
+        )
+    if info.paid_by is PaidBy.USER:
+        capture.own_key_sub_agent_tokens += info.usage.total_tokens
+        capture.own_key_sub_agent_cost += cost
+    by_call = capture.sub_agent_usage_by_call
+    spent = by_call.get(info.parent_tool_call_id, SubAgentCallUsage())
+    by_call[info.parent_tool_call_id] = spent.plus(info.usage.total_tokens, cost)
+
+
+def sub_agent_usage_recorder(
+    capture: LeadRunCapture,
+    state: PipelineState,
+    writer: Any,
+) -> Callable[[SubAgentRunUsage], None]:
+    """Record one sub-agent pass and report the running turn total."""
+
+    def record_sub_agent(info: SubAgentRunUsage) -> None:
+        absorb_sub_agent_usage(capture, info)
+        total_tokens, cost_usd = capture.live_totals(state)
+        emit_turn_usage(writer, total_tokens, cost_usd)
+
+    return record_sub_agent
+
+
+def turn_with_spend(
+    state: PipelineState, meter: SpendMeter, writer: Any
+) -> PipelineState:
+    """The turn with the runs beside the Lead added to its totals, reported."""
+    if meter.tokens == 0 and meter.cost_usd == 0:
+        return state
+    tokens = state.turn_total_tokens + meter.tokens
+    cost_usd = state.turn_total_cost_usd + meter.cost_usd
+    emit_turn_usage(writer, tokens, str(cost_usd))
+    return state.model_copy(
+        update={"turn_total_tokens": tokens, "turn_total_cost_usd": cost_usd}
+    )
+
+
+def emit_lead_usage(
+    writer: Any,
+    capture: LeadRunCapture,
+    tokens: int,
+    cost_usd: str,
+) -> None:
+    """Report the spend under the model and the effort the Lead runs at."""
+    emit_chunk(
+        writer,
+        lead_usage_event(
+            model_id=capture.lead_model,
+            tokens=tokens,
+            cost_usd=cost_usd,
+            reasoning_effort=capture.lead_reasoning_effort,
+        ),
+    )
+
+
+def _emit_residual_prose(
+    writer: Any,
+    capture: LeadRunCapture,
+    *,
+    message_id: UUID,
+) -> None:
+    """Write the reply as one text part, each reference rendered from the facts
+    the turn showed."""
+    response = capture.response
+    if response is None or not response.prose:
+        return
+    chunk_id = f"lead-prose-{message_id}-{uuid4()}"
+    emit_chunk(writer, TextStartChunk(id=chunk_id))
+    emit_chunk(
+        writer,
+        TextDeltaChunk(
+            id=chunk_id,
+            delta=render_note(response.prose, capture.facts),
+        ),
+    )
+    emit_chunk(writer, TextEndChunk(id=chunk_id))
+
+
+def _split_agent_model(agent_model: str) -> tuple[str | None, str | None]:
+    if ":" not in agent_model:
+        return None, agent_model or None
+    provider, _, model = agent_model.partition(":")
+    return provider or None, model or None
+
+
+async def _charge_token_delta(
+    context: Context | None,
+    state: PipelineState,
+    capture: LeadRunCapture,
+    usage: RunUsage,
+    writer: Any,
+    agent_model: str,
+) -> None:
+    if context is None:
+        return
+    delta_input = usage.input_tokens - capture.charged_input_tokens
+    delta_output = usage.output_tokens - capture.charged_output_tokens
+    delta_tokens = delta_input + delta_output
+    if delta_tokens <= 0:
+        return
+    provider_name, model_name = _split_agent_model(agent_model)
+    delta_cost = (
+        cost_for_run(
+            usage=usage,
+            model_name=model_name,
+            provider_name=provider_name,
+            provider_url=None,
+        )
+        - capture.charged_cost
+    )
+    try:
+        async with context.db_session_factory() as session:
+            await quota.accumulate(
+                session,
+                user_id=state.user_id,
+                tokens=delta_tokens,
+                cost_usd=delta_cost,
+                paid_by=turn_paid_by(agent_model),
+            )
+            await session.commit()
+    except SQLAlchemyError:
+        logger.warning(
+            "failed to accumulate streaming token delta",
+            delta=delta_tokens,
+        )
+        return
+    capture.charged_input_tokens += delta_input
+    capture.charged_output_tokens += delta_output
+    capture.charged_cost += delta_cost
+    total_tokens, cost_usd = capture.live_totals(state)
+    emit_turn_usage(writer, total_tokens, cost_usd)
+    emit_lead_usage(writer, capture, capture.charged_tokens, str(capture.charged_cost))
+
+
+def _residual_by_payer(
+    capture: LeadRunCapture,
+    unbilled: SpendOutsideTheLead,
+    lead_tokens: int,
+    lead_cost: Decimal,
+) -> dict[PaidBy, tuple[int, Decimal]]:
+    """The unbilled spend of the turn, split by whose key paid for it."""
+    lead_is_keyed = turn_paid_by(capture.lead_model) is PaidBy.USER
+    own_tokens = unbilled.own_key_tokens + (lead_tokens if lead_is_keyed else 0)
+    own_cost = unbilled.own_key_cost + (lead_cost if lead_is_keyed else Decimal(0))
+    total_tokens = lead_tokens + unbilled.sub_agent_tokens
+    total_cost = lead_cost + unbilled.sub_agent_cost
+    split = {
+        PaidBy.USER: (own_tokens, own_cost),
+        PaidBy.DEPLOYMENT: (total_tokens - own_tokens, total_cost - own_cost),
+    }
+    return {payer: spent for payer, spent in split.items() if any(spent)}
+
+
+async def _persist_residual_quota(
+    context: Context | None,
+    state: PipelineState,
+    capture: LeadRunCapture,
+) -> None:
+    if context is None:
+        return
+    lead_residual_tokens = max(capture.tokens - capture.charged_tokens, 0)
+    lead_residual_cost = max(capture.cost_usd - capture.charged_cost, Decimal(0))
+    spend = capture.spend_outside_the_lead()
+    unbilled = spend.minus(capture.billed_outside_the_lead)
+    charges = _residual_by_payer(
+        capture, unbilled, lead_residual_tokens, lead_residual_cost
+    )
+    if not charges:
+        return
+    async with context.db_session_factory() as session:
+        try:
+            for paid_by, (tokens, cost_usd) in charges.items():
+                await quota.accumulate(
+                    session,
+                    user_id=state.user_id,
+                    tokens=tokens,
+                    cost_usd=cost_usd,
+                    paid_by=paid_by,
+                )
+            await session.commit()
+        except SQLAlchemyError:
+            logger.warning("failed to accumulate lead residual quota")
+            return
+        capture.charged_output_tokens += lead_residual_tokens
+        capture.charged_cost += lead_residual_cost
+        capture.billed_outside_the_lead = spend

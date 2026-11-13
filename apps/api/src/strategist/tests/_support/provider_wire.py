@@ -1,0 +1,319 @@
+"""Real provider clients whose http client answers from recorded bodies.
+
+The model provider is the one boundary a test replaces: every request still
+goes through the provider SDK, and the transport records what it was sent.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from typing import Any
+
+import httpx2
+import pytest
+from anthropic.types import (
+    Message,
+    RawMessageDeltaEvent,
+    RawMessageStartEvent,
+    RawMessageStopEvent,
+)
+from assistant_core.models.claude_profiles import ClaudeProvider
+from openai.types.responses import (
+    Response,
+    ResponseCompletedEvent,
+    ResponseCreatedEvent,
+    ResponseTextDeltaEvent,
+)
+from pydantic import BaseModel, ConfigDict, JsonValue, SecretStr
+from pydantic_ai import models
+from pydantic_ai.providers import Provider
+from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.providers.openai import OpenAIProvider
+
+from strategist.devtools.provider_refusals import ProviderRefusal, load_refusal
+from strategist.domain.provider_keys import KeyableProvider
+
+ANSWER_TEXT = "Plasmodium kinases answered."
+
+
+_LONG_DECODE_SECONDS = 1200
+
+
+class _Requested(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    model: str
+    stream: bool = False
+
+
+def allow_requests_to_the_wire(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Let a model send requests; the wire answers them without a network."""
+    monkeypatch.setattr(models, "ALLOW_MODEL_REQUESTS", True)
+
+
+def refusal_on_the_wire(refusal: ProviderRefusal) -> JsonValue:
+    """The refusal as the provider sends it.
+
+    pydantic-ai hands over the ``error`` object of an OpenAI answer and the
+    whole body of the other two.
+    """
+    return {"error": refusal.body} if refusal.provider == "openai" else refusal.body
+
+
+def _openai_response(model: str) -> Response:
+    return Response.model_validate(
+        {
+            "id": "resp_test",
+            "created_at": 1_790_000_000,
+            "model": model,
+            "object": "response",
+            "status": "completed",
+            "parallel_tool_calls": False,
+            "tool_choice": "auto",
+            "tools": [],
+            "output": [
+                {
+                    "id": "msg_test",
+                    "type": "message",
+                    "role": "assistant",
+                    "status": "completed",
+                    "content": [
+                        {"type": "output_text", "text": ANSWER_TEXT, "annotations": []}
+                    ],
+                }
+            ],
+            "usage": {
+                "input_tokens": 12,
+                "output_tokens": 5,
+                "total_tokens": 17,
+                "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+                "output_tokens_details": {"reasoning_tokens": 0},
+            },
+        }
+    )
+
+
+def openai_answer(model: str) -> JsonValue:
+    """One finished OpenAI Responses answer, shaped by the SDK's own model."""
+    dumped: JsonValue = _openai_response(model).model_dump(
+        mode="json", exclude_none=True
+    )
+    return dumped
+
+
+def openai_stream(model: str) -> bytes:
+    """The same answer as the server-sent events a streamed request receives."""
+    finished = _openai_response(model)
+    started = finished.model_copy(update={"status": "in_progress", "output": []})
+    events: list[
+        ResponseCreatedEvent | ResponseTextDeltaEvent | ResponseCompletedEvent
+    ] = [
+        ResponseCreatedEvent(
+            type="response.created", response=started, sequence_number=0
+        ),
+        ResponseTextDeltaEvent(
+            type="response.output_text.delta",
+            item_id="msg_test",
+            output_index=0,
+            content_index=0,
+            delta=ANSWER_TEXT,
+            logprobs=[],
+            sequence_number=1,
+        ),
+        ResponseCompletedEvent(
+            type="response.completed", response=finished, sequence_number=2
+        ),
+    ]
+    frames = (
+        f"event: {event.type}\ndata: "
+        f"{json.dumps(event.model_dump(mode='json', exclude_none=True))}\n\n"
+        for event in events
+    )
+    return "".join(frames).encode()
+
+
+def openai_stream_that_fails(model: str, body: JsonValue) -> bytes:
+    """The streamed answer, cut after its first delta by an error event."""
+    events, _, _ = openai_stream(model).decode().rpartition("event: response.completed")
+    failed = json.dumps({"type": "error", "error": body})
+    return f"{events}event: error\ndata: {failed}\n\n".encode()
+
+
+def anthropic_answer(model: str, text: str) -> dict[str, Any]:
+    return {
+        "id": "msg_test",
+        "type": "message",
+        "role": "assistant",
+        "model": model,
+        "content": [{"type": "text", "text": text}],
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {"input_tokens": 12, "output_tokens": 6},
+    }
+
+
+def anthropic_text_stream(model: str, text: str) -> bytes:
+    events: list[dict[str, Any]] = [
+        {
+            "type": "message_start",
+            "message": {
+                **anthropic_answer(model, ""),
+                "content": [],
+                "stop_reason": None,
+            },
+        },
+        {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {"type": "text", "text": ""},
+        },
+        {
+            "type": "content_block_delta",
+            "index": 0,
+            "delta": {"type": "text_delta", "text": text},
+        },
+        {"type": "content_block_stop", "index": 0},
+        {
+            "type": "message_delta",
+            "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+            "usage": {"output_tokens": 6},
+        },
+        {"type": "message_stop"},
+    ]
+    frames = (
+        f"event: {event['type']}\ndata: {json.dumps(event)}\n\n" for event in events
+    )
+    return "".join(frames).encode()
+
+
+def anthropic_declining_stream(model: str, explanation: str | None) -> bytes:
+    started = Message.model_validate(
+        {
+            "id": "msg_test",
+            "type": "message",
+            "role": "assistant",
+            "model": model,
+            "content": [],
+            "stop_reason": None,
+            "stop_sequence": None,
+            "usage": {"input_tokens": 12, "output_tokens": 0},
+        }
+    )
+    events: list[RawMessageStartEvent | RawMessageDeltaEvent | RawMessageStopEvent] = [
+        RawMessageStartEvent(type="message_start", message=started),
+        RawMessageDeltaEvent.model_validate(
+            {
+                "type": "message_delta",
+                "delta": {
+                    "stop_reason": "refusal",
+                    "stop_sequence": None,
+                    "stop_details": {
+                        "type": "refusal",
+                        "category": "bio",
+                        "explanation": explanation,
+                    },
+                },
+                "usage": {"output_tokens": 0},
+            }
+        ),
+        RawMessageStopEvent(type="message_stop"),
+    ]
+    frames = (
+        f"event: {event.type}\ndata: {event.model_dump_json(exclude_none=True)}\n\n"
+        for event in events
+    )
+    return "".join(frames).encode()
+
+
+def _anthropic_text(requested: _Requested, text: str) -> httpx2.Response:
+    if requested.stream:
+        return httpx2.Response(
+            200,
+            content=anthropic_text_stream(requested.model, text),
+            headers={"content-type": "text/event-stream"},
+        )
+    return httpx2.Response(200, json=anthropic_answer(requested.model, text))
+
+
+@dataclass
+class ProviderWire:
+    """Builds real providers on a transport that records every request.
+
+    ``refuse`` answers each request with the provider's ``refused_by`` fixture
+    and ``status`` with that status and no body. ``fails_mid_stream`` names the
+    fixture whose body ends a streamed OpenAI answer after it began; otherwise
+    an OpenAI request gets a finished answer.
+    """
+
+    refuse: bool = False
+    refused_by: str = "invalid-key"
+    status: int | None = None
+    answers: list[tuple[int, dict[str, Any]]] = field(default_factory=list)
+    anthropic_text: str | None = None
+    fails_mid_stream: str | None = None
+    declines: bool = False
+    explanation: str | None = None
+    requests: list[httpx2.Request] = field(default_factory=list)
+
+    def _answer(
+        self, provider: KeyableProvider, request: httpx2.Request
+    ) -> httpx2.Response:
+        self.requests.append(request)
+        failed = self._failed(provider)
+        if failed is not None:
+            return failed
+        requested = _Requested.model_validate_json(request.content)
+        if self.anthropic_text is not None:
+            return _anthropic_text(requested, self.anthropic_text)
+        if self.declines:
+            return httpx2.Response(
+                200,
+                content=anthropic_declining_stream(requested.model, self.explanation),
+                headers={"content-type": "text/event-stream"},
+            )
+        if requested.stream:
+            content = (
+                openai_stream(requested.model)
+                if self.fails_mid_stream is None
+                else openai_stream_that_fails(
+                    requested.model, load_refusal(self.fails_mid_stream).body
+                )
+            )
+            return httpx2.Response(
+                200,
+                content=content,
+                headers={"content-type": "text/event-stream"},
+            )
+        return httpx2.Response(200, json=openai_answer(requested.model))
+
+    def _failed(self, provider: KeyableProvider) -> httpx2.Response | None:
+        if self.refuse:
+            refusal = load_refusal(f"{provider}-{self.refused_by}")
+            if refusal.status is None:
+                msg = "a refusal without a status is sent inside a stream"
+                raise ValueError(msg)
+            return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
+        if self.answers:
+            status, body = self.answers.pop(0)
+            return httpx2.Response(status, json=body)
+        if self.status is not None:
+            return httpx2.Response(self.status)
+        return None
+
+    def build(self, name: KeyableProvider, key: SecretStr) -> Provider[Any]:
+        client = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(lambda request: self._answer(name, request)),
+            timeout=_LONG_DECODE_SECONDS,
+        )
+        secret = key.get_secret_value()
+        match name:
+            case "openai":
+                return OpenAIProvider(api_key=secret, http_client=client)
+            case "anthropic":
+                return ClaudeProvider(api_key=secret, http_client=client)
+            case "google":
+                return GoogleProvider(api_key=secret, http_client=client)
+
+    def sent_headers(self) -> list[dict[str, str]]:
+        return [dict(request.headers) for request in self.requests]

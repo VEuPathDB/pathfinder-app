@@ -23,7 +23,7 @@ from veupathdb_mcp.tools.audit_strain_tools import audit_strain_model
 from veupathdb_mcp.tools.audit_tools import audit_selenoprotein_end
 
 MODELS = (
-    Path(__file__).resolve().parents[1] / "src/pathfinder/tests/fixtures/audit_models"
+    Path(__file__).resolve().parents[1] / "src/strategist/tests/fixtures/audit_models"
 )
 
 

@@ -8,8 +8,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from pathfinder.persistence.models import Base
-from pathfinder.platform.migrations import include_object
+from strategist.persistence.models import Base
+from strategist.platform.migrations import include_object
 
 config = context.config
 

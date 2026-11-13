@@ -17,7 +17,7 @@ Overview
 .. note::
 
    Each phase role carries its own default model
-   (:py:func:`pathfinder.ai.agents.registry.phase_defaults`). A request may
+   (:py:func:`strategist.ai.agents.registry.phase_defaults`). A request may
    override the model per phase; the conversation remembers the last choice.
 
 Model Resolution
@@ -26,7 +26,7 @@ Model Resolution
 **Purpose:** Resolve the catalog entry a run uses from the per-request
 override, the persisted conversation state, or the role default.
 
-.. automodule:: pathfinder.ai.agents._model_resolution
+.. automodule:: strategist.ai.agents._model_resolution
    :members:
    :undoc-members:
    :show-inheritance:
@@ -41,7 +41,7 @@ VERIFY flow, so an end-to-end run costs nothing and repeats exactly.
 **Design:** Only the LLM call is scripted. WDK, PostgreSQL and the worker all
 run for real, which is what makes the mock useful for integration coverage.
 
-.. automodule:: pathfinder.ai.models.mock
+.. automodule:: strategist.ai.models.mock
    :members:
    :undoc-members:
    :show-inheritance:
@@ -52,7 +52,7 @@ Prompts
 **Purpose:** Read the prompt files that the Lead and the phase sub-agents
 share. The text lives in markdown beside the loader.
 
-.. automodule:: pathfinder.ai.prompts.loader
+.. automodule:: strategist.ai.prompts.loader
    :members:
    :undoc-members:
    :show-inheritance:

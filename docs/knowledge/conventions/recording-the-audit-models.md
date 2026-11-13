@@ -9,7 +9,7 @@ status: stable
 
 # What the files are
 
-`apps/api/src/pathfinder/tests/fixtures/audit_models/` holds eight check
+`apps/api/src/strategist/tests/fixtures/audit_models/` holds eight check
 results. Five are `IntronAudit` results: `pkac_introns.json` (PcyM_0736700,
 MISSING_EXON), `dmaw_introns.json` (Afu2g18040, SHIFTED), `afu8_introns.json`
 (Afu8g00850, REPLACED), `agap7279_introns.json` (AGAP007279, an intron across an
@@ -58,13 +58,13 @@ test helpers and its recorded wires, so it must be at the tag that
    `scripts/record_audit_models.py` writes the eight files. The two `-p` options
    load the library's conftests, which give each test a guest token and a
    settings source without a network.
-3. Run `uv run pytest src/pathfinder/tests/unit/domain/audit -q`. A fact test
+3. Run `uv run pytest src/strategist/tests/unit/domain/audit -q`. A fact test
    that fails names a value the new release states differently. Change the
    expectation to the value the file now holds.
 
 # The sample run
 
-`apps/api/src/pathfinder/data/audit/sample_run.json` is a `SampleRun`
+`apps/api/src/strategist/data/audit/sample_run.json` is a `SampleRun`
 (`services/audit/sample_run.py`): a finished plasmodb run of ten findings whose
 library results are the recorded values of `tests/_support/audit.py`,
 `audit_answers.py` and `audit_evidence.py`, with five reviews and a synthesis

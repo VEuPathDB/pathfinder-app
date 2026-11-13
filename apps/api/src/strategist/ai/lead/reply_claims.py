@@ -1,0 +1,86 @@
+"""What a reply's prose claims, and the internal names a runtime summary must
+not print.
+
+Pure text reading. The turn contract joins these readings to the record of the
+turn; nothing here knows what the turn did.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable
+
+from strategist.ai.lead.proposal import PROPOSAL_TOOL
+from strategist.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
+from strategist.ai.tools.standalone.graph_helpers import counted_noun
+from strategist.domain.column_fit import COLUMN_FIT_COUNTS
+
+_CLAUSE_END = re.compile(r"[.!?;\n]")
+
+# The tools a reply can name by their identifier. Every one carries an
+# underscore, so the plain words for the same act read as ordinary prose.
+TOOL_IDENTIFIERS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
+    "build_strategy",
+    "clear_strategy",
+    "consult_user",
+    "delete_step",
+    PROPOSAL_TOOL,
+    "save_gene_set",
+}
+
+# A step id the graph mints, and the error strings a reply can copy out of a
+# refusal. None of them names anything the researcher can act on. A status code
+# is read only after the word that makes it one, or before the word that does,
+# because a number in this range is a gene count in ordinary prose.
+_A_STEP_ID = re.compile(r"\bstep_[0-9a-f]{8}\b")
+_STATUS = r"[45]\d\d"
+_AN_ERROR_STRING = re.compile(
+    r"\bmodelretry\b"
+    rf"|\b(?:http|status|code|error)\s+{_STATUS}\b"
+    rf"|\b{_STATUS}\s+(?:error|response|status)\b"
+)
+
+
+def machine_words(prose: str) -> list[str]:
+    """Every internal name this reply prints, in the order they are looked for.
+
+    A tool name, a minted step id and an error string are the three the user
+    holds no use for.
+    """
+    text = prose.casefold()
+    found = sorted(name for name in TOOL_IDENTIFIERS if name in text)
+    found.extend(sorted(set(_A_STEP_ID.findall(text))))
+    found.extend(sorted(set(_AN_ERROR_STRING.findall(text))))
+    return found
+
+
+def counts_named_as(prose: str, noun: str, *, instead_of: str) -> list[int]:
+    """Every count the prose names with ``noun``, in order.
+
+    A few words may stand between the count and the noun, as in "479
+    Plasmodium falciparum 3D7 transcripts", but no other number and no
+    ``instead_of``. A word holds a letter; a number holds none.
+    """
+    word = r"(?=[\w.-]*[A-Za-z])[\w][\w.-]*"
+    between = rf"(?:(?!{re.escape(instead_of)}s?\b){word}\**\s+){{0,4}}?"
+    # The digits of a decimal, such as a similarity score, are no count.
+    named = re.compile(
+        rf"(?<![\d.])\b(\d[\d,]*)\**\s+{between}\**{re.escape(noun)}s?\b",
+        re.IGNORECASE,
+    )
+    return [int(match.group(1).replace(",", "")) for match in named.finditer(prose)]
+
+
+def counts_in_the_wrong_unit(
+    prose: str, record_type: str, held: Iterable[int]
+) -> list[int]:
+    """Each count of ``held`` the prose names in ``record_type``, once, when the
+    site counts that record type in another noun. A column fit row counts in
+    the column's own unit, so its counts are not read."""
+    noun = counted_noun(record_type)
+    if not record_type or noun == record_type:
+        return []
+    holds = set(held)
+    outside_fits = COLUMN_FIT_COUNTS.sub(" ", prose)
+    named = counts_named_as(outside_fits, record_type, instead_of=noun)
+    return [count for count in dict.fromkeys(named) if count in holds]

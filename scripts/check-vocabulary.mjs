@@ -13,12 +13,12 @@ const ts = createRequire(join(ROOT, "apps/web/package.json"))("typescript");
 
 const WEB_TREES = ["apps/web/src"];
 const MODEL_TREES = [
-  "apps/api/src/pathfinder/ai",
-  "apps/api/src/pathfinder/assistants",
+  "apps/api/src/strategist/ai",
+  "apps/api/src/strategist/assistants",
 ];
 const DETAIL_TREES = [
-  "apps/api/src/pathfinder/transport",
-  "apps/api/src/pathfinder/services",
+  "apps/api/src/strategist/transport",
+  "apps/api/src/strategist/services",
 ];
 const SKIPPED = new Set([
   "node_modules",

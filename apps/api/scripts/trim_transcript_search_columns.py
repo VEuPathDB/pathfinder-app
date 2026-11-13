@@ -9,7 +9,7 @@ from veupathdb.model import CamelModel
 
 FIXTURE = (
     Path(__file__).resolve().parents[1]
-    / "src/pathfinder/tests/fixtures/wdk/transcript_search_columns.json"
+    / "src/strategist/tests/fixtures/wdk/transcript_search_columns.json"
 )
 URL = (
     "https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript?format=expanded"

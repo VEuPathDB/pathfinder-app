@@ -60,27 +60,27 @@ and videos are not rewritten.
 ```
 uv run ruff check src/
 uv run ruff format --check src/
-uv run mypy --strict src/pathfinder/
-uv run pyright src/pathfinder/
+uv run mypy --strict src/strategist/
+uv run pyright src/strategist/
 uv run lint-imports
 uv run vulture
 uv run pytest --override-ini "addopts=" --collect-only -q
-uv run pytest src/pathfinder/tests/ -q
+uv run pytest src/strategist/tests/ -q
 uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
 ```
 
 Both type checkers read the tests tree. `[tool.mypy]` and the repo-root
-`pyrightconfig.json` name no exclusion for `src/pathfinder/tests`, so a test
+`pyrightconfig.json` name no exclusion for `src/strategist/tests`, so a test
 runs under the same rules as the code it tests and a gate is green only at
 zero over both.
 
 The two ratchets cover production and tests alike. `check_max_lines.py` fails a
-Python file over 400 meaningful lines; `src/pathfinder/tests/.max-lines-baseline.txt`
+Python file over 400 meaningful lines; `src/strategist/tests/.max-lines-baseline.txt`
 records the count each older offender had when the cap reached tests, and a
 baselined file fails as soon as it grows past that count. `check_weak_assertions.py`
 fails a test whose only assertions pin nothing, suppressed by
-`src/pathfinder/tests/.weak-baseline.txt`. An entry leaves either file when the
+`src/strategist/tests/.weak-baseline.txt`. An entry leaves either file when the
 file shrinks or the test gains a value assertion; an entry never enters one.
 
 The collect runs with `addopts` cleared, so it reaches the tiers the default
@@ -124,15 +124,15 @@ that named the offending module are both deleted; what holds the property now is
 `veupathdb-mcp`'s own `tests/unit/test_package_boundary.py`. See [the MCP server
 is a distribution](../decisions/the-mcp-server-is-a-distribution.md).
 
-The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` installs `refuse_every_connection` from `src/pathfinder/tests/_support/network_guard.py`, which patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
+The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/strategist/tests/unit/conftest.py` installs `refuse_every_connection` from `src/strategist/tests/_support/network_guard.py`, which patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
 
 Two limits are worth knowing. The guard runs per test, so anything at collection time is outside it. And a C extension that opens its own socket without going through the `socket` module is not covered.
 
-No test mints a real guest token: an autouse fixture in `src/pathfinder/tests/conftest.py` installs `veupathdb.testing.hermetic_guest_tokens` for every test that is not `live_wdk`, and a `live_wdk` test mints its guest on the QA site.
+No test mints a real guest token: an autouse fixture in `src/strategist/tests/conftest.py` installs `veupathdb.testing.hermetic_guest_tokens` for every test that is not `live_wdk`, and a `live_wdk` test mints its guest on the QA site.
 
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
 
-The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/pathfinder/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. The same fixture clears `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` for every test that is not `live_wdk`, because a mocked debugger run signs in when they are set. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
+The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/strategist/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. The same fixture clears `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` for every test that is not `live_wdk`, because a mocked debugger run signs in when they are set. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
 
 ```
 D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
@@ -141,7 +141,7 @@ env WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST
   OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
   API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx STRATEGIST_CHAT_PROVIDER=mock \
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
-  uv run pytest src/pathfinder/tests; \
+  uv run pytest src/strategist/tests; \
 mv "$H/api.env" .env; mv "$H/root.env" ../../.env; mv "$H/ollama_models.yaml" ../../; \
 docker compose --env-file ../../.env.dev exec db dropdb -U postgres "$D"
 ```
@@ -156,10 +156,10 @@ every `evals/corpus/uat-<flow>-<site>.json` case through the real worker:
 
 ```bash
 cd apps/api
-uv run python -m pathfinder.devtools.evals run --via-worker \
-  --only $(ls src/pathfinder/evals/corpus/uat-*.json | xargs -n1 basename | sed 's/.json$//') \
+uv run python -m strategist.devtools.evals run --via-worker \
+  --only $(ls src/strategist/evals/corpus/uat-*.json | xargs -n1 basename | sed 's/.json$//') \
   --out summary.json
-uv run pytest src/pathfinder/tests/integration/ai -m live_model -q   # the injection judge
+uv run pytest src/strategist/tests/integration/ai -m live_model -q   # the injection judge
 ```
 
 A case ends `pass`, `fail` or `re-measure`. A `fail` is read, not enforced: the
@@ -193,7 +193,7 @@ phrase such state can satisfy.
 
 The WDK rules answer to two suites, and which lane a rule lands in follows from what can falsify it.
 
-**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py: tests/unit/` when the client alone can settle it and in `apps/api/src/pathfinder/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
+**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py: tests/unit/` when the client alone can settle it and in `apps/api/src/strategist/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
 
 The same tier holds the schema half. `wdk_fixtures verify` validates each body Strategist sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py: src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py: tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
 
@@ -215,7 +215,7 @@ cd apps/api && uv run python -m veupathdb.devtools.eda_schemas vendor    # re-pi
 
 `node scripts/check-test-sites.mjs` holds every test path to the QA sites: it reads every file of the repository except `docs/`, `thesis/`, the ignored local outputs and secret env files, and fails on a production, `www`, `beta`, `auth` or numbered-server host, except in a dataset record link (`/a/app/record/dataset/DS_...`), the form a QA site's own vocabulary gives a hidden `dataset_url`; on a test site whose entry differs from `deploy/sites/qa.yml`; on an e2e service that reads another file; and on a workflow that runs a live lane without `VEUPATHDB_SITES_CONFIG` at the QA file. Every recording a test reads is a QA recording, and a test whose recording is absent skips with "needs a QA recording: re-record once QA access exists" only while it is missing.
 
-**The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py: src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without, and reads the QA sites unless `VEUPATHDB_SITES_CONFIG` names another file. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py: src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
+**The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py: src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/strategist/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without, and reads the QA sites unless `VEUPATHDB_SITES_CONFIG` names another file. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py: src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
 
 The lane writes `wdk-live-summary.json`: the run's outcomes, a per-site tally, and the drift list. It is the science layer's feed into the observability contract.
 
@@ -233,11 +233,11 @@ The assistant's evals answer "did this change make it worse at real tasks", and 
 
 ```
 cd apps/api
-uv run python -m pathfinder.devtools.evals corpus                 # the cases
-uv run python -m pathfinder.devtools.evals run --out summary.json  # run them
+uv run python -m strategist.devtools.evals corpus                 # the cases
+uv run python -m strategist.devtools.evals run --out summary.json  # run them
 ```
 
-The corpus lives in `apps/api/src/pathfinder/evals/corpus/`, one JSON file per case, each carrying its own provenance as data. A case arrives one of three ways: promoted from the staging queue by `pathfinder.devtools.evals promote`, written from a cataloged failure in `backlog/`, or written by hand from a UAT flow's table (`uat-<flow>-<site>`, `provenance.reference` naming the flow). No case names a user; see [the linkage decision](../decisions/a-staged-eval-case-carries-its-user-until-promotion.md).
+The corpus lives in `apps/api/src/strategist/evals/corpus/`, one JSON file per case, each carrying its own provenance as data. A case arrives one of three ways: promoted from the staging queue by `strategist.devtools.evals promote`, written from a cataloged failure in `backlog/`, or written by hand from a UAT flow's table (`uat-<flow>-<site>`, `provenance.reference` naming the flow). No case names a user; see [the linkage decision](../decisions/a-staged-eval-case-carries-its-user-until-promotion.md).
 
 **A case is a thread, not a prompt.** `turns` is a list driven in order on one
 conversation id, so a case can pin a state a first message cannot reach: an
@@ -256,7 +256,7 @@ is unauthenticated, the catalog reads answer 403 and the case reports
 
 **A run always drives the configured provider.** The scripted provider routes on a token a Playwright spec writes into its message, so a corpus prompt reaches it unmarked and settles nothing; what the script proves belongs to the e2e suite and the unit tier. A case states how it runs: `effort` (the level the flow was measured at; `--effort` on the command line wins), `gates`, and `attachments` per turn. `gates` is required: its `answers` name each card they answer by the card's tool and the turn whose message raised it (a yes, a no with a comment, or the picks of a question card), and its `policy` answers every card no answer names: `auto` says yes to every approval and offer and takes each question's recommendation, `stop` does the same but leaves the last turn's card unanswered, `decline-offers` says no to an offer, yes to any other approval and leaves a question unanswered, and `leave` answers nothing. An answer for a card that never came blocks no later answer. A case that must build nothing may not use a policy that accepts an offer. Each answer writes its own run directory under its turn's (`turn-N/answer-K`). `replyMentions` and `turnReplyMentions` read what the turn showed, the facts part and the reply, and a phrase that joins its right wordings with ` | ` ("PC1 | first principal component") holds when any of them shows, and is omitted only when none does; `replyOmits` and `turnReplyOmits` read the reply alone, since the facts part shows a vocabulary term beside its label by design; each difference names the text it read. `--via-worker` runs the turns through the worker so a durable tool executes.
 
-**A recorded count is judged against the site build.** A case that carries `root_count` (the count, the build it held on, the date read) gets one of three verdicts from `pathfinder.evals.drift.classify`: `fail` for any difference that is not the count, or the count off on the same build; `pass` for the count off on a new build within `max(5, 10 %)`; `re-measure` for the count off on a new build outside that band. The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences, with `re_measure` counted beside passed and failed. It is the logic layer's feed into the observability contract, and the pre-release report reads it.
+**A recorded count is judged against the site build.** A case that carries `root_count` (the count, the build it held on, the date read) gets one of three verdicts from `strategist.evals.drift.classify`: `fail` for any difference that is not the count, or the count off on the same build; `pass` for the count off on a new build within `max(5, 10 %)`; `re-measure` for the count off on a new build outside that band. The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences, with `re_measure` counted beside passed and failed. It is the logic layer's feed into the observability contract, and the pre-release report reads it.
 
 # The three platform packages
 
@@ -266,7 +266,7 @@ what each one proves are
 `assistant-platform: docs/knowledge/conventions/verification-gates.md`.
 
 **Our own MCP server is read by the conformance suite in the live lane.**
-`apps/api/src/pathfinder/tests/integration/mcp/` is marked `live_wdk`, so it
+`apps/api/src/strategist/tests/integration/mcp/` is marked `live_wdk`, so it
 skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` and without
 `WDK_MCP_SERVICE_TOKENS` naming the value the served container carries.
 `test_conformance_ours.py` runs the suite as its own process against

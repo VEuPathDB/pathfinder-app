@@ -1,0 +1,367 @@
+"""The budget one Lead turn runs under, and what it says when it reaches it."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
+
+import pytest
+from pydantic_ai.usage import RunUsage
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+
+from strategist.ai.graph.state import VerificationDigest
+from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.lead.ledger import InvestigationLedger
+from strategist.ai.lead.ledger_sections import (
+    BuildSection,
+    FrameSection,
+    VerificationSection,
+)
+from strategist.ai.lead.reply_claims import machine_words
+from strategist.ai.lead.turn_budget import (
+    budget_stop_report,
+    lead_token_budget,
+    lead_turn_budget_message,
+    lead_usage_limits,
+)
+from strategist.domain.strategy.questions import OpenQuestion
+from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.staleness import StaleBuild
+from strategist.domain.strategy.step_rationale import SearchRationale
+from strategist.domain.strategy.step_words import AddedSearch
+from strategist.platform.config import get_settings
+from strategist.services.strategies.sync_state import ensure_sync_state
+from strategist.tests.unit.ai.lead._budget_stop_turn import (
+    ADDED,
+    ADDED_LINE,
+    AT_THE_CALLS,
+    BUDGET,
+    BUILT_BUDGET,
+    CHANGED_NOTHING,
+    CHECKED_BUDGET,
+    NOT_VERIFIED,
+    OBJECTION,
+    QUESTION,
+    SEARCH,
+    SITE_ID,
+    STEP,
+    STRATEGY_LINE,
+    STRATEGY_PAGE,
+    TITLE,
+    WORDS,
+    built,
+    built_outcome,
+    built_session,
+    objection,
+)
+
+_CONFIGURED_LIMIT = 123456
+_DEFAULT_LIMIT = 600_000
+_SECOND_ROOT = "step_a1b2c3d4"
+_TAIL = "Narrow the request and send it again, and I will start a fresh turn on it."
+
+
+@pytest.fixture
+def configured_limit(monkeypatch: pytest.MonkeyPatch) -> Iterator[int]:
+    monkeypatch.setenv("LEAD_TURN_TOKEN_LIMIT", str(_CONFIGURED_LIMIT))
+    get_settings.cache_clear()
+    yield _CONFIGURED_LIMIT
+    get_settings.cache_clear()
+
+
+def test_the_turn_budget_is_the_configured_token_ceiling(
+    configured_limit: int,
+) -> None:
+    assert lead_token_budget().limit == configured_limit
+
+
+def test_the_turn_budget_covers_the_leads_own_calls_and_tokens() -> None:
+    limits = lead_usage_limits()
+
+    assert (limits.request_limit, limits.tool_calls_limit) == (80, 80)
+    assert (limits.total_tokens_limit, lead_token_budget().limit) == (
+        None,
+        _DEFAULT_LIMIT,
+    )
+
+
+def test_each_turn_gets_its_own_limits_object() -> None:
+    """One turn's ceiling is never the object another turn is judged by."""
+    first = lead_usage_limits()
+
+    assert lead_usage_limits() is not first
+    assert lead_usage_limits() == first
+
+
+@pytest.mark.parametrize(
+    ("spent", "limit"),
+    [
+        (RunUsage(requests=80), "80 model calls"),
+        (RunUsage(requests=12, tool_calls=78), "80 tool calls"),
+        (RunUsage(requests=80, input_tokens=600_001), f"{_DEFAULT_LIMIT} tokens"),
+        (RunUsage(requests=15, input_tokens=600_001), f"{_DEFAULT_LIMIT} tokens"),
+    ],
+    ids=["calls", "tool_calls", "tokens_at_the_call_limit", "tokens"],
+)
+def test_the_turn_budget_message_names_the_limit_the_turn_spent(
+    spent: RunUsage, limit: str
+) -> None:
+    assert lead_turn_budget_message(
+        spent,
+        lead_usage_limits(),
+        token_limit=_DEFAULT_LIMIT,
+        built=False,
+        checked=False,
+    ) == (f"I stopped this turn at its budget of {limit}. {_TAIL}")
+
+
+def _ledger(
+    build: BuildSection, digest: VerificationDigest | None
+) -> InvestigationLedger:
+    return InvestigationLedger(
+        user_intent=None,
+        frame=FrameSection(),
+        build=build,
+        verification=VerificationSection(digest=digest),
+    )
+
+
+def _nothing_built() -> StrategySession:
+    return StrategySession(site_id=SITE_ID)
+
+
+def _built_this_turn() -> TurnMarkers:
+    return TurnMarkers(built=True, added_searches=[ADDED])
+
+
+def _report(
+    build: BuildSection,
+    digest: VerificationDigest | None,
+    session: StrategySession,
+    *,
+    turn: TurnMarkers | None = None,
+    questions: Sequence[OpenQuestion] = (),
+) -> str:
+    return budget_stop_report(
+        _ledger(build, digest),
+        session,
+        turn if turn is not None else _built_this_turn(),
+        questions,
+        AT_THE_CALLS,
+        lead_usage_limits(),
+    )
+
+
+def test_a_budget_stop_reports_the_step_the_turn_built() -> None:
+    report = _report(
+        built(),
+        objection(),
+        built_session(),
+        questions=[OpenQuestion(question=QUESTION)],
+    )
+
+    assert report == "\n\n".join(
+        [
+            STRATEGY_LINE,
+            ADDED_LINE,
+            f"Verification objected: {OBJECTION}",
+            QUESTION,
+            CHECKED_BUDGET,
+        ]
+    )
+
+
+def test_a_budget_stop_prints_no_internal_name() -> None:
+    report = _report(
+        built(),
+        objection(),
+        built_session(),
+        questions=[OpenQuestion(question=QUESTION)],
+    )
+
+    assert machine_words(report) == []
+
+
+def test_a_budget_stop_reports_a_passed_check() -> None:
+    passed = objection().model_copy(update={"success": True})
+
+    report = _report(built(), passed, built_session())
+
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, "Verification passed.", CHECKED_BUDGET]
+    )
+
+
+def test_a_budget_stop_before_any_check_says_the_turn_did_not_verify() -> None:
+    report = _report(built(), None, built_session())
+
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, NOT_VERIFIED, BUILT_BUDGET]
+    )
+
+
+def test_a_budget_stop_that_built_nothing_says_so() -> None:
+    report = _report(BuildSection(), None, _nothing_built(), turn=TurnMarkers())
+
+    assert report == f"Nothing was built.\n\n{CHANGED_NOTHING}\n\n{BUDGET}"
+
+
+def test_a_budget_stop_keeps_frames_question_verbatim() -> None:
+    report = _report(
+        BuildSection(),
+        None,
+        _nothing_built(),
+        turn=TurnMarkers(),
+        questions=[OpenQuestion(question=QUESTION)],
+    )
+
+    assert report == "\n\n".join(
+        ["Nothing was built.", CHANGED_NOTHING, QUESTION, BUDGET]
+    )
+
+
+def test_a_turn_that_wrote_nothing_says_so_over_an_earlier_build() -> None:
+    report = _report(built(), None, built_session(), turn=TurnMarkers())
+
+    assert report == "\n\n".join([STRATEGY_LINE, CHANGED_NOTHING, NOT_VERIFIED, BUDGET])
+
+
+def test_an_edit_that_added_no_step_says_the_strategy_changed() -> None:
+    report = _report(built(), None, built_session(), turn=TurnMarkers(edited=True))
+
+    assert report == "\n\n".join(
+        [
+            STRATEGY_LINE,
+            "This turn changed the strategy and added no step.",
+            NOT_VERIFIED,
+            BUILT_BUDGET,
+        ]
+    )
+
+
+def test_every_step_the_turn_added_is_named() -> None:
+    second = AddedSearch(
+        step_id=_SECOND_ROOT, search_display_name="Text", criterion_text="kinases"
+    )
+    turn = TurnMarkers(built=True, added_searches=[ADDED, second])
+
+    report = _report(built(), None, built_session(), turn=turn)
+
+    assert report.split("\n\n")[1] == (
+        f'This turn added 2 steps: "{TITLE}" ({WORDS}); "Text" (kinases).'
+    )
+
+
+def test_a_step_with_a_reason_is_named_with_it() -> None:
+    reasoned = ADDED.model_copy(
+        update={
+            "rationale": SearchRationale(
+                search_name=SEARCH,
+                basis="parameter",
+                term="Minimum ExportPred Score",
+                reason="sets Minimum ExportPred Score to 10",
+                tool_call_id="call_1",
+            )
+        }
+    )
+    turn = TurnMarkers(built=True, added_searches=[reasoned])
+
+    report = _report(built(), None, built_session(), turn=turn)
+
+    assert report.split("\n\n")[1] == (
+        f'This turn added 1 step: "{TITLE}" ({WORDS}; sets Minimum ExportPred Score).'
+    )
+
+
+def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
+    naming = objection().model_copy(
+        update={"reason": f"{STEP} keeps the wrong reference group."}
+    )
+
+    report = _report(built(), naming, built_session())
+
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, "Verification objected.", CHECKED_BUDGET]
+    )
+
+
+def test_a_budget_stop_before_the_step_reached_the_site_cites_no_count() -> None:
+    session = built_session()
+    session.sync_state = None
+
+    report = _report(BuildSection(), None, session)
+
+    assert report.split("\n\n")[0] == (
+        f'The strategy holds 1 step; the final step is "{TITLE}".'
+    )
+
+
+def test_a_budget_stop_links_the_root_the_strategy_holds_now() -> None:
+    outcome = built_outcome()
+
+    report = _report(
+        BuildSection(outcome=outcome, pushed_count=1), None, built_session()
+    )
+
+    assert report.split("\n\n")[0] == STRATEGY_LINE
+
+
+def test_a_split_strategy_names_no_final_step() -> None:
+    session = built_session()
+    assert session.graph is not None
+    session.graph.steps.update(
+        flatten_tree(StrategyStepNode(id=_SECOND_ROOT, search_name="GenesByText"))
+    )
+    session.graph.recompute_roots()
+    ensure_sync_state(session).wdk_step_tree = None
+
+    report = _report(built(), None, session)
+
+    assert report.split("\n\n")[0] == (
+        f"The strategy holds 2 steps. It is on VEuPathDB at {STRATEGY_PAGE}."
+    )
+
+
+def test_a_budget_stop_cites_no_count_the_ledger_marks_out_of_date() -> None:
+    stale = built().model_copy(
+        update={"stale_build": StaleBuild(changed_nodes=[(STEP, 70, 12)])}
+    )
+
+    report = _report(stale, None, built_session())
+
+    assert report.split("\n\n")[0] == (
+        f'The strategy holds 1 step; the final step is "{TITLE}". The strategy '
+        "changed on VEuPathDB after this conversation built it, so the count "
+        "recorded here is out of date."
+    )
+
+
+def test_a_split_strategy_out_of_date_cites_no_link() -> None:
+    session = built_session()
+    assert session.graph is not None
+    session.graph.steps.update(
+        flatten_tree(StrategyStepNode(id=_SECOND_ROOT, search_name="GenesByText"))
+    )
+    session.graph.recompute_roots()
+    ensure_sync_state(session).wdk_step_tree = None
+    stale = built().model_copy(
+        update={"stale_build": StaleBuild(added_nodes=[_SECOND_ROOT])}
+    )
+
+    report = _report(stale, None, session)
+
+    assert report.split("\n\n")[0] == (
+        "The strategy holds 2 steps. The strategy changed on VEuPathDB after this "
+        "conversation built it, so the count recorded here is out of date."
+    )
+
+
+def test_a_budget_stop_counts_a_pathway_strategy_in_pathways() -> None:
+    session = built_session()
+    assert session.graph is not None
+    session.graph.record_type = "pathway"
+
+    report = _report(built(), None, session)
+
+    assert report.startswith(
+        f'The strategy holds 1 step; the final step "{TITLE}" returns 70 pathways.'
+    )

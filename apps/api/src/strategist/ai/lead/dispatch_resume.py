@@ -1,0 +1,104 @@
+"""Finish the dispatch a user answered, from the arguments it was called with.
+
+The approval suspends the sub-agent inside a Lead tool, so the re-entry runs
+the same dispatch again rather than a shorter version of it.
+"""
+
+from __future__ import annotations
+
+from assistant_core.graph.turn_state import ParkedCall
+from pydantic import BaseModel, ConfigDict
+
+from strategist.ai.lead.deltas import (
+    EditDelta,
+    FrameResult,
+    RecoveryDelta,
+    VerificationDelta,
+    VerificationStopped,
+)
+from strategist.ai.lead.edit_dispatch import run_edit
+from strategist.ai.lead.frame_dispatch import frame_work_order, run_frame
+from strategist.ai.lead.lead_proposal import accepted_brief
+from strategist.ai.lead.proposal import Proposal
+from strategist.ai.lead.sub_agent_dispatch import run_recovery
+from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
+from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.verify_dispatch import run_verification
+
+__all__ = ["SubAgentOutcome", "resume_sub_agent"]
+
+
+class _ReasonArgs(BaseModel):
+    """The ``reason`` every dispatch wrapper takes."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    reason: str = ""
+
+
+class _FrameArgs(_ReasonArgs):
+    expected_criteria: int = 3
+
+
+type SubAgentOutcome = (
+    FrameResult
+    | RecoveryDelta
+    | VerificationDelta
+    | VerificationStopped
+    | EditDelta
+    | SubAgentApprovalWait
+)
+
+
+async def resume_sub_agent(
+    *,
+    deps: LeadDeps,
+    approval: ParkedCall,
+    resume: SubAgentResume,
+) -> SubAgentOutcome:
+    """Finish the dispatch the user answered, from its own arguments."""
+    call_id = approval.tool_call_id
+    args = dict(approval.tool_args)
+    match approval.tool_name:
+        case "verify_strategy":
+            return await run_verification(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                reason=_ReasonArgs.model_validate(args).reason,
+                resume=resume,
+            )
+        case "recover_failed_steps":
+            return await run_recovery(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                reason=_ReasonArgs.model_validate(args).reason,
+                resume=resume,
+            )
+        case "edit_strategy":
+            return await run_edit(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                reason=_ReasonArgs.model_validate(args).reason,
+                resume=resume,
+            )
+        case "propose_changes":
+            return await run_edit(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                reason=accepted_brief(
+                    deps.state, call_id, Proposal.model_validate(args)
+                ),
+                resume=resume,
+            )
+        case "frame_problem":
+            frame_args = _FrameArgs.model_validate(args)
+            return await run_frame(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                work_order=frame_work_order(frame_args.reason, deps),
+                expected_criteria=frame_args.expected_criteria,
+                resume=resume,
+            )
+        case _:
+            msg = f"No sub-agent dispatch named {approval.tool_name!r} to resume."
+            raise RuntimeError(msg)

@@ -37,7 +37,7 @@ environment reads every file:
 ```
 $ uv run --with 'vulture' vulture --version
 vulture 2.16
-$ uv run --with 'vulture' vulture src/pathfinder --exclude 'tests/,*/conftest.py' --min-confidence 80
+$ uv run --with 'vulture' vulture src/strategist --exclude 'tests/,*/conftest.py' --min-confidence 80
 7 findings, 0 lines containing "invalid syntax", exit 3
 ```
 

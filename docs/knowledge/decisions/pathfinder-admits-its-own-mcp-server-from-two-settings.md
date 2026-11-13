@@ -58,7 +58,7 @@ second record built beside this one, not a new configuration format.
 
 # Anchor
 
-`apps/api/src/pathfinder/platform/tool_sources.py`, pinned by
+`apps/api/src/strategist/platform/tool_sources.py`, pinned by
 `tests/unit/platform/test_tool_sources.py`: nothing is admitted without both
 settings, the admitted id is the name the server publishes, the budget covers
 the server's longest declared call, and an unconfigured credential is refused

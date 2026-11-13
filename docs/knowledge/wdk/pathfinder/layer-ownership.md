@@ -25,9 +25,9 @@ external package. Run them with `cd apps/api && uv run lint-imports`.
 
 | Contract name | Source | Forbidden | Named by a rule? |
 |---|---|---|---|
-| Transport and AI never import persistence directly | `pathfinder.transport`, `pathfinder.ai` | `persistence` | **no** |
-| Services never import transport or AI | `pathfinder.services` | `transport`, `ai`, `pydantic_ai` | **no** |
-| Persistence never imports services, transport, or AI | `pathfinder.persistence` | `services`, `transport`, `ai` | **no** |
+| Transport and AI never import persistence directly | `strategist.transport`, `strategist.ai` | `persistence` | **no** |
+| Services never import transport or AI | `strategist.services` | `transport`, `ai`, `pydantic_ai` | **no** |
+| Persistence never imports services, transport, or AI | `strategist.persistence` | `services`, `transport`, `ai` | **no** |
 | The science never imports an assistant's composition root | `ai`, `persistence`, `services` | `assistants` | **no** |
 | The agent and the jobs reach the evidence producers only through its facade | `ai`, `jobs` | the service modules the facade owns | **no** |
 | The application imports no private module of an installed distribution | `pathfinder` | the named `_*` modules of the three libraries | **no** |
@@ -70,7 +70,7 @@ exceptions - and it left this file with the layer it named. See
 
 Until 2026-09-03 the contract above was satisfied by one module.
 `services/wdk/__init__.py` re-exported the WDK client factories and two dozen
-WDK types, so an AI tool wrote `from pathfinder.services.wdk import WDKParameter`
+WDK types, so an AI tool wrote `from strategist.services.wdk import WDKParameter`
 and never named `pathfinder.integrations`. That was the contract satisfied by an
 alias: the object a caller received was the integration's own, and no check said
 which of the twenty-four a caller took.
@@ -95,7 +95,7 @@ docs/knowledge/wdk/rest/endpoint-surface.md`, and its client column names the me
 under `src/veupathdb/wdk/` that issues each call. Which of this backend's functions
 reaches which endpoint is a second mapping, and it is derived rather than inspected.
 
-Every WDK path literal under `apps/api/src/pathfinder`, excluding `tests/`, is extracted
+Every WDK path literal under `apps/api/src/strategist`, excluding `tests/`, is extracted
 and mapped to its enclosing function. Anything absent from the extraction is a claim
 about the whole backend rather than about one package. Redo it by grepping the backend
 for string literals beginning `/users`, `/record-types`, `/strategy-lists`,
@@ -133,7 +133,7 @@ A contract reads import statements. It says nothing about importing `httpx` and
 calling a VEuPathDB URL, because `httpx` is only in the forbidden list of the
 client library's own domain suite.
 
-Every non-test module under `src/pathfinder/` that imports `httpx` catches its
+Every non-test module under `src/strategist/` that imports `httpx` catches its
 exception types without making a call; the clients that reach arXiv, Crossref,
 PubMed and the rest are served by `veupathdb-research-mcp` and are not in this
 tree. No module builds a client against a VEuPathDB base URL. One did:
@@ -173,7 +173,7 @@ object, and a WDK-*response* type may not reach the wire at all. That is
 facts of `veupathdb-py`: the value objects are `veupathdb.domain`, whose boundary
 suite asserts it opens no connection, and the response models are
 `veupathdb.wdk.wdk_models`, which the wire generator never reaches because no
-`pathfinder.transport` module names one.
+`strategist.transport` module names one.
 
 # Why an AI tool calls a service and not an integration
 

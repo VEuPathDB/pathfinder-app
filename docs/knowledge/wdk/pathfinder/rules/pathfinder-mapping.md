@@ -54,7 +54,7 @@ rejects it at runtime with no test watching.
 `veupathdb-py: tests/unit/domain/parameters/test_values.py` looks like the test that
 would notice and is not: every case is `decode(encode(x)) == x`, which constrains
 the codec rather than the enumeration, and `[tool.mypy]` in
-`apps/api/pyproject.toml` excludes `src/pathfinder/tests/`, so its literals are
+`apps/api/pyproject.toml` excludes `src/strategist/tests/`, so its literals are
 not type-checked either.
 
 The correspondence, cell by cell, is in
@@ -77,7 +77,7 @@ halves are the client library's: the declaration is `WDKParameter` in
 The split has to hold in the direction that matters. A parameter *value* crosses
 every layer - it is in `StepResponse.parameters`, in agent tool arguments, in the
 persisted `StrategyAst` - while a parameter *declaration* is a transport concern:
-`apps/api/src/pathfinder/transport/http/routers/sites/params.py` serves it to the
+`apps/api/src/strategist/transport/http/routers/sites/params.py` serves it to the
 browser only after `veupathdb_mcp.catalog` has normalized it into
 `ParamSpecResponse`. On 2026-09-08 `openapi.json` held 308 schemas and not one of
 them was a `WDKParameter` member.
@@ -109,7 +109,7 @@ green, because nothing about it would be an import at all.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L129-L140
 - anchor: veupathdb-py: src/veupathdb/domain/strategy/graph_model.py:flatten_tree
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/strategies/test_wdk_pushed_step_tree.py::test_wdk_map_003_the_serialized_tree_carries_only_the_three_keys
+- status: ENFORCED by apps/api/src/strategist/tests/unit/services/strategies/test_wdk_pushed_step_tree.py::test_wdk_map_003_the_serialized_tree_carries_only_the_three_keys
 
 `formatAsStepTree` writes a node as `stepId` plus optional `primaryInput` and
 `secondaryInput` and nothing else, and the client type says the same
@@ -141,7 +141,7 @@ checks.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/filter/CheckLoginFilter.java#L135-L148
 - anchor: veupathdb-mcp: src/veupathdb_mcp/wdk/step_preview.py:step_sample_records
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_call_sites.py::test_wdk_map_005_no_pathfinder_module_builds_a_site_client
+- status: ENFORCED by apps/api/src/strategist/tests/unit/test_call_sites.py::test_wdk_map_005_no_strategist_module_builds_a_site_client
 
 The reason is WDK's, not ours. Identity travels on a cookie the *client object*
 holds, and a request without one is not refused - a new guest is minted for it
@@ -185,8 +185,8 @@ different user.
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/SessionService.java#L277-L311
-- anchor: apps/api/src/pathfinder/transport/http/routers/dev_site_login.py:password_login
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_call_sites.py::test_wdk_map_005_no_pathfinder_module_builds_a_site_client
+- anchor: apps/api/src/strategist/transport/http/routers/dev_site_login.py:password_login
+- status: ENFORCED by apps/api/src/strategist/tests/unit/test_call_sites.py::test_wdk_map_005_no_strategist_module_builds_a_site_client
 
 The WDK transport is the client library's (`veupathdb-py`, `veupathdb/wdk/`).
 This application holds none of it: a `pathfinder` module that builds its own
@@ -223,8 +223,8 @@ records that a WDK logout leaves the bearer token valid).
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150
-- anchor: apps/api/src/pathfinder/services/strategies/schemas.py:wdk_step_id
-- status: PARTIAL by apps/api/src/pathfinder/tests/unit/services/strategies/test_materialize_snapshot.py::test_the_snapshot_is_pushed_with_no_wdk_ids_of_its_own
+- anchor: apps/api/src/strategist/services/strategies/schemas.py:wdk_step_id
+- status: PARTIAL by apps/api/src/strategist/tests/unit/services/strategies/test_materialize_snapshot.py::test_the_snapshot_is_pushed_with_no_wdk_ids_of_its_own
 
 Every WDK id is a number - `StepTree.stepId`, `Step.id`, `Strategy.rootStepId` -
 and an `input-step` value is that number stringified
@@ -283,7 +283,7 @@ which has the same gap for the same reason.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L59-L79
 - anchor: packages/shared-ts/src/types.ts:StrategyAst
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_shared_names_are_pathfinder_types.py::test_wdk_map_008_no_name_carries_the_wdk_shape
+- status: ENFORCED by apps/api/src/strategist/tests/unit/test_shared_names_are_strategist_types.py::test_wdk_map_008_no_name_carries_the_wdk_shape
 
 Four names collide with `wdk-client` and none of them means the same thing.
 
@@ -313,8 +313,8 @@ in [type-correspondence](../type-correspondence.md).
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/ApiCommonModel/blob/443fb341b9e89b489287711d3661c1c250b05b03/Model/lib/wdk/model/questions/queries/geneQueries.xml#L1703-L1764
-- anchor: apps/api/src/pathfinder/domain/strategy/orthology.py:round_trip_refusal
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_orthology_round_trip.py::test_a_round_trip_without_the_intersect_is_refused
+- anchor: apps/api/src/strategist/domain/strategy/orthology.py:round_trip_refusal
+- status: ENFORCED by apps/api/src/strategist/tests/unit/domain/strategy/test_orthology_round_trip.py::test_a_round_trip_without_the_intersect_is_refused
 
 `GenesByOrthologs` answers the genes of the named organism that share an OrthoMCL
 group with an input gene, and with `isSyntenic = yes` only the pairs whose genes
@@ -369,7 +369,7 @@ So without synteny the profile answers the same OrthoMCL groups in one step,
 and FRAME may bind it for "keep those with an ortholog in X"; with synteny only
 the transform can state it, because the profile has no synteny parameter. The
 live check is
-`apps/api/src/pathfinder/tests/live/test_orthology_round_trip_counts.py`.
+`apps/api/src/strategist/tests/live/test_orthology_round_trip_counts.py`.
 
 The word itself is held by no rule: the qualifier check that matched a word of
 the criterion to the parameters of the searches a pass read was removed
@@ -379,8 +379,8 @@ the criterion to the parameters of the searches a pass read was removed
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/BooleanQuery.java#L149-L170
-- anchor: apps/api/src/pathfinder/services/separation/offer.py:separation_report
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/separation/test_offer_from_result.py::test_the_offer_builds_the_tree_the_run_assembled
+- anchor: apps/api/src/strategist/services/separation/offer.py:separation_report
+- status: ENFORCED by apps/api/src/strategist/tests/unit/services/separation/test_offer_from_result.py::test_the_offer_builds_the_tree_the_run_assembled
 
 A separation run measures a candidate by intersecting its step with one step of
 the controls, so a candidate is admitted only where WDK can form that boolean.
@@ -406,6 +406,6 @@ Strategist's half is the offer (`services/separation/offer.py`): each leaf becom
 a criterion bound to the measured search and its wire parameters, the right input
 of a MINUS is an `exclude` criterion, and the tree is the spec's structure, so
 `build_step_tree` mints the steps that were measured and nothing a model chose.
-The live check `apps/api/src/pathfinder/tests/live/test_a_strategy_from_controls.py`
+The live check `apps/api/src/strategist/tests/live/test_a_strategy_from_controls.py`
 builds an offered spec on the account and reads its root back with a control test
 of its own: the same ids in each cell, and the site's size equal to the offer's.

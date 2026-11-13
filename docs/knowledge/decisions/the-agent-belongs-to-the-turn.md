@@ -52,7 +52,7 @@ what model that agent would have used.
 
 # Anchor
 
-`apps/api/src/pathfinder/ai/lead/lead_agent.py` holds the Lead's factory,
+`apps/api/src/strategist/ai/lead/lead_agent.py` holds the Lead's factory,
 `ai/graph/builder.py` the wiring, and `ai/agents/frame.py`,
 `execution.py` and `verification.py` the phase factories that
 `ai/lead/sub_agent_tools.py` maps by role. Done if a module-level `Agent` is
