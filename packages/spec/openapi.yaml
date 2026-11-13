@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: VEuPathDB Strategist API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.9.1a2
+  version: 0.9.1a3
 paths:
   /health:
     get:
